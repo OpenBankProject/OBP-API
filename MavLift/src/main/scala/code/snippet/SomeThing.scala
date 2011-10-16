@@ -226,7 +226,7 @@ object OBPRest extends RestHelper {
     .withinCenter(longitude, latitude, range_radians)
     .get
 
-    val choose_items = ChooseItem.findAll(qry)
+    val choose_items = OBPTransaction.findAll(qry)
 
     // Note: we should be able to sort and limit the results. but don't know the syntax.
     //val choose_items = ChooseItem.findAll(qry).sortBy("don't know what to put here")
