@@ -328,7 +328,7 @@ object OBPRest extends RestHelper {
     println("There are %d items in the list".format(items_count))
 
     if (items_count > 0) {
-      println(choose_items.first.description)
+      //println(choose_items.first.description)
       println("after--------")
     }
 
