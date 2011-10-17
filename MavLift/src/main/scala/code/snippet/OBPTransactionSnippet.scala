@@ -3,6 +3,8 @@ package code.snippet
 import code.model.OBPTransaction
 
 import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
+import java.text.SimpleDateFormat
+
 //import net.liftweb.http.DispatchSnippet._
 //import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
@@ -49,8 +51,19 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     // call anonymous function on every transaction in obp_transactions (i.e. what a map does)
     // the lambda function here replaces some stuff with the data
 
+    import java.text.SimpleDateFormat
+    val formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
+
     page.flatMap(obp_transaction => {
-      ( ".obp_transaction_date_start *" #> obp_transaction.obp_transaction_date_start.toForm &
+      (
+        ".obp_transaction_type_en *" #> obp_transaction.obp_transaction_type_en &
+        ".obp_transaction_type_de *" #> obp_transaction.obp_transaction_type_de &
+        ".obp_transaction_data_blob *" #> obp_transaction.obp_transaction_data_blob &
+        ".obp_transaction_new_balance *" #> obp_transaction.obp_transaction_new_balance &
+        ".obp_transaction_amount *" #> obp_transaction.obp_transaction_amount &
+        ".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
+        ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
+        ".obp_transaction_date_complete *" #> (formatter format obp_transaction.obp_transaction_date_complete.is.getTime()) &
         ".opb_transaction_other_account *" #> obp_transaction.opb_transaction_other_account).apply(xhtml)
       }
     )
