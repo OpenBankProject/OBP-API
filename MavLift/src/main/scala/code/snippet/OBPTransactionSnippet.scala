@@ -24,7 +24,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
   override def itemsPerPage = 5
   //override def page = OBPTransaction.findAll(QueryBuilder.start().get(), Limit(itemsPerPage), Skip(curPage*itemsPerPage))
 
-  override def obp_transactions = OBPTransaction.findAll(QueryBuilder.start().get())
+  override def page = OBPTransaction.findAll(QueryBuilder.start().get())
 
 
 
@@ -49,8 +49,9 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     // call anonymous function on every transaction in obp_transactions (i.e. what a map does)
     // the lambda function here replaces some stuff with the data
 
-    obp_transactions.flatMap(obp_transaction => {
-      (".opb_transaction_other_account *" #> obp_transaction.opb_transaction_other_account).apply(xhtml)
+    page.flatMap(obp_transaction => {
+      ( ".obp_transaction_date_start *" #> obp_transaction.obp_transaction_date_start.toForm &
+        ".opb_transaction_other_account *" #> obp_transaction.opb_transaction_other_account).apply(xhtml)
       }
     )
   }
