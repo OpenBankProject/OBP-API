@@ -83,6 +83,9 @@ class Boot {
       )
     )
 
+
+
+
     def sitemapMutators = User.sitemapMutator
 
     // set the sitemap.  Note if you don't want access control for

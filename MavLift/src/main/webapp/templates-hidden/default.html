@@ -15,14 +15,14 @@
   color: red;
 }
 
-.sidebar ul {
+.sidebar ul.menu {
 	margin:0;
 	padding:0;
 	border-bottom:1px solid #ccc;
 }
 	 
 
-.sidebar ul li {
+.sidebar ul.menu li {
 	margin:0;
 	padding:0;
 	list-style:none;
@@ -30,24 +30,27 @@
 	border-bottom:none;
 }
 
-.sidebar ul li a {
+.sidebar ul.menu li a {
 	display:block;
 	padding:3px;
 	text-indent:30px;
 	text-decoration:none;
 }
 
-.sidebar ul li span {
+.sidebar ul.menu li span {
 	display:block;
 	padding:3px;
 	text-indent:30px;
 	text-decoration:none;
 }
 
-.sidebar ul li a:hover {
+.sidebar ul.menu li a:hover {
 	background-color: #eee;
 }
 
+.sidebar ul.menu ul {
+    padding-left: 15px;
+}
 
   /* ]]> */
   </style>
@@ -63,8 +66,8 @@
       <div class="column span-6 colborder sidebar">
         <hr class="space" >
 
-	<span class="lift:Menu.builder"></span>
-
+        <!-- <span class="lift:Menu.builder ul:class='menu'"></span> -->
+        <lift:Menu.builder ul:class="menu" />
         <div class="lift:Msgs?showAll=true"></div>
         <hr class="space" />
       </div>

@@ -5,6 +5,7 @@ import code.model.OBPTransaction
 import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 
+import net.liftweb.http._
 //import net.liftweb.http.DispatchSnippet._
 //import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
@@ -15,8 +16,7 @@ import net.liftweb.mongodb.Skip._
 
 
 import net.liftweb.util.Helpers._
-
-
+//import net.liftweb.common.{Box,Full,Empty,Failure,ParamFailure}
 
 
 
@@ -25,10 +25,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
   override def count = OBPTransaction.count
   override def itemsPerPage = 5
   //override def page = OBPTransaction.findAll(QueryBuilder.start().get(), Limit(itemsPerPage), Skip(curPage*itemsPerPage))
-
   override def page = OBPTransaction.findAll(QueryBuilder.start().get())
-
-
 
   var dispatch: DispatchIt = {
     case "showAll" => showAll _
@@ -46,7 +43,11 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     //bind("peer",xhtml, "status" -> "excited")
     // xhtml
+    val consumer = S.attr("consumer") openOr "no param consumer passed"
 
+    if (consumer == "anonymous") {
+
+    }
 
     // call anonymous function on every transaction in obp_transactions (i.e. what a map does)
     // the lambda function here replaces some stuff with the data
