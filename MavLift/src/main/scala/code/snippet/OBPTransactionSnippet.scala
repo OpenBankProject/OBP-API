@@ -40,13 +40,24 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     //val obp_transactions = OBPTransaction.findAll(qry)
 
+    def present_obp_transaction_new_balance(obp_transaction_new_balance: Double, consumer: String): String = {
+      val result: String =
+      if(consumer == "team")
+        obp_transaction_new_balance.toString
+      else if(consumer == "board")
+        obp_transaction_new_balance.toString
+      else
+        "---"
+      result
+      }
+
+
 
     //bind("peer",xhtml, "status" -> "excited")
     // xhtml
     val consumer = S.attr("consumer") openOr "no param consumer passed"
 
     if (consumer == "anonymous") {
-
     }
 
     // call anonymous function on every transaction in obp_transactions (i.e. what a map does)
@@ -55,12 +66,17 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     import java.text.SimpleDateFormat
     val formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
 
+
+
+
+
+
     page.flatMap(obp_transaction => {
       (
         ".obp_transaction_type_en *" #> obp_transaction.obp_transaction_type_en &
         ".obp_transaction_type_de *" #> obp_transaction.obp_transaction_type_de &
         ".obp_transaction_data_blob *" #> obp_transaction.obp_transaction_data_blob &
-        ".obp_transaction_new_balance *" #> obp_transaction.obp_transaction_new_balance &
+        ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_transaction.obp_transaction_new_balance.value, consumer) &
         ".obp_transaction_amount *" #> obp_transaction.obp_transaction_amount &
         ".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
         ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
