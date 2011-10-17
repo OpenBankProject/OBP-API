@@ -157,12 +157,19 @@ object OBPRest extends RestHelper {
     val location = Location.createRecord.longitude(2).latitude(51)
 
     // Create a ChooseItem object and save it in the mongodb
+    /*
+    Works!
+
+
     val choose_item_1 = OBPTransaction.createRecord
     .obp_transaction_amount(-100)
     .obp_transaction_currency("EU")
     .obp_transaction_location(location)
     .opb_transaction_other_account("Print Supplier")
     .save
+
+    */
+
 
     //val choose_items = ChooseItem.findAll
 
@@ -240,11 +247,11 @@ object OBPRest extends RestHelper {
     // Using Casbah.....................
 
     // Get a connection to MongoDB (note. Lift uses model/MongoConfig.scala for this config)
-    val mongoConn = MongoConnection("localhost", 27017)
+    val mongoConn = MongoConnection("obp_mongodb", 27017)
 
 
     // Get a mongodb database
-    val mongoDB = mongoConn("test") // we are using the test database.
+    val mongoDB = mongoConn("OBP003")
 
 
     // Get a collection
@@ -278,6 +285,10 @@ object OBPRest extends RestHelper {
 
     println ("casbah thinks there are %d records in my_records ".format(my_cursor.count()))
 
+    /*
+
+    Works!
+
     // To create a record with Casbah
     val newObj1 = MongoDBObject("foo" -> "bar",
                            "x" -> "y",
@@ -300,6 +311,7 @@ object OBPRest extends RestHelper {
     // and update a record
     newObj2 += "OMG" -> "Ponies!"
 
+    */
 
     val mongoColl = MongoConnection()("chooseitems")
 

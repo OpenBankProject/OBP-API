@@ -40,20 +40,71 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     //val obp_transactions = OBPTransaction.findAll(qry)
 
-    def present_obp_transaction_new_balance(obp_transaction_new_balance: Double, consumer: String): String = {
-      val result: String =
+    def present_obp_transaction_new_balance(value: Double, consumer: String): String = {
+      val show: String =
       if(consumer == "team")
-        obp_transaction_new_balance.toString
+        value.toString
       else if(consumer == "board")
-        obp_transaction_new_balance.toString
+        value.toString
+      else if(consumer == "tax_office")
+        value.toString
+      else if(consumer == "anonymous")
+        (if (value < 0) "-" else "+")
       else
         "---"
-      result
-      }
+      show
+    }
+
+    def present_obp_transaction_other_account(value: String, consumer: String): String = {
+      val show: String =
+      if(consumer == "team")
+        value.toString
+      else if(consumer == "board")
+        value.toString
+      else if(consumer == "tax_office")
+        value.toString
+      else if(consumer == "anonymous")
+        "---"
+      else
+        "---"
+      show
+    }
+
+
+    def other_account_is_a_client(value: String): Boolean = {
+      false
+    }
+
+    def other_account_is_a_team_member(value: String): Boolean = {
+      false
+    }
+
+    def other_account_is_a_supplier(value: String): Boolean = {
+      false
+    }
+
+    def other_account_is_shy(value: String, consumer: String): Boolean = {
+      false
+    }
+
+    def other_account_has_alias(value: String): Boolean = {
+      false
+    }
+
+
+    def other_account_is_known(value: String): Boolean = {
+      (other_account_is_a_team_member(value) ||
+        other_account_is_a_client(value) ||
+        other_account_is_a_supplier(value)
+        )
+    }
+
+    def other_account_is_private(value: String): Boolean = {
+      false
+    }
 
 
 
-    //bind("peer",xhtml, "status" -> "excited")
     // xhtml
     val consumer = S.attr("consumer") openOr "no param consumer passed"
 
