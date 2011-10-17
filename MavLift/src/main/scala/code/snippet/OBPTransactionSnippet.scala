@@ -56,53 +56,53 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     }
 
     def present_obp_transaction_other_account(value: String, consumer: String): String = {
-      val show: String =
-      if(consumer == "team")
-        value.toString
-      else if(consumer == "board")
-        value.toString
-      else if(consumer == "tax_office")
-        value.toString
-      else if(consumer == "anonymous")
-        "---"
-      else
-        "---"
-      show
+      // How the other account is presented to others
+      // Use an alias if shy wins
+      if (other_account_is_shy(value, consumer)) other_account_alias(value) else value
     }
 
 
     def other_account_is_a_client(value: String): Boolean = {
-      false
+      // A list of clients
+      val clients: List[String]	= List("TXTR GMBH")
+      clients.contains(value)
     }
 
     def other_account_is_a_team_member(value: String): Boolean = {
-      false
+      // A list of team members
+      val team: List[String]	= List("Simon Redfern", "Stefan Bethge", "Eveline M", "Ismail Chaib", "Tim Kleinschmidt", "Niels Hapke", "Yoav Aner")
+      team.contains(value)
     }
 
     def other_account_is_a_supplier(value: String): Boolean = {
-      false
+      // A list of suppliers
+      val suppliers: List[String]	= List("HETZNER ONLINE AG", "Cyberport GmbH", "S-BAHN BERLIN GMBH")
+      suppliers.contains(value)
     }
 
     def other_account_is_shy(value: String, consumer: String): Boolean = {
-      false
+       // A list of the financially shy (or just plain private)
+       val the_shy: List[String]	= List("Tim Kleinschmidt", "Jan Slabiak")
+      // A list of those that can look anyway
+       val the_gods: List[String]	= List("team", "board", "tax_office")
+       // No one can be shy in front of the gods
+       (the_shy.contains(value) && !(the_gods.contains(value)))
     }
 
-    def other_account_has_alias(value: String): Boolean = {
-      false
+    def other_account_alias(value: String): String = {
+      // A map of aliases (used if shyness wins)
+      val aliases = Map("Neils Hapke" -> "The Chicken", "Yoav Aner" -> "Software Developer 1", "Jan Slabiak" -> "Alex")
+      aliases.getOrElse(value, "Anon")
     }
 
 
     def other_account_is_known(value: String): Boolean = {
+      // Do we know this other account?
       (other_account_is_a_team_member(value) ||
         other_account_is_a_client(value) ||
         other_account_is_a_supplier(value)
         )
     }
-
-    def other_account_is_private(value: String): Boolean = {
-      false
-    }
-
 
 
     // xhtml
@@ -119,20 +119,20 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
 
 
-
+    // note: blob contains other account right now.
 
 
     page.flatMap(obp_transaction => {
       (
         ".obp_transaction_type_en *" #> obp_transaction.obp_transaction_type_en &
         ".obp_transaction_type_de *" #> obp_transaction.obp_transaction_type_de &
-        ".obp_transaction_data_blob *" #> obp_transaction.obp_transaction_data_blob &
+        ".obp_transaction_data_blob *" #> present_obp_transaction_other_account(obp_transaction.obp_transaction_data_blob.value, consumer) &
         ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_transaction.obp_transaction_new_balance.value, consumer) &
         ".obp_transaction_amount *" #> obp_transaction.obp_transaction_amount &
         ".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
         ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
         ".obp_transaction_date_complete *" #> (formatter format obp_transaction.obp_transaction_date_complete.is.getTime()) &
-        ".opb_transaction_other_account *" #> obp_transaction.opb_transaction_other_account).apply(xhtml)
+        ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_transaction.opb_transaction_other_account.value, consumer)).apply(xhtml)
       }
     )
   }
