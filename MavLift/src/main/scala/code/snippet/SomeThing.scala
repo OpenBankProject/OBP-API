@@ -10,9 +10,6 @@ package com.tesobe.something{
 }
 
 
-
-
-
 package com.tesobe.utils {
 
 import net.liftweb.http._
@@ -22,17 +19,10 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._  // this has render in it.
 
-
 import net.liftweb.json._  // Yep everything
-
-
-
-
 import net.liftweb.common.Full
-
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
-
 
 // import com.mongodb.casbah.commons._
 import com.mongodb.casbah.Imports._
@@ -95,15 +85,14 @@ import com.mongodb._
 import code.model._
 //import code.model.Location
 
-
-
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
-
-
-
 
 // Call like http://localhost:8080/api/balance/theaccountnumber/call.json
 // See http://www.assembla.com/spaces/liftweb/wiki/REST_Web_Services
+
+
+
+import code.model.OBPTransaction
 
 
 object OBPRest extends RestHelper {
@@ -113,33 +102,22 @@ object OBPRest extends RestHelper {
     case Req("api" :: "static" :: _, "json", GetRequest) => JString("Static")
     case Req("api" :: "static" :: _, "xml", GetRequest) => <b>Static Hello</b>
     case Req("api" :: "balance" :: account_number, "", GetRequest) =>
-      println("here i am serving a request")
-
       var first_account_number = account_number.head
-      var question = "You requested the balance for account number: " + first_account_number
-      var answer = "We don't know yet"
-      var json_message = ("question" -> question) ~ ("answer" -> answer)
-
-
-      println  (json_message)
-
-      //println(pretty(render(json_message)))
-
       var json_message_2 = parse(""" { "numbers" : [1, 2, 3, 4] } """)
 
-      println(json_message_2)
+      var transactions = OBPTransaction.findAll(QueryBuilder.start().get())
 
 
+      /*val qry = QueryBuilder.start("description").is("simons another item")
+      .put("location")
+      .withinCenter(longitude, latitude, range_radians)
+      .get*/
 
+      //var some_json = """{"name":"joe","age":15}"""
+      //var json_string = parse(some_json)
 
-      import SimonSays._
+      Full(JsonResponse(transactions.map(t => { t.asJValue })))
 
-      SimonSays.do_something()
-
-
-      RabbitHelper.hello("world")
-
-      json_message_2
     case Req("ping" :: Nil, _, _) => () => Full(PlainTextResponse("pong"))
 
     case Req("xml":: Nil, _, _) => Full(XmlResponse(
@@ -156,7 +134,7 @@ object OBPRest extends RestHelper {
     // Create a location object
     val location = Location.createRecord.longitude(2).latitude(51)
 
-    // Create a ChooseItem object and save it in the mongodb
+    // Create a transaction object and save it in the mongodb
     /*
     Works!
 

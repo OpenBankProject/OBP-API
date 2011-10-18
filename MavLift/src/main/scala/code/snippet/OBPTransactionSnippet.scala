@@ -40,33 +40,37 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     //val obp_transactions = OBPTransaction.findAll(qry)
 
-    def present_obp_transaction_new_balance(value: Double, consumer: String): String = {
+    def present_obp_transaction_new_balance(value: String, consumer: String): String = {
       val show: String =
       if(consumer == "team")
-        value.toString
+        value
       else if(consumer == "board")
-        value.toString
+        value
+      else if(consumer == "our_network")
+        (if (value.startsWith("-") ) "-" else "+")
       else if(consumer == "authorities")
-        value.toString
+        value
       else if(consumer == "anonymous")
-        (if (value < 0) "-" else "+")
+        (if (value.startsWith("-") ) "-" else "+")
       else
         "---"
       show
     }
 
-    def present_obp_transaction_amount(value: Double, consumer: String): String = {
+    def present_obp_transaction_amount(value: String, consumer: String): String = {
       // How the other account is presented to others
       // Use an alias if shy wins
       val show: String =
       if(consumer == "team")
-        value.toString
+        value
       else if(consumer == "board")
-        value.toString
+        value
+      else if(consumer == "our_network")
+        value
       else if(consumer == "authorities")
-        value.toString
+        value
       else if(consumer == "anonymous")
-        (if (value < 0) "-" else "+")
+        (if (value.startsWith("-") ) "-" else "+")
       else
         "---"
       show
@@ -76,7 +80,13 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
       // How the other account is presented to others
       // Use an alias if shy wins
 
+      //val result: String
+
       val outsiders: List[String]	= List("anonymous")
+
+      if (outsiders.contains(value)) {
+
+      }
 
 
       if (other_account_is_shy(value, consumer)) other_account_alias(value) else value
@@ -151,7 +161,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
         ".obp_transaction_data_blob *" #> present_obp_transaction_other_account(obp_transaction.obp_transaction_data_blob.value, consumer) &
         ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_transaction.obp_transaction_new_balance.value, consumer) &
         ".obp_transaction_amount *" #> present_obp_transaction_amount(obp_transaction.obp_transaction_amount.value, consumer) &
-        ".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
+        //".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
+        ".obp_transaction_currency *" #> "EUR" &
         ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
         ".obp_transaction_date_complete *" #> (formatter format obp_transaction.obp_transaction_date_complete.is.getTime()) &
         ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_transaction.opb_transaction_other_account.value, consumer)).apply(xhtml)

@@ -35,8 +35,8 @@ object obp_transaction_data_blob extends net.liftweb.record.field.StringField(th
 object opb_transaction_other_account extends net.liftweb.record.field.StringField(this, 255)
 
 object obp_transaction_currency extends net.liftweb.record.field.StringField(this, 10)
-object obp_transaction_amount extends net.liftweb.record.field.DoubleField(this)
-object obp_transaction_new_balance extends net.liftweb.record.field.DoubleField(this)
+object obp_transaction_amount extends net.liftweb.record.field.StringField(this, 20)
+object obp_transaction_new_balance extends net.liftweb.record.field.StringField(this, 20)
 
 object obp_transaction_location extends BsonRecordField(this, Location)
 

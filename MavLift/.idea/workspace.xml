@@ -59,10 +59,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="default.html" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html">
+      <file leaf-file-name="OBPTransactionSnippet.scala" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/OBPTransactionSnippet.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="57" column="69" selection-start="1287" selection-end="1287" vertical-scroll-proportion="-10.857142">
+            <state line="49" column="50" selection-start="1543" selection-end="1543" vertical-scroll-proportion="0.37671232">
               <folding />
             </state>
           </provider>
@@ -71,88 +71,79 @@
       <file leaf-file-name="SomeThing.scala" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/SomeThing.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="162" column="12" selection-start="4212" selection-end="4212" vertical-scroll-proportion="20.153847">
+            <state line="118" column="58" selection-start="3231" selection-end="3231" vertical-scroll-proportion="-19.461538">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="obp_transactions.html" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/webapp/obp_transactions.html">
+      <file leaf-file-name="board.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/board.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="39" column="6" selection-start="1536" selection-end="1536" vertical-scroll-proportion="-26.464285">
+            <state line="19" column="74" selection-start="485" selection-end="485" vertical-scroll-proportion="-5.892857">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="README" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/README">
+      <file leaf-file-name="default.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="7" column="0" selection-start="252" selection-end="265" vertical-scroll-proportion="0.18344827">
+            <state line="55" column="4" selection-start="1182" selection-end="1182" vertical-scroll-proportion="-27.142857">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="simon.html" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/webapp/simon.html">
+      <file leaf-file-name="our-network.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/our-network.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="8" column="46" selection-start="209" selection-end="209" vertical-scroll-proportion="-5.428571">
+            <state line="37" column="77" selection-start="1285" selection-end="1285" vertical-scroll-proportion="-25.107143">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="web.xml" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/webapp/WEB-INF/web.xml">
+      <file leaf-file-name="authorities.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/authorities.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="11" column="33" selection-start="373" selection-end="373" vertical-scroll-proportion="0.0">
+            <state line="25" column="54" selection-start="675" selection-end="675" vertical-scroll-proportion="-11.535714">
               <folding />
             </state>
           </provider>
-          <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleAssemblyDescriptorProvider">
-            <state />
-          </provider>
-          <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleAssemblyDescriptorReferencesProvider">
-            <state />
-          </provider>
-          <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleGeneralEditorProvider">
-            <state />
+        </entry>
+      </file>
+      <file leaf-file-name="OBPTransaction.scala" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/scala/code/model/OBPTransaction.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="38" column="88" selection-start="1555" selection-end="1555" vertical-scroll-proportion="0.0">
+              <folding />
+            </state>
           </provider>
         </entry>
       </file>
       <file leaf-file-name="Boot.scala" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/scala/bootstrap/liftweb/Boot.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="23" column="9" selection-start="402" selection-end="402" vertical-scroll-proportion="0.0">
+            <state line="74" column="4" selection-start="2226" selection-end="2226" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MongoConfig.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/scala/code/model/MongoConfig.scala">
+      <file leaf-file-name="anonymous.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/anonymous.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="17" column="69" selection-start="420" selection-end="426" vertical-scroll-proportion="0.0">
+            <state line="25" column="56" selection-start="666" selection-end="666" vertical-scroll-proportion="-10.178572">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="MongoRecordExamplesSpec.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/MongoRecordExamplesSpec.scala">
+      <file leaf-file-name="team.html" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/team.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="573" column="2" selection-start="17529" selection-end="17529" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="pom.xml" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/pom.xml">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="151" column="32" selection-start="4422" selection-end="4422" vertical-scroll-proportion="0.0">
+            <state line="36" column="21" selection-start="1128" selection-end="1128" vertical-scroll-proportion="-23.071428">
               <folding />
             </state>
           </provider>
@@ -172,20 +163,22 @@
   <component name="IdeDocumentHistory">
     <option name="changedFiles">
       <list>
-        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/pom.xml" />
-        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/MongoRecordExamplesSpec.scala" />
-        <option value="$PROJECT_DIR$/src/main/scala/bootstrap/liftweb/Boot.scala" />
-        <option value="$PROJECT_DIR$/working_pom.xml" />
-        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/rogish.scala" />
-        <option value="$PROJECT_DIR$/pom.xml" />
-        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/OBP_Import.scala" />
-        <option value="$PROJECT_DIR$/README" />
-        <option value="$PROJECT_DIR$/src/main/webapp/index.html" />
-        <option value="$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/accounts.html" />
+        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/OBPTransaction.scala" />
+        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/BeerSnippet.scala" />
+        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/BeerSnippet/scala.scala" />
         <option value="$PROJECT_DIR$/src/main/scala/code/model/MongoConfig.scala" />
-        <option value="$PROJECT_DIR$/src/main/webapp/obp_transactions.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/tax_office.html" />
+        <option value="$PROJECT_DIR$/src/main/scala/bootstrap/liftweb/Boot.scala" />
+        <option value="$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html" />
         <option value="$PROJECT_DIR$/src/main/scala/code/snippet/SomeThing.scala" />
-        <option value="$PROJECT_DIR$/src/main/webapp/simon.html" />
+        <option value="$PROJECT_DIR$/src/main/scala/code/model/OBPTransaction.scala" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/board.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/anonymous.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/team.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/our-network.html" />
+        <option value="$PROJECT_DIR$/src/main/webapp/accounts/tesobe/authorities.html" />
+        <option value="$PROJECT_DIR$/src/main/scala/code/snippet/OBPTransactionSnippet.scala" />
       </list>
     </option>
   </component>
@@ -232,7 +225,7 @@
       <sortByType />
     </navigator>
     <panes>
-      <pane id="PackagesPane" />
+      <pane id="Favorites" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -407,12 +400,8 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="snippet" />
+              <option name="myItemId" value="model" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="HelloWorld.scala" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.ClassesTreeStructureProvider$PsiClassOwnerTreeNode" />
             </PATH_ELEMENT>
           </PATH>
           <PATH>
@@ -484,23 +473,27 @@
               <option name="myItemId" value="main" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="resources" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
-      <pane id="Favorites" />
       <pane id="Scope" />
+      <pane id="PackagesPane" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="GoToFile.includeJavaFiles" value="false" />
-    <property name="project.structure.last.edited" value="Libraries" />
+    <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.0" />
     <property name="options.splitter.main.proportions" value="0.3" />
     <property name="recentsLimit" value="5" />
     <property name="options.lastSelected" value="MavenSettings" />
     <property name="MemberChooser.sorted" value="false" />
     <property name="DefaultHtmlFileTemplate" value="Html" />
-    <property name="project.structure.side.proportion" value="0.2" />
+    <property name="project.structure.side.proportion" value="0.4735013" />
     <property name="GoToClass.includeJavaFiles" value="false" />
     <property name="MemberChooser.copyJavadoc" value="false" />
     <property name="GoToClass.toSaveIncludeLibraries" value="false" />
@@ -509,6 +502,12 @@
     <property name="options.splitter.details.proportions" value="0.2" />
     <property name="options.searchVisible" value="true" />
     <property name="dynamic.classpath" value="false" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/webapp/x" />
+      <recent name="$PROJECT_DIR$/src/main/webapp/folder" />
+    </key>
   </component>
   <component name="RunManager" selected="Scala Console.Scala Console">
     <configuration default="true" type="MavenRunConfiguration" factoryName="Maven">
@@ -683,6 +682,16 @@
         <option name="SBT.BeforeRunTask" enabled="false" runInCurrentModule="false" />
       </method>
     </configuration>
+    <configuration default="true" type="JavascriptDebugSession" factoryName="Local">
+      <JSDebuggerConfigurationSettings>
+        <option name="engineId" value="embedded" />
+        <option name="fileUrl" />
+      </JSDebuggerConfigurationSettings>
+      <method>
+        <option name="BuildArtifacts" enabled="false" />
+        <option name="Maven.BeforeRunTask" enabled="false" />
+      </method>
+    </configuration>
     <configuration default="true" type="ScalaTestRunConfiguration" factoryName="ScalaTest">
       <module name="" />
       <setting name="path" value="" />
@@ -789,12 +798,12 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="158" y="64" width="1775" height="1043" extended-state="0" />
-    <editor active="false" />
+    <frame x="47" y="22" width="1874" height="1178" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14918919" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.09056604" sideWeight="0.99944997" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -802,7 +811,7 @@
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.24869566" sideWeight="0.8508108" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2450658" sideWeight="0.90943396" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3106383" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -856,111 +865,114 @@
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/templates-hidden/wizard-all.html">
+    <entry file="file://$PROJECT_DIR$/README">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1" column="3" selection-start="9" selection-end="9" vertical-scroll-proportion="-0.6785714" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/scala/code/AppTest.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="28" column="15" selection-start="464" selection-end="464" vertical-scroll-proportion="0.5160039" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/HelloWorld.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="9" column="6" selection-start="150" selection-end="150" vertical-scroll-proportion="0.16585839" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/OBP_Import.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="16" column="2" selection-start="398" selection-end="398" vertical-scroll-proportion="0.47584972">
+        <state line="32" column="48" selection-start="951" selection-end="951" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/index.html">
+    <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/BeerSnippet/scala.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="10" column="38" selection-start="353" selection-end="358" vertical-scroll-proportion="0.0">
+        <state line="21" column="1" selection-start="681" selection-end="681" vertical-scroll-proportion="0.5893648">
           <folding />
         </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/test/scala/code/snippet/HelloWorldTest.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="36" column="22" selection-start="970" selection-end="970" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/WEB-INF/web.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="11" column="33" selection-start="373" selection-end="373" vertical-scroll-proportion="0.0" />
-      </provider>
-      <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleAssemblyDescriptorProvider">
-        <state />
-      </provider>
-      <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleAssemblyDescriptorReferencesProvider">
-        <state />
-      </provider>
-      <provider editor-type-id="com.intellij.javaee.module.view.web.viewlets.WebModuleGeneralEditorProvider">
-        <state />
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/MongoRecordExamplesSpec.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="573" column="2" selection-start="17529" selection-end="17529" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pom.xml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="151" column="32" selection-start="4422" selection-end="4422" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="57" column="69" selection-start="1287" selection-end="1287" vertical-scroll-proportion="-10.857142">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/scala/bootstrap/liftweb/Boot.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="23" column="9" selection-start="402" selection-end="402" vertical-scroll-proportion="0.0">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="-3.0543237">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/code/model/MongoConfig.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="17" column="69" selection-start="420" selection-end="426" vertical-scroll-proportion="0.0">
+        <state line="14" column="43" selection-start="297" selection-end="308" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/obp_transactions.html">
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/index.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="39" column="6" selection-start="1536" selection-end="1536" vertical-scroll-proportion="-26.464285">
+        <state line="13" column="31" selection-start="467" selection-end="467" vertical-scroll-proportion="0.27846673">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="17" column="34" selection-start="435" selection-end="435" vertical-scroll-proportion="0.35611907">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/scala/bootstrap/liftweb/Boot.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="74" column="4" selection-start="2226" selection-end="2226" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/scala/code/model/OBPTransaction.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="38" column="88" selection-start="1555" selection-end="1555" vertical-scroll-proportion="0.0">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/SomeThing.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="162" column="12" selection-start="4212" selection-end="4212" vertical-scroll-proportion="20.153847">
+        <state line="118" column="58" selection-start="3231" selection-end="3231" vertical-scroll-proportion="-19.461538">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/webapp/simon.html">
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/board.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="8" column="46" selection-start="209" selection-end="209" vertical-scroll-proportion="-5.428571">
+        <state line="19" column="74" selection-start="485" selection-end="485" vertical-scroll-proportion="-5.892857">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/README">
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/templates-hidden/default.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="7" column="0" selection-start="252" selection-end="265" vertical-scroll-proportion="0.18344827">
+        <state line="55" column="4" selection-start="1182" selection-end="1182" vertical-scroll-proportion="-27.142857">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/team.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="36" column="21" selection-start="1128" selection-end="1128" vertical-scroll-proportion="-23.071428">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/our-network.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="37" column="77" selection-start="1285" selection-end="1285" vertical-scroll-proportion="-25.107143">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/anonymous.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="25" column="56" selection-start="666" selection-end="666" vertical-scroll-proportion="-10.178572">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/webapp/accounts/tesobe/authorities.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="25" column="54" selection-start="675" selection-end="675" vertical-scroll-proportion="-11.535714">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/scala/code/snippet/OBPTransactionSnippet.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="49" column="50" selection-start="1543" selection-end="1543" vertical-scroll-proportion="0.37671232">
           <folding />
         </state>
       </provider>
@@ -971,10 +983,12 @@
       <state key="ArtifactsStructureConfigurable.UI">
         <settings>
           <artifact-editor />
+          <last-edited>obp_api:war</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
                 <option value="0.2" />
+                <option value="0.5" />
               </list>
             </option>
           </splitter-proportions>
@@ -1018,11 +1032,11 @@
       </state>
       <state key="ModuleStructureConfigurable.UI">
         <settings>
-          <last-edited>MavLift</last-edited>
+          <last-edited>obp_api</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.2" />
+                <option value="0.4735013" />
                 <option value="0.5" />
               </list>
             </option>
@@ -1043,10 +1057,11 @@
       </state>
       <state key="ProjectLibrariesConfigurable.UI">
         <settings>
+          <last-edited>Maven: ch.qos.logback:logback-classic:0.9.26</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
-                <option value="0.2" />
+                <option value="0.4735013" />
               </list>
             </option>
           </splitter-proportions>
