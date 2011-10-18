@@ -46,7 +46,24 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
         value.toString
       else if(consumer == "board")
         value.toString
-      else if(consumer == "tax_office")
+      else if(consumer == "authorities")
+        value.toString
+      else if(consumer == "anonymous")
+        (if (value < 0) "-" else "+")
+      else
+        "---"
+      show
+    }
+
+    def present_obp_transaction_amount(value: Double, consumer: String): String = {
+      // How the other account is presented to others
+      // Use an alias if shy wins
+      val show: String =
+      if(consumer == "team")
+        value.toString
+      else if(consumer == "board")
+        value.toString
+      else if(consumer == "authorities")
         value.toString
       else if(consumer == "anonymous")
         (if (value < 0) "-" else "+")
@@ -58,8 +75,13 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     def present_obp_transaction_other_account(value: String, consumer: String): String = {
       // How the other account is presented to others
       // Use an alias if shy wins
+
+      val outsiders: List[String]	= List("anonymous")
+
+
       if (other_account_is_shy(value, consumer)) other_account_alias(value) else value
     }
+
 
 
     def other_account_is_a_client(value: String): Boolean = {
@@ -84,7 +106,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
        // A list of the financially shy (or just plain private)
        val the_shy: List[String]	= List("Tim Kleinschmidt", "Jan Slabiak")
       // A list of those that can look anyway
-       val the_gods: List[String]	= List("team", "board", "tax_office")
+       val the_gods: List[String]	= List("team", "board", "authorities")
        // No one can be shy in front of the gods
        (the_shy.contains(value) && !(the_gods.contains(value)))
     }
@@ -128,7 +150,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
         ".obp_transaction_type_de *" #> obp_transaction.obp_transaction_type_de &
         ".obp_transaction_data_blob *" #> present_obp_transaction_other_account(obp_transaction.obp_transaction_data_blob.value, consumer) &
         ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_transaction.obp_transaction_new_balance.value, consumer) &
-        ".obp_transaction_amount *" #> obp_transaction.obp_transaction_amount &
+        ".obp_transaction_amount *" #> present_obp_transaction_amount(obp_transaction.obp_transaction_amount.value, consumer) &
         ".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
         ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
         ".obp_transaction_date_complete *" #> (formatter format obp_transaction.obp_transaction_date_complete.is.getTime()) &

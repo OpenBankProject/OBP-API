@@ -76,9 +76,9 @@ class Boot {
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
           Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
           Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities",
           Menu.i("Team") / "accounts" / "tesobe" / "team",
-          Menu.i("Board") / "accounts" / "tesobe" / "board"
+          Menu.i("Board") / "accounts" / "tesobe" / "board",
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities"
 				)
       )
     )
