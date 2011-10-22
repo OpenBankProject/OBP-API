@@ -170,9 +170,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
     )
   }
 
-    /*
 
-    */
 
    /*
 
@@ -183,14 +181,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
   */
 
-  /*
 
-  def top(xhtml: NodeSeq): NodeSeq = {
-    val auctions = OBPTransaction.findAll(QueryBuilder.start().get())
-    //".auction_row *" #> auctions.map { auction =>	".opb_transaction_other_account *" #> auction.opb_transaction_other_account }
-    xhtml
-    }
-  */
 
 
 }
