@@ -19,7 +19,7 @@ import com.mongodb.casbah.Imports._
 //import net.liftweb.amqp._
 
 // used to construct type
-import com.tesobe.something._
+//import com.tesobe.something._
 
 
 

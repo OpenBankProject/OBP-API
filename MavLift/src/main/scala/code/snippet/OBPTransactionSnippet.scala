@@ -1,11 +1,12 @@
 package code.snippet
 
-import code.model.OBPTransaction
-
 import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 
 import net.liftweb.http._
+import java.util.Calendar
+import code.model.OBPTransaction
+
 //import net.liftweb.http.DispatchSnippet._
 //import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
@@ -19,6 +20,25 @@ import net.liftweb.util.Helpers._
 //import net.liftweb.common.{Box,Full,Empty,Failure,ParamFailure}
 
 
+import net.liftweb.util._
+
+/**
+ * A default implementation of DateTimeConverter that uses (Time)Helpers
+
+object DefaultDateTimeConverter extends DateTimeConverter {
+  def formatDateTime(d: Date) = internetDateFormat.format(d)
+  def formatDate(d: Date) = dateFormat.format(d)
+  /**  Uses Helpers.hourFormat which includes seconds but not time zone */
+  def formatTime(d: Date) = hourFormat.format(d)
+
+  def parseDateTime(s: String) = tryo { internetDateFormat.parse(s) }
+  def parseDate(s: String) = tryo { dateFormat.parse(s) }
+  /** Tries Helpers.hourFormat and Helpers.timeFormat */
+  def parseTime(s: String) = tryo{hourFormat.parse(s)} or
+tryo{timeFormat.parse(s)}
+
+}
+*/
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTransaction] {
 
@@ -148,10 +168,81 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     import java.text.SimpleDateFormat
     val formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
+    val date = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse("2008-05-06 13:29")
 
+
+    // Given a date in a string like this:
+    val string_date = "30.09.11"
+    // We can use a date formatter like this:
+    val date_formatter = new SimpleDateFormat ( "dd.MM.yy" )
+
+    // Or in place like this.
+    val date_x = new SimpleDateFormat("dd.MM.yy").parse(string_date)
+
+
+
+    println ("the date is")
+    println (formatter.format(date.getTime))
+    println ("here is a loop")
+
+
+    val long_date_formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
 
 
     // note: blob contains other account right now.
+
+    // page.foreach(p => println(formatter.format(p.obp_transaction_date_complete.value)))
+
+
+    // right now, dates are stored like this: 30.09.11
+
+    //page.foreach(p => println(p.obp_transaction_date_complete))
+
+
+    //net.liftweb.record.field.DateTimeField
+
+
+    for (p <- page) {
+      println("yep")
+      println(p.obp_transaction_date_complete)
+      println(p.opb_transaction_other_account)
+      println(p.obp_transaction_data_blob)
+      println("nope")
+    }
+
+
+ /*
+date_x match {
+  case g2: Graphics2D => g2
+  case _ => throw new ClassCastException
+}
+*/
+
+    val cal = Calendar.getInstance
+    cal.set(2009, 10, 2)
+
+
+    val md1 = OBPTransaction.createRecord
+  .obp_transaction_data_blob("simon-says")
+  .obp_transaction_amount("12345")
+  .obp_transaction_date_complete(cal)
+  .save
+
+  println( "xxxxx")
+  println(formatter.format(cal.getTime))
+  print("yyyyyyyy")
+
+
+    //page.foreach(p => println(date_formatter.format(p.obp_transaction_date_complete)))
+
+
+    println ("end of loop")
+
+
+    // "EEE, d MMM yyyy HH:mm:ss Z"
+
+
+
 
 
     page.flatMap(obp_transaction => {
@@ -163,9 +254,12 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
         ".obp_transaction_amount *" #> present_obp_transaction_amount(obp_transaction.obp_transaction_amount.value, consumer) &
         //".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
         ".obp_transaction_currency *" #> "EUR" &
-        ".obp_transaction_date_start *" #> (formatter format obp_transaction.obp_transaction_date_start.is.getTime()) &
-        ".obp_transaction_date_complete *" #> (formatter format obp_transaction.obp_transaction_date_complete.is.getTime()) &
-        ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_transaction.opb_transaction_other_account.value, consumer)).apply(xhtml)
+        ".obp_transaction_date_start *" #> (long_date_formatter.format(obp_transaction.obp_transaction_date_start.value.getTime())) &
+        //".obp_transaction_date_complete *" #> OBPTransaction.formats.dateFormat.format(obp_transaction.obp_transaction_date_complete.value.getTime()) &
+          ".obp_transaction_date_complete *" #> long_date_formatter.format(obp_transaction.obp_transaction_date_complete.value.getTime()) &
+
+
+          ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_transaction.opb_transaction_other_account.value, consumer)).apply(xhtml)
       }
     )
   }

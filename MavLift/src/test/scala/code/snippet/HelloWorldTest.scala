@@ -29,6 +29,7 @@ object HelloWorldTestSpecs extends Specification {
     }
   }
 
+
   "HelloWorld Snippet" should {
     "Put the time in the node" in {
       val hello = new HelloWorld
@@ -40,4 +41,5 @@ object HelloWorldTestSpecs extends Specification {
       str.indexOf("Hello at") must be >= 0
     }
   }
+
 }

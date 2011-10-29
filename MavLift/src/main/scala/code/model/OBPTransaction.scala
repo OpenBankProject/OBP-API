@@ -3,14 +3,6 @@ package code.model
 import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 
-/**
- * Created by IntelliJ IDEA.
- * User: simonredfern
- * Date: 10/17/11
- * Time: 1:43 AM
- * To change this template use File | Settings | File Templates.
- */
-
 
 class Location private () extends BsonRecord[Location] {
   def meta = Location
@@ -28,6 +20,11 @@ class OBPTransaction private() extends MongoRecord[OBPTransaction] with ObjectId
 
   object obp_transaction_date_start extends net.liftweb.record.field.DateTimeField(this)
   object obp_transaction_date_complete extends net.liftweb.record.field.DateTimeField(this)
+
+
+  //object obp_transaction_date_start extends net.liftweb.record.field.StringField(this, 255)
+  //object obp_transaction_date_complete extends net.liftweb.record.field.StringField(this, 255)
+
   object obp_transaction_type_en extends net.liftweb.record.field.StringField(this, 255)
   object obp_transaction_type_de extends net.liftweb.record.field.StringField(this, 255)
   object obp_transaction_data_blob extends net.liftweb.record.field.StringField(this, 999999)
