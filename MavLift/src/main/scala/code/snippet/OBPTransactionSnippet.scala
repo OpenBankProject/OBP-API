@@ -7,6 +7,8 @@ import net.liftweb.http._
 import java.util.Calendar
 import code.model.OBPTransaction
 
+import code.model.OBPEnvelope
+
 //import net.liftweb.http.DispatchSnippet._
 //import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
@@ -40,12 +42,32 @@ tryo{timeFormat.parse(s)}
 }
 */
 
-class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTransaction] {
+class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
   override def count = OBPTransaction.count
+
+
   override def itemsPerPage = 5
   //override def page = OBPTransaction.findAll(QueryBuilder.start().get(), Limit(itemsPerPage), Skip(curPage*itemsPerPage))
-  override def page = OBPTransaction.findAll(QueryBuilder.start().get())
+  override def page = {
+      // TODO we need to get Rogue going otherwise its possible to write queries that don't make sense!
+      // val qry = QueryBuilder.start("obp_transaction_data_blob").notEquals("simon-says").get
+
+      val qry = QueryBuilder.start().get
+      var obp_envelopes = OBPEnvelope.findAll(qry)
+
+
+      println("before eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+        for (envelope <- obp_envelopes) {
+      println("here is an envelope")
+      println(envelope.id)
+      println(envelope.obp_transaction.get.obp_transaction_date_complete)
+      println("nope")
+    }
+
+
+    obp_envelopes
+  }
 
   var dispatch: DispatchIt = {
     case "showAll" => showAll _
@@ -188,6 +210,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     val long_date_formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
 
+    val short_date_formatter = new SimpleDateFormat ( "yyyy-MM-dd" )
+
 
     // note: blob contains other account right now.
 
@@ -201,12 +225,13 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPTra
 
     //net.liftweb.record.field.DateTimeField
 
-
-    for (p <- page) {
-      println("yep")
-      println(p.obp_transaction_date_complete)
-      println(p.opb_transaction_other_account)
-      println(p.obp_transaction_data_blob)
+    println("before env ****************")
+    for (envelope <- page) {
+      println("here is an envelope")
+      println(envelope.id)
+      println(envelope.obp_transaction.get.obp_transaction_date_complete)
+      println(envelope.obp_transaction.get.opb_transaction_other_account)
+      println(envelope.obp_transaction.get.obp_transaction_data_blob)
       println("nope")
     }
 
@@ -222,11 +247,19 @@ date_x match {
     cal.set(2009, 10, 2)
 
 
-    val md1 = OBPTransaction.createRecord
+
+
+
+    val tran = OBPTransaction.createRecord
   .obp_transaction_data_blob("simon-says")
-  .obp_transaction_amount("12345")
+  .obp_transaction_amount("2222222")
   .obp_transaction_date_complete(cal)
-  .save
+
+
+    val env = OBPEnvelope.createRecord
+    .obp_transaction(tran)
+    .save
+
 
   println( "xxxxx")
   println(formatter.format(cal.getTime))
@@ -245,21 +278,19 @@ date_x match {
 
 
 
-    page.flatMap(obp_transaction => {
+    page.flatMap(obp_envelope => {
       (
-        ".obp_transaction_type_en *" #> obp_transaction.obp_transaction_type_en &
-        ".obp_transaction_type_de *" #> obp_transaction.obp_transaction_type_de &
-        ".obp_transaction_data_blob *" #> present_obp_transaction_other_account(obp_transaction.obp_transaction_data_blob.value, consumer) &
-        ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_transaction.obp_transaction_new_balance.value, consumer) &
-        ".obp_transaction_amount *" #> present_obp_transaction_amount(obp_transaction.obp_transaction_amount.value, consumer) &
+        ".obp_transaction_type_en *" #> obp_envelope.obp_transaction.get.obp_transaction_type_en &
+        ".obp_transaction_type_de *" #> obp_envelope.obp_transaction.get.obp_transaction_type_de &
+        ".obp_transaction_data_blob *" #> present_obp_transaction_other_account(obp_envelope.obp_transaction.get.obp_transaction_data_blob.value, consumer) &
+        ".obp_transaction_new_balance *" #> present_obp_transaction_new_balance(obp_envelope.obp_transaction.get.obp_transaction_new_balance.value, consumer) &
+        ".obp_transaction_amount *" #> present_obp_transaction_amount(obp_envelope.obp_transaction.get.obp_transaction_amount.value, consumer) &
         //".obp_transaction_currency *" #> obp_transaction.obp_transaction_currency &
         ".obp_transaction_currency *" #> "EUR" &
-        ".obp_transaction_date_start *" #> (long_date_formatter.format(obp_transaction.obp_transaction_date_start.value.getTime())) &
+        ".obp_transaction_date_start *" #> (short_date_formatter.format(obp_envelope.obp_transaction.get.obp_transaction_date_start.value.getTime())) &
         //".obp_transaction_date_complete *" #> OBPTransaction.formats.dateFormat.format(obp_transaction.obp_transaction_date_complete.value.getTime()) &
-          ".obp_transaction_date_complete *" #> long_date_formatter.format(obp_transaction.obp_transaction_date_complete.value.getTime()) &
-
-
-          ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_transaction.opb_transaction_other_account.value, consumer)).apply(xhtml)
+          ".obp_transaction_date_complete *" #> short_date_formatter.format(obp_envelope.obp_transaction.get.obp_transaction_date_complete.value.getTime()) &
+          ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_envelope.obp_transaction.get.opb_transaction_other_account.value, consumer)).apply(xhtml)
       }
     )
   }

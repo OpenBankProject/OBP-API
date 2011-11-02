@@ -83,7 +83,16 @@ object OBPRest extends RestHelper {
     //case Req("test":: "json", _, _) => () => Full(JsonResponse(List("simon","says")))
     case Req("api" :: "transactions" :: account_number, "", GetRequest) =>
 
-      var transactions = OBPTransaction.findAll(QueryBuilder.start().get())
+     // var transactions = OBPTransaction.findAll(QueryBuilder.start().get())
+
+
+
+      // just getting rid of simon test stuff.
+
+
+      val qry = QueryBuilder.start("obp_data_blob").notEquals("simon-says").get
+      var transactions = OBPTransaction.findAll(qry)
+
 
       JsonResponse(transactions.map(t => { t.asJValue }))
 

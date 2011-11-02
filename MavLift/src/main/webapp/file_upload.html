@@ -1,0 +1,25 @@
+<lift:surround with="default" at="content">
+<p>
+This is the file upload sample page.  You choose a file
+to upload and the application will tell you the file name, the mime type,
+the number of bytes in the file and the MD5 checksum.
+</p>
+
+<lift:snippet type="misc:upload" form="post" multipart="true">
+<choose:post>
+<p>
+File name: <ul:file_name></ul:file_name><br >
+MIME Type: <ul:mime_type></ul:mime_type><br >
+File length: <ul:length></ul:length><br >
+MD5 Hash: <ul:md5></ul:md5><br >
+</p>
+</choose:post>
+
+<choose:get>
+Select a file to upload: <ul:file_upload></ul:file_upload><br >
+<input type="submit" value="Upload File">
+</choose:get>
+
+</lift:snippet>
+
+</lift:surround>
