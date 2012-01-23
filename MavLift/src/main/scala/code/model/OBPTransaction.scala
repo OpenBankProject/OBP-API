@@ -154,11 +154,6 @@ class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAc
   object kind extends net.liftweb.record.field.StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
 
-  override def asJValue = {
-    JObject(List.(holder, number, kind, JField("bank",bank.asJValue)))
-
-  }
-
 }
 
 object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
