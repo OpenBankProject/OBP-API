@@ -5,36 +5,35 @@ import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
-import net.liftweb.json.JsonAST._  // this has render in it.
+import net.liftweb.json.JsonAST._
+import java.util.Calendar
+
+// this has render in it.
 
 import net.liftweb.json._  // Yep everything
 import net.liftweb.common.Full
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
 
-// import com.mongodb.casbah.commons._
+
 import com.mongodb.casbah.Imports._
-
-//import com.rabbitmq.client._
-//import net.liftweb.amqp._
-
-// used to construct type
-//import com.tesobe.something._
 
 
 
 import net.liftweb.mongodb._
 
 import _root_.java.math.MathContext
-import net.liftweb.mongodb.record._
-import net.liftweb.mongodb.record.field._
-import net.liftweb.record.field._
-import net.liftweb.record._
+import net.liftweb.mongodb._
+
+//import net.liftweb.mongodb.record._
+//import net.liftweb.mongodb.record.field._
+//import net.liftweb.record.field._
+//import net.liftweb.record._
 import org.bson.types._
 import org.joda.time.{DateTime, DateTimeZone}
 
 //import com.foursquare.rogue
-import com.foursquare.rogue.Rogue._
+//import com.foursquare.rogue.Rogue._
 
 
 import java.util.regex.Pattern
@@ -43,7 +42,7 @@ import java.util.regex.Pattern
 //import org.junit._
 //import org.specs.SpecsMatchers
 
-import com.foursquare.rogue.MongoHelpers._
+//import com.foursquare.rogue.MongoHelpers._
 
 ////////////
 
@@ -96,7 +95,45 @@ object OBPRest extends RestHelper {
 
       JsonResponse(transactions.map(t => { t.asJValue }))
 
+
+    case Req("create":: Nil, _, _) => () =>
+
+
+         val cal = Calendar.getInstance
+    cal.set(2009, 10, 2)
+
+
+
+  // but this creates an id_ which we don't need
+    val from_account = OBPAccount.createRecord
+         .holder("Simon Redfern")
+         .kind("CURRENT")
+         .number("344533456")
+
+    val tran = OBPTransaction.createRecord
+  .obp_transaction_data_blob("created-test")
+  .obp_transaction_amount("223344")
+  .obp_transaction_date_complete(cal)
+  .from_account(from_account)
+
+
+    val env = OBPEnvelope.createRecord
+    .obp_transaction(tran)
+    .save
+
+
+
+     val json_message = ("hello simon" -> 123)
+
+    // The last result of the function is returned.
+    Full(JsonResponse(json_message))
+
+
+
     case Req("mongodb":: Nil, _, _) => () =>
+
+
+
 
     // Create a location object
     val location = Location.createRecord.longitude(2).latitude(51)

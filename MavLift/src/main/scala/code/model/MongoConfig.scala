@@ -15,7 +15,7 @@ object MongoConfig {
        Props.get("mongo.host", "obp_mongod"),
        Props.getInt("mongo.port", 27017)
     )
-    MongoDB.defineDb(DefaultMongoIdentifier, new Mongo(srvr), "OBP005")
+    MongoDB.defineDb(DefaultMongoIdentifier, new Mongo(srvr), "OBP006")
     MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
   }
 }
