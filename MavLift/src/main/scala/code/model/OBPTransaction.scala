@@ -179,18 +179,18 @@ class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAc
   
   //TODO: Access levels are currently the same across all transactions
   def mediated_holder(user: String) : Box[String] = {
+    val theHolder = holder.get
     
     def useAliases = {
-      val theHolder = holder.get
       val alias = accountAliases.get(theHolder)
       if(alias.isDefined) Full(alias.get)
       else Full(theHolder)
     }
     
     user match{
-      case "team" => Full(holder.get)
-      case "board" => Full(holder.get)
-      case "authorities" => Full(holder.get)
+      case "team" => Full(theHolder)
+      case "board" => Full(theHolder)
+      case "authorities" => Full(theHolder)
       case _ => useAliases
     }
   }
@@ -208,9 +208,9 @@ class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAc
   //TODO: Access levels are currently the same across all transactions
   def mediated_kind(user: String) : Box[String] = {
     user match{
-      case "team" => Full(number.get)
-      case "board" => Full(number.get)
-      case "authorities" => Full(number.get)
+      case "team" => Full(kind.get)
+      case "board" => Full(kind.get)
+      case "authorities" => Full(kind.get)
       case _ => Empty
     }
   }
@@ -352,10 +352,10 @@ class OBPValue private() extends MongoRecord[OBPValue] with ObjectIdPk[OBPValue]
   //TODO: Access levels are currently the same across all transactions
   def mediated_amount(user: String) : Box[String] = {
     user match{
-      case "team" => Full(currency.get)
-      case "board" => Full(currency.get)
-      case "our_network" => Full(currency.get)
-      case "authorities" => Full(currency.get)
+      case "team" => Full(amount.get.toString)
+      case "board" => Full(amount.get.toString)
+      case "our_network" => Full(amount.get.toString)
+      case "authorities" => Full(amount.get.toString)
       case "anonymous" => {
         if (currency.get.startsWith("-") ) Full("-") else Full("+")
       }
