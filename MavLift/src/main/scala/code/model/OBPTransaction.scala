@@ -100,41 +100,6 @@ object Location extends Location with BsonMetaRecord[Location]
 /**
  * "Current Account View"
 {
-      "obp_transaction":{
-         "this_account":{
-            "holder":"Music Pictures Limited",
-            "number":"123567",
-            "type":"current",
-            "bank":{
-               "IBAN":"DE1235123612",
-               "national_identifier":"de.10010010",
-               "name":"Postbank"
-            }
-         },
-         "other_account":{
-            "holder":"Simon Redfern",
-            "number":"3225446882",
-            "type":"current",
-            "bank":{
-               "IBAN":"UK12789879",
-               "national_identifier":"uk.10010010",
-               "name":"HSBC"
-            }
-         },
-         "details":{
-            "type_en":"Transfer",
-            "type_de":"Überweisung",
-            "posted":"ISODate 2011-11-25T10:28:38.273Z",
-            "completed":"ISODate 2011-11-26T10:28:38.273Z",
-            "value":{
-               "currency":"EUR",
-               "amount":"-354.99"
-            },
-            "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
-         }
-      }
-   },
-   {
          "obp_transaction":{
             "this_account":{
                "holder":"Music Pictures Limited",
@@ -176,7 +141,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   def meta = OBPEnvelope
 
   // This creates a json attribute called "obp_transaction"
-  object obp_transaction extends BsonRecordField(this, OBPTransaction)
+  object obp_transaction extends BsonRecordField(this, OBPTransact)
 
 }
 

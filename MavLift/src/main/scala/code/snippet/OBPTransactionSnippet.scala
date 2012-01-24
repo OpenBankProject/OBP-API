@@ -2,27 +2,17 @@ package code.snippet
 
 import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
-
 import net.liftweb.http._
 import java.util.Calendar
 import code.model.OBPTransaction
-
 import code.model.OBPEnvelope
-
-//import net.liftweb.http.DispatchSnippet._
-//import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
 import net.liftweb.mongodb.Skip._
-//import net.liftweb.http.Paginator._
-
-
 import net.liftweb.util.Helpers._
-//import net.liftweb.common.{Box,Full,Empty,Failure,ParamFailure}
-
-
 import net.liftweb.util._
+import scala.xml.Text
 
 /**
  * A default implementation of DateTimeConverter that uses (Time)Helpers
@@ -61,7 +51,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         for (envelope <- obp_envelopes) {
       println("here is an envelope")
       println(envelope.id)
-      println(envelope.obp_transaction.get.obp_transaction_date_complete)
+      //println(envelope.obp_transaction.get.obp_transaction_date_complete)
       println("nope")
     }
 
@@ -226,7 +216,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
     //net.liftweb.record.field.DateTimeField
 
     println("before env ****************")
-    for (envelope <- page) {
+/*    for (envelope <- page) {
       println("here is an envelope")
       println(envelope.id)
       println(envelope.obp_transaction.get.obp_transaction_date_complete)
@@ -234,7 +224,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       println(envelope.obp_transaction.get.obp_transaction_data_blob)
       println("nope")
     }
-
+*/
 
  /*
 date_x match {
@@ -250,7 +240,7 @@ date_x match {
 
 
 
-    val tran = OBPTransaction.createRecord
+/*    val tran = OBPTransaction.createRecord
   .obp_transaction_data_blob("simon-says")
   .obp_transaction_amount("2222222")
   .obp_transaction_date_complete(cal)
@@ -258,7 +248,7 @@ date_x match {
 
     val env = OBPEnvelope.createRecord
     .obp_transaction(tran)
-    .save
+    .save*/
 
 
   println( "xxxxx")
@@ -278,7 +268,9 @@ date_x match {
 
 
 
-    page.flatMap(obp_envelope => {
+    Text("foo")
+    
+   /* page.flatMap(obp_envelope => {
       (
         ".obp_transaction_type_en *" #> obp_envelope.obp_transaction.get.obp_transaction_type_en &
         ".obp_transaction_type_de *" #> obp_envelope.obp_transaction.get.obp_transaction_type_de &
@@ -292,7 +284,7 @@ date_x match {
           ".obp_transaction_date_complete *" #> short_date_formatter.format(obp_envelope.obp_transaction.get.obp_transaction_date_complete.value.getTime()) &
           ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_envelope.obp_transaction.get.opb_transaction_other_account.value, consumer)).apply(xhtml)
       }
-    )
+    )*/
   }
 
 
