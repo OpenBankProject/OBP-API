@@ -7,12 +7,9 @@ import http._
 import sitemap._
 import Loc._
 import mapper._
-
 import code.model._
 import com.tesobe.utils._
-
 import myapp.model.MongoConfig
-
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -46,7 +43,6 @@ class Boot {
     // For some restful stuff
     //LiftRules.dispatch.append(OBPRest) // stateful -- associated with a servlet container session
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
-
 
     // Build SiteMap
     def sitemap = SiteMap(

@@ -7,11 +7,13 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
+import net.liftweb.common.Failure
 
 // this has render in it.
 
 import net.liftweb.json._  // Yep everything
 import net.liftweb.common.Full
+import net.liftweb.common.Empty
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
 
@@ -75,6 +77,18 @@ object OBPRest extends RestHelper {
     println("here we are in OBPRest")
     serve {
 
+      
+      
+      
+    case "api" :: "transactions" :: Nil JsonPost json => {
+      
+      for{
+        t <- OBPTransact.fromJValue(json._1)
+        saved <- t.saveTheRecord()
+      } yield saved.asJValue
+      
+    } 
+      
     //case Req("test" , "ping", _, _) => () => Full(PlainTextResponse("pong"))
     //case Req("xml" :: Nil, _, _) => Full(XmlResponse(<persons><name>Simon</name><name>John</name></persons>))
     //case Req("test" :: "static" :: _, "json", GetRequest) => JString("Static")
@@ -110,7 +124,7 @@ object OBPRest extends RestHelper {
          .kind("CURRENT")
          .number("344533456")
 
-    val tran = OBPTransaction.createRecord
+   val tran = OBPTransaction.createRecord
   .obp_transaction_data_blob("created-test")
   .obp_transaction_amount("223344")
   .obp_transaction_date_complete(cal)
