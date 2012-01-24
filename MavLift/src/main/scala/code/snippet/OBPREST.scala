@@ -83,7 +83,7 @@ object OBPRest extends RestHelper {
     case "api" :: "transactions" :: Nil JsonPost json => {
       
       for{
-        t <- OBPTransact.fromJValue(json._1)
+        t <- OBPTransaction.fromJValue(json._1)
         saved <- t.saveTheRecord()
       } yield saved.asJValue
       
@@ -94,7 +94,7 @@ object OBPRest extends RestHelper {
     //case Req("test" :: "static" :: _, "json", GetRequest) => JString("Static")
     //case Req("test" :: "static" :: _, "xml", GetRequest) => <b>Static Hello</b>
     //case Req("test":: "json", _, _) => () => Full(JsonResponse(List("simon","says")))
-    case Req("api" :: "transactions" :: account_number, "", GetRequest) =>
+    /*case Req("api" :: "transactions" :: account_number, "", GetRequest) =>
 
      // var transactions = OBPTransaction.findAll(QueryBuilder.start().get())
 
@@ -107,7 +107,7 @@ object OBPRest extends RestHelper {
       var transactions = OBPTransaction.findAll(qry)
 
 
-      JsonResponse(transactions.map(t => { t.asJValue }))
+      JsonResponse(transactions.map(t => { t.asJValue }))*/
 
 
     case Req("create":: Nil, _, _) => () =>
@@ -119,12 +119,12 @@ object OBPRest extends RestHelper {
 
 
   // but this creates an id_ which we don't need
-    val from_account = OBPAccount.createRecord
+   /* val from_account = OBPAccount.createRecord
          .holder("Simon Redfern")
          .kind("CURRENT")
          .number("344533456")
-
-   val tran = OBPTransaction.createRecord
+*/
+  /* val tran = OBPTransaction.createRecord
   .obp_transaction_data_blob("created-test")
   .obp_transaction_amount("223344")
   .obp_transaction_date_complete(cal)
@@ -133,7 +133,7 @@ object OBPRest extends RestHelper {
 
     val env = OBPEnvelope.createRecord
     .obp_transaction(tran)
-    .save
+    .save*/
 
 
 

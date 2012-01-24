@@ -49,7 +49,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
 
   override def itemsPerPage = 5
   //override def page = OBPTransaction.findAll(QueryBuilder.start().get(), Limit(itemsPerPage), Skip(curPage*itemsPerPage))
-  override def page = {
+  override def page : List[OBPEnvelope]= {
       // TODO we need to get Rogue going otherwise its possible to write queries that don't make sense!
       // val qry = QueryBuilder.start("obp_transaction_data_blob").notEquals("simon-says").get
 
@@ -61,7 +61,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         for (envelope <- obp_envelopes) {
       println("here is an envelope")
       println(envelope.id)
-      println(envelope.obp_transaction.get.obp_transaction_date_complete)
+      //println(envelope.obp_transaction.get.obp_transaction_date_complete)
       println("nope")
     }
 
@@ -83,23 +83,20 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
     //val obp_transactions = OBPTransaction.findAll(qry)
 
     def present_obp_transaction_new_balance(value: String, consumer: String): String = {
-      val show: String =
-      if(consumer == "team")
-        value
-      else if(consumer == "board")
-        value
-      else if(consumer == "our_network")
-        (if (value.startsWith("-") ) "-" else "+")
-      else if(consumer == "authorities")
-        value
-      else if(consumer == "anonymous")
-        (if (value.startsWith("-") ) "-" else "+")
-      else
-        "---"
-      show
+      
+      val showOnlyValueSign = if(value.startsWith("-")) "-" else "+"
+      
+      consumer match {
+        case "team" => value
+        case "board" => value
+        case "our_network" => showOnlyValueSign
+        case "authorities" => showOnlyValueSign
+        case "anonymous" => showOnlyValueSign
+        case _ => "---"
+      }
     }
 
-    def present_obp_transaction_amount(value: String, consumer: String): String = {
+   /* def present_obp_transaction_amount(value: String, consumer: String): String = {
       // How the other account is presented to others
       // Use an alias if shy wins
       val show: String =
@@ -116,8 +113,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       else
         "---"
       show
-    }
-
+    }*/
+/*
     def present_obp_transaction_other_account(value: String, consumer: String): String = {
       // How the other account is presented to others
       // Use an alias if shy wins
@@ -132,11 +129,11 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
 
 
       if (other_account_is_shy(value, consumer)) other_account_alias(value) else value
-    }
+    }*/
 
 
 
-    def other_account_is_a_client(value: String): Boolean = {
+   /* def other_account_is_a_client(value: String): Boolean = {
       // A list of clients
       val clients: List[String]	= List("TXTR GMBH")
       clients.contains(value)
@@ -176,109 +173,36 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         other_account_is_a_client(value) ||
         other_account_is_a_supplier(value)
         )
-    }
+    }*/
 
 
     // xhtml
     val consumer = S.attr("consumer") openOr "no param consumer passed"
-
+/*
     if (consumer == "anonymous") {
-    }
-
-    // call anonymous function on every transaction in obp_transactions (i.e. what a map does)
-    // the lambda function here replaces some stuff with the data
-
-    import java.text.SimpleDateFormat
-    val formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
-    val date = new SimpleDateFormat("yyyy-MM-dd HH:mm").parse("2008-05-06 13:29")
-
-
-    // Given a date in a string like this:
-    val string_date = "30.09.11"
-    // We can use a date formatter like this:
-    val date_formatter = new SimpleDateFormat ( "dd.MM.yy" )
-
-    // Or in place like this.
-    val date_x = new SimpleDateFormat("dd.MM.yy").parse(string_date)
-
-
-
-    println ("the date is")
-    println (formatter.format(date.getTime))
-    println ("here is a loop")
-
-
-    val long_date_formatter = new SimpleDateFormat ( "yyyy-MM-dd HH:mm" )
-
-    val short_date_formatter = new SimpleDateFormat ( "yyyy-MM-dd" )
-
-
-    // note: blob contains other account right now.
-
-    // page.foreach(p => println(formatter.format(p.obp_transaction_date_complete.value)))
-
-
-    // right now, dates are stored like this: 30.09.11
-
-    //page.foreach(p => println(p.obp_transaction_date_complete))
-
-
-    //net.liftweb.record.field.DateTimeField
-
-    println("before env ****************")
-    for (envelope <- page) {
-      println("here is an envelope")
-      println(envelope.id)
-      println(envelope.obp_transaction.get.obp_transaction_date_complete)
-      println(envelope.obp_transaction.get.opb_transaction_other_account)
-      println(envelope.obp_transaction.get.obp_transaction_data_blob)
-      println("nope")
-    }
-
-
- /*
-date_x match {
-  case g2: Graphics2D => g2
-  case _ => throw new ClassCastException
-}
-*/
-
-    val cal = Calendar.getInstance
-    cal.set(2009, 10, 2)
-
-
-
-
-
-    val tran = OBPTransaction.createRecord
-  .obp_transaction_data_blob("simon-says")
-  .obp_transaction_amount("2222222")
-  .obp_transaction_date_complete(cal)
-
-
-    val env = OBPEnvelope.createRecord
-    .obp_transaction(tran)
-    .save
-
-
-  println( "xxxxx")
-  println(formatter.format(cal.getTime))
-  print("yyyyyyyy")
-
-
-    //page.foreach(p => println(date_formatter.format(p.obp_transaction_date_complete)))
-
-
-    println ("end of loop")
-
-
-    // "EEE, d MMM yyyy HH:mm:ss Z"
-
-
-
-
-
-    page.flatMap(obp_envelope => {
+    }*/
+    
+    page.flatMap(obpEnvelope => {
+      val FORBIDDEN = "---"
+      
+      val transaction = obpEnvelope.obp_transaction.get
+      val transactionDetails = transaction.details.get
+      val transactionValue = transactionDetails.value.get
+      val thisAccount = transaction.this_account.get
+      val otherAccount = transaction.other_account.get
+      
+      (
+      ".obp_transaction_type_en *" #> transactionDetails.mediated_type_en(consumer).getOrElse(FORBIDDEN) &
+      ".obp_transaction_type_de *" #> transactionDetails.mediated_type_de(consumer).getOrElse(FORBIDDEN) &
+      ".obp_transaction_amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
+      ".obp_transaction_currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
+      ".obp_transaction_date_start *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
+      ".obp_transaction_date_complete *" #> transactionDetails.mediated_completed(consumer).getOrElse(FORBIDDEN) &
+      ".opb_transaction_other_account *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN)).apply(xhtml)
+      
+    })
+    
+    /*page.flatMap(obp_envelope => {
       (
         ".obp_transaction_type_en *" #> obp_envelope.obp_transaction.get.obp_transaction_type_en &
         ".obp_transaction_type_de *" #> obp_envelope.obp_transaction.get.obp_transaction_type_de &
@@ -292,7 +216,7 @@ date_x match {
           ".obp_transaction_date_complete *" #> short_date_formatter.format(obp_envelope.obp_transaction.get.obp_transaction_date_complete.value.getTime()) &
           ".opb_transaction_other_account *" #> present_obp_transaction_other_account(obp_envelope.obp_transaction.get.opb_transaction_other_account.value, consumer)).apply(xhtml)
       }
-    )
+    )*/
   }
 
 
