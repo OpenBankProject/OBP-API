@@ -107,6 +107,10 @@ object OBPRest extends RestHelper {
                "type_de":"Überweisung",
                "posted":"ISODate 2011-11-25T10:28:38.273Z",
                "completed":"ISODate 2011-11-26T10:28:38.273Z",
+               "new_balance":{
+               	  "currency":"EUR",
+                  "amount":"4323.45"
+               },
                "value":{
                   "currency":"EUR",
                   "amount":"123.45"

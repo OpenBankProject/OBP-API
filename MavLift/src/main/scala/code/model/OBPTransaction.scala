@@ -129,6 +129,10 @@ curl -i -H "Content-Type: application/json" -X POST -d '{
             "type_de":"Überweisung",
             "posted":"ISODate 2011-11-25T10:28:38.273Z",
             "completed":"ISODate 2011-11-26T10:28:38.273Z",
+            "new_balance":{
+               "currency":"EUR",
+               "amount":"-354.99"
+            },
             "value":{
                "currency":"EUR",
                "amount":"-354.99"
@@ -292,6 +296,7 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   protected object posted extends net.liftweb.record.field.DateTimeField(this)
   protected object completed extends net.liftweb.record.field.DateTimeField(this)
   protected object other_data extends net.liftweb.record.field.StringField(this, 5000)
+  object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
   
 
@@ -337,6 +342,39 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
 
 object OBPDetails extends OBPDetails with BsonMetaRecord[OBPDetails]
 
+
+class OBPBalance private() extends BsonRecord[OBPBalance]{
+  def meta = OBPBalance
+
+  protected object currency extends net.liftweb.record.field.StringField(this, 5)
+  protected object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+
+  //TODO: Access levels are currently the same across all transactions
+  def mediated_currency(user: String) : Box[String] = {
+    user match{
+      case "team" => Full(currency.get)
+      case "board" => Full(currency.get)
+      case "our_network" => Full(currency.get)
+      case "authorities" => Full(currency.get)
+      case _ => Empty
+    }
+  }
+  //TODO: Access levels are currently the same across all transactions
+  def mediated_amount(user: String) : Box[String] = {
+    user match{
+      case "team" => Full(amount.get.toString)
+      case "board" => Full(amount.get.toString)
+      case "our_network" => Full(amount.get.toString)
+      case "authorities" => Full(amount.get.toString)
+      case "anonymous" => {
+        if (currency.get.startsWith("-") ) Full("-") else Full("+")
+      }
+      case _ => Empty
+    }
+  }
+}
+
+object OBPBalance extends OBPBalance with BsonMetaRecord[OBPBalance]
 
 class OBPValue private() extends BsonRecord[OBPValue]{
   def meta = OBPValue
