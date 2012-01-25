@@ -175,7 +175,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
     val consumer = S.uri match{
       case uri if uri.endsWith("authorities") => "authorities"
       case uri if uri.endsWith("board") => "board"
-      case uri if uri.endsWith("our-network") => "our=network"
+      case uri if uri.endsWith("our-network") => "our-network"
       case uri if uri.endsWith("team") => "team"
       case _ => "anonymous"
     }
@@ -191,7 +191,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder *" #> otherAccount.mediated_holder(consumer) &
+      ".other_account_holder *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN) &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
       ".new_balance *" #> {
