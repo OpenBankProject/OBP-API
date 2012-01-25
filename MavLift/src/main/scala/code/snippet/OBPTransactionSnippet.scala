@@ -167,10 +167,18 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
 
 
     // xhtml
-    val consumer = S.attr("consumer") openOr "no param consumer passed"
+    //val consumer = S.attr("consumer") openOr "no param consumer passed"
 /*
     if (consumer == "anonymous") {
     }*/
+    
+    val consumer = S.uri match{
+      case uri if uri.endsWith("authorities") => "authorities"
+      case uri if uri.endsWith("board") => "board"
+      case uri if uri.endsWith("our-network") => "our=network"
+      case uri if uri.endsWith("team") => "team"
+      case _ => "anonymous"
+    }
     
    page.flatMap(obpEnvelope => {
       val FORBIDDEN = "---"
@@ -182,14 +190,14 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val otherAccount = transaction.other_account.get
       
       (
-      ".obp_transaction_type_en *" #> transactionDetails.mediated_type_en(consumer).getOrElse(FORBIDDEN) &
-      ".obp_transaction_type_de *" #> transactionDetails.mediated_type_de(consumer).getOrElse(FORBIDDEN) &
-      ".obp_transaction_amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".obp_transaction_data_blob *" #> otherAccount.mediated_holder(consumer) &
-      ".obp_transaction_currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
-      ".obp_transaction_date_start *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
-      ".obp_transaction_date_complete *" #> transactionDetails.mediated_completed(consumer).getOrElse(FORBIDDEN) &
-      ".opb_transaction_other_account *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN)).apply(xhtml)
+      ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
+      ".other_account_holder *" #> otherAccount.mediated_holder(consumer) &
+      ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
+      ".date_cleared *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
+      ".new_balance *" #> {
+        transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
+        transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)
+      }).apply(xhtml)
       
     })
     
