@@ -107,7 +107,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '{
          "this_account":{
             "holder":"Music Pictures Limited",
             "number":"123567",
-            "type":"current",
+            "kind":"current",
             "bank":{
                "IBAN":"DE1235123612",
                "national_identifier":"de.10010010",
@@ -117,7 +117,7 @@ curl -i -H "Content-Type: application/json" -X POST -d '{
          "other_account":{
             "holder":"Simon Redfern",
             "number":"3225446882",
-            "type":"current",
+            "kind":"current",
             "bank":{
                "IBAN":"UK12789879",
                "national_identifier":"uk.10010010",

@@ -85,7 +85,7 @@ object OBPRest extends RestHelper {
             "this_account":{
                "holder":"Music Pictures Limited",
                "number":"123567",
-               "type":"current",
+               "kind":"current",
                "bank":{
                   "IBAN":"DE1235123612",
                   "national_identifier":"de.10010010",
@@ -95,7 +95,7 @@ object OBPRest extends RestHelper {
             "other_account":{
                "holder":"Client 1",
                "number":"123567",
-               "type":"current",
+               "kind":"current",
                "bank":{
                   "IBAN":"UK12222879",
                   "national_identifier":"uk.10010010",
