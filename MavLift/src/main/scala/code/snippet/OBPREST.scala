@@ -79,14 +79,49 @@ object OBPRest extends RestHelper {
 
       
       
-      
+    /**
+     * curl -i -H "Content-Type: application/json" -X POST -d '{
+         "obp_transaction":{
+            "this_account":{
+               "holder":"Music Pictures Limited",
+               "number":"123567",
+               "type":"current",
+               "bank":{
+                  "IBAN":"DE1235123612",
+                  "national_identifier":"de.10010010",
+                  "name":"Postbank"
+               }
+            },
+            "other_account":{
+               "holder":"Client 1",
+               "number":"123567",
+               "type":"current",
+               "bank":{
+                  "IBAN":"UK12222879",
+                  "national_identifier":"uk.10010010",
+                  "name":"HSBC"
+               }
+            },
+            "details":{
+               "type_en":"Transfer",
+               "type_de":"Überweisung",
+               "posted":"ISODate 2011-11-25T10:28:38.273Z",
+               "completed":"ISODate 2011-11-26T10:28:38.273Z",
+               "value":{
+                  "currency":"EUR",
+                  "amount":"123.45"
+               },
+               "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+            }
+         }
+ } ' http://localhost:8080/api/transactions  
+     */
     case "api" :: "transactions" :: Nil JsonPost json => {
       
       for{
-        t <- OBPTransaction.fromJValue(json._1)
+        t <- OBPEnvelope.fromJValue(json._1)
         saved <- t.saveTheRecord()
       } yield saved.asJValue
-      
     } 
       
     //case Req("test" , "ping", _, _) => () => Full(PlainTextResponse("pong"))
@@ -123,8 +158,8 @@ object OBPRest extends RestHelper {
          .holder("Simon Redfern")
          .kind("CURRENT")
          .number("344533456")
-*/
-  /* val tran = OBPTransaction.createRecord
+
+  val tran = OBPTransaction.createRecord
   .obp_transaction_data_blob("created-test")
   .obp_transaction_amount("223344")
   .obp_transaction_date_complete(cal)
@@ -133,8 +168,8 @@ object OBPRest extends RestHelper {
 
     val env = OBPEnvelope.createRecord
     .obp_transaction(tran)
-    .save*/
-
+    .save
+*/
 
 
      val json_message = ("hello simon" -> 123)

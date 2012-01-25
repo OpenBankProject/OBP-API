@@ -2,27 +2,17 @@ package code.snippet
 
 import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
-
 import net.liftweb.http._
 import java.util.Calendar
 import code.model.OBPTransaction
-
 import code.model.OBPEnvelope
-
-//import net.liftweb.http.DispatchSnippet._
-//import net.liftweb.http.PaginatorSnippet._
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
 import net.liftweb.mongodb.Skip._
-//import net.liftweb.http.Paginator._
-
-
 import net.liftweb.util.Helpers._
-//import net.liftweb.common.{Box,Full,Empty,Failure,ParamFailure}
-
-
 import net.liftweb.util._
+import scala.xml.Text
 
 /**
  * A default implementation of DateTimeConverter that uses (Time)Helpers
@@ -182,7 +172,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
     if (consumer == "anonymous") {
     }*/
     
-    page.flatMap(obpEnvelope => {
+   page.flatMap(obpEnvelope => {
       val FORBIDDEN = "---"
       
       val transaction = obpEnvelope.obp_transaction.get
