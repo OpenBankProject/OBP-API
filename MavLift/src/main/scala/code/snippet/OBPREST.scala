@@ -232,7 +232,7 @@ object OBPRest extends RestHelper {
     .withinCenter(longitude, latitude, range_radians)
     .get
 
-    val choose_items = OBPTransaction.findAll(qry)
+  /*  val choose_items = OBPTransaction.findAll(qry)*/
 
 
     var some_json = """{"name":"joe","age":15}"""
@@ -293,23 +293,23 @@ object OBPRest extends RestHelper {
     val q = MongoDBObject("user" -> "someOtherUser")
 
 
-    val items_count = choose_items.size
+   /* val items_count = choose_items.size*/
 
-    println("There are %d items in the list".format(items_count))
+    /*println("There are %d items in the list".format(items_count))*/
 
-    if (items_count > 0) {
+/*    if (items_count > 0) {
       //println(choose_items.first.description)
       println("after--------")
-    }
+    }*/
 
 
     //Full(XhtmlResponse(choose_item_1.toXHtml))
     //Full(JsonResponse(List("Count of items found", items_count)))
 
-    val json_message = ("items_count" -> items_count)
-
+   /* val json_message = ("items_count" -> items_count)
+*/
     // The last result of the function is returned.
-    Full(JsonResponse(json_message))
+    Full(JsonResponse("blah"))
     }
 }
 

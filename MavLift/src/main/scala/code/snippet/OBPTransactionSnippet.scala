@@ -34,7 +34,7 @@ tryo{timeFormat.parse(s)}
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
-  override def count = OBPTransaction.count
+  override def count = OBPEnvelope.count
 
 
   override def itemsPerPage = 5
@@ -185,6 +185,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       ".obp_transaction_type_en *" #> transactionDetails.mediated_type_en(consumer).getOrElse(FORBIDDEN) &
       ".obp_transaction_type_de *" #> transactionDetails.mediated_type_de(consumer).getOrElse(FORBIDDEN) &
       ".obp_transaction_amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
+      ".obp_transaction_data_blob *" #> otherAccount.mediated_holder(consumer) &
       ".obp_transaction_currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".obp_transaction_date_start *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
       ".obp_transaction_date_complete *" #> transactionDetails.mediated_completed(consumer).getOrElse(FORBIDDEN) &

@@ -6,6 +6,7 @@ import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import java.util.Calendar
+import java.text.SimpleDateFormat
 
 
 import net.liftweb.json.JsonAST._
@@ -149,7 +150,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope]
 
 
-class OBPTransaction private() extends MongoRecord[OBPTransaction] with ObjectIdPk[OBPTransaction] {
+class OBPTransaction private() extends BsonRecord[OBPTransaction]{
   def meta = OBPTransaction // what does meta do?
   
   object this_account extends BsonRecordField(this, OBPAccount)
@@ -158,13 +159,13 @@ class OBPTransaction private() extends MongoRecord[OBPTransaction] with ObjectId
   
 }
 
-object OBPTransaction extends OBPTransaction with MongoMetaRecord[OBPTransaction]
+object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 
 
 ///
 
 
-class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAccount] {
+class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
   protected object holder extends net.liftweb.record.field.StringField(this, 255)
@@ -216,7 +217,7 @@ class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAc
   }
 }
 
-object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
+object OBPAccount extends OBPAccount with BsonMetaRecord[OBPAccount]
 
 
 
@@ -239,7 +240,7 @@ object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
 
 ///////////
 
-class OBPBank private() extends MongoRecord[OBPBank] with ObjectIdPk[OBPBank] {
+class OBPBank private() extends BsonRecord[OBPBank]{
   def meta = OBPBank
 
   protected object IBAN extends net.liftweb.record.field.StringField(this, 255)
@@ -277,13 +278,15 @@ class OBPBank private() extends MongoRecord[OBPBank] with ObjectIdPk[OBPBank] {
   }
 }
 
-object OBPBank extends OBPBank with MongoMetaRecord[OBPBank]
+object OBPBank extends OBPBank with BsonMetaRecord[OBPBank]
 
 
 
-class OBPDetails private() extends MongoRecord[OBPDetails] with ObjectIdPk[OBPDetails] {
+class OBPDetails private() extends BsonRecord[OBPDetails]{
   def meta = OBPDetails
 
+  val dateFormatter = new SimpleDateFormat("MMM dd yyyy")
+  
   protected object type_en extends net.liftweb.record.field.StringField(this, 255)
   protected object type_de extends net.liftweb.record.field.StringField(this, 255)
   protected object posted extends net.liftweb.record.field.DateTimeField(this)
@@ -292,6 +295,11 @@ class OBPDetails private() extends MongoRecord[OBPDetails] with ObjectIdPk[OBPDe
   object value extends BsonRecordField(this, OBPValue)
   
 
+  def formatDate(calendar: Calendar) : String = {
+    val date = calendar.getTime()
+    dateFormatter.format(date)
+  }
+  
   //TODO: Access levels are currently the same across all transactions
   def mediated_type_en(user: String) : Box[String] = {
     user match{
@@ -307,13 +315,13 @@ class OBPDetails private() extends MongoRecord[OBPDetails] with ObjectIdPk[OBPDe
   //TODO: Access levels are currently the same across all transactions
   def mediated_posted(user: String) : Box[String] = {
     user match{
-      case _ => Full(posted.get.toString)
+      case _ => Full(formatDate(posted.get))
     }
   }
   //TODO: Access levels are currently the same across all transactions
   def mediated_completed(user: String) : Box[String] = {
     user match{
-      case _ => Full(completed.get.toString)
+      case _ => Full(formatDate(completed.get))
     }
   }
   //TODO: Access levels are currently the same across all transactions
@@ -327,10 +335,10 @@ class OBPDetails private() extends MongoRecord[OBPDetails] with ObjectIdPk[OBPDe
   }
 }
 
-object OBPDetails extends OBPDetails with MongoMetaRecord[OBPDetails]
+object OBPDetails extends OBPDetails with BsonMetaRecord[OBPDetails]
 
 
-class OBPValue private() extends MongoRecord[OBPValue] with ObjectIdPk[OBPValue] {
+class OBPValue private() extends BsonRecord[OBPValue]{
   def meta = OBPValue
 
   protected object currency extends net.liftweb.record.field.StringField(this, 5)
@@ -343,9 +351,6 @@ class OBPValue private() extends MongoRecord[OBPValue] with ObjectIdPk[OBPValue]
       case "board" => Full(currency.get)
       case "our_network" => Full(currency.get)
       case "authorities" => Full(currency.get)
-      case "anonymous" => {
-        if (currency.get.startsWith("-") ) Full("-") else Full("+")
-      }
       case _ => Empty
     }
   }
@@ -364,6 +369,6 @@ class OBPValue private() extends MongoRecord[OBPValue] with ObjectIdPk[OBPValue]
   }
 }
 
-object OBPValue extends OBPValue with MongoMetaRecord[OBPValue]
+object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
 
 
