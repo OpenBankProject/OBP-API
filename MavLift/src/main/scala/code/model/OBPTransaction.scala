@@ -2,11 +2,12 @@ package code.model
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField
-import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
+import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk, DateField}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import java.util.Calendar
 import java.text.SimpleDateFormat
+import net.liftweb.json.DefaultFormats
 
 
 import net.liftweb.json.JsonAST._
@@ -294,17 +295,12 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   
   protected object type_en extends net.liftweb.record.field.StringField(this, 255)
   protected object type_de extends net.liftweb.record.field.StringField(this, 255)
-  protected object posted extends net.liftweb.record.field.DateTimeField(this)
-  protected object completed extends net.liftweb.record.field.DateTimeField(this)
+  protected object posted extends DateField(this)
+  protected object completed extends DateField(this)
   protected object other_data extends net.liftweb.record.field.StringField(this, 5000)
   object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
   
-
-  def formatDate(calendar: Calendar) : String = {
-    val date = calendar.getTime()
-    dateFormatter.format(date)
-  }
   
   //TODO: Access levels are currently the same across all transactions
   def mediated_type_en(user: String) : Box[String] = {
@@ -321,13 +317,13 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   //TODO: Access levels are currently the same across all transactions
   def mediated_posted(user: String) : Box[String] = {
     user match{
-      case _ => Full(formatDate(posted.get))
+      case _ => Full(dateFormatter.format(posted.get))
     }
   }
   //TODO: Access levels are currently the same across all transactions
   def mediated_completed(user: String) : Box[String] = {
     user match{
-      case _ => Full(formatDate(completed.get))
+      case _ => Full(dateFormatter.format(completed.get))
     }
   }
   //TODO: Access levels are currently the same across all transactions

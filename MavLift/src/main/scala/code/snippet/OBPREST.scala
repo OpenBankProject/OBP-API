@@ -105,8 +105,12 @@ object OBPRest extends RestHelper {
             "details":{
                "type_en":"Transfer",
                "type_de":"Überweisung",
-               "posted":"ISODate 2011-11-25T10:28:38.273Z",
-               "completed":"ISODate 2011-11-26T10:28:38.273Z",
+               "posted":{
+		  		  "$dt":"2012-01-04T18:06:22.000Z"
+				},
+               "completed":{
+		  		  "$dt":"2012-09-04T18:52:13.000Z"
+				},
                "new_balance":{
                	  "currency":"EUR",
                   "amount":"4323.45"
@@ -115,10 +119,10 @@ object OBPRest extends RestHelper {
                   "currency":"EUR",
                   "amount":"123.45"
                },
-               "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+               "other_data":"9"
             }
          }
- } ' http://localhost:8080/api/transactions  
+ }  ' http://localhost:8080/api/transactions  
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
       
