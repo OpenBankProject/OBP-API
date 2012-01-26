@@ -13,7 +13,17 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
-limitations under the License.       
+limitations under the License. 
+
+Open Bank Project (http://www.openbankproject.com)
+      Copyright 2011,2012 TESOBE / Music Pictures Ltd
+
+      This product includes software developed at
+      TESOBE (http://www.tesobe.com/)
+		by 
+		Simon Redfern : simon AT tesobe DOT com
+		Everett Sochowski: everett AT tesobe DOT com
+
  */
 package code.snippet
 
@@ -32,24 +42,6 @@ import net.liftweb.util._
 import scala.xml.Text
 import net.liftweb.common.{Box, Failure, Empty, Full}
 import java.util.Date
-
-/**
- * A default implementation of DateTimeConverter that uses (Time)Helpers
-
-object DefaultDateTimeConverter extends DateTimeConverter {
-  def formatDateTime(d: Date) = internetDateFormat.format(d)
-  def formatDate(d: Date) = dateFormat.format(d)
-  /**  Uses Helpers.hourFormat which includes seconds but not time zone */
-  def formatTime(d: Date) = hourFormat.format(d)
-
-  def parseDateTime(s: String) = tryo { internetDateFormat.parse(s) }
-  def parseDate(s: String) = tryo { dateFormat.parse(s) }
-  /** Tries Helpers.hourFormat and Helpers.timeFormat */
-  def parseTime(s: String) = tryo{hourFormat.parse(s)} or
-tryo{timeFormat.parse(s)}
-
-}
-*/
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
