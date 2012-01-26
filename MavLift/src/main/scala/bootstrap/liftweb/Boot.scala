@@ -10,6 +10,7 @@ import mapper._
 import code.model._
 import com.tesobe.utils._
 import myapp.model.MongoConfig
+import net.liftweb.util.Helpers._
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -74,13 +75,16 @@ class Boot {
           Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
           Menu.i("Team") / "accounts" / "tesobe" / "team",
           Menu.i("Board") / "accounts" / "tesobe" / "board",
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities"
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities",
+          Menu.i("Comments") / "comments" >> Hidden
 				)
       )
     )
 
-
-
+    LiftRules.statelessRewrite.append{
+        case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
+          					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
+    }
 
     def sitemapMutators = User.sitemapMutator
 

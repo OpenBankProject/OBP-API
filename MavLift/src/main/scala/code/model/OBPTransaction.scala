@@ -2,13 +2,14 @@ package code.model
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField
-import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk, DateField}
+import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk, DateField, MongoListField}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import net.liftweb.json.DefaultFormats
 import java.util.Date
+import net.liftweb.record.field.{StringField}
 
 import net.liftweb.json.JsonAST._
 
@@ -151,8 +152,23 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
   
+  //TODO: We might want to move where comments are stored
+  object comments extends MongoListField[OBPEnvelope, String](this)
+  
+  def mediated_comments(user: String) : Box[List[String]] = {
+    
+    user match{
+      case "our-network" => Full(comments.get)
+      case "team" => Full(comments.get)
+      case "board" => Full(comments.get)
+      case "authorities" => Full(comments.get)
+      case _ => Empty
+    }
+  }
+  
   def asMediatedJValue(user: String) : JObject  = {
-    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user))))
+    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user)),
+        		 JField("comments", JArray(comments.get.map(JString(_))))))
   }
 }
 

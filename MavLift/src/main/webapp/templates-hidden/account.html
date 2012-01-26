@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
+  </head>
+  <body class="lift:content_id=main">
+    <div id="main" class="lift:surround?with=default;at=content">
+      <h2 class="page_header">The page header will get bound here</h2>
+      <p>
+	<span class="lift:helloWorld.howdy">
+	  Welcome. The time is <span id="time">Time goes here</span>
+	</span>
+      </p>
+            <div>
+        <h3>Transactions</h3>
+
+        <br>
+    </div>
+
+
+        <table>
+            <thead>
+                <tr>
+                    <!--<th class="span-1">Account</th>
+                    <th class="span-1">Posted</th>   -->
+                    <th class="span-1">Cleared</th>
+                    <th class="span-1">Amount</th>
+                    <th class="span-1">Currency</th>
+                    <!-- <th class="span-1">Type</th> -->
+                    <th class="span-1">To/From</th>
+                    <th class="span-1">Balance</th>
+                    <th class="span-1">Comments</th>
+                </tr>
+            </thead>
+            <tbody>
+            <tr class=lift:OBPTransactionSnippet.showAll>
+                <!-- <td class="opb_transaction_other_account">other account</td>
+                <td class="obp_transaction_date_start">start date</td> -->
+                <td class="date_cleared">completed date</td>
+                <td class="amount">obp_transaction_amount</td>
+                <td class="currency">obp_transaction_currency</td>
+                <!-- <td class="obp_transaction_type_en">obp_transaction_type_en</td> -->
+                <!-- <td class="obp_transaction_type_de">obp_transaction_type_de</td> -->
+                <td class="other_account_holder">obp_transaction_data_blob</td>
+                <td class="new_balance">obp_transaction_new_balance</td>
+                <td class="comments_link">link to comments</td>
+            </tr>
+        </tbody>
+
+        </table>
+    </div>
+  </body>
+</html>
