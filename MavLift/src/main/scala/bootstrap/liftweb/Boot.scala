@@ -1,3 +1,30 @@
+/** 
+Open Bank Project
+
+Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and 
+limitations under the License.      
+
+Open Bank Project (http://www.openbankproject.com)
+      Copyright 2011,2012 TESOBE / Music Pictures Ltd
+
+      This product includes software developed at
+      TESOBE (http://www.tesobe.com/)
+		by 
+		Simon Redfern : simon AT tesobe DOT com
+		Everett Sochowski: everett AT tesobe DOT com
+
+ */
 package bootstrap.liftweb
 
 import net.liftweb._
@@ -10,6 +37,7 @@ import mapper._
 import code.model._
 import com.tesobe.utils._
 import myapp.model.MongoConfig
+import net.liftweb.util.Helpers._
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -41,46 +69,26 @@ class Boot {
     LiftRules.addToPackages("code")
 
     // For some restful stuff
-    //LiftRules.dispatch.append(OBPRest) // stateful -- associated with a servlet container session
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
     // Build SiteMap
     def sitemap = SiteMap(
-      //Menu.i("Home") / "index" >> User.AddUserMenusAfter //, // the simple way to declare a menu
-
-      // more complex because this menu allows anything in the
-      // /static path to be visible
-      //Menu(Loc("Static", Link(List("static"), true, "/static/index"), 
-	  //     "Static Content"))
-      
-      // A menu with submenus
-		/*, Menu.i("Info") / "info" submenus(
-				Menu.i("About") / "about" >> Hidden >> LocGroup("bottom"),
-				Menu.i("Contact") / "contact",
-				Menu.i("Feedback") / "feedback" >> LocGroup("bottom")
-				)*/
-            // A Simon menu with submenus
-		/*, Menu.i("Simon") / "simon" submenus(
-				Menu.i("SAbout") / "sabout" >> Hidden >> LocGroup("bottom"),
-				Menu.i("SContact") / "scontact",
-				Menu.i("SFeedback") / "sfeedback" >> LocGroup("bottom")
-				) */
-    //, Menu.i("x") / "x" submenus(
-		//		Menu.i("y") / "y"
-		//		)
     Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
           Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
           Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
           Menu.i("Team") / "accounts" / "tesobe" / "team",
           Menu.i("Board") / "accounts" / "tesobe" / "board",
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities"
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities",
+          Menu.i("Comments") / "comments" >> Hidden
 				)
       )
     )
 
-
-
+    LiftRules.statelessRewrite.append{
+        case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
+          					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
+    }
 
     def sitemapMutators = User.sitemapMutator
 
