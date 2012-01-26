@@ -1,3 +1,20 @@
+/** 
+Open Bank Project
+
+Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and 
+limitations under the License.       
+ */
 package bootstrap.liftweb
 
 import net.liftweb._
@@ -42,33 +59,10 @@ class Boot {
     LiftRules.addToPackages("code")
 
     // For some restful stuff
-    //LiftRules.dispatch.append(OBPRest) // stateful -- associated with a servlet container session
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
     // Build SiteMap
     def sitemap = SiteMap(
-      //Menu.i("Home") / "index" >> User.AddUserMenusAfter //, // the simple way to declare a menu
-
-      // more complex because this menu allows anything in the
-      // /static path to be visible
-      //Menu(Loc("Static", Link(List("static"), true, "/static/index"), 
-	  //     "Static Content"))
-      
-      // A menu with submenus
-		/*, Menu.i("Info") / "info" submenus(
-				Menu.i("About") / "about" >> Hidden >> LocGroup("bottom"),
-				Menu.i("Contact") / "contact",
-				Menu.i("Feedback") / "feedback" >> LocGroup("bottom")
-				)*/
-            // A Simon menu with submenus
-		/*, Menu.i("Simon") / "simon" submenus(
-				Menu.i("SAbout") / "sabout" >> Hidden >> LocGroup("bottom"),
-				Menu.i("SContact") / "scontact",
-				Menu.i("SFeedback") / "sfeedback" >> LocGroup("bottom")
-				) */
-    //, Menu.i("x") / "x" submenus(
-		//		Menu.i("y") / "y"
-		//		)
     Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
           Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
