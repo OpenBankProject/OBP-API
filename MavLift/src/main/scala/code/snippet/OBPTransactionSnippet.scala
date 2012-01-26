@@ -125,7 +125,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
         transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)
       } &
-      ".comments_link *" #> <a href={consumer + "/transactions/" + envelopeID + "/comments"}>Comments ({obpEnvelope.comments.get.size})</a>).apply(xhtml)
+      ".comments_link *" #> <a href={consumer + "/transactions/" + envelopeID + "/comments"}>Comments ({(obpEnvelope.mediated_comments(consumer) getOrElse List()).size})</a>).apply(xhtml)
       
     })
   }

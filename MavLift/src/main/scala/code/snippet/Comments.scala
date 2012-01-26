@@ -73,9 +73,7 @@ class Comments{
     
     envelope match{
       case Full(e) => {
-        println("# of comments: " + e.comments.get.size)
-        println(e.comments.get)
-        e.comments.get.flatMap(comment =>
+        e.mediated_comments(accessLevel).getOrElse(List()).flatMap(comment =>
           (".comment *" #> comment).apply(xhtml))
       }
       case _ => (".comment *" #> "No comments").apply(xhtml)
@@ -91,7 +89,9 @@ class Comments{
     
     envelope match{
       case Full(e) => {
-        SHtml.ajaxForm(<p>{
+        e.mediated_comments(accessLevel) match{
+          case Full(x) => {
+            SHtml.ajaxForm(<p>{
         		SHtml.text("",comment => {
         		  /**
         		   * This was badly hacked together to meet a deadline
@@ -104,7 +104,11 @@ class Comments{
         		  
         		})}</p> ++
         			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
-        )
+            )
+          }
+          case _ => Text("Anonymous users may not view or submit comments")
+        }
+        
       }
       case _ => Text("Cannot add comment to non-existant transaction")
     }
