@@ -13,6 +13,8 @@ import net.liftweb.mongodb.Skip._
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import scala.xml.Text
+import net.liftweb.common.{Box, Failure, Empty, Full}
+import java.util.Date
 
 /**
  * A default implementation of DateTimeConverter that uses (Time)Helpers
@@ -183,17 +185,26 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
    page.flatMap(obpEnvelope => {
       val FORBIDDEN = "---"
       
+      val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
+        
       val transaction = obpEnvelope.obp_transaction.get
       val transactionDetails = transaction.details.get
       val transactionValue = transactionDetails.value.get
       val thisAccount = transaction.this_account.get
       val otherAccount = transaction.other_account.get
       
+      def formatDate(date : Box[Date]) : String = {
+        date match{
+          case Full(d) => dateFormat.format(d)
+          case _ => FORBIDDEN
+        }
+      }
+      
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
       ".other_account_holder *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN) &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
-      ".date_cleared *" #> transactionDetails.mediated_posted(consumer).getOrElse(FORBIDDEN)&
+      ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
       ".new_balance *" #> {
         transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
         transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)

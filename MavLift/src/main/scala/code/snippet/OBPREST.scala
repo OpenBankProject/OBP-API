@@ -129,8 +129,21 @@ object OBPRest extends RestHelper {
       for{
         t <- OBPEnvelope.fromJValue(json._1)
         saved <- t.saveTheRecord()
-      } yield saved.asJValue
+      } yield saved.asMediatedJValue("authorities") //this _should_ provide full access view, but with incorrect access settings it won't
     } 
+    
+    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
+    //to be completely reworked.
+    case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+      
+      
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
+      
+      
+      JsonResponse(envelopeJson)
+    }
       
     //case Req("test" , "ping", _, _) => () => Full(PlainTextResponse("pong"))
     //case Req("xml" :: Nil, _, _) => Full(XmlResponse(<persons><name>Simon</name><name>John</name></persons>))
@@ -153,13 +166,13 @@ object OBPRest extends RestHelper {
       JsonResponse(transactions.map(t => { t.asJValue }))*/
 
 
-    case Req("create":: Nil, _, _) => () =>
+    /*case Req("create":: Nil, _, _) => () =>
 
 
          val cal = Calendar.getInstance
     cal.set(2009, 10, 2)
 
-
+*/
 
   // but this creates an id_ which we don't need
    /* val from_account = OBPAccount.createRecord
@@ -180,7 +193,7 @@ object OBPRest extends RestHelper {
 */
 
 
-     val json_message = ("hello simon" -> 123)
+    /* val json_message = ("hello simon" -> 123)
 
     // The last result of the function is returned.
     Full(JsonResponse(json_message))
@@ -240,7 +253,7 @@ object OBPRest extends RestHelper {
     .withinCenter(longitude, latitude, range_radians)
     .get
 
-  /*  val choose_items = OBPTransaction.findAll(qry)*/
+    val choose_items = OBPTransaction.findAll(qry)
 
 
     var some_json = """{"name":"joe","age":15}"""
@@ -301,23 +314,23 @@ object OBPRest extends RestHelper {
     val q = MongoDBObject("user" -> "someOtherUser")
 
 
-   /* val items_count = choose_items.size*/
+    val items_count = choose_items.size
 
-    /*println("There are %d items in the list".format(items_count))*/
+    println("There are %d items in the list".format(items_count))
 
-/*    if (items_count > 0) {
+    if (items_count > 0) {
       //println(choose_items.first.description)
       println("after--------")
-    }*/
+    }
 
 
     //Full(XhtmlResponse(choose_item_1.toXHtml))
     //Full(JsonResponse(List("Count of items found", items_count)))
 
-   /* val json_message = ("items_count" -> items_count)
-*/
+    val json_message = ("items_count" -> items_count)
+
     // The last result of the function is returned.
-    Full(JsonResponse("blah"))
+    Full(JsonResponse("blah"))*/
     }
 }
 
