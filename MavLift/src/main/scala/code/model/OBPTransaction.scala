@@ -232,7 +232,12 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
 
   
   def accountAliases : Map[String,String] = {
-    Map("Neils Hapke" -> "The Chicken", "Yoav Aner" -> "Software Developer 1", "Jan Slabiak" -> "Alex")
+    Map("Aida Ghiuntar" -> "Cleaning Services",
+        "Martin Gordon" -> "Project Management 1",
+        "Ismail Chaib" -> "Project Management 2",
+        "Eveline Mäthner" -> "Accounts",
+        "Everett Sochowski" -> "Developer",
+        "James Edward Morris" -> "Developer")
   }
   
   //TODO: Access levels are currently the same across all transactions
@@ -429,7 +434,11 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
     user match{
-      case _ => Full(currency.get.toString)
+      case "our-network" => Full(amount.get.toString)
+      case "team" => Full(amount.get.toString)
+      case "board" => Full(amount.get.toString)
+      case "authorities" => Full(amount.get.toString)
+      case _ => Empty
     }
   }
   //TODO: Access levels are currently the same across all transactions
@@ -438,7 +447,13 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
    */
   def mediated_amount(user: String) : Box[String] = {
     user match{
-      case _ => Full(amount.get.toString)
+      case "our-network" => Full(amount.get.toString)
+      case "team" => Full(amount.get.toString)
+      case "board" => Full(amount.get.toString)
+      case "authorities" => Full(amount.get.toString)
+      case _ => {
+        if(amount.get.toString.startsWith("-")) Full("-") else Full("+")
+      }
     }
   }
   
