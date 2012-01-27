@@ -73,7 +73,8 @@ class Boot {
 
     // Build SiteMap
     def sitemap = SiteMap(
-    Menu.i("Accounts") / "accounts" submenus(
+          Menu.i("Home") / "index",
+    	  Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
           Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
           Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
