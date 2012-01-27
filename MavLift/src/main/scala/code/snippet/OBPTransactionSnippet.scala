@@ -108,7 +108,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
    page.flatMap(obpEnvelope => {
       val FORBIDDEN = "---"
       
-      val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
+      val dateFormat = new SimpleDateFormat("MMM dd yyyy")
       
       val envelopeID = obpEnvelope.id
       
