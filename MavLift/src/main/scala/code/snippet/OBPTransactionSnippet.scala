@@ -105,7 +105,15 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       case _ => "anonymous"
     }
     
-   page.flatMap(obpEnvelope => {
+   def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
+     val date1 = e1.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
+     val date2 = e2.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
+     date1.after(date2)
+   } 
+    
+   val envelopes = page.sort(orderByDateDescending)
+    
+   envelopes.flatMap(obpEnvelope => {
       val FORBIDDEN = "---"
       
       val dateFormat = new SimpleDateFormat("MMM dd yyyy")
