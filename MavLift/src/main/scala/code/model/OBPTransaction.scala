@@ -434,10 +434,10 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
     user match{
-      case "our-network" => Full(amount.get.toString)
-      case "team" => Full(amount.get.toString)
-      case "board" => Full(amount.get.toString)
-      case "authorities" => Full(amount.get.toString)
+      case "our-network" => Full(currency.get)
+      case "team" => Full(currency.get)
+      case "board" => Full(currency.get)
+      case "authorities" => Full(currency.get)
       case _ => Empty
     }
   }
