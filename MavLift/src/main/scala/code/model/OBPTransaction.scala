@@ -37,8 +37,10 @@ import java.text.SimpleDateFormat
 import net.liftweb.json.DefaultFormats
 import java.util.Date
 import net.liftweb.record.field.{StringField}
-
 import net.liftweb.json.JsonAST._
+import net.liftweb.mongodb.record.{MongoId}
+import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
+import scala.util.Random
 
 class Location private () extends BsonRecord[Location] {
   def meta = Location
@@ -221,6 +223,32 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 
 ///
 
+/**
+ * There should be only one of these for every real life "this" account. TODO: Enforce this
+ * 
+ * As a result, this can provide a single point from which to retrieve the aliases associated with
+ * this account, rather than needing to duplicate the aliases into every single transaction.
+ */
+class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
+ def meta = Account 
+ 
+  protected object holder extends net.liftweb.record.field.StringField(this, 255)
+  protected object number extends net.liftweb.record.field.StringField(this, 255)
+  protected object kind extends net.liftweb.record.field.StringField(this, 255)
+  protected object bank extends BsonRecordField(this, OBPBank)
+  object privateAliases extends MongoJsonObjectListField[Account, Alias](this, Alias)
+  object publicAliases extends MongoJsonObjectListField[Account, Alias](this, Alias)
+  
+}
+
+object Account extends Account with MongoMetaRecord[Account]
+
+//TODO: This should somehow be unique
+case class Alias(realValue: String, aliasValue: String) extends JsonObject[Alias]{
+  def meta = Alias
+}
+
+object Alias extends JsonObjectMeta[Alias]
 
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
@@ -229,33 +257,101 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
   protected object number extends net.liftweb.record.field.StringField(this, 255)
   protected object kind extends net.liftweb.record.field.StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
-
   
-  def accountAliases : Map[String,String] = {
-    Map("Aida Ghiuntar" -> "Cleaning Services",
-        "Martin Gordon" -> "Project Management 1",
-        "Ismail Chaib" -> "Project Management 2",
-        "Eveline Mäthner" -> "Accounts",
-        "Everett Sochowski" -> "Developer",
-        "James Edward Morris" -> "Developer")
+  def theAccount = {
+    //accounts are currently defined unique based on the holder, which is not ideal
+    // but current transaction imports are incorrectly including extra information
+    // in the number field so we can't match on that yet
+    val accJObj = JObject(List(JField("holder", JString(holder.get))))
+    Account.find(accJObj) match{
+	    case Full(a) => Full(a)
+	    case _ => {
+	      val newAccount = Account.createRecord
+	      newAccount.setFieldsFromJValue(this.asJValue)
+	      newAccount.saveTheRecord()
+	    }
+    }
   }
   
+  def aliases : Set[Alias] = {
+    theAccount match {
+      case Full(a) => a.publicAliases.get.toSet
+      case _ => Set()
+    }
+  }
+  
+  def anonAliases : Set[Alias] = {
+    theAccount match {
+      case Full(a) => a.privateAliases.get.toSet
+      case _ => Set()
+    }
+  }
+  
+  
   //TODO: Access levels are currently the same across all transactions
-  def mediated_holder(user: String) : Box[String] = {
+  def mediated_holder(user: String) : (Box[String], Box[OBPAccount.AnAlias]) = {
     val theHolder = holder.get
     
-    def useAliases = {
-      val alias = accountAliases.get(theHolder)
-      if(alias.isDefined) Full(alias.get)
-      else Full(theHolder)
+    def usePrivateAliasIfExists() : (Box[String], Box[OBPAccount.AnAlias])= {
+      val privateAlias = for{
+        account <- theAccount
+        alias <- account.privateAliases.get.find(a => a match{
+		        case Alias(theHolder, _) => true
+		        case _ => false
+        	})
+      } yield alias.aliasValue
+      
+      privateAlias match{
+        case Full(a) => (Full(a), Full(OBPAccount.APrivateAlias))
+        case _ => (Full(theHolder), Empty)
+      }
+    }
+    
+    def usePublicAlias() : (Box[String], Box[OBPAccount.AnAlias])= {
+      val publicAlias = for{
+        account <- theAccount
+        alias <- account.publicAliases.get.find(a => a match{
+		        case Alias(theHolder, _) => true
+		        case _ => false
+        	})
+      } yield alias.aliasValue
+      
+      //For now, if it's all upper case, treat it as a company
+      def isACompany(holder: String) = {
+        holder.equals(holder.toUpperCase())
+      }
+      
+      def createPublicAlias() = {
+        val randomAliasName = "ALIAS_" + Random.nextLong().toString
+            theAccount match {
+              case Full(a) => {
+                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(theHolder, randomAliasName)))
+                updatedAccount.saveTheRecord()
+                Full(randomAliasName)
+              }
+              case _ => Empty
+            }
+      }
+      
+      publicAlias match{
+        case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
+        case _ => {
+          //create an anonymous public alias if it's not a company
+          if(isACompany(theHolder)){
+            (Full(theHolder), Empty)
+          }else{
+            (createPublicAlias, Full(OBPAccount.APublicAlias))
+          }
+        }
+      }
     }
     
     user match{
-      case "team" => Full(theHolder)
-      case "board" => Full(theHolder)
-      case "authorities" => Full(theHolder)
-      case "our-network" => useAliases
-      case _ => Empty
+      case "team" => (Full(theHolder), Empty)
+      case "board" => (Full(theHolder), Empty)
+      case "authorities" => (Full(theHolder), Empty)
+      case "our-network" => usePrivateAliasIfExists
+      case _ => usePublicAlias
     }
   }
   
@@ -278,16 +374,28 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => Empty
     }
   }
-  
+  //JString(mediated_holder(user) getOrElse ("---")
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("holder", JString(mediated_holder(user) getOrElse "---")),
+    val h = mediated_holder(user)
+    JObject(List( JField("holder", 
+    				JObject(List(
+    				    JField("holder", JString(h._1.getOrElse("---"))),
+    				    JField("alias", JString(h._2 match{
+    				      case Full(OBPAccount.APublicAlias) => "public"
+    				      case Full(OBPAccount.APrivateAlias) => "private"
+    				      case _ => "no"
+    				    }))))),
         		  JField("number", JString(mediated_number(user) getOrElse "---")),
         		  JField("kind", JString(mediated_kind(user) getOrElse "---")),
         		  JField("bank", bank.get.asMediatedJValue(user))))
   }
 }
 
-object OBPAccount extends OBPAccount with BsonMetaRecord[OBPAccount]
+object OBPAccount extends OBPAccount with BsonMetaRecord[OBPAccount]{
+  sealed abstract class AnAlias
+  case object APublicAlias extends AnAlias
+  case object APrivateAlias extends AnAlias
+}
 
 
 

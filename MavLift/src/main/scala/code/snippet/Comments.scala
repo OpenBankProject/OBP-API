@@ -45,6 +45,7 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.http.StringField
 import java.util.Date
 import java.text.SimpleDateFormat
+import code.model.OBPAccount._
 
 /**
  * This whole class is a rather hastily put together mess
@@ -78,7 +79,19 @@ class Comments{
 
         (
           ".amount *" #> transactionValue.mediated_amount(accessLevel).getOrElse(FORBIDDEN) &
-          ".other_account_holder *" #> otherAccount.mediated_holder(accessLevel).getOrElse(FORBIDDEN) &
+          ".other_account_holder *" #> {
+	        val otherHolder = otherAccount.mediated_holder(accessLevel)
+	        val holderName = otherHolder._1 match {
+	          case Full(h) => h
+	          case _ => FORBIDDEN
+	        }
+	        val aliasType = otherHolder._2 match{
+	          case Full(APublicAlias) => "public"
+	          case Full(APrivateAlias) => "private"
+	          case _ => "no alias"
+	        }
+	        {aliasType + holderName}
+	      } &
           ".currency *" #> transactionValue.mediated_currency(accessLevel).getOrElse(FORBIDDEN) &
           ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(accessLevel)) &
           ".new_balance *" #> {

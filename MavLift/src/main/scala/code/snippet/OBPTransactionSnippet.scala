@@ -42,6 +42,8 @@ import net.liftweb.util._
 import scala.xml.Text
 import net.liftweb.common.{Box, Failure, Empty, Full}
 import java.util.Date
+import code.model.OBPAccount
+import code.model.OBPAccount.{APublicAlias, APrivateAlias}
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
@@ -124,7 +126,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val transactionDetails = transaction.details.get
       val transactionValue = transactionDetails.value.get
       val thisAccount = transaction.this_account.get
-      val otherAccount = transaction.other_account.get
+      val otherAccount  = transaction.other_account.get
       
       def formatDate(date : Box[Date]) : String = {
         date match{
@@ -135,7 +137,19 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN) &
+      ".other_account_holder *" #> {
+        val otherHolder = otherAccount.mediated_holder(consumer)
+        val holderName = otherHolder._1 match {
+          case Full(h) => h
+          case _ => FORBIDDEN
+        }
+        val aliasType = otherHolder._2 match{
+          case Full(APublicAlias) => "public: "
+          case Full(APrivateAlias) => "private alias: "
+          case _ => "no alias: "
+        }
+        {aliasType + holderName}
+      } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
       ".new_balance *" #> {
