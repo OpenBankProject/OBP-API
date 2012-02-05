@@ -294,7 +294,8 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       val privateAlias = for{
         account <- theAccount
         alias <- account.privateAliases.get.find(a => a match{
-		        case Alias(theHolder, _) => true
+		        case Alias(`theHolder`, "") => false
+		        case Alias(`theHolder`, _) => true
 		        case _ => false
         	})
       } yield alias.aliasValue
@@ -309,6 +310,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       val publicAlias = for{
         account <- theAccount
         alias <- account.publicAliases.get.find(a => a match{
+		        case Alias(`theHolder`, "") => false
 		        case Alias(`theHolder`, _) => true
 		        case _ => false
         	})

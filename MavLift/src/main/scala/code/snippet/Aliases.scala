@@ -21,13 +21,26 @@ class Aliases {
     val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
     val currentAccount = Account.find(accJObj)
     
+    def orderByRealValueAtoZ = (a1: Alias, a2: Alias) => {
+     a1.realValue < a2.realValue
+    } 
+    
     val publicAliases = {
       val alis = for{
 	      acc <- currentAccount
 	      aliases <- Some(acc.publicAliases.get)
 	  } yield aliases
 	  
-	  alis.getOrElse(List())
+	  alis.getOrElse(List()).sort(orderByRealValueAtoZ)
+    }
+    
+    val privateAliases = {
+      val alis = for{
+	      acc <- currentAccount
+	      aliases <- Some(acc.privateAliases.get)
+	  } yield aliases
+	  
+	  alis.getOrElse(List()).sort(orderByRealValueAtoZ)
     }
     
     def editablePublicAlias(alias: Alias) = {
@@ -41,16 +54,36 @@ class Aliases {
         }
       }
       
-      //TODO: How to reload the page on edit?
       SHtml.ajaxEditable(Text(alVal), SHtml.text(alVal, alVal = _), () =>{
         setPublicAliasValue(alVal)
         Noop
       })
     }
     
+    def editablePrivateAlias(alias: Alias) = {
+      var alVal = alias.aliasValue
+      
+      def setPrivateAliasValue(newValue: String) = {
+        val newAliases = privateAliases ++ List(Alias(alias.realValue, newValue)) -- List(Alias(alias.realValue, alias.aliasValue))
+        currentAccount match{
+          case Full(a) => a.privateAliases(newAliases).save
+          case _ => println("error retrieving current account")
+        }
+      }
+      
+      //TODO: How to reload the page on edit?
+      SHtml.ajaxEditable(Text(alVal), SHtml.text(alVal, alVal = _), () =>{
+        setPrivateAliasValue(alVal)
+        Noop
+      })
+    }
+    
     publicAliases.flatMap(alias => {
         (".real_name *" #> alias.realValue &
-    	".private_alias_name *" #> "Boooooooop" &
+    	".private_alias_name *" #> editablePrivateAlias(privateAliases.find(a => {
+    	  if(a.realValue.equals(alias.realValue)) true
+    	  else false
+    	}).getOrElse(Alias(alias.realValue, ""))) &
     	".public_alias_name *" #> editablePublicAlias(alias)).apply(xhtml)
     })
   }
