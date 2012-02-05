@@ -271,6 +271,38 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     }
   }
   
+  def publicAliasExists(realValue : String) : Boolean = {
+    val acc = theAccount
+    acc match{
+      case Full(a) =>{
+        val publicAliases = a.publicAliases.get
+        val aliasInQuestion = publicAliases.find(alias =>
+          alias match{
+            case Alias(`realValue`, _) => true
+            case _ => false
+          })
+       aliasInQuestion.isDefined
+      }
+      case _ => false
+    }
+  }
+  
+  def privateAliasExists(realValue : String) : Boolean = {
+    val acc = theAccount
+    acc match{
+      case Full(a) =>{
+        val privateAliases = a.privateAliases.get
+        val aliasInQuestion = privateAliases.find(alias =>
+          alias match{
+            case Alias(`realValue`, _) => true
+            case _ => false
+          })
+       aliasInQuestion.isDefined
+      }
+      case _ => false
+    }
+  }
+  
   def aliases : Set[Alias] = {
     theAccount match {
       case Full(a) => a.publicAliases.get.toSet
@@ -350,10 +382,16 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
           //create an anonymous public alias if it's not a company
           if(isACompany(theHolder)){
             //Create an empty alias, so that it "exists" in order to be editable
-            //createPlaceholderPublicAlias()
+            if(!publicAliasExists(theHolder)){
+              createPlaceholderPublicAlias()
+            }
             (Full(theHolder), Empty)
           }else{
-            (createPublicAlias, Full(OBPAccount.APublicAlias))
+            if(!publicAliasExists(theHolder)){
+              (createPublicAlias, Full(OBPAccount.APublicAlias))
+            }
+            //if the public alias has been explicitly set to blank, don't use an alias
+            else (Full(theHolder), Empty) 
           }
         }
       }

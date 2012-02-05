@@ -71,7 +71,6 @@ class Aliases {
         }
       }
       
-      //TODO: How to reload the page on edit?
       SHtml.ajaxEditable(Text(alVal), SHtml.text(alVal, alVal = _), () =>{
         setPrivateAliasValue(alVal)
         Noop
