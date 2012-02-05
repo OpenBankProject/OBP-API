@@ -322,7 +322,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       }
       
       def createPublicAlias() = {
-        val randomAliasName = "ALIAS_" + Random.nextLong().toString
+        val randomAliasName = "ALIAS_" + Random.nextLong().toString.take(6)
             theAccount match {
               case Full(a) => {
                 val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(theHolder, randomAliasName)))
@@ -333,11 +333,24 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
             }
       }
       
+      def createPlaceholderPublicAlias() = {
+        theAccount match {
+              case Full(a) => {
+                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(theHolder, "")))
+                updatedAccount.saveTheRecord()
+                Full("")
+              }
+              case _ => Empty
+            }
+      }
+      
       publicAlias match{
         case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
         case _ => {
           //create an anonymous public alias if it's not a company
           if(isACompany(theHolder)){
+            //Create an empty alias, so that it "exists" in order to be editable
+            //createPlaceholderPublicAlias()
             (Full(theHolder), Empty)
           }else{
             (createPublicAlias, Full(OBPAccount.APublicAlias))

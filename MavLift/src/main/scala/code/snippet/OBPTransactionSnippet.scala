@@ -144,11 +144,11 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
           case _ => FORBIDDEN
         }
         val aliasType = otherHolder._2 match{
-          case Full(APublicAlias) => "public: "
-          case Full(APrivateAlias) => "private alias: "
-          case _ => "no alias: "
+          case Full(APublicAlias) => <img class="alias_image" src="/images/public_alias.png"/>
+          case Full(APrivateAlias) => <img class="alias_image" src="/images/private_alias.png"/>
+          case _ => <span></span>
         }
-        {aliasType + holderName}
+        <span>{aliasType}{holderName}</span>
       } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
