@@ -259,15 +259,13 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
   object bank extends BsonRecordField(this, OBPBank)
   
   def theAccount = {
-    //accounts are currently defined unique based on the holder, which is not ideal
-    // but current transaction imports are incorrectly including extra information
-    // in the number field so we can't match on that yet
-    val accJObj = JObject(List(JField("holder", JString(holder.get))))
+    //TODO: Allow creation of more than just the Music Pictures account
+    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
     Account.find(accJObj) match{
 	    case Full(a) => Full(a)
 	    case _ => {
 	      val newAccount = Account.createRecord
-	      newAccount.setFieldsFromJValue(this.asJValue)
+	      newAccount.setFieldsFromJValue(JObject(List(JField("holder", JString("Music Pictures Limited")))))
 	      newAccount.saveTheRecord()
 	    }
     }
@@ -311,7 +309,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       val publicAlias = for{
         account <- theAccount
         alias <- account.publicAliases.get.find(a => a match{
-		        case Alias(theHolder, _) => true
+		        case Alias(`theHolder`, _) => true
 		        case _ => false
         	})
       } yield alias.aliasValue
