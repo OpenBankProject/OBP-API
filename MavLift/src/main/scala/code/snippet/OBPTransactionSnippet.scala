@@ -153,7 +153,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
           case Full(APrivateAlias) => <img class="alias_image" src="/images/private_alias.png"/>
           case _ => <span></span>
         }
-        <span>{aliasType}<br/>{holderName}</span>
+        <span>{aliasType}{holderName}</span>
       } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
