@@ -41,6 +41,8 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.mongodb.record.{MongoId}
 import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
 import scala.util.Random
+import com.mongodb.QueryBuilder
+import com.mongodb.BasicDBObject
 
 class Location private () extends BsonRecord[Location] {
   def meta = Location
@@ -253,9 +255,25 @@ object Alias extends JsonObjectMeta[Alias]
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
-  protected object holder extends net.liftweb.record.field.StringField(this, 255)
-  protected object number extends net.liftweb.record.field.StringField(this, 255)
-  protected object kind extends net.liftweb.record.field.StringField(this, 255)
+  protected object holder extends StringField(this, 255){
+    override def setFromString(s: String) = {
+      val v = super.setFromString(s)
+      //once again, a temporary measure
+      if(!s.equals("Music Pictures Limited")){
+        if(!publicAliasExists(s)) {
+          if(isACompany(s)){
+            createPlaceholderPublicAlias()
+          }else{
+            createPublicAlias()
+          }
+        }
+        if(!privateAliasExists(s)) createPlaceholderPrivateAlias()
+      }
+      v
+    }
+  }
+  protected object number extends StringField(this, 255)
+  protected object kind extends StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
   
   def theAccount = {
@@ -303,20 +321,44 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     }
   }
   
-  def aliases : Set[Alias] = {
-    theAccount match {
-      case Full(a) => a.publicAliases.get.toSet
-      case _ => Set()
-    }
+  //For now, if it's all upper case, treat it as a company
+  def isACompany(holder: String) = {
+    holder.equals(holder.toUpperCase())
   }
   
-  def anonAliases : Set[Alias] = {
-    theAccount match {
-      case Full(a) => a.privateAliases.get.toSet
-      case _ => Set()
-    }
-  }
+  def createPublicAlias() = {
+        val randomAliasName = "ALIAS_" + Random.nextLong().toString.take(6)
+            theAccount match {
+              case Full(a) => {
+                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, randomAliasName)))
+                updatedAccount.saveTheRecord()
+                Full(randomAliasName)
+              }
+              case _ => Empty
+            }
+      }
   
+  def createPlaceholderPublicAlias() = {
+        theAccount match {
+              case Full(a) => {
+                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, "")))
+                updatedAccount.saveTheRecord()
+                Full("")
+              }
+              case _ => Empty
+            }
+      }
+  
+  def createPlaceholderPrivateAlias() = {
+        theAccount match {
+              case Full(a) => {
+                val updatedAccount = a.privateAliases(a.privateAliases.get ++ List(Alias(holder.get, "")))
+                updatedAccount.saveTheRecord()
+                Full("")
+              }
+              case _ => Empty
+            }
+      }
   
   //TODO: Access levels are currently the same across all transactions
   def mediated_holder(user: String) : (Box[String], Box[OBPAccount.AnAlias]) = {
@@ -348,52 +390,12 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
         	})
       } yield alias.aliasValue
       
-      //For now, if it's all upper case, treat it as a company
-      def isACompany(holder: String) = {
-        holder.equals(holder.toUpperCase())
-      }
-      
-      def createPublicAlias() = {
-        val randomAliasName = "ALIAS_" + Random.nextLong().toString.take(6)
-            theAccount match {
-              case Full(a) => {
-                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(theHolder, randomAliasName)))
-                updatedAccount.saveTheRecord()
-                Full(randomAliasName)
-              }
-              case _ => Empty
-            }
-      }
-      
-      def createPlaceholderPublicAlias() = {
-        theAccount match {
-              case Full(a) => {
-                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(theHolder, "")))
-                updatedAccount.saveTheRecord()
-                Full("")
-              }
-              case _ => Empty
-            }
-      }
-      
       publicAlias match{
         case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
         case _ => {
-          //create an anonymous public alias if it's not a company
-          if(isACompany(theHolder)){
-            //Create an empty alias, so that it "exists" in order to be editable
-            if(!publicAliasExists(theHolder)){
-              createPlaceholderPublicAlias()
-            }
-            (Full(theHolder), Empty)
-          }else{
-            if(!publicAliasExists(theHolder)){
-              (createPublicAlias, Full(OBPAccount.APublicAlias))
-            }
-            //if the public alias has been explicitly set to blank, don't use an alias
-            else (Full(theHolder), Empty) 
+            //No alias found, so don't use one
+            (Full(theHolder), Empty) 
           }
-        }
       }
     }
     
