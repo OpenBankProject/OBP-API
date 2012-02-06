@@ -185,6 +185,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   
   //TODO: We might want to move where comments are stored
   object comments extends MongoListField[OBPEnvelope, String](this)
+  object narrative extends StringField(this, 255)
   
   def mediated_comments(user: String) : Box[List[String]] = {
     
@@ -193,8 +194,20 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       case "team" => Full(comments.get)
       case "board" => Full(comments.get)
       case "authorities" => Full(comments.get)
+      case "my-view" => Full(comments.get)
       case _ => Empty
     }
+  }
+  
+  def mediated_narrative(user: String) : Box[String] = {
+    user match{
+      case "our-network" => Full(narrative.get)
+      case "team" => Full(narrative.get)
+      case "board" => Full(narrative.get)
+      case "authorities" => Full(narrative.get)
+      case "my-view" => Full(narrative.get)
+      case _ => Full(narrative.get)
+    } 
   }
   
   def asMediatedJValue(user: String) : JObject  = {
@@ -403,6 +416,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case "team" => (Full(theHolder), Empty)
       case "board" => (Full(theHolder), Empty)
       case "authorities" => (Full(theHolder), Empty)
+      case "my-view" => (Full(theHolder), Empty)
       case "our-network" => usePrivateAliasIfExists
       case _ => usePublicAlias
     }
@@ -414,6 +428,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case "team" => Full(number.get)
       case "board" => Full(number.get)
       case "authorities" => Full(number.get)
+      case "my-view" => Full(number.get)
       case _ => Empty
     }
   }
@@ -424,6 +439,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case "team" => Full(kind.get)
       case "board" => Full(kind.get)
       case "authorities" => Full(kind.get)
+      case "my-view" => Full(kind.get)
       case _ => Empty
     }
   }
@@ -484,6 +500,7 @@ class OBPBank private() extends BsonRecord[OBPBank]{
       case "team" => Full(IBAN.get)
       case "board" => Full(IBAN.get)
       case "authorities" => Full(IBAN.get)
+      case "my-view" => Full(IBAN.get)
       case _ => Empty
     }
   }
@@ -494,6 +511,7 @@ class OBPBank private() extends BsonRecord[OBPBank]{
       case "team" => Full(national_identifier.get)
       case "board" => Full(national_identifier.get)
       case "authorities" => Full(national_identifier.get)
+      case "my-view" => Full(national_identifier.get)
       case _ => Empty
     }
   }
@@ -504,6 +522,7 @@ class OBPBank private() extends BsonRecord[OBPBank]{
       case "team" => Full(name.get)
       case "board" => Full(name.get)
       case "authorities" => Full(name.get)
+      case "my-view" => Full(name.get)
       case _ => Empty
     }
   }
@@ -568,6 +587,7 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
       case "team" => Full(other_data.get)
       case "board" => Full(other_data.get)
       case "authorities" => Full(other_data.get)
+      case "my-view" => Full(other_data.get)
       case _ => Empty
     }
   }
@@ -599,6 +619,7 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
       case "team" => Full(currency.get)
       case "board" => Full(currency.get)
       case "authorities" => Full(currency.get)
+      case "my-view" => Full(currency.get)
       case _ => Empty
     }
   }
@@ -612,6 +633,7 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
       case "team" => Full(amount.get.toString)
       case "board" => Full(amount.get.toString)
       case "authorities" => Full(amount.get.toString)
+      case "my-view" => Full(amount.get.toString)
       case _ => {
         if(amount.get.toString.startsWith("-")) Full("-") else Full("+")
       }
