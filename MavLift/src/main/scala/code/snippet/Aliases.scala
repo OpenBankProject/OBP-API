@@ -47,15 +47,12 @@ class Aliases {
       var alVal = alias.aliasValue
       
       def setPublicAliasValue(a: Alias, newValue: String) = {
-        val pubAl = publicAliases
-        val newals = List(Alias(a.realValue, newValue))
-        val oldals = List(Alias(a.realValue, alias.aliasValue))
-        println("currentAL: " + a)
-        println("currentALnewVAL: " + newValue)
-        println("pubal: " + pubAl)
-        println("newals: " + newals)
-        println("oldals: " + oldals)
-        val newAliases = publicAliases ++ List(Alias(a.realValue, newValue)) -- List(Alias(a.realValue, alias.aliasValue))
+        val oldAl = publicAliases.find(al => al match{
+          case Alias(a.realValue, _) => true
+          case _ => false
+        }) getOrElse Alias(a.realValue,"")
+        
+        val newAliases = publicAliases ++ List(Alias(a.realValue, newValue)) -- List(oldAl)
         currentAccount match{
           case Full(a) => a.publicAliases(newAliases).save
           case _ => println("error retrieving current account")
@@ -71,8 +68,13 @@ class Aliases {
     def editablePrivateAlias(alias: Alias) = {
       var alVal = alias.aliasValue
       
-      def setPrivateAliasValue(newValue: String) = {
-        val newAliases = privateAliases ++ List(Alias(alias.realValue, newValue)) -- List(Alias(alias.realValue, alias.aliasValue))
+      def setPrivateAliasValue(a: Alias, newValue: String) = {
+        val oldAl = privateAliases.find(al => al match{
+          case Alias(a.realValue, _) => true
+          case _ => false
+        }) getOrElse Alias(a.realValue,"")
+        
+        val newAliases = privateAliases ++ List(Alias(a.realValue, newValue)) -- List(oldAl)
         currentAccount match{
           case Full(a) => a.privateAliases(newAliases).save
           case _ => println("error retrieving current account")
@@ -80,7 +82,7 @@ class Aliases {
       }
       
       SHtml.ajaxEditable(Text(alVal), SHtml.text(alVal, alVal = _), () =>{
-        setPrivateAliasValue(alVal)
+        setPrivateAliasValue(alias, alVal)
         Noop
       })
     }
