@@ -25,7 +25,7 @@ class Aliases {
      a1.realValue < a2.realValue
     } 
     
-    val publicAliases = {
+    def publicAliases = {
       val alis = for{
 	      acc <- currentAccount
 	      aliases <- Some(acc.publicAliases.get)
@@ -34,7 +34,7 @@ class Aliases {
 	  alis.getOrElse(List()).sort(orderByRealValueAtoZ)
     }
     
-    val privateAliases = {
+    def privateAliases = {
       val alis = for{
 	      acc <- currentAccount
 	      aliases <- Some(acc.privateAliases.get)
@@ -46,8 +46,16 @@ class Aliases {
     def editablePublicAlias(alias: Alias) = {
       var alVal = alias.aliasValue
       
-      def setPublicAliasValue(newValue: String) = {
-        val newAliases = publicAliases ++ List(Alias(alias.realValue, newValue)) -- List(Alias(alias.realValue, alias.aliasValue))
+      def setPublicAliasValue(a: Alias, newValue: String) = {
+        val pubAl = publicAliases
+        val newals = List(Alias(a.realValue, newValue))
+        val oldals = List(Alias(a.realValue, alias.aliasValue))
+        println("currentAL: " + a)
+        println("currentALnewVAL: " + newValue)
+        println("pubal: " + pubAl)
+        println("newals: " + newals)
+        println("oldals: " + oldals)
+        val newAliases = publicAliases ++ List(Alias(a.realValue, newValue)) -- List(Alias(a.realValue, alias.aliasValue))
         currentAccount match{
           case Full(a) => a.publicAliases(newAliases).save
           case _ => println("error retrieving current account")
@@ -55,7 +63,7 @@ class Aliases {
       }
       
       SHtml.ajaxEditable(Text(alVal), SHtml.text(alVal, alVal = _), () =>{
-        setPublicAliasValue(alVal)
+        setPublicAliasValue(alias, alVal)
         Noop
       })
     }
