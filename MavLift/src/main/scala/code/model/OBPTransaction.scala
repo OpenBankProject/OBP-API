@@ -556,10 +556,10 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   protected object type_en extends net.liftweb.record.field.StringField(this, 255)
   protected object type_de extends net.liftweb.record.field.StringField(this, 255)
   protected object posted extends DateField(this)
-  protected object completed extends DateField(this)
   protected object other_data extends net.liftweb.record.field.StringField(this, 5000)
   object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
+  object completed extends DateField(this)
   
   
   def formatDate(date : Box[Date]) : String = {
@@ -664,7 +664,7 @@ class OBPValue private() extends BsonRecord[OBPValue]{
   def meta = OBPValue
 
   protected object currency extends net.liftweb.record.field.StringField(this, 5)
-  protected object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+  object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
