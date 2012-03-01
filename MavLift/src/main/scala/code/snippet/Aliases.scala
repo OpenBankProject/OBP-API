@@ -7,7 +7,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.http.SHtml
-import code.model.Alias
+//import code.model.Alias
 import scala.xml.Text
 import net.liftweb.common.{Box, Full, Empty}
 import net.liftweb.http.js.JsCmds.Noop
@@ -21,7 +21,7 @@ class Aliases {
     val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
     val currentAccount = Account.find(accJObj)
     
-    def orderByRealValueAtoZ = (a1: Alias, a2: Alias) => {
+   /* def orderByRealValueAtoZ = (a1: Alias, a2: Alias) => {
      a1.realValue < a2.realValue
     } 
     
@@ -94,7 +94,8 @@ class Aliases {
     	  else false
     	}).getOrElse(Alias(alias.realValue, ""))) &
     	".public_alias_name *" #> editablePublicAlias(alias)).apply(xhtml)
-    })
+    })*/
+    NodeSeq.Empty
   }
   
 }
