@@ -38,6 +38,7 @@ import code.model._
 import com.tesobe.utils._
 import myapp.model.MongoConfig
 import net.liftweb.util.Helpers._
+import net.liftweb.widgets.tablesorter.TableSorter
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -122,5 +123,7 @@ class Boot {
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+    
+    TableSorter.init
   }
 }

@@ -9,9 +9,19 @@ import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds.Noop
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
+import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 
 class Management {
 
+  val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: Nil
+  val sortList = (0, Sorting.DSC) :: Nil
+  
+  val options = TableSorter.options(headers, sortList)
+  
+  def tableSorter(xhtml: NodeSeq) : NodeSeq = {
+    TableSorter("#other_acc_management", options)
+  }
+  
   def listAll(xhtml: NodeSeq) : NodeSeq  = {
     
     //temporary way to retrieve the account
