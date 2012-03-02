@@ -143,17 +143,42 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
       ".other_account_holder *" #> {
-        val otherHolder = otherAccount.mediated_holder(consumer)
-        val holderName = otherHolder._1 match {
+        val otherMediatedHolder = otherAccount.mediated_holder(consumer)
+        val holderName = otherMediatedHolder._1 match {
           case Full(h) => h
           case _ => FORBIDDEN
         }
-        val aliasType = otherHolder._2 match{
+        val aliasType = otherMediatedHolder._2 match{
           case Full(APublicAlias) => <img class="alias_image" src="/images/public_alias.png"/>
           case Full(APrivateAlias) => <img class="alias_image" src="/images/private_alias.png"/>
           case _ => <span></span>
         }
-        <span>{aliasType}{holderName}</span>
+        
+        val theAccount = thisAccount.theAccount
+        val otherUnmediatedHolder = otherAccount.holder.get
+        
+        val otherAccountMoreInfo = (for{
+          a <- theAccount
+          moreInfo <- a.getMediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
+        } yield moreInfo)
+        
+        val moreInfo = if(otherAccountMoreInfo.isDefined) Text("More information: " + otherAccountMoreInfo.get) else NodeSeq.Empty
+        
+        val otherAccountURL = for{
+          a <- theAccount
+          moreInfo <- a.getMediatedOtherAccountURL(consumer, otherUnmediatedHolder)
+        } yield moreInfo
+        
+        val url = if(otherAccountURL.isDefined) <a href={otherAccountURL.get}>Website</a> else NodeSeq.Empty
+        
+        val otherAccountImageURL = for{
+          a <- theAccount
+          moreInfo <- a.getMediatedOtherAccountImageURL(consumer, otherUnmediatedHolder)
+        } yield moreInfo
+        
+        val image = if(otherAccountImageURL.isDefined) <img src={otherAccountImageURL.get} alt="account image" height="50" width="50" /> else NodeSeq.Empty
+        
+        <span>{aliasType}{holderName} {moreInfo}{url}{image}</span>
       } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
