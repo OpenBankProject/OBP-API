@@ -7,6 +7,8 @@ import scala.xml.NodeSeq
 import scala.xml.Text
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmds.Noop
+import net.liftweb.common.Full
+import net.liftweb.common.Empty
 
 class Management {
 
@@ -14,17 +16,23 @@ class Management {
     
     //temporary way to retrieve the account
     val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj)
+    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
-    val otherAccounts = currentAccount.map(a => a.otherAccounts.get) getOrElse List[OtherAccount]()
+    def getMostUpToDateOtherAccount(holder: String) = {
+    	currentAccount.otherAccounts.get.find(o => o.holder.equals(holder))
+    }
     
-    def editableMoreInfo(otherAcc : OtherAccount) = {
-      var currentValue = otherAcc.moreInfo
+    def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount) = {
+      var currentValue = initialValue
       
       def saveValue() = {
-        val newOtherAcc = otherAcc.copy(moreInfo = currentValue)
-        val newOtherAccs = otherAccounts ++ List(newOtherAcc) -- List(otherAcc)
-        if(currentAccount.isDefined) currentAccount.get.otherAccounts(newOtherAccs).save
+        val otherAcc = getMostUpToDateOtherAccount(holder)
+        if(otherAcc.isDefined){
+          val newOtherAcc = alterOtherAccount(otherAcc.get, currentValue)
+          val newOtherAccs = currentAccount.otherAccounts.get ++ List(newOtherAcc) -- List(otherAcc.get)
+          currentAccount.otherAccounts(newOtherAccs).save
+        }
+        
       }
       
       SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
@@ -33,73 +41,38 @@ class Management {
       })
     }
     
-    def editableUrl(otherAcc : OtherAccount) = {
-      var currentValue = otherAcc.url
-      
-      def saveValue() = {
-        val newOtherAcc = otherAcc.copy(url = currentValue)
-        val newOtherAccs = otherAccounts ++ List(newOtherAcc) -- List(otherAcc)
-        if(currentAccount.isDefined) currentAccount.get.otherAccounts(newOtherAccs).save
-      }
-      
-      SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
-        saveValue()
-        Noop
-      })
+    def editablePublicAlias(initialValue : String, holder: String) = {
+      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.copy(publicAlias = newValue)
+      editable(initialValue, holder, alterPublicAlias)
     }
     
-    def editableImageUrl(otherAcc : OtherAccount) = {
-      var currentValue = otherAcc.imageUrl
-      
-      def saveValue() = {
-        val newOtherAcc = otherAcc.copy(imageUrl = currentValue)
-        val newOtherAccs = otherAccounts ++ List(newOtherAcc) -- List(otherAcc)
-        if(currentAccount.isDefined) currentAccount.get.otherAccounts(newOtherAccs).save
-      }
-      
-      SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
-        saveValue()
-        Noop
-      })
+    def editablePrivateAlias(initialValue : String, holder: String) = {
+      def alterPrivateAlias = (oAccount: OtherAccount, newValue: String) => oAccount.copy(privateAlias = newValue)
+      editable(initialValue, holder, alterPrivateAlias)
     }
     
-    def editablePrivateAlias(otherAcc : OtherAccount) = {
-      var currentValue = otherAcc.privateAlias
-      
-      def saveValue() = {
-        val newOtherAcc = otherAcc.copy(privateAlias = currentValue)
-        val newOtherAccs = otherAccounts ++ List(newOtherAcc) -- List(otherAcc)
-        if(currentAccount.isDefined) currentAccount.get.otherAccounts(newOtherAccs).save
-      }
-      
-      SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
-        saveValue()
-        Noop
-      })
+    def editableImageUrl(initialValue : String, holder: String) = {
+      def alterImageUrl = (oAccount: OtherAccount, newValue: String) => oAccount.copy(imageUrl = newValue)
+      editable(initialValue, holder, alterImageUrl)
     }
     
-    def editablePublicAlias(otherAcc : OtherAccount) = {
-      var currentValue = otherAcc.publicAlias
-      
-      def saveValue() = {
-        val newOtherAcc = otherAcc.copy(publicAlias = currentValue)
-        val newOtherAccs = otherAccounts ++ List(newOtherAcc) -- List(otherAcc)
-        if(currentAccount.isDefined) currentAccount.get.otherAccounts(newOtherAccs).save
-      }
-      
-      SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
-        saveValue()
-        Noop
-      })
+    def editableUrl(initialValue : String, holder: String) = {
+      def alterUrl = (oAccount: OtherAccount, newValue: String) => oAccount.copy(url = newValue)
+      editable(initialValue, holder, alterUrl)
     }
     
-    otherAccounts.flatMap(other => {
-      (".image *" #> <img class="logo" width="50" height="50" src={other.imageUrl} /> &
+    def editableMoreInfo(initialValue : String, holder: String) = {
+      def moreInfo = (oAccount: OtherAccount, newValue: String) => oAccount.copy(moreInfo = newValue)
+      editable(initialValue, holder, moreInfo)
+    }
+    
+    currentAccount.otherAccounts.get.flatMap(other => {
+      (".image *" #> editableImageUrl(other.imageUrl, other.holder) &
        ".real_name *" #> Text(other.holder) &
-       ".public_alias_name *" #> editablePublicAlias(other) &
-       ".private_alias_name *" #> editablePrivateAlias(other) &
-       ".more_info *" #> editableMoreInfo(other) &
-       ".website_url *" #> <a href={other.url}>{other.url}</a> ).apply(xhtml)
+       ".public_alias_name *" #> editablePublicAlias(other.publicAlias, other.holder) &
+       ".private_alias_name *" #> editablePrivateAlias(other.privateAlias, other.holder) &
+       ".more_info *" #> editableMoreInfo(other.moreInfo, other.holder) &
+       ".website_url *" #> editableUrl(other.url, other.holder) ).apply(xhtml)
     })
     
   }
