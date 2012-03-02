@@ -33,29 +33,30 @@ Open Bank Project (http://www.openbankproject.com)
   <body class="lift:content_id=main">
     <div id="main" class="lift:surround?with=default;at=content">
       Management
-     <table>
-            <thead>
-                <tr>
-                	<th class="span-1">Account Name</th>
-                    <th class="span-1">Image</th>
-                    <th class="span-1">Public Alias</th>
-                    <th class="span-1">Private Alias</th>
-                    <th class="span-1">More Info</th>
-                    <th class="span-1">Website</th>
-                </tr>
-            </thead>
-            <tbody>
-            <tr class=lift:Management.listAll>
-                <td class="real_name">Real name</td>
-                <td class="image">Image</td>
-                <td class="public_alias_name">Public alias name</td>
-                <td class="private_alias_name">Private alias name</td>
-                <td class="more_info">More information about this account</td>
-                <td class="website_url">Link to website</td>
-            </tr>
-        </tbody>
-
-        </table>
+    	<table id="other_acc_management" class="tablesorter">
+	            <thead>
+	                <tr>
+	                	<th >Account Name</th>
+	                    <th >Public Alias</th>
+	                    <th >Private Alias</th>
+	                    <th >Image URL</th>
+	                    <th>Website URL</th>
+	                    <th >More Info</th>
+	                </tr>
+	            </thead>
+	            <tbody>
+	            <tr class=lift:Management.listAll>
+	                <td class="real_name">Real name</td>
+	                <td class="public_alias_name">Public alias name</td>
+	                <td class="private_alias_name">Private alias name</td>
+	                <td class="image">Image</td>
+	                <td class="website_url">Link to website</td>
+	                <td class="more_info">More information about this account</td>
+	            </tr>
+	        </tbody>
+	
+	        </table>
+	        <div class="lift:Management.tableSorter"></div>
     </div>
   </body>
 </html>
