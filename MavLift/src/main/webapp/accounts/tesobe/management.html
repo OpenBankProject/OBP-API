@@ -28,24 +28,30 @@ Open Bank Project (http://www.openbankproject.com)
 <html>
   <head>
     <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
-    <title>Open Bank Project - Alias Management</title>
+    <title>Open Bank Project - Management</title>
   </head>
   <body class="lift:content_id=main">
     <div id="main" class="lift:surround?with=default;at=content">
-      Alias Management
+      Management
      <table>
             <thead>
                 <tr>
-                    <th class="span-1">Actual Account Name</th>
-                    <th class="span-1">Private Alias</th>
+                	<th class="span-1">Account Name</th>
+                    <th class="span-1">Image</th>
                     <th class="span-1">Public Alias</th>
+                    <th class="span-1">Private Alias</th>
+                    <th class="span-1">More Info</th>
+                    <th class="span-1">Website</th>
                 </tr>
             </thead>
             <tbody>
-            <tr class=lift:Aliases.listAll>
+            <tr class=lift:Management.listAll>
                 <td class="real_name">Real name</td>
-                <td class="private_alias_name">Private alias name</td>
+                <td class="image">Image</td>
                 <td class="public_alias_name">Public alias name</td>
+                <td class="private_alias_name">Private alias name</td>
+                <td class="more_info">More information about this account</td>
+                <td class="website_url">Link to website</td>
             </tr>
         </tbody>
 
