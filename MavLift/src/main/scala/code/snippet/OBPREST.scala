@@ -35,45 +35,17 @@ import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
 import net.liftweb.common.Failure
-
-// this has render in it.
-
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
-
-
 import com.mongodb.casbah.Imports._
-
-
-
 import net.liftweb.mongodb._
-
 import _root_.java.math.MathContext
 import net.liftweb.mongodb._
-
-//import net.liftweb.mongodb.record._
-//import net.liftweb.mongodb.record.field._
-//import net.liftweb.record.field._
-//import net.liftweb.record._
 import org.bson.types._
 import org.joda.time.{DateTime, DateTimeZone}
-
-//import com.foursquare.rogue
-//import com.foursquare.rogue.Rogue._
-
-
 import java.util.regex.Pattern
-
-
-//import org.junit._
-//import org.specs.SpecsMatchers
-
-//import com.foursquare.rogue.MongoHelpers._
-
-////////////
-
 import _root_.net.liftweb.common._
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
@@ -89,8 +61,8 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-
 import code.model._
+import code.actors.EnvelopeInserter
 //import code.model.Location
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
@@ -158,82 +130,18 @@ object OBPRest extends RestHelper {
         OBPEnvelope.fromJValue(e)
       })
       
-      //All envelopes with this_account equal to any of the transactions being posted should
-      //be locked until this method completes, to avoid duplication issues.
-/*      val envelopesToLock = envelopes.flatMap(e => {
-        e match{
-          case Full(env) => {
-            val this_acc_name = env.obp_transaction.get.this_account.get.holder.get
-            //TODO: Investigate "Rogue" for type safe queries
-            OBPEnvelope.findAll("obp_transaction.this_account.holder" -> this_acc_name)
-          }
-          case _ => List[OBPEnvelope]()
-        }
-      })*/
+      /**
+       * Using an actor to do insertions avoids concurrency issues with duplicate transactions
+       * by processing transaction batches one at a time. We'll have to monitor this to see if
+       * non-concurrent I/O is too inefficient. If it is, we could break it up into one actor
+       * per "Account".
+       */
+      val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
       
-      //lock(envelopesToLock)
-      
-      def isMarked(envelope: OBPEnvelope) : Boolean = {
-        false
+      createdEnvelopes match{
+        case Full(l : List[JObject]) => JsonResponse(JArray(l))
+        case _ => InternalServerErrorResponse()
       }
-      
-      def mark(envelope: OBPEnvelope) {
-        
-      }
-      
-      def unmark(envelope: OBPEnvelope) {
-        
-      }
-      
-      val createdEnvelopes : List[JObject] = envelopes.flatMap(e => {
-        e match{
-          case Full(env) => {
-            val unmarkedMatch = OBPEnvelope.findAll(
-                ("obp_transaction.details.completed" -> env.obp_transaction.get.details.get.completed.get.toString)~
-                ("obp_transaction.details.value.amount" -> env.obp_transaction.get.details.get.value.get.amount.get)~
-                ("obp_transaction.other_account.holder" -> env.obp_transaction.get.other_account.get.holder.get)~
-                ("obp_transaction.this_account.holder" -> env.obp_transaction.get.this_account.get.holder.get)
-                ).filterNot(e => isMarked(e)).headOption
-            
-            if(unmarkedMatch.isDefined){
-              //mark it, don't insert a new one
-              mark(unmarkedMatch.get)
-              List[JObject]()
-            }else{
-            	//no unmarked matches, we can insert it
-            	env.saveTheRecord()
-            	List(env.asMediatedJValue("authorities"))
-            }
-          }
-          case _ => List[JObject]()
-        }
-        
-      })
-      
-      //unlock(envelopesToLock)
-      
-/*      //TODO: Implement the duplicate checking algorithm
-      val createdEnvelopes = rawEnvelopes.map(e => {
-        
-        val envelopeJSON2 = OBPEnvelope.fromJValue((e))
-        val bbbbb = envelopeJSON2 match{
-          case Full(e) => {
-            
-          }
-          case _ => JNothing
-        }
-        
-        val envelopeJSON = for{
-          env <- OBPEnvelope.fromJValue(e)
-          createdEnvelope <- env.saveTheRecord()
-        } yield createdEnvelope.asMediatedJValue("authorities")
-        
-        envelopeJSON getOrElse(JNothing)
-      })
-      
-      */
-      JsonResponse(JArray(createdEnvelopes))
-      
     } 
     
     //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"

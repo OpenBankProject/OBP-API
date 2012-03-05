@@ -53,63 +53,26 @@ class Location private () extends BsonRecord[Location] {
 }
 object Location extends Location with BsonMetaRecord[Location]
 
-/*
-
-"World View":
-[
-   {
-      "obp_transaction":{
-         "from_account":{
-            "holder":"Music Pictures Limited",
-            "number":"123567",
-            "type":"current",
-            "bank":{
-               "IBAN":"DE1235123612",
-               "national_identifier":"de.10010010",
-               "name":"Postbank"
-            }
-         },
-         "to_account":{
-            "holder":"Simon Redfern",
-            "number":"3225446882",
-            "type":"current",
-            "bank":{
-               "IBAN":"UK12789879",
-               "national_identifier":"uk.10010010",
-               "name":"HSBC"
-            }
-         },
-         "details":{
-            "type_en":"Transfer",
-            "type_de":"Überweisung",
-            "posted":"ISODate 2011-11-25T10:28:38.273Z",
-            "completed":"ISODate 2011-11-26T10:28:38.273Z",
-            "value":{
-               "currency":"EUR",
-               "amount":"354.99"
-            },
-            "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
-         }
-      }
-   },
-   {
+/**
+ * "Current Account View"
+curl -i -H "Content-Type: application/json" -X POST -d '[{
          "obp_transaction":{
-            "from_account":{
+            "this_account":{
+               "holder":"Music Pictures Limited",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"DE1235123612",
+                  "national_identifier":"de.10010010",
+                  "name":"Postbank"
+               }
+            },
+            "other_account":{
                "holder":"Client 1",
                "number":"123567",
                "kind":"current",
                "bank":{
                   "IBAN":"UK12222879",
-                  "national_identifier":"de.10010010",
-                  "name":"Postbank"
-               }
-            },
-            "to_account":{
-               "holder":"Music Pictures Limited",
-               "number":"3225446882",
-               "kind":"current",
-               "bank":{
-                  "IBAN":"UK12789879",
                   "national_identifier":"uk.10010010",
                   "name":"HSBC"
                }
@@ -117,63 +80,67 @@ object Location extends Location with BsonMetaRecord[Location]
             "details":{
                "type_en":"Transfer",
                "type_de":"Überweisung",
-               "posted":"ISODate 2011-11-25T10:28:38.273Z",
-               "completed":"ISODate 2011-11-26T10:28:38.273Z",
+               "posted":{
+                  "$dt":"2012-01-04T18:06:22.000Z"
+                },
+               "completed":{
+                  "$dt":"2012-09-04T18:52:13.000Z"
+                },
+               "new_balance":{
+                     "currency":"EUR",
+                  "amount":"4323.45"
+               },
                "value":{
                   "currency":"EUR",
                   "amount":"123.45"
                },
-               "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+               "other_data":"9"
             }
          }
-      }
-]
-
-
- */
-
-
-/**
- * "Current Account View"
-curl -i -H "Content-Type: application/json" -X POST -d '{
-      "obp_transaction":{
-         "this_account":{
-            "holder":"Music Pictures Limited",
-            "number":"123567",
-            "kind":"current",
-            "bank":{
-               "IBAN":"DE1235123612",
-               "national_identifier":"de.10010010",
-               "name":"Postbank"
-            }
-         },
-         "other_account":{
-            "holder":"Simon Redfern",
-            "number":"3225446882",
-            "kind":"current",
-            "bank":{
-               "IBAN":"UK12789879",
-               "national_identifier":"uk.10010010",
-               "name":"HSBC"
-            }
-         },
-         "details":{
-            "type_en":"Transfer",
-            "type_de":"Überweisung",
-            "posted":"ISODate 2011-11-25T10:28:38.273Z",
-            "completed":"ISODate 2011-11-26T10:28:38.273Z",
-            "new_balance":{
-               "currency":"EUR",
-               "amount":"-354.99"
+ },
+{
+         "obp_transaction":{
+            "this_account":{
+               "holder":"Music Pictures Limited",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"DE1235123612",
+                  "national_identifier":"de.10010010",
+                  "name":"Postbank"
+               }
             },
-            "value":{
-               "currency":"EUR",
-               "amount":"-354.99"
+            "other_account":{
+               "holder":"Client 2",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"UK22222879",
+                  "national_identifier":"uk.10010010",
+                  "name":"HSBC"
+               }
             },
-            "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+            "details":{
+               "type_en":"Transfer",
+               "type_de":"Überweisung",
+               "posted":{
+                  "$dt":"2012-01-04T14:06:22.000Z"
+                },
+               "completed":{
+                  "$dt":"2012-09-04T14:52:13.000Z"
+                },
+               "new_balance":{
+                     "currency":"EUR",
+                  "amount":"2222.45"
+               },
+               "value":{
+                  "currency":"EUR",
+                  "amount":"223.45"
+               },
+               "other_data":"9"
+            }
          }
-      }
- }' http://localhost:8080/api/transactions
+ }]' http://localhost:8080/api/transactions
  */
 
 // Seems to map to a collection of the plural name
@@ -220,7 +187,7 @@ object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope]
 
 
 class OBPTransaction private() extends BsonRecord[OBPTransaction]{
-  def meta = OBPTransaction // what does meta do?
+  def meta = OBPTransaction
   
   object this_account extends BsonRecordField(this, OBPAccount)
   object other_account extends BsonRecordField(this, OBPAccount)
@@ -258,8 +225,8 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       v
     }
   }
-  protected object number extends StringField(this, 255)
-  protected object kind extends StringField(this, 255)
+  object number extends StringField(this, 255)
+  object kind extends StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
   
   def theAccount = {
@@ -325,13 +292,10 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
                   }
                   case _ => {
                     //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount(holder.get, randomAliasName, "", "This is more info", "http://www.tesobe.com", "http://tesobe.com/static/images/tesobe_logo.png")))
+                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount(holder.get, randomAliasName, "", "", "", "")))
                   }
                 }
-                /*val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, randomAliasName))).
-                otherAccountURLs(a.otherAccountURLs.get ++ List(OtherAccountURL(holder.get, "http://www.tesobe.com"))).
-                otherAccountImageURLs(a.otherAccountImageURLs.get ++ List(OtherAccountImageURL(holder.get, "http://tesobe.com/static/images/tesobe_logo.png"))).
-                otherAccountMoreInfos(a.otherAccountMoreInfos.get ++ List(OtherAccountMoreInfo(holder.get, "Here is some more info!")))*/
+                
                 updatedAccount.saveTheRecord()
                 Full(randomAliasName)
               }
@@ -502,9 +466,9 @@ object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
 class OBPBank private() extends BsonRecord[OBPBank]{
   def meta = OBPBank
 
-  protected object IBAN extends net.liftweb.record.field.StringField(this, 255)
-  protected object national_identifier extends net.liftweb.record.field.StringField(this, 255)
-  protected object name extends net.liftweb.record.field.StringField(this, 255)
+  object IBAN extends net.liftweb.record.field.StringField(this, 255)
+  object national_identifier extends net.liftweb.record.field.StringField(this, 255)
+  object name extends net.liftweb.record.field.StringField(this, 255)
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_IBAN(user: String) : Box[String] = {
@@ -553,10 +517,10 @@ object OBPBank extends OBPBank with BsonMetaRecord[OBPBank]
 class OBPDetails private() extends BsonRecord[OBPDetails]{
   def meta = OBPDetails
 
-  protected object type_en extends net.liftweb.record.field.StringField(this, 255)
-  protected object type_de extends net.liftweb.record.field.StringField(this, 255)
-  protected object posted extends DateField(this)
-  protected object other_data extends net.liftweb.record.field.StringField(this, 5000)
+  object type_en extends net.liftweb.record.field.StringField(this, 255)
+  object type_de extends net.liftweb.record.field.StringField(this, 255)
+  object posted extends DateField(this)
+  object other_data extends net.liftweb.record.field.StringField(this, 5000)
   object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
   object completed extends DateField(this)
@@ -621,8 +585,8 @@ object OBPDetails extends OBPDetails with BsonMetaRecord[OBPDetails]
 class OBPBalance private() extends BsonRecord[OBPBalance]{
   def meta = OBPBalance
 
-  protected object currency extends net.liftweb.record.field.StringField(this, 5)
-  protected object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+  object currency extends net.liftweb.record.field.StringField(this, 5)
+  object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
@@ -663,7 +627,7 @@ object OBPBalance extends OBPBalance with BsonMetaRecord[OBPBalance]
 class OBPValue private() extends BsonRecord[OBPValue]{
   def meta = OBPValue
 
-  protected object currency extends net.liftweb.record.field.StringField(this, 5)
+  object currency extends net.liftweb.record.field.StringField(this, 5)
   object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
 
   //TODO: Access levels are currently the same across all transactions
