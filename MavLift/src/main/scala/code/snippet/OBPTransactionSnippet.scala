@@ -60,17 +60,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val qry = QueryBuilder.start().get
       var obp_envelopes = OBPEnvelope.findAll(qry)
 
-
-      println("before eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
-        for (envelope <- obp_envelopes) {
-      println("here is an envelope")
-      println(envelope.id)
-      //println(envelope.obp_transaction.get.obp_transaction_date_complete)
-      println("nope")
-    }
-
-
-    obp_envelopes
+      obp_envelopes
   }
 
   var dispatch: DispatchIt = {
