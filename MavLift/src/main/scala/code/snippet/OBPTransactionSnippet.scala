@@ -140,54 +140,66 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         }
       }
       
+      val theAccount = thisAccount.theAccount
+      val otherUnmediatedHolder = otherAccount.holder.get
+      val otherMediatedHolder = otherAccount.mediated_holder(consumer)
+      
+      def useDefaultImageIfBlank(toCheck: String) = {
+        if(toCheck.equals("")) "/images/blank.gif"
+        else toCheck
+      }
+      
+      val aliasImageSrc = {
+        otherMediatedHolder._2 match{
+          case Full(APublicAlias) => "/images/public_alias.png"
+          case Full(APrivateAlias) => "/images/private_alias.png"
+          case _ => "/images/blank.gif"
+        }
+      }
+      
+      val moreInfo = {
+        val moreInfo = for{
+          a <- theAccount
+          info <- a.getMediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
+        } yield info
+        
+        moreInfo getOrElse ""
+      }
+      
+      val logoImageSrc = {
+         val imageUrl = for{
+          a <- theAccount
+          logo <- a.getMediatedOtherAccountImageURL(consumer, otherUnmediatedHolder)
+        } yield logo
+        
+        useDefaultImageIfBlank(imageUrl getOrElse "")
+      }
+      
+      val otherAccWebsiteUrl = {
+        val url = for{
+          a <- theAccount
+          link <- a.getMediatedOtherAccountURL(consumer, otherUnmediatedHolder)
+        } yield link
+        
+        url getOrElse ""
+      }
+      
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder *" #> {
-        val otherMediatedHolder = otherAccount.mediated_holder(consumer)
-        val holderName = otherMediatedHolder._1 match {
-          case Full(h) => h
-          case _ => FORBIDDEN
-        }
-        val aliasType = otherMediatedHolder._2 match{
-          case Full(APublicAlias) => <img class="alias_image" src="/images/public_alias.png"/>
-          case Full(APrivateAlias) => <img class="alias_image" src="/images/private_alias.png"/>
-          case _ => <span></span>
-        }
-        
-        val theAccount = thisAccount.theAccount
-        val otherUnmediatedHolder = otherAccount.holder.get
-        
-        val otherAccountMoreInfo = (for{
-          a <- theAccount
-          moreInfo <- a.getMediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
-        } yield moreInfo)
-        
-        val moreInfo = if(otherAccountMoreInfo.isDefined) Text("More information: " + otherAccountMoreInfo.get) else NodeSeq.Empty
-        
-        val otherAccountURL = for{
-          a <- theAccount
-          moreInfo <- a.getMediatedOtherAccountURL(consumer, otherUnmediatedHolder)
-        } yield moreInfo
-        
-        val url = if(otherAccountURL.isDefined) <a href={otherAccountURL.get}>Website</a> else NodeSeq.Empty
-        
-        val otherAccountImageURL = for{
-          a <- theAccount
-          moreInfo <- a.getMediatedOtherAccountImageURL(consumer, otherUnmediatedHolder)
-        } yield moreInfo
-        
-        val image = if(otherAccountImageURL.isDefined) <img src={otherAccountImageURL.get} alt="account image" height="50" width="50" /> else NodeSeq.Empty
-        
-        <span>{aliasType}{holderName} {moreInfo}{url}{image}</span>
-      } &
+      ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
+      ".alias_image [src]" #> aliasImageSrc &
+      ".other_account_more_info *" #> moreInfo &
+      ".other_account_logo_img [src]" #> logoImageSrc &
+      ".other_acc_ext [href]" #> otherAccWebsiteUrl &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
       ".narrative *" #> displayNarrative &
       ".new_balance *" #> {
         transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
-        transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)
-      } &
-      ".comments_link *" #> <a href={consumer + "/transactions/" + envelopeID + "/comments"}>Comments ({(obpEnvelope.mediated_comments(consumer) getOrElse List()).size})</a>).apply(xhtml)
+        transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)} &
+      ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
+      ".comments_title *" #> {"Comments (" + (obpEnvelope.mediated_comments(consumer) getOrElse List()).size + ")"}
+      ).apply(xhtml)
       
     })
   }
