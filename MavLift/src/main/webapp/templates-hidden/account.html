@@ -44,13 +44,13 @@ Open Bank Project (http://www.openbankproject.com)
         <table>
             <thead>
                 <tr>
-                    <!--<th class="span-1">Account</th>
-                    <th class="span-1">Posted</th>   -->
-                    <th>Cleared</th>
+                    <th>Date</th>
                     <th>Amount</th>
                     <th>Currency</th>
-                    <!-- <th class="span-1">Type</th> -->
                     <th>To/From</th>
+                    <th>More Info</th>
+                    <th></th> <!-- Logo -->
+                    <th></th> <!-- Website -->
                     <th>Narrative</th>
                     <th>Comments</th>
                     <th>Balance</th>
@@ -58,16 +58,15 @@ Open Bank Project (http://www.openbankproject.com)
             </thead>
             <tbody>
             <tr class=lift:OBPTransactionSnippet.showAll>
-                <!-- <td class="opb_transaction_other_account">other account</td>
-                <td class="obp_transaction_date_start">start date</td> -->
                 <td class="date_cleared">completed date</td>
                 <td class="amount">obp_transaction_amount</td>
                 <td class="currency">obp_transaction_currency</td>
-                <!-- <td class="obp_transaction_type_en">obp_transaction_type_en</td> -->
-                <!-- <td class="obp_transaction_type_de">obp_transaction_type_de</td> -->
-                <td class="other_account_holder">obp_transaction_data_blob</td>
+                <td class="other_account_holder"><img class="alias_image" src="/images/blank.gif" /><span class="other_account_holder_name">Holder name</span></td>
+                <td class="other_account_more_info">More info on the other account</td>
+                <td class="other_account_logo"><img src="#" height="50" class="other_account_logo_img"/></td>
+                <td class="other_account_website"><a href="#" class="other_acc_title other_acc_ext">Website</a></td>
                 <td class="narrative">narrative</td>
-                <td class="comments_link">link to comments</td>
+                <td class="comments_link"><a href="#" class="comments_title comments_ext">Comments</a></td>
                 <td class="new_balance">obp_transaction_new_balance</td>
             </tr>
         </tbody>
