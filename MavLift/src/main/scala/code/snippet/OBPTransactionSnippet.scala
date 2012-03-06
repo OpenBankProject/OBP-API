@@ -174,7 +174,10 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
       ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
       {
-        if(aliasImageSrc.equals("")) ".alias_image" #> NodeSeq.Empty
+        if(aliasImageSrc.equals("")){
+          ".alias_image" #> NodeSeq.Empty & //remove the img tag
+          ".alias_divider" #> NodeSeq.Empty //remove the divider (br tag)
+        } 
         else 						 ".alias_image [src]" #> aliasImageSrc
       } &
       ".other_account_more_info *" #> moreInfo &
