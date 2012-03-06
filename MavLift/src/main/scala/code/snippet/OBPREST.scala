@@ -63,7 +63,6 @@ import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model._
 import code.actors.EnvelopeInserter
-//import code.model.Location
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 

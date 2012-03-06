@@ -44,7 +44,6 @@ object EnvelopeInserter extends LiftActor{
     
       //TODO: Figure out how to add date queries to the query builder, OR, preferably, use Rogue
       val partialMatches = OBPEnvelope.findAll(qry)
-      
       val matches = partialMatches.filter(e =>{
        e.obp_transaction.get.details.get.completed.get.equals(toMatch.obp_transaction.get.details.get.completed.get)
       })
@@ -83,8 +82,8 @@ object EnvelopeInserter extends LiftActor{
       
       val grouped = groupIdenticals(envelopes)
       
-      reply(grouped.map(indenticals => {
-        insert(indenticals)
+      reply(grouped.map(identicals => {
+        insert(identicals)
       }).flatten)
     }
   }
