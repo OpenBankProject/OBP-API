@@ -169,7 +169,12 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         
         url getOrElse ""
       }
+      val openCorporatesUrl = for{
+        a <- theAccount
+        oacc <- a.otherAccounts.get.find(o => o.holder.equals(otherUnmediatedHolder))
+      } yield oacc.openCorporatesUrl.get
       
+      println("OPEN CORPORATES: " + openCorporatesUrl.getOrElse("UNDEFINED"))
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
       ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
