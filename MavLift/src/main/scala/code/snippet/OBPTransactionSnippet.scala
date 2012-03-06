@@ -134,18 +134,12 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val otherUnmediatedHolder = otherAccount.holder.get
       val otherMediatedHolder = otherAccount.mediated_holder(consumer)
       
-      val defaultImage = "/images/blank.gif"
-      
-      def useDefaultImageIfBlank(toCheck: String) = {
-        if(toCheck.equals("")) defaultImage
-        else toCheck
-      }
       
       val aliasImageSrc = {
         otherMediatedHolder._2 match{
           case Full(APublicAlias) => "/images/public_alias.png"
           case Full(APrivateAlias) => "/images/private_alias.png"
-          case _ => defaultImage
+          case _ => ""
         }
       }
       
@@ -164,7 +158,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
           logo <- a.getMediatedOtherAccountImageURL(consumer, otherUnmediatedHolder)
         } yield logo
         
-        useDefaultImageIfBlank(imageUrl getOrElse "")
+       imageUrl getOrElse ""
       }
       
       val otherAccWebsiteUrl = {
@@ -179,7 +173,10 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
       ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
-      ".alias_image [src]" #> aliasImageSrc &
+      {
+        if(aliasImageSrc.equals("")) ".alias_image" #> NodeSeq.Empty
+        else 						 ".alias_image [src]" #> aliasImageSrc
+      } &
       ".other_account_more_info *" #> moreInfo &
       ".other_account_logo_img [src]" #> logoImageSrc &
       {
