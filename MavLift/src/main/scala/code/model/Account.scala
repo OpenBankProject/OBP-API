@@ -24,6 +24,17 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   protected object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends MongoJsonObjectListField[Account, OtherAccount](this, OtherAccount)
   
+  def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
+   for{
+     o <- otherAccounts.get.find(acc=> {
+	     acc match{
+	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
+	       case _ => false
+	     }
+     })
+   } yield o.url
+ }
+  
   def getMediatedOtherAccountURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountURL = for{
      o <- otherAccounts.get.find(acc=> {
@@ -42,6 +53,17 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
       case "our-network" => otherAccountURL
       case _ => Empty
    }
+ }
+ 
+ def getUnmediatedOtherAccountImageUrl(user: String, otherAccountHolder: String) : Box[String] = {
+   for{
+     o <- otherAccounts.get.find(acc=> {
+	     acc match{
+	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
+	       case _ => false
+	     }
+     })
+   } yield o.imageUrl
  }
  
  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String) : Box[String] = {
@@ -64,6 +86,17 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
    }
  }
   
+ def getUnmediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
+   for{
+     o <- otherAccounts.get.find(acc=> {
+	     acc match{
+	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
+	       case _ => false
+	     }
+     })
+   } yield o.moreInfo
+ }
+ 
   def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountMoreInfo = for{
      o <- otherAccounts.get.find(acc=> {

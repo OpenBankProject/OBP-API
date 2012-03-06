@@ -146,7 +146,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val moreInfo = {
         val moreInfo = for{
           a <- theAccount
-          info <- a.getMediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
+          info <- a.getUnmediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
         } yield info
         
         moreInfo getOrElse ""
@@ -155,7 +155,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val logoImageSrc = {
          val imageUrl = for{
           a <- theAccount
-          logo <- a.getMediatedOtherAccountImageURL(consumer, otherUnmediatedHolder)
+          logo <- a.getUnmediatedOtherAccountImageUrl(consumer, otherUnmediatedHolder)
         } yield logo
         
        imageUrl getOrElse ""
@@ -164,7 +164,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val otherAccWebsiteUrl = {
         val url = for{
           a <- theAccount
-          link <- a.getMediatedOtherAccountURL(consumer, otherUnmediatedHolder)
+          link <- a.getUnmediatedOtherAccountUrl(consumer, otherUnmediatedHolder)
         } yield link
         
         url getOrElse ""
@@ -180,13 +180,24 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         } 
         else 						 ".alias_image [src]" #> aliasImageSrc
       } &
-      ".other_account_more_info *" #> moreInfo &
-      ".other_account_logo_img [src]" #> logoImageSrc &
       {
-        if(otherAccWebsiteUrl.equals("")){
-          ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
+        //TODO: This was hacked minutes before for a demo. Needs to be redone.
+        if(aliasImageSrc.equals("/images/public_alias.png")){ 
+          //don't show more info if there is a public alias
+          ".other_account_more_info *" #> NodeSeq.Empty &
+          ".other_account_logo_img [src]" #> NodeSeq.Empty &
+          ".other_acc_link" #> NodeSeq.Empty
         }else{
-          ".other_acc_link [href]" #> otherAccWebsiteUrl
+          //show it otherwise
+          ".other_account_more_info *" #> moreInfo &
+          ".other_account_logo_img [src]" #> logoImageSrc &
+          {
+        	 if(otherAccWebsiteUrl.equals("")){
+        		 ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
+        	 }else{
+        		 ".other_acc_link [href]" #> otherAccWebsiteUrl
+        	 }
+          }
         }
       } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
