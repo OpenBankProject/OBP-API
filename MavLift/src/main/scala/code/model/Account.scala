@@ -8,6 +8,9 @@ import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.common.{Box, Empty, Full}
+import net.liftweb.mongodb.record.field.BsonRecordListField
+import net.liftweb.mongodb.record.{BsonRecord, BsonMetaRecord}
+import net.liftweb.record.field.StringField
 
 /**
  * There should be only one of these for every real life "this" account. TODO: Enforce this
@@ -18,11 +21,12 @@ import net.liftweb.common.{Box, Empty, Full}
 class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def meta = Account 
  
-  protected object holder extends net.liftweb.record.field.StringField(this, 255)
-  protected object number extends net.liftweb.record.field.StringField(this, 255)
-  protected object kind extends net.liftweb.record.field.StringField(this, 255)
+  protected object holder extends StringField(this, 255)
+  protected object number extends StringField(this, 255)
+  protected object kind extends StringField(this, 255)
   protected object bank extends BsonRecordField(this, OBPBank)
-  object otherAccounts extends MongoJsonObjectListField[Account, OtherAccount](this, OtherAccount)
+  object otherAccounts extends BsonRecordListField(this, OtherAccount)
+  //object otherAccounts extends MongoJsonObjectListField[Account, OtherAccount](this, OtherAccount)
   
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
@@ -38,12 +42,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   def getMediatedOtherAccountURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountURL = for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.url
+   } yield o.url.get
    
    user match{
       case "team" => otherAccountURL
@@ -69,12 +70,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountImageURL = for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.imageUrl
+   } yield o.imageUrl.get
    
    user match{
       case "team" => otherAccountImageURL
@@ -100,12 +98,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountMoreInfo = for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.moreInfo
+   } yield o.moreInfo.get
    
    user match{
       case "team" => otherAccountMoreInfo
@@ -121,14 +116,36 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
 
 object Account extends Account with MongoMetaRecord[Account]
 
-case class OtherAccount(holder: String = "",
+class OtherAccount private() extends BsonRecord[OtherAccount] {
+  def meta = OtherAccount
+  
+  object holder extends StringField(this, 200)
+  
+  object publicAlias extends StringField(this, 100)
+  object privateAlias extends StringField(this, 100)
+  object moreInfo extends StringField(this, 100)
+  object url extends StringField(this, 100)
+  object imageUrl extends StringField(this, 100)
+  object openCorporatesUrl extends StringField(this, 100){
+    override def optional_? = true
+  }
+}
+
+object OtherAccount extends OtherAccount with BsonMetaRecord[OtherAccount]
+
+/*case class OtherAccount(holder: String = "",
 						publicAlias: String = "", 
 						privateAlias: String = "", 
 						moreInfo: String = "", 
 						url: String = "", 
-						imageUrl: String = "")
+						imageUrl: String = "",
+						openCorporatesUrl: Box[String])
+						//TODO: Probably need a rework here as openCorporatesUrl is marked optional due to existing 
+						// OtherAccount objects in the db that don't have it set. Probably all these fields except
+						// holder should be made optional.
 	extends JsonObject[OtherAccount]{
   def meta = OtherAccount
 }
 
 object OtherAccount extends JsonObjectMeta[OtherAccount]
+*/

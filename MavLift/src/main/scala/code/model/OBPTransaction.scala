@@ -248,10 +248,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case Full(a) =>{
         val otherAccs = a.otherAccounts.get
         val aliasInQuestion = otherAccs.find(o =>
-          o match{
-            case OtherAccount(`realValue`, _, _, _, _, _) => true
-            case _ => false
-          })
+          o.holder.get.equals(realValue))
        aliasInQuestion.isDefined
       }
       case _ => false
@@ -264,10 +261,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case Full(a) =>{
         val otherAccs = a.otherAccounts.get
         val aliasInQuestion = otherAccs.find(o =>
-          o match{
-            case OtherAccount(`realValue`, _, _, _, _, _) => true
-            case _ => false
-          })
+          o.holder.get.equals(realValue))
        aliasInQuestion.isDefined
       }
       case _ => false
@@ -287,12 +281,12 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
                 val updatedAccount = otherAccount match{
                   case Some(o) =>{
                     //update the "otherAccount"
-                    val newOtherAcc= o.copy(publicAlias = randomAliasName)
+                    val newOtherAcc= o.publicAlias(randomAliasName)
                     a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
                   }
                   case _ => {
                     //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount(holder.get, randomAliasName, "", "", "", "")))
+                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
                   }
                 }
                 
@@ -310,12 +304,12 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
                 val updatedAccount = otherAccount match{
                   case Some(o) =>{
                     //update the "otherAccount"
-                    val newOtherAcc= o.copy(publicAlias = "")
+                    val newOtherAcc= o.publicAlias("")
                     a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
                   }
                   case _ => {
                     //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount(holder.get, "", "", "", "", "")))
+                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
                   }
                 }
                 //val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, "")))
@@ -333,12 +327,12 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
                 val updatedAccount = otherAccount match{
                   case Some(o) =>{
                     //update the "otherAccount"
-                    val newOtherAcc= o.copy(privateAlias = "")
+                    val newOtherAcc= o.privateAlias("")
                     a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
                   }
                   case _ => {
                     //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount(holder.get, "", "", "", "", "")))
+                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
                   }
                 }
                 //val updatedAccount = a.privateAliases(a.privateAliases.get ++ List(Alias(holder.get, "")))
@@ -356,12 +350,10 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     def usePrivateAliasIfExists() : (Box[String], Box[OBPAccount.AnAlias])= {
       val privateAlias = for{
         account <- theAccount
-        otheracc <- account.otherAccounts.get.find(o => o match{
-          case OtherAccount(`theHolder`, _, "", _, _, _) => false
-          case OtherAccount(`theHolder`, _, _, _, _, _) => true
-          case _ => false
-        })
-      } yield otheracc.privateAlias
+        otheracc <- account.otherAccounts.get.find(o => 
+          o.holder.get.equals(theHolder)
+        )
+      } yield otheracc.privateAlias.get
       
       privateAlias match{
         case Full(a) => (Full(a), Full(OBPAccount.APrivateAlias))
@@ -372,12 +364,10 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     def usePublicAlias() : (Box[String], Box[OBPAccount.AnAlias])= {
       val publicAlias = for{
         account <- theAccount
-        otheracc <- account.otherAccounts.get.find(o => o match{
-          case OtherAccount(`theHolder`, "", _, _, _, _) => false
-          case OtherAccount(`theHolder`, _, _, _, _, _) => true
-          case _ => false
-        })
-      } yield otheracc.publicAlias
+        otheracc <- account.otherAccounts.get.find(o => 
+        	o.holder.get.equals(theHolder)
+        )
+      } yield otheracc.publicAlias.get
       
       publicAlias match{
         case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))

@@ -29,7 +29,9 @@ class Management {
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
-    	currentAccount.otherAccounts.get.find(o => o.holder.equals(holder))
+    	currentAccount.otherAccounts.get.find(o => {
+    	  o.holder.get.equals(holder)
+    	})
     }
     
     def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount) = {
@@ -52,37 +54,37 @@ class Management {
     }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
-      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.copy(publicAlias = newValue)
+      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
       editable(initialValue, holder, alterPublicAlias)
     }
     
     def editablePrivateAlias(initialValue : String, holder: String) = {
-      def alterPrivateAlias = (oAccount: OtherAccount, newValue: String) => oAccount.copy(privateAlias = newValue)
+      def alterPrivateAlias = (oAccount: OtherAccount, newValue: String) => oAccount.privateAlias(newValue)
       editable(initialValue, holder, alterPrivateAlias)
     }
     
     def editableImageUrl(initialValue : String, holder: String) = {
-      def alterImageUrl = (oAccount: OtherAccount, newValue: String) => oAccount.copy(imageUrl = newValue)
+      def alterImageUrl = (oAccount: OtherAccount, newValue: String) => oAccount.imageUrl(newValue)
       editable(initialValue, holder, alterImageUrl)
     }
     
     def editableUrl(initialValue : String, holder: String) = {
-      def alterUrl = (oAccount: OtherAccount, newValue: String) => oAccount.copy(url = newValue)
+      def alterUrl = (oAccount: OtherAccount, newValue: String) => oAccount.url(newValue)
       editable(initialValue, holder, alterUrl)
     }
     
     def editableMoreInfo(initialValue : String, holder: String) = {
-      def moreInfo = (oAccount: OtherAccount, newValue: String) => oAccount.copy(moreInfo = newValue)
+      def moreInfo = (oAccount: OtherAccount, newValue: String) => oAccount.moreInfo(newValue)
       editable(initialValue, holder, moreInfo)
     }
     
     currentAccount.otherAccounts.get.flatMap(other => {
-      (".image *" #> editableImageUrl(other.imageUrl, other.holder) &
-       ".real_name *" #> Text(other.holder) &
-       ".public_alias_name *" #> editablePublicAlias(other.publicAlias, other.holder) &
-       ".private_alias_name *" #> editablePrivateAlias(other.privateAlias, other.holder) &
-       ".more_info *" #> editableMoreInfo(other.moreInfo, other.holder) &
-       ".website_url *" #> editableUrl(other.url, other.holder) ).apply(xhtml)
+      (".image *" #> editableImageUrl(other.imageUrl.get, other.holder.get) &
+       ".real_name *" #> Text(other.holder.get) &
+       ".public_alias_name *" #> editablePublicAlias(other.publicAlias.get, other.holder.get) &
+       ".private_alias_name *" #> editablePrivateAlias(other.privateAlias.get, other.holder.get) &
+       ".more_info *" #> editableMoreInfo(other.moreInfo.get, other.holder.get) &
+       ".website_url *" #> editableUrl(other.url.get, other.holder.get) ).apply(xhtml)
     })
     
   }
