@@ -4,8 +4,10 @@ import net.liftweb.actor.LiftActor
 import code.model.OBPEnvelope
 import net.liftweb.json.JObject
 import com.mongodb.QueryBuilder
+import net.liftweb.common.Loggable
+import net.liftweb.util.Helpers
 
-object EnvelopeInserter extends LiftActor{
+object EnvelopeInserter extends LiftActor with Loggable{
   
   /**
    * Determines whether two obp envelopes are considered "identical"
@@ -38,17 +40,26 @@ object EnvelopeInserter extends LiftActor{
     if(identicalEnvelopes.size == 0){
       Nil
     }else{
+      //we don't want to be putting people's transaction info in the logs, so we use an id
+      val insertID = Helpers.randomString(10)
+      logger.info("Starting insert operation, id: " + insertID)
+      
       val toMatch = identicalEnvelopes(0)
       val qry = QueryBuilder.start("obp_transaction.details.value.amount").is(toMatch.obp_transaction.get.details.get.value.get.amount.get.toString)
       	.put("obp_transaction.other_account.holder").is(toMatch.obp_transaction.get.other_account.get.holder.get).get
     
       //TODO: Figure out how to add date queries to the query builder, OR, preferably, use Rogue
       val partialMatches = OBPEnvelope.findAll(qry)
+      logger.info("Insert operation id " + insertID + " # of partial matches: " + partialMatches.size)
+      
       val matches = partialMatches.filter(e =>{
        e.obp_transaction.get.details.get.completed.get.equals(toMatch.obp_transaction.get.details.get.completed.get)
       })
+      logger.info("Insert operation id " + insertID + " # of full matches: " + matches.size)
       
       val copiesToInsert = identicalEnvelopes drop matches.size
+      logger.info("Insert operation id " + insertID + " copies being inserted: " + copiesToInsert.size)
+      
       copiesToInsert.map(e => {
         val record = e.saveTheRecord()
         record.get.asMediatedJValue("authorities") //authorities view gives the most information. TODO: This obviously needs to be reworked

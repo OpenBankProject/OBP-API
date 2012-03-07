@@ -70,7 +70,7 @@ import code.actors.EnvelopeInserter
 // See http://www.assembla.com/spaces/liftweb/wiki/REST_Web_Services
 
 
-object OBPRest extends RestHelper {
+object OBPRest extends RestHelper with Loggable {
     println("here we are in OBPRest")
     serve {
 
@@ -128,6 +128,9 @@ object OBPRest extends RestHelper {
       val envelopes = rawEnvelopes.map(e => {
         OBPEnvelope.fromJValue(e)
       })
+      
+      logger.info("Received " + rawEnvelopes.size + " json transactions to insert")
+      logger.info("Received " + envelopes.size + " valid transactions to insert")
       
       /**
        * Using an actor to do insertions avoids concurrency issues with duplicate transactions
