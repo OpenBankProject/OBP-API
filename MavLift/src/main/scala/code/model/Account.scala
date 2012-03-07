@@ -31,12 +31,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.url
+   } yield o.url.get
  }
   
   def getMediatedOtherAccountURL(user: String, otherAccountHolder: String) : Box[String] = {
@@ -59,12 +56,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def getUnmediatedOtherAccountImageUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.imageUrl
+   } yield o.imageUrl.get
  }
  
  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String) : Box[String] = {
@@ -87,12 +81,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def getUnmediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
    for{
      o <- otherAccounts.get.find(acc=> {
-	     acc match{
-	       case OtherAccount(`otherAccountHolder`, _, _, _, _, _) => true
-	       case _ => false
-	     }
+	     acc.holder.get.equals(otherAccountHolder)
      })
-   } yield o.moreInfo
+   } yield o.moreInfo.get
  }
  
   def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
