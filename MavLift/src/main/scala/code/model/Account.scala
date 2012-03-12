@@ -53,14 +53,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
    }
  }
  
- def getUnmediatedOtherAccountImageUrl(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.imageUrl.get
- }
- 
  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountImageURL = for{
      o <- otherAccounts.get.find(acc=> {
@@ -76,14 +68,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
       case "our-network" => otherAccountImageURL
       case _ => Empty
    }
- }
-  
- def getUnmediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.moreInfo.get
  }
  
   def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
@@ -101,14 +85,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
       case "our-network" => otherAccountMoreInfo
       case _ => Empty
    }
- }
- 
-  def getUnmediatedOpenCorporatesUrl(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.openCorporatesUrl.get
  }
 }
 
