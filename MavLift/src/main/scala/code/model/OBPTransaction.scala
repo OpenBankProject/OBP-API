@@ -434,27 +434,6 @@ object OBPAccount extends OBPAccount with BsonMetaRecord[OBPAccount]{
   case object APrivateAlias extends AnAlias
 }
 
-
-
-/*
-class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAccount] {
-  def meta = OBPAccount
-
-  object holder extends net.liftweb.record.field.StringField(this, 255)
-  object number extends net.liftweb.record.field.StringField(this, 255)
-  object kind extends net.liftweb.record.field.StringField(this, 255)
-  object bank extends BsonRecordField(this, OBPBank)
-
-
-}
-
-object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
-
-*/
-
-
-///////////
-
 class OBPBank private() extends BsonRecord[OBPBank]{
   def meta = OBPBank
 
