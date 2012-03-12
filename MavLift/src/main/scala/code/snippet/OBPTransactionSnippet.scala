@@ -66,16 +66,183 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
   var dispatch: DispatchIt = {
     case "showAll" => showAll _
     case "paginate" => paginate _
+    case "display" => display _
     //case "top" => top _
+  }
+  
+  def display(xhtml: NodeSeq) : NodeSeq = {
+    val FORBIDDEN = "---"
+    val consumer = S.uri match{
+      case uri if uri.endsWith("authorities") => "authorities"
+      case uri if uri.endsWith("board") => "board"
+      case uri if uri.endsWith("our-network") => "our-network"
+      case uri if uri.endsWith("team") => "team"
+      case uri if uri.endsWith("my-view") => "my-view"
+      case _ => "anonymous"
+    }
+    
+    def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
+     val date1 = e1.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
+     val date2 = e2.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
+     date1.after(date2)
+   } 
+   
+   def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope) : Boolean = {
+    val t1 = e1.obp_transaction.get
+    val t2 = e2.obp_transaction.get
+    
+    t1.details.get.completed.get.equals(t2.details.get.completed.get)
+  }
+    
+   /**
+    * Splits a list of envelopes into a list of lists, where each of these new lists
+    * is for one day.
+    * 
+    * Example:
+    * 	input : List(Jan 5,Jan 6,Jan 7,Jan 7,Jan 8,Jan 9,Jan 9,Jan 9,Jan 10)
+    * 	output: List(List(Jan 5), List(Jan 6), List(Jan 7,Jan 7), 
+    * 				 List(Jan 8), List(Jan 9,Jan 9,Jan 9), List(Jan 10))
+    */
+   def groupByDate(list : List[OBPEnvelope]) : List[List[OBPEnvelope]] = {
+        list match{
+          case Nil => Nil
+          case h::Nil => List(list)
+          case h::t => {
+            //transactions that are identical to the head of the list
+            val matches = list.filter(hasSameDate(h, _))
+            List(matches) ++ groupByDate(list diff matches)
+          }
+        }
+   }
+   
+   
+    
+   val envelopes = groupByDate(page.sort(orderByDateDescending))
+   
+   val dateFormat = new SimpleDateFormat("MMMM dd, yyyy")
+   
+   def formatDate(date : Box[Date]) : String = {
+        date match{
+          case Full(d) => dateFormat.format(d)
+          case _ => FORBIDDEN
+        }
+   }
+   
+   ("* *" #> envelopes.map( envsForDay => {
+     val dailyDetails = envsForDay.last.obp_transaction.get.details.get
+     val date = formatDate(dailyDetails.mediated_completed(consumer))
+     //TODO: This isn't really going to be the right balance, as there's no way of telling which one was the actual
+     // last transaction of the day yet
+     val balance = dailyDetails.new_balance.get.mediated_amount(consumer) getOrElse FORBIDDEN
+     ".date *" #> date &
+     ".balance_number *" #> {"€" + balance} & //TODO: support other currencies, format the balance according to locale
+     ".transaction_row *" #> envsForDay.map(env =>{
+       
+       val envelopeID = env.id
+      
+       val transaction = env.obp_transaction.get
+       val transactionDetails = transaction.details.get
+       val transactionValue = transactionDetails.value.get
+       val thisAccount = transaction.this_account.get
+       val otherAccount  = transaction.other_account.get
+      
+       var narrative = env.narrative.get
+      
+       def editableNarrative() = {
+    	  SHtml.ajaxEditable(Text(narrative), SHtml.text(narrative, narrative = _), ()=> {
+    	    //save the narrative
+    	    env.narrative(narrative).save
+    	    Noop
+    	  })
+       }
+      
+       def displayNarrative() : NodeSeq = {
+         consumer match{
+           case "my-view" => editableNarrative()
+           case _ => Text(env.mediated_narrative(consumer).getOrElse(FORBIDDEN))
+         }
+       }
+      
+       val theAccount = thisAccount.theAccount
+       val otherUnmediatedHolder = otherAccount.holder.get
+       val otherMediatedHolder = otherAccount.mediated_holder(consumer)
+      
+       val aliasImageSrc = {
+         otherMediatedHolder._2 match{
+           case Full(APublicAlias) => "/media/images/public_alias.png"
+           case Full(APrivateAlias) => "/media/images/private_alias.png"
+           case _ => ""
+         }
+       }
+      
+       val moreInfo = {
+         val moreInfo = for{
+           a <- theAccount
+           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+         } yield oacc.moreInfo.get
+        
+         moreInfo getOrElse ""
+       }
+      
+       val logoImageSrc = {
+          val imageUrl = for{
+           a <- theAccount
+           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+         } yield oacc.imageUrl.get
+        
+        imageUrl getOrElse ""
+       }
+      
+       val otherAccWebsiteUrl = {
+         val url = for{
+           a <- theAccount
+           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+         } yield oacc.url.get
+        
+         url getOrElse ""
+       }
+       val openCorporatesUrl = {
+         val theUrl = for{
+         	a <- theAccount
+            oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+         } yield oacc.openCorporatesUrl.get
+         theUrl getOrElse("")
+       }
+       
+       val amount = transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN)
+       val name = otherMediatedHolder._1.getOrElse(FORBIDDEN)
+       
+       (".the_name *" #> name &
+        ".amount *" #> {"€" + amount.stripPrefix("-")} & //TODO: Format this number according to locale
+        {
+        if(aliasImageSrc.equals("")){
+          ".alias_image" #> NodeSeq.Empty & //remove the img tag
+          ".alias_divider" #> NodeSeq.Empty //remove the divider (br tag)
+        } 
+        else ".alias_image [src]" #> {aliasImageSrc}
+        } &
+        {
+         if(aliasImageSrc.equals("media/images/public_alias.png")){ 
+           //don't show more info if there is a public alias
+           ".extra *" #> NodeSeq.Empty
+         } else {
+           //show it otherwise
+           ".extra *" #> moreInfo
+         }
+        } &
+        ".comment *" #> env.mediated_comments(consumer).getOrElse(Nil).size &
+        ".symbol *" #> {if(amount.startsWith("-")) "-" else "+"} &
+        ".out [class]" #> {if(amount.startsWith("-")) "out" else "in"})
+       
+     })
+   } 
+   )).apply(xhtml)
+   
+   
   }
   
   def showAll(xhtml: NodeSeq): NodeSeq = {
 
-    // To get records using mongodb record
-    //val qry = QueryBuilder.start("obp_transaction_currency").is("EU").get
-
-    //val obp_transactions = OBPTransaction.findAll(qry)
-    
     val consumer = S.uri match{
       case uri if uri.endsWith("authorities") => "authorities"
       case uri if uri.endsWith("board") => "board"
@@ -146,8 +313,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val moreInfo = {
         val moreInfo = for{
           a <- theAccount
-          info <- a.getUnmediatedOtherAccountMoreInfo(consumer, otherUnmediatedHolder)
-        } yield info
+          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+        } yield oacc.moreInfo.get
         
         moreInfo getOrElse ""
       }
@@ -155,8 +322,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val logoImageSrc = {
          val imageUrl = for{
           a <- theAccount
-          logo <- a.getUnmediatedOtherAccountImageUrl(consumer, otherUnmediatedHolder)
-        } yield logo
+          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+        } yield oacc.imageUrl.get
         
        imageUrl getOrElse ""
       }
@@ -164,17 +331,17 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val otherAccWebsiteUrl = {
         val url = for{
           a <- theAccount
-          link <- a.getUnmediatedOtherAccountUrl(consumer, otherUnmediatedHolder)
-        } yield link
+          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+        } yield oacc.url.get
         
         url getOrElse ""
       }
       val openCorporatesUrl = {
-        val urlBox = for{
+        val theUrl = for{
         	a <- theAccount
-        	openCorpUrl <- a.getUnmediatedOpenCorporatesUrl(consumer, otherUnmediatedHolder)
-        } yield openCorpUrl
-        urlBox.getOrElse("")
+            oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+        } yield oacc.openCorporatesUrl.get
+        theUrl getOrElse("")
       }
       
       (
