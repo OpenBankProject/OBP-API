@@ -169,17 +169,17 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         
         url getOrElse ""
       }
-      val openCorporatesUrl = for{
-        a <- theAccount
-        oacc <- a.otherAccounts.get.find(o => o.holder.equals(otherUnmediatedHolder))
-      } yield oacc.openCorporatesUrl.get
+      val openCorporatesUrl = {
+        val urlBox = for{
+        	a <- theAccount
+        	openCorpUrl <- a.getUnmediatedOpenCorporatesUrl(consumer, otherUnmediatedHolder)
+        } yield openCorpUrl
+        urlBox.getOrElse("")
+      }
       
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder_name *" #> {
-        val omh = otherMediatedHolder._1.getOrElse(FORBIDDEN)
-        omh
-      }&
+      ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
       {
         if(aliasImageSrc.equals("")){
           ".alias_image" #> NodeSeq.Empty & //remove the img tag
@@ -204,8 +204,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         	 else".other_acc_link [href]" #> otherAccWebsiteUrl
           } &
           {
-            if(openCorporatesUrl.getOrElse("").equals("")) ".open_corporates_link" #> NodeSeq.Empty
-        	else ".open_corporates_link [src]" #> openCorporatesUrl
+            if(openCorporatesUrl.equals("")) ".open_corporates_link" #> NodeSeq.Empty
+        	else ".open_corporates_link [href]" #> openCorporatesUrl
           }
         }
       } &
