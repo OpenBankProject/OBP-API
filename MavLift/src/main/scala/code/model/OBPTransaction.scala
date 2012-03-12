@@ -356,6 +356,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       } yield otheracc.privateAlias.get
       
       privateAlias match{
+        case Full("") => (Full(theHolder), Empty)
         case Full(a) => (Full(a), Full(OBPAccount.APrivateAlias))
         case _ => (Full(theHolder), Empty)
       }
@@ -370,6 +371,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       } yield otheracc.publicAlias.get
       
       publicAlias match{
+        case Full("") => (Full(theHolder), Empty)
         case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
         case _ => {
             //No alias found, so don't use one

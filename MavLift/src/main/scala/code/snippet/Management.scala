@@ -13,7 +13,7 @@ import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, So
 
 class Management {
 
-  val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: Nil
+  val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
   val sortList = (0, Sorting.DSC) :: Nil
   
   val options = TableSorter.options(headers, sortList)
@@ -78,13 +78,19 @@ class Management {
       editable(initialValue, holder, moreInfo)
     }
     
+    def editableOpenCorporatesUrl(initialValue : String, holder: String) = {
+      def openCorporatesUrl = (oAccount: OtherAccount, newValue: String) => oAccount.openCorporatesUrl(newValue)
+      editable(initialValue, holder, openCorporatesUrl)
+    }
+    
     currentAccount.otherAccounts.get.flatMap(other => {
       (".image *" #> editableImageUrl(other.imageUrl.get, other.holder.get) &
        ".real_name *" #> Text(other.holder.get) &
        ".public_alias_name *" #> editablePublicAlias(other.publicAlias.get, other.holder.get) &
        ".private_alias_name *" #> editablePrivateAlias(other.privateAlias.get, other.holder.get) &
        ".more_info *" #> editableMoreInfo(other.moreInfo.get, other.holder.get) &
-       ".website_url *" #> editableUrl(other.url.get, other.holder.get) ).apply(xhtml)
+       ".website_url *" #> editableUrl(other.url.get, other.holder.get) &
+       ".open_corporates_url *" #> editableUrl(other.openCorporatesUrl.get, other.holder.get)).apply(xhtml)
     })
     
   }
