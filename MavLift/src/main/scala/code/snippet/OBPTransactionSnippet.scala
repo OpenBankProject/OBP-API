@@ -174,34 +174,38 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         oacc <- a.otherAccounts.get.find(o => o.holder.equals(otherUnmediatedHolder))
       } yield oacc.openCorporatesUrl.get
       
-      println("OPEN CORPORATES: " + openCorporatesUrl.getOrElse("UNDEFINED"))
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
+      ".other_account_holder_name *" #> {
+        val omh = otherMediatedHolder._1.getOrElse(FORBIDDEN)
+        omh
+      }&
       {
         if(aliasImageSrc.equals("")){
           ".alias_image" #> NodeSeq.Empty & //remove the img tag
           ".alias_divider" #> NodeSeq.Empty //remove the divider (br tag)
         } 
-        else 						 ".alias_image [src]" #> aliasImageSrc
+        else ".alias_image [src]" #> aliasImageSrc
       } &
       {
         //TODO: This was hacked minutes before for a demo. Needs to be redone.
         if(aliasImageSrc.equals("/images/public_alias.png")){ 
           //don't show more info if there is a public alias
           ".other_account_more_info *" #> NodeSeq.Empty &
-          ".other_account_logo_img [src]" #> NodeSeq.Empty &
-          ".other_acc_link" #> NodeSeq.Empty
+          ".other_account_logo_img" #> NodeSeq.Empty &
+          ".other_acc_link" #> NodeSeq.Empty &
+          ".open_corporates_link" #> NodeSeq.Empty
         }else{
           //show it otherwise
           ".other_account_more_info *" #> moreInfo &
           ".other_account_logo_img [src]" #> logoImageSrc &
           {
-        	 if(otherAccWebsiteUrl.equals("")){
-        		 ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
-        	 }else{
-        		 ".other_acc_link [href]" #> otherAccWebsiteUrl
-        	 }
+        	 if(otherAccWebsiteUrl.equals("")) ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
+        	 else".other_acc_link [href]" #> otherAccWebsiteUrl
+          } &
+          {
+            if(openCorporatesUrl.getOrElse("").equals("")) ".open_corporates_link" #> NodeSeq.Empty
+        	else ".open_corporates_link [src]" #> openCorporatesUrl
           }
         }
       } &

@@ -129,8 +129,9 @@ object OBPRest extends RestHelper with Loggable {
         OBPEnvelope.fromJValue(e)
       })
       
-      logger.info("Received " + rawEnvelopes.size + " json transactions to insert")
-      logger.info("Received " + envelopes.size + " valid transactions to insert")
+      val ipAddress = json._2.remoteAddr
+      logger.info("Received " + rawEnvelopes.size + " json transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + envelopes.size + " valid transactions to insert from ip address " + ipAddress)
       
       /**
        * Using an actor to do insertions avoids concurrency issues with duplicate transactions
