@@ -41,11 +41,7 @@ class Management {
         val otherAcc = getMostUpToDateOtherAccount(holder)
         if(otherAcc.isDefined){
           val newOtherAcc = alterOtherAccount(otherAcc.get, currentValue)
-          val otherAccsSize = currentAccount.otherAccounts.get.size
-          val otherAccHolders = currentAccount.otherAccounts.get.map(_.holder.get)
           val newOtherAccs = currentAccount.otherAccounts.get -- List(otherAcc.get) ++ List(newOtherAcc) 
-          val newOtherAccHolders = newOtherAccs.map(_.holder.get)
-          val newOtherAccsSize = newOtherAccs.size
           currentAccount.otherAccounts(newOtherAccs).save
         }
         
@@ -94,7 +90,7 @@ class Management {
        ".private_alias_name *" #> editablePrivateAlias(other.privateAlias.get, other.holder.get) &
        ".more_info *" #> editableMoreInfo(other.moreInfo.get, other.holder.get) &
        ".website_url *" #> editableUrl(other.url.get, other.holder.get) &
-       ".open_corporates_url *" #> editableUrl(other.openCorporatesUrl.get, other.holder.get)).apply(xhtml)
+       ".open_corporates_url *" #> editableOpenCorporatesUrl(other.openCorporatesUrl.get, other.holder.get)).apply(xhtml)
     })
     
   }

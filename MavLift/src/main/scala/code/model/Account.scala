@@ -102,6 +102,13 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
    }
  }
  
+  def getUnmediatedOpenCorporatesUrl(user: String, otherAccountHolder: String) : Box[String] = {
+   for{
+     o <- otherAccounts.get.find(acc=> {
+	     acc.holder.get.equals(otherAccountHolder)
+     })
+   } yield o.openCorporatesUrl.get
+ }
 }
 
 object Account extends Account with MongoMetaRecord[Account]
