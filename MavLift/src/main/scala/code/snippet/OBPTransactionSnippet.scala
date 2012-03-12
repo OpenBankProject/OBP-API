@@ -42,6 +42,9 @@ import net.liftweb.util._
 import scala.xml.Text
 import net.liftweb.common.{Box, Failure, Empty, Full}
 import java.util.Date
+import code.model.OBPAccount
+import code.model.OBPAccount.{APublicAlias, APrivateAlias}
+import net.liftweb.http.js.JsCmds.Noop
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
@@ -82,26 +85,13 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
     //val qry = QueryBuilder.start("obp_transaction_currency").is("EU").get
 
     //val obp_transactions = OBPTransaction.findAll(qry)
-
-    def present_obp_transaction_new_balance(value: String, consumer: String): String = {
-      
-      val showOnlyValueSign = if(value.startsWith("-")) "-" else "+"
-      
-      consumer match {
-        case "team" => value
-        case "board" => value
-        case "our_network" => showOnlyValueSign
-        case "authorities" => showOnlyValueSign
-        case "anonymous" => showOnlyValueSign
-        case _ => "---"
-      }
-    }
     
     val consumer = S.uri match{
       case uri if uri.endsWith("authorities") => "authorities"
       case uri if uri.endsWith("board") => "board"
       case uri if uri.endsWith("our-network") => "our-network"
       case uri if uri.endsWith("team") => "team"
+      case uri if uri.endsWith("my-view") => "my-view"
       case _ => "anonymous"
     }
     
@@ -124,7 +114,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       val transactionDetails = transaction.details.get
       val transactionValue = transactionDetails.value.get
       val thisAccount = transaction.this_account.get
-      val otherAccount = transaction.other_account.get
+      val otherAccount  = transaction.other_account.get
       
       def formatDate(date : Box[Date]) : String = {
         date match{
@@ -133,11 +123,41 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         }
       }
       
+      var narrative = obpEnvelope.narrative.get
+      
+      def editableNarrative() = {
+    	 SHtml.ajaxEditable(Text(narrative), SHtml.text(narrative, narrative = _), ()=> {
+    	   //save the narrative
+    	   obpEnvelope.narrative(narrative).save
+    	   Noop
+    	 })
+      }
+      
+      def displayNarrative() : NodeSeq = {
+        consumer match{
+          case "my-view" => editableNarrative()
+          case _ => Text(obpEnvelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
+        }
+      }
+      
       (
       ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder *" #> otherAccount.mediated_holder(consumer).getOrElse(FORBIDDEN) &
+      ".other_account_holder *" #> {
+        val otherHolder = otherAccount.mediated_holder(consumer)
+        val holderName = otherHolder._1 match {
+          case Full(h) => h
+          case _ => FORBIDDEN
+        }
+        val aliasType = otherHolder._2 match{
+          case Full(APublicAlias) => <img class="alias_image" src="/images/public_alias.png"/>
+          case Full(APrivateAlias) => <img class="alias_image" src="/images/private_alias.png"/>
+          case _ => <span></span>
+        }
+        <span>{aliasType}{holderName}</span>
+      } &
       ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
       ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
+      ".narrative *" #> displayNarrative &
       ".new_balance *" #> {
         transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
         transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)
