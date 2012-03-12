@@ -26,7 +26,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   protected object kind extends StringField(this, 255)
   protected object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
-  //object otherAccounts extends MongoJsonObjectListField[Account, OtherAccount](this, OtherAccount)
   
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
@@ -123,20 +122,3 @@ class OtherAccount private() extends BsonRecord[OtherAccount] {
 }
 
 object OtherAccount extends OtherAccount with BsonMetaRecord[OtherAccount]
-
-/*case class OtherAccount(holder: String = "",
-						publicAlias: String = "", 
-						privateAlias: String = "", 
-						moreInfo: String = "", 
-						url: String = "", 
-						imageUrl: String = "",
-						openCorporatesUrl: Box[String])
-						//TODO: Probably need a rework here as openCorporatesUrl is marked optional due to existing 
-						// OtherAccount objects in the db that don't have it set. Probably all these fields except
-						// holder should be made optional.
-	extends JsonObject[OtherAccount]{
-  def meta = OtherAccount
-}
-
-object OtherAccount extends JsonObjectMeta[OtherAccount]
-*/
