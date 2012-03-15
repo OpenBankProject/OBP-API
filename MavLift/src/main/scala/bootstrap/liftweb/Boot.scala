@@ -64,7 +64,7 @@ class Boot {
     // Use Lift's Mapper ORM to populate the database
     // you don't need to use Mapper to use Lift... use
     // any ORM you want
-    Schemifier.schemify(true, Schemifier.infoF _, User)
+    Schemifier.schemify(true, Schemifier.infoF _, User, Privilege)
 
     // where to search snippet
     LiftRules.addToPackages("code")
@@ -72,22 +72,67 @@ class Boot {
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
+    val theOnlyAccount = Account.findAll.headOption
+    
+    def check(bool: Boolean) : Box[LiftResponse] = {
+      if(bool){
+        Empty
+      }else{
+        Full(PlainTextResponse("unauthorized"))
+      }
+    }
+    
     // Build SiteMap
-    def sitemap = SiteMap(
+    val sitemap = List(
           Menu.i("Home") / "index",
-    	  Menu.i("Accounts") / "accounts" submenus(
+          Menu.i("Privilege Admin") / "admin" / "privilege" >> LocGroup("admin")
+          	submenus(Privilege.menus : _*),
+          Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
-		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view",
-		  Menu.i("Management") / "accounts" / "tesobe" / "management",
-          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
-          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
-          Menu.i("Team") / "accounts" / "tesobe" / "team",
-          Menu.i("Board") / "accounts" / "tesobe" / "board",
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities",
+		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> TestAccess(() => {
+		    check(theOnlyAccount match{
+		      case Some(a) => User.hasOwnerPermission(a)
+		      case _ => false
+		    })
+		  }),
+		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> TestAccess(() => {
+		    check(theOnlyAccount match{
+		      case Some(a) => User.hasOwnerPermission(a)
+		      case _ => false
+		    })
+		  }),
+          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> TestAccess(() => {
+            check(theOnlyAccount match {
+              case Some(a) => a.anonAccess.is
+              case _ => false
+            })
+          }),
+          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Some(a) => User.hasOurNetworkPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Team") / "accounts" / "tesobe" / "team" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Some(a) => User.hasTeamPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Board") / "accounts" / "tesobe" / "board" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Some(a) => User.hasBoardPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Some(a) => User.hasAuthoritiesPermission(a)
+		      case _ => false
+		    })
+          }),
           Menu.i("Comments") / "comments" >> Hidden
-				)
-      )
-    )
+        )))
 
     LiftRules.statelessRewrite.append{
         case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
@@ -98,8 +143,7 @@ class Boot {
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
-    LiftRules.setSiteMapFunc(() => sitemapMutators(sitemap))
-
+    LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
     // Use jQuery 1.4
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
 
