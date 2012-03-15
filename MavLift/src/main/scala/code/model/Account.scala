@@ -10,7 +10,7 @@ import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.mongodb.record.field.BsonRecordListField
 import net.liftweb.mongodb.record.{BsonRecord, BsonMetaRecord}
-import net.liftweb.record.field.StringField
+import net.liftweb.record.field.{StringField, BooleanField}
 
 /**
  * There should be only one of these for every real life "this" account. TODO: Enforce this
@@ -21,6 +21,7 @@ import net.liftweb.record.field.StringField
 class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def meta = Account 
  
+  object anonAccess extends BooleanField(this, false)
   protected object holder extends StringField(this, 255)
   protected object number extends StringField(this, 255)
   protected object kind extends StringField(this, 255)
