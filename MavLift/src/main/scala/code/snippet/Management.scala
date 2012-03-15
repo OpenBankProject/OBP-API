@@ -10,6 +10,7 @@ import net.liftweb.http.js.JsCmds.Noop
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
+import net.liftweb.http.js.JsCmd
 
 class Management {
 
@@ -20,6 +21,147 @@ class Management {
   
   def tableSorter(xhtml: NodeSeq) : NodeSeq = {
     TableSorter("#other_acc_management", options)
+  }
+  
+  def showAll(xhtml: NodeSeq) : NodeSeq = {
+    //temporary way to retrieve the account
+    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
+    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
+    
+        
+    object CustomSHtml extends SHtml{
+      override def ajaxEditable (displayContents : => NodeSeq, editForm : => NodeSeq, onSubmit : () => JsCmd) : NodeSeq = {
+        import net.liftweb.http.js
+        import net.liftweb.http.S
+	    import js.{jquery,JsCmd,JsCmds,JE}
+	    import jquery.JqJsCmds
+	    import JsCmds.{Noop,SetHtml}
+	    import JE.Str
+	    import JqJsCmds.{Hide,Show}
+	    import net.liftweb.util.Helpers
+	
+	    val divName = Helpers.nextFuncName
+	    val dispName = divName + "_display"
+	    val editName = divName + "_edit"
+	
+	    def swapJsCmd (show : String, hide : String) : JsCmd = Show(show) & Hide(hide)
+	
+	    def setAndSwap (show : String, showContents : => NodeSeq, hide : String) : JsCmd =
+	      (SHtml.ajaxCall(Str("ignore"), {ignore : String => SetHtml(show, showContents)})._2.cmd & swapJsCmd(show,hide))
+	
+	    def displayMarkup : NodeSeq =
+	      <input type="image" src="/media/images/edit-off.png" onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"} /> ++ 
+	      Text(" ") ++ displayContents
+	      
+	
+	    def editMarkup : NodeSeq = {
+	      val formData : NodeSeq =
+	        editForm ++
+	        <input class="submit" type="image" src="/media/images/submit.png" /> ++
+	        hidden(onSubmit) ++
+	        <input type="button" onclick={swapJsCmd(dispName,editName).toJsCmd + " return false;"} value={S.??("cancel")} />
+	
+	      ajaxForm(formData,
+	               Noop,
+	               setAndSwap(dispName, displayMarkup, editName))
+	    }
+	
+	    <div>
+	      <div id={dispName}>
+	      {displayMarkup}
+	      </div>
+	      <div id={editName} style="display: none;">
+	      	{editMarkup}
+	      </div>
+        </div>
+      }
+    }
+    
+    def getMostUpToDateOtherAccount(holder: String) = {
+    	currentAccount.otherAccounts.get.find(o => {
+    	  o.holder.get.equals(holder)
+    	})
+    }
+    
+    def editable(initialValue: String, holder: String) = {
+      var currentValue = initialValue
+      
+      def saveValue() = {
+        val otherAcc = getMostUpToDateOtherAccount(holder)
+        if(otherAcc.isDefined){
+          println("oogabooga!")
+        }
+        
+      }
+      
+      CustomSHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
+        saveValue()
+        Noop
+      })
+    }
+    
+    currentAccount.otherAccounts.get.flatMap(other => {
+      
+      val account = other.holder.get
+      val publicAlias = other.publicAlias.get
+      val privateAlias = other.privateAlias.get
+      val moreInfo = other.moreInfo.get
+      val website = other.url.get
+      val openCorporates = other.openCorporatesUrl.get
+      val imageURL = other.imageUrl.get
+      
+      val accountSelector = ".account *" #> account
+      
+      val publicSelector = if(publicAlias.equals("")){
+        ".public_set" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".public_not_set" #> NodeSeq.Empty & //remove the add
+        ".public_set" #> editable(publicAlias, account)
+      }
+      
+      val privateSelector = if(privateAlias.equals("")){
+        ".private_set" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".private_not_set" #> NodeSeq.Empty & //remove the add
+        ".edit_private *" #> privateAlias
+      }
+      
+      val websiteSelector = if(website.equals("")){
+        ".website_set" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".website_not_set" #> NodeSeq.Empty & //remove the add
+        ".edit_website *" #> website
+      }
+      
+      val openCorporatesSelector = if(openCorporates.equals("")){
+        ".open_corporates_set" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".open_corporates_not_set" #> NodeSeq.Empty & //remove the add
+        ".edit_open_corporates *" #> openCorporates
+      }
+      
+      val moreInfoSelector = if(moreInfo.equals("")){
+        ".information_set" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".information_not_set" #> NodeSeq.Empty & //remove the add
+        ".edit_information *" #> moreInfo
+      }
+      
+      val imageURLSelector = if(imageURL.equals("")){
+        ".edit_image" #> NodeSeq.Empty //remove the edit
+      }else{
+        ".add_image" #> NodeSeq.Empty & //remove the add
+        ".edit_image *" #> imageURL
+      }
+      
+      (accountSelector &
+       publicSelector &
+       privateSelector &
+       websiteSelector &
+       openCorporatesSelector &
+       moreInfoSelector &
+       imageURLSelector).apply(xhtml)
+    })
   }
   
   def listAll(xhtml: NodeSeq) : NodeSeq  = {
