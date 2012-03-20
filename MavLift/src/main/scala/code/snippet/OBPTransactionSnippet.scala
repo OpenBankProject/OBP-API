@@ -169,8 +169,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       
        val aliasImageSrc = {
          otherMediatedHolder._2 match{
-           case Full(APublicAlias) => "/images/public_alias.png"
-           case Full(APrivateAlias) => "/images/private_alias.png"
+           case Full(APublicAlias) => "/media/images/public_alias.png"
+           case Full(APrivateAlias) => "/media/images/private_alias.png"
            case _ => ""
          }
        }
@@ -222,7 +222,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         else ".alias_image [src]" #> {aliasImageSrc}
         } &
         {
-         if(aliasImageSrc.equals("/images/public_alias.png")){ 
+         if(aliasImageSrc.equals("media/images/public_alias.png")){ 
            //don't show more info if there is a public alias
            ".extra *" #> NodeSeq.Empty
          } else {
