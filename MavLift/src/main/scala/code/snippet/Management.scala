@@ -30,7 +30,7 @@ class Management {
     
         
     object CustomSHtml extends SHtml{
-      override def ajaxEditable (displayContents : => NodeSeq, editForm : => NodeSeq, onSubmit : () => JsCmd) : NodeSeq = {
+      def ajaxEditable (displayContents : => NodeSeq, editForm : => NodeSeq, onSubmit : () => JsCmd, defaultValue: String) : NodeSeq = {
         import net.liftweb.http.js
         import net.liftweb.http.S
 	    import js.{jquery,JsCmd,JsCmds,JE}
@@ -49,17 +49,35 @@ class Management {
 	    def setAndSwap (show : String, showContents : => NodeSeq, hide : String) : JsCmd =
 	      (SHtml.ajaxCall(Str("ignore"), {ignore : String => SetHtml(show, showContents)})._2.cmd & swapJsCmd(show,hide))
 	
-	    def displayMarkup : NodeSeq =
-	      <input type="image" src="/media/images/edit-off.png" onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"} /> ++ 
-	      Text(" ") ++ displayContents
+	    val editSrc = "/media/images/edit-off.png"
+	    val addSrc = "/media/images/add-on.png"
+	    val editClass = "edit"
+	    val addClass = "add"
+	    def aClass = if(displayContents.text.equals("")) addClass else editClass
+	    def imgSrc = if(displayContents.text.equals("")) addSrc else editSrc
+	    def displayText = if(displayContents.text.equals("")) defaultValue else displayContents.text
 	      
+	    def displayMarkup : NodeSeq = {
+	      displayContents.text match{
+	        case "" => {
+	          <div onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"}><a href="#" class={addClass}>{
+	        	  " " ++ displayText}</a></div>
+	        }
+	        case _ => {
+	          <div>
+	          	<a href="#" class={editClass}  onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"}/>
+	          	<span class="text">{displayContents}</span>
+	          </div>
+	        }
+	      }
+	    }
 	
 	    def editMarkup : NodeSeq = {
 	      val formData : NodeSeq =
 	        editForm ++
 	        <input class="submit" type="image" src="/media/images/submit.png" /> ++
 	        hidden(onSubmit) ++
-	        <input type="button" onclick={swapJsCmd(dispName,editName).toJsCmd + " return false;"} value={S.??("cancel")} />
+	        <input type="image" src="/media/images/cancel.png" onclick={swapJsCmd(dispName,editName).toJsCmd + " return false;"} />
 	
 	      ajaxForm(formData,
 	               Noop,
@@ -83,21 +101,53 @@ class Management {
     	})
     }
     
-    def editable(initialValue: String, holder: String) = {
+    def editablePublicAlias(initialValue : String, holder: String) = {
+      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
+      editable(initialValue, holder, alterPublicAlias, "Public Alias")
+    }
+    
+    def editablePrivateAlias(initialValue : String, holder: String) = {
+      def alterPrivateAlias = (oAccount: OtherAccount, newValue: String) => oAccount.privateAlias(newValue)
+      editable(initialValue, holder, alterPrivateAlias, "Private Alias")
+    }
+    
+    def editableImageUrl(initialValue : String, holder: String) = {
+      def alterImageUrl = (oAccount: OtherAccount, newValue: String) => oAccount.imageUrl(newValue)
+      editable(initialValue, holder, alterImageUrl, "Image URL")
+    }
+    
+    def editableUrl(initialValue : String, holder: String) = {
+      def alterUrl = (oAccount: OtherAccount, newValue: String) => oAccount.url(newValue)
+      editable(initialValue, holder, alterUrl, "Website")
+    }
+    
+    def editableMoreInfo(initialValue : String, holder: String) = {
+      def moreInfo = (oAccount: OtherAccount, newValue: String) => oAccount.moreInfo(newValue)
+      editable(initialValue, holder, moreInfo, "Information")
+    }
+    
+    def editableOpenCorporatesUrl(initialValue : String, holder: String) = {
+      def openCorporatesUrl = (oAccount: OtherAccount, newValue: String) => oAccount.openCorporatesUrl(newValue)
+      editable(initialValue, holder, openCorporatesUrl, "Open Corporates URL")
+    }
+    
+    def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount,
+        defaultValue: String) = {
       var currentValue = initialValue
       
       def saveValue() = {
         val otherAcc = getMostUpToDateOtherAccount(holder)
         if(otherAcc.isDefined){
-          println("oogabooga!")
+          val newOtherAcc = alterOtherAccount(otherAcc.get, currentValue)
+          val newOtherAccs = currentAccount.otherAccounts.get -- List(otherAcc.get) ++ List(newOtherAcc) 
+          currentAccount.otherAccounts(newOtherAccs).save
         }
-        
       }
       
-      CustomSHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
+      CustomSHtml.ajaxEditable(<span class="text">{currentValue}</span>, SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
         Noop
-      })
+      }, defaultValue)
     }
     
     currentAccount.otherAccounts.get.flatMap(other => {
@@ -112,47 +162,17 @@ class Management {
       
       val accountSelector = ".account *" #> account
       
-      val publicSelector = if(publicAlias.equals("")){
-        ".public_set" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".public_not_set" #> NodeSeq.Empty & //remove the add
-        ".public_set" #> editable(publicAlias, account)
-      }
+      val publicSelector = ".public *" #> editablePublicAlias(publicAlias, account)
       
-      val privateSelector = if(privateAlias.equals("")){
-        ".private_set" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".private_not_set" #> NodeSeq.Empty & //remove the add
-        ".edit_private *" #> privateAlias
-      }
+      val privateSelector = ".private *" #> editablePrivateAlias(privateAlias, account)
       
-      val websiteSelector = if(website.equals("")){
-        ".website_set" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".website_not_set" #> NodeSeq.Empty & //remove the add
-        ".edit_website *" #> website
-      }
+      val websiteSelector = ".website *" #> editableUrl(website, account)
       
-      val openCorporatesSelector = if(openCorporates.equals("")){
-        ".open_corporates_set" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".open_corporates_not_set" #> NodeSeq.Empty & //remove the add
-        ".edit_open_corporates *" #> openCorporates
-      }
+      val openCorporatesSelector = ".open_corporates *" #> editableOpenCorporatesUrl(openCorporates, account)
       
-      val moreInfoSelector = if(moreInfo.equals("")){
-        ".information_set" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".information_not_set" #> NodeSeq.Empty & //remove the add
-        ".edit_information *" #> moreInfo
-      }
+      val moreInfoSelector = ".information *" #> editableMoreInfo(moreInfo, account)
       
-      val imageURLSelector = if(imageURL.equals("")){
-        ".edit_image" #> NodeSeq.Empty //remove the edit
-      }else{
-        ".add_image" #> NodeSeq.Empty & //remove the add
-        ".edit_image *" #> imageURL
-      }
+      val imageURLSelector = ".image *" #> editableImageUrl(imageURL, account)
       
       (accountSelector &
        publicSelector &
