@@ -227,7 +227,16 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
            ".extra *" #> NodeSeq.Empty
          } else {
            //show it otherwise
-           ".extra *" #> moreInfo
+          ".other_account_more_info *" #> moreInfo &
+          ".other_account_logo_img [src]" #> logoImageSrc &
+          {
+        	 if(otherAccWebsiteUrl.equals("")) ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
+        	 else".other_acc_link [href]" #> otherAccWebsiteUrl
+          } &
+          {
+            if(openCorporatesUrl.equals("")) ".open_corporates_link" #> NodeSeq.Empty
+        	else ".open_corporates_link [href]" #> openCorporatesUrl
+          }
          }
         } &
         ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
