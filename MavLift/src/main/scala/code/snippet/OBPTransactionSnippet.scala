@@ -230,6 +230,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
            ".extra *" #> moreInfo
          }
         } &
+        ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
         ".comment *" #> env.mediated_comments(consumer).getOrElse(Nil).size &
         ".symbol *" #> {if(amount.startsWith("-")) "-" else "+"} &
         ".out [class]" #> {if(amount.startsWith("-")) "out" else "in"})
