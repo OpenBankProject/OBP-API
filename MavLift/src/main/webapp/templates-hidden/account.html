@@ -47,7 +47,16 @@
             </div>
 
         </div>
-<!-- 		<div id="nav" class="lift:Menu.builder ul:class='menu'"></div> -->
+ 		<div id="nav">
+ 			<ul>
+ 			  <li class="lift:menu.group?group=views">
+			    <menu:bind /> <!-- TODO: How can this be made "designer friendly"? -->
+			  </li>
+			  <li class="lift:menu.group?group=admin">
+			    <menu:bind /> <!-- TODO: How can this be made "designer friendly"? -->
+			  </li>
+			</ul>
+ 		</div><!-- 
         <div id="nav">
 
             <ul>
@@ -57,7 +66,7 @@
                 <li><a href="#">Our Network</a></li>
             </ul>
 
-        </div>
+        </div> -->
 
         <div id="content" class="lift:OBPTransactionSnippet.display">
 			<table class="transactions">
