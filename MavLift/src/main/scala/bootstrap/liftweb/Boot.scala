@@ -89,43 +89,43 @@ class Boot {
           	submenus(Privilege.menus : _*),
           Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
-		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> TestAccess(() => {
+		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
 		      case Some(a) => User.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
-		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> TestAccess(() => {
+		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
 		      case Some(a) => User.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
-          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> TestAccess(() => {
+          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match {
               case Some(a) => a.anonAccess.is
               case _ => false
             })
           }),
-          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> TestAccess(() => {
+          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
 		      case Some(a) => User.hasOurNetworkPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Team") / "accounts" / "tesobe" / "team" >> TestAccess(() => {
+          Menu.i("Team") / "accounts" / "tesobe" / "team" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
 		      case Some(a) => User.hasTeamPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Board") / "accounts" / "tesobe" / "board" >> TestAccess(() => {
+          Menu.i("Board") / "accounts" / "tesobe" / "board" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
 		      case Some(a) => User.hasBoardPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> TestAccess(() => {
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
 		      case Some(a) => User.hasAuthoritiesPermission(a)
 		      case _ => false
