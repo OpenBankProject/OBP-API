@@ -1,94 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Open Bank Project</title>
+<div class="lift:surround?with=newdefault;at=content">
 
-    <link href="/media/css/website.css" rel="stylesheet" type="text/css" />
-	<script src="/media/js/website.js" type="text/javascript"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+	<form class="management" action="." method="post">
 
-</head>
-<body>
-    
-    <div id="wrapper">
-
-        <div id="header">
-
-            <h1 id="logo">Open Bank Project</h1>
-
-            <div id="account">
-
-                <!-- LOGGED OUT 
-
-                <form class="login" action="." method="post">
-                    <div class="field username">
-                        <label>Username</label>
-                        <input class="username" type="text" />
-                    </div>
-                    <div class="field password">
-                        <label>Password</label>
-                        <a href="#" class="forgot">Forgotten?</a>
-                        <input class="password" type="password" />
-                    </div>
-                    <div class="button submit">
-                        <input class="submit" type="submit" value="Login" />
-                    </div>
-                </form>
-
-                -->
-
-                <!-- LOGGED IN -->
-
-                <div class="profiles">
-                    <h2 class="text">Tesobe</h2>
-                </div>
-                <a href="" class="logout">Logout</a>
-            </div>
-
-        </div>
-        <div id="nav">
-
-            <ul>
-                <li><a href="index.html">Transactions</a></li>
-                <li><a class="selected" href="management.html">Management</a></li>
-                <li><a href="#">Public</a></li>
-                <li><a href="#">Our Network</a></li>
-            </ul>
-
-        </div>
-
-        <div id="content">
-
-            <form class="management" action="." method="post">
-
-                <table class="management">
-                    <thead>
-                        <tr>
-                            <th class="account">Account Name <a class="sort" href="#">[sort]</a></th>
-                            <th class="public">Public Alias <a class="sort" href="#">[sort]</a></th>
-                            <th class="private">Private Alias <a class="sort" href="#">[sort]</a></th>
-                            <th class="website">Website <a class="sort" href="#">[sort]</a></th>
-                            <th class="open_corporates">Open Corporates URL <a class="sort" href="#">[sort]</a></th>
-                            <th class="information">More information</th>
-                            <th class="image"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class=lift:Management.showAll>
-                            <td class="account">Bob Smith</td>
-                            <td class="public">
-                                <!-- IF NO PUBLIC ALIAS -->
-                                <div class="public_not_set">
-                                	<a class="add_public add" href="#">Public alias</a>
-                                </div>
-                                <!-- ELSE PUBLIC ALIAS -->
-                                <div class="public_set">
-                                	<a class="edit" href="#">[edit]</a> <span class="edit_public text">Software Developer A</span>
-                                </div>
-                            </td>
-                            <td class="private">
-                                <!-- IF NO PRIVATE ALIAS
+		<table class="management">
+			<thead>
+				<tr>
+					<th class="account">Account Name <a class="sort" href="#">[sort]</a>
+					</th>
+					<th class="public">Public Alias <a class="sort" href="#">[sort]</a>
+					</th>
+					<th class="private">Private Alias <a class="sort" href="#">[sort]</a>
+					</th>
+					<th class="website">Website <a class="sort" href="#">[sort]</a>
+					</th>
+					<th class="open_corporates">Open Corporates URL <a
+						class="sort" href="#">[sort]</a></th>
+					<th class="information">More information</th>
+					<th class="image">Image URL</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr class=lift:Management.showAll>
+					<td class="account">Bob Smith</td>
+					<td class="public">
+						<!-- IF NO PUBLIC ALIAS -->
+						<div class="public_not_set">
+							<a class="add_public add" href="#">Public alias</a>
+						</div> <!-- ELSE PUBLIC ALIAS -->
+						<div class="public_set">
+							<a class="edit" href="#">[edit]</a> <span
+								class="edit_public text">Software Developer A</span>
+						</div>
+					</td>
+					<td class="private">
+						<!-- IF NO PRIVATE ALIAS
                                 <div class="private_not_set">
                                 	<a class="add_private add" href="#">Private alias</a>
                                 </div>
@@ -96,9 +41,9 @@
                                 <div class="private_set">
                                 	<a class="edit" href="#">[edit]</a> <span class="edit_private text">Bobby</span>
                                 </div> -->
-                            </td>
-                            <td class="website">
-                                <!-- IF NO WEBSITE
+					</td>
+					<td class="website">
+						<!-- IF NO WEBSITE
                                 <div class="website_not_set">
                                 	<a class="add_website add" href="#">Website</a>
                                 </div>
@@ -106,9 +51,9 @@
                                 <div class="website_set">
                                 	<a class="edit" href="#">[edit]</a> <span class="edit_website text">http://openbankproject.com</span>
                                 </div> -->
-                            </td>
-                            <td class="open_corporates">
-                                <!-- IF NO OPEN CORPORATES 
+					</td>
+					<td class="open_corporates">
+						<!-- IF NO OPEN CORPORATES 
                                 <div class="open_corporates_not_set">
                                 	<a class="add_open_corporates add" href="#">Open Corporates URL</a>
                                	</div>
@@ -116,9 +61,9 @@
                                 <div class="open_corporates_set">
                                 	<a class="edit" href="#">[edit]</a> <span class="edit_open_corporates text">http://opencorporates.com</span>
                                 </div> -->
-                            </td>
-                            <td class="information">
-                                <!-- IF NO INFORMATION 
+					</td>
+					<td class="information">
+						<!-- IF NO INFORMATION 
                                 <div class="information_not_set">
                                 	<a class="add_information add" href="#">Information</a>
                                 </div>
@@ -126,26 +71,17 @@
                                 <div class="information_set">
                                 	<a class="edit" href="#">[edit]</a> <span class="edit_information text">Blah blah</span>
                                 </div> -->
-                            </td>
-                            <td class="image">
-                                <!-- IF NO IMAGE 
+					</td>
+					<td class="image">
+						<!-- IF NO IMAGE 
                                 <a class="add_image upload" href="#">Upload image</a>
                                 <!-- ELSE IMAGE 
                                 <span class="upload"><img class="edit_image" src="#" alt="Image" /></span> -->
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+					</td>
+				</tr>
+			</tbody>
+		</table>
 
-            </form>
+	</form>
 
-        </div>
-		<lift:Menu.builder ul:class="menu" />
-        <div id="footer">
-            <p><a href="#">Open Bank Project</a> is &copy;2011-2012 TESOBE and distributed under the Apache 2.0 License.</p>
-        </div>
-
-    </div>
-
-</body>
-</html>
+</div>
