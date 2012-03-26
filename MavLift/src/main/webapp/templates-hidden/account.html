@@ -1,111 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Open Bank Project</title>
+<div class="lift:surround?with=newdefault;at=content">
+	<div class="lift:OBPTransactionSnippet.display">
+		<table class="transactions">
 
-    <link href="/media/css/website.css" rel="stylesheet" type="text/css" />
+			<thead>
+				<tr>
+					<th colspan="6">
+						<h5 class="date">March 10, 2012</h5>
+						<h6 class="balance">
+							<span class="text">Balance</span> <span
+								class="number balance_number">€2304.42</span>
+						</h6>
+					</th>
+				</tr>
+			</thead>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
-    <script src="/media/js/website.js" type="text/javascript"></script>
+			<tbody>
+				<tr class="transaction_row">
+					<td class="icon"><div class="out">Out</div></td>
+					<td class="symbol">-</td>
+					<td class="amount">€24.32</td>
+					<td class="name"><img class="alias_image"
+						src="/images/blank.gif" /> <br class="alias_divider" /> <span
+						class="the_name">Ronald Montgomery</span>
+					</td>
+					<td class="extra"><img src="/media/images/blank.gif"
+						class="other_account_logo_img"
+						style="max-width: 200px; max-height: 100px" /> <span
+						class="other_account_more_info">More info</span> <a href="#"
+						class="other_acc_link">Website</a> <br /> <a href="#"
+						class="open_corporates_link">Open Corporates</a>
+					</td>
+					<td class="comments"><a href="#" class="comments_ext"><span
+							class="comment">0</span> </a></td>
+				</tr>
+			</tbody>
+		</table>
 
-</head>
-<body>
-    
-    <div id="wrapper">
-
-        <div id="header">
-
-            <h1 id="logo">Open Bank Project</h1>
-
-            <div id="account">
-
-                <!-- LOGGED OUT -->
-
-                <form class="login" action="." method="post">
-                    <div class="field username">
-                        <label>Username</label>
-                        <input class="username" type="text" />
-                    </div>
-                    <div class="field password">
-                        <label>Password</label>
-                        <a href="#" class="forgot">Forgotten?</a>
-                        <input class="password" type="password" />
-                    </div>
-                    <div class="button submit">
-                        <input class="submit" type="submit" value="Login" />
-                    </div>
-                </form>
-
-                <!-- LOGGED IN
-
-                <div class="profiles">
-                    <h2 class="text">Tesobe</h2>
-                </div>
-                <a href="" class="logout">Logout</a>
-                -->
-            </div>
-
-        </div>
- 		<div id="nav">
- 			<ul>
- 			  <li class="lift:menu.group?group=views">
-			    <menu:bind /> <!-- TODO: How can this be made "designer friendly"? -->
-			  </li>
-			  <li class="lift:menu.group?group=admin">
-			    <menu:bind /> <!-- TODO: How can this be made "designer friendly"? -->
-			  </li>
-			</ul>
- 		</div><!-- 
-        <div id="nav">
-
-            <ul>
-                <li><a class="selected" href="index.html">Transactions</a></li>
-                <li><a href="management.html">Management</a></li>
-                <li><a href="#">Public</a></li>
-                <li><a href="#">Our Network</a></li>
-            </ul>
-
-        </div> -->
-
-        <div id="content" class="lift:OBPTransactionSnippet.display">
-			<table class="transactions">
-                <thead>
-                    <tr>
-                        <th colspan="6">
-                            <h5 class="date">March 10, 2012</h5>
-                            <h6 class="balance"><span class="text">Balance</span> <span class="number balance_number">€2304.42</span></h6>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr class="transaction_row">
-                        <td class="icon"><div class="out">Out</div></td>
-                        <td class="symbol">-</td>
-                        <td class="amount">€24.32</td>
-                        <td class="name">
-                        	<img class="alias_image" src="/images/blank.gif" />
-                        	<br class="alias_divider"/>
-                        	<span class="the_name">Ronald Montgomery</span>
-                        </td>
-                        <td class="extra">
-                        	<img src="/media/images/blank.gif" class="other_account_logo_img" style="max-width:200px; max-height:100px"/>
-                        	<span class="other_account_more_info">More info</span>
-                        	<a href="#" class="other_acc_link">Website</a>
-                        	<br/>
-                        	<a href="#" class="open_corporates_link">Open Corporates</a>
-                        </td>
-                        <td class="comments"><a href="#" class="comments_ext"><span class="comment">0</span></a></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-		<lift:Menu.builder ul:class="menu" />
-        <div id="footer">
-            <p><a href="#">Open Bank Project</a> is &copy;2011-2012 TESOBE and distributed under the Apache 2.0 License.</p>
-        </div>
-
-    </div>
-
-</body>
-</html>
+	</div>
+</div>

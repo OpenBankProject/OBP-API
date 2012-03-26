@@ -48,20 +48,6 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User]{
  */
 object User extends User with MetaMegaProtoUser[User]{
   override def dbTableName = "users" // define the DB table name
-  
-  /**
-   * CRUDify
-   */
-  /*override def pageWrapper(body: NodeSeq) = <lift:surround with="admin" at="content">{body}</lift:surround>
-  override def calcPrefix = List("admin",_dbTableNameLC)
-  override def displayName = "User"
-  override def showAllMenuLocParams = LocGroup("admin") :: Nil
-  override def createMenuLocParams = LocGroup("admin") :: Nil*/
-
-  /**
-   * End of CRUDify
-   */
-    
     
   override def screenWrap = Full(<lift:surround with="default" at="content">
 			       <lift:bind /></lift:surround>)
