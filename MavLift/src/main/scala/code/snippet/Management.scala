@@ -28,7 +28,7 @@ class Management {
     val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
-        
+    //TODO: This should go. There is too much presentation stuff living here in the code
     object CustomSHtml extends SHtml{
       def ajaxEditable (displayContents : => NodeSeq, editForm : => NodeSeq, onSubmit : () => JsCmd, defaultValue: String) : NodeSeq = {
         import net.liftweb.http.js
