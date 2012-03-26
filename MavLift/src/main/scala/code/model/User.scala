@@ -33,6 +33,8 @@ import net.liftweb.common._
 import net.liftweb.record.field.StringField
 import scala.xml.NodeSeq
 import net.liftweb.sitemap.Loc.LocGroup
+import net.liftweb.http.S
+import net.liftweb.http.SessionVar
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -57,6 +59,21 @@ object User extends User with MetaMegaProtoUser[User]{
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
+  
+  //Keep track of the referer on login
+  object loginReferer extends SessionVar("/")
+  //This is where the user gets redirected to after login
+  override def homePage = {
+    var ret = loginReferer.is
+    loginReferer.remove()
+    ret
+  }
+  
+  //Set the login referer
+  override def login = {
+    for(r <- S.referer if loginReferer.is.equals("/")) loginReferer.set(r)
+    super.login
+  }
   
   def hasOurNetworkPermission(account: Account) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ourNetworkPermission.is)
