@@ -22,6 +22,52 @@ a.sort {
 	text-indent: -9999em;
 }
 
+a.add {
+	display: inline-block;
+	padding: 0 0 0 20px;
+	background: transparent url(../images/add-off.png) no-repeat 0 0;
+	line-height: 16px;
+	font-size: 12px;
+	text-decoration: none;
+	color: #999999;
+}
+
+a.add:hover {
+	background-image: url(../images/add-on.png);
+	text-decoration: underline;
+	color: #666666;
+}
+
+a.edit {
+	overflow: hidden;
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background: transparent url(../images/edit-off.png) no-repeat 0 0;
+	text-indent: -9999em;
+}
+
+a.edit:hover {
+	background-image: url(../images/edit-on.png);
+}
+
+input.edit {
+	float: left;
+	vertical-align: middle;
+	background: #ffffff;
+	border: 1px solid #aaaaaa;
+	border-radius: 2px;
+	padding: 1px;
+	font-size: 10px;
+	width: 60%;
+}
+
+input.submit {
+	float: left;
+	margin: 0 0 0 2px;
+	cursor: pointer;
+}
+
 #wrapper {
 	width: 940px;
 	margin: 0 auto;
@@ -265,53 +311,7 @@ table.management th a.sort {
 	margin: 0 0 0 3px;
 }
 
-table.management td a.add {
-	display: inline-block;
-	padding: 0 0 0 20px;
-	background: transparent url(../images/add-off.png) no-repeat 0 0;
-	line-height: 16px;
-	font-size: 12px;
-	text-decoration: none;
-	color: #999999;
-}
-
-table.management td a.add:hover {
-	background-image: url(../images/add-on.png);
-	text-decoration: underline;
-	color: #666666;
-}
-
-table.management td a.edit {
-	overflow: hidden;
-	display: inline-block;
-	width: 16px;
-	height: 16px;
-	background: transparent url(../images/edit-off.png) no-repeat 0 0;
-	text-indent: -9999em;
-}
-
-table.management td a.edit:hover {
-	background-image: url(../images/edit-on.png);
-}
-
-table.management td input.edit {
-	float: left;
-	vertical-align: middle;
-	background: #ffffff;
-	border: 1px solid #aaaaaa;
-	border-radius: 2px;
-	padding: 1px;
-	font-size: 10px;
-	width: 60%;
-}
-
-table.management td input.submit {
-	float: left;
-	margin: 0 0 0 2px;
-	cursor: pointer;
-}
-
-table.management td a.upload {
+td a.upload {
 	display: inline-block;
 	padding: 5px 5px 6px 30px;
 	border: 1px dotted #cccccc;

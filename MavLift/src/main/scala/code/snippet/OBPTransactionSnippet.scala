@@ -64,7 +64,6 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
   }
 
   var dispatch: DispatchIt = {
-    case "showAll" => showAll _
     case "paginate" => paginate _
     case "display" => display _
     //case "top" => top _
@@ -85,15 +84,32 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
      val date1 = e1.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
      val date2 = e2.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
      date1.after(date2)
-   } 
+    } 
    
-   def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope) : Boolean = {
-    val t1 = e1.obp_transaction.get
-    val t2 = e2.obp_transaction.get
+    def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope) : Boolean = {
+      val t1 = e1.obp_transaction.get
+      val t2 = e2.obp_transaction.get
     
-    t1.details.get.completed.get.equals(t2.details.get.completed.get)
-  }
-    
+      t1.details.get.completed.get.equals(t2.details.get.completed.get)
+    }
+
+    def editableNarrative(envelope : OBPEnvelope) = {
+      var narrative = envelope.narrative.get
+      
+      CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
+        //save the narrative
+        envelope.narrative(narrative).save
+        Noop
+      }, "Narrative")
+    }
+
+    def displayNarrative(envelope : OBPEnvelope): NodeSeq = {
+      consumer match {
+        case "my-view" => editableNarrative(envelope)
+        case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
+      }
+    }
+   
    /**
     * Splits a list of envelopes into a list of lists, where each of these new lists
     * is for one day.
@@ -147,21 +163,6 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
        val otherAccount  = transaction.other_account.get
       
        var narrative = env.narrative.get
-      
-       def editableNarrative() = {
-    	  SHtml.ajaxEditable(Text(narrative), SHtml.text(narrative, narrative = _), ()=> {
-    	    //save the narrative
-    	    env.narrative(narrative).save
-    	    Noop
-    	  })
-       }
-      
-       def displayNarrative() : NodeSeq = {
-         consumer match{
-           case "my-view" => editableNarrative()
-           case _ => Text(env.mediated_narrative(consumer).getOrElse(FORBIDDEN))
-         }
-       }
       
        val theAccount = thisAccount.theAccount
        val otherUnmediatedHolder = otherAccount.holder.get
@@ -222,11 +223,13 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         else ".alias_image [src]" #> {aliasImageSrc}
         } &
         {
-         if(aliasImageSrc.equals("media/images/public_alias.png")){ 
+         if(aliasImageSrc.equals("/media/images/public_alias.png")){ 
            //don't show more info if there is a public alias
+           ".narrative *" #> NodeSeq.Empty &
            ".extra *" #> NodeSeq.Empty
          } else {
            //show it otherwise
+          ".narrative *" #> displayNarrative(env) &
           ".other_account_more_info *" #> moreInfo &
           ".other_account_logo_img [src]" #> logoImageSrc &
           {
@@ -249,154 +252,6 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
    )).apply(xhtml)
    
    
-  }
-  
-  def showAll(xhtml: NodeSeq): NodeSeq = {
-
-    val consumer = S.uri match{
-      case uri if uri.endsWith("authorities") => "authorities"
-      case uri if uri.endsWith("board") => "board"
-      case uri if uri.endsWith("our-network") => "our-network"
-      case uri if uri.endsWith("team") => "team"
-      case uri if uri.endsWith("my-view") => "my-view"
-      case _ => "anonymous"
-    }
-    
-   def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
-     val date1 = e1.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
-     val date2 = e2.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
-     date1.after(date2)
-   } 
-    
-   val envelopes = page.sort(orderByDateDescending)
-    
-   envelopes.flatMap(obpEnvelope => {
-      val FORBIDDEN = "---"
-      
-      val dateFormat = new SimpleDateFormat("MMM dd yyyy")
-      
-      val envelopeID = obpEnvelope.id
-      
-      val transaction = obpEnvelope.obp_transaction.get
-      val transactionDetails = transaction.details.get
-      val transactionValue = transactionDetails.value.get
-      val thisAccount = transaction.this_account.get
-      val otherAccount  = transaction.other_account.get
-      
-      def formatDate(date : Box[Date]) : String = {
-        date match{
-          case Full(d) => dateFormat.format(d)
-          case _ => FORBIDDEN
-        }
-      }
-      
-      var narrative = obpEnvelope.narrative.get
-      
-      def editableNarrative() = {
-    	 SHtml.ajaxEditable(Text(narrative), SHtml.text(narrative, narrative = _), ()=> {
-    	   //save the narrative
-    	   obpEnvelope.narrative(narrative).save
-    	   Noop
-    	 })
-      }
-      
-      def displayNarrative() : NodeSeq = {
-        consumer match{
-          case "my-view" => editableNarrative()
-          case _ => Text(obpEnvelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
-        }
-      }
-      
-      val theAccount = thisAccount.theAccount
-      val otherUnmediatedHolder = otherAccount.holder.get
-      val otherMediatedHolder = otherAccount.mediated_holder(consumer)
-      
-      
-      val aliasImageSrc = {
-        otherMediatedHolder._2 match{
-          case Full(APublicAlias) => "/images/public_alias.png"
-          case Full(APrivateAlias) => "/images/private_alias.png"
-          case _ => ""
-        }
-      }
-      
-      val moreInfo = {
-        val moreInfo = for{
-          a <- theAccount
-          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-        } yield oacc.moreInfo.get
-        
-        moreInfo getOrElse ""
-      }
-      
-      val logoImageSrc = {
-         val imageUrl = for{
-          a <- theAccount
-          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-        } yield oacc.imageUrl.get
-        
-       imageUrl getOrElse ""
-      }
-      
-      val otherAccWebsiteUrl = {
-        val url = for{
-          a <- theAccount
-          oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-        } yield oacc.url.get
-        
-        url getOrElse ""
-      }
-      val openCorporatesUrl = {
-        val theUrl = for{
-        	a <- theAccount
-            oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-        } yield oacc.openCorporatesUrl.get
-        theUrl getOrElse("")
-      }
-      
-      (
-      ".amount *" #> transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN) &
-      ".other_account_holder_name *" #> otherMediatedHolder._1.getOrElse(FORBIDDEN) &
-      {
-        if(aliasImageSrc.equals("")){
-          ".alias_image" #> NodeSeq.Empty & //remove the img tag
-          ".alias_divider" #> NodeSeq.Empty //remove the divider (br tag)
-        } 
-        else ".alias_image [src]" #> aliasImageSrc
-      } &
-      {
-        //TODO: This was hacked minutes before for a demo. Needs to be redone.
-        if(aliasImageSrc.equals("/images/public_alias.png")){ 
-          //don't show more info if there is a public alias
-          ".other_account_more_info *" #> NodeSeq.Empty &
-          ".other_account_logo_img" #> NodeSeq.Empty &
-          ".other_acc_link" #> NodeSeq.Empty &
-          ".open_corporates_link" #> NodeSeq.Empty
-        }else{
-          //show it otherwise
-          ".other_account_more_info *" #> moreInfo &
-          ".other_account_logo_img [src]" #> logoImageSrc &
-          {
-        	 if(otherAccWebsiteUrl.equals("")) ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
-        	 else".other_acc_link [href]" #> otherAccWebsiteUrl
-          } &
-          {
-            if(openCorporatesUrl.equals("")) ".open_corporates_link" #> NodeSeq.Empty
-        	else ".open_corporates_link [href]" #> openCorporatesUrl
-          }
-        }
-      } &
-      ".currency *" #> transactionValue.mediated_currency(consumer).getOrElse(FORBIDDEN) &
-      ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(consumer))&
-      ".narrative *" #> displayNarrative &
-      ".new_balance *" #> {
-        transactionDetails.new_balance.get.mediated_amount(consumer).getOrElse(FORBIDDEN) + " " +
-        transactionDetails.new_balance.get.mediated_currency(consumer).getOrElse(FORBIDDEN)} &
-      ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
-      ".comments_title *" #> {"Comments (" + (obpEnvelope.mediated_comments(consumer) getOrElse List()).size + ")"}
-      ).apply(xhtml)
-      
-    })
   }
 
 }
