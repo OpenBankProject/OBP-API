@@ -28,73 +28,6 @@ class Management {
     val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
-    //TODO: This should go. There is too much presentation stuff living here in the code
-    object CustomSHtml extends SHtml{
-      def ajaxEditable (displayContents : => NodeSeq, editForm : => NodeSeq, onSubmit : () => JsCmd, defaultValue: String) : NodeSeq = {
-        import net.liftweb.http.js
-        import net.liftweb.http.S
-	    import js.{jquery,JsCmd,JsCmds,JE}
-	    import jquery.JqJsCmds
-	    import JsCmds.{Noop,SetHtml}
-	    import JE.Str
-	    import JqJsCmds.{Hide,Show}
-	    import net.liftweb.util.Helpers
-	
-	    val divName = Helpers.nextFuncName
-	    val dispName = divName + "_display"
-	    val editName = divName + "_edit"
-	
-	    def swapJsCmd (show : String, hide : String) : JsCmd = Show(show) & Hide(hide)
-	
-	    def setAndSwap (show : String, showContents : => NodeSeq, hide : String) : JsCmd =
-	      (SHtml.ajaxCall(Str("ignore"), {ignore : String => SetHtml(show, showContents)})._2.cmd & swapJsCmd(show,hide))
-	
-	    val editSrc = "/media/images/edit-off.png"
-	    val addSrc = "/media/images/add-on.png"
-	    val editClass = "edit"
-	    val addClass = "add"
-	    def aClass = if(displayContents.text.equals("")) addClass else editClass
-	    def imgSrc = if(displayContents.text.equals("")) addSrc else editSrc
-	    def displayText = if(displayContents.text.equals("")) defaultValue else displayContents.text
-	      
-	    def displayMarkup : NodeSeq = {
-	      displayContents.text match{
-	        case "" => {
-	          <div onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"}><a href="#" class={addClass}>{
-	        	  " " ++ displayText}</a></div>
-	        }
-	        case _ => {
-	          <div>
-	          	<a href="#" class={editClass}  onclick={setAndSwap(editName, editMarkup, dispName).toJsCmd + " return false;"}/>
-	          	<span class="text">{displayContents}</span>
-	          </div>
-	        }
-	      }
-	    }
-	
-	    def editMarkup : NodeSeq = {
-	      val formData : NodeSeq =
-	        editForm ++
-	        <input class="submit" type="image" src="/media/images/submit.png" /> ++
-	        hidden(onSubmit) ++
-	        <input type="image" src="/media/images/cancel.png" onclick={swapJsCmd(dispName,editName).toJsCmd + " return false;"} />
-	
-	      ajaxForm(formData,
-	               Noop,
-	               setAndSwap(dispName, displayMarkup, editName))
-	    }
-	
-	    <div>
-	      <div id={dispName}>
-	      {displayMarkup}
-	      </div>
-	      <div id={editName} style="display: none;">
-	      	{editMarkup}
-	      </div>
-        </div>
-      }
-    }
-    
     def getMostUpToDateOtherAccount(holder: String) = {
     	currentAccount.otherAccounts.get.find(o => {
     	  o.holder.get.equals(holder)
@@ -144,7 +77,7 @@ class Management {
         }
       }
       
-      CustomSHtml.ajaxEditable(<span class="text">{currentValue}</span>, SHtml.text(currentValue, currentValue = _), () =>{
+      CustomEditable.editable(currentValue, SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
         Noop
       }, defaultValue)
@@ -172,7 +105,7 @@ class Management {
       
       val moreInfoSelector = ".information *" #> editableMoreInfo(moreInfo, account)
       
-      val imageURLSelector = ".image *" #> editableImageUrl(imageURL, account)
+      val imageURLSelector = ".imageURL *" #> editableImageUrl(imageURL, account)
       
       (accountSelector &
        publicSelector &
