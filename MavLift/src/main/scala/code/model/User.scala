@@ -139,11 +139,21 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
   }
   
   object accountID extends MappedString(this, 255)
-  object ourNetworkPermission extends ourMappedBoolean(this)
-  object teamPermission extends ourMappedBoolean(this)
-  object boardPermission extends ourMappedBoolean(this)
-  object authoritiesPermission extends ourMappedBoolean(this)
-  object ownerPermission extends ourMappedBoolean(this)
+  object ourNetworkPermission extends ourMappedBoolean(this){
+    override def displayName = "Our Network"
+  }
+  object teamPermission extends ourMappedBoolean(this) {
+    override def displayName= "Team"
+  }
+  object boardPermission extends ourMappedBoolean(this) {
+    override def displayName = "Board"
+  }
+  object authoritiesPermission extends ourMappedBoolean(this) {
+    override def displayName = "Authorities"
+  }
+  object ownerPermission extends ourMappedBoolean(this) {
+    override def displayName = "Owner"
+  }
 }
 
 object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUDify[Long, Privilege]{
