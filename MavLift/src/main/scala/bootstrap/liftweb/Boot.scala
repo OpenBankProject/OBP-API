@@ -85,7 +85,12 @@ class Boot {
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege" >> LocGroup("admin")
+          Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
+            check(theOnlyAccount match{
+              case Some(a) => User.hasOwnerPermission(a)
+              case _ => false
+            })
+          }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
