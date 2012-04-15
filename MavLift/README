@@ -4,9 +4,20 @@ The project is using Maven 2 as a build tool. See pom.xml for the dependancies.
 
 I used IntelliJ IDEA as my IDE. It has nice autocompletion.
 
-To run, cd into the root directory (where this file is) and run:
-mvn jetty:run
+To compile and run jetty, cd into the root directory (where this file is) and run:
 
+$ sbt
+...
+> compile
+> ~;container:start; container:reload /
+
+(Note that you first have to start sbt and then on its console start jetty with the container:start task, otherwise it will exit immediately.)
+
+In OS X, sbt can be installed with $ sudo port install sbt
+
+Alternatively, maven can also be used:
+
+mvn jetty:run
 
 Note: You may need to add the pluginGroup to the $HOME/.m2/settings.xml
 
