@@ -40,6 +40,7 @@ object LiftProjectBuild extends Build {
 	    "net.liftweb" %% "lift-mapper" % liftVersion % "compile",
 	    "net.liftweb" %% "lift-mongodb" % liftVersion % "compile",
 	    "net.liftweb" %% "lift-mongodb-record" % liftVersion % "compile",
+	    "net.liftweb" %% "lift-widgets" % liftVersion % "compile",	    
 //	    "org.eclipse.jetty" % "jetty-webapp" % "7.5.4.v20111024" % "container",
 //      "org.eclipse.jetty" % "jetty-webapp" % "8.0.4.v20111024" % "container",
         "org.mortbay.jetty" % "jetty" % "6.1.22" % "container",
