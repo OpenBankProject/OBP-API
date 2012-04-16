@@ -146,29 +146,36 @@ object OBPRest extends RestHelper with Loggable {
       }
     } 
     
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
     //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
     //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
     //to be completely reworked.
-    case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
+    /*case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
       
       val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
       val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
       
       JsonResponse(envelopeJson)
+    }*/
+    
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
+    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
+    //to be completely reworked.
+    case "api" :: "accounts" :: "tesobe" :: "anonymous" :: Nil JsonGet _ => {
+      
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+      
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous"))
+      
+      JsonResponse(envelopeJson)
     }
     
-    //A work in progress to support a better authenticated API call
-    //TODO: Remove access level from parameters list and get if from User/oauth/something similar
-    case "api" :: "accounts" :: accountID :: accessLevel :: Nil JsonGet _ => {
-      
-      for{
-        account <- Account.find(accountID)
-      } yield {
-        val envelopeJson = account.allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
-        JsonResponse(envelopeJson)
-      }
-    }
       
     }
 }
