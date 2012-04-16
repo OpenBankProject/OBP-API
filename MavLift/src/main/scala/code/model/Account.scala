@@ -1,5 +1,6 @@
 package code.model
 
+import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.JsonObjectMeta
 import net.liftweb.mongodb.JsonObject
 import net.liftweb.mongodb.record.MongoMetaRecord
@@ -28,6 +29,16 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   protected object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
   
+  def allEnvelopes : List[OBPEnvelope] = {
+   //TODO: This should use ids instead of just the holder name
+   //TODO : Also, due to some string hardcoding where we used "Music Pictures Limited" instead of
+   // 		what we get from our actual bank account ("MUSIC PICTURES LIMITED"), we have to make it
+   //  		upper case. This all needs to be revamped once we support multiple accounts, so despite being
+   //		incredibly ugly, it should be okay temporarily
+   val qry = QueryBuilder.start("obp_transaction.this_account.holder").is(holder.get.toUpperCase()).get
+   OBPEnvelope.findAll(qry)
+ }
+ 
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
      o <- otherAccounts.get.find(acc=> {
