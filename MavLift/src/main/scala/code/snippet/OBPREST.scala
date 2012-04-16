@@ -122,7 +122,6 @@ object OBPRest extends RestHelper with Loggable {
  }  ' http://localhost:8080/api/transactions  
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
-      
       val rawEnvelopes = json._1.children
       
       val envelopes = rawEnvelopes.map(e => {
@@ -151,13 +150,24 @@ object OBPRest extends RestHelper with Loggable {
     //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
     //to be completely reworked.
     case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
-      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
       val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
       
-      
       JsonResponse(envelopeJson)
+    }
+    
+    //A work in progress to support a better authenticated API call
+    //TODO: Remove access level from parameters list and get if from User/oauth/something similar
+    case "api" :: "accounts" :: accountID :: accessLevel :: Nil JsonGet _ => {
+      
+      for{
+        account <- Account.find(accountID)
+      } yield {
+        val envelopeJson = account.allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
+        JsonResponse(envelopeJson)
+      }
     }
       
     }

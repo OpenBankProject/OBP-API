@@ -161,6 +161,9 @@ object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUD
   override def displayName = "Privilege"
   override def showAllMenuLocParams = LocGroup("admin") :: Nil
   override def createMenuLocParams = LocGroup("admin") :: Nil
+  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt)
   override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt)
+  
+  def showAll = doCrudAll(_)
 }
 
