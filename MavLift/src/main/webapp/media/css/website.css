@@ -69,7 +69,8 @@ input.submit {
 }
 
 #wrapper {
-	width: 940px;
+	/*width: 940px;*/
+	width: 1050px;
 	margin: 0 auto;
 }
 
@@ -294,6 +295,20 @@ table.transactions td.name {
 
 table.transactions td.extra {
 	width: 520px;
+}
+
+div.extra_account_logo {
+    float: left;
+}
+
+div.extra_account_logo img {
+    max-width: 200px;
+    max-height: 100px;    
+}
+
+div.extra_info_and_links {
+    float: left;
+    margin-left: 10px;
 }
 
 table.transactions td.comments {
