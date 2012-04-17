@@ -176,6 +176,7 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
          }
        }
       
+       //TODO: create a function for all these
        val moreInfo = {
          val moreInfo = for{
            a <- theAccount
@@ -223,23 +224,33 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         else ".alias_image [src]" #> {aliasImageSrc}
         } &
         {
-         if(aliasImageSrc.equals("/media/images/public_alias.png")){ 
-           //don't show more info if there is a public alias
-           ".narrative *" #> NodeSeq.Empty &
-           ".extra *" #> NodeSeq.Empty
-         } else {
-           //show it otherwise
-          ".narrative *" #> displayNarrative(env) &
-          ".other_account_more_info *" #> moreInfo &
-          ".other_account_logo_img [src]" #> logoImageSrc &
-          {
-        	 if(otherAccWebsiteUrl.equals("")) ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
-        	 else".other_acc_link [href]" #> otherAccWebsiteUrl
-          } &
-          {
-            if(openCorporatesUrl.equals("")) ".open_corporates_link" #> NodeSeq.Empty
-        	else ".open_corporates_link [href]" #> openCorporatesUrl
-          }
+          if(aliasImageSrc.equals("/media/images/public_alias.png")){ 
+            //don't show more info if there is a public alias
+            ".narrative *" #> NodeSeq.Empty &
+            ".extra *" #> NodeSeq.Empty
+          } else {
+            //show it otherwise
+            ".narrative *" #> displayNarrative(env) &
+            {
+              if(moreInfo.equals("")) {
+                ".other_account_more_info" #> NodeSeq.Empty &
+                ".other_account_more_info_br" #> NodeSeq.Empty
+              } else {
+                ".other_account_more_info *" #> moreInfo.take(50) & //TODO: show ... if info string is actually truncated
+                ".other_account_logo_img [src]" #> logoImageSrc
+              }
+            } &
+            {
+        	    if(otherAccWebsiteUrl.equals("")) {
+        	      ".other_acc_link" #> NodeSeq.Empty & //If there is no link to display, don't render the <a> element
+        	      ".other_acc_link_br" #> NodeSeq.Empty
+        	    }
+        	    else".other_acc_link [href]" #> otherAccWebsiteUrl
+            } &
+            {
+              if(openCorporatesUrl.equals("")) ".open_corporates_link" #> NodeSeq.Empty
+        	    else ".open_corporates_link [href]" #> openCorporatesUrl
+            }
          }
         } &
         ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
