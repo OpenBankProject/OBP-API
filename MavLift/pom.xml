@@ -34,11 +34,6 @@
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>http://scala-tools.org/repo-snapshots</url>
     </repository>
-
-
-
-
-
   </repositories>
 
   <pluginRepositories>
