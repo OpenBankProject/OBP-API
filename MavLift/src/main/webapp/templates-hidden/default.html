@@ -24,99 +24,75 @@ Open Bank Project (http://www.openbankproject.com)
 		Simon Redfern : simon AT tesobe DOT com
 		Everett Sochowski: everett AT tesobe DOT com
 -->
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:lift="http://liftweb.net/">
-  <head>
-    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
-    <meta name="description" content="" />
-    <meta name="keywords" content="" />
-    <title class="lift:Menu.title">Open Bank Project: </title>
-    <style class="lift:CSS.blueprint"></style>
-    <style class="lift:CSS.fancyType"></style>
-    <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
-    <script id="json" src="/classpath/json.js" type="text/javascript"></script>
-    <style type="text/css">
-/* <![CDATA[ */
-.edit_error_class {
-  display: block;
-  color: red;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Open Bank Project</title>
 
-.sidebar ul.menu {
-	margin:0;
-	padding:0;
-	/*border-bottom:1px solid #ccc;   */
-}
-	 
+    <link href="/media/css/website.css?20120412" rel="stylesheet" type="text/css" />
+	<script src="/media/js/website.js" type="text/javascript"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
 
-.sidebar ul.menu li {
-	margin:0;
-	padding:0;
-	list-style:none;
-	/*border:1px solid #ccc;
-	border-bottom:none;  */
-}
+</head>
+<body>
+<div id="wrapper">
 
-.sidebar ul.menu li a {
-	display:block;
-	padding:3px;
-	text-indent:30px;
-	text-decoration:none;
-}
+        <div id="header">
 
-.sidebar ul.menu li span {
-	display:block;
-	padding:3px;
-	text-indent:30px;
-	text-decoration:none;
-}
+            <h1 id="logo">Open Bank Project</h1>
 
-.sidebar ul.menu li a:hover {
-	background-color: #eee;
-}
+            <div id="account">
 
-.sidebar ul.menu ul {
-    padding-left: 15px;
-}
+                <!-- LOGGED OUT -->
+				<div class="lift:Login.loggedOut">
+					<form class="login" action="." method="post">
+	                    <div class="field username">
+	                        <label>Username</label>
+	                        <input class="username" type="text" name="username" tabindex=1/>
+	                    </div>
+	                    <div class="field password">
+	                        <label>Password</label>
+	                        <a href="#" class="forgot" tabindex=5>Forgotten?</a>
+	                        <a href="#" class="signup" tabindex=4>Sign up</a>
+	                        <input class="password" type="password" name="password" tabindex=2 />
+	                    </div>
+	                    <div class="button submit">
+	                        <input class="submit" type="submit" value="Login" tabindex=3/>
+	                    </div>
+	                </form>
+                </div>
+                <!-- LOGGED IN -->
+				<div class="lift:Login.loggedIn">
+	                <div class="profiles">
+	                    <h2 class="text">Tesobe</h2>
+	                </div>
+	                <a href="" class="logout">Logout</a>
+                </div>
+            </div>
 
-h1.logo {
-    margin: 10px;
-    margin-left: 29px;
-}
+        </div>
+        <div id="nav">
+        	<ul>
+        	  <li class="lift:Nav.group?group=owner navitem">
+			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+			  </li>
+ 			  <li class="lift:Nav.group?group=views navitem">
+			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+			  </li>
+			  <li class="lift:Nav.item?name=Privilege%20Admin navitem">
+			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+			  </li>
+			</ul>
+        </div>
 
-.alias_image {
-	margin-right:10px;
-}
+        <div id="content">
+			The main content gets bound here
+        </div>
+		
+		<div id="footer">
+            <p><a href="#">Open Bank Project</a> is &copy;2011-2012 TESOBE and distributed under the Apache 2.0 License.</p>
+        </div>
 
-  /* ]]> */
-  </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="column last">
-        <h1 class="logo"><a href="/index"><img src="/images/OpenBankProject_logo.jpg" width="120px"></a> <img alt="" id="ajax-loader" style="display:none; margin-bottom: 0px; margin-left: 5px" src="/images/ajax-loader.gif"></h1>
-      </div>
-
-      <hr>
-
-      <div class="column span-6 colborder sidebar">
-        <hr class="space" >
-
-        <!-- <span class="lift:Menu.builder ul:class='menu'"></span> -->
-        <lift:Menu.builder ul:class="menu" />
-        <div class="lift:Msgs?showAll=true"></div>
-        <hr class="space" />
-      </div>
-
-      <div class="column span-17 last">
-        <div id="content">The main content will get bound here</div>
-      </div>
-
-      <hr />
-      <div class="column span-23 last" style="text-align: center">
-        <h4 class="alt">
-          <a href="http://www.openbankproject.com"><i>Open Bank Project</i></a>
-	  is ©2011-2012 TESOBE and distributed under the Apache 2.0 License.</h4>
-      </div>
     </div>
-  </body>
-</html>
+</body>

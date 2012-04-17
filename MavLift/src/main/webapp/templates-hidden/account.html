@@ -1,73 +1,45 @@
-<!-- 
-Open Bank Project
+<div class="lift:surround?with=default;at=content">
+	<div class="lift:OBPTransactionSnippet.display">
+		<table class="transactions">
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+			<thead>
+				<tr>
+					<th colspan="7">
+						<h5 class="date">March 10, 2012</h5>
+						<h6 class="balance">
+							<span class="text">Balance</span> <span
+								class="number balance_number">€2304.42</span>
+						</h6>
+					</th>
+				</tr>
+			</thead>
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+			<tbody>
+				<tr class="transaction_row">
+					<!-- Money going out -->
+					<td class="icon"><div class="out">Out</div></td>
+					<td class="symbol">-</td>
+					<!-- Money coming in -->
+<!-- 					<td class="icon"><div class="out">Out</div></td> -->
+<!-- 					<td class="symbol">-</td> -->
+					<td class="amount">€24.32</td>
+					<td class="name">
+					    <span class="the_name">Ronald Montgomery</span>
+					    <span class="alias_indicator"></span>
+					</td>
+					<td class="narrative">Transaction specific notes</td>
+					<td class="extra">
+					    <div class="extra_account_logo"><img src="/media/images/blank.gif"
+						class="other_account_logo_img"></div> <div class="extra_info_and_links"><span
+						class="other_account_more_info">More info</span><br class="other_account_more_info_br"/> <a href="#"
+						class="other_acc_link">Website</a><br class="other_acc_link_br"/> <a href="#"
+						class="open_corporates_link">Open Corporates</a></div>
+					</td>
+					<td class="comments"><a href="#" class="comments_ext"><span
+							class="comment">0</span> </a></td>
+				</tr>
+			</tbody>
+		</table>
 
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.  
-
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com   
--->
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
-  </head>
-  <body class="lift:content_id=main">
-    <div id="main" class="lift:surround?with=default;at=content">
-      <div id="page_header">The page header will get bound here</div>
-      <p>
-      </p>
-            <div>
-        <h3>Transactions</h3>
-
-        <br>
-    </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Currency</th>
-                    <th>To/From</th>
-                    <th colspan="3">More Info</th>
-                    <th>Narrative</th>
-                    <th>Comments</th>
-                    <th>Balance</th>
-                </tr>
-            </thead>
-            <tbody>
-            <tr class=lift:OBPTransactionSnippet.showAll>
-                <td class="date_cleared">completed date</td>
-                <td class="amount">obp_transaction_amount</td>
-                <td class="currency">obp_transaction_currency</td>
-                <td class="other_account_holder"><img class="alias_image" src="/images/blank.gif" /><br class="alias_divider"/><span class="other_account_holder_name">Holder name</span></td>
-                <td class="other_account_more_info">More info on the other account</td>
-                <td class="other_account_logo"><img src="#" height="50" class="other_account_logo_img"/></td>
-                <td class="other_account_website"><a href="#" class="other_acc_link">Website</a><br/><a href="#" class="open_corporates_link">Info</a></td>
-                <td class="narrative">narrative</td>
-                <td class="comments_link"><a href="#" class="comments_title comments_ext">Comments</a></td>
-                <td class="new_balance">obp_transaction_new_balance</td>
-            </tr>
-        </tbody>
-
-        </table>
-    </div>
-  </body>
-</html>
+	</div>
+</div>

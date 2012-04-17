@@ -39,6 +39,7 @@ import com.tesobe.utils._
 import myapp.model.MongoConfig
 import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
+import net.liftweb.json.JsonDSL._
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -72,7 +73,7 @@ class Boot {
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
-    val theOnlyAccount = Account.findAll.headOption
+    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
     
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
@@ -85,49 +86,54 @@ class Boot {
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege" >> LocGroup("admin")
+          Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
+            check(theOnlyAccount match{
+              case Full(a) => User.hasOwnerPermission(a)
+              case _ => false
+            })
+          }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
-		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> TestAccess(() => {
+		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
-		      case Some(a) => User.hasOwnerPermission(a)
+		      case Full(a) => User.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
-		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> TestAccess(() => {
+		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
-		      case Some(a) => User.hasOwnerPermission(a)
+		      case Full(a) => User.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
-          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> TestAccess(() => {
+          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match {
-              case Some(a) => a.anonAccess.is
+              case Full(a) => a.anonAccess.is
               case _ => false
             })
           }),
-          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> TestAccess(() => {
+          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Some(a) => User.hasOurNetworkPermission(a)
+		      case Full(a) => User.hasOurNetworkPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Team") / "accounts" / "tesobe" / "team" >> TestAccess(() => {
+          Menu.i("Team") / "accounts" / "tesobe" / "team" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Some(a) => User.hasTeamPermission(a)
+		      case Full(a) => User.hasTeamPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Board") / "accounts" / "tesobe" / "board" >> TestAccess(() => {
+          Menu.i("Board") / "accounts" / "tesobe" / "board" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Some(a) => User.hasBoardPermission(a)
+		      case Full(a) => User.hasBoardPermission(a)
 		      case _ => false
 		    })
           }),
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> TestAccess(() => {
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Some(a) => User.hasAuthoritiesPermission(a)
+		      case Full(a) => User.hasAuthoritiesPermission(a)
 		      case _ => false
 		    })
           }),
@@ -169,5 +175,27 @@ class Boot {
     S.addAround(DB.buildLoanWrapper)
     
     TableSorter.init
+    
+    /**
+     * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
+     */
+    theOnlyAccount match{
+      case Full(a) => {
+        val theOnlyOwnerPriv = Privilege.find(By(Privilege.accountID, a.id.get.toString), By(Privilege.ownerPermission, true))
+        theOnlyOwnerPriv match{
+          case Empty => {
+            //create one
+            println("Creating tesobe account user and granting it owner permissions")
+            val userEmail = "tesobe@tesobe.com"
+            val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+        	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
+        	newPriv.saveMe
+          }
+          case _ => println("Owner privilege already exists")
+        }
+      }
+      case _ => println("No account found")
+    }
+    
   }
 }

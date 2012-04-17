@@ -122,7 +122,6 @@ object OBPRest extends RestHelper with Loggable {
  }  ' http://localhost:8080/api/transactions  
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
-      
       val rawEnvelopes = json._1.children
       
       val envelopes = rawEnvelopes.map(e => {
@@ -147,18 +146,36 @@ object OBPRest extends RestHelper with Loggable {
       }
     } 
     
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
     //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
     //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
     //to be completely reworked.
-    case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
-      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+    /*case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
       
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
       val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
       
+      JsonResponse(envelopeJson)
+    }*/
+    
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
+    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
+    //to be completely reworked.
+    case "api" :: "accounts" :: "tesobe" :: "anonymous" :: Nil JsonGet _ => {
+      
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+      
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous"))
       
       JsonResponse(envelopeJson)
     }
+    
       
     }
 }
