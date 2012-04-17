@@ -179,14 +179,14 @@ input.submit {
 
 #account form.login .field .forgot {
 	float: right;
-	margin: 0 8px 0 0;
+	margin: 1px 8px 0 0;
 	padding: 2px 0 0;
 	font-size: 11px;
 }
 
 #account form.login .field .signup {
 	float: right;
-	margin: 0 8px 0 0;
+	margin: 1px 8px 0 0;
 	padding: 2px 0 0;
 	font-size: 11px;
 }
