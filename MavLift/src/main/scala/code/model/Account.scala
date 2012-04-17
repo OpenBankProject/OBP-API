@@ -1,5 +1,6 @@
 package code.model
 
+import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.JsonObjectMeta
 import net.liftweb.mongodb.JsonObject
 import net.liftweb.mongodb.record.MongoMetaRecord
@@ -28,6 +29,16 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
   protected object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
   
+  def allEnvelopes : List[OBPEnvelope] = {
+   //TODO: This should use ids instead of just the holder name
+   //TODO : Also, due to some string hardcoding where we used "Music Pictures Limited" instead of
+   // 		what we get from our actual bank account ("MUSIC PICTURES LIMITED"), we have to make it
+   //  		upper case. This all needs to be revamped once we support multiple accounts, so despite being
+   //		incredibly ugly, it should be okay temporarily
+   val qry = QueryBuilder.start("obp_transaction.this_account.holder").is(holder.get.toUpperCase()).get
+   OBPEnvelope.findAll(qry)
+ }
+ 
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
    for{
      o <- otherAccounts.get.find(acc=> {
@@ -53,14 +64,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
    }
  }
  
- def getUnmediatedOtherAccountImageUrl(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.imageUrl.get
- }
- 
  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountImageURL = for{
      o <- otherAccounts.get.find(acc=> {
@@ -76,14 +79,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
       case "our-network" => otherAccountImageURL
       case _ => Empty
    }
- }
-  
- def getUnmediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.moreInfo.get
  }
  
   def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String) : Box[String] = {
@@ -101,14 +96,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
       case "our-network" => otherAccountMoreInfo
       case _ => Empty
    }
- }
- 
-  def getUnmediatedOpenCorporatesUrl(user: String, otherAccountHolder: String) : Box[String] = {
-   for{
-     o <- otherAccounts.get.find(acc=> {
-	     acc.holder.get.equals(otherAccountHolder)
-     })
-   } yield o.openCorporatesUrl.get
  }
 }
 

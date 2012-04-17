@@ -33,6 +33,8 @@ import net.liftweb.common._
 import net.liftweb.record.field.StringField
 import scala.xml.NodeSeq
 import net.liftweb.sitemap.Loc.LocGroup
+import net.liftweb.http.S
+import net.liftweb.http.SessionVar
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -48,20 +50,6 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User]{
  */
 object User extends User with MetaMegaProtoUser[User]{
   override def dbTableName = "users" // define the DB table name
-  
-  /**
-   * CRUDify
-   */
-  /*override def pageWrapper(body: NodeSeq) = <lift:surround with="admin" at="content">{body}</lift:surround>
-  override def calcPrefix = List("admin",_dbTableNameLC)
-  override def displayName = "User"
-  override def showAllMenuLocParams = LocGroup("admin") :: Nil
-  override def createMenuLocParams = LocGroup("admin") :: Nil*/
-
-  /**
-   * End of CRUDify
-   */
-    
     
   override def screenWrap = Full(<lift:surround with="default" at="content">
 			       <lift:bind /></lift:surround>)
@@ -71,6 +59,21 @@ object User extends User with MetaMegaProtoUser[User]{
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
+  
+  //Keep track of the referer on login
+  object loginReferer extends SessionVar("/")
+  //This is where the user gets redirected to after login
+  override def homePage = {
+    var ret = loginReferer.is
+    loginReferer.remove()
+    ret
+  }
+  
+  //Set the login referer
+  override def login = {
+    for(r <- S.referer if loginReferer.is.equals("/")) loginReferer.set(r)
+    super.login
+  }
   
   def hasOurNetworkPermission(account: Account) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ourNetworkPermission.is)
@@ -136,11 +139,21 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
   }
   
   object accountID extends MappedString(this, 255)
-  object ourNetworkPermission extends ourMappedBoolean(this)
-  object teamPermission extends ourMappedBoolean(this)
-  object boardPermission extends ourMappedBoolean(this)
-  object authoritiesPermission extends ourMappedBoolean(this)
-  object ownerPermission extends ourMappedBoolean(this)
+  object ourNetworkPermission extends ourMappedBoolean(this){
+    override def displayName = "Our Network"
+  }
+  object teamPermission extends ourMappedBoolean(this) {
+    override def displayName= "Team"
+  }
+  object boardPermission extends ourMappedBoolean(this) {
+    override def displayName = "Board"
+  }
+  object authoritiesPermission extends ourMappedBoolean(this) {
+    override def displayName = "Authorities"
+  }
+  object ownerPermission extends ourMappedBoolean(this) {
+    override def displayName = "Owner"
+  }
 }
 
 object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUDify[Long, Privilege]{
@@ -148,6 +161,9 @@ object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUD
   override def displayName = "Privilege"
   override def showAllMenuLocParams = LocGroup("admin") :: Nil
   override def createMenuLocParams = LocGroup("admin") :: Nil
+  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt)
   override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt)
+  
+  def showAll = doCrudAll(_)
 }
 

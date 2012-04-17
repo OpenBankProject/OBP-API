@@ -411,19 +411,19 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => Empty
     }
   }
-  //JString(mediated_holder(user) getOrElse ("---")
+  //JString(mediated_holder(user) getOrElse ("")
   def asMediatedJValue(user: String) : JObject = {
     val h = mediated_holder(user)
     JObject(List( JField("holder", 
     				JObject(List(
-    				    JField("holder", JString(h._1.getOrElse("---"))),
+    				    JField("holder", JString(h._1.getOrElse(""))),
     				    JField("alias", JString(h._2 match{
     				      case Full(OBPAccount.APublicAlias) => "public"
     				      case Full(OBPAccount.APrivateAlias) => "private"
     				      case _ => "no"
     				    }))))),
-        		  JField("number", JString(mediated_number(user) getOrElse "---")),
-        		  JField("kind", JString(mediated_kind(user) getOrElse "---")),
+        		  JField("number", JString(mediated_number(user) getOrElse "")),
+        		  JField("kind", JString(mediated_kind(user) getOrElse "")),
         		  JField("bank", bank.get.asMediatedJValue(user))))
   }
 }
@@ -475,9 +475,9 @@ class OBPBank private() extends BsonRecord[OBPBank]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("IBAN", JString(mediated_IBAN(user) getOrElse "---")),
-        		  JField("national_identifier", JString(mediated_national_identifier(user) getOrElse "---")),
-        		  JField("name", JString(mediated_name(user) getOrElse "---"))))
+    JObject(List( JField("IBAN", JString(mediated_IBAN(user) getOrElse "")),
+        		  JField("national_identifier", JString(mediated_national_identifier(user) getOrElse "")),
+        		  JField("name", JString(mediated_name(user) getOrElse ""))))
   }
 }
 
@@ -500,7 +500,7 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   def formatDate(date : Box[Date]) : String = {
     date match{
       case Full(d) => OBPDetails.formats.dateFormat.format(d)
-      case _ => "---"
+      case _ => ""
     }
   }
   
@@ -540,11 +540,11 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("type_en", JString(mediated_type_en(user) getOrElse "---")),
-        		  JField("type_de", JString(mediated_type_de(user) getOrElse "---")),
+    JObject(List( JField("type_en", JString(mediated_type_en(user) getOrElse "")),
+        		  JField("type_de", JString(mediated_type_de(user) getOrElse "")),
         		  JField("posted", JString(formatDate(mediated_posted(user)))),
         		  JField("completed", JString(formatDate(mediated_completed(user)))),
-        		  JField("other_data", JString(mediated_other_data(user) getOrElse "---")),
+        		  JField("other_data", JString(mediated_other_data(user) getOrElse "")),
         		  JField("new_balance", new_balance.get.asMediatedJValue(user)),
         		  JField("value", value.get.asMediatedJValue(user))))
   }
@@ -588,8 +588,8 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "---")),
-        		  JField("amount", JString(mediated_amount(user) getOrElse "---"))))
+    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "")),
+        		  JField("amount", JString(mediated_amount(user) getOrElse ""))))
   }
 }
 
@@ -618,8 +618,8 @@ class OBPValue private() extends BsonRecord[OBPValue]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "---")),
-        		  JField("amount", JString(mediated_amount(user) getOrElse "---"))))
+    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "")),
+        		  JField("amount", JString(mediated_amount(user) getOrElse ""))))
   }
 }
 
