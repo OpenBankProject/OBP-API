@@ -226,8 +226,11 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
           otherMediatedHolder._2 match {
            case Full(APublicAlias) =>
              {
+               //TODO: discuss if we really need public/private disctinction when displayed,
+               //it confuses more than it really informs the user of much
+               //the view either shows more data or not, only that it is an alias is really informative
                ".alias_indicator [class+]" #> "alias_indicator_public" &
-               ".alias_indicator *" #> "(Public Alias)"
+               ".alias_indicator *" #> "(Public Alias)"  
              }
            case Full(APrivateAlias) =>
              {
