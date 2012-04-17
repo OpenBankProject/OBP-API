@@ -1,3 +1,6 @@
 *.class
 *.db
 .DS_Store
+*.scala.orig
+*.log
+.gitignore
