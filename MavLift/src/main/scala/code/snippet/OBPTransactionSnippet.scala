@@ -45,6 +45,7 @@ import java.util.Date
 import code.model.OBPAccount
 import code.model.OBPAccount.{APublicAlias, APrivateAlias}
 import net.liftweb.http.js.JsCmds.Noop
+import code.model._
 
 class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnvelope] {
 
@@ -153,7 +154,6 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
      ".date *" #> date &
      ".balance_number *" #> {"€" + balance} & //TODO: support other currencies, format the balance according to locale
      ".transaction_row *" #> envsForDay.map(env =>{
-       
        val envelopeID = env.id
       
        val transaction = env.obp_transaction.get
@@ -168,80 +168,54 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
        val otherUnmediatedHolder = otherAccount.holder.get
        val otherMediatedHolder = otherAccount.mediated_holder(consumer)
       
-       val aliasImageSrc = {
+       val aliasType = {
          otherMediatedHolder._2 match{
-           case Full(APublicAlias) => "/media/images/public_alias.png"
-           case Full(APrivateAlias) => "/media/images/private_alias.png"
-           case _ => ""
+           case Full(APublicAlias) => "public"
+           case Full(APrivateAlias) => "private"
+           case _ => "None"
          }
        }
-      
-       //TODO: create a function for all these
-       val moreInfo = {
-         val moreInfo = for{
-           a <- theAccount
-           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-         } yield oacc.moreInfo.get
-        
-         moreInfo getOrElse ""
-       }
-      
-       val logoImageSrc = {
-          val imageUrl = for{
-           a <- theAccount
-           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-         } yield oacc.imageUrl.get
-        
-        imageUrl getOrElse ""
-       }
-      
-       val otherAccWebsiteUrl = {
-         val url = for{
-           a <- theAccount
-           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-         } yield oacc.url.get
-        
-         url getOrElse ""
-       }
-       val openCorporatesUrl = {
-         val theUrl = for{
-         	a <- theAccount
-            oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-         } yield oacc.openCorporatesUrl.get
-         theUrl getOrElse("")
-       }
        
-       val amount = transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN)
-       val name = otherMediatedHolder._1.getOrElse(FORBIDDEN)
+       //get some fields from the account
+       def getAccountField(getFieldFunction:OtherAccount => String): String = {
+         val fieldValue = for {
+           a <- theAccount
+           oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
+         } yield getFieldFunction(oacc)
+       
+         fieldValue getOrElse ""
+       }
+      
+      val moreInfo = getAccountField( (acc:OtherAccount) => acc.moreInfo.get )
+      val logoImageSrc = getAccountField( (acc:OtherAccount) => acc.imageUrl.get )
+      val otherAccWebsiteUrl = getAccountField( (acc:OtherAccount) => acc.url.get )
+      val openCorporatesUrl = getAccountField( (acc:OtherAccount) => acc.openCorporatesUrl.get )
+       
+      val amount = transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN)
+      val name = otherMediatedHolder._1.getOrElse(FORBIDDEN)
        
        (".the_name *" #> name &
         ".amount *" #> {"€" + amount.stripPrefix("-")} & //TODO: Format this number according to locale
-        /*{
-        if(aliasImageSrc.equals("")){
-          ".alias_image" #> NodeSeq.Empty //remove the img tag
-        } 
-        else ".alias_image [src]" #> {aliasImageSrc}
-        } & */
         {
-          otherMediatedHolder._2 match {
-           case Full(APublicAlias) =>
+          aliasType match {
+           case "public" =>
              {
                //TODO: discuss if we really need public/private disctinction when displayed,
                //it confuses more than it really informs the user of much
                //the view either shows more data or not, only that it is an alias is really informative
                ".alias_indicator [class+]" #> "alias_indicator_public" &
-               ".alias_indicator *" #> "(Public Alias)"  
+               ".alias_indicator *" #> "(Alias)"  
              }
-           case Full(APrivateAlias) =>
+           case "private" =>
              {
               ".alias_indicator [class+]" #> "alias_indicator_private" &
-              ".alias_indicator *" #> "(Private Alias)"               
+              ".alias_indicator *" #> "(Alias)"               
              }
            case _ => "#no_exist" #> ""
          }
         } & 
         {
-          if(aliasImageSrc.equals("/media/images/public_alias.png")){ 
+          if(aliasType.equals("public")){ 
             //don't show more info if there is a public alias
             ".narrative *" #> NodeSeq.Empty &
             ".extra *" #> NodeSeq.Empty
