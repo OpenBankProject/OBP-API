@@ -294,21 +294,7 @@ table.transactions td.name {
 }
 
 table.transactions td.extra {
-	width: 520px;
-}
-
-div.extra_account_logo {
-    float: left;
-}
-
-div.extra_account_logo img {
-    max-width: 200px;
-    max-height: 100px;    
-}
-
-div.extra_info_and_links {
-    float: left;
-    margin-left: 10px;
+	width: 350px;
 }
 
 table.transactions td.comments {
@@ -428,6 +414,32 @@ table.management td.image {
 	padding-left: 0;
 	text-align: right;
 }
+
+
+div.extra_account_logo {
+    float: left;
+}
+
+div.extra_account_logo img {
+    max-width: 200px;
+    max-height: 100px;    
+}
+
+div.extra_info_and_links {
+    float: left;
+    margin-left: 10px;
+}
+
+span.alias_indicator_public {
+    color: green;
+    padding: 2px;
+}
+
+span.alias_indicator_private {
+    color: purple;
+    padding: 2px;
+}
+
 
 #footer {
 	background: #f0f0f0;

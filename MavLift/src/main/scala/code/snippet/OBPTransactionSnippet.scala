@@ -216,13 +216,27 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
        
        (".the_name *" #> name &
         ".amount *" #> {"€" + amount.stripPrefix("-")} & //TODO: Format this number according to locale
-        {
+        /*{
         if(aliasImageSrc.equals("")){
-          ".alias_image" #> NodeSeq.Empty & //remove the img tag
-          ".alias_divider" #> NodeSeq.Empty //remove the divider (br tag)
+          ".alias_image" #> NodeSeq.Empty //remove the img tag
         } 
         else ".alias_image [src]" #> {aliasImageSrc}
-        } &
+        } & */
+        {
+          otherMediatedHolder._2 match {
+           case Full(APublicAlias) =>
+             {
+               ".alias_indicator [class+]" #> "alias_indicator_public" &
+               ".alias_indicator *" #> "(Public Alias)"
+             }
+           case Full(APrivateAlias) =>
+             {
+              ".alias_indicator [class+]" #> "alias_indicator_private" &
+              ".alias_indicator *" #> "(Private Alias)"               
+             }
+           case _ => "#no_exist" #> ""
+         }
+        } & 
         {
           if(aliasImageSrc.equals("/media/images/public_alias.png")){ 
             //don't show more info if there is a public alias
