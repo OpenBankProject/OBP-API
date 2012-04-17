@@ -86,9 +86,9 @@ class Comments{
 	          case _ => FORBIDDEN
 	        }
 	        val aliasType = otherHolder._2 match{
-	          case Full(APublicAlias) => "public"
-	          case Full(APrivateAlias) => "private"
-	          case _ => "no alias"
+	          case Full(APublicAlias) => "/media/images/public_alias.png"
+	          case Full(APrivateAlias) => "/media/images/private_alias.png"
+	          case _ => ""
 	        }
 	        {aliasType + holderName}
 	      } &
