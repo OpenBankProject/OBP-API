@@ -272,11 +272,11 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
         } &
         {
           //If we're not allowed to see comments, don't show the comments section
-          if(env.mediated_comments(consumer).isEmpty) ".comments *" #> ""
+          if(env.mediated_obpComments(consumer).isEmpty) ".comments *" #> ""
           else "#no_exist" #> "" //TODO: is there a NodeSeq.Empty equivalent for CssSel?
         } &
         ".comments_ext [href]" #> {consumer + "/transactions/" + envelopeID + "/comments"} &
-        ".comment *" #> env.mediated_comments(consumer).getOrElse(Nil).size &
+        ".comment *" #> env.mediated_obpComments(consumer).getOrElse(Nil).size &
         ".symbol *" #> {if(amount.startsWith("-")) "-" else "+"} &
         ".out [class]" #> {if(amount.startsWith("-")) "out" else "in"})
        

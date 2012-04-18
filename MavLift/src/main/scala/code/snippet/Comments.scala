@@ -46,6 +46,7 @@ import net.liftweb.http.StringField
 import java.util.Date
 import java.text.SimpleDateFormat
 import code.model.OBPAccount._
+import code.model._
 
 /**
  * This whole class is a rather hastily put together mess
@@ -113,15 +114,55 @@ class Comments{
     
     envelope match{
       case Full(e) => {
-        e.mediated_comments(accessLevel).getOrElse(List()).flatMap(comment =>
-          (".comment *" #> comment).apply(xhtml))
+       val comments = e.mediated_obpComments(accessLevel) getOrElse List()
+       if(comments.size == 0) (".the_comments *" #> "No comments").apply(xhtml)
+       else comments.flatMap(comment => {
+          (".comment *" #> comment.text.is &
+           ".commenter_email *" #> {"- " + comment.email}).apply(xhtml)
+        })
       }
       case _ => (".comment *" #> "No comments").apply(xhtml)
     }
   }
   
   
-  def addComment(xhtml: NodeSeq) : NodeSeq = {
+    def addComment(xhtml: NodeSeq) : NodeSeq = {
+    val accessLevel = S.param("accessLevel") getOrElse "anonymous"
+    val envelopeID = S.param("envelopeID") getOrElse ""
+    
+    val envelope = OBPEnvelope.find(envelopeID)
+    
+    envelope match{
+      case Full(e) => {
+        e.mediated_obpComments(accessLevel) match{
+          case Full(x) => {
+            SHtml.ajaxForm(<p>{
+        		SHtml.text("",comment => {
+        		  /**
+        		   * This was badly hacked together to meet a deadline
+        		   */
+        		  
+        		  val comments = e.obp_comments.get
+        		  //For now, only logged in users can post comments, so "in theory" there should always be a logged in user here,
+        		  // but the other case should probably get handled as well.
+        		  val c2 = comments ++ List(OBPComment.createRecord.email(User.currentUser.get.email.get).text(comment))
+        		  e.obp_comments(c2)
+        		  e.saveTheRecord()
+        		  
+        		})}</p> ++
+        			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
+            )
+          }
+          case _ => Text("Anonymous users may not view or submit comments")
+        }
+        
+      }
+      case _ => Text("Cannot add comment to non-existant transaction")
+    }
+    
+  }
+  
+/*  def addComment(xhtml: NodeSeq) : NodeSeq = {
     val accessLevel = S.param("accessLevel") getOrElse "anonymous"
     val envelopeID = S.param("envelopeID") getOrElse ""
     
@@ -133,9 +174,9 @@ class Comments{
           case Full(x) => {
             SHtml.ajaxForm(<p>{
         		SHtml.text("",comment => {
-        		  /**
+        		  *//**
         		   * This was badly hacked together to meet a deadline
-        		   */
+        		   *//*
         		  
         		  val comments = e.comments.get
         		  val c2 = comments ++ List(comment)
@@ -153,6 +194,6 @@ class Comments{
       case _ => Text("Cannot add comment to non-existant transaction")
     }
     
-  }
+  }*/
   
 }
