@@ -29,7 +29,7 @@ package code.model
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField
-import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk, DateField, MongoListField}
+import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import java.util.Calendar
@@ -150,18 +150,17 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
   
-  //TODO: We might want to move where comments are stored
-  object comments extends MongoListField[OBPEnvelope, String](this)
+  //not named comments as "comments" was used in an older mongo document version
+  object obp_comments extends BsonRecordListField[OBPEnvelope, OBPComment](this, OBPComment)
   object narrative extends StringField(this, 255)
   
-  def mediated_comments(user: String) : Box[List[String]] = {
-    
+  def mediated_obpComments(user: String) : Box[List[OBPComment]] = {
     user match{
-      case "our-network" => Full(comments.get)
-      case "team" => Full(comments.get)
-      case "board" => Full(comments.get)
-      case "authorities" => Full(comments.get)
-      case "my-view" => Full(comments.get)
+      case "our-network" => Full(obp_comments.get)
+      case "team" => Full(obp_comments.get)
+      case "board" => Full(obp_comments.get)
+      case "authorities" => Full(obp_comments.get)
+      case "my-view" => Full(obp_comments.get)
       case _ => Empty
     }
   }
@@ -179,9 +178,20 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   
   def asMediatedJValue(user: String) : JObject  = {
     JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user)),
-        		 JField("comments", JArray(comments.get.map(JString(_))))))
+        		 JField("comments", JArray(obp_comments.get.map(comment => {
+        		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
+        		 })))))
   }
 }
+
+class OBPComment private() extends BsonRecord[OBPComment] {
+  def meta = OBPComment
+  
+  object email extends StringField(this, 255)
+  object text extends StringField(this, 255)
+}
+
+object OBPComment extends OBPComment with BsonMetaRecord[OBPComment]
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope]
 
