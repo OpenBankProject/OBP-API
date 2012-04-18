@@ -37,13 +37,9 @@ Open Bank Project (http://www.openbankproject.com)
 </head>
 <body>
 <div id="wrapper">
-
         <div id="header">
-
             <h1 id="logo">Open Bank Project</h1>
-
             <div id="account">
-
                 <!-- LOGGED OUT -->
 				<div class="lift:Login.loggedOut">
 					<form class="login" action="." method="post">
@@ -64,10 +60,13 @@ Open Bank Project (http://www.openbankproject.com)
                 </div>
                 <!-- LOGGED IN -->
 				<div class="lift:Login.loggedIn">
-	                <div class="profiles">
-	                    <h2 class="text">Tesobe</h2>
+                    <div class="account-info">
+                        <h2>Account: <span class="account-number"></span>(Tesobe)</h2>
+                    </div>
+	                <div class="profile-info">
+                        Logged in as <span class="username">username@domain.com</span>
+                        <a href="" class="logout">Logout</a>
 	                </div>
-	                <a href="" class="logout">Logout</a>
                 </div>
             </div>
 

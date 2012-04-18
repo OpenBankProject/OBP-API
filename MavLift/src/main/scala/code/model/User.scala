@@ -128,7 +128,7 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
     			OrderBy(User.email, Ascending)){
     			case u: User => Full(u.id.is -> u.email.is)
     	})
-    override def displayHtml = <span>User email</span>
+    override def displayHtml = <span>User email</span>  //TODO: we don't want HTML in the code
     override def asHtml = {
       val email = (for {
     	  u <- User.find(user.get)

@@ -4,3 +4,7 @@
 *.scala.orig
 *.log
 .gitignore
+.idea
+.settings
+.classpath
+.project
