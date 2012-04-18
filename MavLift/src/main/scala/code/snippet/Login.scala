@@ -1,6 +1,8 @@
 package code.snippet
 
 import code.model.User
+import code.model.Account
+
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
@@ -15,7 +17,9 @@ class Login {
     }else{
       ".logout [href]" #> {
         User.logoutPath.foldLeft("")(_ + "/" + _)
-      }
+      } &
+      ".username *" #> User.currentUser.get.email.get &
+      ".account-number *" #> Account.currentAccount.get.number.get
     }
   }
   
@@ -36,5 +40,5 @@ class Login {
       }
     }
   }
-  
+
 }
