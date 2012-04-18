@@ -50,9 +50,9 @@ object CustomEditable {
 
     def editMarkup: NodeSeq = {
       val formData: NodeSeq =
-        editForm ++
-          <input class="submit" type="image" src="/media/images/submit.png"/> ++
-          SHtml.hidden(onSubmit) ++
+        editForm ++ <br />
+          <input class="submit" style="float:left;" type="image" src="/media/images/submit.png"/> ++
+          SHtml.hidden(onSubmit, ("float", "left")) ++
           <input type="image" src="/media/images/cancel.png" onclick={ swapJsCmd(dispName, editName).toJsCmd + " return false;" }/>
 
       SHtml.ajaxForm(formData,
@@ -70,9 +70,4 @@ object CustomEditable {
     </div>
   }
   
-  def editable2(label : => String, editForm: => NodeSeq, onSubmit: () => JsCmd, defaultValue: String): NodeSeq = {
-    val standardAjaxEditable = SHtml.ajaxEditable(Text(label), editForm, onSubmit)
-    //val transformer = "
-    NodeSeq.Empty
-  }
 }

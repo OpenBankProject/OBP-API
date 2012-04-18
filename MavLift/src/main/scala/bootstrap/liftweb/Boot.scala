@@ -83,6 +83,14 @@ class Boot {
       }
     }
     
+    def hasMoreThanAnonAccess(a : Account) = {
+      User.hasAuthoritiesPermission(a) ||
+      User.hasBoardPermission(a) ||
+      User.hasOurNetworkPermission(a) ||
+      User.hasOwnerPermission(a) ||
+      User.hasTeamPermission(a)
+    }
+    
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
@@ -137,7 +145,12 @@ class Boot {
 		      case _ => false
 		    })
           }),
-          Menu.i("Comments") / "comments" >> Hidden
+          Menu.i("Comments") / "comments" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => hasMoreThanAnonAccess(a)
+		      case _ => false
+		    })
+          }) >> Hidden
         )))
 
     LiftRules.statelessRewrite.append{
