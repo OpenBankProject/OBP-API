@@ -38,7 +38,7 @@ Open Bank Project (http://www.openbankproject.com)
 <body>
 <div id="wrapper">
         <div id="header">
-            <h1 id="logo">Open Bank Project</h1>
+            <h1 id="logo" onclick="javascript:window.location='/';">Open Bank Project</h1>
             <div id="account">
                 <!-- LOGGED OUT -->
 				<div class="lift:Login.loggedOut">
@@ -61,7 +61,7 @@ Open Bank Project (http://www.openbankproject.com)
                 <!-- LOGGED IN -->
 				<div class="lift:Login.loggedIn">
                     <div class="account-info">
-                        <h2>Account: <span class="account-number"></span>(Tesobe)</h2>
+                        <h2>Account: <span class="account-number"></span> (Tesobe)</h2>
                     </div>
 	                <div class="profile-info">
                         Logged in as <span class="username">username@domain.com</span>
@@ -86,6 +86,7 @@ Open Bank Project (http://www.openbankproject.com)
         </div>
 
         <div id="content">
+            <lift:bind name="content" />
 			The main content gets bound here
         </div>
 		
