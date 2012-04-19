@@ -68,6 +68,12 @@ input.submit {
 	cursor: pointer;
 }
 
+#center-index-logo {
+    margin-left: auto;
+    margin-right: auto;
+    width: 340px;
+}
+
 #wrapper {
 	/*width: 940px;*/
 	width: 1050px;
@@ -121,6 +127,7 @@ input.submit {
 	margin: 0 0 0 10px;
 	background: transparent url(../images/logo.png) no-repeat 50% 0;
 	text-indent: -9999em;
+	cursor: pointer;
 }
 
 #account {
@@ -129,24 +136,23 @@ input.submit {
 	padding: 2px 0 0;
 }
 
-#account .profiles {
+#account .profile-info {
 	float: right;
 	margin: 0 10px 0 0;
+	font-size: 12px;
 }
 
-#account .profiles .text {
+#account .account-info {
 	padding: 7px 15px 8px;
 	border: 1px solid #dddddd;
 	border-radius: 10px;
 	background: #ffffff;
-	font-size: 18px;
+	font-size: 17px;
 	color: #666666;
 }
 
 #account .logout {
-	float: right;
-	margin: 12px 15px 0 0;
-	font-size: 11px;
+	font-size: 12px;
 }
 
 #account form.login {
@@ -204,13 +210,18 @@ input.submit {
 }
 
 #content {
-	padding: 40px 0 0;
+	padding: 40px 0 40px;
 }
 
 table {
 	width: 100%;
 	margin: 0 0 40px;
 	border-collapse: collapse;
+}
+
+/* don't add spacing after last table in a transaction list */
+#content div div:last-of-type table {
+    margin-bottom: 0px;
 }
 
 table th,
@@ -236,8 +247,12 @@ table td {
 
 table th {
 	overflow: auto;
-	padding: 0 0 10px;
+	padding: 0 0 10px 8px;
 	border-bottom: 2px solid #cbcbcb;
+}
+
+table.management th {
+    padding-left: 0px;
 }
 
 table.transactions th h5.date {

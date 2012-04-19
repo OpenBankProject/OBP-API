@@ -32,7 +32,7 @@ object LiftProjectBuild extends Build {
       "Scala-Tools Dependencies Repository for Snapshots" at "http://scala-tools.org/repo-snapshots"),
 
     libraryDependencies ++= {
-	  val liftVersion = "2.4"
+	  val liftVersion = "2.4-M4"
 	  Seq(
 	    //%% means: add current scala version to artifact name
 	    
