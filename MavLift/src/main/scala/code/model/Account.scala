@@ -24,7 +24,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  
   object anonAccess extends BooleanField(this, false)
   protected object holder extends StringField(this, 255)
-  protected object number extends StringField(this, 255)
+  object number extends StringField(this, 255)   //TODO: rethink protection of this again
   protected object kind extends StringField(this, 255)
   protected object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
@@ -99,7 +99,10 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  }
 }
 
-object Account extends Account with MongoMetaRecord[Account]
+object Account extends Account with MongoMetaRecord[Account] {
+  import net.liftweb.json.JsonDSL._
+  val currentAccount = Account.find(("holder", "Music Pictures Limited"))
+}
 
 class OtherAccount private() extends BsonRecord[OtherAccount] {
   def meta = OtherAccount

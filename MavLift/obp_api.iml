@@ -20,7 +20,7 @@
         <option name="compilerLibraryLevel" value="Project" />
         <option name="compilerLibraryName" value="Maven: org.scala-lang:scala-compiler-bundle:2.9.1" />
         <option name="maximumHeapSize" value="1024" />
-        <option name="vmOptions" value="-DpackageLinkDefs=file:///Users/simonredfern/Documents/workspace/git/ChooseNDo-Scala-Lift/MavLift/target/packageLinkDefs.properties" />
+        <option name="vmOptions" value="-DpackageLinkDefs=file:///Users/stefan/Desktop/development/musicpictures/OpanBank-Scala-Lift/MavLift/target/packageLinkDefs.properties" />
       </configuration>
     </facet>
   </component>
@@ -47,37 +47,36 @@
     <orderEntry type="library" name="Maven: javax.mail:mail:1.4.4" level="project" />
     <orderEntry type="library" name="Maven: javax.activation:activation:1.1" level="project" />
     <orderEntry type="library" name="Maven: net.liftweb:lift-actor_2.9.1:2.4-M4" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-common_2.9.1:2.4-M4" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-common_2.9.1:2.4" level="project" />
     <orderEntry type="library" name="Maven: org.slf4j:slf4j-api:1.6.1" level="project" />
     <orderEntry type="library" name="Maven: org.scala-lang:scala-library:2.9.1" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-json_2.9.1:2.4-M4" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-json_2.9.1:2.4" level="project" />
     <orderEntry type="library" name="Maven: com.thoughtworks.paranamer:paranamer:2.3" level="project" />
     <orderEntry type="library" name="Maven: org.scala-lang:scalap:2.9.1" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.scala-lang:scala-compiler:2.9.1" level="project" />
     <orderEntry type="library" name="Maven: net.liftweb:lift-proto_2.9.1:2.4-M4" level="project" />
     <orderEntry type="library" name="Maven: net.liftweb:lift-webkit_2.9.1:2.4-M4" level="project" />
     <orderEntry type="library" name="Maven: commons-fileupload:commons-fileupload:1.2.2" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-widgets_2.9.1:2.4-M4" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-classic:0.9.26" level="project" />
     <orderEntry type="library" name="Maven: ch.qos.logback:logback-core:0.9.26" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: javax.servlet:servlet-api:2.5" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: junit:junit:4.7" level="project" />
-    <orderEntry type="library" scope="TEST" name="Maven: org.scala-tools.testing:specs_2.8.1:1.6.6" level="project" />
+    <orderEntry type="library" scope="TEST" name="Maven: org.scala-tools.testing:specs_2.9.1:1.6.9" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.mortbay.jetty:jetty:6.1.25" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.mortbay.jetty:jetty-util:6.1.25" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.mortbay.jetty:servlet-api:2.5-20081211" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-mongodb-record_2.9.1:2.4-M4" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-record_2.9.1:2.4-M4" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-mongodb_2.9.1:2.4-M4" level="project" />
-    <orderEntry type="library" name="Maven: org.mongodb:mongo-java-driver:2.5.3" level="project" />
-    <orderEntry type="library" name="Maven: net.liftweb:lift-json-ext_2.9.1:2.4-M4" level="project" />
-    <orderEntry type="library" name="Maven: com.foursquare:rogue_2.9.1:1.0.24" level="project" />
-    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-query_2.9.0-1:2.1.5-1" level="project" />
-    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-commons_2.9.0-1:2.1.5-1" level="project" />
-    <orderEntry type="library" name="Maven: org.scala-tools.time:time_2.9.0-1:0.4" level="project" />
-    <orderEntry type="library" name="Maven: org.scalaj:scalaj-collection_2.9.0-1:1.1" level="project" />
-    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-core_2.9.0-1:2.1.5-1" level="project" />
-    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-gridfs_2.9.0-1:2.1.5-1" level="project" />
-    <orderEntry type="library" name="Maven: net.sf.opencsv:opencsv:2.3" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-mongodb_2.9.1:2.4" level="project" />
+    <orderEntry type="library" name="Maven: org.mongodb:mongo-java-driver:2.6.5" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-json-ext_2.9.1:2.4" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-mongodb-record_2.9.1:2.4" level="project" />
+    <orderEntry type="library" name="Maven: net.liftweb:lift-record_2.9.1:2.4" level="project" />
+    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-query_2.9.1:2.1.5-1" level="project" />
+    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-commons_2.9.1:2.1.5-1" level="project" />
+    <orderEntry type="library" name="Maven: org.scala-tools.time:time_2.9.1:0.5" level="project" />
+    <orderEntry type="library" name="Maven: org.scalaj:scalaj-collection_2.9.1:1.2" level="project" />
+    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-core_2.9.1:2.1.5-1" level="project" />
+    <orderEntry type="library" name="Maven: com.mongodb.casbah:casbah-gridfs_2.9.1:2.1.5-1" level="project" />
   </component>
 </module>
 

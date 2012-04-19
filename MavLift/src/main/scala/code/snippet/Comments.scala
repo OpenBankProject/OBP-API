@@ -187,7 +187,7 @@ class Comments{
         			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
             )
           }
-          case _ => Text("Anonymous users may not view or submit comments")
+          case _ => Text("Anonymous users are not allowed to view or submit comments")
         }
         
       }
