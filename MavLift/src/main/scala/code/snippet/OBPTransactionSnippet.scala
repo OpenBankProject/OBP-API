@@ -227,9 +227,12 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
                 ".other_account_more_info" #> NodeSeq.Empty &
                 ".other_account_more_info_br" #> NodeSeq.Empty
               } else {
-                ".other_account_more_info *" #> moreInfo.take(50) & //TODO: show ... if info string is actually truncated
-                ".other_account_logo_img [src]" #> logoImageSrc
+                ".other_account_more_info *" #> moreInfo.take(50) //TODO: show ... if info string is actually truncated
               }
+            } &
+            {
+              if(logoImageSrc.equals("")) "#no_exist" #> "" //TODO: is there a NodeSeq.Empty equivalent for CssSel?
+              else  ".other_account_logo_img [src]" #> logoImageSrc
             } &
             {
         	    if(otherAccWebsiteUrl.equals("")) {
