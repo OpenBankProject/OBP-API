@@ -58,7 +58,8 @@ class OBPTransactionSnippet extends StatefulSnippet with PaginatorSnippet[OBPEnv
       // TODO we need to get Rogue going otherwise its possible to write queries that don't make sense!
       // val qry = QueryBuilder.start("obp_transaction_data_blob").notEquals("simon-says").get
 
-      val qry = QueryBuilder.start().get
+	  //Only show music pictures transactions for now
+      val qry = QueryBuilder.start().put("obp_transaction.this_account.holder").is("MUSIC PICTURES LIMITED").get
       var obp_envelopes = OBPEnvelope.findAll(qry)
 
       obp_envelopes
