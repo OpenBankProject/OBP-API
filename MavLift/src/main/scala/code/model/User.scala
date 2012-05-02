@@ -95,6 +95,14 @@ object User extends User with MetaMegaProtoUser[User]{
     hasPermission(account, (p: Privilege) => p.ownerPermission.is)
   }
   
+  def hasMoreThanAnonAccess(account: Account) : Boolean = {
+      User.hasAuthoritiesPermission(account) ||
+      User.hasBoardPermission(account) ||
+      User.hasOurNetworkPermission(account) ||
+      User.hasOwnerPermission(account) ||
+      User.hasTeamPermission(account)
+  }
+  
   def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
     currentUser match{
       case Full(u) => {
