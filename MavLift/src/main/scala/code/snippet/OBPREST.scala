@@ -122,6 +122,16 @@ object OBPRest extends RestHelper with Loggable {
  }  ' http://localhost:8080/api/transactions  
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
+      
+      //
+      // WARNING!
+      //
+      // If you have not configured a web server to restrict this URL appropriately, anyone will be
+      // able to post transactions to your database. This would obviously be undesirable. So you should
+      // definitely sort that out.
+      //
+      //
+      
       val rawEnvelopes = json._1.children
       
       val envelopes = rawEnvelopes.map(e => {
