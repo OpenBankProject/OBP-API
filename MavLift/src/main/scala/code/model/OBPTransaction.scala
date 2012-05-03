@@ -236,11 +236,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       //once again, a temporary measure
       if(!s.equals("Music Pictures Limited")){
         if(!publicAliasExists(s)) {
-          if(isACompany(s)){
-            createPlaceholderPublicAlias()
-          }else{
-            createPublicAlias()
-          }
+          createPublicAlias()
         }
         if(!privateAliasExists(s)) createPlaceholderPrivateAlias()
       }
@@ -289,58 +285,62 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => false
     }
   }
-  
-  //For now, if it's all upper case, treat it as a company
-  def isACompany(holder: String) = {
-    holder.equals(holder.toUpperCase())
-  }
-  
+
   def createPublicAlias() = {
-        val randomAliasName = "ALIAS_" + Random.nextLong().toString.take(6)
-            theAccount match {
-              case Full(a) => {
-                val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
-                val updatedAccount = otherAccount match{
-                  case Some(o) =>{
-                    //update the "otherAccount"
-                    val newOtherAcc= o.publicAlias(randomAliasName)
-                    a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-                  }
-                  case _ => {
-                    //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
-                  }
-                }
-                
-                updatedAccount.saveTheRecord()
-                Full(randomAliasName)
-              }
-              case _ => Empty
-            }
+    //TODO: Guarantee a unique public alias string
+
+    /**
+     * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+     * for the account in question
+     */
+    def newPublicAliasName(account: Account): String = {
+      val newAlias = "ALIAS_" + Random.nextLong().toString.take(6)
+
+      /**
+       * Returns true if @publicAlias is already the name of a public alias within @account
+       */
+      def isDuplicate(publicAlias: String, account: Account) = {
+        account.otherAccounts.get.find(oAcc => {
+          oAcc.publicAlias.get == newAlias
+        }).isDefined
       }
-  
-  def createPlaceholderPublicAlias() = {
-        theAccount match {
-              case Full(a) => {
-                val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
-                val updatedAccount = otherAccount match{
-                  case Some(o) =>{
-                    //update the "otherAccount"
-                    val newOtherAcc= o.publicAlias("")
-                    a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-                  }
-                  case _ => {
-                    //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
-                  }
-                }
-                //val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, "")))
-                updatedAccount.saveTheRecord()
-                Full("")
-              }
-              case _ => Empty
-            }
+
+      /**
+       * Appends things to @publicAlias until it a unique public alias name within @account
+       */
+      def appendUntilUnique(publicAlias: String, account: Account): String = {
+        val newAlias = publicAlias + Random.nextLong().toString.take(1)
+        if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+        else newAlias
       }
+
+      if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+      else newAlias
+    }
+    
+    theAccount match {
+      case Full(a) => {
+        val randomAliasName = newPublicAliasName(a)
+      
+        val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
+        val updatedAccount = otherAccount match {
+          case Some(o) => {
+            //update the "otherAccount"
+            val newOtherAcc = o.publicAlias(randomAliasName)
+            a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
+          }
+          case _ => {
+            //create a new "otherAccount"
+            a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
+          }
+        }
+
+        updatedAccount.saveTheRecord()
+        Full(randomAliasName)
+      }
+      case _ => Empty
+    }
+  }
   
   def createPlaceholderPrivateAlias() = {
         theAccount match {
