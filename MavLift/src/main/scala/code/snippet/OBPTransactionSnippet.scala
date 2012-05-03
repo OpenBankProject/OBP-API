@@ -49,6 +49,8 @@ import code.model._
 
 class OBPTransactionSnippet {
 
+  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
+  
   //Only show music pictures transactions for now
   val qry = QueryBuilder.start().put("obp_transaction.this_account.holder").is("MUSIC PICTURES LIMITED").get
   val envelopesToDisplay = OBPEnvelope.findAll(qry)
@@ -128,7 +130,7 @@ class OBPTransactionSnippet {
         case "private" =>
           ".alias_indicator [class+]" #> "alias_indicator_private" &
             ".alias_indicator *" #> "(Alias)"
-        case _ => "*" #> ""
+        case _ => NOOP_SELECTOR
       }
     }
 
@@ -151,7 +153,7 @@ class OBPTransactionSnippet {
           ".other_account_more_info *" #> moreInfo.take(50) //TODO: show ... if info string is actually truncated
 
         def logoBlank =
-          "#no_exist" #> "" //TODO: is there a NodeSeq.Empty equivalent for CssSel?
+          NOOP_SELECTOR
 
         def logoNotBlank =
           ".other_account_logo_img [src]" #> logoImageSrc
@@ -197,7 +199,7 @@ class OBPTransactionSnippet {
       {
         //If we're not allowed to see comments, don't show the comments section
         if (env.mediated_obpComments(consumer).isEmpty) ".comments *" #> ""
-        else "#no_exist" #> "" //TODO: is there a NodeSeq.Empty equivalent for CssSel?
+        else NOOP_SELECTOR
       } &
         ".comments_ext [href]" #> { consumer + "/transactions/" + envelopeID + "/comments" } &
         ".comment *" #> env.mediated_obpComments(consumer).getOrElse(Nil).size &
