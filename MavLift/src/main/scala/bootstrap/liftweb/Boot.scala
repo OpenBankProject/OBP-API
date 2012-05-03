@@ -44,19 +44,21 @@ import net.liftweb.json.JsonDSL._
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot {
+class Boot extends Loggable{
   def boot {
 
     // This sets up MongoDB config
     MongoConfig.init
 
     if (!DB.jndiJdbcConnAvailable_?) {
+      val driver = Props.get("db.driver") openOr "org.h2.Driver"
       val vendor = 
-	      new StandardDBVendor(Props.get("db.driver") openOr "org.h2.Driver",
+	      new StandardDBVendor(driver,
 			     Props.get("db.url") openOr 
 			     "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
 			     Props.get("db.user"), Props.get("db.password"))
 
+      logger.debug("Using database driver: " + driver)
       LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
       DB.defineConnectionManager(DefaultConnectionIdentifier, vendor)
@@ -190,16 +192,16 @@ class Boot {
         theOnlyOwnerPriv match{
           case Empty => {
             //create one
-            println("Creating tesobe account user and granting it owner permissions")
+            logger.debug("Creating tesobe account user and granting it owner permissions")
             val userEmail = "tesobe@tesobe.com"
             val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
         	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
         	newPriv.saveMe
           }
-          case _ => println("Owner privilege already exists")
+          case _ => logger.debug("Owner privilege already exists")
         }
       }
-      case _ => println("No account found")
+      case _ => logger.debug("No account found")
     }
     
   }
