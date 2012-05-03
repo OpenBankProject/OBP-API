@@ -127,7 +127,7 @@ class Comments extends Loggable{
   }
   
   
-    def addComment(xhtml: NodeSeq) : NodeSeq = {
+  def addComment(xhtml: NodeSeq) : NodeSeq = {
     val accessLevel = S.param("accessLevel") getOrElse "anonymous"
     val envelopeID = S.param("envelopeID") getOrElse ""
     
@@ -156,39 +156,5 @@ class Comments extends Loggable{
     }
     
   }
-  
-/*  def addComment(xhtml: NodeSeq) : NodeSeq = {
-    val accessLevel = S.param("accessLevel") getOrElse "anonymous"
-    val envelopeID = S.param("envelopeID") getOrElse ""
-    
-    val envelope = OBPEnvelope.find(envelopeID)
-    
-    envelope match{
-      case Full(e) => {
-        e.mediated_comments(accessLevel) match{
-          case Full(x) => {
-            SHtml.ajaxForm(<p>{
-        		SHtml.text("",comment => {
-        		  *//**
-        		   * This was badly hacked together to meet a deadline
-        		   *//*
-        		  
-        		  val comments = e.comments.get
-        		  val c2 = comments ++ List(comment)
-        		  e.comments(c2)
-        		  e.saveTheRecord()
-        		  
-        		})}</p> ++
-        			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
-            )
-          }
-          case _ => Text("Anonymous users are not allowed to view or submit comments")
-        }
-        
-      }
-      case _ => Text("Cannot add comment to non-existant transaction")
-    }
-    
-  }*/
   
 }
