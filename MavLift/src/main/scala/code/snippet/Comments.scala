@@ -47,11 +47,12 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import code.model.OBPAccount._
 import code.model._
+import net.liftweb.common.Loggable
 
 /**
  * This whole class is a rather hastily put together mess
  */
-class Comments{
+class Comments extends Loggable{
 
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
     val accessLevel = S.param("accessLevel") getOrElse "anonymous"
@@ -138,16 +139,10 @@ class Comments{
           case Full(x) => {
             SHtml.ajaxForm(<p>{
         		SHtml.text("",comment => {
-        		  /**
-        		   * This was badly hacked together to meet a deadline
-        		   */
-        		  
-        		  val comments = e.obp_comments.get
-        		  //For now, only logged in users can post comments, so "in theory" there should always be a logged in user here,
-        		  // but the other case should probably get handled as well.
-        		  val c2 = comments ++ List(OBPComment.createRecord.email(User.currentUser.get.email.get).text(comment))
-        		  e.obp_comments(c2)
-        		  e.saveTheRecord()
+        		  User.currentUser match{
+        		    case Full(u) => e.addComment(u.email.get, comment)
+        		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
+        		  }
         		  
         		})}</p> ++
         			<input type="submit" onClick="history.go(0)" value="Add Comment"/>

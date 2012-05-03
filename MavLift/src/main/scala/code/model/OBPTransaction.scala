@@ -147,6 +147,18 @@ curl -i -H "Content-Type: application/json" -X POST -d '[{
 class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] {
   def meta = OBPEnvelope
 
+  /**
+   * Add a user generated comment to the transaction. Saves the db model when called.
+   * 
+   * @param email The email address of the person posting the comment
+   * @param text The text of the comment
+   */
+  def addComment(email: String, text: String) = {
+    val comments = obp_comments.get
+    val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
+    obp_comments(c2).saveTheRecord()
+  }
+  
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
   
