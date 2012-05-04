@@ -51,8 +51,8 @@ class OBPTransactionSnippet {
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   
-  //Only show music pictures transactions for now
-  val qry = QueryBuilder.start().put("obp_transaction.this_account.holder").is("MUSIC PICTURES LIMITED").get
+  //Show all transactions from every account, for now
+  val qry = QueryBuilder.start().get
   val envelopesToDisplay = OBPEnvelope.findAll(qry)
   
   val FORBIDDEN = "---"
