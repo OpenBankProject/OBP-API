@@ -35,6 +35,7 @@ import scala.xml.NodeSeq
 import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.http.S
 import net.liftweb.http.SessionVar
+import com.mongodb.QueryBuilder
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -146,7 +147,19 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
     }
   }
   
-  object accountID extends MappedString(this, 255)
+  object accountID extends MappedString(this, 255){
+    override def defaultValue = {
+      val qry = QueryBuilder.start("obp_transaction.other_account.holder").is("Music Pictures Limited").get
+      val currentAcc = Account.currentAccount
+      
+      currentAcc match{
+        case Full(a) => {
+          a.id.get.toString
+        }
+        case _ => "no_acc_id_defined"
+      }
+    }
+  }
   object ourNetworkPermission extends ourMappedBoolean(this){
     override def displayName = "Our Network"
   }
@@ -169,8 +182,8 @@ object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUD
   override def displayName = "Privilege"
   override def showAllMenuLocParams = LocGroup("admin") :: Nil
   override def createMenuLocParams = LocGroup("admin") :: Nil
-  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt)
-  override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt)
+  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt, accountID)
+  override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt, accountID)
   
   def showAll = doCrudAll(_)
 }
