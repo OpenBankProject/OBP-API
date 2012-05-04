@@ -190,7 +190,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   
   def asMediatedJValue(user: String) : JObject  = {
     JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user)),
-        		 JField("comments", JArray(obp_comments.get.map(comment => {
+        		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
         		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
         		 })))))
   }
@@ -230,16 +230,15 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
-  object holder extends StringField(this, 255){
+  object holder extends StringField(this, 255) {
     override def setFromString(s: String) = {
       val v = super.setFromString(s)
       //once again, a temporary measure
-      if(!s.equals("Music Pictures Limited")){
-        if(!publicAliasExists(s)) {
-          createPublicAlias()
-        }
-        if(!privateAliasExists(s)) createPlaceholderPrivateAlias()
+      if (!publicAliasExists(s)) {
+        createPublicAlias()
       }
+      if (!privateAliasExists(s)) createPlaceholderPrivateAlias()
+
       v
     }
   }
@@ -331,7 +330,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
           }
           case _ => {
             //create a new "otherAccount"
-            a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
+            a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get).publicAlias(randomAliasName)))
           }
         }
 
