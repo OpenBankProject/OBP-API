@@ -42,7 +42,11 @@ class Login {
   }
 
   def redirectTesobeAnonymousIfLoggedOut = {
-    S.redirectTo("/accounts/tesobe/anonymous")
+    if(!User.loggedIn_?){
+      S.redirectTo("/accounts/tesobe/anonymous")
+    }  else {
+      "*" #> NodeSeq.Empty
+    }
   }
 
 }
