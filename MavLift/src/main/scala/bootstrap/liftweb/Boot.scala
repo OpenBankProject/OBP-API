@@ -144,7 +144,8 @@ class Boot extends Loggable{
 		      case Full(a) => User.hasMoreThanAnonAccess(a)
 		      case _ => false
 		    })
-          }) >> Hidden
+          }) >> Hidden,
+          Menu.i("About") / "about"
         )))
 
     LiftRules.statelessRewrite.append{
