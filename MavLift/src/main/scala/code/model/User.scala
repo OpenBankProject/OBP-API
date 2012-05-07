@@ -148,6 +148,13 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
   }
   
   object accountID extends MappedString(this, 255){
+    //
+    // WARNING!
+    //
+    // Once we extend the OBP functionality to support multiple accounts, this will need to be changed
+    // or else any account owner (i.e. anyone who sets privileges) will be setting privileges on the 
+    // music pictures account instead of their own.
+    //
     override def defaultValue = {
       val qry = QueryBuilder.start("obp_transaction.other_account.holder").is("Music Pictures Limited").get
       val currentAcc = Account.currentAccount
