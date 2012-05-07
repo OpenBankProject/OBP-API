@@ -293,6 +293,11 @@ class OBPTransactionSnippet {
       ".balance_number *" #> { "€" + balance } & //TODO: support other currencies, format the balance according to locale
       ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
   }
+  
+  //Fake it for now
+  def accountDetails = {
+    "#accountName *" #> "TESOBE / Music Pictures Ltd. Account (Postbank)"
+  }
    
 }
 
