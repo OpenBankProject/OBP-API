@@ -1,9 +1,49 @@
 <div class="lift:surround?with=default;at=content">
 
-	<div class="lift:OBPTransactionSnippet.accountDetails">
+<!-- Google Plus -->
+    <script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
+      {lang: 'en-GB'}
+    </script>
+
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+	<!-- end Facebook like code -->
+
+	<div id="account_details" class="lift:OBPTransactionSnippet.accountDetails">
 		<span id="accountName">Account Name</span>
 	</div>
+	
+	<div id="social">
 
+		<div class="box">
+
+			<!-- Facebook -->
+			<div class="fb-like" data-href="http://demo.openbankproject.com"
+				data-send="false" data-layout="button_count" data-width="60"
+				data-show-faces="false"></div>
+
+			<!-- Tweet -->
+			<a href="https://twitter.com/share" class="twitter-share-button"
+				data-url="http://demo.openbankproject.com" data-count="horizontal"
+				data-via="demo.openbankproject">Tweet</a>
+			<script type="text/javascript"
+				src="//platform.twitter.com/widgets.js"></script>
+
+
+			<!-- Google Plus -->
+			<g:plusone size="medium" href="http://demo.openbankproject.com"></g:plusone>
+
+		</div>
+
+		<div class="corner"></div>
+
+            </div>
 	<div class="lift:OBPTransactionSnippet.displayAll">
 		<table class="transactions">
 
@@ -47,4 +87,8 @@
 		</table>
 
 	</div>
+    <!-- Google Plus -->
+    <script type="text/javascript" src="https://apis.google.com/js/plusone.js">
+      {lang: 'en-GB'}
+    </script>
 </div>

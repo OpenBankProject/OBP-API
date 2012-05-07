@@ -89,7 +89,12 @@ input.submit {
 #accountName {
 	font-size: 20px;
 	display: block;
-	margin-bottom: 20px;	
+	margin-bottom: 20px;
+	float: left;	
+}
+
+#social {
+	float: right;	
 }
 
 #nav {
