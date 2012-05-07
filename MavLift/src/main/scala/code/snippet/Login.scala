@@ -23,10 +23,10 @@ class Login {
     }
   }
   
-  def loggedOut : CssSel = {
+  def loggedOut = {
     if(User.loggedIn_?){
       "*" #> NodeSeq.Empty
-    }else{
+    } else {
       ".login [action]" #> User.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
@@ -38,6 +38,14 @@ class Login {
          User.signUpPath.foldLeft("")(_ + "/" + _)
         }
       }
+    }
+  }
+
+  def redirectTesobeAnonymousIfLoggedOut = {
+    if(!User.loggedIn_?){
+      S.redirectTo("/accounts/tesobe/anonymous")
+    }  else {
+      "*" #> NodeSeq.Empty
     }
   }
 
