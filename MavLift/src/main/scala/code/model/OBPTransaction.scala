@@ -44,15 +44,6 @@ import scala.util.Random
 import com.mongodb.QueryBuilder
 import com.mongodb.BasicDBObject
 
-class Location private () extends BsonRecord[Location] {
-  def meta = Location
-
-  object longitude extends net.liftweb.record.field.IntField(this)
-  object latitude extends net.liftweb.record.field.IntField(this)
-
-}
-object Location extends Location with BsonMetaRecord[Location]
-
 /**
  * "Current Account View"
 curl -i -H "Content-Type: application/json" -X POST -d '[{
