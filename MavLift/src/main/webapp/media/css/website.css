@@ -103,6 +103,14 @@ input.submit {
 	background: transparent url(../images/nav.png) repeat-x 50% 50%;
 }
 
+#about_text {
+	text-align: left;
+	width: 600px;
+	margin-left: auto;
+	margin-right: auto;
+	margin-top: 15px;
+}
+
 #nav ul {
 	float: left;
 }
