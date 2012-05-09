@@ -42,8 +42,6 @@ import com.mongodb.QueryBuilder
  */
 class User extends MegaProtoUser[User] with OneToMany[Long, User]{
   def getSingleton = User // what's the "meta" server
-  
-  object Privileges extends MappedOneToMany(Privilege, Privilege.user)
 }
 
 /**
@@ -107,9 +105,10 @@ object User extends User with MetaMegaProtoUser[User]{
   def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
     currentUser match{
       case Full(u) => {
-        val permission = u.Privileges.find(_.accountID.equals(account.id.toString))
+        val permission = Privilege.find(By(Privilege.accountID, account.id.toString), 
+            							 By(Privilege.user, u))
         permission match{
-          case Some(p) => {
+          case Full(p) => {
         	permissionCheck(p)
           }
           case _ => false
