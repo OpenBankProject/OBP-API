@@ -22,14 +22,14 @@ trait BankAccount {
   
   def nationalIdentifier : String
   
-  def SWIFT_BIC : String
+  def SWIFT_BIC : Option[String]
   
-  def IBAN : String
+  def IBAN : Option[String]
   
   def transactions : Set[Transaction]
   
   def transactions(from: Date, to: Date) : Set[Transaction]
   
-  def transaction(id: String) : Transaction
+  def transaction(id: String) : Option[Transaction]
   
 }

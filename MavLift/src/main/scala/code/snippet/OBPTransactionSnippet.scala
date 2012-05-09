@@ -70,7 +70,7 @@ class OBPTransactionSnippet {
   
   def displayAll = {
     
-    val envelopes = groupByDate(envelopesToDisplay.sort(orderByDateDescending))
+    val envelopes = groupByDate(envelopesToDisplay.sort(OBPEnvelope.orderByDateDescending))
     
     "* *" #> envelopes.map( envsForDay => {
      daySummary(envsForDay)
@@ -229,12 +229,6 @@ class OBPTransactionSnippet {
       case "my-view" => editableNarrative(envelope)
       case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
     }
-  }
-
-  def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
-    val date1 = e1.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
-    val date2 = e2.obp_transaction.get.details.get.mediated_completed(consumer) getOrElse new Date()
-    date1.after(date2)
   }
 
   def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope): Boolean = {
