@@ -149,6 +149,20 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
     obp_comments(c2).saveTheRecord()
   }
+   
+  object DateDescending extends Ordering[OBPEnvelope] {
+    def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
+      val date1 = e1.obp_transaction.get.details.get.completed.get
+      val date2 = e2.obp_transaction.get.details.get.completed.get
+      date1.compareTo(date2)
+    }
+  }
+  
+  def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
+    val date1 = e1.obp_transaction.get.details.get.completed.get
+    val date2 = e2.obp_transaction.get.details.get.completed.get
+    date1.after(date2)
+  }
   
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
