@@ -2,6 +2,6 @@ package code.model
 
 trait OBPUser {
   
-  //TODO: Define this
+  def emailAddress : String
   
 }

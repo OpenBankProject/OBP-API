@@ -34,6 +34,7 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
+import code.actors.EnvelopeInserter
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
@@ -62,7 +63,6 @@ import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model._
-import code.actors.EnvelopeInserter
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 

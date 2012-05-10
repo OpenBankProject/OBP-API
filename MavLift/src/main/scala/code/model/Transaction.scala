@@ -5,7 +5,7 @@ import java.util.Date
 trait Transaction {
 
   def id : String
-  
+ 
   def account : BankAccount
   
   def otherParty : NonObpAccount
@@ -19,8 +19,11 @@ trait Transaction {
   //ISO 4217, e.g. EUR, GBP, USD, etc.
   def currency : String
   
-  // Bank/owner provided comment
-  def label : String
+  // Bank/ provided comment
+  def label : Option[String]
+  
+  // Owner provided comment, done in OBP
+  def ownerComment : Option[String]
   
   def comments : List[Comment]
   
