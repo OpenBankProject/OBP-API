@@ -32,12 +32,6 @@ trait NonObpAccount {
     }
   }*/
   
-  class Alias
-  class Public extends Alias
-  class Private extends Alias
-  class None extends Alias
-  
-  case class AccountName(display : String, aliasType : Alias)
   
   /*def moreInfo(view: View) : Option[String] = if(view.canSeeMoreInfo) Some(moreInfo) else None
   def url(view: View) : Option[String] = if(view.canSeeUrl) Some(url) else None
