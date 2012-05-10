@@ -82,7 +82,7 @@ class TesobeBankAccount extends BankAccount {
 
   def transactions: Set[Transaction] = { 
     theOnlyAccount match{
-	  case Full(a) => Set()//TODO a.allEnvelopes.toSet
+	  case Full(a) => a.allEnvelopes.map(new TransactionImpl(_)).toSet
 	  case _ => Set()
 	}
   }
@@ -93,6 +93,13 @@ class TesobeBankAccount extends BankAccount {
 
   def transaction(id: String): Option[Transaction] = { 
     throw new NotImplementedException
+  }
+  
+  def anonAccess = {
+    theOnlyAccount match{
+	  case Full(a) => a.anonAccess.get
+	  case _ => false
+	}
   }
 
 }

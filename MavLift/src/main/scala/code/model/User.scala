@@ -36,6 +36,7 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.http.S
 import net.liftweb.http.SessionVar
 import com.mongodb.QueryBuilder
+import code.model._
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -44,6 +45,26 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
   def getSingleton = User // what's the "meta" server
   
   def emailAddress = email.get
+  
+  def permittedViews(bankAccount : BankAccount) : Set[View] = {
+    //TODO: Stop ignoring the bankAccount parameter
+    val acc = Account.currentAccount
+    
+    import code.model.{Anonymous, OurNetwork, Team, Board, Authorities}
+    
+    var views : Set[View] = Set()
+    acc match{
+      case Full(a) => {
+        if(User.hasOurNetworkPermission(a)) views = views + OurNetwork
+        if(User.hasTeamPermission(a)) views = views + Team
+        if(User.hasBoardPermission(a)) views = views + Board
+        if(User.hasAuthoritiesPermission(a)) views = views + Authorities
+        if(a.anonAccess.get) views = views + Anonymous
+        views
+      }
+      case _ => Set()
+    }
+  }
 }
 
 /**

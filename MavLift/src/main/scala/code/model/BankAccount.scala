@@ -32,4 +32,7 @@ trait BankAccount {
   
   def transaction(id: String) : Option[Transaction]
   
+  //Is an anonymous view available for this bank account
+  def anonAccess : Boolean
+  
 }
