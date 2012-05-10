@@ -60,6 +60,8 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
   def finishDate: Date = { 
     env.obp_transaction.get.details.get.completed.get
   }
+  
+  def balance : BigDecimal = env.obp_transaction.get.details.get.new_balance.get.amount.get
 
   def addComment(comment: Comment) = {
     val emailAddress = for{
@@ -78,5 +80,29 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[BankAccount], filteredOtherParty: Option[FilteredNonObpAccount],
   filteredTransactionType: Option[String], filteredAmount: Option[BigDecimal], filteredCurrency: Option[String], filteredLabel: Option[Option[String]],
   filteredOwnerComment: Option[Option[String]], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
-  addCommentFunc: (Comment => Unit)) {
+  filteredBalance : Option[BigDecimal], addCommentFunc: (Comment => Unit)) {
+  
+  def finishDate = filteredFinishDate
+  def startDate = filteredStartDate
+  def balance = filteredBalance
+  def alias = filteredOtherParty match{
+    case Some(o) => o.alias
+    case _ => None
+  }
+  def imageUrl = filteredOtherParty match{
+    case Some(o) => o.imageUrl
+    case _ => None
+  }
+  def url = filteredOtherParty match{
+    case Some(o) => o.url
+    case _ => None
+  }
+  def openCorporatesUrl = filteredOtherParty match{
+    case Some(o) => o.openCorporatesUrl
+    case _ => None
+  }
+  def moreInfo = filteredOtherParty match{
+    case Some(o) => o.moreInfo
+    case _ => None
+  }
 }

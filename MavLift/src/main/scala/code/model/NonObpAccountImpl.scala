@@ -16,6 +16,18 @@ class NonObpAccountImpl(oAcc : OtherAccount) extends NonObpAccount {
    val openCorporatesUrl : String = oAcc.openCorporatesUrl.get
 }
 
-class FilteredNonObpAccount(id : Option[String], accountHolderName : Option[String], alias : AliasType,
-    moreInfo : Option[String], url : Option[String], imageurl : Option[String], openCorporatesUrl : Option[String]) {
+class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderName : Option[String], filteredAlias : AliasType,
+    filteredMoreInfo : Option[String], filteredUrl : Option[String], filteredImageUrl : Option[String], filteredOpenCorporatesUrl : Option[String]) {
+  
+  def alias = filteredAlias
+  def accountHolderName = filteredAccountHolderName
+  def moreInfo = filteredMoreInfo
+  def url = filteredUrl
+  def imageUrl = filteredImageUrl
+  def openCorporatesUrl = filteredOpenCorporatesUrl
+  
+  def isAlias = alias match{
+    case Public | Private => true
+    case _ => false
+  }
 }

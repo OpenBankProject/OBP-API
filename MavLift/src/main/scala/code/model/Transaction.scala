@@ -35,4 +35,8 @@ trait Transaction {
   
   def addComment(comment: Comment)
   
+  //the new balance for the bank account
+  //TODO : Rethink this
+  def balance : BigDecimal
+  
 }
