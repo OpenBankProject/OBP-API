@@ -56,142 +56,116 @@ class OBPTransactionSnippet {
   val envelopesToDisplay = OBPEnvelope.findAll(qry)
   
   val FORBIDDEN = "---"
+
+  val view = S.uri match {
+    case uri if uri.endsWith("authorities") => Authorities
+    case uri if uri.endsWith("board") => Board
+    case uri if uri.endsWith("our-network") => OurNetwork
+    case uri if uri.endsWith("team") => Team
+    case _ => Anonymous
+  }	
   
-  val consumer = {
-    S.uri match{
-      case uri if uri.endsWith("authorities") => "authorities"
-      case uri if uri.endsWith("board") => "board"
-      case uri if uri.endsWith("our-network") => "our-network"
-      case uri if uri.endsWith("team") => "team"
-      case uri if uri.endsWith("my-view") => "my-view"
-      case _ => "anonymous"
-    }
-  }
+  val owner = TesobeBankAccountOwner.account
+  val bankAccount = TesobeBankAccount.bankAccount
+  val transactions = bankAccount.transactions
+  val filteredTransactions = transactions.map(view.moderate(_))
   
   def displayAll = {
+
+    def orderByDateDescending = (t1: FilteredTransaction, t2: FilteredTransaction) => {
+      val date1 = t1.finishDate getOrElse new Date()
+      val date2 = t2.finishDate getOrElse new Date()
+      date1.after(date2)
+    }
     
-    val envelopes = groupByDate(envelopesToDisplay.sort(OBPEnvelope.orderByDateDescending))
+    val sortedTransactions = groupByDate(filteredTransactions.toList.sort(orderByDateDescending))
     
-    "* *" #> envelopes.map( envsForDay => {
-     daySummary(envsForDay)
+    "* *" #> sortedTransactions.map( transactionsForDay => {
+     daySummary(transactionsForDay)
     })
   }
 
 
-  def individualEnvelope(env: OBPEnvelope): CssSel = {
-    val envelopeID = env.id
-
-    val transaction = env.obp_transaction.get
-    val transactionDetails = transaction.details.get
-    val transactionValue = transactionDetails.value.get
-    val thisAccount = transaction.this_account.get
-    val otherAccount = transaction.other_account.get
-
-    var narrative = env.narrative.get
-
-    val theAccount = thisAccount.theAccount
-    val otherUnmediatedHolder = otherAccount.holder.get
-    val otherMediatedHolder = otherAccount.mediated_holder(consumer)
-
-    val aliasType = {
-      otherMediatedHolder._2 match {
-        case Full(APublicAlias) => "public"
-        case Full(APrivateAlias) => "private"
-        case _ => "None"
-      }
-    }
-
-    //get some fields from the account
-    def getAccountField(getFieldFunction: OtherAccount => String): String = {
-      val fieldValue = for {
-        a <- theAccount
-        oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-      } yield getFieldFunction(oacc)
-
-      fieldValue getOrElse ""
-    }
-
-    val moreInfo = getAccountField((acc: OtherAccount) => acc.moreInfo.get)
-    val logoImageSrc = getAccountField((acc: OtherAccount) => acc.imageUrl.get)
-    val otherAccWebsiteUrl = getAccountField((acc: OtherAccount) => acc.url.get)
-    val openCorporatesUrl = getAccountField((acc: OtherAccount) => acc.openCorporatesUrl.get)
-
-    val amount = transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN)
-    val name = otherMediatedHolder._1.getOrElse(FORBIDDEN)
+  def individualTransaction(transaction: FilteredTransaction): CssSel = {
+   
 
     //TODO: discuss if we really need public/private disctinction when displayed,
     //it confuses more than it really informs the user of much
     //the view either shows more data or not, only that it is an alias is really informative
     def aliasRelatedInfo: CssSel = {
-      aliasType match {
-        case "public" =>
+      transaction.alias match{
+        case Public =>
           ".alias_indicator [class+]" #> "alias_indicator_public" &
             ".alias_indicator *" #> "(Alias)"
-        case "private" =>
+        case Private =>
           ".alias_indicator [class+]" #> "alias_indicator_private" &
             ".alias_indicator *" #> "(Alias)"
         case _ => NOOP_SELECTOR
-      }
+
+      } 
     }
 
     def otherPartyInfo: CssSel = {
 
-      //don't show more info if there is a public alias
-      def publicAliasInfo = {
-        ".narrative *" #> NodeSeq.Empty &
-          ".extra *" #> NodeSeq.Empty
-      }
-
       //The extra information about the other party in the transaction
-      def additionalInfo = {
+      
 
         def moreInfoBlank =
           ".other_account_more_info" #> NodeSeq.Empty &
             ".other_account_more_info_br" #> NodeSeq.Empty
 
         def moreInfoNotBlank =
-          ".other_account_more_info *" #> moreInfo.take(50) //TODO: show ... if info string is actually truncated
+          ".other_account_more_info *" #> {
+            transaction.moreInfo match{
+              case Some(m) => m.take(50) //TODO: show ... if info string is actually truncated
+              case _ => ""
+            }
+          }
 
         def logoBlank =
           NOOP_SELECTOR
 
         def logoNotBlank =
-          ".other_account_logo_img [src]" #> logoImageSrc
+          ".other_account_logo_img [src]" #> transaction.imageUrl
 
         def websiteBlank =
           ".other_acc_link" #> NodeSeq.Empty & //If there is no link to display, don't render the <a> element
             ".other_acc_link_br" #> NodeSeq.Empty
 
         def websiteNotBlank =
-          ".other_acc_link [href]" #> otherAccWebsiteUrl
+          ".other_acc_link [href]" #> transaction.url
 
         def openCorporatesBlank =
           ".open_corporates_link" #> NodeSeq.Empty
 
         def openCorporatesNotBlank =
-          ".open_corporates_link [href]" #> openCorporatesUrl
+          ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
         ".narrative *" #> displayNarrative(env) &
           {
-            if (moreInfo.equals("")) moreInfoBlank
-            else moreInfoNotBlank
+            transaction.moreInfo match{
+              case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
+              case _ => moreInfoBlank
+            }
           } &
           {
-            if (logoImageSrc.equals("")) logoBlank
-            else logoNotBlank
+            transaction.imageUrl match{
+              case Some(i) => if(i == "") logoBlank else logoNotBlank
+              case _ => logoBlank
+            }
           } &
           {
-            if (otherAccWebsiteUrl.equals("")) websiteBlank
-            else websiteNotBlank
+            transaction.url match{
+              case Some(m) => if(m == "") websiteBlank else websiteNotBlank
+              case _ => websiteBlank
+            }
           } &
           {
-            if (openCorporatesUrl.equals("")) openCorporatesBlank
-            else openCorporatesNotBlank
+            transaction.openCorporatesUrl match{
+              case Some(m) => if(m == "") openCorporatesBlank else openCorporatesNotBlank
+              case _ => openCorporatesBlank
+            }
           }
-      }
-
-      if (aliasType.equals("public")) publicAliasInfo
-      else additionalInfo
 
     }
 
@@ -231,12 +205,10 @@ class OBPTransactionSnippet {
     }
   }
 
-  def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope): Boolean = {
-    val t1 = e1.obp_transaction.get
-    val t2 = e2.obp_transaction.get
+  def hasSameDate(t1: FilteredTransaction, t2: FilteredTransaction): Boolean = {
 
-    val date1 = t1.details.get.completed.get
-    val date2 = t2.details.get.completed.get
+    val date1 = t1.finishDate getOrElse new Date()
+    val date2 = t2.finishDate getOrElse new Date()
     
     val cal1 = Calendar.getInstance();
     val cal2 = Calendar.getInstance();
@@ -249,7 +221,7 @@ class OBPTransactionSnippet {
   }
 
   /**
-   * Splits a list of envelopes into a list of lists, where each of these new lists
+   * Splits a list of Transactions into a list of lists, where each of these new lists
    * is for one day.
    *
    * Example:
@@ -257,7 +229,7 @@ class OBPTransactionSnippet {
    * 	output: List(List(Jan 5), List(Jan 6), List(Jan 7,Jan 7),
    * 				 List(Jan 8), List(Jan 9,Jan 9,Jan 9), List(Jan 10))
    */
-  def groupByDate(list: List[OBPEnvelope]): List[List[OBPEnvelope]] = {
+  def groupByDate(list: List[FilteredTransaction]): List[List[FilteredTransaction]] = {
     list match {
       case Nil => Nil
       case h :: Nil => List(list)
@@ -277,15 +249,20 @@ class OBPTransactionSnippet {
     }
   }
   
-  def daySummary(envsForDay: List[OBPEnvelope]) = {
-    val dailyDetails = envsForDay.last.obp_transaction.get.details.get
-    val date = formatDate(dailyDetails.mediated_completed(consumer))
-    //TODO: This isn't really going to be the right balance, as there's no way of telling which one was the actual
-    // last transaction of the day yet
-    val balance = dailyDetails.new_balance.get.mediated_amount(consumer) getOrElse FORBIDDEN
-    ".date *" #> date &
-      ".balance_number *" #> { "€" + balance } & //TODO: support other currencies, format the balance according to locale
-      ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
+  def daySummary(transactionsForDay: List[FilteredTransaction]) = {
+    val aTransaction = transactionsForDay.last
+   
+    ".date *" #> {
+      aTransaction.finishDate match{
+        case Some(d) => d.toLocaleString()
+        case _ => ""
+      }
+    }  &
+      ".balance_number *" #> { "€" + {aTransaction.balance match{
+        case Some(b) => b.toString
+        case _ => ""
+      } }} & //TODO: support other currencies, format the balance according to locale
+      ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
   
   //Fake it for now

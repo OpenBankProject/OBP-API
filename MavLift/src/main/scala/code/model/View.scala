@@ -1,7 +1,5 @@
 package code.model
 
-package code.model
-
 class AliasType
 object NoAlias extends AliasType
 class Alias extends AliasType
@@ -96,11 +94,15 @@ trait View {
     val accountAliasType = accountHolderName.aliasType
     val transactionId = Some(transaction.id)
     val otherPartyAccountId = Some(transaction.otherParty.id)
+    val transactionBalance = {
+      if (canSeeTransactionBalance) Some(transaction.balance)
+      else None
+    }
 
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
   }
 
   def usePrivateAliasIfOneExists: Boolean
@@ -117,6 +119,7 @@ trait View {
   def canSeeTransactionCurrency: Boolean
   def canSeeTransactionStartDate: Boolean
   def canSeeTransactionFinishDate: Boolean
+  def canSeeTransactionBalance: Boolean
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
 }
 
@@ -143,6 +146,7 @@ class BaseView extends View {
   def canSeeTransactionCurrency = false
   def canSeeTransactionStartDate = false
   def canSeeTransactionFinishDate = false
+  def canSeeTransactionBalance = false
 }
 
 class FullView extends View {
@@ -163,6 +167,7 @@ class FullView extends View {
   def canSeeTransactionCurrency = true
   def canSeeTransactionStartDate = true
   def canSeeTransactionFinishDate = true
+  def canSeeTransactionBalance = true
 }
 
 object Team extends FullView {
@@ -239,11 +244,12 @@ object Anonymous extends BaseView {
     val transactionStartDate = Some(transaction.startDate)
 
     val transactionFinishDate = Some(transaction.finishDate)
-
+    val transactionBalance = None
+    
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
 
   }
   
@@ -285,11 +291,13 @@ object Anonymous extends BaseView {
     val transactionStartDate = Some(transaction.startDate)
 
     val transactionFinishDate = Some(transaction.finishDate)
+    
+    val transactionBalance = Some(transaction.balance)
 
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
   	}
   }
 
