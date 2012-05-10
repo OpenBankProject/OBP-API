@@ -105,4 +105,5 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case Some(o) => o.moreInfo
     case _ => None
   }
+  def ownerComment = filteredOwnerComment
 }

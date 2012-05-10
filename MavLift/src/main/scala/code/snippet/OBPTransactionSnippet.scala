@@ -141,7 +141,10 @@ class OBPTransactionSnippet {
         def openCorporatesNotBlank =
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
-        ".narrative *" #> displayNarrative(env) &
+        ".narrative *" #> {transaction.ownerComment match{
+          case Some(o) => o
+          case _ => None
+        }} &//displayNarrative(env) &
           {
             transaction.moreInfo match{
               case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
