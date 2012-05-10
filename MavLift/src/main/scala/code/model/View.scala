@@ -247,6 +247,8 @@ object Anonymous extends BaseView {
 
   }
   
+}
+
   object OurNetwork extends BaseView {
   override def moderate(transaction: Transaction): FilteredTransaction = {
     val accountHolderName: AccountName = {
@@ -290,7 +292,5 @@ object Anonymous extends BaseView {
       transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transaction.addComment _)
   	}
   }
-  
-}
 
 
