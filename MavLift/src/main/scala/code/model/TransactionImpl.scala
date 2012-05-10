@@ -3,29 +3,80 @@ package code.model
 import scala.math.BigDecimal
 import java.util.Date
 import scala.collection.immutable.List
+import net.liftweb.common.Loggable
 
-class TransactionImpl(env : OBPEnvelope) extends Transaction {
+class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 
-  def id(): String = { null }
+  def id: String = { 
+    ""
+  }
 
-  def account(): BankAccount = { null }
+  def account: BankAccount = { 
+    //TODO: Generalise to multiple bank accounts
+    TesobeBankAccount.bankAccount
+  }
 
-  def otherParty(): NonObpAccount = { null }
+  def otherParty: NonObpAccount = { 
+    //TODO: Return something once NonObpAccount is implemented
+    null
+  }
 
-  def transactionType(): String = { null }
+  def transactionType: String = { 
+    env.obp_transaction.get.details.get.type_en.get
+  }
 
-  def amount(): BigDecimal = { null }
+  def amount: BigDecimal = { 
+    env.obp_transaction.get.details.get.value.get.amount.get
+  }
 
-  def currency(): String = { null }
+  def currency: String = { 
+    env.obp_transaction.get.details.get.value.get.currency.get
+  }
 
-  def label(): String = { null }
+  //Provided by the bank
+  def label : Option[String] = { 
+    None //TODO: Implement transaction labels
+  }
 
-  def comments(): List[Comment] = { null }
+  def ownerComment : Option[String] = {
+    def showNarrative = {
+      val narrative = env.narrative.get
 
-  def startDate(): Date = { null }
+      if (narrative == "") None
+      else Some(narrative)
+    }
 
-  def finishDate(): Date = { null }
+    showNarrative
+  }
 
-  def addComment(comment: Comment) = {}
+  def comments : List[Comment] = { 
+    env.obp_comments.get.map(new CommentImpl(_))
+  }
 
+  def startDate: Date = { 
+    env.obp_transaction.get.details.get.posted.get
+  }
+
+  def finishDate: Date = { 
+    env.obp_transaction.get.details.get.completed.get
+  }
+
+  def addComment(comment: Comment) = {
+    val emailAddress = for{
+      poster <- comment.postedBy
+    } yield poster.emailAddress
+    
+    emailAddress match{
+      case Some(e) => env.addComment(e, comment.text)
+      case _ => logger.warn("A comment was not added due to a lack of valid email address")
+    }
+    
+  }
+    
+}
+
+class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[BankAccount], filteredOtherParty: Option[NonObpAccount],
+  filteredTransactionType: Option[String], filteredAmount: Option[BigDecimal], filteredCurrency: Option[String], filteredLabel: Option[Option[String]],
+  filteredOwnerComment: Option[Option[String]], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
+  addCommentFunc: (Comment => Unit)) {
 }

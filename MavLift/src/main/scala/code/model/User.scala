@@ -40,14 +40,17 @@ import com.mongodb.QueryBuilder
 /**
  * An O-R mapped "User" class that includes first name, last name, password
  */
-class User extends MegaProtoUser[User] with OneToMany[Long, User]{
+class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
   def getSingleton = User // what's the "meta" server
+  
+  def emailAddress = email.get
 }
 
 /**
  * The singleton that has methods for accessing the database
  */
 object User extends User with MetaMegaProtoUser[User]{
+  
   override def dbTableName = "users" // define the DB table name
     
   override def screenWrap = Full(<lift:surround with="default" at="content">
