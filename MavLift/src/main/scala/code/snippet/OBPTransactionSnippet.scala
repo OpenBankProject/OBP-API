@@ -71,7 +71,6 @@ class OBPTransactionSnippet {
   val filteredTransactions = transactions.map(view.moderate(_))
   
   def displayAll = {
-
     def orderByDateDescending = (t1: FilteredTransaction, t2: FilteredTransaction) => {
       val date1 = t1.finishDate getOrElse new Date()
       val date2 = t2.finishDate getOrElse new Date()
@@ -115,12 +114,8 @@ class OBPTransactionSnippet {
             ".other_account_more_info_br" #> NodeSeq.Empty
 
         def moreInfoNotBlank =
-          ".other_account_more_info *" #> {
-            transaction.moreInfo match{
-              case Some(m) => m.take(50) //TODO: show ... if info string is actually truncated
-              case _ => ""
-            }
-          }
+          ".other_account_more_info *" #> transaction.moreInfo.toString() 
+          
 
         def logoBlank =
           NOOP_SELECTOR
@@ -141,9 +136,10 @@ class OBPTransactionSnippet {
         def openCorporatesNotBlank =
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
-        ".narrative *" #> {transaction.ownerComment match{
-          case Some(o) => o
-          case _ => None
+        ".narrative *" #> {
+          transaction.ownerComment match{
+	          case Some(o) => o
+	          case _ => None
         }} &//displayNarrative(env) &
           {
             transaction.moreInfo match{
@@ -175,6 +171,7 @@ class OBPTransactionSnippet {
     def commentsInfo = {
       {
         //If we're not allowed to see comments, don't show the comments section
+        
         if (env.mediated_obpComments(consumer).isEmpty) ".comments *" #> ""
         else NOOP_SELECTOR
       } &
@@ -183,30 +180,30 @@ class OBPTransactionSnippet {
         ".symbol *" #> { if (amount.startsWith("-")) "-" else "+" } &
         ".out [class]" #> { if (amount.startsWith("-")) "out" else "in" }
     }
-
-    ".the_name *" #> name &
-    ".amount *" #> { "€" + amount.stripPrefix("-") } & //TODO: Format this number according to locale
+    
+    ".the_name *" #> transaction.alias.toString() &
+    ".amount *" #> { "€" + transaction.amount.toString().stripPrefix("-") } & //TODO: Format this number according to locale
     aliasRelatedInfo &
     otherPartyInfo &
     commentsInfo
   }
   
-  def editableNarrative(envelope: OBPEnvelope) = {
-    var narrative = envelope.narrative.get
-
-    CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
-      //save the narrative
-      envelope.narrative(narrative).save
-      Noop
-    }, "Narrative")
-  }
-
-  def displayNarrative(envelope: OBPEnvelope): NodeSeq = {
-    consumer match {
-      case "my-view" => editableNarrative(envelope)
-      case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
-    }
-  }
+//  def editableNarrative(envelope: OBPEnvelope) = {
+//    var narrative = envelope.narrative.get
+//
+//    CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
+//      //save the narrative
+//      envelope.narrative(narrative).save
+//      Noop
+//    }, "Narrative")
+//  }
+//
+//  def displayNarrative(envelope: OBPEnvelope): NodeSeq = {
+//    consumer match {
+//      case "my-view" => editableNarrative(envelope)
+//      case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
+//    }
+//  }
 
   def hasSameDate(t1: FilteredTransaction, t2: FilteredTransaction): Boolean = {
 
