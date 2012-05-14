@@ -106,4 +106,13 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case _ => None
   }
   def ownerComment = filteredOwnerComment
+  
+  def amount = filteredAmount match {
+    case Some(o)=> o
+    case _ => None
+  }
+  def comments : List[Comment] =  filteredComments match {
+    case Some(o) => o
+    case _ => List()
+  }
 }

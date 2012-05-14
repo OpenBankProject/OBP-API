@@ -50,7 +50,6 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
     //TODO: Stop ignoring the bankAccount parameter
     val acc = Account.currentAccount
     
-    import code.model.{Anonymous, OurNetwork, Team, Board, Authorities}
     
     var views : Set[View] = Set()
     acc match{

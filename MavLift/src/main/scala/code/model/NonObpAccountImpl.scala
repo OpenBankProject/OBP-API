@@ -1,5 +1,5 @@
 package code.model
-import code.model.AliasType
+
 
 class NonObpAccountImpl(oAcc : OtherAccount) extends NonObpAccount {
 
@@ -21,7 +21,10 @@ class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderNa
   
   def alias = filteredAlias
   def accountHolderName = filteredAccountHolderName
-  def moreInfo = filteredMoreInfo
+  def moreInfo = filteredMoreInfo match{
+    case Some(o) => o
+    case _ => None
+  }
   def url = filteredUrl
   def imageUrl = filteredImageUrl
   def openCorporatesUrl = filteredOpenCorporatesUrl
