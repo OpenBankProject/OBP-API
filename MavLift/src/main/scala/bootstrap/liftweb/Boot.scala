@@ -27,6 +27,7 @@ Open Bank Project (http://www.openbankproject.com)
  */
 package bootstrap.liftweb
 
+import code.snippet._
 import net.liftweb._
 import util._
 import common._
