@@ -1,12 +1,28 @@
 This project contains some try outs so far.
 
-The project is using Maven 2 as a build tool. See pom.xml for the dependancies.
+The project is using sbt or Maven 2 as a build tool. See build.scala or pom.xml respectively for the dependencies.
 
 I used IntelliJ IDEA as my IDE. It has nice autocompletion.
 
-To run, cd into the root directory (where this file is) and run:
-mvn jetty:run
+----
 
+To compile and run jetty, cd into the root directory (where this file is) and run:
+
+$ sbt
+...
+> compile
+> ~;container:start; container:reload /
+
+(Note that you first have to start sbt and then on its console start jetty with the container:start task, otherwise it will exit immediately. More here: https://github.com/siasia/xsbt-web-plugin/wiki)
+
+In OS X, sbt can be installed with $ sudo port install sbt
+
+----
+
+
+Alternatively, maven can also be used:
+
+mvn jetty:run
 
 Note: You may need to add the pluginGroup to the $HOME/.m2/settings.xml
 
@@ -21,6 +37,9 @@ Note: You may need to add the pluginGroup to the $HOME/.m2/settings.xml
   ...
 </settings>
 
+----
+
+
 
 To test one of the URL's use:
 curl http://localhost:8080/mongodb
@@ -28,6 +47,9 @@ curl http://localhost:8080/mongodb
 Other important files:
  Boot.scala
  SomeThing.scala - This file contains the URL routes (like urls.py) and my try outs- See serve case Req
+
+
+----
 
 
 I tried several approaches for scala talking to mongodb

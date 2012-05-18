@@ -27,6 +27,7 @@ Open Bank Project (http://www.openbankproject.com)
  */
 package bootstrap.liftweb
 
+import code.snippet._
 import net.liftweb._
 import util._
 import common._
@@ -38,23 +39,27 @@ import code.model._
 import com.tesobe.utils._
 import myapp.model.MongoConfig
 import net.liftweb.util.Helpers._
+import net.liftweb.widgets.tablesorter.TableSorter
+import net.liftweb.json.JsonDSL._
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
  */
-class Boot {
+class Boot extends Loggable{
   def boot {
 
     // This sets up MongoDB config
     MongoConfig.init
 
     if (!DB.jndiJdbcConnAvailable_?) {
+      val driver = Props.get("db.driver") openOr "org.h2.Driver"
       val vendor = 
-	new StandardDBVendor(Props.get("db.driver") openOr "org.h2.Driver",
+	      new StandardDBVendor(driver,
 			     Props.get("db.url") openOr 
 			     "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
 			     Props.get("db.user"), Props.get("db.password"))
 
+      logger.debug("Using database driver: " + driver)
       LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
       DB.defineConnectionManager(DefaultConnectionIdentifier, vendor)
@@ -63,7 +68,7 @@ class Boot {
     // Use Lift's Mapper ORM to populate the database
     // you don't need to use Mapper to use Lift... use
     // any ORM you want
-    Schemifier.schemify(true, Schemifier.infoF _, User)
+    Schemifier.schemify(true, Schemifier.infoF _, User, Privilege)
 
     // where to search snippet
     LiftRules.addToPackages("code")
@@ -71,22 +76,78 @@ class Boot {
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
+    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+    
+    def check(bool: Boolean) : Box[LiftResponse] = {
+      if(bool){
+        Empty
+      }else{
+        Full(PlainTextResponse("unauthorized"))
+      }
+    }
+    
     // Build SiteMap
-    def sitemap = SiteMap(
+    val sitemap = List(
           Menu.i("Home") / "index",
-    	  Menu.i("Accounts") / "accounts" submenus(
+          Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
+            check(theOnlyAccount match{
+              case Full(a) => User.hasOwnerPermission(a)
+              case _ => false
+            })
+          }) >> LocGroup("admin") 
+          	submenus(Privilege.menus : _*),
+          Menu.i("Accounts") / "accounts" submenus(
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
-		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view",
-		  Menu.i("Alias Management") / "accounts" / "tesobe" / "aliases",
-          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous",
-          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network",
-          Menu.i("Team") / "accounts" / "tesobe" / "team",
-          Menu.i("Board") / "accounts" / "tesobe" / "board",
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities",
-          Menu.i("Comments") / "comments" >> Hidden
-				)
-      )
-    )
+		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> LocGroup("owner") >> TestAccess(() => {
+		    check(theOnlyAccount match{
+		      case Full(a) => User.hasOwnerPermission(a)
+		      case _ => false
+		    })
+		  }),
+		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> LocGroup("owner") >> TestAccess(() => {
+		    check(theOnlyAccount match{
+		      case Full(a) => User.hasOwnerPermission(a)
+		      case _ => false
+		    })
+		  }),
+          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> LocGroup("views") >> TestAccess(() => {
+            check(theOnlyAccount match {
+              case Full(a) => a.anonAccess.is
+              case _ => false
+            })
+          }),
+          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> LocGroup("views") >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => User.hasOurNetworkPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Team") / "accounts" / "tesobe" / "team" >> LocGroup("views") >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => User.hasTeamPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Board") / "accounts" / "tesobe" / "board" >> LocGroup("views") >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => User.hasBoardPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> LocGroup("views") >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => User.hasAuthoritiesPermission(a)
+		      case _ => false
+		    })
+          }),
+          Menu.i("Comments") / "comments" >> TestAccess(() => {
+            check(theOnlyAccount match{
+		      case Full(a) => User.hasMoreThanAnonAccess(a)
+		      case _ => false
+		    })
+          }) >> Hidden,
+          Menu.i("About") / "about"
+        )))
 
     LiftRules.statelessRewrite.append{
         case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
@@ -97,8 +158,7 @@ class Boot {
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
-    LiftRules.setSiteMapFunc(() => sitemapMutators(sitemap))
-
+    LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
     // Use jQuery 1.4
     LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
 
@@ -122,5 +182,29 @@ class Boot {
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+    
+    TableSorter.init
+    
+    /**
+     * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
+     */
+    theOnlyAccount match{
+      case Full(a) => {
+        val theOnlyOwnerPriv = Privilege.find(By(Privilege.accountID, a.id.get.toString), By(Privilege.ownerPermission, true))
+        theOnlyOwnerPriv match{
+          case Empty => {
+            //create one
+            logger.debug("Creating tesobe account user and granting it owner permissions")
+            val userEmail = "tesobe@tesobe.com"
+            val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+        	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
+        	newPriv.saveMe
+          }
+          case _ => logger.debug("Owner privilege already exists")
+        }
+      }
+      case _ => logger.debug("No account found")
+    }
+    
   }
 }

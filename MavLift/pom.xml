@@ -34,11 +34,6 @@
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>http://scala-tools.org/repo-snapshots</url>
     </repository>
-
-
-
-
-
   </repositories>
 
   <pluginRepositories>
@@ -56,9 +51,19 @@
       <version>2.4-M4</version>
     </dependency>
     <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-widgets_2.9.1</artifactId>
+      <version>2.4-M4</version>
+    </dependency>
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>0.9.26</version>
+    </dependency>
+    <dependency>
+      <groupId>postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>8.4-701.jdbc4</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>

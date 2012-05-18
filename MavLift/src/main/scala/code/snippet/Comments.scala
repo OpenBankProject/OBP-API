@@ -46,11 +46,13 @@ import net.liftweb.http.StringField
 import java.util.Date
 import java.text.SimpleDateFormat
 import code.model.OBPAccount._
+import code.model._
+import net.liftweb.common.Loggable
 
 /**
  * This whole class is a rather hastily put together mess
  */
-class Comments{
+class Comments extends Loggable{
 
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
     val accessLevel = S.param("accessLevel") getOrElse "anonymous"
@@ -86,9 +88,9 @@ class Comments{
 	          case _ => FORBIDDEN
 	        }
 	        val aliasType = otherHolder._2 match{
-	          case Full(APublicAlias) => "public"
-	          case Full(APrivateAlias) => "private"
-	          case _ => "no alias"
+	          case Full(APublicAlias) => "/media/images/public_alias.png"
+	          case Full(APrivateAlias) => "/media/images/private_alias.png"
+	          case _ => ""
 	        }
 	        {aliasType + holderName}
 	      } &
@@ -113,8 +115,12 @@ class Comments{
     
     envelope match{
       case Full(e) => {
-        e.mediated_comments(accessLevel).getOrElse(List()).flatMap(comment =>
-          (".comment *" #> comment).apply(xhtml))
+       val comments = e.mediated_obpComments(accessLevel) getOrElse List()
+       if(comments.size == 0) (".the_comments *" #> "No comments").apply(xhtml)
+       else comments.flatMap(comment => {
+          (".comment *" #> comment.text.is &
+           ".commenter_email *" #> {"- " + comment.email}).apply(xhtml)
+        })
       }
       case _ => (".comment *" #> "No comments").apply(xhtml)
     }
@@ -129,18 +135,14 @@ class Comments{
     
     envelope match{
       case Full(e) => {
-        e.mediated_comments(accessLevel) match{
+        e.mediated_obpComments(accessLevel) match{
           case Full(x) => {
             SHtml.ajaxForm(<p>{
         		SHtml.text("",comment => {
-        		  /**
-        		   * This was badly hacked together to meet a deadline
-        		   */
-        		  
-        		  val comments = e.comments.get
-        		  val c2 = comments ++ List(comment)
-        		  e.comments(c2)
-        		  e.saveTheRecord()
+        		  User.currentUser match{
+        		    case Full(u) => e.addComment(u.email.get, comment)
+        		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
+        		  }
         		  
         		})}</p> ++
         			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
