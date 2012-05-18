@@ -34,47 +34,19 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
+import code.actors.EnvelopeInserter
 import net.liftweb.common.Failure
-
-// this has render in it.
-
-import net.liftweb.json._  // Yep everything
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
-
-
 import com.mongodb.casbah.Imports._
-
-
-
 import net.liftweb.mongodb._
-
 import _root_.java.math.MathContext
 import net.liftweb.mongodb._
-
-//import net.liftweb.mongodb.record._
-//import net.liftweb.mongodb.record.field._
-//import net.liftweb.record.field._
-//import net.liftweb.record._
 import org.bson.types._
 import org.joda.time.{DateTime, DateTimeZone}
-
-//import com.foursquare.rogue
-//import com.foursquare.rogue.Rogue._
-
-
 import java.util.regex.Pattern
-
-
-//import org.junit._
-//import org.specs.SpecsMatchers
-
-//import com.foursquare.rogue.MongoHelpers._
-
-////////////
-
 import _root_.net.liftweb.common._
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
@@ -90,9 +62,7 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-
 import code.model._
-//import code.model.Location
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -100,7 +70,7 @@ import code.model._
 // See http://www.assembla.com/spaces/liftweb/wiki/REST_Web_Services
 
 
-object OBPRest extends RestHelper {
+object OBPRest extends RestHelper with Loggable {
     println("here we are in OBPRest")
     serve {
 
@@ -153,24 +123,69 @@ object OBPRest extends RestHelper {
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
       
-      for{
-        t <- OBPEnvelope.fromJValue(json._1)
-        saved <- t.saveTheRecord()
-      } yield saved.asMediatedJValue("authorities") //this _should_ provide full access view, but with incorrect access settings it won't
+      //
+      // WARNING!
+      //
+      // If you have not configured a web server to restrict this URL appropriately, anyone will be
+      // able to post transactions to your database. This would obviously be undesirable. So you should
+      // definitely sort that out.
+      //
+      //
+      
+      val rawEnvelopes = json._1.children
+      
+      val envelopes = rawEnvelopes.map(e => {
+        OBPEnvelope.fromJValue(e)
+      })
+      
+      val ipAddress = json._2.remoteAddr
+      logger.info("Received " + rawEnvelopes.size + " json transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + envelopes.size + " valid transactions to insert from ip address " + ipAddress)
+      
+      /**
+       * Using an actor to do insertions avoids concurrency issues with duplicate transactions
+       * by processing transaction batches one at a time. We'll have to monitor this to see if
+       * non-concurrent I/O is too inefficient. If it is, we could break it up into one actor
+       * per "Account".
+       */
+      val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
+      
+      createdEnvelopes match{
+        case Full(l : List[JObject]) => JsonResponse(JArray(l))
+        case _ => InternalServerErrorResponse()
+      }
     } 
     
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
     //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
     //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
     //to be completely reworked.
-    case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
-      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+    /*case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
       
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
       val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
       
+      JsonResponse(envelopeJson)
+    }*/
+    
+    /**
+     * Currently only anonymous level access is supported until authentication is put into place.
+     */
+    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
+    //to be completely reworked.
+    case "api" :: "accounts" :: "tesobe" :: "anonymous" :: Nil JsonGet _ => {
+      
+      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+      
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous"))
       
       JsonResponse(envelopeJson)
     }
+    
       
     }
 }

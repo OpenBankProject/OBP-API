@@ -1,78 +1,87 @@
-<!-- 
-Open Bank Project
+<div class="lift:surround?with=default;at=content">
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+<!-- Google Plus -->
+    <script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
+      {lang: 'en-GB'}
+    </script>
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+<div id="fb-root"></div>
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+	<!-- end Facebook like code -->
 
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.  
-
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com   
--->
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta content="text/html; charset=UTF-8" http-equiv="content-type" />
-  </head>
-  <body class="lift:content_id=main">
-    <div id="main" class="lift:surround?with=default;at=content">
-      <div id="page_header">The page header will get bound here</div>
-      <p>
-      </p>
-            <div>
-        <h3>Transactions</h3>
-
-        <br>
+	<div id="account_details" class="lift:OBPTransactionSnippet.accountDetails">
+		<span id="accountName">Account Name</span>
+	</div>
+	
+	<div id="social">
+		<div class="lift:OBPTransactionSnippet.hideSocialWidgets">
+			<div class="box">
+				<!-- Facebook -->
+				<div class="fb-like" data-href="http://demo.openbankproject.com" data-send="false" data-layout="button_count" data-width="60"
+					data-show-faces="false"></div>
+	
+				<!-- Tweet -->
+				<script type="text/javascript" src="http://platform.twitter.com/widgets.js"></script>
+				<a href="https://twitter.com/share" class="twitter-share-button"
+					data-url="http://demo.openbankproject.com" data-count="horizontal"
+					data-via="OpenBankProject">Tweet</a>
+				
+				    <!-- Google Plus -->
+				    <script type="text/javascript" src="https://apis.google.com/js/plusone.js">
+				      {lang: 'en-GB'}
+				    </script>
+				<!-- Google Plus -->
+				<g:plusone size="medium" href="http://demo.openbankproject.com"></g:plusone>
+			</div>
+			<div class="corner"></div>
+		</div>
     </div>
+	<div class="lift:OBPTransactionSnippet.displayAll">
+		<table class="transactions">
 
+			<thead>
+				<tr>
+					<th colspan="7">
+						<h5 class="date">March 10, 2012</h5>
+						<h6 class="balance">
+							<span class="text">Balance</span> <span
+								class="number balance_number">€2304.42</span>
+						</h6>
+					</th>
+				</tr>
+			</thead>
 
-        <table>
-            <thead>
-                <tr>
-                    <!--<th class="span-1">Account</th>
-                    <th class="span-1">Posted</th>   -->
-                    <th>Cleared</th>
-                    <th>Amount</th>
-                    <th>Currency</th>
-                    <!-- <th class="span-1">Type</th> -->
-                    <th>To/From</th>
-                    <th>Narrative</th>
-                    <th>Comments</th>
-                    <th>Balance</th>
-                </tr>
-            </thead>
-            <tbody>
-            <tr class=lift:OBPTransactionSnippet.showAll>
-                <!-- <td class="opb_transaction_other_account">other account</td>
-                <td class="obp_transaction_date_start">start date</td> -->
-                <td class="date_cleared">completed date</td>
-                <td class="amount">obp_transaction_amount</td>
-                <td class="currency">obp_transaction_currency</td>
-                <!-- <td class="obp_transaction_type_en">obp_transaction_type_en</td> -->
-                <!-- <td class="obp_transaction_type_de">obp_transaction_type_de</td> -->
-                <td class="other_account_holder">obp_transaction_data_blob</td>
-                <td class="narrative">narrative</td>
-                <td class="comments_link">link to comments</td>
-                <td class="new_balance">obp_transaction_new_balance</td>
-            </tr>
-        </tbody>
+			<tbody>
+				<tr class="transaction_row">
+					<!-- Money going out -->
+					<td class="icon"><div class="out">Out</div></td>
+					<td class="symbol">-</td>
+					<!-- Money coming in -->
+<!-- 					<td class="icon"><div class="out">Out</div></td> -->
+<!-- 					<td class="symbol">-</td> -->
+					<td class="amount">€24.32</td>
+					<td class="name">
+					    <span class="the_name">Ronald Montgomery</span>
+					    <span class="alias_indicator"></span>
+					</td>
+					<td class="narrative">Transaction specific notes</td>
+					<td class="extra">
+					    <div class="extra_account_logo"><img src="/media/images/blank.gif"
+						class="other_account_logo_img"></div> <div class="extra_info_and_links"><span
+						class="other_account_more_info">More info</span><br class="other_account_more_info_br"/> <a href="#"
+						class="other_acc_link">Website</a><br class="other_acc_link_br"/> <a href="#"
+						class="open_corporates_link">Open Corporates</a></div>
+					</td>
+					<td class="comments"><a href="#" class="comments_ext"><span class="comment">0</span> </a></td>
+				</tr>
+			</tbody>
+		</table>
 
-        </table>
-    </div>
-  </body>
-</html>
+	</div>
+</div>

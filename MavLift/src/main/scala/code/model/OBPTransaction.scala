@@ -29,7 +29,7 @@ package code.model
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField
-import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk, DateField, MongoListField}
+import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import java.util.Calendar
@@ -44,72 +44,26 @@ import scala.util.Random
 import com.mongodb.QueryBuilder
 import com.mongodb.BasicDBObject
 
-class Location private () extends BsonRecord[Location] {
-  def meta = Location
-
-  object longitude extends net.liftweb.record.field.IntField(this)
-  object latitude extends net.liftweb.record.field.IntField(this)
-
-}
-object Location extends Location with BsonMetaRecord[Location]
-
-/*
-
-"World View":
-[
-   {
-      "obp_transaction":{
-         "from_account":{
-            "holder":"Music Pictures Limited",
-            "number":"123567",
-            "type":"current",
-            "bank":{
-               "IBAN":"DE1235123612",
-               "national_identifier":"de.10010010",
-               "name":"Postbank"
-            }
-         },
-         "to_account":{
-            "holder":"Simon Redfern",
-            "number":"3225446882",
-            "type":"current",
-            "bank":{
-               "IBAN":"UK12789879",
-               "national_identifier":"uk.10010010",
-               "name":"HSBC"
-            }
-         },
-         "details":{
-            "type_en":"Transfer",
-            "type_de":"Überweisung",
-            "posted":"ISODate 2011-11-25T10:28:38.273Z",
-            "completed":"ISODate 2011-11-26T10:28:38.273Z",
-            "value":{
-               "currency":"EUR",
-               "amount":"354.99"
-            },
-            "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
-         }
-      }
-   },
-   {
+/**
+ * "Current Account View"
+curl -i -H "Content-Type: application/json" -X POST -d '[{
          "obp_transaction":{
-            "from_account":{
+            "this_account":{
+               "holder":"Music Pictures Limited",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"DE1235123612",
+                  "national_identifier":"de.10010010",
+                  "name":"Postbank"
+               }
+            },
+            "other_account":{
                "holder":"Client 1",
                "number":"123567",
                "kind":"current",
                "bank":{
                   "IBAN":"UK12222879",
-                  "national_identifier":"de.10010010",
-                  "name":"Postbank"
-               }
-            },
-            "to_account":{
-               "holder":"Music Pictures Limited",
-               "number":"3225446882",
-               "kind":"current",
-               "bank":{
-                  "IBAN":"UK12789879",
                   "national_identifier":"uk.10010010",
                   "name":"HSBC"
                }
@@ -117,84 +71,113 @@ object Location extends Location with BsonMetaRecord[Location]
             "details":{
                "type_en":"Transfer",
                "type_de":"Überweisung",
-               "posted":"ISODate 2011-11-25T10:28:38.273Z",
-               "completed":"ISODate 2011-11-26T10:28:38.273Z",
+               "posted":{
+                  "$dt":"2012-01-04T18:06:22.000Z"
+                },
+               "completed":{
+                  "$dt":"2012-09-04T18:52:13.000Z"
+                },
+               "new_balance":{
+                     "currency":"EUR",
+                  "amount":"4323.45"
+               },
                "value":{
                   "currency":"EUR",
                   "amount":"123.45"
                },
-               "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+               "other_data":"9"
             }
          }
-      }
-]
-
-
- */
-
-
-/**
- * "Current Account View"
-curl -i -H "Content-Type: application/json" -X POST -d '{
-      "obp_transaction":{
-         "this_account":{
-            "holder":"Music Pictures Limited",
-            "number":"123567",
-            "kind":"current",
-            "bank":{
-               "IBAN":"DE1235123612",
-               "national_identifier":"de.10010010",
-               "name":"Postbank"
-            }
-         },
-         "other_account":{
-            "holder":"Simon Redfern",
-            "number":"3225446882",
-            "kind":"current",
-            "bank":{
-               "IBAN":"UK12789879",
-               "national_identifier":"uk.10010010",
-               "name":"HSBC"
-            }
-         },
-         "details":{
-            "type_en":"Transfer",
-            "type_de":"Überweisung",
-            "posted":"ISODate 2011-11-25T10:28:38.273Z",
-            "completed":"ISODate 2011-11-26T10:28:38.273Z",
-            "new_balance":{
-               "currency":"EUR",
-               "amount":"-354.99"
+ },
+{
+         "obp_transaction":{
+            "this_account":{
+               "holder":"Music Pictures Limited",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"DE1235123612",
+                  "national_identifier":"de.10010010",
+                  "name":"Postbank"
+               }
             },
-            "value":{
-               "currency":"EUR",
-               "amount":"-354.99"
+            "other_account":{
+               "holder":"Client 2",
+               "number":"123567",
+               "kind":"current",
+               "bank":{
+                  "IBAN":"UK22222879",
+                  "national_identifier":"uk.10010010",
+                  "name":"HSBC"
+               }
             },
-            "other_data":"9Z65HCF/0723203600/68550030\nAU 100467978\nKD-Nr2767322"
+            "details":{
+               "type_en":"Transfer",
+               "type_de":"Überweisung",
+               "posted":{
+                  "$dt":"2012-01-04T14:06:22.000Z"
+                },
+               "completed":{
+                  "$dt":"2012-09-04T14:52:13.000Z"
+                },
+               "new_balance":{
+                     "currency":"EUR",
+                  "amount":"2222.45"
+               },
+               "value":{
+                  "currency":"EUR",
+                  "amount":"223.45"
+               },
+               "other_data":"9"
+            }
          }
-      }
- }' http://localhost:8080/api/transactions
+ }]' http://localhost:8080/api/transactions
  */
 
 // Seems to map to a collection of the plural name
 class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] {
   def meta = OBPEnvelope
 
+  /**
+   * Add a user generated comment to the transaction. Saves the db model when called.
+   * 
+   * @param email The email address of the person posting the comment
+   * @param text The text of the comment
+   */
+  def addComment(email: String, text: String) = {
+    val comments = obp_comments.get
+    val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
+    obp_comments(c2).saveTheRecord()
+  }
+   
+  object DateDescending extends Ordering[OBPEnvelope] {
+    def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
+      val date1 = e1.obp_transaction.get.details.get.completed.get
+      val date2 = e2.obp_transaction.get.details.get.completed.get
+      date1.compareTo(date2)
+    }
+  }
+  
+  def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
+    val date1 = e1.obp_transaction.get.details.get.completed.get
+    val date2 = e2.obp_transaction.get.details.get.completed.get
+    date1.after(date2)
+  }
+  
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
   
-  //TODO: We might want to move where comments are stored
-  object comments extends MongoListField[OBPEnvelope, String](this)
+  //not named comments as "comments" was used in an older mongo document version
+  object obp_comments extends BsonRecordListField[OBPEnvelope, OBPComment](this, OBPComment)
   object narrative extends StringField(this, 255)
   
-  def mediated_comments(user: String) : Box[List[String]] = {
-    
+  def mediated_obpComments(user: String) : Box[List[OBPComment]] = {
     user match{
-      case "our-network" => Full(comments.get)
-      case "team" => Full(comments.get)
-      case "board" => Full(comments.get)
-      case "authorities" => Full(comments.get)
-      case "my-view" => Full(comments.get)
+      case "our-network" => Full(obp_comments.get)
+      case "team" => Full(obp_comments.get)
+      case "board" => Full(obp_comments.get)
+      case "authorities" => Full(obp_comments.get)
+      case "my-view" => Full(obp_comments.get)
       case _ => Empty
     }
   }
@@ -212,15 +195,26 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   
   def asMediatedJValue(user: String) : JObject  = {
     JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user)),
-        		 JField("comments", JArray(comments.get.map(JString(_))))))
+        		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
+        		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
+        		 })))))
   }
 }
+
+class OBPComment private() extends BsonRecord[OBPComment] {
+  def meta = OBPComment
+  
+  object email extends StringField(this, 255)
+  object text extends StringField(this, 255)
+}
+
+object OBPComment extends OBPComment with BsonMetaRecord[OBPComment]
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope]
 
 
 class OBPTransaction private() extends BsonRecord[OBPTransaction]{
-  def meta = OBPTransaction // what does meta do?
+  def meta = OBPTransaction
   
   object this_account extends BsonRecordField(this, OBPAccount)
   object other_account extends BsonRecordField(this, OBPAccount)
@@ -238,55 +232,23 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 
 ///
 
-/**
- * There should be only one of these for every real life "this" account. TODO: Enforce this
- * 
- * As a result, this can provide a single point from which to retrieve the aliases associated with
- * this account, rather than needing to duplicate the aliases into every single transaction.
- */
-class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
- def meta = Account 
- 
-  protected object holder extends net.liftweb.record.field.StringField(this, 255)
-  protected object number extends net.liftweb.record.field.StringField(this, 255)
-  protected object kind extends net.liftweb.record.field.StringField(this, 255)
-  protected object bank extends BsonRecordField(this, OBPBank)
-  object privateAliases extends MongoJsonObjectListField[Account, Alias](this, Alias)
-  object publicAliases extends MongoJsonObjectListField[Account, Alias](this, Alias)
-  
-}
-
-object Account extends Account with MongoMetaRecord[Account]
-
-//TODO: This should somehow be unique
-case class Alias(realValue: String, aliasValue: String) extends JsonObject[Alias]{
-  def meta = Alias
-}
-
-object Alias extends JsonObjectMeta[Alias]
-
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
-  protected object holder extends StringField(this, 255){
+  object holder extends StringField(this, 255) {
     override def setFromString(s: String) = {
       val v = super.setFromString(s)
       //once again, a temporary measure
-      if(!s.equals("Music Pictures Limited")){
-        if(!publicAliasExists(s)) {
-          if(isACompany(s)){
-            createPlaceholderPublicAlias()
-          }else{
-            createPublicAlias()
-          }
-        }
-        if(!privateAliasExists(s)) createPlaceholderPrivateAlias()
+      if (!publicAliasExists(s)) {
+        createPublicAlias()
       }
+      if (!privateAliasExists(s)) createPlaceholderPrivateAlias()
+
       v
     }
   }
-  protected object number extends StringField(this, 255)
-  protected object kind extends StringField(this, 255)
+  object number extends StringField(this, 255)
+  object kind extends StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
   
   def theAccount = {
@@ -306,12 +268,9 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     val acc = theAccount
     acc match{
       case Full(a) =>{
-        val publicAliases = a.publicAliases.get
-        val aliasInQuestion = publicAliases.find(alias =>
-          alias match{
-            case Alias(`realValue`, _) => true
-            case _ => false
-          })
+        val otherAccs = a.otherAccounts.get
+        val aliasInQuestion = otherAccs.find(o =>
+          o.holder.get.equals(realValue))
        aliasInQuestion.isDefined
       }
       case _ => false
@@ -322,50 +281,87 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     val acc = theAccount
     acc match{
       case Full(a) =>{
-        val privateAliases = a.privateAliases.get
-        val aliasInQuestion = privateAliases.find(alias =>
-          alias match{
-            case Alias(`realValue`, _) => true
-            case _ => false
-          })
+        val otherAccs = a.otherAccounts.get
+        val aliasInQuestion = otherAccs.find(o =>
+          o.holder.get.equals(realValue))
        aliasInQuestion.isDefined
       }
       case _ => false
     }
   }
-  
-  //For now, if it's all upper case, treat it as a company
-  def isACompany(holder: String) = {
-    holder.equals(holder.toUpperCase())
-  }
-  
+
   def createPublicAlias() = {
-        val randomAliasName = "ALIAS_" + Random.nextLong().toString.take(6)
-            theAccount match {
-              case Full(a) => {
-                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, randomAliasName)))
-                updatedAccount.saveTheRecord()
-                Full(randomAliasName)
-              }
-              case _ => Empty
-            }
+    //TODO: Guarantee a unique public alias string
+
+    /**
+     * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+     * for the account in question
+     */
+    def newPublicAliasName(account: Account): String = {
+      val newAlias = "ALIAS_" + Random.nextLong().toString.take(6)
+
+      /**
+       * Returns true if @publicAlias is already the name of a public alias within @account
+       */
+      def isDuplicate(publicAlias: String, account: Account) = {
+        account.otherAccounts.get.find(oAcc => {
+          oAcc.publicAlias.get == newAlias
+        }).isDefined
       }
-  
-  def createPlaceholderPublicAlias() = {
-        theAccount match {
-              case Full(a) => {
-                val updatedAccount = a.publicAliases(a.publicAliases.get ++ List(Alias(holder.get, "")))
-                updatedAccount.saveTheRecord()
-                Full("")
-              }
-              case _ => Empty
-            }
+
+      /**
+       * Appends things to @publicAlias until it a unique public alias name within @account
+       */
+      def appendUntilUnique(publicAlias: String, account: Account): String = {
+        val newAlias = publicAlias + Random.nextLong().toString.take(1)
+        if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+        else newAlias
       }
+
+      if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+      else newAlias
+    }
+    
+    theAccount match {
+      case Full(a) => {
+        val randomAliasName = newPublicAliasName(a)
+      
+        val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
+        val updatedAccount = otherAccount match {
+          case Some(o) => {
+            //update the "otherAccount"
+            val newOtherAcc = o.publicAlias(randomAliasName)
+            a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
+          }
+          case _ => {
+            //create a new "otherAccount"
+            a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get).publicAlias(randomAliasName)))
+          }
+        }
+
+        updatedAccount.saveTheRecord()
+        Full(randomAliasName)
+      }
+      case _ => Empty
+    }
+  }
   
   def createPlaceholderPrivateAlias() = {
         theAccount match {
               case Full(a) => {
-                val updatedAccount = a.privateAliases(a.privateAliases.get ++ List(Alias(holder.get, "")))
+                val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
+                val updatedAccount = otherAccount match{
+                  case Some(o) =>{
+                    //update the "otherAccount"
+                    val newOtherAcc= o.privateAlias("")
+                    a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
+                  }
+                  case _ => {
+                    //create a new "otherAccount"
+                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
+                  }
+                }
+                //val updatedAccount = a.privateAliases(a.privateAliases.get ++ List(Alias(holder.get, "")))
                 updatedAccount.saveTheRecord()
                 Full("")
               }
@@ -380,14 +376,13 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     def usePrivateAliasIfExists() : (Box[String], Box[OBPAccount.AnAlias])= {
       val privateAlias = for{
         account <- theAccount
-        alias <- account.privateAliases.get.find(a => a match{
-		        case Alias(`theHolder`, "") => false
-		        case Alias(`theHolder`, _) => true
-		        case _ => false
-        	})
-      } yield alias.aliasValue
+        otheracc <- account.otherAccounts.get.find(o => 
+          o.holder.get.equals(theHolder)
+        )
+      } yield otheracc.privateAlias.get
       
       privateAlias match{
+        case Full("") => (Full(theHolder), Empty)
         case Full(a) => (Full(a), Full(OBPAccount.APrivateAlias))
         case _ => (Full(theHolder), Empty)
       }
@@ -396,14 +391,13 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
     def usePublicAlias() : (Box[String], Box[OBPAccount.AnAlias])= {
       val publicAlias = for{
         account <- theAccount
-        alias <- account.publicAliases.get.find(a => a match{
-		        case Alias(`theHolder`, "") => false
-		        case Alias(`theHolder`, _) => true
-		        case _ => false
-        	})
-      } yield alias.aliasValue
+        otheracc <- account.otherAccounts.get.find(o => 
+        	o.holder.get.equals(theHolder)
+        )
+      } yield otheracc.publicAlias.get
       
       publicAlias match{
+        case Full("") => (Full(theHolder), Empty)
         case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
         case _ => {
             //No alias found, so don't use one
@@ -443,19 +437,19 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => Empty
     }
   }
-  //JString(mediated_holder(user) getOrElse ("---")
+  //JString(mediated_holder(user) getOrElse ("")
   def asMediatedJValue(user: String) : JObject = {
     val h = mediated_holder(user)
     JObject(List( JField("holder", 
     				JObject(List(
-    				    JField("holder", JString(h._1.getOrElse("---"))),
+    				    JField("holder", JString(h._1.getOrElse(""))),
     				    JField("alias", JString(h._2 match{
     				      case Full(OBPAccount.APublicAlias) => "public"
     				      case Full(OBPAccount.APrivateAlias) => "private"
     				      case _ => "no"
     				    }))))),
-        		  JField("number", JString(mediated_number(user) getOrElse "---")),
-        		  JField("kind", JString(mediated_kind(user) getOrElse "---")),
+        		  JField("number", JString(mediated_number(user) getOrElse "")),
+        		  JField("kind", JString(mediated_kind(user) getOrElse "")),
         		  JField("bank", bank.get.asMediatedJValue(user))))
   }
 }
@@ -466,33 +460,12 @@ object OBPAccount extends OBPAccount with BsonMetaRecord[OBPAccount]{
   case object APrivateAlias extends AnAlias
 }
 
-
-
-/*
-class OBPAccount private() extends MongoRecord[OBPAccount] with ObjectIdPk[OBPAccount] {
-  def meta = OBPAccount
-
-  object holder extends net.liftweb.record.field.StringField(this, 255)
-  object number extends net.liftweb.record.field.StringField(this, 255)
-  object kind extends net.liftweb.record.field.StringField(this, 255)
-  object bank extends BsonRecordField(this, OBPBank)
-
-
-}
-
-object OBPAccount extends OBPAccount with MongoMetaRecord[OBPAccount]
-
-*/
-
-
-///////////
-
 class OBPBank private() extends BsonRecord[OBPBank]{
   def meta = OBPBank
 
-  protected object IBAN extends net.liftweb.record.field.StringField(this, 255)
-  protected object national_identifier extends net.liftweb.record.field.StringField(this, 255)
-  protected object name extends net.liftweb.record.field.StringField(this, 255)
+  object IBAN extends net.liftweb.record.field.StringField(this, 255)
+  object national_identifier extends net.liftweb.record.field.StringField(this, 255)
+  object name extends net.liftweb.record.field.StringField(this, 255)
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_IBAN(user: String) : Box[String] = {
@@ -528,9 +501,9 @@ class OBPBank private() extends BsonRecord[OBPBank]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("IBAN", JString(mediated_IBAN(user) getOrElse "---")),
-        		  JField("national_identifier", JString(mediated_national_identifier(user) getOrElse "---")),
-        		  JField("name", JString(mediated_name(user) getOrElse "---"))))
+    JObject(List( JField("IBAN", JString(mediated_IBAN(user) getOrElse "")),
+        		  JField("national_identifier", JString(mediated_national_identifier(user) getOrElse "")),
+        		  JField("name", JString(mediated_name(user) getOrElse ""))))
   }
 }
 
@@ -541,19 +514,19 @@ object OBPBank extends OBPBank with BsonMetaRecord[OBPBank]
 class OBPDetails private() extends BsonRecord[OBPDetails]{
   def meta = OBPDetails
 
-  protected object type_en extends net.liftweb.record.field.StringField(this, 255)
-  protected object type_de extends net.liftweb.record.field.StringField(this, 255)
-  protected object posted extends DateField(this)
-  protected object completed extends DateField(this)
-  protected object other_data extends net.liftweb.record.field.StringField(this, 5000)
+  object type_en extends net.liftweb.record.field.StringField(this, 255)
+  object type_de extends net.liftweb.record.field.StringField(this, 255)
+  object posted extends DateField(this)
+  object other_data extends net.liftweb.record.field.StringField(this, 5000)
   object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
+  object completed extends DateField(this)
   
   
   def formatDate(date : Box[Date]) : String = {
     date match{
       case Full(d) => OBPDetails.formats.dateFormat.format(d)
-      case _ => "---"
+      case _ => ""
     }
   }
   
@@ -593,11 +566,11 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("type_en", JString(mediated_type_en(user) getOrElse "---")),
-        		  JField("type_de", JString(mediated_type_de(user) getOrElse "---")),
+    JObject(List( JField("type_en", JString(mediated_type_en(user) getOrElse "")),
+        		  JField("type_de", JString(mediated_type_de(user) getOrElse "")),
         		  JField("posted", JString(formatDate(mediated_posted(user)))),
         		  JField("completed", JString(formatDate(mediated_completed(user)))),
-        		  JField("other_data", JString(mediated_other_data(user) getOrElse "---")),
+        		  JField("other_data", JString(mediated_other_data(user) getOrElse "")),
         		  JField("new_balance", new_balance.get.asMediatedJValue(user)),
         		  JField("value", value.get.asMediatedJValue(user))))
   }
@@ -609,8 +582,8 @@ object OBPDetails extends OBPDetails with BsonMetaRecord[OBPDetails]
 class OBPBalance private() extends BsonRecord[OBPBalance]{
   def meta = OBPBalance
 
-  protected object currency extends net.liftweb.record.field.StringField(this, 5)
-  protected object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+  object currency extends net.liftweb.record.field.StringField(this, 5)
+  object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
@@ -641,8 +614,8 @@ class OBPBalance private() extends BsonRecord[OBPBalance]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "---")),
-        		  JField("amount", JString(mediated_amount(user) getOrElse "---"))))
+    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "")),
+        		  JField("amount", JString(mediated_amount(user) getOrElse ""))))
   }
 }
 
@@ -651,8 +624,8 @@ object OBPBalance extends OBPBalance with BsonMetaRecord[OBPBalance]
 class OBPValue private() extends BsonRecord[OBPValue]{
   def meta = OBPValue
 
-  protected object currency extends net.liftweb.record.field.StringField(this, 5)
-  protected object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+  object currency extends net.liftweb.record.field.StringField(this, 5)
+  object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
 
   //TODO: Access levels are currently the same across all transactions
   def mediated_currency(user: String) : Box[String] = {
@@ -671,8 +644,8 @@ class OBPValue private() extends BsonRecord[OBPValue]{
   }
   
   def asMediatedJValue(user: String) : JObject = {
-    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "---")),
-        		  JField("amount", JString(mediated_amount(user) getOrElse "---"))))
+    JObject(List( JField("currency", JString(mediated_currency(user) getOrElse "")),
+        		  JField("amount", JString(mediated_amount(user) getOrElse ""))))
   }
 }
 
