@@ -62,6 +62,7 @@ class OBPTransactionSnippet {
     case uri if uri.endsWith("board") => Board
     case uri if uri.endsWith("our-network") => OurNetwork
     case uri if uri.endsWith("team") => Team
+    //case uri if uri.endsWith("my-view") => "my-view" a solution has to be found for the editing case
     case _ => Anonymous
   }	
   
