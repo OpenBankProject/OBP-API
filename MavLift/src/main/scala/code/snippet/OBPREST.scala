@@ -27,6 +27,7 @@ Open Bank Project (http://www.openbankproject.com)
  */
 package com.tesobe.utils {
 
+import code.actors.EnvelopeInserter
 import net.liftweb.http._
 import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
@@ -62,7 +63,6 @@ import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model._
-import code.actors.EnvelopeInserter
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 

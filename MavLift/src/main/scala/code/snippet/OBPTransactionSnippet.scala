@@ -298,6 +298,8 @@ class OBPTransactionSnippet {
   def accountDetails = {
     "#accountName *" #> "TESOBE / Music Pictures Ltd. Account (Postbank)"
   }
-   
+  
+  def hideSocialWidgets = if(consumer!="anonymous") ".box *" #> ""
+  else ".box *+" #> "" 
 }
 
