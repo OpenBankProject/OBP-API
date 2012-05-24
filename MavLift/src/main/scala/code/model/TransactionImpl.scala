@@ -4,11 +4,14 @@ import scala.math.BigDecimal
 import java.util.Date
 import scala.collection.immutable.List
 import net.liftweb.common.Loggable
+import code.model
 
 class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 
+  var oacc : OtherAccount= env.obp_transaction.get.other_account.get
+  
   def id: String = { 
-    ""
+    env.id.is.toString()
   }
 
   def account: BankAccount = { 
@@ -105,7 +108,11 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case Some(o) => o.moreInfo
     case _ => None
   }
-  def ownerComment = filteredOwnerComment
+  def ownerComment = filteredOwnerComment match
+  {
+    case Some(a)=> a 
+    case _ => None
+  }
   
   def amount = filteredAmount match {
     case Some(o)=> o
@@ -114,5 +121,9 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
   def comments : List[Comment] =  filteredComments match {
     case Some(o) => o
     case _ => List()
+  }
+  def id = filteredId match {
+    case Some(a) => a
+    case _ => ""
   }
 }

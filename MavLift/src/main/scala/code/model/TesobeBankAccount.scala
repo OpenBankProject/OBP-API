@@ -52,10 +52,11 @@ class TesobeBankAccount extends BankAccount {
   }
 
   def label: String = { 
-    theOnlyAccount match{
-	  case Full(a) => a.holder.get
-	  case _ => ""
-	}
+//    theOnlyAccount match{
+//	  case Full(a) => a.holder.get
+//	  case _ => ""
+//	}
+    "TESOBE / Music Pictures Ltd. Account (Postbank)"
   }
 
   def nationalIdentifier: String = { 

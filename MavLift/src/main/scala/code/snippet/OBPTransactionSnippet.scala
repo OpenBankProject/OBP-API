@@ -138,10 +138,8 @@ class OBPTransactionSnippet {
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
         ".narrative *" #> {
-          transaction.ownerComment match{
-	          case Some(o) => o
-	          case _ => None
-        }} &//displayNarrative(env) &
+          transaction.ownerComment 
+        } &//displayNarrative(env) &
           {
             transaction.moreInfo match{
               case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
@@ -173,13 +171,19 @@ class OBPTransactionSnippet {
       {
         //If we're not allowed to see comments, don't show the comments section
         
-        if (env.mediated_obpComments(consumer).isEmpty) ".comments *" #> ""
+        if (transaction.comments.length==0) ".comments *" #> ""
         else NOOP_SELECTOR
       } &
-        ".comments_ext [href]" #> { consumer + "/transactions/" + envelopeID + "/comments" } &
-        ".comment *" #> env.mediated_obpComments(consumer).getOrElse(Nil).size &
-        ".symbol *" #> { if (amount.startsWith("-")) "-" else "+" } &
-        ".out [class]" #> { if (amount.startsWith("-")) "out" else "in" }
+        ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
+        ".comment *" #> transaction.comments.length &
+        ".symbol *" #> { transaction.balance match{
+        				  	case Some(a) => if (a <0) "-" else "+"
+        				  	case _ => ""
+        				}} &
+        ".out [class]" #> { transaction.balance match{
+        				  	case Some(a) => if (a <0) "out" else "in"
+        				  	case _ => ""
+        					} }
     }
     
     ".the_name *" #> transaction.alias.toString() &
@@ -189,22 +193,25 @@ class OBPTransactionSnippet {
     commentsInfo
   }
   
-//  def editableNarrative(envelope: OBPEnvelope) = {
-//    var narrative = envelope.narrative.get
-//
-//    CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
-//      //save the narrative
-//      envelope.narrative(narrative).save
-//      Noop
-//    }, "Narrative")
-//  }
-//
-//  def displayNarrative(envelope: OBPEnvelope): NodeSeq = {
-//    consumer match {
-//      case "my-view" => editableNarrative(envelope)
-//      case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
-//    }
-//  }
+  def editableNarrative(transaction: FilteredTransaction) = {
+    var narrative = transaction.ownerComment match {
+      case Some (a) => a
+      case _ => ""
+    }
+
+    CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
+      //save the narrative
+     // envelope.narrative(narrative).save add a method to the transaction or the filtred transaction for saving the owner comment
+      Noop
+    }, "Narrative")
+  }
+
+  def displayNarrative(transaction: FilteredTransaction): NodeSeq = {
+    view.name match {
+      case "my-view" => editableNarrative(transaction)
+      case _ => Text(transaction.ownerComment getOrElse "")
+    }
+  }
 
   def hasSameDate(t1: FilteredTransaction, t2: FilteredTransaction): Boolean = {
 
@@ -268,8 +275,11 @@ class OBPTransactionSnippet {
   
   //Fake it for now
   def accountDetails = {
-    "#accountName *" #> "TESOBE / Music Pictures Ltd. Account (Postbank)"
+    "#accountName *" #> bankAccount.label
   }
-   
+  def hideSocialWidgets = {
+    if(view.name!="anonymous") ".box *" #> ""
+    else ".box *+" #> "" 
+  }
 }
 
