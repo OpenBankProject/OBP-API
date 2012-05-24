@@ -7,13 +7,13 @@ class NonObpAccountImpl(oAcc : OtherAccount) extends NonObpAccount {
     ""
   }
 
-   val publicAlias : String = oAcc.publicAlias.get
-   val privateAlias : String = oAcc.privateAlias.get
-   val accountHolderName : String = oAcc.holder.get
-   val moreInfo : String = oAcc.moreInfo.get
-   val url : String = oAcc.url.get
-   val imageUrl : String = oAcc.imageUrl.get
-   val openCorporatesUrl : String = oAcc.openCorporatesUrl.get
+   def publicAlias : String = oAcc.publicAlias.get
+   def privateAlias : String = oAcc.privateAlias.get
+   def accountHolderName : String = oAcc.holder.get
+   def moreInfo : String = oAcc.moreInfo.get
+   def url : String = oAcc.url.get
+   def imageUrl : String = oAcc.imageUrl.get
+   def openCorporatesUrl : String = oAcc.openCorporatesUrl.get
 }
 
 class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderName : Option[String], filteredAlias : AliasType,
@@ -34,3 +34,18 @@ class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderNa
     case _ => false
   }
 }
+
+//class NonObpAccountImpl(id_ : String, publicAlias_ : String, privateAlias_ : String, accountHolderName_ : String, moreInfo_ : String, url_ : String, imageUrl_ : String, openCorporatesUrl_ : String ) extends NonObpAccount {
+//  
+//  def id(): String = { 
+//    ""
+//  }
+//
+//   def publicAlias = publicAlias_;
+//   def privateAlias = privateAlias_;
+//   def accountHolderName = accountHolderName_;
+//   def moreInfo = moreInfo_;
+//   def url  = url_;
+//   def imageUrl = imageUrl_;
+//   def openCorporatesUrl = openCorporatesUrl_;
+//}

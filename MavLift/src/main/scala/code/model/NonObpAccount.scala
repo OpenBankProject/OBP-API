@@ -4,13 +4,13 @@ trait NonObpAccount {
   
   def id : String
   
-  val publicAlias : String
-  val privateAlias : String
-  val accountHolderName : String
-  val moreInfo : String
-  val url : String
-  val imageUrl : String
-  val openCorporatesUrl : String
+  def publicAlias : String
+  def privateAlias : String
+  def accountHolderName : String
+  def moreInfo : String
+  def url : String
+  def imageUrl : String
+  def openCorporatesUrl : String
 
   /**
    * Current rules: 
@@ -29,7 +29,7 @@ trait NonObpAccount {
       else AccountName(accountHolderName, false)
     } else {
       AccountName(accountHolderName, false)
-    }
+    }un 
   }*/
   
   
@@ -39,3 +39,50 @@ trait NonObpAccount {
   def openCorporatesUrl(view: View) : Option[String] = if(view.canSeeOpenCorporatesUrl) Some(openCorporatesUrl) else None*/
   
 }
+//
+//class nonObpAccountImp(account : OtherAccount) extends NonObpAccount
+//{
+//	def id = ""
+//    def publicAlias = account.publicAlias.get.toString()
+//	def privateAlias = account.privateAlias.get.toString()
+//	def accountHolderName : String
+//	def moreInfo = account.moreInfo.get.toString()
+//	def url = account.url.toString()
+//	def imageUrl = account.imageUrl.toString()
+//	def openCorporatesUrl = account.openCorporatesUrl.get.toString()
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
