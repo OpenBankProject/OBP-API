@@ -35,7 +35,6 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
-import code.actors.EnvelopeInserter
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
