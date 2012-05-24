@@ -27,6 +27,7 @@ Open Bank Project (http://www.openbankproject.com)
  */
 package com.tesobe.utils {
 
+import code.actors.EnvelopeInserter
 import net.liftweb.http._
 import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
