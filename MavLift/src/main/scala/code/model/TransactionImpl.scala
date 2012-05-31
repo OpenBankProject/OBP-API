@@ -5,11 +5,19 @@ import java.util.Date
 import scala.collection.immutable.List
 import net.liftweb.common.Loggable
 import code.model
+import net.liftweb.common.Box
 
 class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 
-  var oacc : OtherAccount= env.obp_transaction.get.other_account.get
-  
+    val transaction : OBPTransaction= env.obp_transaction.get
+    val thisAccount = transaction.this_account.get
+    val otherAccount = transaction.other_account.get
+    val theAccount = thisAccount.theAccount
+    val otherUnmediatedHolder = otherAccount.holder.get
+    
+    var oAcc =  theAccount.get.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get)) 
+    
+    
   def id: String = { 
     env.id.is.toString()
   }
@@ -21,7 +29,7 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 
   def otherParty: NonObpAccount = { 
     //TODO: Return something once NonObpAccount is implemented
-    null
+    new NonObpAccountImpl(oAcc)
   }
 
   def transactionType: String = { 
