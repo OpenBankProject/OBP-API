@@ -15,7 +15,6 @@ class NonObpAccountImpl(oAcc : OtherAccount) extends NonObpAccount {
    def imageUrl : String = oAcc.imageUrl.get
    def openCorporatesUrl : String = oAcc.openCorporatesUrl.get
 }
-
 class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderName : Option[String], filteredAlias : AliasType,
     filteredMoreInfo : Option[String], filteredUrl : Option[String], filteredImageUrl : Option[String], filteredOpenCorporatesUrl : Option[String]) {
   
