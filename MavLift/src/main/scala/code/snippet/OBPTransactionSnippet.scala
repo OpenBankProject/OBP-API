@@ -159,12 +159,14 @@ class OBPTransactionSnippet {
           ".other_account_logo_img [src]" #> logoImageSrc
 
         def websiteBlank =
-          ".other_acc_link" #> NodeSeq.Empty & //If there is no link to display, don't render the <a> element
-            ".other_acc_link_br" #> NodeSeq.Empty
+          ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
 
         def websiteNotBlank =
           ".other_acc_link [href]" #> otherAccWebsiteUrl
-
+        
+        def websiteBlankLogoNotBlank = 
+           ".other_acc_link" #>  (xml => logoNotBlank(xml \"img")) //If there is no link to display, don't render the <a> element but keep the image
+            
         def openCorporatesBlank =
           ".open_corporates_link" #> NodeSeq.Empty
 
@@ -177,12 +179,13 @@ class OBPTransactionSnippet {
             else moreInfoNotBlank
           } &
           {
-            if (logoImageSrc.equals("")) logoBlank
-            else logoNotBlank
+            if (otherAccWebsiteUrl.equals("") & ! logoImageSrc.equals("")) websiteBlankLogoNotBlank
+            else if (otherAccWebsiteUrl.equals("") & logoImageSrc.equals("")) websiteBlank
+            else websiteNotBlank
           } &
           {
-            if (otherAccWebsiteUrl.equals("")) websiteBlank
-            else websiteNotBlank
+            if (logoImageSrc.equals("")) logoBlank
+            else logoNotBlank
           } &
           {
             if (openCorporatesUrl.equals("")) openCorporatesBlank
