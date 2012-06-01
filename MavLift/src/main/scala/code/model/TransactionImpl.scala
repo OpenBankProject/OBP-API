@@ -15,8 +15,12 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
     val theAccount = thisAccount.theAccount
     val otherUnmediatedHolder = otherAccount.holder.get
     
-    var oAcc =  theAccount.get.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get)) 
-    
+    val oAccs = theAccount.get.otherAccounts.get
+    val oAccOpt = oAccs.find(o => {
+      otherUnmediatedHolder.equals(o.holder.get)
+    })
+   
+    val oAcc =  oAccOpt getOrElse OtherAccount.createRecord
     
   def id: String = { 
     env.id.is.toString()
