@@ -193,9 +193,12 @@ class Boot extends Loggable{
         theOnlyOwnerPriv match{
           case Empty => {
             //create one
+            val randomPassword = StringHelpers.randomString(12)
+            print ("The admin passowrd is :"+randomPassword )
+            
             logger.debug("Creating tesobe account user and granting it owner permissions")
             val userEmail = "tesobe@tesobe.com"
-            val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+            val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password(randomPassword).validated(true).saveMe)
         	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
         	newPriv.saveMe
           }
