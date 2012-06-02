@@ -20,10 +20,7 @@ class FilteredNonObpAccount(filteredId : Option[String], filteredAccountHolderNa
   
   def alias = filteredAlias
   def accountHolderName = filteredAccountHolderName
-  def moreInfo = filteredMoreInfo match{
-    case Some(o) => o
-    case _ => None
-  }
+  def moreInfo = filteredMoreInfo 
   def url = filteredUrl
   def imageUrl = filteredImageUrl
   def openCorporatesUrl = filteredOpenCorporatesUrl

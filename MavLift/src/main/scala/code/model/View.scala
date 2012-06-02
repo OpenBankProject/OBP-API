@@ -1,10 +1,10 @@
 package code.model
 
 class AliasType
-object NoAlias extends AliasType
 class Alias extends AliasType
 object Public extends Alias
 object Private extends Alias
+object NoAlias extends AliasType
 
 case class AccountName(display: String, aliasType: AliasType)
 
@@ -232,8 +232,7 @@ object Anonymous extends BaseView {
     val transactionLabel = Some(transaction.label)
 
     val transactionAmount = {
-      if (canSeeTransactionAmount) Some(transaction.amount)
-      else None
+      Some(transaction.amount)
     }
     val transactionType = {
       if (canSeeTransactionType) Some(transaction.transactionType)
