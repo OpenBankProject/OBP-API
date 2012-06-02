@@ -93,7 +93,7 @@ class OBPTransactionSnippet {
     //it confuses more than it really informs the user of much
     //the view either shows more data or not, only that it is an alias is really informative
     def aliasRelatedInfo: CssSel = {
-      transaction.alias match{
+      transaction.aliasType match{
         case Public =>
           ".alias_indicator [class+]" #> "alias_indicator_public" &
             ".alias_indicator *" #> "(Alias)"
@@ -176,18 +176,21 @@ class OBPTransactionSnippet {
       } &
         ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
         ".comment *" #> transaction.comments.length &
-        ".symbol *" #> { transaction.balance match{
-        				  	case Some(a) => if (a <0) "-" else "+"
+        ".symbol *" #> { transaction.amount match {
+        				  	case Some(a) => if (a < 0) "-" else "+"
         				  	case _ => ""
         				}} &
-        ".out [class]" #> { transaction.balance match{
+        ".out [class]" #> { transaction.amount match{
         				  	case Some(a) => if (a <0) "out" else "in"
         				  	case _ => ""
         					} }
     }
     
-    ".the_name *" #> transaction.alias.toString() &
-    ".amount *" #> { "€" + transaction.amount.toString().stripPrefix("-") } & //TODO: Format this number according to locale
+    ".the_name *" #> transaction.accountHolder &
+    ".amount *" #> { "€" + {transaction.amount match { 
+      					case Some(o) => o.toString().stripPrefix("-")
+      					case _ => ""}
+                                                     }  } & //TODO: Format this number according to locale
     aliasRelatedInfo &
     otherPartyInfo &
     commentsInfo

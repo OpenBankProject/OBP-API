@@ -100,10 +100,14 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
   def finishDate = filteredFinishDate
   def startDate = filteredStartDate
   def balance = filteredBalance
-  def alias = filteredOtherParty match{
+  def aliasType = filteredOtherParty match{
     case Some(o) => o.alias
-    case _ => None
+    case _ => NoAlias
   }
+	def accountHolder = filteredOtherParty match{
+		case Some(o) => o.accountHolderName
+		case _ => None
+	}
   def imageUrl = filteredOtherParty match{
     case Some(o) => o.imageUrl
     case _ => None
@@ -126,10 +130,7 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case _ => None
   }
   
-  def amount = filteredAmount match {
-    case Some(o)=> o
-    case _ => None
-  }
+  def amount = filteredAmount 
   def comments : List[Comment] =  filteredComments match {
     case Some(o) => o
     case _ => List()
