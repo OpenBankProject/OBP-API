@@ -193,8 +193,8 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     } 
   }
   
-  def asMediatedJValue(user: String) : JObject  = {
-    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user)),
+  def asMediatedJValue(user: String, envelopeId : String) : JObject  = {
+    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,envelopeId)),
         		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
         		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
         		 })))))
@@ -220,8 +220,9 @@ class OBPTransaction private() extends BsonRecord[OBPTransaction]{
   object other_account extends BsonRecordField(this, OBPAccount)
   object details extends BsonRecordField(this, OBPDetails)
   
-  def asMediatedJValue(user: String) : JObject  = {
-    JObject(List(JField("this_account", this_account.get.asMediatedJValue(user)),
+  def asMediatedJValue(user: String, envelopeId : String) : JObject  = {
+    JObject(List(JField("obp_transaction_uuid", JString(envelopeId)),
+    			 JField("this_account", this_account.get.asMediatedJValue(user)),
         		 JField("other_account", other_account.get.asMediatedJValue(user)),
         		 JField("details", details.get.asMediatedJValue(user))))
   }
