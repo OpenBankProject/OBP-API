@@ -181,7 +181,7 @@ object OBPRest extends RestHelper with Loggable {
       
       val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
-      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous"))
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous",envelope.id.toString()))
       
       JsonResponse(envelopeJson)
     }

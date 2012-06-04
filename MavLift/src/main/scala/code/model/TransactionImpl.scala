@@ -20,7 +20,11 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
       otherUnmediatedHolder.equals(o.holder.get)
     })
    
-    val oAcc =  oAccOpt getOrElse OtherAccount.createRecord
+    val oAcc =  oAccOpt getOrElse {
+      	println("OtherAccount for transaction : "+env.id+" not found");// TODO: a debug thing to delete 
+      	OtherAccount.createRecord
+      }
+    //println (amount.toString()+" account holder : "+oAcc.holder + " n° "+id)
     
   def id: String = { 
     env.id.is.toString()
@@ -77,7 +81,8 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
   }
   
   def balance : BigDecimal = env.obp_transaction.get.details.get.new_balance.get.amount.get
-
+  
+  
   def addComment(comment: Comment) = {
     val emailAddress = for{
       poster <- comment.postedBy
@@ -95,7 +100,10 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
 class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[BankAccount], filteredOtherParty: Option[FilteredNonObpAccount],
   filteredTransactionType: Option[String], filteredAmount: Option[BigDecimal], filteredCurrency: Option[String], filteredLabel: Option[Option[String]],
   filteredOwnerComment: Option[Option[String]], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
-  filteredBalance : Option[BigDecimal], addCommentFunc: (Comment => Unit)) {
+  filteredBalance : String, addCommentFunc: (Comment => Unit)) {
+  
+  //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
+  //the view should be able to rertun a sign (- or +) or the real value. casting signs into bigdecimal is not possible  
   
   def finishDate = filteredFinishDate
   def startDate = filteredStartDate
