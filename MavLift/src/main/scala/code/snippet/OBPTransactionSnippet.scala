@@ -65,7 +65,6 @@ class OBPTransactionSnippet {
     //case uri if uri.endsWith("my-view") => "my-view" a solution has to be found for the editing case
     case _ => Anonymous
   }	
-  
   val owner = TesobeBankAccountOwner.account
   val bankAccount = TesobeBankAccount.bankAccount
   val transactions = bankAccount.transactions
@@ -108,7 +107,6 @@ class OBPTransactionSnippet {
     def otherPartyInfo: CssSel = {
 
       //The extra information about the other party in the transaction
-      
 
         def moreInfoBlank =
           ".other_account_more_info" #> NodeSeq.Empty &
@@ -251,28 +249,25 @@ class OBPTransactionSnippet {
       }
     }
   }
-
-  def formatDate(date: Box[Date]): String = {
-    val dateFormat = new SimpleDateFormat("MMMM dd, yyyy")
-    date match {
-      case Full(d) => dateFormat.format(d)
-      case _ => FORBIDDEN
-    }
-  }
+//  def daySummary(envsForDay: List[OBPEnvelope]) = {
+//    val dailyDetails = envsForDay.last.obp_transaction.get.details.get
+//    val date = formatDate(dailyDetails.mediated_completed(consumer))
+//    //TODO: This isn't really going to be the right balance, as there's no way of telling which one was the actual
+//    // last transaction of the day yet
+//    val balance = dailyDetails.new_balance.get.mediated_amount(consumer) getOrElse FORBIDDEN
+//    ".date *" #> date &
+//      ".balance_number *" #> { "€" + balance } & //TODO: support other currencies, format the balance according to locale
+//      ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
+//  }
   
   def daySummary(transactionsForDay: List[FilteredTransaction]) = {
     val aTransaction = transactionsForDay.last
-   
-    ".date *" #> {
-      aTransaction.finishDate match{
-        case Some(d) => d.toLocaleString()
+    val date = aTransaction.finishDate match{
+        case Some(d) => (new SimpleDateFormat("MMMM dd, yyyy")).format(d)
         case _ => ""
       }
-    }  &
-      ".balance_number *" #> { "€" + {aTransaction.balance match{
-        case Some(b) => b.toString
-        case _ => ""
-      } }} & //TODO: support other currencies, format the balance according to locale
+    ".date *" #> date &
+      ".balance_number *" #> { "€" + {aTransaction.balance }} & 
       ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
   

@@ -95,8 +95,8 @@ trait View {
     val transactionId = Some(transaction.id)
     val otherPartyAccountId = Some(transaction.otherParty.id)
     val transactionBalance = {
-      if (canSeeTransactionBalance) Some(transaction.balance)
-      else None
+      if (canSeeTransactionBalance) transaction.balance.toString()
+      else ""
     }
 
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
@@ -243,7 +243,7 @@ object Anonymous extends BaseView {
     val transactionStartDate = Some(transaction.startDate)
 
     val transactionFinishDate = Some(transaction.finishDate)
-    val transactionBalance = None
+    val transactionBalance =  if (transaction.balance.toString().startsWith("-")) "-" else "+"
     
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
@@ -291,7 +291,7 @@ object Anonymous extends BaseView {
 
     val transactionFinishDate = Some(transaction.finishDate)
     
-    val transactionBalance = Some(transaction.balance)
+    val transactionBalance = transaction.balance.toString()
 
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
