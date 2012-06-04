@@ -183,11 +183,13 @@ object Authorities extends FullView {
   override def name = "Authorities"
 }
 object Anonymous extends BaseView { 
-  //the actual class extends the BaseView but in fact it does not matters be cause we don't care about the values of the canSeeMoreInfo, canSeeUrl,etc  attributes
+  //the actual class extends the BaseView but in fact it does not matters be cause we don't care about the values 
+  //of the canSeeMoreInfo, canSeeUrl,etc  attributes and we implement a specific moderate method
   
   override def name = "Anonymous"
 
   override def moderate(transaction: Transaction): FilteredTransaction = {
+    
     val accountHolderName: AccountName = {
         val publicAlias = transaction.otherParty.publicAlias
         if (publicAlias != "") AccountName(publicAlias, Public)
@@ -203,23 +205,23 @@ object Anonymous extends BaseView {
       case _ => false
     }
     val moreInfo = {
-      if (isPublicAlias) Some(transaction.otherParty.moreInfo)
-      else None
+      if (isPublicAlias) None
+      else Some(transaction.otherParty.moreInfo)
     }
 
     val url = {
-      if (isPublicAlias) Some(transaction.otherParty.url)
-      else None
+      if (isPublicAlias) None
+      else Some(transaction.otherParty.url)
     }
 
     val imageUrl = {
-      if (isPublicAlias) Some(transaction.otherParty.imageUrl)
-      else None
+      if (isPublicAlias) None
+      else Some(transaction.otherParty.imageUrl)
     }
 
     val openCorporatesUrl = {
-      if (isPublicAlias) Some(transaction.otherParty.openCorporatesUrl)
-      else None
+      if (isPublicAlias) None
+      else Some(transaction.otherParty.openCorporatesUrl)
     }
 
     val comments = None
