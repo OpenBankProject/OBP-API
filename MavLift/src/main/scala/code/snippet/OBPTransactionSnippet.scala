@@ -56,9 +56,11 @@ class OBPTransactionSnippet {
     case uri if uri.endsWith("board") => Board
     case uri if uri.endsWith("our-network") => OurNetwork
     case uri if uri.endsWith("team") => Team
-    //case uri if uri.endsWith("my-view") => "my-view" a solution has to be found for the editing case
+    case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
     case _ => Anonymous
   }	
+  println("current view name : "+view.name)
+  
   val bankAccount = TesobeBankAccount.bankAccount
   val transactions = bankAccount.transactions
   val filteredTransactions = transactions.map(view.moderate(_))
@@ -120,8 +122,7 @@ class OBPTransactionSnippet {
         def openCorporatesNotBlank =
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
-        ".narrative *" #> { transaction.ownerComment.getOrElse("") 
-        } &//displayNarrative(env) &
+        ".narrative *" #>  displayNarrative(transaction,view) & 
           {
             transaction.moreInfo match{
               case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
@@ -152,12 +153,16 @@ class OBPTransactionSnippet {
     def commentsInfo = {
       {
         //If we're not allowed to see comments, don't show the comments section
-        
-        if (transaction.comments.length==0) ".comments *" #> ""
-        else NOOP_SELECTOR
+        transaction.comments match 
+        {
+          case None => ".comments *" #> ""
+          case Some(list) =>{
+        	  					".comment *" #> list.length 
+        	  					".comments_ext [href]" #>  view.name + "/transactions/" + transaction.id + "/comments"
+        	  					 NOOP_SELECTOR
+          					}  
+        }
       } &
-        ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
-        ".comment *" #> transaction.comments.length &
         ".symbol *" #> { transaction.amount match {
         				  	case Some(a) => if (a < 0) "-" else "+"
         				  	case _ => ""
@@ -178,24 +183,19 @@ class OBPTransactionSnippet {
     commentsInfo
   }
   
-  def editableNarrative(transaction: ModeratedTransaction) = {
-    var narrative = transaction.ownerComment match {
-      case Some (a) => a
-      case _ => ""
-    }
-
+  def editableNarrative(transaction : ModeratedTransaction) = {
+    var narrative = transaction.ownerComment.getOrElse("")
     CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
       //save the narrative
-     // envelope.narrative(narrative).save add a method to the transaction or the filtred transaction for saving the owner comment
+      transaction.ownerComment(narrative)
       Noop
     }, "Narrative")
   }
 
-  def displayNarrative(transaction: ModeratedTransaction): NodeSeq = {
-    view.name match {
-      case "my-view" => editableNarrative(transaction)
-      case _ => Text(transaction.ownerComment getOrElse "")
-    }
+  def displayNarrative(transaction : ModeratedTransaction, currentView : View): NodeSeq = {
+    if(currentView.canEditOwnerComment)
+    	editableNarrative(transaction)	
+    else Text(transaction.ownerComment.getOrElse(""))
   }
 
   def hasSameDate(t1: ModeratedTransaction, t2: ModeratedTransaction): Boolean = {
@@ -233,17 +233,6 @@ class OBPTransactionSnippet {
       }
     }
   }
-//  def daySummary(envsForDay: List[OBPEnvelope]) = {
-//    val dailyDetails = envsForDay.last.obp_transaction.get.details.get
-//    val date = formatDate(dailyDetails.mediated_completed(consumer))
-//    //TODO: This isn't really going to be the right balance, as there's no way of telling which one was the actual
-//    // last transaction of the day yet
-//    val balance = dailyDetails.new_balance.get.mediated_amount(consumer) getOrElse FORBIDDEN
-//    ".date *" #> date &
-//      ".balance_number *" #> { "€" + balance } & //TODO: support other currencies, format the balance according to locale
-//      ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
-//  }
-  
   def daySummary(transactionsForDay: List[ModeratedTransaction]) = {
     val aTransaction = transactionsForDay.last
     val date = aTransaction.finishDate match{
@@ -255,7 +244,7 @@ class OBPTransactionSnippet {
       ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
   
-  //Fake it for now
+  //TODO: show bankname then account label
   def accountDetails = {
     "#accountName *" #> bankAccount.label
   }
