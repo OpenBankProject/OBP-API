@@ -50,13 +50,9 @@ import code.model._
 class OBPTransactionSnippet {
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
-  
-  //Show all transactions from every account, for now
-  val qry = QueryBuilder.start().get
-  val envelopesToDisplay = OBPEnvelope.findAll(qry)
-  
   val FORBIDDEN = "---"
-
+  
+  
   val view = S.uri match {
     case uri if uri.endsWith("authorities") => Authorities
     case uri if uri.endsWith("board") => Board
@@ -65,7 +61,6 @@ class OBPTransactionSnippet {
     //case uri if uri.endsWith("my-view") => "my-view" a solution has to be found for the editing case
     case _ => Anonymous
   }	
-  val owner = TesobeBankAccountOwner.account
   val bankAccount = TesobeBankAccount.bankAccount
   val transactions = bankAccount.transactions
   val filteredTransactions = transactions.map(view.moderate(_))
@@ -79,18 +74,11 @@ class OBPTransactionSnippet {
     
     val sortedTransactions = groupByDate(filteredTransactions.toList.sort(orderByDateDescending))
     
-    "* *" #> sortedTransactions.map( transactionsForDay => {
-     daySummary(transactionsForDay)
-    })
+    "* *" #> sortedTransactions.map( transactionsForDay => {daySummary(transactionsForDay)})
   }
 
 
   def individualTransaction(transaction: FilteredTransaction): CssSel = {
-   
-
-    //TODO: discuss if we really need public/private disctinction when displayed,
-    //it confuses more than it really informs the user of much
-    //the view either shows more data or not, only that it is an alias is really informative
     def aliasRelatedInfo: CssSel = {
       transaction.aliasType match{
         case Public =>
@@ -113,8 +101,7 @@ class OBPTransactionSnippet {
             ".other_account_more_info_br" #> NodeSeq.Empty
 
         def moreInfoNotBlank =
-          ".other_account_more_info *" #> transaction.moreInfo.toString() 
-          
+          ".other_account_more_info *" #> transaction.moreInfo
 
         def logoBlank =
           NOOP_SELECTOR
@@ -135,8 +122,7 @@ class OBPTransactionSnippet {
         def openCorporatesNotBlank =
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
 
-        ".narrative *" #> {
-          transaction.ownerComment 
+        ".narrative *" #> { transaction.ownerComment.getOrElse("") 
         } &//displayNarrative(env) &
           {
             transaction.moreInfo match{

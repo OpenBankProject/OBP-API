@@ -64,7 +64,6 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
       if (narrative == "") None
       else Some(narrative)
     }
-
     showNarrative
   }
 
@@ -94,20 +93,26 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
     }
     
   }
+  def ownerComment(comment : String) : Unit=  
+  {
+    env.narrative(comment).save
+  }
     
 }
 
 class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[BankAccount], filteredOtherParty: Option[FilteredNonObpAccount],
   filteredTransactionType: Option[String], filteredAmount: Option[BigDecimal], filteredCurrency: Option[String], filteredLabel: Option[Option[String]],
-  filteredOwnerComment: Option[Option[String]], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
-  filteredBalance : String, addCommentFunc: (Comment => Unit)) {
+  filteredOwnerComment: Option[String], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
+  filteredBalance : String, addCommentFunc: Option[(Comment => Unit)]) {
   
+  //addCommentFunc: (Comment => Unit)
   //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
   //the view should be able to rertun a sign (- or +) or the real value. casting signs into bigdecimal is not possible  
   
   def finishDate = filteredFinishDate
   def startDate = filteredStartDate
   def balance = filteredBalance
+  
   def aliasType = filteredOtherParty match{
     case Some(o) => o.alias
     case _ => NoAlias
@@ -132,11 +137,7 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case Some(o) => o.moreInfo
     case _ => None
   }
-  def ownerComment = filteredOwnerComment match
-  {
-    case Some(a)=> a 
-    case _ => None
-  }
+  def ownerComment = filteredOwnerComment 
   
   def amount = filteredAmount 
   def comments : List[Comment] =  filteredComments match {
@@ -147,4 +148,6 @@ class FilteredTransaction(filteredId: Option[String], filteredAccount: Option[Ba
     case Some(a) => a
     case _ => ""
   }
+  def addComment= addCommentFunc
+
 }
