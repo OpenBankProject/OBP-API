@@ -25,7 +25,7 @@ limitations under the License.
 		Everett Sochowski: everett AT tesobe DOT com
     
  */
-package code.model
+package code.model.dataAccess
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField

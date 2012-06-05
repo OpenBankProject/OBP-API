@@ -1,4 +1,4 @@
-package code.model
+package code.model.traits
 
 trait AccountOwner {
 

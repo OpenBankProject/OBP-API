@@ -1,4 +1,4 @@
-package code.model
+package code.model.traits
 import scala.math.BigDecimal
 import java.util.Date
 

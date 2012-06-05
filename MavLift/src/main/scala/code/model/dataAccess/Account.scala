@@ -1,4 +1,4 @@
-package code.model
+package code.model.dataAccess
 
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.JsonObjectMeta
