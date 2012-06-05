@@ -1,7 +1,7 @@
 package code.snippet
 
 import net.liftweb.util.Helpers._
-import code.model.Privilege
+import code.model.dataAccess.Privilege
 
 class PrivilegeAdmin {
 

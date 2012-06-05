@@ -1,7 +1,7 @@
 package code.actors
 
 import net.liftweb.actor.LiftActor
-import code.model.OBPEnvelope
+import code.model.dataAccess.OBPEnvelope
 import net.liftweb.json.JObject
 import com.mongodb.QueryBuilder
 import net.liftweb.common.Loggable

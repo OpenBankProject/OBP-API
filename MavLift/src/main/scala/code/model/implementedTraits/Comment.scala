@@ -1,13 +1,16 @@
-package code.model
+package code.model.implementedTraits
 
 import java.util.Date
 import net.liftweb.mapper.By
+import code.model.traits.Comment
+import code.model.dataAccess.{OBPComment,OBPUser}
+import code.model.traits.User
 
 class CommentImpl(comment: OBPComment) extends Comment {
 
-  def postedBy: Option[OBPUser] = { 
+  def postedBy: Option[User] = { 
     val email = comment.email.get
-    User.find(By(User.email, email))
+    OBPUser.find(By(OBPUser.email, email))
   }
 
   def text: String = { 

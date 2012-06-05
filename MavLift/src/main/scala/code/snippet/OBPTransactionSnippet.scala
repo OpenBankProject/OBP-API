@@ -31,8 +31,7 @@ import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 import net.liftweb.http._
 import java.util.Calendar
-import code.model.OBPTransaction
-import code.model.OBPEnvelope
+import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount}
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
@@ -42,10 +41,9 @@ import net.liftweb.util._
 import scala.xml.Text
 import net.liftweb.common.{Box, Failure, Empty, Full}
 import java.util.Date
-import code.model.OBPAccount
-import code.model.OBPAccount.{APublicAlias, APrivateAlias}
 import net.liftweb.http.js.JsCmds.Noop
-import code.model._
+import code.model.implementedTraits._
+import code.model.traits._
 
 class OBPTransactionSnippet {
 
@@ -66,7 +64,7 @@ class OBPTransactionSnippet {
   val filteredTransactions = transactions.map(view.moderate(_))
   
   def displayAll = {
-    def orderByDateDescending = (t1: FilteredTransaction, t2: FilteredTransaction) => {
+    def orderByDateDescending = (t1: ModeratedTransaction, t2: ModeratedTransaction) => {
       val date1 = t1.finishDate getOrElse new Date()
       val date2 = t2.finishDate getOrElse new Date()
       date1.after(date2)
@@ -78,7 +76,7 @@ class OBPTransactionSnippet {
   }
 
 
-  def individualTransaction(transaction: FilteredTransaction): CssSel = {
+  def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     def aliasRelatedInfo: CssSel = {
       transaction.aliasType match{
         case Public =>
@@ -180,7 +178,7 @@ class OBPTransactionSnippet {
     commentsInfo
   }
   
-  def editableNarrative(transaction: FilteredTransaction) = {
+  def editableNarrative(transaction: ModeratedTransaction) = {
     var narrative = transaction.ownerComment match {
       case Some (a) => a
       case _ => ""
@@ -193,14 +191,14 @@ class OBPTransactionSnippet {
     }, "Narrative")
   }
 
-  def displayNarrative(transaction: FilteredTransaction): NodeSeq = {
+  def displayNarrative(transaction: ModeratedTransaction): NodeSeq = {
     view.name match {
       case "my-view" => editableNarrative(transaction)
       case _ => Text(transaction.ownerComment getOrElse "")
     }
   }
 
-  def hasSameDate(t1: FilteredTransaction, t2: FilteredTransaction): Boolean = {
+  def hasSameDate(t1: ModeratedTransaction, t2: ModeratedTransaction): Boolean = {
 
     val date1 = t1.finishDate getOrElse new Date()
     val date2 = t2.finishDate getOrElse new Date()
@@ -224,7 +222,7 @@ class OBPTransactionSnippet {
    * 	output: List(List(Jan 5), List(Jan 6), List(Jan 7,Jan 7),
    * 				 List(Jan 8), List(Jan 9,Jan 9,Jan 9), List(Jan 10))
    */
-  def groupByDate(list: List[FilteredTransaction]): List[List[FilteredTransaction]] = {
+  def groupByDate(list: List[ModeratedTransaction]): List[List[ModeratedTransaction]] = {
     list match {
       case Nil => Nil
       case h :: Nil => List(list)
@@ -246,7 +244,7 @@ class OBPTransactionSnippet {
 //      ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
 //  }
   
-  def daySummary(transactionsForDay: List[FilteredTransaction]) = {
+  def daySummary(transactionsForDay: List[ModeratedTransaction]) = {
     val aTransaction = transactionsForDay.last
     val date = aTransaction.finishDate match{
         case Some(d) => (new SimpleDateFormat("MMMM dd, yyyy")).format(d)

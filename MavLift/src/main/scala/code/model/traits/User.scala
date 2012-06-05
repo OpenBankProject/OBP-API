@@ -1,6 +1,6 @@
-package code.model
+package code.model.traits
 
-trait OBPUser {
+trait User {
   
   def emailAddress : String
   def userName : String

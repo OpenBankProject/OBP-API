@@ -1,4 +1,4 @@
-package code.model
+package code.model.traits
 import scala.math.BigDecimal
 import java.util.Date
 
@@ -8,7 +8,7 @@ trait Transaction {
  
   def account : BankAccount
   
-  def otherParty : NonObpAccount
+  def metaData : MetaData
   
   //E.g. cash withdrawal, electronic payment, etc.
   def transactionType : String

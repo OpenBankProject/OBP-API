@@ -1,4 +1,6 @@
-package code.model
+package code.model.implementedTraits
+
+import code.model.traits.{BankAccount,AccountOwner}
 
 class TesobeAccountOwner(ownedBankAccounts: Set[BankAccount]) extends AccountOwner{
 

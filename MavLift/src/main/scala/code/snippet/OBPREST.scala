@@ -62,7 +62,7 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model._
+import code.model.dataAccess.OBPEnvelope
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 

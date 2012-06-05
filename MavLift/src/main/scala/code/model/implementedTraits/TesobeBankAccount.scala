@@ -1,4 +1,4 @@
-package code.model
+package code.model.implementedTraits
 
 import scala.math.BigDecimal
 import java.util.Date
@@ -6,6 +6,9 @@ import scala.collection.immutable.Set
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Full
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
+import code.model.traits.{BankAccount,AccountOwner}
+import code.model.dataAccess.{Account,OBPEnvelope}
+import code.model.traits.Transaction
 
 class TesobeBankAccount extends BankAccount {
 

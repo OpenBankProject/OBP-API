@@ -25,7 +25,7 @@ Open Bank Project (http://www.openbankproject.com)
 		Everett Sochowski: everett AT tesobe DOT com
 
  */
-package code.model
+package code.model.dataAccess
 
 import net.liftweb.mapper._
 import net.liftweb.util._
@@ -36,13 +36,13 @@ import net.liftweb.sitemap.Loc.LocGroup
 import net.liftweb.http.S
 import net.liftweb.http.SessionVar
 import com.mongodb.QueryBuilder
-import code.model._
-
+import code.model.traits.{View,BankAccount,User}
+import code.model.implementedTraits._
 /**
  * An O-R mapped "User" class that includes first name, last name, password
  */
-class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
-  def getSingleton = User // what's the "meta" server
+class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with User{
+  def getSingleton = OBPUser // what's the "meta" server
   
   def emailAddress = email.get
   def userName = firstName.get
@@ -54,10 +54,10 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
     var views : Set[View] = Set()
     acc match{
       case Full(a) => {
-        if(User.hasOurNetworkPermission(a)) views = views + OurNetwork
-        if(User.hasTeamPermission(a)) views = views + Team
-        if(User.hasBoardPermission(a)) views = views + Board
-        if(User.hasAuthoritiesPermission(a)) views = views + Authorities
+        if(OBPUser.hasOurNetworkPermission(a)) views = views + OurNetwork
+        if(OBPUser.hasTeamPermission(a)) views = views + Team
+        if(OBPUser.hasBoardPermission(a)) views = views + Board
+        if(OBPUser.hasAuthoritiesPermission(a)) views = views + Authorities
         if(a.anonAccess.get) views = views + Anonymous
         views
       }
@@ -69,7 +69,7 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
 /**
  * The singleton that has methods for accessing the database
  */
-object User extends User with MetaMegaProtoUser[User]{
+object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   
   override def dbTableName = "users" // define the DB table name
     
@@ -118,11 +118,11 @@ object User extends User with MetaMegaProtoUser[User]{
   }
   
   def hasMoreThanAnonAccess(account: Account) : Boolean = {
-      User.hasAuthoritiesPermission(account) ||
-      User.hasBoardPermission(account) ||
-      User.hasOurNetworkPermission(account) ||
-      User.hasOwnerPermission(account) ||
-      User.hasTeamPermission(account)
+      OBPUser.hasAuthoritiesPermission(account) ||
+      OBPUser.hasBoardPermission(account) ||
+      OBPUser.hasOurNetworkPermission(account) ||
+      OBPUser.hasOwnerPermission(account) ||
+      OBPUser.hasTeamPermission(account)
   }
   
   def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
@@ -153,16 +153,16 @@ class ourMappedBoolean[T<:Mapper[T]](fieldOwner: T) extends MappedBoolean[T](fie
 class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
 	with OneToMany[Long, Privilege]{
   def getSingleton = Privilege
-  object user extends LongMappedMapper(this, User){
+  object user extends LongMappedMapper(this, OBPUser){
     override def validSelectValues =
-    	Full(User.findMap(
-    			OrderBy(User.email, Ascending)){
+    	Full(OBPUser.findMap(
+    			OrderBy(OBPUser.email, Ascending)){
     			case u: User => Full(u.id.is -> u.email.is)
     	})
     override def displayHtml = <span>User email</span>  //TODO: we don't want HTML in the code
     override def asHtml = {
       val email = (for {
-    	  u <- User.find(user.get)
+    	  u <- OBPUser.find(user.get)
       } yield u.email.get).getOrElse("User email not found")
 
       <span>{email}</span>
