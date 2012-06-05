@@ -24,7 +24,7 @@ trait Transaction {
   
   // Owner provided comment, done in OBP
   def ownerComment : Option[String]
-  
+  def ownerComment(comment : String) 
   def comments : List[Comment]
   
   // The date the transaction was initiated

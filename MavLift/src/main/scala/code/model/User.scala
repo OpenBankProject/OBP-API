@@ -45,7 +45,7 @@ class User extends MegaProtoUser[User] with OneToMany[Long, User] with OBPUser{
   def getSingleton = User // what's the "meta" server
   
   def emailAddress = email.get
-  
+  def userName = firstName.get
   def permittedViews(bankAccount : BankAccount) : Set[View] = {
     //TODO: Stop ignoring the bankAccount parameter
     val acc = Account.currentAccount

@@ -101,7 +101,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
 
 object Account extends Account with MongoMetaRecord[Account] {
   import net.liftweb.json.JsonDSL._
-  val currentAccount = Account.find(("holder", "Music Pictures Limited"))
+  def currentAccount = Account.find(("holder", "Music Pictures Limited"))
 }
 
 class OtherAccount private() extends BsonRecord[OtherAccount] {

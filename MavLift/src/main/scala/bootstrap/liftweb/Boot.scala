@@ -75,7 +75,7 @@ class Boot extends Loggable{
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
 
-    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+    val theOnlyAccount = Account.currentAccount
     
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){

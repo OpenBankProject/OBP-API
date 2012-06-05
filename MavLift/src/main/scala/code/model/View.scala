@@ -1,4 +1,6 @@
 package code.model
+import code.snippet.CustomEditable
+import net.liftweb.http.SHtml
 
 class AliasType
 class Alias extends AliasType
@@ -9,7 +11,32 @@ object NoAlias extends AliasType
 case class AccountName(display: String, aliasType: AliasType)
 
 trait View {
-
+	
+  //the view settings 
+  def usePrivateAliasIfOneExists: Boolean
+  def usePublicAliasIfOneExists: Boolean
+  
+  //reading access
+  def canSeeMoreInfo: Boolean
+  def canSeeUrl: Boolean
+  def canSeeImageUrl: Boolean
+  def canSeeOpenCorporatesUrl: Boolean
+  def canSeeComments: Boolean
+  def canSeeOwnerComment: Boolean
+  def canSeeTransactionLabel: Boolean
+  def canSeeTransactionAmount: Boolean
+  def canSeeTransactionType: Boolean
+  def canSeeTransactionCurrency: Boolean
+  def canSeeTransactionStartDate: Boolean
+  def canSeeTransactionFinishDate: Boolean
+  def canSeeTransactionBalance: Boolean
+  
+  //writing access
+  def canEditOwnerComment: Boolean
+  def canAddComments : Boolean
+  // In the future we can add a method here to allow someone to show only transactions over a certain limit
+  
+  
   //e.g. "Anonymous", "Authorities", "Our Network", etc.
   def name: String
 
@@ -40,7 +67,12 @@ trait View {
     }
 
     val ownerComment = {
-      if (canSeeOwnerComment) Some(transaction.ownerComment)
+//      if(canEditOwnerComment) {
+//        var comment =transaction.ownerComment.getOrElse("");
+//        CustomEditable.editable(comment, SHtml.text(comment, comment = _), () => {transaction.ownerComment(comment)}, "Owner Comment")
+//      }
+//      else 
+        if (canSeeOwnerComment) transaction.ownerComment
       else None
     }
 
@@ -98,32 +130,18 @@ trait View {
       if (canSeeTransactionBalance) transaction.balance.toString()
       else ""
     }
-
+    val addCommentFunc= if(canAddComments) Some(transaction.addComment _) else None
+    
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, 
+      addCommentFunc)
   }
-
-  def usePrivateAliasIfOneExists: Boolean
-  def usePublicAliasIfOneExists: Boolean
-  def canSeeMoreInfo: Boolean
-  def canSeeUrl: Boolean
-  def canSeeImageUrl: Boolean
-  def canSeeOpenCorporatesUrl: Boolean
-  def canSeeComments: Boolean
-  def canSeeOwnerComment: Boolean
-  def canSeeTransactionLabel: Boolean
-  def canSeeTransactionAmount: Boolean
-  def canSeeTransactionType: Boolean
-  def canSeeTransactionCurrency: Boolean
-  def canSeeTransactionStartDate: Boolean
-  def canSeeTransactionFinishDate: Boolean
-  def canSeeTransactionBalance: Boolean
-  // In the future we can add a method here to allow someone to show only transactions over a certain limit
 }
 
 trait ViewCompanion {
+  //this method must be used to transforme the url into a view (if the user is allowed)
   def fromUrl(a: String): View
 }
 
@@ -147,6 +165,8 @@ class BaseView extends View {
   def canSeeTransactionStartDate = false
   def canSeeTransactionFinishDate = false
   def canSeeTransactionBalance = false
+  def canEditOwnerComment= false
+  def canAddComments = false
 }
 
 class FullView extends View {
@@ -168,20 +188,23 @@ class FullView extends View {
   def canSeeTransactionStartDate = true
   def canSeeTransactionFinishDate = true
   def canSeeTransactionBalance = true
+  def canEditOwnerComment= true
+  def canAddComments = true
 }
 
 object Team extends FullView {
-
   override def name = "Team"
+  override def canEditOwnerComment= false
 }
 object Board extends FullView {
-
   override def name = "Board"
+  override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
-
   override def name = "Authorities"
+  override def canEditOwnerComment= false    
 }
+
 object Anonymous extends BaseView { 
   //the actual class extends the BaseView but in fact it does not matters be cause we don't care about the values 
   //of the canSeeMoreInfo, canSeeUrl,etc  attributes and we implement a specific moderate method
@@ -227,7 +250,7 @@ object Anonymous extends BaseView {
     val comments = None
 
     val ownerComment = {
-      if (canSeeOwnerComment) Some(transaction.ownerComment)
+      if (canSeeOwnerComment) transaction.ownerComment
       else None
     }
 
@@ -250,7 +273,7 @@ object Anonymous extends BaseView {
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, None)
 
   }
   
@@ -278,7 +301,7 @@ object Anonymous extends BaseView {
 
     val comments = Some(transaction.comments)
 
-    val ownerComment = Some(transaction.ownerComment)
+    val ownerComment = transaction.ownerComment
 
     val transactionLabel = Some(transaction.label)
 
@@ -298,8 +321,10 @@ object Anonymous extends BaseView {
     val filteredNonObpAccount = new FilteredNonObpAccount(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new FilteredTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, transaction.addComment _)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, Some(transaction.addComment _))
   	}
   }
 
-
+object OwnerView extends FullView {
+  
+}
