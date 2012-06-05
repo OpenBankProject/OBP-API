@@ -10,7 +10,10 @@ object NoAlias extends AliasType
 case class AccountName(display: String, aliasType: AliasType)
 
 trait View {
-	
+	  
+  //e.g. "Anonymous", "Authorities", "Our Network", etc.
+  def name: String
+  
   //the view settings 
   def usePrivateAliasIfOneExists: Boolean
   def usePublicAliasIfOneExists: Boolean
@@ -35,10 +38,6 @@ trait View {
   def canAddComments : Boolean
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
   
-  
-  //e.g. "Anonymous", "Authorities", "Our Network", etc.
-  def name: String
-
   def moderate(transaction: Transaction): ModeratedTransaction = {
     val moreInfo = {
       if (canSeeMoreInfo) Some(transaction.metaData.moreInfo)
@@ -74,7 +73,7 @@ trait View {
         if (canSeeOwnerComment) transaction.ownerComment
       else None
     }
-
+    
     val transactionLabel = {
       if (canSeeTransactionLabel) Some(transaction.label)
       else None
@@ -130,12 +129,13 @@ trait View {
       else ""
     }
     val addCommentFunc= if(canAddComments) Some(transaction.addComment _) else None
+    val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.ownerComment _) else None
     
     val filteredNonObpAccount = new ModeratedMetaData(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
-
+      
     new ModeratedTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
       transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, 
-      addCommentFunc)
+      addCommentFunc, addOwnerCommentFunc)
   }
 }
 

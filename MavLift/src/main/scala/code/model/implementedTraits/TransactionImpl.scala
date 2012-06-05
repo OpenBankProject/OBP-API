@@ -68,7 +68,8 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
     }
     showNarrative
   }
-
+  def ownerComment(comment : String) : Unit = env.narrative(comment).save
+    
   def comments : List[Comment] = { 
     env.obp_comments.get.map(new CommentImpl(_))
   }
@@ -95,10 +96,6 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
     }
     
   }
-  def ownerComment(comment : String) : Unit=  
-  {
-    env.narrative(comment).save
-  }
-    
+
 }
 

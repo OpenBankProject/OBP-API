@@ -92,13 +92,15 @@ object Anonymous extends BaseView {
     val filteredNonObpAccount = new ModeratedMetaData(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new ModeratedTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, None)
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, 
+      None, None)
 
   }
   
 }
 
   object OurNetwork extends BaseView {
+    override def name = "Our Network"
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     val accountHolderName: AccountName = {
         val privateAlias = transaction.metaData.privateAlias
@@ -140,10 +142,11 @@ object Anonymous extends BaseView {
     val filteredNonObpAccount = new ModeratedMetaData(otherPartyAccountId, accountDisplayName, accountAliasType, moreInfo, url, imageUrl, openCorporatesUrl);
 
     new ModeratedTransaction(transactionId, Some(transaction.account), Some(filteredNonObpAccount), transactionType, transactionAmount,
-      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, Some(transaction.addComment _))
+      transactionCurrency, transactionLabel, ownerComment, comments, transactionStartDate, transactionFinishDate, transactionBalance, 
+      Some(transaction.addComment _),None)
   	}
   }
 
-object OwnerView extends FullView {
-  
+object Owner extends FullView {
+  override def name="owner view"
 }

@@ -4,7 +4,7 @@ import java.util.Date
 class ModeratedTransaction(filteredId: Option[String], filteredAccount: Option[BankAccount], filteredOtherParty: Option[ModeratedMetaData],
   filteredTransactionType: Option[String], filteredAmount: Option[BigDecimal], filteredCurrency: Option[String], filteredLabel: Option[Option[String]],
   filteredOwnerComment: Option[String], filteredComments: Option[List[Comment]], filteredStartDate: Option[Date], filteredFinishDate: Option[Date],
-  filteredBalance : String, addCommentFunc: Option[(Comment => Unit)]) {
+  filteredBalance : String, addCommentFunc: Option[(Comment => Unit)], addOwnerComment : Option[(String => Unit)]) {
   
   //addCommentFunc: (Comment => Unit)
   //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
@@ -39,12 +39,10 @@ class ModeratedTransaction(filteredId: Option[String], filteredAccount: Option[B
     case _ => None
   }
   def ownerComment = filteredOwnerComment 
+  def ownerComment(text : String) = addOwnerComment
   
   def amount = filteredAmount 
-  def comments : List[Comment] =  filteredComments match {
-    case Some(o) => o
-    case _ => List()
-  }
+  def comments = filteredComments 
   def id = filteredId match {
     case Some(a) => a
     case _ => ""
