@@ -151,33 +151,30 @@ class OBPTransactionSnippet {
     }
 
     def commentsInfo = {
-      {
         //If we're not allowed to see comments, don't show the comments section
-        transaction.comments match 
+      {  transaction.comments match 
         {
           case None => ".comments *" #> ""
-          case Some(list) =>{
-        	  					".comment *" #> list.length 
-        	  					".comments_ext [href]" #>  view.name + "/transactions/" + transaction.id + "/comments"
-        	  					 NOOP_SELECTOR
-          					}  
-        }
-      } &
-        ".symbol *" #> { transaction.amount match {
-        				  	case Some(a) => if (a < 0) "-" else "+"
-        				  	case _ => ""
-        				}} &
-        ".out [class]" #> { transaction.amount match{
-        				  	case Some(a) => if (a <0) "out" else "in"
-        				  	case _ => ""
-        					} }
-    }
+          case Some(o) => {      ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
+      ".comment *" #> {transaction.comments match {case None => "0" case Some(o)=> o.length.toString()} }}
+        } 
+      }&
+		".symbol *" #> { transaction.amount match {
+		        				  	case Some(a) => if (a < 0) "-" else "+"
+		        				  	case _ => ""
+		        				}} &
+	    ".out [class]" #> { transaction.amount match{
+	        				  	case Some(a) => if (a <0) "out" else "in"
+	        				  	case _ => ""
+	        					} }
+      
+    }  
     
     ".the_name *" #> transaction.accountHolder &
     ".amount *" #> { "€" + {transaction.amount match { 
       					case Some(o) => o.toString().stripPrefix("-")
       					case _ => ""}
-                                                     }  } & //TODO: Format this number according to locale
+                                                     }  } & 
     aliasRelatedInfo &
     otherPartyInfo &
     commentsInfo
