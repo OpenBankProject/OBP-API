@@ -39,8 +39,12 @@ class ModeratedTransaction(filteredId: Option[String], filteredAccount: Option[B
     case _ => None
   }
   def ownerComment = filteredOwnerComment 
-  def ownerComment(text : String) = addOwnerComment
-  
+  def ownerComment(text : String) = {
+    addOwnerComment match {
+    	case None => None
+    	case Some(o) => o.apply(text)
+    }
+  }
   def amount = filteredAmount 
   def comments = filteredComments 
   def id = filteredId match {

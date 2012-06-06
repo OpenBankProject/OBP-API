@@ -38,7 +38,6 @@ class TransactionImpl(env : OBPEnvelope) extends Transaction with Loggable {
   }
 
   def metaData: MetaData = { 
-    //TODO: Return something once NonObpAccount is implemented
     new MetaDataImpl(oAcc)
   }
 
