@@ -50,7 +50,7 @@ class OBPTransactionSnippet {
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val FORBIDDEN = "---"
   
-  
+  //TODO : implenting a more proper way to load the appropriate view regarding the URL
   val view = S.uri match {
     case uri if uri.endsWith("authorities") => Authorities
     case uri if uri.endsWith("board") => Board
@@ -59,26 +59,14 @@ class OBPTransactionSnippet {
     case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
     case _ => Anonymous
   }	
-  println("current view name : "+view.name)
   
+  //TODO : This snippet should receive the bankAccount as a parameter 
   val bankAccount = TesobeBankAccount.bankAccount
   val transactions = bankAccount.transactions
   val filteredTransactions = transactions.map(view.moderate(_))
   
-  def displayAll = {
-    def orderByDateDescending = (t1: ModeratedTransaction, t2: ModeratedTransaction) => {
-      val date1 = t1.finishDate getOrElse new Date()
-      val date2 = t2.finishDate getOrElse new Date()
-      date1.after(date2)
-    }
-    
-    val sortedTransactions = groupByDate(filteredTransactions.toList.sort(orderByDateDescending))
-    
-    "* *" #> sortedTransactions.map( transactionsForDay => {daySummary(transactionsForDay)})
-  }
-
-
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
+    
     def aliasRelatedInfo: CssSel = {
       transaction.aliasType match{
         case Public =>
@@ -121,13 +109,14 @@ class OBPTransactionSnippet {
 
         def openCorporatesNotBlank =
           ".open_corporates_link [href]" #> transaction.openCorporatesUrl
-
+          
+         ".the_name *" #> transaction.accountHolder&  
         ".narrative *" #>  displayNarrative(transaction,view) & 
           {
             transaction.moreInfo match{
-              case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
-              case _ => moreInfoBlank
-            }
+							              case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
+							              case _ => moreInfoBlank
+            							}
           } &
           {
             transaction.imageUrl match{
@@ -155,11 +144,23 @@ class OBPTransactionSnippet {
       {  transaction.comments match 
         {
           case None => ".comments *" #> ""
-          case Some(o) => {      ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
-      ".comment *" #> {transaction.comments match {case None => "0" case Some(o)=> o.length.toString()} }}
-        } 
-      }&
-		".symbol *" #> { transaction.amount match {
+          case Some(o) => {     
+        	  				".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
+        	  				".comment *" #> {o.length.toString()} 
+        	  				}
+          }
+      }
+    }  
+    
+    def transactionInformations = {
+      ".amount *" #> { "€" + { transaction.amount match { 
+								      					 case Some(o) => o.toString().stripPrefix("-")
+								      					 case _ => ""
+								      				   }
+                            }  
+    				} 
+    
+    	".symbol *" #> { transaction.amount match {
 		        				  	case Some(a) => if (a < 0) "-" else "+"
 		        				  	case _ => ""
 		        				}} &
@@ -167,17 +168,23 @@ class OBPTransactionSnippet {
 	        				  	case Some(a) => if (a <0) "out" else "in"
 	        				  	case _ => ""
 	        					} }
-      
-    }  
-    
-    ".the_name *" #> transaction.accountHolder &
-    ".amount *" #> { "€" + {transaction.amount match { 
-      					case Some(o) => o.toString().stripPrefix("-")
-      					case _ => ""}
-                                                     }  } & 
+    }
+   transactionInformations & 
     aliasRelatedInfo &
     otherPartyInfo &
     commentsInfo
+  }
+  
+  def displayAll = {
+    def orderByDateDescending = (t1: ModeratedTransaction, t2: ModeratedTransaction) => {
+      val date1 = t1.finishDate getOrElse new Date()
+      val date2 = t2.finishDate getOrElse new Date()
+      date1.after(date2)
+    }
+    
+    val sortedTransactions = groupByDate(filteredTransactions.toList.sort(orderByDateDescending))
+    
+    "* *" #> sortedTransactions.map( transactionsForDay => {daySummary(transactionsForDay)})
   }
   
   def editableNarrative(transaction : ModeratedTransaction) = {
