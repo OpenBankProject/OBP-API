@@ -10,6 +10,8 @@ import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
+import code.model.implementedTraits.{TesobeBankAccount}
+import code.model.traits.{MetaData}
 
 class Management {
 
@@ -24,14 +26,15 @@ class Management {
   
   def showAll(xhtml: NodeSeq) : NodeSeq = {
     //temporary way to retrieve the account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
+	  val currentAccount = TesobeBankAccount.bankAccount
     
-    def getMostUpToDateOtherAccount(holder: String) = {
-    	currentAccount.otherAccounts.get.find(o => {
-    	  o.holder.get.equals(holder)
-    	})
-    }
+  def getMostUpToDateOtherAccount(holder: String) : Option[MetaData] = {
+	    currentAccount.transactions.find(o =>{o.metaData.accountHolderName.equals(holder)})  match 
+	    {
+	      case None => None
+	      case Some(transaction)=> Some(transaction.metaData)
+	    }
+	  }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
       def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
@@ -63,8 +66,7 @@ class Management {
       editable(initialValue, holder, openCorporatesUrl, "Open Corporates URL")
     }
     
-    def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount,
-        defaultValue: String) = {
+    def editable(initialValue: String, holder: String,  alterOtherAccount: (MetaData, String) => MetaData, defaultValue: String) = {
       var currentValue = initialValue
       
       def saveValue() = {
@@ -148,7 +150,7 @@ class Management {
     }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
-      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
+      def alterPublicAlias = (oAccount: MetaData, newValue: String) => oAccount.publicAlias(newValue)
       editable(initialValue, holder, alterPublicAlias)
     }
     
