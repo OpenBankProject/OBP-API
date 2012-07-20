@@ -56,6 +56,16 @@
       <version>2.4-M4</version>
     </dependency>
     <dependency>
+    	<groupId>net.databinder</groupId>
+    	<artifactId>dispatch-http_${scala.version}</artifactId>
+    	<version>0.8.6</version>
+    </dependency>
+    <dependency>
+    	<groupId>net.databinder</groupId>
+    	<artifactId>dispatch-oauth_${scala.version}</artifactId>
+    	<version>0.8.6</version>
+    </dependency>
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>0.9.26</version>
