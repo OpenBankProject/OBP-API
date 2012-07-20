@@ -25,68 +25,85 @@ import net.liftweb.util.Helpers._
 object OAuthHandshake extends RestHelper
 {
   	serve 
-  	{	    
+  	{
+  		//Handling get request for a "request token"	    
 	  	case Req("oauth" :: "initiate" :: Nil,_ ,PostRequest) => 
 	  	{
-		  	val httpCodeDataAndMap = validator("requestToken")
-		  	val httpCode = httpCodeDataAndMap._1
-		  	var data = httpCodeDataAndMap._2 
-		  	val oAuthParameters = httpCodeDataAndMap._3
+	  		//Extract the OAuth parameters from the header and test if the request is valid
+		  	var (httpCode, data, oAuthParameters) = validator("requestToken")
+		  	//Test if the request is valid 
 		  	if(httpCode==200)
 		  	{
-		    	val tokenAndSecret = generateTokenAndSecret(oAuthParameters.get("oauth_consumer_key").get)
-		    	if(saveRequestToken(oAuthParameters,tokenAndSecret._1, tokenAndSecret._2))
-		    		data=("oauth_token="+tokenAndSecret._1+"&oauth_token_secret="+tokenAndSecret._2+"&oauth_callback_confirmed=true").getBytes()
+		  		//Generate the token and secret 
+		    	val (token,secret) = generateTokenAndSecret(oAuthParameters.get
+		    		("oauth_consumer_key").get)
+		    	//Save the token that we have generated
+		    	if(saveRequestToken(oAuthParameters,token, secret))
+		    		data=("oauth_token="+token+"&oauth_token_secret="+
+		    			secret+"&oauth_callback_confirmed=true").getBytes()
 			}									    		
 	      	val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
+	      	//return an HTTP response 
 	      	Full(InMemoryResponse(data,headers,Nil,httpCode))
 	  	}
 	  	case Req("oauth" :: "token" :: Nil,_, PostRequest) => 
 	  	{
-		  	val httpCodeDataAndMap = validator("authorizationToken")
-		  	val httpCode = httpCodeDataAndMap._1
-		  	var data = httpCodeDataAndMap._2 
-		  	val oAuthParameters = httpCodeDataAndMap._3
+	  		//Extract the OAuth parameters from the header and test if the request is valid
+			var (httpCode, data, oAuthParameters) = validator("requestToken")
+		  	//Test if the request is valid 
 		  	if(httpCode==200)
 		  	{
-		    	val tokenAndSecret = generateTokenAndSecret(oAuthParameters.get("oauth_consumer_key").get)
+		  		//Generate the token and secret 
+		    	val (token,secret) = generateTokenAndSecret(oAuthParameters.get
+		    		("oauth_consumer_key").get)
+		    	//Save the token that we have generated	
+		    	if(saveAuthorizationToken(oAuthParameters,token, secret))
+		    		//remove the request token so the application could not exchange it 
+		    		//again to get an other access token
+			    	Token.find(By(Token.key,oAuthParameters.get("oauth_token").get)) match {
+			      		case Full(requestToken) => requestToken.delete_!
+			      		case _ => None
+			      	}
 
-		    	if(saveAuthorizationToken(oAuthParameters,tokenAndSecret._1, tokenAndSecret._2))
-			      Token.find(By(Token.key,oAuthParameters.get("oauth_token").get)) match {
-			      	case Full(requestToken) => requestToken.delete_!
-			      	case _ => None
-			      }
-
-			    data=("oauth_token="+tokenAndSecret._1+"&oauth_token_secret="+tokenAndSecret._2+"&oauth_callback_confirmed=true").getBytes()
+			    data=("oauth_token="+token+"&oauth_token_secret="+secret+
+			    	"&oauth_callback_confirmed=true").getBytes()
 		  	}		      
 		  	val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
+		  	//return an HTTP response 
 	      	Full(InMemoryResponse(data,headers,Nil,httpCode))
 	  	}
   	}
   
+  	//Check if the request (access toke or request token) is valid and return a tuple  
   	private def validator(requestType : String) = 
   	{
+  		//return a Map containing the OAuth parameters : oauth_prameter -> value 
 	    def getAllParameters(requestType : String) = 
 	    {
-			//convert the string containing the list of OAuth parameters to a Map 
+			//Convert the string containing the list of OAuth parameters to a Map 
 			def toMap(parametersList : String) = 
 			{
+				//transform the string "oauth_prameter="value"" 
+				//to a tuple (oauth_parameter,Decoded(value)) 
 				def dynamicListExtract(input: String)  = 
 			  	{
-					val oauthPossibleParameters = List("oauth_consumer_key","oauth_nonce","oauth_signature_method",
-						"oauth_timestamp","oauth_version", "oauth_signature","oauth_callback","oauth_token","oauth_verifier")
+					val oauthPossibleParameters = List("oauth_consumer_key","oauth_nonce",
+						"oauth_signature_method", "oauth_timestamp","oauth_version", 
+						"oauth_signature","oauth_callback", "oauth_token","oauth_verifier")
+				    
 				    if (input contains "=") {
-				      val split = input.split("=",2)
-				      val parameterValue = URLDecoder.decode(split(1)).replace("\"","")
-				      //add only oauth parameters and not empty
-				      if(oauthPossibleParameters.contains(split(0)) && ! parameterValue.isEmpty)
-				       	  Some(split(0),parameterValue)  // return key , value
-				      else
-				        None
+				    	val split = input.split("=",2)
+				      	val parameterValue = URLDecoder.decode(split(1)).replace("\"","")
+				      	//add only OAuth parameters and not empty
+				      	if(oauthPossibleParameters.contains(split(0)) && ! parameterValue.isEmpty)
+				       		Some(split(0),parameterValue)  // return key , value
+				      	else
+				        	None
 				    } 
 				    else 
 				      None 
 			  	}
+
 				Map(parametersList.split(",").flatMap(dynamicListExtract _): _*)
 			}
 			
@@ -100,11 +117,13 @@ object OAuthHandshake extends RestHelper
 		      	case _ => Map(("",""))
 		    }
 	    }
+	    //return true if the authorization header has a duplicated parameter 
 	    def duplicatedParameters =
 	    {
 		  	var output=false
 		  	val authorizationParameters = S.request.get.header("Authorization").get.split(",") 
-		  	//count the iteration of a parameter in the authorization header 
+		  	
+		  	//count the iterations of a parameter in the authorization header 
 		  	def countPram(parameterName : String, parametersArray :Array[String] )={
 		  	  var i = 0
 		  	  parametersArray.foreach(t => {if (t.split("=")(0) == parameterName) i+=1})
@@ -119,25 +138,27 @@ object OAuthHandshake extends RestHelper
 	    	
 		  	output
 	    }
+
 	    def suportedOAuthVersion(OAuthVersion : Option[String]) : Boolean = {
 		    //auth_version is OPTIONAL.  If present, MUST be set to "1.0".
 		    OAuthVersion match
 		    {
-		      case Some(a) =>  if(a=="1" || a=="1.0") true else false
+		      case Some(a) =>  a=="1" || a=="1.0"
 		      case _ => true
 		    }
 	    }
 	    def wrongTimestamp(requestTimestamp : Date) = {
 	    	val currentTime = Platform.currentTime
 	    	val timeRange : Long = 60000 //3 minutes
-
+	    	//check if the timestamp is positive and in the time range	
 	    	requestTimestamp.getTime < 0 || requestTimestamp.before(new Date(currentTime - timeRange)) ||  requestTimestamp.after(new Date(currentTime + timeRange))
 	    }
+
 	    def alReadyUsedNonce(parameters : Map[String, String]) = {
 
-			   /*The nonce value MUST be unique across all requests with the
+			 /*The nonce value MUST be unique across all requests with the
 			   same timestamp, client credentials, and token combinations.
-			   */
+			 */
 	    	val token = parameters.get("oauth_token") getOrElse ""
 		    
 	    	Nonce.findAll(By(Nonce.value,parameters.get("oauth_nonce").get), By(Nonce.tokenKey, token),
@@ -152,30 +173,33 @@ object OAuthHandshake extends RestHelper
 		      case _ => false
 		    }
 	    }
-	    def supportedSignatureMethod(signatureMethod : String) : Boolean= 
-	    {
-		    signatureMethod.toLowerCase()=="hmac-sha256"
-	    }
 	    def correctSignature(OAuthparameters : Map[String, String]) =
 	    {
-		     def generateOAuthParametersString(OAuthparameters : Map[String, String]) : String = 
-		     {
-		       def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
+	    	//Normalize an encode the request parameters as explained in Section 3.4.1.3.2
+	    	//of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
+		    def generateOAuthParametersString(OAuthparameters : Map[String, String]) : String = 
+		    {
+		       	def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
 		       
-		       var parameters =""
+		       	var parameters =""
 
-		       //sort the parameters by name
-		       OAuthparameters.toList.sort(sortParam _).foreach(t => 
-		         if(t._1 != "oauth_signature")
-			     	parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+URLEncoder.encode(t._2,"UTF-8")+"%26"
-		       )
-			   parameters = parameters.dropRight(3) //remove the "&" encoded sign
-			   parameters
-		     }
-		     
+		       	//sort the parameters by name
+		       	OAuthparameters.toList.sort(sortParam _).foreach(t => 
+		        	if(t._1 != "oauth_signature")
+			     		parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+
+			     		URLEncoder.encode(t._2,"UTF-8")+"%26"
+		       	)
+			   	parameters = parameters.dropRight(3) //remove the "&" encoded sign
+			   	parameters
+		    }
+			
+			//prepare the base string	     
 		    var baseString = "POST&"+URLEncoder.encode(S.hostAndPath,"UTF-8")+"&"
 		    baseString+= generateOAuthParametersString(OAuthparameters)
-		    val comsumer = Consumer.find(By(Consumer.key,OAuthparameters.get("oauth_consumer_key").get)).get  
+		    
+		    //get the key to sign 
+		    val comsumer = Consumer.find(By(Consumer.key,OAuthparameters.
+		    	get("oauth_consumer_key").get)).get  
 		    var secret= comsumer.secret.toString()
 		    OAuthparameters.get("oauth_token") match
 		    {
@@ -185,28 +209,37 @@ object OAuthHandshake extends RestHelper
 		        }
 		      case _ => None
 		    }
+
+		    //signing process
 		    var m = Mac.getInstance("HmacSHA256");
 		    m.init(new SecretKeySpec(secret.getBytes(),"HmacSHA256"))
-		    val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes)).dropRight(1) 
+		    val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes)).dropRight(1) //remove the "=" added by the base64Encode method
+		    
 		    println("base string : "+baseString)
 		    println("calculated Signature : "+ calculatedSignature)
 
 		    calculatedSignature==OAuthparameters.get("oauth_signature").get
 	    }
+
+	    //check if the token exists and is still valid
 	    def validToken(tokenKey : String, verifier : String) =
 	    {
 	      	Token.find(By(Token.key, tokenKey)) match
 	      	{
-		        case Full(token) => if(token.expirationDate.compareTo(new Date(Platform.currentTime)) == 1 && token.verifier==verifier)
+		        case Full(token) => if(token.expirationDate.compareTo(new Date(
+		        	Platform.currentTime)) == 1 && token.verifier==verifier)
 		        						true
 		        				    else
 		        					    false
 		        case _ => false
 	      	}
 	    }
+	    //check if the all the necessary OAuth parameters are present regarding 
+	    //the request type 
 	    def enoughtOauthParameters(parameters : Map[String, String], requestType : String) : Boolean = 
 	    {
-	   		val parametersBase = List("oauth_consumer_key","oauth_nonce","oauth_signature_method","oauth_timestamp", "oauth_signature")
+	   		val parametersBase = List("oauth_consumer_key","oauth_nonce","oauth_signature_method",
+	   			"oauth_timestamp", "oauth_signature")
 			
 			if (parameters.size < 6)
 	    		false
@@ -225,10 +258,10 @@ object OAuthHandshake extends RestHelper
 	    }
 	    	
 	    var data =""
-	    var httpCode : Int = 200
+	    var httpCode : Int = 500
 	     
 	    var parameters = getAllParameters(requestType)
-	    correctSignature(parameters)
+	    
 	    //does all the OAuth parameters are presents?
 	    if(! enoughtOauthParameters(parameters,requestType))
 	    {
@@ -244,16 +277,16 @@ object OAuthHandshake extends RestHelper
 	    //valid OAuth  
 	    else if(!suportedOAuthVersion(parameters.get("oauth_version")))
 	    {
-	      data = "OAuth version not suported"
+	      data = "OAuth version not supported"
 	      httpCode = 400
 	    }
 	    //supported signature method
-	    else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+	    else if (parameters.get("oauth_signature_method").get.toLowerCase()!="hmac-sha256")
 	    {
-	      data = "Unsuported signature method"
+	      data = "Unsupported signature method"
 	      httpCode = 400
 	    }
-	    //check if the application is registered 
+	    //check if the application is registered and active
 	    else if(! registeredApplication(parameters.get("oauth_consumer_key").get))
 	    {
 	      data = "Invalid client credentials"
@@ -271,7 +304,7 @@ object OAuthHandshake extends RestHelper
 	      data = "Nonce already used"
 	      httpCode = 401
 	    }
-	    //In the case ot authorisation token request, check if the token is still valid and the verifier is correct  
+	    //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct  
 	    else if(requestType=="authorizationToken" && !validToken(parameters.get("oauth_token").get, parameters.get("oauth_verifier").get))
 	    {
 	      data = "Invalid or expired token"
@@ -374,94 +407,80 @@ object OAuthHandshake extends RestHelper
 	    nonceSaved && tokenSaved
  	}
  	def tokenCheck = 
-	{
-	  S.param("oauth_token") match
-	  {
-	    case Full(token) => 
-	    {
-	      Token.find(By(Token.key,token.toString)) match
-	      {
-	        case Full(appToken) => 
-	        {
-	          //check if the token is still valid
-	          if(appToken.expirationDate.compareTo(new Date(Platform.currentTime)) == 1)
-	          {
-	        	  if(User.loggedIn_?)
-	              {
-					    var verifier =""
-					    if(appToken.verifier.length()==0) 
-					    {
-					    	verifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
-					    	appToken.verifier(verifier)
-					    	appToken.userId(User.currentUserId.get.toLong)
-					    	appToken.save()
-					    }
-					    else
-					    	verifier=appToken.verifier
-					    	
-		                if(Token.callbackURL=="oob")
-		                {
-		                  //show the verifier
-		                  	"#verifier " #> verifier 
-		                }
-		                else
-		                {
-		                  //redirect the user to the application with the verifier
-		                  S.redirectTo(appToken.callbackURL+"?oauth_token="+token+"&oauth_verifier="+verifier)
-		                  "#verifier" #> "we should be redirected"
-		                }
-				  } 
-	              else 
-	              {
-		        	  Consumer.find(By(Consumer.id,appToken.consumerId)) match
-			          {
-			            case Full(consumer) =>
-			            {
-			              "#applicationName" #> consumer.name &
-			              "#verifier" #>NodeSeq.Empty &
-			              "#errorMessage" #> NodeSeq.Empty &
-			              {
-			            	  ".login [action]" #> User.loginPageURL &
-						      ".forgot [href]" #> 
-						      {
-						        val href = for {
-						          menu <- User.resetPasswordMenuLoc
-						        } yield menu.loc.calcDefaultHref
-						        href getOrElse "#"
-						      } & 
-						      ".signup [href]" #> User.signUpPath.foldLeft("")(_ + "/" + _)			                
-			              }
-			            }
-			            case _ => 
-			            {
-			            	"#errorMessage" #> "Application not found" &
-						    "#account" #> NodeSeq.Empty &
-						    "#verifier" #>NodeSeq.Empty
-			            }
-			          }
-				  }
-	          }
-	          else
-	          {
-	        	  "#errorMessage" #> "Token expired" &
-			      "#account" #> NodeSeq.Empty &
-			      "#verifier" #>NodeSeq.Empty
-	          }
-	        }
-	        case _ =>
-	        {
-	          "#errorMessage" #> "This token does not exist" &
-		      "#account" #> NodeSeq.Empty &
-		      "#verifier" #>NodeSeq.Empty
-	        }
-	      }
-	    }
-	    case _ => 
-	    {
-	      "#errorMessage" #> "There is no Token"&
-	      "#account" #> NodeSeq.Empty &
-	      "#verifier" #>NodeSeq.Empty
-	    }
-	  }
-	}
+	  	S.param("oauth_token") match
+	  	{
+		    case Full(token) => 
+		      	Token.find(By(Token.key,token.toString)) match
+		      	{
+			        case Full(appToken) => 
+			          	//check if the token is still valid
+			          	if(appToken.expirationDate.compareTo(new Date(Platform.currentTime)) == 1)
+			        	  	if(User.loggedIn_?)
+			              	{
+							    var verifier =""
+							    if(! appToken.verifier.isEmpty) 
+							    {
+							    	randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
+							    	appToken.verifier(randomVerifier)
+							    	appToken.userId(User.currentUserId.get.toLong)
+							    	if(appToken.save())
+							    		verifier = randomVerifier
+							    }
+							    else
+							    	verifier=appToken.verifier
+							    	
+				                if(Token.callbackURL=="oob")
+				                  	//show the verifier
+				                  	"#verifier " #> verifier 
+				                else
+				                {
+				                  	//redirect the user to the application with the verifier
+				                  	S.redirectTo(appToken.callbackURL+"?oauth_token="+token+"&oauth_verifier="+verifier)
+				                  	"#verifier" #> "you should be redirected"
+				                }
+						  	} 
+			              	else 
+				        	  	Consumer.find(By(Consumer.id,appToken.consumerId)) match
+					          	{
+						            case Full(consumer) =>
+						            {
+						              "#applicationName" #> consumer.name &
+						              "#verifier" #>NodeSeq.Empty &
+						              "#errorMessage" #> NodeSeq.Empty &
+						              {
+						            	  ".login [action]" #> User.loginPageURL &
+									      ".forgot [href]" #> 
+									      {
+									        val href = for {
+									          menu <- User.resetPasswordMenuLoc
+									        } yield menu.loc.calcDefaultHref
+									        href getOrElse "#"
+									      } & 
+									      ".signup [href]" #> 
+									      User.signUpPath.foldLeft("")(_ + "/" + _)			                
+						              }
+						            }
+					            	case _ => 
+					            	{
+					            		"#errorMessage" #> "Application not found" &
+								    	"#userAccess" #> NodeSeq.Empty &
+					            	}
+					          	}
+						else
+			          	{
+			        	  	"#errorMessage" #> "Token expired" &
+					      	"#userAccess" #> NodeSeq.Empty &
+			          	}
+			        case _ =>
+			        {
+			          	"#errorMessage" #> "This token does not exist" &
+				      	"#userAccess" #> NodeSeq.Empty &
+			        }
+		      	}
+		    case _ => 
+		    {
+		      	"#errorMessage" #> "There is no Token"&
+		      	"#userAccess" #> NodeSeq.Empty &
+		    }
+		}
 }
