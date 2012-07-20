@@ -40,6 +40,7 @@ import myapp.model.MongoConfig
 import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
+import code.snippet.OAuthHandshake
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -74,7 +75,16 @@ class Boot extends Loggable{
 
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
+    
+    //OAuth API call
+    LiftRules.dispatch.append(OAuthHandshake) 
+    LiftRules.statelessDispatchTable.append(OAuthHandshake) 
 
+    //OAuth Mapper 
+    Schemifier.schemify(true, Schemifier.infoF _, Nonce)
+    Schemifier.schemify(true, Schemifier.infoF _, Token)
+    Schemifier.schemify(true, Schemifier.infoF _, Consumer)
+    
     val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
     
     def check(bool: Boolean) : Box[LiftResponse] = {
@@ -145,7 +155,8 @@ class Boot extends Loggable{
 		      case _ => false
 		    })
           }) >> Hidden,
-          Menu.i("About") / "about"
+          Menu.i("About") / "about",
+          Menu.i("OAuth") / "oauth" / "authorize" //oAuth authorization page
         )))
 
     LiftRules.statelessRewrite.append{
