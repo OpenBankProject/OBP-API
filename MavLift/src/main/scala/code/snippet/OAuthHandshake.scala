@@ -149,7 +149,7 @@ object OAuthHandshake extends RestHelper
 	    }
 	    def wrongTimestamp(requestTimestamp : Date) = {
 	    	val currentTime = Platform.currentTime
-	    	val timeRange : Long = 60000 //3 minutes
+	    	val timeRange : Long = 180000 //3 minutes
 	    	//check if the timestamp is positive and in the time range	
 	    	requestTimestamp.getTime < 0 || requestTimestamp.before(new Date(currentTime - timeRange)) ||  requestTimestamp.after(new Date(currentTime + timeRange))
 	    }
@@ -215,7 +215,6 @@ object OAuthHandshake extends RestHelper
 		    m.init(new SecretKeySpec(secret.getBytes(),"HmacSHA256"))
 		    val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes)).dropRight(1) //remove the "=" added by the base64Encode method
 		    
-		    println("base string : "+baseString)
 		    println("calculated Signature : "+ calculatedSignature)
 
 		    calculatedSignature==OAuthparameters.get("oauth_signature").get
@@ -420,7 +419,7 @@ object OAuthHandshake extends RestHelper
 							    var verifier =""
 							    if(! appToken.verifier.isEmpty) 
 							    {
-							    	randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
+							    	val randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
 							    	appToken.verifier(randomVerifier)
 							    	appToken.userId(User.currentUserId.get.toLong)
 							    	if(appToken.save())
@@ -444,43 +443,43 @@ object OAuthHandshake extends RestHelper
 					          	{
 						            case Full(consumer) =>
 						            {
-						              "#applicationName" #> consumer.name &
-						              "#verifier" #>NodeSeq.Empty &
-						              "#errorMessage" #> NodeSeq.Empty &
-						              {
-						            	  ".login [action]" #> User.loginPageURL &
-									      ".forgot [href]" #> 
-									      {
-									        val href = for {
-									          menu <- User.resetPasswordMenuLoc
-									        } yield menu.loc.calcDefaultHref
-									        href getOrElse "#"
-									      } & 
-									      ".signup [href]" #> 
-									      User.signUpPath.foldLeft("")(_ + "/" + _)			                
+						              	"#applicationName" #> consumer.name &
+						              	"#verifier" #>NodeSeq.Empty &
+						              	"#errorMessage" #> NodeSeq.Empty &
+						              	{
+						            		".login [action]" #> User.loginPageURL &
+									    	".forgot [href]" #> 
+									    	{
+									        	val href = for {
+									          	menu <- User.resetPasswordMenuLoc
+									        	} yield menu.loc.calcDefaultHref
+									        	href getOrElse "#"
+									    	} & 
+									    	".signup [href]" #> 
+									    	User.signUpPath.foldLeft("")(_ + "/" + _) 
 						              }
 						            }
 					            	case _ => 
 					            	{
 					            		"#errorMessage" #> "Application not found" &
-								    	"#userAccess" #> NodeSeq.Empty &
+								    	"#userAccess" #> NodeSeq.Empty 
 					            	}
 					          	}
 						else
 			          	{
 			        	  	"#errorMessage" #> "Token expired" &
-					      	"#userAccess" #> NodeSeq.Empty &
+					      	"#userAccess" #> NodeSeq.Empty 
 			          	}
 			        case _ =>
 			        {
 			          	"#errorMessage" #> "This token does not exist" &
-				      	"#userAccess" #> NodeSeq.Empty &
+				      	"#userAccess" #> NodeSeq.Empty 
 			        }
 		      	}
 		    case _ => 
 		    {
 		      	"#errorMessage" #> "There is no Token"&
-		      	"#userAccess" #> NodeSeq.Empty &
+		      	"#userAccess" #> NodeSeq.Empty 
 		    }
 		}
 }
