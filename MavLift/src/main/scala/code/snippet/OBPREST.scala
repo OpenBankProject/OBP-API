@@ -71,7 +71,7 @@ import code.model._
 
 
 object OBPRest extends RestHelper with Loggable {
-    println("here we are in OBPRest")
+  println("here we are in OBPRest")
     serve {
 
       
@@ -126,8 +126,10 @@ object OBPRest extends RestHelper with Loggable {
       //
       // WARNING!
       //
-      // If you have not configured a web server to restrict this URL appropriately, anyone will be
-      // able to post transactions to your database. This would obviously be undesirable. So you should
+      // If you have not configured a web server to restrict this URL 
+      // appropriately, anyone will be
+      // able to post transactions to your database. This would obviously 
+      // be undesirable. So you should
       // definitely sort that out.
       //
       //
@@ -139,13 +141,16 @@ object OBPRest extends RestHelper with Loggable {
       })
       
       val ipAddress = json._2.remoteAddr
-      logger.info("Received " + rawEnvelopes.size + " json transactions to insert from ip address " + ipAddress)
-      logger.info("Received " + envelopes.size + " valid transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + rawEnvelopes.size + 
+        " json transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + envelopes.size + 
+        " valid transactions to insert from ip address " + ipAddress)
       
       /**
-       * Using an actor to do insertions avoids concurrency issues with duplicate transactions
-       * by processing transaction batches one at a time. We'll have to monitor this to see if
-       * non-concurrent I/O is too inefficient. If it is, we could break it up into one actor
+       * Using an actor to do insertions avoids concurrency issues with 
+       * duplicate transactions by processing transaction batches one 
+       * at a time. We'll have to monitor this to see if non-concurrent I/O 
+       * is too inefficient. If it is, we could break it up into one actor
        * per "Account".
        */
       val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
@@ -157,31 +162,41 @@ object OBPRest extends RestHelper with Loggable {
     } 
     
     /**
-     * Currently only anonymous level access is supported until authentication is put into place.
+     * Currently only anonymous level access is supported until authentication 
+     * is put into place.
      */
-    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
-    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
-    //to be completely reworked.
-    /*case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
+    // curl -H "Accept: application/json" -H "Context-Type: application/json" -X 
+    // GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    // This is for demo purposes only, as it's showing every single transaction 
+    // rather than everything tesobe specific. This will need
+    // to be completely reworked.
+    // case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
+
+    //   println(accessLevel)
       
-      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+    //   val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
-      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
+    //   val envelopeJson = allEnvelopes.map(envelope => 
+    //     envelope.asMediatedJValue(accessLevel))
       
-      JsonResponse(envelopeJson)
-    }*/
+    //   JsonResponse(envelopeJson)
+    // }
     
     /**
-     * Currently only anonymous level access is supported until authentication is put into place.
+     * Currently only anonymous level access is supported until authentication 
+     * is put into place.
      */
-    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
-    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
-    //to be completely reworked.
+    // curl -H "Accept: application/json" -H "Context-Type: application/json" -X 
+    // GET "http://localhost:8080/api/accounts/tesobe/anonymous"
+    // This is for demo purposes only, as it's showing every single transaction 
+    // rather than everything tesobe specific. This will need
+    // to be completely reworked.
     case "api" :: "accounts" :: "tesobe" :: "anonymous" :: Nil JsonGet _ => {
       
       val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       
-      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous",envelope.id.toString()))
+      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue
+        ("anonymous",envelope.id.toString()))
       
       JsonResponse(envelopeJson)
     }
