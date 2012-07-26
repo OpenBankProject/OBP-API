@@ -57,7 +57,7 @@ object OAuthHandshake extends RestHelper
 	  	case Req("oauth" :: "initiate" :: Nil,_ ,PostRequest) => 
 	  	{
 	  		//Extract the OAuth parameters from the header and test if the request is valid
-		  	var (httpCode, data, oAuthParameters) = validator("requestToken")
+		  	var (httpCode, data, oAuthParameters) = validator("requestToken", "POST")
 		  	//Test if the request is valid 
 		  	if(httpCode==200)
 		  	{
@@ -76,7 +76,7 @@ object OAuthHandshake extends RestHelper
 	  	case Req("oauth" :: "token" :: Nil,_, PostRequest) => 
 	  	{
 	  		//Extract the OAuth parameters from the header and test if the request is valid
-			var (httpCode, data, oAuthParameters) = validator("requestToken")
+			var (httpCode, data, oAuthParameters) = validator("authorizationToken", "POST")
 		  	//Test if the request is valid 
 		  	if(httpCode==200)
 		  	{
@@ -92,8 +92,7 @@ object OAuthHandshake extends RestHelper
 			      		case _ => None
 			      	}
 
-			    data=("oauth_token="+token+"&oauth_token_secret="+secret+
-			    	"&oauth_callback_confirmed=true").getBytes()
+			    data=("oauth_token="+token+"&oauth_token_secret="+secret).getBytes()
 		  	}		      
 		  	val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
 		  	//return an HTTP response 
@@ -102,10 +101,10 @@ object OAuthHandshake extends RestHelper
   	}
   
   	//Check if the request (access toke or request token) is valid and return a tuple  
-  	private def validator(requestType : String) = 
+  	def validator(requestType : String, httpMethod : String) = 
   	{
   		//return a Map containing the OAuth parameters : oauth_prameter -> value 
-	    def getAllParameters(requestType : String) = 
+	    def getAllParameters = 
 	    {
 			//Convert the string containing the list of OAuth parameters to a Map 
 			def toMap(parametersList : String) = 
@@ -200,7 +199,7 @@ object OAuthHandshake extends RestHelper
 		      case _ => false
 		    }
 	    }
-	    def correctSignature(OAuthparameters : Map[String, String]) =
+	    def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) =
 	    {
 	    	//Normalize an encode the request parameters as explained in Section 3.4.1.3.2
 	    	//of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
@@ -221,7 +220,7 @@ object OAuthHandshake extends RestHelper
 		    }
 			
 			//prepare the base string	     
-		    var baseString = "POST&"+URLEncoder.encode(S.hostAndPath,"UTF-8")+"&"
+		    var baseString = httpMethod+"&"+URLEncoder.encode(S.hostAndPath,"UTF-8")+"&"
 		    baseString+= generateOAuthParametersString(OAuthparameters)
 		    
 		    //get the key to sign 
@@ -260,6 +259,18 @@ object OAuthHandshake extends RestHelper
 		        case _ => false
 	      	}
 	    }
+	    def validToken2(tokenKey : String) =
+	    {
+	      	Token.find(By(Token.key, tokenKey)) match
+	      	{
+		        case Full(token) => if(token.expirationDate.compareTo(new Date(
+		        	Platform.currentTime)) == 1)
+		        						true
+		        				    else
+		        					    false
+		        case _ => false
+	      	}
+	    }
 	    //check if the all the necessary OAuth parameters are present regarding 
 	    //the request type 
 	    def enoughtOauthParameters(parameters : Map[String, String], requestType : String) : Boolean = 
@@ -270,15 +281,11 @@ object OAuthHandshake extends RestHelper
 			if (parameters.size < 6)
 	    		false
 	    	else if(requestType == "requestToken")
-	    	{
-	    		val requestTokenParameters = "oauth_callback" :: parametersBase
-	    		requestTokenParameters.toSet.subsetOf(parameters.keySet)
-	    	}
+	    		("oauth_callback" :: parametersBase).toSet.subsetOf(parameters.keySet)
 	    	else if(requestType=="authorizationToken")
-	    	{
-	    	    val authorizationTokenParameters =  "oauth_token" :: "oauth_verifier" :: parametersBase
-				authorizationTokenParameters.toSet.subsetOf(parameters.keySet)
-	    	}
+	    	    ("oauth_token" :: "oauth_verifier" :: parametersBase).toSet.subsetOf(parameters.keySet)
+	    	else if(requestType=="protectedResource")
+	    	    ("oauth_token" :: parametersBase).toSet.subsetOf(parameters.keySet)
 	    	else 
 	    		false
 	    }
@@ -286,64 +293,71 @@ object OAuthHandshake extends RestHelper
 	    var data =""
 	    var httpCode : Int = 500
 	     
-	    var parameters = getAllParameters(requestType)
-	    
+	    var parameters = getAllParameters
+
 	    //does all the OAuth parameters are presents?
 	    if(! enoughtOauthParameters(parameters,requestType))
 	    {
-	      data = "One or several parameters are missing"
-		  httpCode = 400
+	      	data = "One or several parameters are missing"
+		  	httpCode = 400
 	    }
 	    //no parameter exists more than one times
 	    else if (duplicatedParameters)
 	    {
-	      data = "Duplicated protocol parameters"
-	      httpCode = 400
+	      	data = "Duplicated protocol parameters"
+	      	httpCode = 400
 	    }
 	    //valid OAuth  
 	    else if(!suportedOAuthVersion(parameters.get("oauth_version")))
 	    {
-	      data = "OAuth version not supported"
-	      httpCode = 400
+	      	data = "OAuth version not supported"
+	      	httpCode = 400
 	    }
 	    //supported signature method
 	    else if (parameters.get("oauth_signature_method").get.toLowerCase()!="hmac-sha256")
 	    {
-	      data = "Unsupported signature method"
-	      httpCode = 400
+	      	data = "Unsupported signature method"
+	      	httpCode = 400
 	    }
 	    //check if the application is registered and active
 	    else if(! registeredApplication(parameters.get("oauth_consumer_key").get))
 	    {
-	      data = "Invalid client credentials"
-	      httpCode = 401
+	      	data = "Invalid client credentials"
+	      	httpCode = 401
 	    }
 	    //valid timestamp
 	    else if(wrongTimestamp(new Date(parameters.get("oauth_timestamp").get.toLong)))
 	    {
-	      data = "wrong timestamps"
-	      httpCode = 400
+	      	data = "wrong timestamps"
+	      	httpCode = 400
 	    }
 	    //unused nonce
 	    else if (alReadyUsedNonce(parameters))
 	    {
-	      data = "Nonce already used"
-	      httpCode = 401
+	      	data = "Nonce already used"
+	      	httpCode = 401
 	    }
 	    //In the case OAuth authorization token request, check if the token is still valid and the verifier is correct  
 	    else if(requestType=="authorizationToken" && !validToken(parameters.get("oauth_token").get, parameters.get("oauth_verifier").get))
 	    {
-	      data = "Invalid or expired token"
-	      httpCode = 401
+	      	data = "Invalid or expired token"
+	      	httpCode = 401
+	    }
+	    //In the case protected resource access request, check if the token is still valid
+	    else if (requestType=="protectedResource" && 
+	    	! validToken2(parameters.get("oauth_token").get))
+	    {
+			data = "Invalid or expired token"
+	      	httpCode = 401	    	
 	    }
 	    //checking if the signature is correct  
-	    else if(! correctSignature(parameters))
+	    else if(! correctSignature(parameters, httpMethod))
 	    {
-	      data = "Invalid signature"
-	      httpCode = 401
+	      	data = "Invalid signature"
+	      	httpCode = 401
 	    }
 	    else
-		  httpCode = 200
+		  	httpCode = 200
 
 	    (httpCode, data.getBytes(), parameters)
   	}
@@ -444,7 +458,7 @@ object OAuthHandshake extends RestHelper
 			        	  	if(User.loggedIn_?)
 			              	{
 							    var verifier =""
-							    if(! appToken.verifier.isEmpty) 
+							    if(appToken.verifier.isEmpty) 
 							    {
 							    	val randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
 							    	appToken.verifier(randomVerifier)
@@ -461,7 +475,8 @@ object OAuthHandshake extends RestHelper
 				                else
 				                {
 				                  	//redirect the user to the application with the verifier
-				                  	S.redirectTo(appToken.callbackURL+"?oauth_token="+token+"&oauth_verifier="+verifier)
+				                  	S.redirectTo(appToken.callbackURL+"?oauth_token="+token+
+				                  		"&oauth_verifier="+verifier)
 				                  	"#verifier" #> "you should be redirected"
 				                }
 						  	} 
