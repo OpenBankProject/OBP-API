@@ -179,8 +179,8 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     } 
   }
   
-  def asMediatedJValue(user: String, envelopeId : String) : JObject  = {
-    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,envelopeId)),
+  def asMediatedJValue(user: String) : JObject  = {
+    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,id.toString)),
         		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
         		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
         		 })))))
