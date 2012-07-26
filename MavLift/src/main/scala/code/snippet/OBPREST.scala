@@ -171,7 +171,7 @@ object OBPRest extends RestHelper with Loggable
     {
       val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
       val envelopeJson = allEnvelopes.map(envelope => 
-      envelope.asMediatedJValue("accessLevel",envelope.id.toString))
+      envelope.asMediatedJValue("accessLevel"))
       Full(JsonResponse(envelopeJson))  
     }    
     /*
@@ -251,7 +251,7 @@ object OBPRest extends RestHelper with Loggable
             {
               val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
               val envelopeJson = allEnvelopes.map(envelope => 
-              envelope.asMediatedJValue(accessLevel,envelope.id.toString))
+              envelope.asMediatedJValue(accessLevel))
               Full(JsonResponse(envelopeJson))  
             }
             else
