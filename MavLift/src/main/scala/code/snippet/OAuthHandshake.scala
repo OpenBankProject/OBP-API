@@ -529,6 +529,8 @@ object OAuthHandshake extends RestHelper
 		      	"#userAccess" #> NodeSeq.Empty 
 		    }
 		}
+
+	//looks for expired tokens and nonces and delete them 
 	def dataBaseCleaner : Unit = 
 	{
 		import net.liftweb.util.Schedule
@@ -537,7 +539,11 @@ object OAuthHandshake extends RestHelper
 
 		val currentDate = new Date()
 		
-		//As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept //requests 
+		/*
+			As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
+			requests. So this function will delete nonces which are have a timestamp older than
+			currentDate - 3 minutes   
+		*/ 
 		val timeLimit = new Date(currentDate.getTime + 180000) 
 		
 		//delete expired tokens and nonces

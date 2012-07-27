@@ -41,6 +41,8 @@ import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
+import net.liftweb.util.Schedule
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -163,8 +165,8 @@ class Boot extends Loggable{
         case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
           					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
     }
-    import net.liftweb.util.Schedule
-    import code.snippet.OAuthHandshake
+
+    //lunch the scheduler to clean the database from the expired tokens ans nonces
     Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)
 
     def sitemapMutators = User.sitemapMutator
