@@ -446,6 +446,9 @@ object OAuthHandshake extends RestHelper
 	    
 	    nonceSaved && tokenSaved
  	}
+
+ 	// this method is specific to the authorization page ( where the user login to grant access 
+ 	// to the application (step 2))  
  	def tokenCheck = 
 	  	S.param("oauth_token") match
 	  	{
@@ -458,6 +461,7 @@ object OAuthHandshake extends RestHelper
 			        	  	if(User.loggedIn_?)
 			              	{
 							    var verifier =""
+							    // if the user is logged in and non verifier have been generated 
 							    if(appToken.verifier.isEmpty) 
 							    {
 							    	val randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
@@ -468,9 +472,10 @@ object OAuthHandshake extends RestHelper
 							    }
 							    else
 							    	verifier=appToken.verifier
-							    	
+							   
+							   	// show the verifier if the application does not support 
+							   	// redirection  	
 				                if(Token.callbackURL=="oob")
-				                  	//show the verifier
 				                  	"#verifier " #> verifier 
 				                else
 				                {
@@ -481,6 +486,7 @@ object OAuthHandshake extends RestHelper
 				                }
 						  	} 
 			              	else 
+			              		//the user is not logged in so we show a login form
 				        	  	Consumer.find(By(Consumer.id,appToken.consumerId)) match
 					          	{
 						            case Full(consumer) =>
