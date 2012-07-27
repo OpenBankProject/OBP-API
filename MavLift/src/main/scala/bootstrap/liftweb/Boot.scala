@@ -163,6 +163,9 @@ class Boot extends Loggable{
         case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
           					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
     }
+    import net.liftweb.util.Schedule
+    import code.snippet.OAuthHandshake
+    Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)
 
     def sitemapMutators = User.sitemapMutator
 
