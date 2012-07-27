@@ -241,7 +241,6 @@ object OAuthHandshake extends RestHelper
 		    m.init(new SecretKeySpec(secret.getBytes(),"HmacSHA256"))
 		    val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes)).dropRight(1) //remove the "=" added by the base64Encode method
 		    
-		    println("calculated Signature : "+ calculatedSignature)
 
 		    calculatedSignature==OAuthparameters.get("oauth_signature").get
 	    }
@@ -530,4 +529,18 @@ object OAuthHandshake extends RestHelper
 		      	"#userAccess" #> NodeSeq.Empty 
 		    }
 		}
+	def dataBaseCleaner : Unit = 
+	{
+		import net.liftweb.util.Schedule
+		import net.liftweb.mapper.By_<
+		Schedule.schedule(dataBaseCleaner _, 1 hour)
+
+		val currentDate = new Date()
+		
+		//As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept //requests 
+		val timeLimit = new Date(currentDate.getTime + 180000) 
+		
+		//delete expired tokens and nonces
+		(Token.findAll(By_<(Token.expirationDate,currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp,timeLimit))).foreach(t => t.delete_!)
+	}	
 }
