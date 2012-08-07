@@ -6,9 +6,11 @@ trait Transaction {
 
   def id : String
  
-  def account : BankAccount
+  var thisAccount : BankAccount
+
+  def otherAccount : OtherBankAccount
   
-  def metaData : MetaData
+  def metadata : TransactionMetadata
   
   //E.g. cash withdrawal, electronic payment, etc.
   def transactionType : String
@@ -19,21 +21,14 @@ trait Transaction {
   //ISO 4217, e.g. EUR, GBP, USD, etc.
   def currency : String
   
-  // Bank/ provided comment
+  // Bank provided comment
   def label : Option[String]
-  
-  // Owner provided comment, done in OBP
-  def ownerComment : Option[String]
-  def ownerComment(comment : String):Unit 
-  def comments : List[Comment]
   
   // The date the transaction was initiated
   def startDate : Date
   
   // The date when the money finished changing hands
   def finishDate : Date
-  
-  def addComment(comment: Comment)
   
   //the new balance for the bank account
   //TODO : Rethink this

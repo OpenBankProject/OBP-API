@@ -31,7 +31,7 @@ import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 import net.liftweb.http._
 import java.util.Calendar
-import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount}
+import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount, PostBankLocalStorage}
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
@@ -60,119 +60,106 @@ class OBPTransactionSnippet {
     case _ => Anonymous
   }	
   
-  //TODO : This snippet should receive the bankAccount as a parameter 
-  val bankAccount = TesobeBankAccount.bankAccount
-  val transactions = bankAccount.transactions
-  val filteredTransactions = transactions.map(view.moderate(_))
-  
+  //TODO : This snippet should receive the transaction as a parameter 
+  val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
+
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     
-    def aliasRelatedInfo: CssSel = {
-      transaction.aliasType match{
-        case Public =>
-          ".alias_indicator [class+]" #> "alias_indicator_public" &
-            ".alias_indicator *" #> "(Alias)"
-        case Private =>
-          ".alias_indicator [class+]" #> "alias_indicator_private" &
-            ".alias_indicator *" #> "(Alias)"
-        case _ => NOOP_SELECTOR
-
-      } 
-    }
-
     def otherPartyInfo: CssSel = {
-
       //The extra information about the other party in the transaction
-
         def moreInfoBlank =
           ".other_account_more_info" #> NodeSeq.Empty &
             ".other_account_more_info_br" #> NodeSeq.Empty
 
         def moreInfoNotBlank =
-          ".other_account_more_info *" #> transaction.moreInfo
+          ".other_account_more_info *" #> transaction.otherBankAccount.get.metadata.get.moreInfo.get
 
         def logoBlank =
           NOOP_SELECTOR
 
         def logoNotBlank =
-          ".other_account_logo_img [src]" #> transaction.imageUrl
+          ".other_account_logo_img [src]" #> transaction.otherBankAccount.get.metadata.get.imageUrl.get
 
         def websiteBlank =
           ".other_acc_link" #> NodeSeq.Empty & //If there is no link to display, don't render the <a> element
             ".other_acc_link_br" #> NodeSeq.Empty
 
         def websiteNotBlank =
-          ".other_acc_link [href]" #> transaction.url
+          ".other_acc_link [href]" #> transaction.otherBankAccount.get.metadata.get.url.get
 
         def openCorporatesBlank =
           ".open_corporates_link" #> NodeSeq.Empty
 
         def openCorporatesNotBlank =
-          ".open_corporates_link [href]" #> transaction.openCorporatesUrl
-          
-         ".the_name *" #> transaction.accountHolder&  
-        ".narrative *" #>  displayNarrative(transaction,view) & 
+          ".open_corporates_link [href]" #> transaction.otherBankAccount.get.metadata.get.openCorporatesUrl.get
+        
+        transaction.otherBankAccount match {
+          case Some(otherAccount) => 
           {
-            transaction.moreInfo match{
-							              case Some(m) => if(m == "") moreInfoBlank else moreInfoNotBlank
-							              case _ => moreInfoBlank
-            							}
-          } &
-          {
-            transaction.imageUrl match{
-              case Some(i) => if(i == "") logoBlank else logoNotBlank
-              case _ => logoBlank
-            }
-          } &
-          {
-            transaction.url match{
-              case Some(m) => if(m == "") websiteBlank else websiteNotBlank
-              case _ => websiteBlank
-            }
-          } &
-          {
-            transaction.openCorporatesUrl match{
-              case Some(m) => if(m == "") openCorporatesBlank else openCorporatesNotBlank
-              case _ => openCorporatesBlank
-            }
+            ".the_name *" #> otherAccount.label.display &
+            {otherAccount.label.aliasType match{
+                case Public =>
+                  ".alias_indicator [class+]" #> "alias_indicator_public" &
+                    ".alias_indicator *" #> "(Alias)"
+                case Private =>
+                  ".alias_indicator [class+]" #> "alias_indicator_private" &
+                    ".alias_indicator *" #> "(Alias)"
+                case _ => NOOP_SELECTOR
+            }}& 
+            {otherAccount.metadata match {
+                case Some(metadata) => 
+                {
+                  {metadata.moreInfo match{
+                            case Some(m) => if(m.isEmpty) moreInfoBlank else moreInfoNotBlank
+                            case _ => moreInfoBlank
+                  }}&  
+                  {metadata.imageUrl match{
+                          case Some(i) => if(i.isEmpty) logoBlank else logoNotBlank
+                          case _ => logoBlank
+                  }}& 
+                  {metadata.url match{
+                    case Some(m) => if(m.isEmpty) websiteBlank else websiteNotBlank
+                    case _ => websiteBlank
+                  }}&
+                  {metadata.openCorporatesUrl match{
+                    case Some(m) => if(m.isEmpty) openCorporatesBlank else openCorporatesNotBlank
+                    case _ => openCorporatesBlank       
+                  }}
+                }
+                case _ => ".extra *" #> NodeSeq.Empty
+            }}
           }
-
+          case _ =>  ".the_name *" #> NodeSeq.Empty & ".extra *" #> NodeSeq.Empty
+        }
     }
-
-    def commentsInfo = {
-        //If we're not allowed to see comments, don't show the comments section
-      {  transaction.comments match 
-        {
-          case None => ".comments *" #> ""
-          case Some(o) => {     
-        	  				".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
-        	  				".comment *" #> {o.length.toString()} 
-        	  				}
-          }
-      }
-    }  
-    
     def transactionInformations = {
-      ".amount *" #> { "€" + { transaction.amount match { 
+      ".amount *" #>  {"€" + { transaction.amount match { 
 								      					 case Some(o) => o.toString().stripPrefix("-")
 								      					 case _ => ""
-								      				   }
-                            }  
-    				} 
-    
-    	".symbol *" #> { transaction.amount match {
+								      				   }}} &  
+      ".narrative *" #> {transaction.metadata match{
+          case Some(metadata) => displayNarrative(transaction,view)
+          case _ => NodeSeq.Empty
+        }} &     
+    	".symbol *" #>  {transaction.amount match {
 		        				  	case Some(a) => if (a < 0) "-" else "+"
 		        				  	case _ => ""
-		        				}} &
+		        				  }} &
 	    ".out [class]" #> { transaction.amount match{
 	        				  	case Some(a) => if (a <0) "out" else "in"
 	        				  	case _ => ""
-	        					} }
+	        					} } &
+      {transaction.metadata match {
+        case Some(metadata) => metadata.comments match{
+            case Some(comments) => ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
+                                   ".comment *" #> comments.length.toString()
+            case _ =>  ".comments *" #> NodeSeq.Empty 
+          }
+        case _ =>  ".comments *" #> NodeSeq.Empty 
+      }}
     }
    transactionInformations & 
-    aliasRelatedInfo &
-    otherPartyInfo &
-    commentsInfo
+   otherPartyInfo 
   }
   
   def displayAll = {
@@ -188,10 +175,10 @@ class OBPTransactionSnippet {
   }
   
   def editableNarrative(transaction : ModeratedTransaction) = {
-    var narrative = transaction.ownerComment.getOrElse("")
+    var narrative = transaction.metadata.get.ownerComment.getOrElse("").toString
     CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
       //save the narrative
-      transaction.ownerComment(narrative)
+      transaction.metadata.get.ownerComment(narrative)
       Noop
     }, "Narrative")
   }
@@ -199,7 +186,7 @@ class OBPTransactionSnippet {
   def displayNarrative(transaction : ModeratedTransaction, currentView : View): NodeSeq = {
     if(currentView.canEditOwnerComment)
     	editableNarrative(transaction)	
-    else Text(transaction.ownerComment.getOrElse(""))
+    else Text(transaction.metadata.get.ownerComment.getOrElse("").toString)
   }
 
   def hasSameDate(t1: ModeratedTransaction, t2: ModeratedTransaction): Boolean = {
@@ -250,8 +237,15 @@ class OBPTransactionSnippet {
   
   //TODO: show bankname then account label
   def accountDetails = {
-    "#accountName *" #> bankAccount.label
-  }
+    "#accountName *" #> {filteredTransactions(0).bankAccount match 
+    {
+      case Some(bankAccount) => bankAccount.label match {
+        case Some(label) => label
+        case _ => ""
+      }
+      case _ => ""
+    }
+  }}
   def hideSocialWidgets = {
     if(view.name!="anonymous") ".box *" #> ""
     else ".box *+" #> "" 
