@@ -1,6 +1,6 @@
 package code.model.traits
 
-trait AccountOwner {
+trait BankAccountOwner {
 
   def id : String
   

@@ -6,7 +6,7 @@ trait BankAccount {
 
   def id : String
   
-  def owners : Set[AccountOwner]
+  var owners : Set[AccountOwner]
   
   //e.g. chequing, savings
   def accountType : String
@@ -22,9 +22,9 @@ trait BankAccount {
   
   def nationalIdentifier : String
   
-  def SWIFT_BIC : Option[String]
+  def swift_bic : Option[String]
   
-  def IBAN : Option[String]
+  def iban : Option[String]
   
   def transactions : Set[Transaction]
   
@@ -33,6 +33,6 @@ trait BankAccount {
   def transaction(id: String) : Option[Transaction]
   
   //Is an anonymous view available for this bank account
-  def anonAccess : Boolean
+  def allowAnnoymousAccess : Boolean
   
 }

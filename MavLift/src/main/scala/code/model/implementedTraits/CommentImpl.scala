@@ -8,14 +8,9 @@ import code.model.traits.User
 
 class CommentImpl(comment: OBPComment) extends Comment {
 
-  def postedBy: Option[User] = { 
-    val email = comment.email.get
-    OBPUser.find(By(OBPUser.email, email))
-  }
+  def postedBy: Option[User] = OBPUser.find(By(OBPUser.email, comment.email.get))
 
-  def text: String = { 
-    comment.text.get
-  }
+  def text: String = comment.text.get
 
   def datePosted: Option[Date]= { 
     None

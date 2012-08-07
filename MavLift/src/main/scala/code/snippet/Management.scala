@@ -1,7 +1,8 @@
 package code.snippet
 import net.liftweb.json.JsonAST._
-import code.model.dataAccess.{Account,OtherAccount}
+import code.model.Account
 import net.liftweb.util.Helpers._
+import code.model.OtherAccount
 import scala.xml.NodeSeq
 import scala.xml.Text
 import net.liftweb.http.SHtml
@@ -10,8 +11,6 @@ import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
-import code.model.implementedTraits.{TesobeBankAccount}
-import code.model.traits.{MetaData}
 
 class Management {
 
@@ -26,15 +25,14 @@ class Management {
   
   def showAll(xhtml: NodeSeq) : NodeSeq = {
     //temporary way to retrieve the account
-	  val currentAccount = TesobeBankAccount.bankAccount
+    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
+    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
-  def getMostUpToDateOtherAccount(holder: String) : Option[MetaData] = {
-	    currentAccount.transactions.find(o =>{o.metaData.accountHolderName.equals(holder)})  match 
-	    {
-	      case None => None
-	      case Some(transaction)=> Some(transaction.metaData)
-	    }
-	  }
+    def getMostUpToDateOtherAccount(holder: String) = {
+      currentAccount.otherAccounts.get.find(o => {
+        o.holder.get.equals(holder)
+      })
+    }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
       def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
@@ -66,7 +64,8 @@ class Management {
       editable(initialValue, holder, openCorporatesUrl, "Open Corporates URL")
     }
     
-    def editable(initialValue: String, holder: String,  alterOtherAccount: (MetaData, String) => MetaData, defaultValue: String) = {
+    def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount,
+        defaultValue: String) = {
       var currentValue = initialValue
       
       def saveValue() = {
@@ -125,9 +124,9 @@ class Management {
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
-    	currentAccount.otherAccounts.get.find(o => {
-    	  o.holder.get.equals(holder)
-    	})
+      currentAccount.otherAccounts.get.find(o => {
+        o.holder.get.equals(holder)
+      })
     }
     
     def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount) = {
@@ -150,7 +149,7 @@ class Management {
     }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
-      def alterPublicAlias = (oAccount: MetaData, newValue: String) => oAccount.publicAlias(newValue)
+      def alterPublicAlias = (oAccount: OtherAccount, newValue: String) => oAccount.publicAlias(newValue)
       editable(initialValue, holder, alterPublicAlias)
     }
     
