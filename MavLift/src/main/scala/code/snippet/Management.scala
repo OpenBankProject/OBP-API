@@ -29,9 +29,9 @@ class Management {
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
-    	currentAccount.otherAccounts.get.find(o => {
-    	  o.holder.get.equals(holder)
-    	})
+      currentAccount.otherAccounts.get.find(o => {
+        o.holder.get.equals(holder)
+      })
     }
     
     def editablePublicAlias(initialValue : String, holder: String) = {
@@ -124,9 +124,9 @@ class Management {
     val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
-    	currentAccount.otherAccounts.get.find(o => {
-    	  o.holder.get.equals(holder)
-    	})
+      currentAccount.otherAccounts.get.find(o => {
+        o.holder.get.equals(holder)
+      })
     }
     
     def editable(initialValue: String, holder: String,  alterOtherAccount: (OtherAccount, String) => OtherAccount) = {

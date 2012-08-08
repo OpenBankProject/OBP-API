@@ -35,6 +35,7 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
+import code.actors.EnvelopeInserter
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
@@ -62,7 +63,7 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model._
+import code.model.dataAccess.{OBPEnvelope, OBPUser}
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -196,23 +197,24 @@ object OBPRest extends RestHelper with Loggable
         //to accessLevel
         def doesTheTokenHasAccess(accessLevel : String, tokenID : String) : Boolean = 
         {
+            import code.model.dataAccess.{Account, Privilege}
             //check if the privileges of the user authorize if to access
             // to the access level
-            def doesTheUserHasAccess(accessLevel : String, user : User) : Boolean =
+            def doesTheUserHasAccess(accessLevel : String, user : OBPUser) : Boolean =
             {
-                import code.model.{Account, Privilege} 
+                 
                 Account.find(("holder", "Music Pictures Limited")) match {
                 case Full(account) => if(accessLevel=="anonymous")
                                         account.anonAccess.is
                                       else
-                                        Privilege.find(By(Privilege.accountID,account.id.toString), By(Privilege.user, user)) match {
+                                        Privilege.find(By(Privilege.accountID,account.id.toString), By(Privilege.user, user.id)) match {
                                           case Full(privilege) => privilegeCheck(accessLevel,privilege)
                                           case _ => false 
                                         }
                 case _ => false  
                 }
             }
-
+      
             //due to the actual privilege mechanism : the access level (API) 
             //and the privilege of the account are stored differently 
             //So the function do the match 
@@ -228,9 +230,9 @@ object OBPRest extends RestHelper with Loggable
               else 
                 false 
 
-            import code.model.Token._     
+            import code.model.Token    
             Token.find(By(Token.key,tokenID)) match {
-              case Full(token) => User.find(By(User.id,token.userId)) match {
+              case Full(token) => OBPUser.find(By(OBPUser.id,token.userId)) match {
                                     case Full(user) => 
                                             doesTheUserHasAccess(accessLevel, user) 
                                     case _ => false 

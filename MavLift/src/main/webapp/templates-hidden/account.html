@@ -1,9 +1,19 @@
 <div class="lift:surround?with=default;at=content">
 
-
+<!-- Google Plus -->
+    <script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
+      {lang: 'en-GB'}
+    </script>
 
 <div id="fb-root"></div>
-
+<script>(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));</script>
+	<!-- end Facebook like code -->
 
 	<div id="account_details" class="lift:OBPTransactionSnippet.accountDetails">
 		<span id="accountName">Account Name</span>

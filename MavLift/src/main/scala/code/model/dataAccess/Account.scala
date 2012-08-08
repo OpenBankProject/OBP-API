@@ -1,4 +1,4 @@
-package code.model
+package code.model.dataAccess
 
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.JsonObjectMeta
@@ -23,10 +23,10 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def meta = Account 
  
   object anonAccess extends BooleanField(this, false)
-  protected object holder extends StringField(this, 255)
+  object holder extends StringField(this, 255)
   object number extends StringField(this, 255)   //TODO: rethink protection of this again
-  protected object kind extends StringField(this, 255)
-  protected object bank extends BsonRecordField(this, OBPBank)
+  object kind extends StringField(this, 255)
+  object bank extends BsonRecordField(this, OBPBank)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
   
   def allEnvelopes : List[OBPEnvelope] = {
@@ -101,7 +101,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
 
 object Account extends Account with MongoMetaRecord[Account] {
   import net.liftweb.json.JsonDSL._
-  val currentAccount = Account.find(("holder", "Music Pictures Limited"))
+  def currentAccount = Account.find(("holder", "Music Pictures Limited"))
 }
 
 class OtherAccount private() extends BsonRecord[OtherAccount] {

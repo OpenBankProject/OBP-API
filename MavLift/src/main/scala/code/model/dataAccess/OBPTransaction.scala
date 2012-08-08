@@ -25,7 +25,7 @@ limitations under the License.
 		Everett Sochowski: everett AT tesobe DOT com
     
  */
-package code.model
+package code.model.dataAccess
 
 import net.liftweb.mongodb._
 import net.liftweb.record.MandatoryTypedField
@@ -149,6 +149,20 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
     obp_comments(c2).saveTheRecord()
   }
+   
+  object DateDescending extends Ordering[OBPEnvelope] {
+    def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
+      val date1 = e1.obp_transaction.get.details.get.completed.get
+      val date2 = e2.obp_transaction.get.details.get.completed.get
+      date1.compareTo(date2)
+    }
+  }
+  
+  def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
+    val date1 = e1.obp_transaction.get.details.get.completed.get
+    val date2 = e2.obp_transaction.get.details.get.completed.get
+    date1.after(date2)
+  }
   
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)
@@ -179,6 +193,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     } 
   }
   
+
   def asMediatedJValue(user: String) : JObject  = {
     JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,id.toString)),
         		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
