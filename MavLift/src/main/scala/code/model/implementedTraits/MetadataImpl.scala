@@ -4,14 +4,15 @@ import code.model.traits.{MetaData, Comment, OtherBankAccountMetadata, Transacti
 import code.model.dataAccess.{OtherAccount, OBPComment}
 import net.liftweb.common.Loggable
 
-class OtherBankAccountMetadataImpl(oAcc : OtherAccount) extends OtherBankAccountMetadata {
+class OtherBankAccountMetadataImpl(_publicAlias : String, _privateAlias : String,_moreInfo : String,
+_url : String, _imageUrl : String, _openCorporatesUrl : String) extends OtherBankAccountMetadata {
 
-   def publicAlias : String = oAcc.publicAlias.get
-   def privateAlias : String = oAcc.privateAlias.get
-   def moreInfo : String = oAcc.moreInfo.get
-   def url : String = oAcc.url.get
-   def imageUrl : String = oAcc.imageUrl.get
-   def openCorporatesUrl : String = oAcc.openCorporatesUrl.get
+   def publicAlias : String = _publicAlias
+   def privateAlias : String = _privateAlias
+   def moreInfo : String = _moreInfo
+   def url : String = _url
+   def imageUrl : String = _imageUrl
+   def openCorporatesUrl : String = _openCorporatesUrl
 }
 //comment => env.narrative(comment).save
 class TransactionMetadataImpl(narative : String, comments_ : List[Comment], 
