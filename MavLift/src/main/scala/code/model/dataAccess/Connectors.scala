@@ -26,7 +26,8 @@ import code.model.implementedTraits._
         
         val id = env.id.is.toString()
         val otherAccount = new OtherBankAccountImpl("", otherAccount_.holder.get,otherAccount_.number.get,
-          None,None, new OtherBankAccountMetadataImpl(oAcc))
+          None,None, new OtherBankAccountMetadataImpl(oAcc.publicAlias.get, oAcc.privateAlias.get, oAcc.moreInfo.get,
+            oAcc.url.get, oAcc.imageUrl.get, oAcc.openCorporatesUrl.get))
         val metadata = new TransactionMetadataImpl(env.narrative.get, env.obp_comments.get.map(new CommentImpl(_)),
         (text => env.narrative(text).save), env.addComment _)   
         val transactionType=  env.obp_transaction.get.details.get.type_en.get
