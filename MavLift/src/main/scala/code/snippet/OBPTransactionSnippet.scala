@@ -31,8 +31,7 @@ import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 import net.liftweb.http._
 import java.util.Calendar
-import code.model.OBPTransaction
-import code.model.OBPEnvelope
+import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount, PostBankLocalStorage}
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
@@ -42,204 +41,158 @@ import net.liftweb.util._
 import scala.xml.Text
 import net.liftweb.common.{Box, Failure, Empty, Full}
 import java.util.Date
-import code.model.OBPAccount
-import code.model.OBPAccount.{APublicAlias, APrivateAlias}
 import net.liftweb.http.js.JsCmds.Noop
-import code.model._
+import code.model.implementedTraits._
+import code.model.traits._
 
 class OBPTransactionSnippet {
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
-  
-  //Show all transactions from every account, for now
-  val qry = QueryBuilder.start().get
-  val envelopesToDisplay = OBPEnvelope.findAll(qry)
-  
   val FORBIDDEN = "---"
   
-  val consumer = {
-    S.uri match{
-      case uri if uri.endsWith("authorities") => "authorities"
-      case uri if uri.endsWith("board") => "board"
-      case uri if uri.endsWith("our-network") => "our-network"
-      case uri if uri.endsWith("team") => "team"
-      case uri if uri.endsWith("my-view") => "my-view"
-      case _ => "anonymous"
-    }
-  }
+  //TODO : implenting a more proper way to load the appropriate view regarding the URL
+  val view = S.uri match {
+    case uri if uri.endsWith("authorities") => Authorities
+    case uri if uri.endsWith("board") => Board
+    case uri if uri.endsWith("our-network") => OurNetwork
+    case uri if uri.endsWith("team") => Team
+    case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
+    case _ => Anonymous
+  }	
   
-  def displayAll = {
+  //TODO : This snippet should receive the transaction as a parameter 
+  val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
+
+  def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     
-    val envelopes = groupByDate(envelopesToDisplay.sort(OBPEnvelope.orderByDateDescending))
-    
-    "* *" #> envelopes.map( envsForDay => {
-     daySummary(envsForDay)
-    })
-  }
-
-
-  def individualEnvelope(env: OBPEnvelope): CssSel = {
-    val envelopeID = env.id
-
-    val transaction = env.obp_transaction.get
-    val transactionDetails = transaction.details.get
-    val transactionValue = transactionDetails.value.get
-    val thisAccount = transaction.this_account.get
-    val otherAccount = transaction.other_account.get
-
-    var narrative = env.narrative.get
-
-    val theAccount = thisAccount.theAccount
-    val otherUnmediatedHolder = otherAccount.holder.get
-    val otherMediatedHolder = otherAccount.mediated_holder(consumer)
-
-    val aliasType = {
-      otherMediatedHolder._2 match {
-        case Full(APublicAlias) => "public"
-        case Full(APrivateAlias) => "private"
-        case _ => "None"
-      }
-    }
-
-    //get some fields from the account
-    def getAccountField(getFieldFunction: OtherAccount => String): String = {
-      val fieldValue = for {
-        a <- theAccount
-        oacc <- a.otherAccounts.get.find(o => otherUnmediatedHolder.equals(o.holder.get))
-      } yield getFieldFunction(oacc)
-
-      fieldValue getOrElse ""
-    }
-
-    val moreInfo = getAccountField((acc: OtherAccount) => acc.moreInfo.get)
-    val logoImageSrc = getAccountField((acc: OtherAccount) => acc.imageUrl.get)
-    val otherAccWebsiteUrl = getAccountField((acc: OtherAccount) => acc.url.get)
-    val openCorporatesUrl = getAccountField((acc: OtherAccount) => acc.openCorporatesUrl.get)
-
-    val amount = transactionValue.mediated_amount(consumer).getOrElse(FORBIDDEN)
-    val name = otherMediatedHolder._1.getOrElse(FORBIDDEN)
-
-    //TODO: discuss if we really need public/private disctinction when displayed,
-    //it confuses more than it really informs the user of much
-    //the view either shows more data or not, only that it is an alias is really informative
-    def aliasRelatedInfo: CssSel = {
-      aliasType match {
-        case "public" =>
-          ".alias_indicator [class+]" #> "alias_indicator_public" &
-            ".alias_indicator *" #> "(Alias)"
-        case "private" =>
-          ".alias_indicator [class+]" #> "alias_indicator_private" &
-            ".alias_indicator *" #> "(Alias)"
-        case _ => NOOP_SELECTOR
-      }
-    }
-
     def otherPartyInfo: CssSel = {
-
-      //don't show more info if there is a public alias
-      def publicAliasInfo = {
-        ".narrative *" #> NodeSeq.Empty &
-          ".extra *" #> NodeSeq.Empty
-      }
-
       //The extra information about the other party in the transaction
-      def additionalInfo = {
-
         def moreInfoBlank =
           ".other_account_more_info" #> NodeSeq.Empty &
             ".other_account_more_info_br" #> NodeSeq.Empty
 
         def moreInfoNotBlank =
-          ".other_account_more_info *" #> moreInfo.take(50) //TODO: show ... if info string is actually truncated
+          ".other_account_more_info *" #> transaction.otherBankAccount.get.metadata.get.moreInfo.get
 
         def logoBlank =
           NOOP_SELECTOR
 
         def logoNotBlank =
-          ".other_account_logo_img [src]" #> logoImageSrc
+          ".other_account_logo_img [src]" #> transaction.otherBankAccount.get.metadata.get.imageUrl.get
 
         def websiteBlank =
-          ".other_acc_link" #> NodeSeq.Empty //If there is no link to display, don't render the <a> element
+          ".other_acc_link" #> NodeSeq.Empty & //If there is no link to display, don't render the <a> element
+            ".other_acc_link_br" #> NodeSeq.Empty
 
         def websiteNotBlank =
-          ".other_acc_link [href]" #> otherAccWebsiteUrl
-        
-        def websiteBlankLogoNotBlank = 
-           ".other_acc_link" #>  (xml => logoNotBlank(xml \"img")) //If there is no link to display, don't render the <a> element but keep the image
-            
+          ".other_acc_link [href]" #> transaction.otherBankAccount.get.metadata.get.url.get
+
         def openCorporatesBlank =
           ".open_corporates_link" #> NodeSeq.Empty
 
         def openCorporatesNotBlank =
-          ".open_corporates_link [href]" #> openCorporatesUrl
-
-        ".narrative *" #> displayNarrative(env) &
+          ".open_corporates_link [href]" #> transaction.otherBankAccount.get.metadata.get.openCorporatesUrl.get
+        
+        transaction.otherBankAccount match {
+          case Some(otherAccount) => 
           {
-            if (moreInfo.equals("")) moreInfoBlank
-            else moreInfoNotBlank
-          } &
-          {
-            if (otherAccWebsiteUrl.equals("") & ! logoImageSrc.equals("")) websiteBlankLogoNotBlank
-            else if (otherAccWebsiteUrl.equals("") & logoImageSrc.equals("")) websiteBlank
-            else websiteNotBlank
-          } &
-          {
-            if (logoImageSrc.equals("")) logoBlank
-            else logoNotBlank
-          } &
-          {
-            if (openCorporatesUrl.equals("")) openCorporatesBlank
-            else openCorporatesNotBlank
+            ".the_name *" #> otherAccount.label.display &
+            {otherAccount.label.aliasType match{
+                case Public =>
+                  ".alias_indicator [class+]" #> "alias_indicator_public" &
+                    ".alias_indicator *" #> "(Alias)"
+                case Private =>
+                  ".alias_indicator [class+]" #> "alias_indicator_private" &
+                    ".alias_indicator *" #> "(Alias)"
+                case _ => NOOP_SELECTOR
+            }}& 
+            {otherAccount.metadata match {
+                case Some(metadata) => 
+                {
+                  {metadata.moreInfo match{
+                            case Some(m) => if(m.isEmpty) moreInfoBlank else moreInfoNotBlank
+                            case _ => moreInfoBlank
+                  }}&  
+                  {metadata.imageUrl match{
+                          case Some(i) => if(i.isEmpty) logoBlank else logoNotBlank
+                          case _ => logoBlank
+                  }}& 
+                  {metadata.url match{
+                    case Some(m) => if(m.isEmpty) websiteBlank else websiteNotBlank
+                    case _ => websiteBlank
+                  }}&
+                  {metadata.openCorporatesUrl match{
+                    case Some(m) => if(m.isEmpty) openCorporatesBlank else openCorporatesNotBlank
+                    case _ => openCorporatesBlank       
+                  }}
+                }
+                case _ => ".extra *" #> NodeSeq.Empty
+            }}
           }
-      }
-
-      if (aliasType.equals("public")) publicAliasInfo
-      else additionalInfo
-
+          case _ =>  ".the_name *" #> NodeSeq.Empty & ".extra *" #> NodeSeq.Empty
+        }
     }
-
-    def commentsInfo = {
-      {
-        //If we're not allowed to see comments, don't show the comments section
-        if (env.mediated_obpComments(consumer).isEmpty) ".comments *" #> ""
-        else NOOP_SELECTOR
-      } &
-        ".comments_ext [href]" #> { consumer + "/transactions/" + envelopeID + "/comments" } &
-        ".comment *" #> env.mediated_obpComments(consumer).getOrElse(Nil).size &
-        ".symbol *" #> { if (amount.startsWith("-")) "-" else "+" } &
-        ".out [class]" #> { if (amount.startsWith("-")) "out" else "in" }
+    def transactionInformations = {
+      ".amount *" #>  {"€" + { transaction.amount match { 
+								      					 case Some(o) => o.toString().stripPrefix("-")
+								      					 case _ => ""
+								      				   }}} &  
+      ".narrative *" #> {transaction.metadata match{
+          case Some(metadata) => displayNarrative(transaction,view)
+          case _ => NodeSeq.Empty
+        }} &     
+    	".symbol *" #>  {transaction.amount match {
+		        				  	case Some(a) => if (a < 0) "-" else "+"
+		        				  	case _ => ""
+		        				  }} &
+	    ".out [class]" #> { transaction.amount match{
+	        				  	case Some(a) => if (a <0) "out" else "in"
+	        				  	case _ => ""
+	        					} } &
+      {transaction.metadata match {
+        case Some(metadata) => metadata.comments match{
+            case Some(comments) => ".comments_ext [href]" #> { view.name.toLowerCase + "/transactions/" + transaction.id + "/comments" } &
+                                   ".comment *" #> comments.length.toString()
+            case _ =>  ".comments *" #> NodeSeq.Empty 
+          }
+        case _ =>  ".comments *" #> NodeSeq.Empty 
+      }}
     }
-
-    ".the_name *" #> name &
-    ".amount *" #> { "€" + amount.stripPrefix("-") } & //TODO: Format this number according to locale
-    aliasRelatedInfo &
-    otherPartyInfo &
-    commentsInfo
+   transactionInformations & 
+   otherPartyInfo 
   }
   
-  def editableNarrative(envelope: OBPEnvelope) = {
-    var narrative = envelope.narrative.get
-
+  def displayAll = {
+    def orderByDateDescending = (t1: ModeratedTransaction, t2: ModeratedTransaction) => {
+      val date1 = t1.finishDate getOrElse new Date()
+      val date2 = t2.finishDate getOrElse new Date()
+      date1.after(date2)
+    }
+    
+    val sortedTransactions = groupByDate(filteredTransactions.toList.sort(orderByDateDescending))
+    
+    "* *" #> sortedTransactions.map( transactionsForDay => {daySummary(transactionsForDay)})
+  }
+  
+  def editableNarrative(transaction : ModeratedTransaction) = {
+    var narrative = transaction.metadata.get.ownerComment.getOrElse("").toString
     CustomEditable.editable(narrative, SHtml.text(narrative, narrative = _), () => {
       //save the narrative
-      envelope.narrative(narrative).save
+      transaction.metadata.get.ownerComment(narrative)
       Noop
     }, "Narrative")
   }
 
-  def displayNarrative(envelope: OBPEnvelope): NodeSeq = {
-    consumer match {
-      case "my-view" => editableNarrative(envelope)
-      case _ => Text(envelope.mediated_narrative(consumer).getOrElse(FORBIDDEN))
-    }
+  def displayNarrative(transaction : ModeratedTransaction, currentView : View): NodeSeq = {
+    if(currentView.canEditOwnerComment)
+    	editableNarrative(transaction)	
+    else Text(transaction.metadata.get.ownerComment.getOrElse("").toString)
   }
 
-  def hasSameDate(e1: OBPEnvelope, e2: OBPEnvelope): Boolean = {
-    val t1 = e1.obp_transaction.get
-    val t2 = e2.obp_transaction.get
+  def hasSameDate(t1: ModeratedTransaction, t2: ModeratedTransaction): Boolean = {
 
-    val date1 = t1.details.get.completed.get
-    val date2 = t2.details.get.completed.get
+    val date1 = t1.finishDate getOrElse new Date()
+    val date2 = t2.finishDate getOrElse new Date()
     
     val cal1 = Calendar.getInstance();
     val cal2 = Calendar.getInstance();
@@ -252,7 +205,7 @@ class OBPTransactionSnippet {
   }
 
   /**
-   * Splits a list of envelopes into a list of lists, where each of these new lists
+   * Splits a list of Transactions into a list of lists, where each of these new lists
    * is for one day.
    *
    * Example:
@@ -260,7 +213,7 @@ class OBPTransactionSnippet {
    * 	output: List(List(Jan 5), List(Jan 6), List(Jan 7,Jan 7),
    * 				 List(Jan 8), List(Jan 9,Jan 9,Jan 9), List(Jan 10))
    */
-  def groupByDate(list: List[OBPEnvelope]): List[List[OBPEnvelope]] = {
+  def groupByDate(list: List[ModeratedTransaction]): List[List[ModeratedTransaction]] = {
     list match {
       case Nil => Nil
       case h :: Nil => List(list)
@@ -271,32 +224,31 @@ class OBPTransactionSnippet {
       }
     }
   }
-
-  def formatDate(date: Box[Date]): String = {
-    val dateFormat = new SimpleDateFormat("MMMM dd, yyyy")
-    date match {
-      case Full(d) => dateFormat.format(d)
-      case _ => FORBIDDEN
-    }
-  }
-  
-  def daySummary(envsForDay: List[OBPEnvelope]) = {
-    val dailyDetails = envsForDay.last.obp_transaction.get.details.get
-    val date = formatDate(dailyDetails.mediated_completed(consumer))
-    //TODO: This isn't really going to be the right balance, as there's no way of telling which one was the actual
-    // last transaction of the day yet
-    val balance = dailyDetails.new_balance.get.mediated_amount(consumer) getOrElse FORBIDDEN
+  def daySummary(transactionsForDay: List[ModeratedTransaction]) = {
+    val aTransaction = transactionsForDay.last
+    val date = aTransaction.finishDate match{
+        case Some(d) => (new SimpleDateFormat("MMMM dd, yyyy")).format(d)
+        case _ => ""
+      }
     ".date *" #> date &
-      ".balance_number *" #> { "€" + balance } & //TODO: support other currencies, format the balance according to locale
-      ".transaction_row *" #> envsForDay.map(env => individualEnvelope(env))
+      ".balance_number *" #> { "€" + {aTransaction.balance }} & 
+      ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
   
-  //Fake it for now
+  //TODO: show bankname then account label
   def accountDetails = {
-    "#accountName *" #> "TESOBE / Music Pictures Ltd. Account (Postbank)"
+    "#accountName *" #> {filteredTransactions(0).bankAccount match 
+    {
+      case Some(bankAccount) => bankAccount.label match {
+        case Some(label) => label
+        case _ => ""
+      }
+      case _ => ""
+    }
+  }}
+  def hideSocialWidgets = {
+    if(view.name!="anonymous") ".box *" #> ""
+    else ".box *+" #> "" 
   }
-  
-  def hideSocialWidgets = if(consumer!="anonymous") ".box *" #> ""
-  else ".box *+" #> "" 
 }
 

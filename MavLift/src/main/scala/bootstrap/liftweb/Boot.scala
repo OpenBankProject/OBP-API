@@ -35,12 +35,15 @@ import http._
 import sitemap._
 import Loc._
 import mapper._
-import code.model._
+import code.model.dataAccess.{MongoConfig,OBPUser,Privilege,Account}
+import code.model.{Nonce, Consumer, Token}
 import com.tesobe.utils._
-import myapp.model.MongoConfig
 import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
+import code.snippet.OAuthHandshake
+import net.liftweb.util.Schedule
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -68,15 +71,25 @@ class Boot extends Loggable{
     // Use Lift's Mapper ORM to populate the database
     // you don't need to use Mapper to use Lift... use
     // any ORM you want
-    Schemifier.schemify(true, Schemifier.infoF _, User, Privilege)
+    Schemifier.schemify(true, Schemifier.infoF _, OBPUser, Privilege)
 
     // where to search snippet
     LiftRules.addToPackages("code")
 
     // For some restful stuff
     LiftRules.statelessDispatchTable.append(OBPRest) // stateless -- no session created
+    
+    //OAuth API call
+    LiftRules.dispatch.append(OAuthHandshake) 
+    LiftRules.statelessDispatchTable.append(OAuthHandshake) 
 
+    //OAuth Mapper 
+    Schemifier.schemify(true, Schemifier.infoF _, Nonce)
+    Schemifier.schemify(true, Schemifier.infoF _, Token)
+    Schemifier.schemify(true, Schemifier.infoF _, Consumer)
+    
     val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+
     
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
@@ -91,7 +104,7 @@ class Boot extends Loggable{
           Menu.i("Home") / "index",
           Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
             check(theOnlyAccount match{
-              case Full(a) => User.hasOwnerPermission(a)
+              case Full(a) => OBPUser.hasOwnerPermission(a)
               case _ => false
             })
           }) >> LocGroup("admin") 
@@ -100,13 +113,13 @@ class Boot extends Loggable{
 				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
 		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
-		      case Full(a) => User.hasOwnerPermission(a)
+		      case Full(a) => OBPUser.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
 		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> LocGroup("owner") >> TestAccess(() => {
 		    check(theOnlyAccount match{
-		      case Full(a) => User.hasOwnerPermission(a)
+		      case Full(a) => OBPUser.hasOwnerPermission(a)
 		      case _ => false
 		    })
 		  }),
@@ -118,35 +131,36 @@ class Boot extends Loggable{
           }),
           Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Full(a) => User.hasOurNetworkPermission(a)
+		      case Full(a) => OBPUser.hasOurNetworkPermission(a)
 		      case _ => false
 		    })
           }),
           Menu.i("Team") / "accounts" / "tesobe" / "team" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Full(a) => User.hasTeamPermission(a)
+		      case Full(a) => OBPUser.hasTeamPermission(a)
 		      case _ => false
 		    })
           }),
           Menu.i("Board") / "accounts" / "tesobe" / "board" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Full(a) => User.hasBoardPermission(a)
+		      case Full(a) => OBPUser.hasBoardPermission(a)
 		      case _ => false
 		    })
           }),
           Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> LocGroup("views") >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Full(a) => User.hasAuthoritiesPermission(a)
+		      case Full(a) => OBPUser.hasAuthoritiesPermission(a)
 		      case _ => false
 		    })
           }),
           Menu.i("Comments") / "comments" >> TestAccess(() => {
             check(theOnlyAccount match{
-		      case Full(a) => User.hasMoreThanAnonAccess(a)
+		      case Full(a) => OBPUser.hasMoreThanAnonAccess(a)
 		      case _ => false
 		    })
           }) >> Hidden,
-          Menu.i("About") / "about"
+          Menu.i("About") / "about",
+          Menu.i("OAuth") / "oauth" / "authorize" //oAuth authorization page
         )))
 
     LiftRules.statelessRewrite.append{
@@ -154,7 +168,10 @@ class Boot extends Loggable{
           					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
     }
 
-    def sitemapMutators = User.sitemapMutator
+    //lunch the scheduler to clean the database from the expired tokens ans nonces
+    Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)
+
+    def sitemapMutators = OBPUser.sitemapMutator
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
@@ -174,7 +191,7 @@ class Boot extends Loggable{
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     // What is the function to test if a user is logged in?
-    LiftRules.loggedInTest = Full(() => User.loggedIn_?)
+    LiftRules.loggedInTest = Full(() => OBPUser.loggedIn_?)
 
     // Use HTML5 for rendering
     LiftRules.htmlProperties.default.set((r: Req) =>
@@ -194,12 +211,12 @@ class Boot extends Loggable{
         theOnlyOwnerPriv match{
           case Empty => {
             //create one
-            val randomPassword = StringHelpers.randomString(12)
-            print ("The admin passowrd is :"+randomPassword )
+            // val randomPassword = StringHelpers.randomString(12)
+            // println ("The admin password is :"+randomPassword )
             
             logger.debug("Creating tesobe account user and granting it owner permissions")
             val userEmail = "tesobe@tesobe.com"
-            val theUserOwner = User.find(By(User.email, userEmail)).getOrElse(User.create.email(userEmail).password(randomPassword).validated(true).saveMe)
+            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
         	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
         	newPriv.saveMe
           }

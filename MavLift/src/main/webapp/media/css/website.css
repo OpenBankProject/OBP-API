@@ -488,3 +488,10 @@ span.alias_indicator_private {
 	font-size: 11px;
 	text-align: center;
 }
+#authorizeSection{
+	margin-bottom: 50px;
+}
+#authorizeSection form.login {
+	float : left;
+	margin-top: 20px;
+}

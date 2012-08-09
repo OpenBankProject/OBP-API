@@ -1,7 +1,7 @@
 package code.actors
 
 import net.liftweb.actor.LiftActor
-import code.model.OBPEnvelope
+import code.model.dataAccess.OBPEnvelope
 import net.liftweb.json.JObject
 import com.mongodb.QueryBuilder
 import net.liftweb.common.Loggable
@@ -62,7 +62,7 @@ object EnvelopeInserter extends LiftActor with Loggable{
       
       copiesToInsert.map(e => {
         val record = e.saveTheRecord()
-        record.get.asMediatedJValue("authorities",e.id.toString()) //authorities view gives the most information. TODO: This obviously needs to be reworked
+        record.get.asMediatedJValue("authorities") //authorities view gives the most information. TODO: This obviously needs to be reworked
       })
     }
   }
