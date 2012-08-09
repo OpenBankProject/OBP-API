@@ -25,7 +25,7 @@ Open Bank Project (http://www.openbankproject.com)
 		Everett Sochowski: everett AT tesobe DOT com
       
  */
-package myapp.model
+package code.model.dataAccess
 
 import net.liftweb._
 import mongodb._

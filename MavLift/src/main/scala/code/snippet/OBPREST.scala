@@ -20,9 +20,9 @@ Open Bank Project (http://www.openbankproject.com)
 
       This product includes software developed at
       TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
+    by 
+    Simon Redfern : simon AT tesobe DOT com
+    Everett Sochowski: everett AT tesobe DOT com
 
  */
 package com.tesobe.utils {
@@ -62,7 +62,7 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model._
+import code.model.dataAccess.{OBPEnvelope, OBPUser}
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -70,9 +70,11 @@ import code.model._
 // See http://www.assembla.com/spaces/liftweb/wiki/REST_Web_Services
 
 
-object OBPRest extends RestHelper with Loggable {
+object OBPRest extends RestHelper with Loggable 
+{
     println("here we are in OBPRest")
-    serve {
+    serve 
+    {
 
       
       
@@ -103,13 +105,13 @@ object OBPRest extends RestHelper with Loggable {
                "type_en":"Transfer",
                "type_de":"Überweisung",
                "posted":{
-		  		  "$dt":"2012-01-04T18:06:22.000Z"
-				},
+            "$dt":"2012-01-04T18:06:22.000Z"
+        },
                "completed":{
-		  		  "$dt":"2012-09-04T18:52:13.000Z"
-				},
+            "$dt":"2012-09-04T18:52:13.000Z"
+        },
                "new_balance":{
-               	  "currency":"EUR",
+                  "currency":"EUR",
                   "amount":"4323.45"
                },
                "value":{
@@ -119,15 +121,17 @@ object OBPRest extends RestHelper with Loggable {
                "other_data":"9"
             }
          }
- }  ' http://localhost:8080/api/transactions  
+   }  ' http://localhost:8080/api/transactions  
      */
     case "api" :: "transactions" :: Nil JsonPost json => {
       
       //
       // WARNING!
       //
-      // If you have not configured a web server to restrict this URL appropriately, anyone will be
-      // able to post transactions to your database. This would obviously be undesirable. So you should
+      // If you have not configured a web server to restrict this URL 
+      // appropriately, anyone will be
+      // able to post transactions to your database. This would obviously 
+      // be undesirable. So you should
       // definitely sort that out.
       //
       //
@@ -139,13 +143,16 @@ object OBPRest extends RestHelper with Loggable {
       })
       
       val ipAddress = json._2.remoteAddr
-      logger.info("Received " + rawEnvelopes.size + " json transactions to insert from ip address " + ipAddress)
-      logger.info("Received " + envelopes.size + " valid transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + rawEnvelopes.size + 
+        " json transactions to insert from ip address " + ipAddress)
+      logger.info("Received " + envelopes.size + 
+        " valid transactions to insert from ip address " + ipAddress)
       
       /**
-       * Using an actor to do insertions avoids concurrency issues with duplicate transactions
-       * by processing transaction batches one at a time. We'll have to monitor this to see if
-       * non-concurrent I/O is too inefficient. If it is, we could break it up into one actor
+       * Using an actor to do insertions avoids concurrency issues with 
+       * duplicate transactions by processing transaction batches one 
+       * at a time. We'll have to monitor this to see if non-concurrent I/O 
+       * is too inefficient. If it is, we could break it up into one actor
        * per "Account".
        */
       val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
@@ -155,40 +162,107 @@ object OBPRest extends RestHelper with Loggable {
         case _ => InternalServerErrorResponse()
       }
     } 
-    
-    /**
-     * Currently only anonymous level access is supported until authentication is put into place.
-     */
-    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
-    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
-    //to be completely reworked.
-    /*case "api" :: "accounts" :: "tesobe" :: accessLevel :: Nil JsonGet _ => {
-      
+    /*
+      returns the anonymous view automatically.
+      For the moment the is only one account so there is no check to do 
+      before returning the Json
+    */
+    case Req("api" :: "accounts" :: "tesobe":: "anonymous" :: Nil,_ ,GetRequest) => 
+    {
       val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+      val envelopeJson = allEnvelopes.map(envelope => 
+      envelope.asMediatedJValue("accessLevel"))
+      Full(JsonResponse(envelopeJson))  
+    }    
+    /*
+      return a JSon of all the transactions.
+      requires an OAuth token as authentication mechanism. 
+    */
+    case Req("api" :: "accounts" :: "tesobe":: accessLevel :: Nil,_ ,GetRequest) => 
+    {
+        //check if the accessLeve required already exists 
+        def doesTheViewExists(accessLevel : String) : Boolean = 
+        {
+          /* 
+            for the moment the number of views is limited this why 
+            they are hard coded. The work on 'dataAbstraction' branch 
+            will avoid this kind of verification. 
+          */   
+          val currentExistingViews = List("anonymous", "our-network", "team", 
+            "board", "my-view")
+          currentExistingViews.contains(accessLevel)
+        }
+        //check of the token authorize the application to have access 
+        //to accessLevel
+        def doesTheTokenHasAccess(accessLevel : String, tokenID : String) : Boolean = 
+        {
+            import code.model.dataAccess.{Account, Privilege}
+            //check if the privileges of the user authorize if to access
+            // to the access level
+            def doesTheUserHasAccess(accessLevel : String, user : OBPUser) : Boolean =
+            {
+                 
+                Account.find(("holder", "Music Pictures Limited")) match {
+                case Full(account) => if(accessLevel=="anonymous")
+                                        account.anonAccess.is
+                                      else
+                                        Privilege.find(By(Privilege.accountID,account.id.toString), By(Privilege.user, user.id)) match {
+                                          case Full(privilege) => privilegeCheck(accessLevel,privilege)
+                                          case _ => false 
+                                        }
+                case _ => false  
+                }
+            }
       
-      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue(accessLevel))
-      
-      JsonResponse(envelopeJson)
-    }*/
-    
-    /**
-     * Currently only anonymous level access is supported until authentication is put into place.
-     */
-    //curl -H "Accept: application/json" -H "Context-Type: application/json" -X GET "http://localhost:8080/api/accounts/tesobe/anonymous"
-    //This is for demo purposes only, as it's showing every single transaction rather than everything tesobe specific. This will need
-    //to be completely reworked.
-    case "api" :: "accounts" :: "tesobe" :: "anonymous" :: Nil JsonGet _ => {
-      
-      val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
-      
-      val envelopeJson = allEnvelopes.map(envelope => envelope.asMediatedJValue("anonymous",envelope.id.toString()))
-      
-      JsonResponse(envelopeJson)
+            //due to the actual privilege mechanism : the access level (API) 
+            //and the privilege of the account are stored differently 
+            //So the function do the match 
+            def privilegeCheck(accessLevel : String, privilege : Privilege) : Boolean = 
+              if(accessLevel == "my-view")
+                privilege.ownerPermission.is
+              else if(accessLevel == "our-network")
+                privilege.ourNetworkPermission.is
+              else if(accessLevel ==  "team")
+                privilege.teamPermission.is  
+              else if(accessLevel == "board")
+                privilege.boardPermission.is
+              else 
+                false 
+
+            import code.model.Token    
+            Token.find(By(Token.key,tokenID)) match {
+              case Full(token) => OBPUser.find(By(OBPUser.id,token.userId)) match {
+                                    case Full(user) => 
+                                            doesTheUserHasAccess(accessLevel, user) 
+                                    case _ => false 
+                                  }
+              case _ => false  
+            }
+        }
+        
+        import code.snippet.OAuthHandshake._
+        val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
+        //Extract the OAuth parameters from the header and test if the request is valid
+        var (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
+        //Test if the view exists and the OAuth request is valid
+        if(doesTheViewExists(accessLevel) && httpCode==200)
+        {
+            //check that the token gives access to the required view
+            if(doesTheTokenHasAccess(accessLevel, oAuthParameters.get("oauth_token").get))
+            {
+              val allEnvelopes = OBPEnvelope.findAll(QueryBuilder.start().get)
+              val envelopeJson = allEnvelopes.map(envelope => 
+              envelope.asMediatedJValue(accessLevel))
+              Full(JsonResponse(envelopeJson))  
+            }
+            else
+              Full(InMemoryResponse(data,headers,Nil,401)) 
+        }
+        else if(!doesTheViewExists(accessLevel) && httpCode==200)
+          Full(InMemoryResponse(data,headers,Nil,404))
+        else 
+          Full(InMemoryResponse(data,headers,Nil,httpCode))
     }
-    
-      
-    }
+  }
 }
-
-
-} // end of package
+} 

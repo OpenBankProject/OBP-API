@@ -29,7 +29,8 @@ package code.snippet
 
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
-import code.model.OBPEnvelope
+import code.model.dataAccess.OBPEnvelope
+import code.model.dataAccess.OBPAccount.{APublicAlias,APrivateAlias}
 import net.liftweb.common.Full
 import scala.xml.NodeSeq
 import net.liftweb.http.SHtml
@@ -45,8 +46,7 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.http.StringField
 import java.util.Date
 import java.text.SimpleDateFormat
-import code.model.OBPAccount._
-import code.model._
+import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
 
 /**
@@ -139,7 +139,7 @@ class Comments extends Loggable{
           case Full(x) => {
             SHtml.ajaxForm(<p>{
         		SHtml.text("",comment => {
-        		  User.currentUser match{
+        		  OBPUser.currentUser match{
         		    case Full(u) => e.addComment(u.email.get, comment)
         		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
         		  }
