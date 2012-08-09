@@ -92,7 +92,7 @@ object Anonymous extends BaseView {
 
   object OurNetwork extends BaseView 
   {
-    override def name = "Our Network"
+    override def name = "our-network"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
@@ -131,5 +131,5 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
-  override def name="owner view"
+  override def name="my-view"
 }

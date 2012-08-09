@@ -151,7 +151,7 @@ class OBPTransactionSnippet {
 	        					} } &
       {transaction.metadata match {
         case Some(metadata) => metadata.comments match{
-            case Some(comments) => ".comments_ext [href]" #> { view.name + "/transactions/" + transaction.id + "/comments" } &
+            case Some(comments) => ".comments_ext [href]" #> { view.name.toLowerCase + "/transactions/" + transaction.id + "/comments" } &
                                    ".comment *" #> comments.length.toString()
             case _ =>  ".comments *" #> NodeSeq.Empty 
           }
