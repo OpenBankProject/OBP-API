@@ -45,7 +45,7 @@ import net.liftweb.util.Helpers
 import code.model.AppType._
 import code.model.TokenType._
 import scala.compat.Platform
-import code.model.User
+import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
 
@@ -288,12 +288,9 @@ object OAuthHandshake extends RestHelper
 	    	else 
 	    		false
 	    }
-	    	
-	    var data =""
+  	 	var data =""
 	    var httpCode : Int = 500
-	     
 	    var parameters = getAllParameters
-
 	    //does all the OAuth parameters are presents?
 	    if(! enoughtOauthParameters(parameters,requestType))
 	    {
@@ -360,7 +357,7 @@ object OAuthHandshake extends RestHelper
 
 	    (httpCode, data.getBytes(), parameters)
   	}
-  	private def generateTokenAndSecret(ConsumerKey : String) = 
+  	 def generateTokenAndSecret(ConsumerKey : String) = 
   	{
     	import java.util.UUID._
 	    
@@ -380,7 +377,7 @@ object OAuthHandshake extends RestHelper
 	    
 	    (token,secret)
   	}
-  	private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
+  	def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
   	{
 	    import code.model.{Nonce, Token, TokenType}
 	    
@@ -412,7 +409,7 @@ object OAuthHandshake extends RestHelper
 	    
 	    nonceSaved && tokenSaved
   	}
-  	private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
+  	def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) : Boolean = 
   	{
 	    import code.model.{Nonce, Token, TokenType}
 	    
@@ -445,7 +442,6 @@ object OAuthHandshake extends RestHelper
 	    
 	    nonceSaved && tokenSaved
  	}
-
  	// this method is specific to the authorization page ( where the user login to grant access 
  	// to the application (step 2))  
  	def tokenCheck = 
@@ -457,7 +453,7 @@ object OAuthHandshake extends RestHelper
 			        case Full(appToken) => 
 			          	//check if the token is still valid
 			          	if(appToken.expirationDate.compareTo(new Date(Platform.currentTime)) == 1)
-			        	  	if(User.loggedIn_?)
+			        	  	if(OBPUser.loggedIn_?)
 			              	{
 							    var verifier =""
 							    // if the user is logged in and non verifier have been generated 
@@ -465,7 +461,7 @@ object OAuthHandshake extends RestHelper
 							    {
 							    	val randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
 							    	appToken.verifier(randomVerifier)
-							    	appToken.userId(User.currentUserId.get.toLong)
+							    	appToken.userId(OBPUser.currentUserId.get.toLong)
 							    	if(appToken.save())
 							    		verifier = randomVerifier
 							    }
@@ -494,16 +490,16 @@ object OAuthHandshake extends RestHelper
 						              	"#verifier" #>NodeSeq.Empty &
 						              	"#errorMessage" #> NodeSeq.Empty &
 						              	{
-						            		".login [action]" #> User.loginPageURL &
+						            		".login [action]" #> OBPUser.loginPageURL &
 									    	".forgot [href]" #> 
 									    	{
 									        	val href = for {
-									          	menu <- User.resetPasswordMenuLoc
+									          	menu <- OBPUser.resetPasswordMenuLoc
 									        	} yield menu.loc.calcDefaultHref
 									        	href getOrElse "#"
 									    	} & 
 									    	".signup [href]" #> 
-									    	User.signUpPath.foldLeft("")(_ + "/" + _) 
+									    	OBPUser.signUpPath.foldLeft("")(_ + "/" + _) 
 						              }
 						            }
 					            	case _ => 
