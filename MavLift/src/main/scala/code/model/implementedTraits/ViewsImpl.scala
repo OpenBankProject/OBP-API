@@ -1,19 +1,20 @@
 package code.model.implementedTraits
 
 import code.model.traits._
-
+import net.liftweb.common.{Box,Empty, Full}
 object View 
 {
   //transforme the url into a view 
   //TODO : load the view from the Data base
-  def fromUrl(viewNameURL: String): View = 
+  def fromUrl(viewNameURL: String): Box[View] = 
   viewNameURL match {
-    case "authorities" => Authorities
-    case "board" => Board
-    case "our-network" => OurNetwork
-    case "team" => Team
-    case "my-view" => Owner //a solution has to be found for the editing case
-    case _ => Anonymous
+    case "authorities" => Full(Authorities)
+    case "board" => Full(Board)
+    case "our-network" => Full(OurNetwork)
+    case "team" => Full(Team)
+    case "my-view" => Full(Owner)
+    case "anonymous" => Full(Anonymous)
+    case _ => Empty
   }
 }
 object Team extends FullView {

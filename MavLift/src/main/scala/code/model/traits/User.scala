@@ -4,6 +4,6 @@ trait User {
   
   def emailAddress : String
   def userName : String
-  def permittedViews(bankAccount : BankAccount) : Set[View]
+  def permittedViews(bankAccount : String) : Set[View]
   
 }

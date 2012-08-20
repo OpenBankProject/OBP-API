@@ -45,25 +45,25 @@ import net.liftweb.http.js.JsCmds.Noop
 import code.model.implementedTraits._
 import code.model.traits._
 
-class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransaction],View)){
+class TestSnippet {
 
+  println("TestSnippet")
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val FORBIDDEN = "---"
   
   //TODO : implenting a more proper way to load the appropriate view regarding the URL
-  // val view = S.uri match {
-  //   case uri if uri.endsWith("authorities") => Authorities
-  //   case uri if uri.endsWith("board") => Board
-  //   case uri if uri.endsWith("our-network") => OurNetwork
-  //   case uri if uri.endsWith("team") => Team
-  //   case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
-  //   case _ => Anonymous
-  // }	
+  val view = S.uri match {
+    case uri if uri.endsWith("authorities") => Authorities
+    case uri if uri.endsWith("board") => Board
+    case uri if uri.endsWith("our-network") => OurNetwork
+    case uri if uri.endsWith("team") => Team
+    case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
+    case _ => Anonymous
+  }	
   
   //TODO : This snippet should receive the transaction as a parameter 
-  // val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
-  val filteredTransactions = filteredTransactionsAndView._1
-  val view = filteredTransactionsAndView._2
+  val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
+
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     
     def otherPartyInfo: CssSel = {

@@ -2,10 +2,14 @@ package code.model.dataAccess
 
 import code.model.traits._
 import code.model.implementedTraits._
+import net.liftweb.common.{Box,Empty, Full}
 
-  object PostBankLocalStorage 
+  object MongoDBLocalStorage 
   {
-    def getTransactions : List[Transaction] = 
+    //For the moment there is only one bank 
+    //but for multiple banks we should look in the
+    //data base to check if the bank exists or not
+    def getTransactions(bank : String, account : String) : Box[List[Transaction]] = 
     {
       def createTransaction(env : OBPEnvelope) : Transaction = 
       {
@@ -41,6 +45,8 @@ import code.model.implementedTraits._
           label, startDate, finishDate, balance)
       }
       import com.mongodb.QueryBuilder
+      //In the short terme make the connector select a specific database and then get the transactions
+      //for the moment there is only one 
       val qry = QueryBuilder.start().get
       val envelopesToDisplay = OBPEnvelope.findAll(qry)
       val transactions = envelopesToDisplay.map(createTransaction(_))
@@ -50,6 +56,34 @@ import code.model.implementedTraits._
         "EUR", "Tesobe main account","",None,None, transactions.toSet, true)
       bankAccount.owners = Set(new AccountOwnerImpl("01","Music Pictures LTD", Set(bankAccount)))
       bankAccount.transactions.map( _.thisAccount = bankAccount)      
-      transactions
+      Full(transactions)
     }
+    
+    //connect to different databases and return all the accounts
+    //TODO:deal with different databases
+    def getBank(name : String) : Box[Bank] = 
+    {
+      if(name=="postbank")
+        Full(new BankImpl("01", "Post Bank", Set((getTransactions("postbank","tesobe")).get(0).thisAccount)))
+      else
+        Empty    
+    }
+    //check if the bank and the accounts exist in the database
+    def correctBankAndAccount(bank : String, account : String) : Boolean = 
+    {
+      //TODO: deal with different databases
+      if(bank=="postbank" && account=="tesobe")
+        true
+      else 
+        false 
+    }
+    def getAccount(account : String) : Box[Account]= 
+    {
+	    import net.liftweb.json.JsonDSL._
+      if(account == "tesobe")
+        Account.find(("holder", "Music Pictures Limited"))
+      else
+        Empty
+    }
+
   }
