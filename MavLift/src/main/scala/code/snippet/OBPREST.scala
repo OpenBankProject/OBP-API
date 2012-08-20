@@ -231,7 +231,7 @@ object OBPRest extends RestHelper with Loggable
 
             import code.model.Token    
             Token.find(By(Token.key,tokenID)) match {
-              case Full(token) => OBPUser.find(By(OBPUser.id,token.userId)) match {
+              case Full(token) => OBPUser.find(By(OBPUser.id,token.userId.toString.toLong)) match {
                                     case Full(user) => 
                                             doesTheUserHasAccess(accessLevel, user) 
                                     case _ => false 
