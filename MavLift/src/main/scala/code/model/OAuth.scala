@@ -29,6 +29,7 @@ package code.model
 import net.liftweb.mapper._
 import java.util.Date
 import scala.compat.Platform
+import code.model.dataAccess.OBPUser
 
 object AppType extends Enumeration("web", "mobile") 
 {
@@ -93,7 +94,7 @@ class Token extends LongKeyedMapper[Token]{
 	object id extends MappedLongIndex(this) //TODO : auto increment
 	object tokenType extends MappedEnum(this, TokenType)
 	object consumerId extends MappedLongForeignKey(this, Consumer)
-	object userId extends MappedLongForeignKey(this, User)
+	object userId extends MappedLongForeignKey(this, OBPUser)
 	object key extends MappedString(this,250)
 	object secret extends MappedString(this,250)
 	object callbackURL extends MappedString(this,250)
