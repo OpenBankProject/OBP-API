@@ -288,9 +288,12 @@ object OAuthHandshake extends RestHelper
 	    	else 
 	    		false
 	    }
-  	 	var data =""
+	    	
+	    var data =""
 	    var httpCode : Int = 500
+	     
 	    var parameters = getAllParameters
+
 	    //does all the OAuth parameters are presents?
 	    if(! enoughtOauthParameters(parameters,requestType))
 	    {
@@ -357,7 +360,7 @@ object OAuthHandshake extends RestHelper
 
 	    (httpCode, data.getBytes(), parameters)
   	}
-  	 def generateTokenAndSecret(ConsumerKey : String) = 
+  	private def generateTokenAndSecret(ConsumerKey : String) = 
   	{
     	import java.util.UUID._
 	    
@@ -377,7 +380,7 @@ object OAuthHandshake extends RestHelper
 	    
 	    (token,secret)
   	}
-  	def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
+  	private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
   	{
 	    import code.model.{Nonce, Token, TokenType}
 	    
@@ -409,7 +412,7 @@ object OAuthHandshake extends RestHelper
 	    
 	    nonceSaved && tokenSaved
   	}
-  	def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) : Boolean = 
+  	private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) = 
   	{
 	    import code.model.{Nonce, Token, TokenType}
 	    
@@ -442,6 +445,7 @@ object OAuthHandshake extends RestHelper
 	    
 	    nonceSaved && tokenSaved
  	}
+
  	// this method is specific to the authorization page ( where the user login to grant access 
  	// to the application (step 2))  
  	def tokenCheck = 
