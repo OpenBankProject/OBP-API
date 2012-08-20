@@ -46,22 +46,19 @@ class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with 
   
   def emailAddress = email.get
   def userName = firstName.get
-  def permittedViews(bankAccount : BankAccount) : Set[View] = {
-    //TODO: Stop ignoring the bankAccount parameter
-    val acc = Account.currentAccount
-    
-    
-    var views : Set[View] = Set()
-    acc match{
-      case Full(a) => {
-        if(OBPUser.hasOurNetworkPermission(a)) views = views + OurNetwork
-        if(OBPUser.hasTeamPermission(a)) views = views + Team
-        if(OBPUser.hasBoardPermission(a)) views = views + Board
-        if(OBPUser.hasAuthoritiesPermission(a)) views = views + Authorities
-        if(a.anonAccess.get) views = views + Anonymous
+  
+  def permittedViews(bankAccount : String) : Set[View] = {
+    MongoDBLocalStorage.getAccount(bankAccount) match {
+      case Full(account) => {
+        var views : Set[View] = Set()
+        if(OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
+        if(OBPUser.hasTeamPermission(account)) views = views + Team
+        if(OBPUser.hasBoardPermission(account)) views = views + Board
+        if(OBPUser.hasAuthoritiesPermission(account)) views = views + Authorities
+        if(account.anonAccess.get) views = views + Anonymous
         views
       }
-      case _ => Set()
+      case _ => Set() 
     }
   }
 }

@@ -1,8 +1,8 @@
 package code.snippet
 import net.liftweb.json.JsonAST._
-import code.model.Account
+import code.model.dataAccess.Account
 import net.liftweb.util.Helpers._
-import code.model.OtherAccount
+import code.model.dataAccess.OtherAccount
 import scala.xml.NodeSeq
 import scala.xml.Text
 import net.liftweb.http.SHtml
@@ -12,7 +12,7 @@ import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
 
-class Management {
+class Management(aze : String) {
 
   val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
   val sortList = (0, Sorting.DSC) :: Nil
