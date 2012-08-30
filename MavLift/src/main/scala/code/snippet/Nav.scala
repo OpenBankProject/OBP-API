@@ -23,9 +23,10 @@ class Nav {
     
     ".navitem *" #> {
       locs.map(l => {
-      ".navlink [href]" #> l.calcDefaultHref &
-      ".navlink *" #> l.linkText &
-      ".navlink [class+]" #> markIfSelected(l)
+        println("linktext : "+ l.linkText)
+        ".navlink [href]" #> l.calcDefaultHref &
+        ".navlink *" #> l.linkText &
+        ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
     })
     }
   }
@@ -33,7 +34,7 @@ class Nav {
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")
-    
+    println("item name : "+ name )
     val loc = (for{
       sitemap <- LiftRules.siteMap
       l <- new SiteMapSingleton().findAndTestLoc(name)
@@ -41,20 +42,28 @@ class Nav {
     
     ".navitem *" #>{
       loc.map(l => {
-        ".navlink [href]" #> l.calcDefaultHref &
+        var href = l.calcDefaultHref
+        if(l.name=="Management")
+        { 
+          println( "old url : " + S.uri.drop(1))
+          var url = S.uri.drop(1).split("/")
+          url = url.dropRight(1)
+          println( "new url List: " + url.toString)
+          var newUrl = ""
+          url.foreach(t => newUrl += "/" + t ) 
+          href = newUrl + "/management"
+        }
+
+        ".navlink [href]" #> href &
         ".navlink *" #> l.linkText &
-        ".navlink [class+]" #> markIfSelected(l)
+        ".navlink [class+]" #> markIfSelected(href)
       })
     }
   }
   
-  def markIfSelected(loc: Loc[_]) : Box[String]= {
-    val href = loc.calcDefaultHref
+  def markIfSelected(href : String) : Box[String]= {
     val currentHref = S.uri
-    
     if(href.equals(currentHref)) Full("selected")
     else Empty
   }
-  
-  
 }

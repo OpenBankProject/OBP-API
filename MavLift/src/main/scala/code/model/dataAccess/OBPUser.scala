@@ -55,6 +55,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with 
         if(OBPUser.hasTeamPermission(account)) views = views + Team
         if(OBPUser.hasBoardPermission(account)) views = views + Board
         if(OBPUser.hasAuthoritiesPermission(account)) views = views + Authorities
+        if(OBPUser.hasOwnerPermission(account)) views = views + Owner
         if(account.anonAccess.get) views = views + Anonymous
         views
       }
@@ -166,26 +167,7 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
     }
   }
   
-  object accountID extends MappedString(this, 255){
-    //
-    // WARNING!
-    //
-    // Once we extend the OBP functionality to support multiple accounts, this will need to be changed
-    // or else any account owner (i.e. anyone who sets privileges) will be setting privileges on the 
-    // music pictures account instead of their own.
-    //
-    override def defaultValue = {
-      val qry = QueryBuilder.start("obp_transaction.other_account.holder").is("Music Pictures Limited").get
-      val currentAcc = Account.currentAccount
-      
-      currentAcc match{
-        case Full(a) => {
-          a.id.get.toString
-        }
-        case _ => "no_acc_id_defined"
-      }
-    }
-  }
+  object accountID extends MappedString(this, 255)
   object ourNetworkPermission extends ourMappedBoolean(this){
     override def displayName = "Our Network"
   }
@@ -210,7 +192,6 @@ object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUD
   override def createMenuLocParams = LocGroup("admin") :: Nil
   override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt, accountID)
   override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt, accountID)
-  
   def showAll = doCrudAll(_)
 }
 

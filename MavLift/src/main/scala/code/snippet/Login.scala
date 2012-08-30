@@ -17,8 +17,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.email.get &
-      ".account-number *" #> Account.currentAccount.get.number.get
+      ".username *" #> OBPUser.currentUser.get.email.get 
     }
   }
   
@@ -42,7 +41,7 @@ class Login {
 
   def redirectTesobeAnonymousIfLoggedOut = {
     if(!OBPUser.loggedIn_?){
-      S.redirectTo("/accounts/tesobe/anonymous")
+      S.redirectTo("banks/postbank/accounts/tesobe/anonymous")
     }  else {
       "*" #> NodeSeq.Empty
     }

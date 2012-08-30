@@ -12,7 +12,7 @@ import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
 
-class Management(aze : String) {
+class Management {
 
   val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
   val sortList = (0, Sorting.DSC) :: Nil

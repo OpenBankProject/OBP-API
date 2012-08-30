@@ -3,7 +3,8 @@ package code.model.dataAccess
 import code.model.traits._
 import code.model.implementedTraits._
 import net.liftweb.common.{Box,Empty, Full}
-
+import net.liftweb.mongodb.BsonDSL._  
+import net.liftweb.json.JsonDSL._
   object MongoDBLocalStorage 
   {
     //For the moment there is only one bank 
@@ -13,10 +14,10 @@ import net.liftweb.common.{Box,Empty, Full}
     {
       def createTransaction(env : OBPEnvelope) : Transaction = 
       {
+        import net.liftweb.json.JsonDSL._
         val transaction : OBPTransaction = env.obp_transaction.get
-        val thisAccount_ = transaction.this_account.get
         val otherAccount_ = transaction.other_account.get
-        val theAccount = thisAccount_.theAccount
+        val theAccount = Account.find(("holder", "Music Pictures Limited"))
         val otherUnmediatedHolder = otherAccount_.holder.get
         
         val oAccs = theAccount.get.otherAccounts.get
@@ -47,20 +48,24 @@ import net.liftweb.common.{Box,Empty, Full}
       import com.mongodb.QueryBuilder
       //In the short terme make the connector select a specific database and then get the transactions
       //for the moment there is only one 
-      val qry = QueryBuilder.start().get
-      val envelopesToDisplay = OBPEnvelope.findAll(qry)
-      val transactions = envelopesToDisplay.map(createTransaction(_))
-      val bankAccountBalance = (envelopesToDisplay.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
-      details.get.new_balance.get.amount.get
-      val bankAccount : BankAccount = new BankAccountImpl("01", Set(),"Buisness",bankAccountBalance, 
-        "EUR", "Tesobe main account","",None,None, transactions.toSet, true)
-      bankAccount.owners = Set(new AccountOwnerImpl("01","Music Pictures LTD", Set(bankAccount)))
-      bankAccount.transactions.map( _.thisAccount = bankAccount)      
-      Full(transactions)
+      Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
+        case Full(account) => {
+          val transactions = account.allEnvelopes.map(createTransaction(_))  
+          val bankAccountBalance = (account.allEnvelopes.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
+                                details.get.new_balance.get.amount.get 
+          val iban = if(account.iban.toString.isEmpty) None else Some(account.iban.toString)
+
+          val bankAccount : BankAccount = new BankAccountImpl(account.id.toString, Set(),account.kind.toString,
+            bankAccountBalance,account.currency.toString, account.label.toString,
+            "",None,iban, transactions.toSet, account.anonAccess.get)  
+          bankAccount.owners = Set(new AccountOwnerImpl("",account.holder.toString, Set(bankAccount)))     
+                bankAccount.transactions.map( _.thisAccount = bankAccount)      
+          Full(transactions)                                      
+        }
+        case _ => Empty 
+      }
     }
     
-    //connect to different databases and return all the accounts
-    //TODO:deal with different databases
     def getBank(name : String) : Box[Bank] = 
     {
       if(name=="postbank")
@@ -71,19 +76,17 @@ import net.liftweb.common.{Box,Empty, Full}
     //check if the bank and the accounts exist in the database
     def correctBankAndAccount(bank : String, account : String) : Boolean = 
     {
-      //TODO: deal with different databases
-      if(bank=="postbank" && account=="tesobe")
-        true
-      else 
-        false 
+      Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
+        case Full(account) => true
+        case _ => false
+      }
     }
     def getAccount(account : String) : Box[Account]= 
     {
-	    import net.liftweb.json.JsonDSL._
-      if(account == "tesobe")
-        Account.find(("holder", "Music Pictures Limited"))
-      else
-        Empty
-    }
-
+        Account.find(("permalink" -> account)) match {
+          case Full(aze) => println("account found")
+          case _ => println("account non found") 
+        }
+        Account.find(("permalink" -> account))
+    }    
   }

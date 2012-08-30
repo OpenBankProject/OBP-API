@@ -4,7 +4,7 @@ import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 import net.liftweb.http._
 import java.util.Calendar
-import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount, PostBankLocalStorage}
+import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount}
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._

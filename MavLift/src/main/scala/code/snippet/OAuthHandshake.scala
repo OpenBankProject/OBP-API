@@ -541,7 +541,7 @@ object OAuthHandshake extends RestHelper
 		
 		/*
 			As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
-			requests. So this function will delete nonces which are have a timestamp older than
+			requests. So this function will delete nonces which have a timestamp older than
 			currentDate - 3 minutes   
 		*/ 
 		val timeLimit = new Date(currentDate.getTime + 180000) 
