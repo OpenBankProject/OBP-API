@@ -119,7 +119,7 @@ class Boot extends Loggable{
               case Full(user) => {
                 View.fromUrl(view) match {
                   //compare the views
-                  case Full(view) => user.permittedViews(account).contains(view) 
+                  case Full(view) => user.permittedViews(account).contains(view)
                   case _ => false
                 }
               }
@@ -134,20 +134,18 @@ class Boot extends Loggable{
       val bank = URLParameters(0)
       val account = URLParameters(1)
       val view = URLParameters(2)
-      if( !MongoDBLocalStorage.correctBankAndAccount(bank, account) || ! authorisedAccess(bank, account, view))
-        Empty
-      else
-      {
+      if( MongoDBLocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
         View.fromUrl(view) match {
           case Full(currentView) => {
-            println(currentView.name)            
             Full((MongoDBLocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
           }
           case _ => Empty
         }
-      }
-        
+      else
+        Empty        
     }
+    var menuList = List()
+    var l = Menu.i("Home") / "index"
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
@@ -168,12 +166,13 @@ class Boot extends Loggable{
           Menu.param[Bank]("Accounts", "accounts", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
           
           //test if the bank exists and if the user have access to this view => management page
-          Menu.param[String]("Management view", "management view", t => Full("")  , t => "aze" ) 
-          / "banks" / * / "accounts" / * / "management" >> LocGroup("owner") >> TestAccess(() => {
-                check(theOnlyAccount match{
-                  case Full(a) => OBPUser.hasOwnerPermission(a)
-                  case _ => false
-                })
+          Menu.param[String]("Management", "management", t => Full(""), t => "") / "banks" / * / "accounts" / * / "management" 
+            >> LocGroup("owner") 
+            >> TestAccess(() => {
+                  check(theOnlyAccount match{
+                    case Full(a) => OBPUser.hasOwnerPermission(a)
+                    case _ => false
+                  })
               }),
           
           Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", tupleFromURL _ ,  t => List("") ) 
@@ -192,8 +191,6 @@ class Boot extends Loggable{
         case RewriteRequest(ParsePath("banks" :: bank :: "accounts" :: accountName :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
           					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
     }
-
-
 
     def sitemapMutators = OBPUser.sitemapMutator
 
