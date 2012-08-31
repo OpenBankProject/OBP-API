@@ -47,8 +47,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with 
   def emailAddress = email.get
   def userName = firstName.get
   
-  def permittedViews(bankAccount : String) : Set[View] = {
-    MongoDBLocalStorage.getAccount(bankAccount) match {
+  def permittedViews(bankpermalink : String, bankAccount : String) : Set[View] = {
+    MongoDBLocalStorage.getAccount(bankpermalink, bankAccount) match {
       case Full(account) => {
         var views : Set[View] = Set()
         if(OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
@@ -60,6 +60,12 @@ class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with 
         views
       }
       case _ => Set() 
+    }
+  }
+  def hasMangementAccess(bankpermalink : String, bankAccountPermalink : String)  = {
+    MongoDBLocalStorage.getAccount(bankpermalink, bankAccountPermalink) match {
+      case Full(account) => OBPUser.hasOwnerPermission(account)
+      case _ => false
     }
   }
 }
@@ -125,16 +131,12 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   
   def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
     currentUser match{
-      case Full(u) => {
-        val permission = Privilege.find(By(Privilege.accountID, account.id.toString), 
-            							 By(Privilege.user, u))
-        permission match{
-          case Full(p) => {
-        	permissionCheck(p)
-          }
+      case Full(u) => 
+        Privilege.find(By(Privilege.accountID, account.id.toString), 
+            		      By(Privilege.user, u)) match{
+          case Full(p) => permissionCheck(p)
           case _ => false
         }
-      }
       case _ => false
     }
   }

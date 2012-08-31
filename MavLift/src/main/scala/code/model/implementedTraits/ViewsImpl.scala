@@ -12,21 +12,24 @@ object View
     case "board" => Full(Board)
     case "our-network" => Full(OurNetwork)
     case "team" => Full(Team)
-    case "my-view" => Full(Owner)
+    case "owner" => Full(Owner)
     case "anonymous" => Full(Anonymous)
     case _ => Empty
   }
 }
 object Team extends FullView {
   override def name = "Team"
+  override def permalink = "team"
   override def canEditOwnerComment= false
 }
 object Board extends FullView {
   override def name = "Board"
+  override def permalink = "board"
   override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
   override def name = "Authorities"
+  override def permalink = "authorities"
   override def canEditOwnerComment= false    
 }
 
@@ -44,7 +47,7 @@ object Anonymous extends BaseView {
    */
   
   override def name = "Anonymous"
-   
+  override def permalink = "anonymous" 
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
@@ -93,7 +96,8 @@ object Anonymous extends BaseView {
 
   object OurNetwork extends BaseView 
   {
-    override def name = "our-network"
+    override def name = "Our Network"
+    override def permalink ="our-network"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
@@ -132,5 +136,6 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
-  override def name="my-view"
+  override def name="owner"
+  override def permalink = "Owner"
 }
