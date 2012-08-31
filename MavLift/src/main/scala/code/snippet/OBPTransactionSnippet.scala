@@ -152,7 +152,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
 	        					} } &
       {transaction.metadata match {
         case Some(metadata) => metadata.comments match{
-            case Some(comments) => ".comments_ext [href]" #> { view.name.toLowerCase + "/transactions/" + transaction.id + "/comments" } &
+            case Some(comments) => ".comments_ext [href]" #> { view.permalink + "/transactions/" + transaction.id + "/comments" } &
                                    ".comment *" #> comments.length.toString()
             case _ =>  ".comments *" #> NodeSeq.Empty 
           }
@@ -248,7 +248,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
     }
   }}
   def hideSocialWidgets = {
-    if(view.name!="anonymous") ".box *" #> ""
+    if(view.name!="Anonymous") ".box *" #> ""
     else ".box *+" #> "" 
   }
 }

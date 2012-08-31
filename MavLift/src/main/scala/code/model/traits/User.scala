@@ -4,6 +4,7 @@ trait User {
   
   def emailAddress : String
   def userName : String
-  def permittedViews(bankAccountPermalink : String) : Set[View]
+  def permittedViews(bankpermalink : String, bankAccountPermalink : String) : Set[View]
+  def hasMangementAccess(bankpermalink : String, bankAccountPermalink : String)  : Boolean
   
 }

@@ -81,12 +81,6 @@ import net.liftweb.json.JsonDSL._
         case _ => false
       }
     }
-    def getAccount(account : String) : Box[Account]= 
-    {
-        Account.find(("permalink" -> account)) match {
-          case Full(aze) => println("account found")
-          case _ => println("account non found") 
-        }
-        Account.find(("permalink" -> account))
-    }    
+    def getAccount(bankpermalink : String, account : String) : Box[Account]= 
+      Account.find(("permalink"-> account)~("bankPermalink" -> bankpermalink))
   }

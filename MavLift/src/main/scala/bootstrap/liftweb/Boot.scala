@@ -119,7 +119,7 @@ class Boot extends Loggable{
               case Full(user) => {
                 View.fromUrl(view) match {
                   //compare the views
-                  case Full(view) => user.permittedViews(account).contains(view)
+                  case Full(view) => user.permittedViews(bank, account).contains(view)
                   case _ => false
                 }
               }
@@ -129,7 +129,7 @@ class Boot extends Loggable{
         }
       }
     }       
-    def tupleFromURL (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
+    def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
     {
       val bank = URLParameters(0)
       val account = URLParameters(1)
@@ -144,8 +144,27 @@ class Boot extends Loggable{
       else
         Empty        
     }
+    def getAccount(URLParameters : List[String]) = 
+    {
+      val bankUrl = URLParameters(0)
+      val accountUrl = URLParameters(1)
+      MongoDBLocalStorage.getAccount(bankUrl,accountUrl) match {
+        case Full(account) => 
+            OBPUser.currentUserId match {
+              case Full(id) =>         
+                OBPUser.find(By(OBPUser.id,id.toLong)) match {
+                  case Full(user) =>  if(user.hasMangementAccess(bankUrl,accountUrl))
+                                        Full(account)
+                                      else
+                                        Empty    
+                  case _ => Empty 
+                }
+              case _ => Empty
+            } 
+        case _ => Empty 
+      }
+    }
     var menuList = List()
-    var l = Menu.i("Home") / "index"
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
@@ -166,7 +185,7 @@ class Boot extends Loggable{
           Menu.param[Bank]("Accounts", "accounts", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
           
           //test if the bank exists and if the user have access to this view => management page
-          Menu.param[String]("Management", "management", t => Full(""), t => "") / "banks" / * / "accounts" / * / "management" 
+          Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management" 
             >> LocGroup("owner") 
             >> TestAccess(() => {
                   check(theOnlyAccount match{
@@ -175,7 +194,7 @@ class Boot extends Loggable{
                   })
               }),
           
-          Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", tupleFromURL _ ,  t => List("") ) 
+          Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
           / "banks" / * / "accounts" / * / * , 
 
 
@@ -228,8 +247,7 @@ class Boot extends Loggable{
      */
     theOnlyAccount match{
       case Full(a) => {
-        val theOnlyOwnerPriv = Privilege.find(By(Privilege.accountID, a.id.get.toString), By(Privilege.ownerPermission, true))
-        theOnlyOwnerPriv match{
+        Privilege.find(By(Privilege.accountID, a.id.get.toString), By(Privilege.ownerPermission, true)) match{
           case Empty => {
             //create one
             // val randomPassword = StringHelpers.randomString(12)
@@ -238,8 +256,7 @@ class Boot extends Loggable{
             logger.debug("Creating tesobe account user and granting it owner permissions")
             val userEmail = "tesobe@tesobe.com"
             val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
-        	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
-        	newPriv.saveMe
+        	  Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner).saveMe
           }
           case _ => logger.debug("Owner privilege already exists")
         }
