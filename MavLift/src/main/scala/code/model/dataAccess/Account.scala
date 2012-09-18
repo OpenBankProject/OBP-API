@@ -25,11 +25,12 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def meta = Account 
  
   object anonAccess extends BooleanField(this, false)
-  object permalink extends StringField(this, 255)
   object holder extends StringField(this, 255)
-  object number extends StringField(this, 255)   //TODO: rethink protection of this again
+  object number extends StringField(this, 255)   
   object kind extends StringField(this, 255)
+  object name extends StringField(this, 255)
   object bankName extends StringField(this, 255)
+  object permalink extends StringField(this, 255)
   object bankPermalink extends StringField(this, 255)  
   object label extends StringField(this, 255)
   object currency extends StringField(this, 255)

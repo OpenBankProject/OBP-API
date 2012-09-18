@@ -45,9 +45,6 @@ import net.liftweb.json.JsonDSL._
         new TransactionImpl(id,null, otherAccount,metadata, transactionType,amount,currency,
           label, startDate, finishDate, balance)
       }
-      import com.mongodb.QueryBuilder
-      //In the short terme make the connector select a specific database and then get the transactions
-      //for the moment there is only one 
       Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
         case Full(account) => {
           val transactions = account.allEnvelopes.map(createTransaction(_))  
