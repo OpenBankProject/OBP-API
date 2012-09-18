@@ -44,6 +44,7 @@ import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
 import net.liftweb.util.Schedule
+import net.liftweb.mongodb.BsonDSL._  
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -168,10 +169,12 @@ class Boot extends Loggable{
     val sitemap = List(
           Menu.i("Home") / "index",
           Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
-            check(theOnlyAccount match{
-              case Full(a) => OBPUser.hasOwnerPermission(a)
-              case _ => false
-            })
+            check(
+              if(Account.findAll.count(OBPUser.hasOwnerPermission _) > 0)
+                true
+              else
+                false
+            )
           }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("About") / "about",
@@ -180,7 +183,7 @@ class Boot extends Loggable{
           Menu.i("Banks") / "banks", //no test => list of open banks
           //list of open banks (banks with a least a bank account with an open account)
           Menu.param[Bank]("Bank", "bank", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
-          //list of opens accounts in a specific bank
+          //list of open accounts in a specific bank
           Menu.param[Bank]("Accounts", "accounts", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
           
           //test if the bank exists and if the user have access to this view => management page

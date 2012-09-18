@@ -23,6 +23,7 @@ Open Bank Project (http://www.openbankproject.com)
 		by 
 		Simon Redfern : simon AT tesobe DOT com
 		Everett Sochowski: everett AT tesobe DOT com
+    Ayoub Benali : ayoub AT tesobe DOT com
 
  */
 package code.snippet
@@ -50,18 +51,6 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val FORBIDDEN = "---"
   
-  //TODO : implenting a more proper way to load the appropriate view regarding the URL
-  // val view = S.uri match {
-  //   case uri if uri.endsWith("authorities") => Authorities
-  //   case uri if uri.endsWith("board") => Board
-  //   case uri if uri.endsWith("our-network") => OurNetwork
-  //   case uri if uri.endsWith("team") => Team
-  //   case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
-  //   case _ => Anonymous
-  // }	
-  
-  //TODO : This snippet should receive the transaction as a parameter 
-  // val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
   val filteredTransactions = filteredTransactionsAndView._1
   val view = filteredTransactionsAndView._2
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
