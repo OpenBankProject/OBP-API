@@ -41,7 +41,7 @@ class Nav {
       loc.map(l => {
         ".navlink [href]" #> l.calcDefaultHref &
         ".navlink *" #> l.linkText &
-        ".navlink [class+]" #> markIfSelected(href)
+        ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
       })
     }
   }
