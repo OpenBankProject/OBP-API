@@ -145,6 +145,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
    * @param text The text of the comment
    */
   def addComment(email: String, text: String) = {
+    println("adding : "+ email + " "+ text)
     val comments = obp_comments.get
     val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
     obp_comments(c2).saveTheRecord()

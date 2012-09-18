@@ -61,6 +61,7 @@ import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model.dataAccess.{OBPEnvelope, OBPUser}
+import code.model.dataAccess.HostedAccount
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -204,10 +205,14 @@ object OBPRest extends RestHelper with Loggable
                 case Full(account) => if(accessLevel=="anonymous")
                                         account.anonAccess.is
                                       else
-                                        Privilege.find(By(Privilege.accountID,account.id.toString), By(Privilege.user, user.id)) match {
-                                          case Full(privilege) => privilegeCheck(accessLevel,privilege)
-                                          case _ => false 
-                                        }
+                                       HostedAccount.find(By(HostedAccount.accountID,account.id.toString)) match{
+                                        case Full(hostedAccount) =>                                         
+                                          Privilege.find(By(Privilege.account,hostedAccount), By(Privilege.user, user.id)) match {
+                                          	case Full(privilege) => privilegeCheck(accessLevel,privilege)
+                                          	case _ => false 
+                                          }
+                                       	case _ => false
+                                       }
                 case _ => false  
                 }
             }

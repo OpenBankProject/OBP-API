@@ -130,31 +130,26 @@ class Comments extends Loggable{
   def addComment(xhtml: NodeSeq) : NodeSeq = {
     val accessLevel = S.param("accessLevel") getOrElse "anonymous"
     val envelopeID = S.param("envelopeID") getOrElse ""
-    
-    val envelope = OBPEnvelope.find(envelopeID)
-    
-    envelope match{
+    OBPEnvelope.find(envelopeID) match{
       case Full(e) => {
         e.mediated_obpComments(accessLevel) match{
           case Full(x) => {
             SHtml.ajaxForm(<p>{
-        		SHtml.text("",comment => {
-        		  OBPUser.currentUser match{
-        		    case Full(u) => e.addComment(u.email.get, comment)
-        		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
-        		  }
-        		  
-        		})}</p> ++
-        			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
+          		SHtml.text("",comment => {
+          		  OBPUser.currentUser match{
+          		    case Full(u) => e.addComment(u.email.get, comment)
+          		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
+          		  }
+          		  
+          		})}</p> ++
+          			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
             )
           }
           case _ => Text("Anonymous users may not view or submit comments")
         }
-        
       }
       case _ => Text("Cannot add comment to non-existant transaction")
     }
-    
   }
   
 }
