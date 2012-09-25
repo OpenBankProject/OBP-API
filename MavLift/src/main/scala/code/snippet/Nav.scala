@@ -10,6 +10,10 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.sitemap.SiteMapSingleton
+import code.model.dataAccess.{OBPUser,Account, MongoDBLocalStorage}
+import net.liftweb.http.SHtml
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds._Noop
 
 class Nav {
 
@@ -50,5 +54,42 @@ class Nav {
     val currentHref = S.uri
     if(href.equals(currentHref)) Full("selected")
     else Empty
+  }
+
+  def listAccounts  = {
+    var accounts : List[(String, String)] = List()
+    OBPUser.currentUser match {
+      case Full(user) => Account.findAll.map(account =>
+        if(user.permittedViews(account.bankPermalink.is, account.permalink.is).size != 0)
+          accounts ::= (account.bankPermalink + "," + account.permalink, account.bankName + " - " + account.name)  
+        )
+      case _ => Account.findAll.map(account => 
+        if(account.anonAccess.is)
+          accounts ::= (account.bankPermalink + "," + account.permalink, account.bankName + " - " + account.name)   
+        )  
+    }
+    accounts ::= ("0","--Choose an account")
+    def redirect(selectValue : String) : JsCmd = 
+    {
+      val bankAndaccount = selectValue.split(",",0)      
+      if(bankAndaccount.size==2)
+        MongoDBLocalStorage.getAccount(bankAndaccount(0), bankAndaccount(1)) match {
+          case Full(acc) => S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
+          case _ => _Noop
+        }
+      else
+        _Noop
+    } 
+    def computeDefaultValue : Box[String] = 
+    {
+      val url = S.uri.split("/",0)
+      var output="0"
+      if(url.size>4)
+        output = url(2) + "," + url(4)
+      Full(output)
+    }  
+    "#accountList *" #> {
+      SHtml.ajaxSelect(accounts,computeDefaultValue,redirect _)
+    }
   }
 }

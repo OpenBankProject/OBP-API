@@ -194,13 +194,13 @@ class Boot extends Loggable{
 
 
           //TODO : delete this URL
-           Menu.i("Comments") / "comments" >> TestAccess(() => {
+          Menu.i("Comments") / "comments" >> TestAccess(() => {
                     check(theOnlyAccount match{
             		      case Full(a) => OBPUser.hasMoreThanAnonAccess(a)
             		      case _ => false
             		    })
                   }) >> Hidden
-          )
+    )
     LiftRules.statelessRewrite.append{
         case RewriteRequest(ParsePath("banks" :: bank :: "accounts" :: accountName :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
           					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
