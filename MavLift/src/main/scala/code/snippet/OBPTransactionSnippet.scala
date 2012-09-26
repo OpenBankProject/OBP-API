@@ -23,6 +23,7 @@ Open Bank Project (http://www.openbankproject.com)
 		by 
 		Simon Redfern : simon AT tesobe DOT com
 		Everett Sochowski: everett AT tesobe DOT com
+    Ayoub Benali : ayoub AT tesobe DOT com
 
  */
 package code.snippet
@@ -31,7 +32,7 @@ import net.liftweb.http.{PaginatorSnippet, StatefulSnippet}
 import java.text.SimpleDateFormat
 import net.liftweb.http._
 import java.util.Calendar
-import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount, PostBankLocalStorage}
+import code.model.dataAccess.{OBPTransaction,OBPEnvelope,OBPAccount, OtherAccount}
 import xml.NodeSeq
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.Limit._
@@ -45,24 +46,13 @@ import net.liftweb.http.js.JsCmds.Noop
 import code.model.implementedTraits._
 import code.model.traits._
 
-class OBPTransactionSnippet {
+class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransaction],View)){
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val FORBIDDEN = "---"
   
-  //TODO : implenting a more proper way to load the appropriate view regarding the URL
-  val view = S.uri match {
-    case uri if uri.endsWith("authorities") => Authorities
-    case uri if uri.endsWith("board") => Board
-    case uri if uri.endsWith("our-network") => OurNetwork
-    case uri if uri.endsWith("team") => Team
-    case uri if uri.endsWith("my-view") => Owner //a solution has to be found for the editing case
-    case _ => Anonymous
-  }	
-  
-  //TODO : This snippet should receive the transaction as a parameter 
-  val filteredTransactions = PostBankLocalStorage.getTransactions.map(view.moderate(_))
-
+  val filteredTransactions = filteredTransactionsAndView._1
+  val view = filteredTransactionsAndView._2
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     
     def otherPartyInfo: CssSel = {
@@ -151,7 +141,7 @@ class OBPTransactionSnippet {
 	        					} } &
       {transaction.metadata match {
         case Some(metadata) => metadata.comments match{
-            case Some(comments) => ".comments_ext [href]" #> { view.name.toLowerCase + "/transactions/" + transaction.id + "/comments" } &
+            case Some(comments) => ".comments_ext [href]" #> { view.permalink + "/transactions/" + transaction.id + "/comments" } &
                                    ".comment *" #> comments.length.toString()
             case _ =>  ".comments *" #> NodeSeq.Empty 
           }
@@ -247,8 +237,12 @@ class OBPTransactionSnippet {
     }
   }}
   def hideSocialWidgets = {
-    if(view.name!="anonymous") ".box *" #> ""
+    if(view.name!="Anonymous") ".box *" #> ""
     else ".box *+" #> "" 
   }
+  def socialAdress = 
+    ".fb-like [data-href] * " #> S.uri &
+    ".twitter-share-button [data-url] " #> S.uri &
+    "g:plusone [href] * " #> S.uri
 }
 

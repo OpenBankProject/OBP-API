@@ -2,17 +2,22 @@ package code.model.dataAccess
 
 import code.model.traits._
 import code.model.implementedTraits._
-
-  object PostBankLocalStorage 
+import net.liftweb.common.{Box,Empty, Full}
+import net.liftweb.mongodb.BsonDSL._  
+import net.liftweb.json.JsonDSL._
+  object MongoDBLocalStorage 
   {
-    def getTransactions : List[Transaction] = 
+    //For the moment there is only one bank 
+    //but for multiple banks we should look in the
+    //data base to check if the bank exists or not
+    def getTransactions(bank : String, account : String) : Box[List[Transaction]] = 
     {
       def createTransaction(env : OBPEnvelope) : Transaction = 
       {
+        import net.liftweb.json.JsonDSL._
         val transaction : OBPTransaction = env.obp_transaction.get
-        val thisAccount_ = transaction.this_account.get
         val otherAccount_ = transaction.other_account.get
-        val theAccount = thisAccount_.theAccount
+        val theAccount = Account.find(("holder", "Music Pictures Limited"))
         val otherUnmediatedHolder = otherAccount_.holder.get
         
         val oAccs = theAccount.get.otherAccounts.get
@@ -40,16 +45,39 @@ import code.model.implementedTraits._
         new TransactionImpl(id,null, otherAccount,metadata, transactionType,amount,currency,
           label, startDate, finishDate, balance)
       }
-      import com.mongodb.QueryBuilder
-      val qry = QueryBuilder.start().get
-      val envelopesToDisplay = OBPEnvelope.findAll(qry)
-      val transactions = envelopesToDisplay.map(createTransaction(_))
-      val bankAccountBalance = (envelopesToDisplay.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
-      details.get.new_balance.get.amount.get
-      val bankAccount : BankAccount = new BankAccountImpl("01", Set(),"Buisness",bankAccountBalance, 
-        "EUR", "Tesobe main account","",None,None, transactions.toSet, true)
-      bankAccount.owners = Set(new AccountOwnerImpl("01","Music Pictures LTD", Set(bankAccount)))
-      bankAccount.transactions.map( _.thisAccount = bankAccount)      
-      transactions
+      Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
+        case Full(account) => {
+          val transactions = account.allEnvelopes.map(createTransaction(_))  
+          val bankAccountBalance = (account.allEnvelopes.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
+                                details.get.new_balance.get.amount.get 
+          val iban = if(account.iban.toString.isEmpty) None else Some(account.iban.toString)
+
+          val bankAccount : BankAccount = new BankAccountImpl(account.id.toString, Set(),account.kind.toString,
+            bankAccountBalance,account.currency.toString, account.label.toString,
+            "",None,iban, transactions.toSet, account.anonAccess.get)  
+          bankAccount.owners = Set(new AccountOwnerImpl("",account.holder.toString, Set(bankAccount)))     
+                bankAccount.transactions.map( _.thisAccount = bankAccount)      
+          Full(transactions)                                      
+        }
+        case _ => Empty 
+      }
     }
+    
+    def getBank(name : String) : Box[Bank] = 
+    {
+      if(name=="postbank")
+        Full(new BankImpl("01", "Post Bank", Set((getTransactions("postbank","tesobe")).get(0).thisAccount)))
+      else
+        Empty    
+    }
+    //check if the bank and the accounts exist in the database
+    def correctBankAndAccount(bank : String, account : String) : Boolean = 
+    {
+      Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
+        case Full(account) => true
+        case _ => false
+      }
+    }
+    def getAccount(bankpermalink : String, account : String) : Box[Account]= 
+      Account.find(("permalink"-> account)~("bankPermalink" -> bankpermalink))
   }

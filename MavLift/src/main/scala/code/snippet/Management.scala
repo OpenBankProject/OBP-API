@@ -1,8 +1,8 @@
 package code.snippet
 import net.liftweb.json.JsonAST._
-import code.model.Account
+import code.model.dataAccess.Account
 import net.liftweb.util.Helpers._
-import code.model.OtherAccount
+import code.model.dataAccess.OtherAccount
 import scala.xml.NodeSeq
 import scala.xml.Text
 import net.liftweb.http.SHtml
@@ -12,7 +12,7 @@ import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
 
-class Management {
+class Management(currentAccount : Account) {
 
   val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
   val sortList = (0, Sorting.DSC) :: Nil
@@ -24,9 +24,6 @@ class Management {
   }
   
   def showAll(xhtml: NodeSeq) : NodeSeq = {
-    //temporary way to retrieve the account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
       currentAccount.otherAccounts.get.find(o => {
@@ -118,10 +115,6 @@ class Management {
   }
   
   def listAll(xhtml: NodeSeq) : NodeSeq  = {
-    
-    //temporary way to retrieve the account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
       currentAccount.otherAccounts.get.find(o => {

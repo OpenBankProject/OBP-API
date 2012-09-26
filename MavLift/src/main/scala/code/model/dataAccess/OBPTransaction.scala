@@ -145,6 +145,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
    * @param text The text of the comment
    */
   def addComment(email: String, text: String) = {
+    println("adding : "+ email + " "+ text)
     val comments = obp_comments.get
     val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
     obp_comments(c2).saveTheRecord()
@@ -231,9 +232,6 @@ class OBPTransaction private() extends BsonRecord[OBPTransaction]{
 
 object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 
-
-///
-
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
@@ -245,30 +243,22 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
         createPublicAlias()
       }
       if (!privateAliasExists(s)) createPlaceholderPrivateAlias()
-
       v
     }
   }
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
-  
+ 
   def theAccount = {
-    //TODO: Allow creation of more than just the Music Pictures account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    Account.find(accJObj) match{
-	    case Full(a) => Full(a)
-	    case _ => {
-	      val newAccount = Account.createRecord
-	      newAccount.setFieldsFromJValue(JObject(List(JField("holder", JString("Music Pictures Limited")))))
-	      newAccount.saveTheRecord()
-	    }
-    }
+    val qry = QueryBuilder.start("account.number").is(number.get).
+                put("account.kind").is(kind.get).
+                put("account.bankName").is(bank.get.name.get).get
+    Account.find(qry) 
   }
   
   def publicAliasExists(realValue : String) : Boolean = {
-    val acc = theAccount
-    acc match{
+    theAccount match{
       case Full(a) =>{
         val otherAccs = a.otherAccounts.get
         val aliasInQuestion = otherAccs.find(o =>
@@ -280,8 +270,7 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
   }
   
   def privateAliasExists(realValue : String) : Boolean = {
-    val acc = theAccount
-    acc match{
+    theAccount match{
       case Full(a) =>{
         val otherAccs = a.otherAccounts.get
         val aliasInQuestion = otherAccs.find(o =>
@@ -439,7 +428,6 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => Empty
     }
   }
-  //JString(mediated_holder(user) getOrElse ("")
   def asMediatedJValue(user: String) : JObject = {
     val h = mediated_holder(user)
     JObject(List( JField("holder", 

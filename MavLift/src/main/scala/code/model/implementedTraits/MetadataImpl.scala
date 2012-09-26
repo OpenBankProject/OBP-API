@@ -1,6 +1,6 @@
 package code.model.implementedTraits
 
-import code.model.traits.{MetaData, Comment, OtherBankAccountMetadata, TransactionMetadata}
+import code.model.traits.{Comment, OtherBankAccountMetadata, TransactionMetadata}
 import code.model.dataAccess.{OtherAccount, OBPComment}
 import net.liftweb.common.Loggable
 

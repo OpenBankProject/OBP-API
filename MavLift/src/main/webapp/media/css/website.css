@@ -495,3 +495,10 @@ span.alias_indicator_private {
 	float : left;
 	margin-top: 20px;
 }
+span.edit_error_class {
+	color: red;
+}
+#accountList {
+	margin-top: 5px;
+	float : right;
+}
