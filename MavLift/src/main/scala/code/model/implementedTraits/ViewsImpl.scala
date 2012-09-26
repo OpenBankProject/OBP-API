@@ -136,6 +136,6 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
-  override def name="owner"
-  override def permalink = "Owner"
+  override def name="Owner"
+  override def permalink = "owner"
 }

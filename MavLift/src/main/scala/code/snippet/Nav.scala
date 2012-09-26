@@ -33,6 +33,62 @@ class Nav {
     })
     }
   }
+  def eraseMenu = 
+     "* * " #> ""  
+  def views :net.liftweb.util.CssSel = {
+    val url = S.uri.split("/",0)
+    if(url.size>4)
+      OBPUser.currentUser match {
+        case Full(user) => {
+          val viewsList = user.permittedViews(url(2), url(4))
+          if(viewsList.size>0)
+            ".navitem *" #> {
+            viewsList.toList.map(view => {
+              val viewUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/"+view.permalink
+              ".navlink [href]" #>  {S.hostAndPath+viewUrl} &
+              ".navlink *" #> view.name &
+              ".navlink [class+]" #> markIfSelected(viewUrl)  
+            })}
+          else
+            eraseMenu
+        }
+        case _ => MongoDBLocalStorage.getAccount(url(2), url(4)) match {
+          case Full(account) => if(account.anonAccess.is)
+                                  ".navitem *" #> {
+                                     val anoymousUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/anonymous"
+                                    ".navlink [href]" #>  {S.hostAndPath+anoymousUrl} &
+                                    ".navlink *" #> "Anonymous" &
+                                    ".navlink [class+]" #> markIfSelected(anoymousUrl)  
+                                  }
+                                else
+                                  eraseMenu
+          case _ => eraseMenu
+        }
+        
+      }
+    else
+       eraseMenu      
+  }
+  def management = {
+    OBPUser.currentUser match {
+      case Full(user) => {
+        val url = S.uri.split("/",0)
+        if(url.size>4)
+          if(user.hasMangementAccess(url(2), url(4)))
+          {
+            val managementUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/management"
+            ".navlink [href]" #>  {S.hostAndPath+managementUrl} &
+            ".navlink *" #> "Management" &
+            ".navlink [class+]" #> markIfSelected(managementUrl)  
+          }
+          else
+            eraseMenu
+        else
+          eraseMenu     
+      }
+      case _ => eraseMenu
+    }
+  }
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")
@@ -68,7 +124,7 @@ class Nav {
           accounts ::= (account.bankPermalink + "," + account.permalink, account.bankName + " - " + account.name)   
         )  
     }
-    accounts ::= ("0","--Choose an account")
+    accounts ::= ("0","--> Choose an account")
     def redirect(selectValue : String) : JsCmd = 
     {
       val bankAndaccount = selectValue.split(",",0)      
