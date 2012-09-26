@@ -45,7 +45,7 @@ import net.liftweb.util.Helpers
 import code.model.AppType._
 import code.model.TokenType._
 import scala.compat.Platform
-import code.model.User
+import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
 
@@ -457,7 +457,7 @@ object OAuthHandshake extends RestHelper
 			        case Full(appToken) => 
 			          	//check if the token is still valid
 			          	if(appToken.expirationDate.compareTo(new Date(Platform.currentTime)) == 1)
-			        	  	if(User.loggedIn_?)
+			        	  	if(OBPUser.loggedIn_?)
 			              	{
 							    var verifier =""
 							    // if the user is logged in and non verifier have been generated 
@@ -465,7 +465,7 @@ object OAuthHandshake extends RestHelper
 							    {
 							    	val randomVerifier = Helpers.base64Encode(Helpers.randomString(20).getBytes()).dropRight(1)  
 							    	appToken.verifier(randomVerifier)
-							    	appToken.userId(User.currentUserId.get.toLong)
+							    	appToken.userId(OBPUser.currentUserId.get.toLong)
 							    	if(appToken.save())
 							    		verifier = randomVerifier
 							    }
@@ -494,16 +494,16 @@ object OAuthHandshake extends RestHelper
 						              	"#verifier" #>NodeSeq.Empty &
 						              	"#errorMessage" #> NodeSeq.Empty &
 						              	{
-						            		".login [action]" #> User.loginPageURL &
+						            		".login [action]" #> OBPUser.loginPageURL &
 									    	".forgot [href]" #> 
 									    	{
 									        	val href = for {
-									          	menu <- User.resetPasswordMenuLoc
+									          	menu <- OBPUser.resetPasswordMenuLoc
 									        	} yield menu.loc.calcDefaultHref
 									        	href getOrElse "#"
 									    	} & 
 									    	".signup [href]" #> 
-									    	User.signUpPath.foldLeft("")(_ + "/" + _) 
+									    	OBPUser.signUpPath.foldLeft("")(_ + "/" + _) 
 						              }
 						            }
 					            	case _ => 
@@ -541,7 +541,7 @@ object OAuthHandshake extends RestHelper
 		
 		/*
 			As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
-			requests. So this function will delete nonces which are have a timestamp older than
+			requests. So this function will delete nonces which have a timestamp older than
 			currentDate - 3 minutes   
 		*/ 
 		val timeLimit = new Date(currentDate.getTime + 180000) 

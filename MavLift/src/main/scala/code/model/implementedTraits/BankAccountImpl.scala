@@ -14,8 +14,6 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
   currency_ : String, label_ : String, nationalIdentifier_ : String, swift_bic_ : Option[String],
    iban_ : Option[String], transactions_ : Set[Transaction], allowAnnoymousAccess_ : Boolean) extends BankAccount {
 
-  // val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
-  
   def id = id_
   def owners = _owners
   def owners_=(owners_ : Set[AccountOwner]) = _owners = owners_

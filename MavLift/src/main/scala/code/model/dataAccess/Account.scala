@@ -19,24 +19,30 @@ import net.liftweb.record.field.{StringField, BooleanField}
  * As a result, this can provide a single point from which to retrieve the aliases associated with
  * this account, rather than needing to duplicate the aliases into every single transaction.
  */
+
+
 class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  def meta = Account 
  
   object anonAccess extends BooleanField(this, false)
   object holder extends StringField(this, 255)
-  object number extends StringField(this, 255)   //TODO: rethink protection of this again
+  object number extends StringField(this, 255)   
   object kind extends StringField(this, 255)
-  object bank extends BsonRecordField(this, OBPBank)
+  object name extends StringField(this, 255)
+  object bankName extends StringField(this, 255)
+  object permalink extends StringField(this, 255)
+  object bankPermalink extends StringField(this, 255)  
+  object label extends StringField(this, 255)
+  object currency extends StringField(this, 255)
+  object iban extends StringField(this, 255)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
   
+  //find all the envelopes related to this account 
   def allEnvelopes : List[OBPEnvelope] = {
-   //TODO: This should use ids instead of just the holder name
-   //TODO : Also, due to some string hardcoding where we used "Music Pictures Limited" instead of
-   // 		what we get from our actual bank account ("MUSIC PICTURES LIMITED"), we have to make it
-   //  		upper case. This all needs to be revamped once we support multiple accounts, so despite being
-   //		incredibly ugly, it should be okay temporarily
-   val qry = QueryBuilder.start("obp_transaction.this_account.holder").is(holder.get.toUpperCase()).get
-   OBPEnvelope.findAll(qry)
+    val qry = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
+                put("obp_transaction.this_account.kind").is(kind.get).
+                put("obp_transaction.this_account.bank.name").is(bankName.get).get
+    OBPEnvelope.findAll(qry)
  }
  
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String) : Box[String] = {
@@ -45,7 +51,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
 	     acc.holder.get.equals(otherAccountHolder)
      })
    } yield o.url.get
- }
+  }
   
   def getMediatedOtherAccountURL(user: String, otherAccountHolder: String) : Box[String] = {
    val otherAccountURL = for{
@@ -99,10 +105,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account]{
  }
 }
 
-object Account extends Account with MongoMetaRecord[Account] {
-  import net.liftweb.json.JsonDSL._
-  def currentAccount = Account.find(("holder", "Music Pictures Limited"))
-}
+object Account extends Account with MongoMetaRecord[Account] 
 
 class OtherAccount private() extends BsonRecord[OtherAccount] {
   def meta = OtherAccount

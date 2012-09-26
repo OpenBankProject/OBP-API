@@ -1,31 +1,35 @@
 package code.model.implementedTraits
 
 import code.model.traits._
-
+import net.liftweb.common.{Box,Empty, Full}
 object View 
 {
   //transforme the url into a view 
   //TODO : load the view from the Data base
-  def fromUrl(viewNameURL: String): View = 
+  def fromUrl(viewNameURL: String): Box[View] = 
   viewNameURL match {
-    case "authorities" => Authorities
-    case "board" => Board
-    case "our-network" => OurNetwork
-    case "team" => Team
-    case "my-view" => Owner //a solution has to be found for the editing case
-    case _ => Anonymous
+    case "authorities" => Full(Authorities)
+    case "board" => Full(Board)
+    case "our-network" => Full(OurNetwork)
+    case "team" => Full(Team)
+    case "owner" => Full(Owner)
+    case "anonymous" => Full(Anonymous)
+    case _ => Empty
   }
 }
 object Team extends FullView {
   override def name = "Team"
+  override def permalink = "team"
   override def canEditOwnerComment= false
 }
 object Board extends FullView {
   override def name = "Board"
+  override def permalink = "board"
   override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
   override def name = "Authorities"
+  override def permalink = "authorities"
   override def canEditOwnerComment= false    
 }
 
@@ -43,7 +47,7 @@ object Anonymous extends BaseView {
    */
   
   override def name = "Anonymous"
-   
+  override def permalink = "anonymous" 
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
@@ -92,7 +96,8 @@ object Anonymous extends BaseView {
 
   object OurNetwork extends BaseView 
   {
-    override def name = "our-network"
+    override def name = "Our Network"
+    override def permalink ="our-network"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
@@ -131,5 +136,6 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
-  override def name="my-view"
+  override def name="Owner"
+  override def permalink = "owner"
 }

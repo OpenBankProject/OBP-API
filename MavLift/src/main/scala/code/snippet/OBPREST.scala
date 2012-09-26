@@ -35,16 +35,13 @@ import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
 import java.util.Calendar
-import code.actors.EnvelopeInserter
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.mongodb._
 import net.liftweb.json.JsonAST.JString
 import com.mongodb.casbah.Imports._
-import net.liftweb.mongodb._
 import _root_.java.math.MathContext
-import net.liftweb.mongodb._
 import org.bson.types._
 import org.joda.time.{DateTime, DateTimeZone}
 import java.util.regex.Pattern
@@ -64,6 +61,7 @@ import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model.dataAccess.{OBPEnvelope, OBPUser}
+import code.model.dataAccess.HostedAccount
 
 // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -207,10 +205,14 @@ object OBPRest extends RestHelper with Loggable
                 case Full(account) => if(accessLevel=="anonymous")
                                         account.anonAccess.is
                                       else
-                                        Privilege.find(By(Privilege.accountID,account.id.toString), By(Privilege.user, user.id)) match {
-                                          case Full(privilege) => privilegeCheck(accessLevel,privilege)
-                                          case _ => false 
-                                        }
+                                       HostedAccount.find(By(HostedAccount.accountID,account.id.toString)) match{
+                                        case Full(hostedAccount) =>                                         
+                                          Privilege.find(By(Privilege.account,hostedAccount), By(Privilege.user, user.id)) match {
+                                          	case Full(privilege) => privilegeCheck(accessLevel,privilege)
+                                          	case _ => false 
+                                          }
+                                       	case _ => false
+                                       }
                 case _ => false  
                 }
             }
