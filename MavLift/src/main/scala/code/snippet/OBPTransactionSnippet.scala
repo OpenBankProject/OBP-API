@@ -240,5 +240,9 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
     if(view.name!="Anonymous") ".box *" #> ""
     else ".box *+" #> "" 
   }
+  def socialAdress = 
+    ".fb-like [data-href] * " #> S.uri &
+    ".twitter-share-button [data-url] " #> S.uri &
+    "g:plusone [href] * " #> S.uri
 }
 
