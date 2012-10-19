@@ -107,6 +107,7 @@ class Boot extends Loggable{
     {
       if(view=="anonymous")
         MongoDBLocalStorage.getTransactions(bank,account) match {
+          // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
           case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
           case _ => false
         }
@@ -135,9 +136,11 @@ class Boot extends Loggable{
       val bank = URLParameters(0)
       val account = URLParameters(1)
       val view = URLParameters(2)
+      logger.debug("checking whether "+URLParameters+" is a valid combination")
       if( MongoDBLocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
         View.fromUrl(view) match {
           case Full(currentView) => {
+            logger.debug("yes, " + URLParameters + " is a valid combination")
             Full((MongoDBLocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
           }
           case _ => Empty
