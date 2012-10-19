@@ -16,8 +16,11 @@ import net.liftweb.json.JsonDSL._
       {
         import net.liftweb.json.JsonDSL._
         val transaction : OBPTransaction = env.obp_transaction.get
+        val thisAccount = transaction.this_account
         val otherAccount_ = transaction.other_account.get
-        val theAccount = Account.find(("holder", "Music Pictures Limited"))
+        val theAccount = Account.find(("number"-> thisAccount.get.number.get)~
+          ("kind"->thisAccount.get.kind.get)~
+          ("bankName"->thisAccount.get.bank.get.name.get))
         val otherUnmediatedHolder = otherAccount_.holder.get
         
         val oAccs = theAccount.get.otherAccounts.get
