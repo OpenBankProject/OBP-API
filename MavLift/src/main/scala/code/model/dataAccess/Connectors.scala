@@ -3,15 +3,18 @@ package code.model.dataAccess
 import code.model.traits._
 import code.model.implementedTraits._
 import net.liftweb.common.{Box,Empty, Full}
-import net.liftweb.mongodb.BsonDSL._  
+import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonDSL._
-  object MongoDBLocalStorage 
+import net.liftweb.common.Loggable
+
+object MongoDBLocalStorage extends Loggable
   {
     //For the moment there is only one bank 
     //but for multiple banks we should look in the
     //data base to check if the bank exists or not
     def getTransactions(bank : String, account : String) : Box[List[Transaction]] = 
     {
+      logger.debug("getTransactions for "+bank+"/"+account)
       def createTransaction(env : OBPEnvelope) : Transaction = 
       {
         import net.liftweb.json.JsonDSL._
