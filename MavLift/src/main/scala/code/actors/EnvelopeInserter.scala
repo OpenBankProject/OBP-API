@@ -47,8 +47,7 @@ object EnvelopeInserter extends LiftActor with Loggable{
       
       val toMatch = identicalEnvelopes(0)
       val qry = QueryBuilder.start("obp_transaction.details.value.amount").is(toMatch.obp_transaction.get.details.get.value.get.amount.get.toString)
-      	.put("obp_transaction.other_account.holder").is(toMatch.obp_transaction.get.other_account.get.holder.get)
-        .put("obp_transaction.completed").is(toMatch.obp_transaction.get.details.get.completed.get).get
+      	.put("obp_transaction.other_account.holder").is(toMatch.obp_transaction.get.other_account.get.holder.get).get
     
       //TODO: Figure out how to add date queries to the query builder, OR, preferably, use Rogue
       val partialMatches = OBPEnvelope.findAll(qry)
