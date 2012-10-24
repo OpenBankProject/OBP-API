@@ -150,6 +150,17 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
     obp_comments(c2).saveTheRecord()
   }
+
+  lazy val theAccount = {
+    val thisAcc = obp_transaction.get.this_account.get
+    val num = thisAcc.number.get
+    val accKind = thisAcc.kind.get
+    val bankName = thisAcc.bank.get.name.get
+    val qry = QueryBuilder.start("number").is(num).
+      put("kind").is(accKind).
+      put("bankName").is(bankName).get
+    Account.find(qry)
+  }
    
   object DateDescending extends Ordering[OBPEnvelope] {
     def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
@@ -196,7 +207,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   
 
   def asMediatedJValue(user: String) : JObject  = {
-    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,id.toString)),
+    JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,id.toString, theAccount)),
         		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
         		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
         		 })))))
@@ -212,7 +223,132 @@ class OBPComment private() extends BsonRecord[OBPComment] {
 
 object OBPComment extends OBPComment with BsonMetaRecord[OBPComment]
 
-object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope]
+object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] {
+  
+  override def fromJValue(jval: JValue) = {
+
+    def createAliases(env: OBPEnvelope) = {
+      val realOtherAccHolder = env.obp_transaction.get.other_account.get.holder.get
+
+      def publicAliasExists(realValue: String): Boolean = {
+        env.theAccount match {
+          case Full(a) => {
+            val otherAccs = a.otherAccounts.get
+            val aliasInQuestion = otherAccs.find(o =>
+              o.holder.get.equals(realValue))
+            aliasInQuestion.isDefined
+          }
+          case _ => false
+        }
+      }
+
+      def privateAliasExists(realValue: String): Boolean = {
+        env.theAccount match {
+          case Full(a) => {
+            val otherAccs = a.otherAccounts.get
+            val aliasInQuestion = otherAccs.find(o =>
+              o.holder.get.equals(realValue))
+            aliasInQuestion.isDefined
+          }
+          case _ => false
+        }
+      }
+
+      def createPublicAlias() = {
+        //TODO: Guarantee a unique public alias string
+
+        /**
+         * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+         * for the account in question
+         */
+        def newPublicAliasName(account: Account): String = {
+          val newAlias = "ALIAS_" + Random.nextLong().toString.take(6)
+
+          /**
+           * Returns true if @publicAlias is already the name of a public alias within @account
+           */
+          def isDuplicate(publicAlias: String, account: Account) = {
+            account.otherAccounts.get.find(oAcc => {
+              oAcc.publicAlias.get == newAlias
+            }).isDefined
+          }
+
+          /**
+           * Appends things to @publicAlias until it a unique public alias name within @account
+           */
+          def appendUntilUnique(publicAlias: String, account: Account): String = {
+            val newAlias = publicAlias + Random.nextLong().toString.take(1)
+            if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+            else newAlias
+          }
+
+          if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+          else newAlias
+        }
+
+        env.theAccount match {
+          case Full(a) => {
+            val randomAliasName = newPublicAliasName(a)
+            val oAccHolderName = env.obp_transaction.get.other_account.get.holder.get
+            val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(oAccHolderName))
+            val updatedAccount = otherAccount match {
+              case Some(o) => {
+                //update the "otherAccount"
+                val newOtherAcc = o.publicAlias(randomAliasName)
+                a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
+              }
+              case _ => {
+                //create a new "otherAccount"
+                a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(oAccHolderName).publicAlias(randomAliasName)))
+              }
+            }
+
+            updatedAccount.saveTheRecord()
+            Full(randomAliasName)
+          }
+          case _ => Empty
+        }
+      }
+
+      def createPlaceholderPrivateAlias() = {
+        env.theAccount match {
+          case Full(a) => {
+            val oAccHolderName = env.obp_transaction.get.other_account.get.holder.get
+            val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(oAccHolderName))
+            val updatedAccount = otherAccount match {
+              case Some(o) => {
+                //update the "otherAccount"
+                val newOtherAcc = o.privateAlias("")
+                a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
+              }
+              case _ => {
+                //create a new "otherAccount"
+                a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(oAccHolderName)))
+              }
+            }
+            updatedAccount.saveTheRecord()
+            Full("")
+          }
+          case _ => Empty
+        }
+      }
+      
+      
+      if (!publicAliasExists(realOtherAccHolder)) {
+        createPublicAlias()
+      }
+      if (!privateAliasExists(realOtherAccHolder)) createPlaceholderPrivateAlias()
+    }
+    
+    val created = super.fromJValue(jval)
+    created match {
+      case Full(c) => createAliases(c)
+      case _ => //don't create anything
+    }
+    created
+  }
+  
+}
 
 
 class OBPTransaction private() extends BsonRecord[OBPTransaction]{
@@ -222,10 +358,10 @@ class OBPTransaction private() extends BsonRecord[OBPTransaction]{
   object other_account extends BsonRecordField(this, OBPAccount)
   object details extends BsonRecordField(this, OBPDetails)
   
-  def asMediatedJValue(user: String, envelopeId : String) : JObject  = {
+  def asMediatedJValue(user: String, envelopeId : String, theAccount: Option[Account]) : JObject  = {
     JObject(List(JField("obp_transaction_uuid", JString(envelopeId)),
-    			 JField("this_account", this_account.get.asMediatedJValue(user)),
-        		 JField("other_account", other_account.get.asMediatedJValue(user)),
+    			 JField("this_account", this_account.get.asMediatedJValue(user, None)),
+        		 JField("other_account", other_account.get.asMediatedJValue(user, theAccount)),
         		 JField("details", details.get.asMediatedJValue(user))))
   }
 }
@@ -235,161 +371,39 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
-  object holder extends StringField(this, 255) {
-    override def setFromString(s: String) = {
-      val v = super.setFromString(s)
-      //once again, a temporary measure
-      if (!publicAliasExists(s)) {
-        createPublicAlias()
-      }
-      if (!privateAliasExists(s)) createPlaceholderPrivateAlias()
-      v
-    }
-  }
+  object holder extends StringField(this, 255)
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
   object bank extends BsonRecordField(this, OBPBank)
- 
-  def theAccount = {
-    val qry = QueryBuilder.start("account.number").is(number.get).
-                put("account.kind").is(kind.get).
-                put("account.bankName").is(bank.get.name.get).get
-    Account.find(qry) 
-  }
-  
-  def publicAliasExists(realValue : String) : Boolean = {
-    theAccount match{
-      case Full(a) =>{
-        val otherAccs = a.otherAccounts.get
-        val aliasInQuestion = otherAccs.find(o =>
-          o.holder.get.equals(realValue))
-       aliasInQuestion.isDefined
-      }
-      case _ => false
-    }
-  }
-  
-  def privateAliasExists(realValue : String) : Boolean = {
-    theAccount match{
-      case Full(a) =>{
-        val otherAccs = a.otherAccounts.get
-        val aliasInQuestion = otherAccs.find(o =>
-          o.holder.get.equals(realValue))
-       aliasInQuestion.isDefined
-      }
-      case _ => false
-    }
-  }
-
-  def createPublicAlias() = {
-    //TODO: Guarantee a unique public alias string
-
-    /**
-     * Generates a new alias name that is guaranteed not to collide with any existing public alias names
-     * for the account in question
-     */
-    def newPublicAliasName(account: Account): String = {
-      val newAlias = "ALIAS_" + Random.nextLong().toString.take(6)
-
-      /**
-       * Returns true if @publicAlias is already the name of a public alias within @account
-       */
-      def isDuplicate(publicAlias: String, account: Account) = {
-        account.otherAccounts.get.find(oAcc => {
-          oAcc.publicAlias.get == newAlias
-        }).isDefined
-      }
-
-      /**
-       * Appends things to @publicAlias until it a unique public alias name within @account
-       */
-      def appendUntilUnique(publicAlias: String, account: Account): String = {
-        val newAlias = publicAlias + Random.nextLong().toString.take(1)
-        if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
-        else newAlias
-      }
-
-      if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
-      else newAlias
-    }
-    
-    theAccount match {
-      case Full(a) => {
-        val randomAliasName = newPublicAliasName(a)
-      
-        val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
-        val updatedAccount = otherAccount match {
-          case Some(o) => {
-            //update the "otherAccount"
-            val newOtherAcc = o.publicAlias(randomAliasName)
-            a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-          }
-          case _ => {
-            //create a new "otherAccount"
-            a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get).publicAlias(randomAliasName)))
-          }
-        }
-
-        updatedAccount.saveTheRecord()
-        Full(randomAliasName)
-      }
-      case _ => Empty
-    }
-  }
-  
-  def createPlaceholderPrivateAlias() = {
-        theAccount match {
-              case Full(a) => {
-                val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(holder.get))
-                val updatedAccount = otherAccount match{
-                  case Some(o) =>{
-                    //update the "otherAccount"
-                    val newOtherAcc= o.privateAlias("")
-                    a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-                  }
-                  case _ => {
-                    //create a new "otherAccount"
-                    a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(holder.get)))
-                  }
-                }
-                //val updatedAccount = a.privateAliases(a.privateAliases.get ++ List(Alias(holder.get, "")))
-                updatedAccount.saveTheRecord()
-                Full("")
-              }
-              case _ => Empty
-            }
-      }
   
   //TODO: Access levels are currently the same across all transactions
-  def mediated_holder(user: String) : (Box[String], Box[OBPAccount.AnAlias]) = {
+  def mediated_holder(user: String, mediator: Account) : (Box[String], Box[OBPAccount.AnAlias]) = {
     val theHolder = holder.get
     
     def usePrivateAliasIfExists() : (Box[String], Box[OBPAccount.AnAlias])= {
       val privateAlias = for{
-        account <- theAccount
-        otheracc <- account.otherAccounts.get.find(o => 
+        otheracc <- mediator.otherAccounts.get.find(o => 
           o.holder.get.equals(theHolder)
         )
       } yield otheracc.privateAlias.get
       
       privateAlias match{
-        case Full("") => (Full(theHolder), Empty)
-        case Full(a) => (Full(a), Full(OBPAccount.APrivateAlias))
+        case Some("") => (Full(theHolder), Empty)
+        case Some(a) => (Full(a), Full(OBPAccount.APrivateAlias))
         case _ => (Full(theHolder), Empty)
       }
     }
     
     def usePublicAlias() : (Box[String], Box[OBPAccount.AnAlias])= {
       val publicAlias = for{
-        account <- theAccount
-        otheracc <- account.otherAccounts.get.find(o => 
+        otheracc <- mediator.otherAccounts.get.find(o => 
         	o.holder.get.equals(theHolder)
         )
       } yield otheracc.publicAlias.get
       
       publicAlias match{
-        case Full("") => (Full(theHolder), Empty)
-        case Full(a) => (Full(a), Full(OBPAccount.APublicAlias))
+        case Some("") => (Full(theHolder), Empty)
+        case Some(a) => (Full(a), Full(OBPAccount.APublicAlias))
         case _ => {
             //No alias found, so don't use one
             (Full(theHolder), Empty) 
@@ -428,19 +442,41 @@ class OBPAccount private() extends BsonRecord[OBPAccount]{
       case _ => Empty
     }
   }
-  def asMediatedJValue(user: String) : JObject = {
-    val h = mediated_holder(user)
-    JObject(List( JField("holder", 
-    				JObject(List(
-    				    JField("holder", JString(h._1.getOrElse(""))),
-    				    JField("alias", JString(h._2 match{
-    				      case Full(OBPAccount.APublicAlias) => "public"
-    				      case Full(OBPAccount.APrivateAlias) => "private"
-    				      case _ => "no"
-    				    }))))),
-        		  JField("number", JString(mediated_number(user) getOrElse "")),
-        		  JField("kind", JString(mediated_kind(user) getOrElse "")),
-        		  JField("bank", bank.get.asMediatedJValue(user))))
+  /**
+   * @param moderatingAccount a temporary way to provide the obp account whose aliases should
+   *  be used when displaying this account
+   */
+  def asMediatedJValue(user: String, moderatingAccount: Option[Account]) : JObject = {
+    
+    def rawData = {
+      JObject(List(JField("holder",
+        JObject(List(
+          JField("holder", JString(holder.get)),
+          JField("alias", JString("no"))))),
+        JField("number", JString(number.get)),
+        JField("kind", JString(kind.get)),
+        JField("bank", bank.get.asMediatedJValue(user))))
+    }
+
+    def moderate(moderator: Account) = {
+      val h = mediated_holder(user, moderator)
+      JObject(List(JField("holder",
+        JObject(List(
+          JField("holder", JString(h._1.getOrElse(""))),
+          JField("alias", JString(h._2 match {
+            case Full(OBPAccount.APublicAlias) => "public"
+            case Full(OBPAccount.APrivateAlias) => "private"
+            case _ => "no"
+          }))))),
+        JField("number", JString(mediated_number(user) getOrElse "")),
+        JField("kind", JString(mediated_kind(user) getOrElse "")),
+        JField("bank", bank.get.asMediatedJValue(user))))
+    }
+        		  
+    moderatingAccount match {
+      case Some(m) => moderate(m)
+      case _ => rawData
+    }
   }
 }
 
