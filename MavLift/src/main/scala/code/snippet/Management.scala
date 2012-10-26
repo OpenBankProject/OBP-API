@@ -5,7 +5,7 @@ import net.liftweb.util.Helpers._
 import code.model.dataAccess.OtherAccount
 import scala.xml.NodeSeq
 import scala.xml.Text
-import net.liftweb.http.SHtml
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JsCmds.Noop
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
@@ -76,7 +76,7 @@ class Management(currentAccount : Account) {
       
       CustomEditable.editable(currentValue, SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
-        Noop
+        S.seeOther(S.uri)
       }, defaultValue)
     }
     
@@ -137,7 +137,7 @@ class Management(currentAccount : Account) {
       
       SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
-        Noop
+        S.seeOther(S.uri)
       })
     }
     
