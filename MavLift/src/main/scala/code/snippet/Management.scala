@@ -76,11 +76,11 @@ class Management(currentAccount : Account) {
       
       CustomEditable.editable(currentValue, SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
-        S.seeOther(S.uri)
+        Noop
       }, defaultValue)
     }
     
-    currentAccount.otherAccounts.get.flatMap(other => {
+    currentAccount.otherAccounts.get.sortBy(_.holder.get).flatMap(other => {
       
       val account = other.holder.get
       val publicAlias = other.publicAlias.get
@@ -137,7 +137,7 @@ class Management(currentAccount : Account) {
       
       SHtml.ajaxEditable(Text(currentValue), SHtml.text(currentValue, currentValue = _), () =>{
         saveValue()
-        S.seeOther(S.uri)
+        Noop
       })
     }
     
