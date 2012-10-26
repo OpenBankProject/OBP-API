@@ -145,7 +145,12 @@ class Nav {
       Full(output)
     }  
     "#accountList *" #> {
-      SHtml.ajaxSelect(accounts,computeDefaultValue,redirect _)
+      computeDefaultValue match {
+        case Full("postbank,tesobe") =>
+          SHtml.ajaxSelect(accounts,computeDefaultValue,redirect _)
+        case _ =>
+          NodeSeq.Empty
+      }
     }
   }
 }
