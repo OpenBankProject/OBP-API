@@ -48,6 +48,7 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
+import code.model.dataAccess.Account
 
 /**
  * This whole class is a rather hastily put together mess
@@ -82,7 +83,7 @@ class Comments extends Loggable{
         (
           ".amount *" #> transactionValue.mediated_amount(accessLevel).getOrElse(FORBIDDEN) &
           ".other_account_holder *" #> {
-	        val otherHolder = otherAccount.mediated_holder(accessLevel)
+	        val otherHolder = otherAccount.mediated_holder(accessLevel, e.theAccount.getOrElse(Account.createRecord))
 	        val holderName = otherHolder._1 match {
 	          case Full(h) => h
 	          case _ => FORBIDDEN
