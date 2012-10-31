@@ -15,15 +15,12 @@ object MongoDBLocalStorage extends Loggable
     def getTransactions(bank : String, account : String) : Box[List[Transaction]] = 
     {
       logger.debug("getTransactions for "+bank+"/"+account)
-      def createTransaction(env : OBPEnvelope) : Transaction = 
+      def createTransaction(env : OBPEnvelope, theAccount: Box[Account]) : Transaction = 
       {
         import net.liftweb.json.JsonDSL._
         val transaction : OBPTransaction = env.obp_transaction.get
         val thisAccount = transaction.this_account
         val otherAccount_ = transaction.other_account.get
-        val theAccount = Account.find(("number"-> thisAccount.get.number.get)~
-          ("kind"->thisAccount.get.kind.get)~
-          ("bankName"->thisAccount.get.bank.get.name.get))
         val otherUnmediatedHolder = otherAccount_.holder.get
         
         val oAccs = theAccount.get.otherAccounts.get
@@ -53,7 +50,7 @@ object MongoDBLocalStorage extends Loggable
       }
       Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
         case Full(account) => {
-          val transactions = account.allEnvelopes.map(createTransaction(_))  
+          val transactions = account.allEnvelopes.map(createTransaction(_, Full(account)))
           val bankAccountBalance = (account.allEnvelopes.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
                                 details.get.new_balance.get.amount.get 
           val iban = if(account.iban.toString.isEmpty) None else Some(account.iban.toString)

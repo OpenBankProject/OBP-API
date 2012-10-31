@@ -5,7 +5,7 @@ import net.liftweb.util.Helpers._
 import code.model.dataAccess.OtherAccount
 import scala.xml.NodeSeq
 import scala.xml.Text
-import net.liftweb.http.SHtml
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JsCmds.Noop
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
@@ -80,7 +80,7 @@ class Management(currentAccount : Account) {
       }, defaultValue)
     }
     
-    currentAccount.otherAccounts.get.flatMap(other => {
+    currentAccount.otherAccounts.get.sortBy(_.holder.get).flatMap(other => {
       
       val account = other.holder.get
       val publicAlias = other.publicAlias.get

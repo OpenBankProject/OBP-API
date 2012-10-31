@@ -45,7 +45,7 @@ class Nav {
             ".navitem *" #> {
             viewsList.toList.map(view => {
               val viewUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/"+view.permalink
-              ".navlink [href]" #>  {S.hostAndPath+viewUrl} &
+              ".navlink [href]" #>  {viewUrl} &
               ".navlink *" #> view.name &
               ".navlink [class+]" #> markIfSelected(viewUrl)  
             })}
@@ -56,7 +56,7 @@ class Nav {
           case Full(account) => if(account.anonAccess.is)
                                   ".navitem *" #> {
                                      val anoymousUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/anonymous"
-                                    ".navlink [href]" #>  {S.hostAndPath+anoymousUrl} &
+                                    ".navlink [href]" #>  {anoymousUrl} &
                                     ".navlink *" #> "Anonymous" &
                                     ".navlink [class+]" #> markIfSelected(anoymousUrl)  
                                   }
@@ -77,7 +77,7 @@ class Nav {
           if(user.hasMangementAccess(url(2), url(4)))
           {
             val managementUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/management"
-            ".navlink [href]" #>  {S.hostAndPath+managementUrl} &
+            ".navlink [href]" #>  {managementUrl} &
             ".navlink *" #> "Management" &
             ".navlink [class+]" #> markIfSelected(managementUrl)  
           }
@@ -145,7 +145,12 @@ class Nav {
       Full(output)
     }  
     "#accountList *" #> {
-      SHtml.ajaxSelect(accounts,computeDefaultValue,redirect _)
+      computeDefaultValue match {
+        case Full("postbank,tesobe") =>
+          SHtml.ajaxSelect(accounts,computeDefaultValue,redirect _)
+        case _ =>
+          NodeSeq.Empty
+      }
     }
   }
 }
