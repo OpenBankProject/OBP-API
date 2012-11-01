@@ -1,4 +1,8 @@
 package code.model.traits
+import java.util.Date
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JField
 
 class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountName, 
   filteredNationalIdentifier : Option[String], filteredSWIFT_BIC : Option[Option[String]], 
@@ -23,7 +27,7 @@ class ModeratedOtherBankAccountMetadata(filteredMoreInfo : Option[String],
 }
 
 
-import java.util.Date
+
 
 class ModeratedTransaction(filteredId: String, filteredBankAccount: Option[ModeratedBankAccount], 
   filteredOtherBankAccount: Option[ModeratedOtherBankAccount], filteredMetaData : Option[ModeratedTransactionMetadata], 
@@ -46,6 +50,12 @@ class ModeratedTransaction(filteredId: String, filteredBankAccount: Option[Moder
   def balance = filteredBalance
 }
 
+object ModeratedTransaction {
+  implicit def moderatedTransaction2Json(mTransaction: ModeratedTransaction) : JObject = {
+    JObject(JField("blah", JString("test")) :: Nil)
+  }
+}
+
 class ModeratedTransactionMetadata(filteredOwnerComment : Option[String], filteredComments : Option[List[Comment]], 
   addOwnerComment : Option[(String => Unit)], addCommentFunc: Option[(Comment => Unit)])
   {
@@ -58,6 +68,13 @@ class ModeratedTransactionMetadata(filteredOwnerComment : Option[String], filter
     def addComment= addCommentFunc
 
   }
+
+object ModeratedTransactionMetadata {
+  implicit def moderatedTransactionMetadata2Json(mTransactionMeta: ModeratedTransactionMetadata) : JObject = {
+    JObject(JField("blah", JString("test")) :: Nil)
+  }
+}
+
 class ModeratedBankAccount(filteredId : String, 
   filteredOwners : Option[Set[AccountOwner]], filteredAccountType : Option[String], 
   filteredBalance: String, filteredCurrency : Option[String], 
@@ -73,4 +90,10 @@ class ModeratedBankAccount(filteredId : String,
   def nationalIdentifier = filteredNationalIdentifier
   def swift_bic = filteredSwift_bic
   def iban = filteredIban
+}
+
+object ModeratedBankAccount {
+  implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
+    JObject(JField("blah", JString("test")) :: Nil)
+  }
 }
