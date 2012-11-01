@@ -133,7 +133,7 @@ import code.model.implementedTraits.View
         }
         
         val transactions = getTransactions()
-        JsonResponse(transactions)
+        transactions
       }
 
     })
