@@ -9,10 +9,33 @@ import net.liftweb.common.Loggable
 
 object MongoDBLocalStorage extends Loggable
   {
+  
+	def getModeratedTransactions(bank: String, account: String)(moderate: Transaction => ModeratedTransaction) :
+		List[ModeratedTransaction] = {
+	  val rawTransactions = getTransactions(bank, account) getOrElse Nil
+	  rawTransactions.map(moderate)
+	}
+  
+	def getModeratedTransactions(bank: String, account: String, limit: Int, offset: Int)(moderate: Transaction => ModeratedTransaction) :
+		List[ModeratedTransaction] = {
+	  val rawTransactions = getTransactions(bank, account, limit, offset) getOrElse Nil
+	  rawTransactions.map(moderate)
+	}
+	
+	def getTransactions(bank : String, account: String, limit: Int, offset: Int) : Box[List[Transaction]] = {
+	  val envelopesForAccount = (acc: Account) => acc.envelopes(limit, offset)
+	  getTransactions(bank, account, envelopesForAccount)
+	}
+	
+	def getTransactions(bank : String, account : String) : Box[List[Transaction]] = {
+	  val envelopesForAccount = (acc: Account) => acc.allEnvelopes
+	  getTransactions(bank, account, envelopesForAccount)
+	}
+  
     //For the moment there is only one bank 
     //but for multiple banks we should look in the
     //data base to check if the bank exists or not
-    def getTransactions(bank : String, account : String) : Box[List[Transaction]] = 
+    def getTransactions(bank : String, account : String, envelopesForAccount: Account => List[OBPEnvelope]) : Box[List[Transaction]] = 
     {
       logger.debug("getTransactions for "+bank+"/"+account)
       def createTransaction(env : OBPEnvelope, theAccount: Box[Account]) : Transaction = 
@@ -50,8 +73,8 @@ object MongoDBLocalStorage extends Loggable
       }
       Account.find(("permalink"-> account)~("bankPermalink" -> bank)) match {
         case Full(account) => {
-          val transactions = account.allEnvelopes.map(createTransaction(_, Full(account)))
-          val bankAccountBalance = (account.allEnvelopes.maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
+          val transactions = envelopesForAccount(account).map(createTransaction(_, Full(account)))
+          val bankAccountBalance = (envelopesForAccount(account).maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
                                 details.get.new_balance.get.amount.get 
           val iban = if(account.iban.toString.isEmpty) None else Some(account.iban.toString)
 
