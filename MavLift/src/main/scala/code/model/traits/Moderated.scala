@@ -3,6 +3,11 @@ import java.util.Date
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JField
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.http.JsonResponse
+import net.liftweb.http.LiftResponse
+import java.text.SimpleDateFormat
 
 class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountName, 
   filteredNationalIdentifier : Option[String], filteredSWIFT_BIC : Option[Option[String]], 
@@ -10,14 +15,23 @@ class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountNam
 {
     def id = filteredId
     def label = filteredLabel
-    def NationalIdentifier = filteredNationalIdentifier
-    def SWIFT_BIC = filteredSWIFT_BIC
+    def nationalIdentifier = filteredNationalIdentifier
+    def swift_bic = filteredSWIFT_BIC
     def metadata = filteredMetadata 
     def isAlias = filteredLabel.aliasType match{
     case Public | Private => true
     case _ => false
   }
 }
+
+object ModeratedOtherBankAccount {
+  implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
+    val isAlias = if(mOtherBank.isAlias) "yes" else "no"
+    ModeratedBankAccount.bankJson(Some(mOtherBank.label.display), Some(isAlias), Some("TODO"), 
+        Some("TODO"), Some(Some("TODO")), mOtherBank.nationalIdentifier, Some("TODO"))
+  }
+}
+
 class ModeratedOtherBankAccountMetadata(filteredMoreInfo : Option[String], 
   filteredUrl : Option[String], filteredImageUrl : Option[String], filteredOpenCorporatesUrl : Option[String]) {
   def moreInfo = filteredMoreInfo 
@@ -26,7 +40,11 @@ class ModeratedOtherBankAccountMetadata(filteredMoreInfo : Option[String],
   def openCorporatesUrl = filteredOpenCorporatesUrl
 }
 
-
+object ModeratedOtherBankAccountMetadata {
+  implicit def moderatedOtherBankAccountMetadata2Json(mOtherBankMeta: ModeratedOtherBankAccountMetadata) : JObject = {
+    JObject(JField("blah", JString("test")) :: Nil)
+  }
+}
 
 
 class ModeratedTransaction(filteredId: String, filteredBankAccount: Option[ModeratedBankAccount], 
@@ -51,8 +69,30 @@ class ModeratedTransaction(filteredId: String, filteredBankAccount: Option[Moder
 }
 
 object ModeratedTransaction {
+  
+  implicit def dateOption2JString(date: Option[Date]) : JString = {
+    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    JString(date.map(d => format.format(d)) getOrElse "")
+  }
+  
   implicit def moderatedTransaction2Json(mTransaction: ModeratedTransaction) : JObject = {
-    JObject(JField("blah", JString("test")) :: Nil)
+    ("this_account" -> mTransaction.bankAccount) ~
+    ("other_account" -> mTransaction.otherBankAccount) ~
+    ("details" -> 
+    	("type_en" -> mTransaction.transactionType) ~ //TODO: Need translations for transaction types and a way to
+    	("type_de" -> mTransaction.transactionType) ~ // figure out what language the original type is in
+    	("posted" -> mTransaction.startDate) ~
+    	("completed" -> mTransaction.finishDate) ~
+    	("new_balance" -> 
+    		("currency" -> mTransaction.currency) ~ //TODO: Need separate currency for balances and values?
+    		("amount" -> mTransaction.balance)) ~
+    	("value" ->
+    		("currency" -> mTransaction.currency) ~
+    		("amount" -> mTransaction.amount)))
+  }
+  
+  implicit def moderatedTransactions2Json(mTransactions: List[ModeratedTransaction]) : LiftResponse = {
+    JsonResponse(("transactions" -> mTransactions))
   }
 }
 
@@ -93,7 +133,23 @@ class ModeratedBankAccount(filteredId : String,
 }
 
 object ModeratedBankAccount {
+  
+  def bankJson(holderName: Option[String], holderAlias: Option[String], number: Option[String],
+      	kind: Option[String], bankIBAN: Option[Option[String]], bankNatIdent: Option[String],
+      	bankName: Option[String]) : JObject = {
+    ("holder" -> 
+    	("name" -> holderName) ~
+    	("alias" -> holderAlias)) ~
+    ("number" -> number) ~
+    ("kind" -> kind) ~
+    ("bank" ->
+    	("IBAN" -> bankIBAN) ~
+    	("national_identifier" -> bankNatIdent) ~
+    	("name" -> bankName))
+  }
+  
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
-    JObject(JField("blah", JString("test")) :: Nil)
+    bankJson(Some(mBankAccount.owners.mkString(",")), Some("no"), Some("TODO"), 
+        mBankAccount.accountType, mBankAccount.iban, mBankAccount.nationalIdentifier, Some("TODO"))
   }
 }
