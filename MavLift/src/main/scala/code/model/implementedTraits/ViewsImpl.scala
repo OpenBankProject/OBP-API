@@ -53,7 +53,8 @@ object Anonymous extends BaseView {
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
       if(transaction.thisAccount.toString().startsWith("-")) "-" else "+", Some(transaction.thisAccount.currency), 
-      Some(transaction.thisAccount.label),None, None, None))
+      Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
+      Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {
       val otherAccountLabel = {
         val publicAlias = transaction.otherAccount.metadata.publicAlias
@@ -75,7 +76,8 @@ object Anonymous extends BaseView {
         Some(new ModeratedOtherBankAccountMetadata(moreInfo, url, imageUrl, openCorporatesUrl))
       } 
 
-      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,otherAccountMetadata))
+      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,
+          None, None, None, otherAccountMetadata))
     }
     val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,None,None,None))
     val transactionType = Some(transaction.transactionType)
@@ -102,7 +104,8 @@ object Anonymous extends BaseView {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
       transaction.thisAccount.toString(), Some(transaction.thisAccount.currency), 
-      Some(transaction.thisAccount.label),None, None, None))
+      Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
+      Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {
       val otherAccountLabel = {
         val privateAlias = transaction.otherAccount.metadata.privateAlias
@@ -116,7 +119,8 @@ object Anonymous extends BaseView {
           Some(transaction.otherAccount.metadata.url), Some(transaction.otherAccount.metadata.imageUrl), 
           Some(transaction.otherAccount.metadata.openCorporatesUrl)))
 
-      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,otherAccountMetadata))
+      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,
+          None, None, otherAccountMetadata))
     }      
     val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,
       Some(transaction.metadata.comments),None,Some(transaction.metadata.addComment _)))

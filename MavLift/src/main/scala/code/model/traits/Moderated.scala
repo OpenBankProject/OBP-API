@@ -11,13 +11,16 @@ import java.text.SimpleDateFormat
 
 class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountName, 
   filteredNationalIdentifier : Option[String], filteredSWIFT_BIC : Option[Option[String]], 
-  filteredIBAN : Option[Option[String]], filteredMetadata : Option[ModeratedOtherBankAccountMetadata]) 
+  filteredIBAN : Option[Option[String]], filteredBankName: Option[String],
+  filteredNumber: Option[String], filteredMetadata : Option[ModeratedOtherBankAccountMetadata]) 
 {
     def id = filteredId
     def label = filteredLabel
     def nationalIdentifier = filteredNationalIdentifier
     def swift_bic = filteredSWIFT_BIC
     def iban = filteredIBAN
+    def bankName = filteredBankName
+    def number = filteredNumber
     def metadata = filteredMetadata 
     def isAlias = filteredLabel.aliasType match{
     case Public | Private => true
@@ -27,13 +30,16 @@ class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountNam
 
 object ModeratedOtherBankAccount {
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
-    val holderName = Some(mOtherBank.label.display)
+    val holderName = mOtherBank.label.display
     val isAlias = mOtherBank.isAlias
-    val number = Some("TODO")
-    val kind = None
-    val bankIBAN = mOtherBank.iban
-    val bankNatIdent = mOtherBank.nationalIdentifier
-    val bankName = Some("TODO")
+    val number = mOtherBank.number getOrElse ""
+    val kind = ""
+    val bankIBAN = (for { //TODO: This should be handled a bit better... might want to revisit the Option stuff in ModeratedOtherAccount etc.
+      i <- mOtherBank.iban
+      iString <- i
+    } yield iString).getOrElse("")
+    val bankNatIdent = mOtherBank.nationalIdentifier getOrElse ""
+    val bankName = mOtherBank.bankName getOrElse ""
     ModeratedBankAccount.bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }
@@ -125,7 +131,8 @@ class ModeratedBankAccount(filteredId : String,
   filteredOwners : Option[Set[AccountOwner]], filteredAccountType : Option[String], 
   filteredBalance: String, filteredCurrency : Option[String], 
   filteredLabel : Option[String], filteredNationalIdentifier : Option[String],
-  filteredSwift_bic : Option[Option[String]], filteredIban : Option[Option[String]])
+  filteredSwift_bic : Option[Option[String]], filteredIban : Option[Option[String]],
+  filteredNumber: Option[String], filteredBankName: Option[String])
 {
   def id = filteredId
   def owners = filteredOwners
@@ -136,13 +143,15 @@ class ModeratedBankAccount(filteredId : String,
   def nationalIdentifier = filteredNationalIdentifier
   def swift_bic = filteredSwift_bic
   def iban = filteredIban
+  def number = filteredNumber
+  def bankName = filteredBankName
 }
 
 object ModeratedBankAccount {
   
-  def bankJson(holderName: Option[String], isAlias: Boolean, number: Option[String],
-      	kind: Option[String], bankIBAN: Option[Option[String]], bankNatIdent: Option[String],
-      	bankName: Option[String]) : JObject = {
+  def bankJson(holderName: String, isAlias: Boolean, number: String,
+      	kind: String, bankIBAN: String, bankNatIdent: String,
+      	bankName: String) : JObject = {
     ("holder" -> 
     	("name" -> holderName) ~
     	("alias" -> {if(isAlias) "yes" else "no"})) ~
@@ -155,13 +164,16 @@ object ModeratedBankAccount {
   }
   
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
-    val holderName = Some(mBankAccount.owners.mkString(","))
+    val holderName = mBankAccount.owners.mkString(",")
     val isAlias = false
-    val number = Some("TODO")
-    val kind = mBankAccount.accountType
-    val bankIBAN = mBankAccount.iban
-    val bankNatIdent = mBankAccount.nationalIdentifier
-    val bankName = Some("TODO")
+    val number = mBankAccount.number getOrElse ""
+    val kind = mBankAccount.accountType getOrElse ""
+    val bankIBAN = (for { //TODO: This should be handled a bit better... might want to revisit the Option stuff in ModeratedOtherAccount etc.
+      i <- mBankAccount.iban
+      iString <- i
+    } yield iString).getOrElse("")
+    val bankNatIdent = mBankAccount.nationalIdentifier getOrElse ""
+    val bankName = mBankAccount.bankName getOrElse ""
     bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }

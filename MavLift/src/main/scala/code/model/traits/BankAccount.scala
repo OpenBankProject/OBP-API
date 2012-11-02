@@ -20,6 +20,10 @@ trait BankAccount {
   //Name to display, e.g. TESOBE Postbank Account
   def label : String
   
+  def bankName : String
+  
+  def number: String
+  
   def nationalIdentifier : String
   
   def swift_bic : Option[String]
