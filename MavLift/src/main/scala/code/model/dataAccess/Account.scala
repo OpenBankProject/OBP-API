@@ -44,9 +44,13 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   //find all the envelopes related to this account 
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery)
 
-  def envelopes(limit: Int, offset: Int): List[OBPEnvelope] = {
-    val dateDescending = QueryBuilder.start("obp_transaction.details.completed").is(-1).get
-    OBPEnvelope.findAll(baseQuery, dateDescending, Limit(limit), Skip(offset))
+  def envelopes(limit: Int, offset: Int, sortOrdering: SortOrdering): List[OBPEnvelope] = {
+    val ordering = sortOrdering match {
+      case AscOrdering => 1
+      case _ => -1
+    }
+    val dateOrdered = QueryBuilder.start("obp_transaction.details.completed").is(ordering).get
+    OBPEnvelope.findAll(baseQuery, dateOrdered, Limit(limit), Skip(offset))
   }
   
   //def envelopes(limit: Int, offset: Int, sortDirection)

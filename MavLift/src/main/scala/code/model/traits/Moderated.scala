@@ -26,9 +26,14 @@ class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountNam
 
 object ModeratedOtherBankAccount {
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
-    val isAlias = if(mOtherBank.isAlias) "yes" else "no"
-    ModeratedBankAccount.bankJson(Some(mOtherBank.label.display), Some(isAlias), Some("TODO"), 
-        Some("TODO"), Some(Some("TODO")), mOtherBank.nationalIdentifier, Some("TODO"))
+    val holderName = Some(mOtherBank.label.display)
+    val isAlias = mOtherBank.isAlias
+    val number = Some("TODO")
+    val kind = Some("TODO")
+    val bankIBAN = Some(Some("TODO"))
+    val bankNatIdent = mOtherBank.nationalIdentifier
+    val bankName = Some("TODO")
+    ModeratedBankAccount.bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }
 
@@ -134,12 +139,12 @@ class ModeratedBankAccount(filteredId : String,
 
 object ModeratedBankAccount {
   
-  def bankJson(holderName: Option[String], holderAlias: Option[String], number: Option[String],
+  def bankJson(holderName: Option[String], isAlias: Boolean, number: Option[String],
       	kind: Option[String], bankIBAN: Option[Option[String]], bankNatIdent: Option[String],
       	bankName: Option[String]) : JObject = {
     ("holder" -> 
     	("name" -> holderName) ~
-    	("alias" -> holderAlias)) ~
+    	("alias" -> {if(isAlias) "yes" else "no"})) ~
     ("number" -> number) ~
     ("kind" -> kind) ~
     ("bank" ->
@@ -149,7 +154,13 @@ object ModeratedBankAccount {
   }
   
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
-    bankJson(Some(mBankAccount.owners.mkString(",")), Some("no"), Some("TODO"), 
-        mBankAccount.accountType, mBankAccount.iban, mBankAccount.nationalIdentifier, Some("TODO"))
+    val holderName = Some(mBankAccount.owners.mkString(","))
+    val isAlias = false
+    val number = Some("TODO")
+    val kind = mBankAccount.accountType
+    val bankIBAN = mBankAccount.iban
+    val bankNatIdent = mBankAccount.nationalIdentifier
+    val bankName = Some("TODO")
+    bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }

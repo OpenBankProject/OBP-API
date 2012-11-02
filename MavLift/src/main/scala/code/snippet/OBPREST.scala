@@ -28,44 +28,45 @@
 package com.tesobe.utils {
 
   import code.actors.EnvelopeInserter
-  import net.liftweb.http._
-  import net.liftweb.http.rest._
-  import net.liftweb.json.JsonDSL._
-  import net.liftweb.json.Printer._
-  import net.liftweb.json.Extraction._
-  import net.liftweb.json.JsonAST._
-  import java.util.Calendar
-  import net.liftweb.common.Failure
-  import net.liftweb.common.Full
-  import net.liftweb.common.Empty
-  import net.liftweb.mongodb._
-  import net.liftweb.json.JsonAST.JString
-  import com.mongodb.casbah.Imports._
-  import _root_.java.math.MathContext
-  import org.bson.types._
-  import org.joda.time.{ DateTime, DateTimeZone }
-  import java.util.regex.Pattern
-  import _root_.net.liftweb.common._
-  import _root_.net.liftweb.util._
-  import _root_.net.liftweb.http._
-  import _root_.net.liftweb.mapper._
-  import _root_.net.liftweb.util.Helpers._
-  import _root_.net.liftweb.sitemap._
-  import _root_.scala.xml._
-  import _root_.net.liftweb.http.S._
-  import _root_.net.liftweb.http.RequestVar
-  import _root_.net.liftweb.util.Helpers._
-  import _root_.net.liftweb.common.Full
-  import net.liftweb.mongodb.{ Skip, Limit }
-  import _root_.net.liftweb.http.S._
-  import _root_.net.liftweb.mapper.view._
-  import com.mongodb._
-  import code.model.dataAccess.{ OBPEnvelope, OBPUser }
-  import code.model.dataAccess.HostedAccount
-  import code.model.dataAccess.LocalStorage
-  import code.model.traits.ModeratedTransaction
-  import code.model.traits.View
-  import code.model.implementedTraits.View
+import net.liftweb.http._
+import net.liftweb.http.rest._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.Printer._
+import net.liftweb.json.Extraction._
+import net.liftweb.json.JsonAST._
+import java.util.Calendar
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Empty
+import net.liftweb.mongodb._
+import net.liftweb.json.JsonAST.JString
+import com.mongodb.casbah.Imports._
+import _root_.java.math.MathContext
+import org.bson.types._
+import org.joda.time.{ DateTime, DateTimeZone }
+import java.util.regex.Pattern
+import _root_.net.liftweb.common._
+import _root_.net.liftweb.util._
+import _root_.net.liftweb.http._
+import _root_.net.liftweb.mapper._
+import _root_.net.liftweb.util.Helpers._
+import _root_.net.liftweb.sitemap._
+import _root_.scala.xml._
+import _root_.net.liftweb.http.S._
+import _root_.net.liftweb.http.RequestVar
+import _root_.net.liftweb.util.Helpers._
+import _root_.net.liftweb.common.Full
+import net.liftweb.mongodb.{ Skip, Limit }
+import _root_.net.liftweb.http.S._
+import _root_.net.liftweb.mapper.view._
+import com.mongodb._
+import code.model.dataAccess.{ OBPEnvelope, OBPUser }
+import code.model.dataAccess.HostedAccount
+import code.model.dataAccess.LocalStorage
+import code.model.traits.ModeratedTransaction
+import code.model.traits.View
+import code.model.implementedTraits.View
+import code.model.dataAccess.SortOrdering
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -87,7 +88,7 @@ package com.tesobe.utils {
         val limit = asInt(json.header("obp_limit"), 10)
         val offset = asInt(json.header("obp_offset"), 0)
         val sortBy = json.header("obp_sort_by")
-        val sortDirection = json.header("obp_sort_by")
+        val sortDirection = SortOrdering(json.header("obp_sort_by"))
 
         //TODO: This code is duplicated from Boot: it should be moved somewhere else where it can
         // be used here and in boot
@@ -125,7 +126,7 @@ package com.tesobe.utils {
 
             View.fromUrl(viewName) match {
               case Full(currentView) => {
-                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, limit, offset)(currentView.moderate)
+                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, limit, offset, sortDirection)(currentView.moderate)
               }
               case _ => Nil
             }
