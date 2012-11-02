@@ -11,12 +11,13 @@ import java.text.SimpleDateFormat
 
 class ModeratedOtherBankAccount (filteredId : String, filteredLabel : AccountName, 
   filteredNationalIdentifier : Option[String], filteredSWIFT_BIC : Option[Option[String]], 
-  filtredIBAN : Option[Option[String]], filteredMetadata : Option[ModeratedOtherBankAccountMetadata]) 
+  filteredIBAN : Option[Option[String]], filteredMetadata : Option[ModeratedOtherBankAccountMetadata]) 
 {
     def id = filteredId
     def label = filteredLabel
     def nationalIdentifier = filteredNationalIdentifier
     def swift_bic = filteredSWIFT_BIC
+    def iban = filteredIBAN
     def metadata = filteredMetadata 
     def isAlias = filteredLabel.aliasType match{
     case Public | Private => true
@@ -29,8 +30,8 @@ object ModeratedOtherBankAccount {
     val holderName = Some(mOtherBank.label.display)
     val isAlias = mOtherBank.isAlias
     val number = Some("TODO")
-    val kind = Some("TODO")
-    val bankIBAN = Some(Some("TODO"))
+    val kind = None
+    val bankIBAN = mOtherBank.iban
     val bankNatIdent = mOtherBank.nationalIdentifier
     val bankName = Some("TODO")
     ModeratedBankAccount.bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
