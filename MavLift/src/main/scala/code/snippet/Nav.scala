@@ -10,7 +10,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.sitemap.SiteMapSingleton
-import code.model.dataAccess.{OBPUser,Account, MongoDBLocalStorage}
+import code.model.dataAccess.{OBPUser,Account, LocalStorage}
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._Noop
@@ -52,7 +52,7 @@ class Nav {
           else
             eraseMenu
         }
-        case _ => MongoDBLocalStorage.getAccount(url(2), url(4)) match {
+        case _ => LocalStorage.getAccount(url(2), url(4)) match {
           case Full(account) => if(account.anonAccess.is)
                                   ".navitem *" #> {
                                      val anoymousUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/anonymous"
@@ -129,7 +129,7 @@ class Nav {
     {
       val bankAndaccount = selectValue.split(",",0)      
       if(bankAndaccount.size==2)
-        MongoDBLocalStorage.getAccount(bankAndaccount(0), bankAndaccount(1)) match {
+        LocalStorage.getAccount(bankAndaccount(0), bankAndaccount(1)) match {
           case Full(acc) => S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
           case _ => _Noop
         }

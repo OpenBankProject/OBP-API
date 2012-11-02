@@ -28,44 +28,44 @@
 package com.tesobe.utils {
 
   import code.actors.EnvelopeInserter
-import net.liftweb.http._
-import net.liftweb.http.rest._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Printer._
-import net.liftweb.json.Extraction._
-import net.liftweb.json.JsonAST._
-import java.util.Calendar
-import net.liftweb.common.Failure
-import net.liftweb.common.Full
-import net.liftweb.common.Empty
-import net.liftweb.mongodb._
-import net.liftweb.json.JsonAST.JString
-import com.mongodb.casbah.Imports._
-import _root_.java.math.MathContext
-import org.bson.types._
-import org.joda.time.{ DateTime, DateTimeZone }
-import java.util.regex.Pattern
-import _root_.net.liftweb.common._
-import _root_.net.liftweb.util._
-import _root_.net.liftweb.http._
-import _root_.net.liftweb.mapper._
-import _root_.net.liftweb.util.Helpers._
-import _root_.net.liftweb.sitemap._
-import _root_.scala.xml._
-import _root_.net.liftweb.http.S._
-import _root_.net.liftweb.http.RequestVar
-import _root_.net.liftweb.util.Helpers._
-import _root_.net.liftweb.common.Full
-import net.liftweb.mongodb.{ Skip, Limit }
-import _root_.net.liftweb.http.S._
-import _root_.net.liftweb.mapper.view._
-import com.mongodb._
-import code.model.dataAccess.{ OBPEnvelope, OBPUser }
-import code.model.dataAccess.HostedAccount
-import code.model.dataAccess.MongoDBLocalStorage
-import code.model.traits.ModeratedTransaction
-import code.model.traits.View
-import code.model.implementedTraits.View
+  import net.liftweb.http._
+  import net.liftweb.http.rest._
+  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json.Printer._
+  import net.liftweb.json.Extraction._
+  import net.liftweb.json.JsonAST._
+  import java.util.Calendar
+  import net.liftweb.common.Failure
+  import net.liftweb.common.Full
+  import net.liftweb.common.Empty
+  import net.liftweb.mongodb._
+  import net.liftweb.json.JsonAST.JString
+  import com.mongodb.casbah.Imports._
+  import _root_.java.math.MathContext
+  import org.bson.types._
+  import org.joda.time.{ DateTime, DateTimeZone }
+  import java.util.regex.Pattern
+  import _root_.net.liftweb.common._
+  import _root_.net.liftweb.util._
+  import _root_.net.liftweb.http._
+  import _root_.net.liftweb.mapper._
+  import _root_.net.liftweb.util.Helpers._
+  import _root_.net.liftweb.sitemap._
+  import _root_.scala.xml._
+  import _root_.net.liftweb.http.S._
+  import _root_.net.liftweb.http.RequestVar
+  import _root_.net.liftweb.util.Helpers._
+  import _root_.net.liftweb.common.Full
+  import net.liftweb.mongodb.{ Skip, Limit }
+  import _root_.net.liftweb.http.S._
+  import _root_.net.liftweb.mapper.view._
+  import com.mongodb._
+  import code.model.dataAccess.{ OBPEnvelope, OBPUser }
+  import code.model.dataAccess.HostedAccount
+  import code.model.dataAccess.LocalStorage
+  import code.model.traits.ModeratedTransaction
+  import code.model.traits.View
+  import code.model.implementedTraits.View
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -76,14 +76,14 @@ import code.model.implementedTraits.View
 
     serve("obp" / "v1.0" prefix {
       case bankAlias :: "accounts" :: accountAlias :: "transactions" :: viewName :: Nil JsonGet json => {
-        
-        def asInt(s : Box[String], default: Int) : Int = {
+
+        def asInt(s: Box[String], default: Int): Int = {
           s match {
-            case Full(str) => tryo{str.toInt} getOrElse default
+            case Full(str) => tryo { str.toInt } getOrElse default
             case _ => default
           }
         }
-        
+
         val limit = asInt(json.header("obp_limit"), 10)
         val offset = asInt(json.header("obp_offset"), 0)
         val sortBy = json.header("obp_sort_by")
@@ -94,7 +94,7 @@ import code.model.implementedTraits.View
         def authorisedAccess(bank: String, account: String, view: String): Boolean =
           {
             if (view == "anonymous")
-              MongoDBLocalStorage.getTransactions(bank, account) match {
+              LocalStorage.getTransactions(bank, account) match {
                 // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
                 case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
                 case _ => false
@@ -120,18 +120,18 @@ import code.model.implementedTraits.View
           }
 
         def getTransactions() = {
-          if (MongoDBLocalStorage.correctBankAndAccount(bankAlias, accountAlias) &&
+          if (LocalStorage.correctBankAndAccount(bankAlias, accountAlias) &&
             authorisedAccess(bankAlias, accountAlias, viewName)) {
 
             View.fromUrl(viewName) match {
               case Full(currentView) => {
-                MongoDBLocalStorage.getModeratedTransactions(bankAlias, accountAlias, limit, offset)(currentView.moderate)
+                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, limit, offset)(currentView.moderate)
               }
               case _ => Nil
             }
           } else Nil
         }
-        
+
         val transactions = getTransactions()
         transactions
       }

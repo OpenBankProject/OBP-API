@@ -7,30 +7,40 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 
-object MongoDBLocalStorage extends Loggable
+object LocalStorage extends MongoDBLocalStorage
+
+trait LocalStorage extends Loggable {
+  def getModeratedTransactions(bank: String, account: String)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
+    val rawTransactions = getTransactions(bank, account) getOrElse Nil
+    rawTransactions.map(moderate)
+  }
+
+  def getModeratedTransactions(bank: String, account: String, limit: Int, offset: Int)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
+    val rawTransactions = getTransactions(bank, account, limit, offset) getOrElse Nil
+    rawTransactions.map(moderate)
+  }
+
+  def getTransactions(bank: String, account: String, limit: Int, offset: Int): Box[List[Transaction]] = {
+    val envelopesForAccount = (acc: Account) => acc.envelopes(limit, offset)
+    getTransactions(bank, account, envelopesForAccount)
+  }
+
+  def getTransactions(bank: String, account: String): Box[List[Transaction]] = {
+    val envelopesForAccount = (acc: Account) => acc.allEnvelopes
+    getTransactions(bank, account, envelopesForAccount)
+  }
+  
+  def getTransactions(bank : String, account : String, envelopesForAccount: Account => List[OBPEnvelope]) : Box[List[Transaction]]
+  
+  def getBank(name : String) : Box[Bank]
+  
+  def correctBankAndAccount(bank : String, account : String) : Boolean
+  
+  def getAccount(bankpermalink : String, account : String) : Box[Account]
+}
+
+class MongoDBLocalStorage extends LocalStorage
   {
-  
-	def getModeratedTransactions(bank: String, account: String)(moderate: Transaction => ModeratedTransaction) :
-		List[ModeratedTransaction] = {
-	  val rawTransactions = getTransactions(bank, account) getOrElse Nil
-	  rawTransactions.map(moderate)
-	}
-  
-	def getModeratedTransactions(bank: String, account: String, limit: Int, offset: Int)(moderate: Transaction => ModeratedTransaction) :
-		List[ModeratedTransaction] = {
-	  val rawTransactions = getTransactions(bank, account, limit, offset) getOrElse Nil
-	  rawTransactions.map(moderate)
-	}
-	
-	def getTransactions(bank : String, account: String, limit: Int, offset: Int) : Box[List[Transaction]] = {
-	  val envelopesForAccount = (acc: Account) => acc.envelopes(limit, offset)
-	  getTransactions(bank, account, envelopesForAccount)
-	}
-	
-	def getTransactions(bank : String, account : String) : Box[List[Transaction]] = {
-	  val envelopesForAccount = (acc: Account) => acc.allEnvelopes
-	  getTransactions(bank, account, envelopesForAccount)
-	}
   
     //For the moment there is only one bank 
     //but for multiple banks we should look in the
