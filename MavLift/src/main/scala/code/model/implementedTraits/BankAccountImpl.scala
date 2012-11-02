@@ -12,7 +12,8 @@ import code.model.traits.Transaction
 
 class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType_ : String, balance_ : BigDecimal,
   currency_ : String, label_ : String, nationalIdentifier_ : String, swift_bic_ : Option[String],
-   iban_ : Option[String], transactions_ : Set[Transaction], allowAnnoymousAccess_ : Boolean) extends BankAccount {
+   iban_ : Option[String], transactions_ : Set[Transaction], allowAnnoymousAccess_ : Boolean,
+   number_ : String, bankName_ : String) extends BankAccount {
 
   def id = id_
   def owners = _owners
@@ -24,6 +25,8 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
   def nationalIdentifier = nationalIdentifier_
   def swift_bic = swift_bic_
   def iban = iban_
+  def number = number_
+  def bankName = bankName_
   def transactions = transactions_
   def transactions(from: Date, to: Date): Set[Transaction] = { 
     throw new NotImplementedException

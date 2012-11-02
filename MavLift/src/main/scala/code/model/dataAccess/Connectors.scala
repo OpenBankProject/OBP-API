@@ -80,8 +80,16 @@ class MongoDBLocalStorage extends LocalStorage {
           }
 
           val id = env.id.is.toString()
-          val otherAccount = new OtherBankAccountImpl("", otherAccount_.holder.get, otherAccount_.number.get,
-            None, None, new OtherBankAccountMetadataImpl(oAcc.publicAlias.get, oAcc.privateAlias.get, oAcc.moreInfo.get,
+          val oSwiftBic = None
+          val otherAccount = new OtherBankAccountImpl(
+              id_ = "", 
+              label_ = otherAccount_.holder.get,
+              nationalIdentifier_ = otherAccount_.bank.get.national_identifier.get,
+              swift_bic_ = None, //TODO: need to add this to the json/model
+              iban_ = Some(otherAccount_.bank.get.IBAN.get),
+              number_ = otherAccount_.number.get,
+              bankName_ = "", //TODO: need to add this to the json/model
+              metadata_ = new OtherBankAccountMetadataImpl(oAcc.publicAlias.get, oAcc.privateAlias.get, oAcc.moreInfo.get,
               oAcc.url.get, oAcc.imageUrl.get, oAcc.openCorporatesUrl.get))
           val metadata = new TransactionMetadataImpl(env.narrative.get, env.obp_comments.get.map(new CommentImpl(_)),
             (text => env.narrative(text).save), env.addComment _)
@@ -104,7 +112,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
           val bankAccount: BankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString,
             bankAccountBalance, account.currency.toString, account.label.toString,
-            "", None, iban, transactions.toSet, account.anonAccess.get)
+            "", None, iban, transactions.toSet, account.anonAccess.get, account.number.get, account.bankName.get)
           bankAccount.owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
           bankAccount.transactions.map(_.thisAccount = bankAccount)
           Full(transactions)
