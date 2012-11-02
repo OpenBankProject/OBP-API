@@ -55,7 +55,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
   def userName = firstName.get
   
   def permittedViews(bankpermalink : String, bankAccount : String) : Set[View] = {
-    MongoDBLocalStorage.getAccount(bankpermalink, bankAccount) match {
+    LocalStorage.getAccount(bankpermalink, bankAccount) match {
       case Full(account) => {
         var views : Set[View] = Set()
         if(OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
@@ -70,7 +70,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
     }
   }
   def hasMangementAccess(bankpermalink : String, bankAccountPermalink : String)  = {
-    MongoDBLocalStorage.getAccount(bankpermalink, bankAccountPermalink) match {
+    LocalStorage.getAccount(bankpermalink, bankAccountPermalink) match {
       case Full(account) => OBPUser.hasManagementPermission(account)
       case _ => false
     }

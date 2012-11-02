@@ -48,6 +48,8 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
     val dateDescending = QueryBuilder.start("obp_transaction.details.completed").is(-1).get
     OBPEnvelope.findAll(baseQuery, dateDescending, Limit(limit), Skip(offset))
   }
+  
+  //def envelopes(limit: Int, offset: Int, sortDirection)
 
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String): Box[String] = {
     for {

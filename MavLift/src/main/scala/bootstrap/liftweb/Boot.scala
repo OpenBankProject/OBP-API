@@ -45,6 +45,7 @@ import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
 import net.liftweb.util.Schedule
 import net.liftweb.mongodb.BsonDSL._  
+import code.model.dataAccess.LocalStorage
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -106,7 +107,7 @@ class Boot extends Loggable{
     def authorisedAccess(bank : String, account : String, view : String)  : Boolean  = 
     {
       if(view=="anonymous")
-        MongoDBLocalStorage.getTransactions(bank,account) match {
+        LocalStorage.getTransactions(bank,account) match {
           // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
           case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
           case _ => false
@@ -137,11 +138,11 @@ class Boot extends Loggable{
       val account = URLParameters(1)
       val view = URLParameters(2)
       logger.debug("checking whether "+URLParameters+" is a valid combination")
-      if( MongoDBLocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
+      if( LocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
         View.fromUrl(view) match {
           case Full(currentView) => {
             logger.debug("yes, " + URLParameters + " is a valid combination")
-            Full((MongoDBLocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
+            Full((LocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
           }
           case _ => Empty
         }
@@ -152,7 +153,7 @@ class Boot extends Loggable{
     {
       val bankUrl = URLParameters(0)
       val accountUrl = URLParameters(1)
-      MongoDBLocalStorage.getAccount(bankUrl,accountUrl) match {
+      LocalStorage.getAccount(bankUrl,accountUrl) match {
         case Full(account) => 
             OBPUser.currentUserId match {
               case Full(id) =>         
@@ -185,9 +186,9 @@ class Boot extends Loggable{
           
           Menu.i("Banks") / "banks", //no test => list of open banks
           //list of open banks (banks with a least a bank account with an open account)
-          Menu.param[Bank]("Bank", "bank", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
+          Menu.param[Bank]("Bank", "bank", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
           //list of open accounts in a specific bank
-          Menu.param[Bank]("Accounts", "accounts", MongoDBLocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
+          Menu.param[Bank]("Accounts", "accounts", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
           
           //test if the bank exists and if the user have access to this view => management page
           Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management",
