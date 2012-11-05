@@ -12,7 +12,7 @@ trait BankAccount {
   def accountType : String
   
   //TODO: Check if BigDecimal is an appropriate data type
-  def balance : BigDecimal
+  def balance : Option[BigDecimal]
   
   //ISO 4217, e.g. EUR, GBP, USD, etc.
   def currency: String

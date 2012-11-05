@@ -225,6 +225,22 @@ object OBPComment extends OBPComment with BsonMetaRecord[OBPComment]
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] {
   
+  class OBPQueryParam
+  trait OBPOrder { def orderValue : Int }
+  object OBPOrder {
+    def apply(s: Option[String]): OBPOrder = s match {
+      case Some("asc") => OBPAscending
+      case _ => OBPDescending
+    }
+  }
+  object OBPAscending extends OBPOrder { def orderValue = 1 }
+  object OBPDescending extends OBPOrder { def orderValue = -1}
+  case class OBPLimit(value: Int) extends OBPQueryParam
+  case class OBPOffset(value: Int) extends OBPQueryParam
+  case class OBPFromDate(value: Date) extends OBPQueryParam
+  case class OBPToDate(value: Date) extends OBPQueryParam
+  case class OBPOrdering(field: String, order: OBPOrder) extends OBPQueryParam
+  
   override def fromJValue(jval: JValue) = {
 
     def createAliases(env: OBPEnvelope) = {

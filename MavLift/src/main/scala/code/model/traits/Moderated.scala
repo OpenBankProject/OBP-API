@@ -82,9 +82,10 @@ class ModeratedTransaction(filteredId: String, filteredBankAccount: Option[Moder
 
 object ModeratedTransaction {
   
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+  
   implicit def dateOption2JString(date: Option[Date]) : JString = {
-    val format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-    JString(date.map(d => format.format(d)) getOrElse "")
+    JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
   
   implicit def moderatedTransaction2Json(mTransaction: ModeratedTransaction) : JObject = {
