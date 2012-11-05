@@ -66,7 +66,7 @@ import code.model.dataAccess.LocalStorage
 import code.model.traits.ModeratedTransaction
 import code.model.traits.View
 import code.model.implementedTraits.View
-import code.model.dataAccess.SortOrdering
+import code.model.dataAccess.OBPEnvelope._
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -75,6 +75,8 @@ import code.model.dataAccess.SortOrdering
 
   object OBPRest extends RestHelper with Loggable {
 
+	val dateFormat = ModeratedTransaction.dateFormat
+  
     serve("obp" / "v1.0" prefix {
       case bankAlias :: "accounts" :: accountAlias :: "transactions" :: viewName :: Nil JsonGet json => {
 
@@ -85,10 +87,12 @@ import code.model.dataAccess.SortOrdering
           }
         }
 
-        val limit = asInt(json.header("obp_limit"), 10)
+        val limit = asInt(json.header("obp_limit"), 50)
         val offset = asInt(json.header("obp_offset"), 0)
         val sortBy = json.header("obp_sort_by")
-        val sortDirection = SortOrdering(json.header("obp_sort_by"))
+        val sortDirection = OBPOrder(json.header("obp_sort_by"))
+        val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}
+        val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}
 
         //TODO: This code is duplicated from Boot: it should be moved somewhere else where it can
         // be used here and in boot
@@ -126,7 +130,18 @@ import code.model.dataAccess.SortOrdering
 
             View.fromUrl(viewName) match {
               case Full(currentView) => {
-                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, limit, offset, sortDirection)(currentView.moderate)
+                val basicParams = List(OBPLimit(limit), 
+                						OBPOffset(offset), 
+                						OBPOrdering("obp_transaction.details.completed", sortDirection))
+                val moreParams = toDate match {
+                  case Full(d) => OBPToDate(d) :: basicParams
+                  case _ => basicParams
+                }
+                val allParams = fromDate match {
+                  case Full(d) => OBPFromDate(d) :: moreParams
+                  case _ => moreParams
+                }
+                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, allParams: _*)(currentView.moderate)
               }
               case _ => Nil
             }

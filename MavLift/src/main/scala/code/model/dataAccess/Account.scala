@@ -13,6 +13,8 @@ import net.liftweb.mongodb.record.field.BsonRecordListField
 import net.liftweb.mongodb.record.{ BsonRecord, BsonMetaRecord }
 import net.liftweb.record.field.{ StringField, BooleanField }
 import net.liftweb.mongodb.{Limit, Skip}
+import code.model.dataAccess.OBPEnvelope._
+import code.model.traits.ModeratedTransaction
 
 /**
  * There should be only one of these for every real life "this" account. TODO: Enforce this
@@ -39,21 +41,35 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
 
   def baseQuery = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
     put("obp_transaction.this_account.kind").is(kind.get).
-    put("obp_transaction.this_account.bank.name").is(bankName.get).get
+    put("obp_transaction.this_account.bank.name").is(bankName.get)
 
   //find all the envelopes related to this account 
-  def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery)
+  def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery.get)
 
-  def envelopes(limit: Int, offset: Int, sortOrdering: SortOrdering): List[OBPEnvelope] = {
-    val ordering = sortOrdering match {
-      case AscOrdering => 1
-      case _ => -1
+  def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
+    //This is ugly with the casts but it is a similar approach to mongo's .findAll implementation
+    val limit = queryParams.find(q => q.isInstanceOf[OBPLimit]).asInstanceOf[Option[OBPLimit]].map(x => x.value).getOrElse(50)
+    val offset = queryParams.find(q => q.isInstanceOf[OBPOffset]).asInstanceOf[Option[OBPOffset]].map(x => x.value).getOrElse(0)
+    val orderingParams = queryParams.find(q => q.isInstanceOf[OBPOrdering]).
+    						asInstanceOf[Option[OBPOrdering]].map(x => x).
+    						getOrElse(OBPOrdering("obp_transaction.details.completed", OBPDescending))
+    
+    val fromDate = queryParams.find(q => q.isInstanceOf[OBPFromDate]).asInstanceOf[Option[OBPFromDate]]
+    val toDate = queryParams.find(q => q.isInstanceOf[OBPToDate]).asInstanceOf[Option[OBPToDate]]
+    
+    val mongoParams = {
+      val start = baseQuery
+      val start2 = if(fromDate.isDefined) start.put("obp_transaction.details.completed").greaterThanEquals(fromDate.get.value)
+      			   else start
+      val end = if(toDate.isDefined) start2.put("obp_transaction.details.completed").lessThanEquals(toDate.get.value)
+      			else start2
+      end.get
     }
-    val dateOrdered = QueryBuilder.start("obp_transaction.details.completed").is(ordering).get
-    OBPEnvelope.findAll(baseQuery, dateOrdered, Limit(limit), Skip(offset))
+    
+    val ordering =  QueryBuilder.start(orderingParams.field).is(orderingParams.order.orderValue).get
+    
+    OBPEnvelope.findAll(mongoParams, ordering, Limit(limit), Skip(offset))
   }
-  
-  //def envelopes(limit: Int, offset: Int, sortDirection)
 
   def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String): Box[String] = {
     for {

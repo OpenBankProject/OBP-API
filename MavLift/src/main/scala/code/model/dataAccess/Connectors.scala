@@ -6,6 +6,7 @@ import net.liftweb.common.{ Box, Empty, Full }
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
+import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 
 object LocalStorage extends MongoDBLocalStorage
 
@@ -16,15 +17,14 @@ trait LocalStorage extends Loggable {
     rawTransactions.map(moderate)
   }
 
-  def getModeratedTransactions(bank: String, account: String, limit: Int, offset: Int,
-      sortOrdering: SortOrdering)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
-    val rawTransactions = getTransactions(bank, account, limit, offset, sortOrdering) getOrElse Nil
+  def getModeratedTransactions(bank: String, account: String, queryParams: OBPQueryParam*)
+  	(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
+    val rawTransactions = getTransactions(bank, account, queryParams: _*) getOrElse Nil
     rawTransactions.map(moderate)
   }
-
-  def getTransactions(bank: String, account: String, limit: Int, offset: Int,
-      sortOrdering: SortOrdering = DescOrdering): Box[List[Transaction]] = {
-    val envelopesForAccount = (acc: Account) => acc.envelopes(limit, offset, sortOrdering)
+  
+  def getTransactions(bank: String, account: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = {
+    val envelopesForAccount = (acc: Account) => acc.envelopes(queryParams: _*)
     getTransactions(bank, account, envelopesForAccount)
   }
 
@@ -41,18 +41,6 @@ trait LocalStorage extends Loggable {
 
   def getAccount(bankpermalink: String, account: String): Box[Account]
 }
-
-trait SortOrdering
-object SortOrdering extends SortOrdering {
-  def apply(x: Option[String]): SortOrdering = {
-    x match {
-      case Some("asc") | Some("ASC") => AscOrdering
-      case _ => DescOrdering
-    }
-  }
-}
-object AscOrdering extends SortOrdering
-object DescOrdering extends SortOrdering
 
 class MongoDBLocalStorage extends LocalStorage {
 
@@ -105,9 +93,11 @@ class MongoDBLocalStorage extends LocalStorage {
         }
       Account.find(("permalink" -> account) ~ ("bankPermalink" -> bank)) match {
         case Full(account) => {
-          val transactions = envelopesForAccount(account).map(createTransaction(_, Full(account)))
-          val bankAccountBalance = (envelopesForAccount(account).maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
-            details.get.new_balance.get.amount.get
+          val envs = envelopesForAccount(account)
+          val transactions = envs.map(createTransaction(_, Full(account)))
+          val bankAccountBalance = if(envs.isEmpty) None 
+          	else Some((envelopesForAccount(account).maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
+          		 details.get.new_balance.get.amount.get)
           val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
 
           val bankAccount: BankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString,

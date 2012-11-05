@@ -10,10 +10,11 @@ import code.model.traits.{BankAccount,AccountOwner, Transaction}
 import code.model.dataAccess.{Account,OBPEnvelope}
 import code.model.traits.Transaction
 
-class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType_ : String, balance_ : BigDecimal,
+class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType_ : String,
+  balance_ : Option[BigDecimal],
   currency_ : String, label_ : String, nationalIdentifier_ : String, swift_bic_ : Option[String],
-   iban_ : Option[String], transactions_ : Set[Transaction], allowAnnoymousAccess_ : Boolean,
-   number_ : String, bankName_ : String) extends BankAccount {
+  iban_ : Option[String], transactions_ : Set[Transaction], allowAnnoymousAccess_ : Boolean,
+  number_ : String, bankName_ : String) extends BankAccount {
 
   def id = id_
   def owners = _owners
