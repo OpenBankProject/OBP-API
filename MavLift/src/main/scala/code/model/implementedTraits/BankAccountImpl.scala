@@ -18,7 +18,7 @@ import code.model.dataAccess.OBPEnvelope._
 class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType_ : String,
   currency_ : String, label_ : String, nationalIdentifier_ : String, swift_bic_ : Option[String],
   iban_ : Option[String], allowAnnoymousAccess_ : Boolean,
-  number_ : String, bankName_ : String) extends BankAccount {
+  number_ : String, bankName_ : String, bankPermalink_ : String, permalink_ : String) extends BankAccount {
 
   def id = id_
   def owners = _owners
@@ -36,6 +36,8 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
       case _ => None
     }
   }
+  def bankPermalink = bankPermalink_
+  def permalink = permalink_
   def currency = currency_
   def label = label_
   def nationalIdentifier = nationalIdentifier_
@@ -52,19 +54,19 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
   def allowAnnoymousAccess = allowAnnoymousAccess_
 
   def getModeratedTransactions(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
-   LocalStorage.getModeratedTransactions(bankName, label)(moderate)
+   LocalStorage.getModeratedTransactions(permalink, bankPermalink)(moderate)
   }
 
   def getModeratedTransactions(queryParams: OBPQueryParam*)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
-    LocalStorage.getModeratedTransactions(bankName, label, queryParams: _*)(moderate)
+    LocalStorage.getModeratedTransactions(permalink, bankPermalink, queryParams: _*)(moderate)
   }
   
   def getTransactions(queryParams: OBPQueryParam*) : Box[List[Transaction]] = {
-    LocalStorage.getTransactions(bankName, label, queryParams: _*)
+    LocalStorage.getTransactions(permalink, bankPermalink, queryParams: _*)
   }
 
   def getTransactions(bank: String, account: String): Box[List[Transaction]] = {
-   LocalStorage.getTransactions(bankName, label)
+   LocalStorage.getTransactions(permalink, bankPermalink)
   }
 
 }
