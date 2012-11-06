@@ -239,7 +239,7 @@ object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] {
   case class OBPOffset(value: Int) extends OBPQueryParam
   case class OBPFromDate(value: Date) extends OBPQueryParam
   case class OBPToDate(value: Date) extends OBPQueryParam
-  case class OBPOrdering(field: String, order: OBPOrder) extends OBPQueryParam
+  case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
   
   override def fromJValue(jval: JValue) = {
 
