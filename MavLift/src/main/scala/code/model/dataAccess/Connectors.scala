@@ -11,26 +11,26 @@ import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 object LocalStorage extends MongoDBLocalStorage
 
 trait LocalStorage extends Loggable {
-  def getModeratedTransactions(bank: String, account: String)
+  def getModeratedTransactions(permalink: String, bankPermalink: String)
   	(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
-    val rawTransactions = getTransactions(bank, account) getOrElse Nil
+    val rawTransactions = getTransactions(permalink, bankPermalink) getOrElse Nil
     rawTransactions.map(moderate)
   }
 
-  def getModeratedTransactions(bank: String, account: String, queryParams: OBPQueryParam*)
+  def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
   	(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction] = {
-    val rawTransactions = getTransactions(bank, account, queryParams: _*) getOrElse Nil
+    val rawTransactions = getTransactions(permalink, bankPermalink, queryParams: _*) getOrElse Nil
     rawTransactions.map(moderate)
   }
   
-  def getTransactions(bank: String, account: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = {
+  def getTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*) : Box[List[Transaction]] = {
     val envelopesForAccount = (acc: Account) => acc.envelopes(queryParams: _*)
-    getTransactions(bank, account, envelopesForAccount)
+    getTransactions(permalink, bankPermalink, envelopesForAccount)
   }
 
-  def getTransactions(bank: String, account: String): Box[List[Transaction]] = {
+  def getTransactions(permalink: String, bankPermalink: String): Box[List[Transaction]] = {
     val envelopesForAccount = (acc: Account) => acc.allEnvelopes
-    getTransactions(bank, account, envelopesForAccount)
+    getTransactions(permalink, bankPermalink, envelopesForAccount)
   }
 
   def getTransactions(bank: String, account: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]]
@@ -47,10 +47,10 @@ class MongoDBLocalStorage extends LocalStorage {
   //For the moment there is only one bank 
   //but for multiple banks we should look in the
   //data base to check if the bank exists or not
-  def getTransactions(bank: String, account: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]] =
+  def getTransactions(permalink: String, bankPermalink: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]] =
     {
-      logger.debug("getTransactions for " + bank + "/" + account)
-      def createTransaction(env: OBPEnvelope, theAccount: Box[Account]): Transaction =
+      logger.debug("getTransactions for " + bankPermalink + "/" + permalink)
+      def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction =
         {
           import net.liftweb.json.JsonDSL._
           val transaction: OBPTransaction = env.obp_transaction.get
@@ -58,7 +58,9 @@ class MongoDBLocalStorage extends LocalStorage {
           val otherAccount_ = transaction.other_account.get
           val otherUnmediatedHolder = otherAccount_.holder.get
 
-          val oAccs = theAccount.get.otherAccounts.get
+          val thisBankAccount = Account.toBankAccount(theAccount)
+          
+          val oAccs = theAccount.otherAccounts.get
           val oAccOpt = oAccs.find(o => {
             otherUnmediatedHolder.equals(o.holder.get)
           })
@@ -88,13 +90,13 @@ class MongoDBLocalStorage extends LocalStorage {
           val startDate = env.obp_transaction.get.details.get.posted.get
           val finishDate = env.obp_transaction.get.details.get.completed.get
           val balance = env.obp_transaction.get.details.get.new_balance.get.amount.get
-          new TransactionImpl(id, null, otherAccount, metadata, transactionType, amount, currency,
+          new TransactionImpl(id, thisBankAccount, otherAccount, metadata, transactionType, amount, currency,
             label, startDate, finishDate, balance)
         }
-      Account.find(("permalink" -> account) ~ ("bankPermalink" -> bank)) match {
+      Account.find(("permalink" -> permalink) ~ ("bankPermalink" -> bankPermalink)) match {
         case Full(account) => {
           val envs = envelopesForAccount(account)
-          Full(envs.map(createTransaction(_, Full(account))))
+          Full(envs.map(createTransaction(_, account)))
         }
         case _ => Empty
       }

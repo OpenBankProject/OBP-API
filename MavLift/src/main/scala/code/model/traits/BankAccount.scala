@@ -27,6 +27,10 @@ trait BankAccount {
   
   def bankName : String
   
+  def bankPermalink : String
+  
+  def permalink : String
+  
   def number: String
   
   def nationalIdentifier : String
