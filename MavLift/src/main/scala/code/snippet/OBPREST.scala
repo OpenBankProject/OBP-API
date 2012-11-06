@@ -107,19 +107,9 @@ import code.model.implementedTraits.Anonymous
         val sortDirection = OBPOrder(json.header("obp_sort_by"))
         val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
         val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
-        
-        def authorisedAccess(bankAccount: BankAccount, view: View, user: Option[OBPUser]) = {
-          view match {
-            case Anonymous => bankAccount.allowAnnoymousAccess
-            case _ => user match {
-              case Some(u) => u.permittedViews(bankAccount).contains(view)
-              case _ => false
-            }
-          }
-        }
 
         def getTransactions(bankAccount: BankAccount, view: View, user: Option[OBPUser]) = {
-          if(authorisedAccess(bankAccount, view, user)) {
+          if(bankAccount.authorisedAccess(view, user)) {
             val basicParams = List(OBPLimit(limit), 
                 						OBPOffset(offset), 
                 						OBPOrdering(sortBy, sortDirection))

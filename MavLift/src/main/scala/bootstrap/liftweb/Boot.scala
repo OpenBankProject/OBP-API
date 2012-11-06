@@ -96,7 +96,7 @@ class Boot extends Loggable{
     Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)   
 
 
-    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited")) //TODO: Remove
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
         Empty
@@ -104,29 +104,7 @@ class Boot extends Loggable{
         Full(PlainTextResponse("unauthorized"))
       }
     }
-
-    //TODO: merge with same function in OBPREST
-    def authorisedAccess2(bankAccount: BankAccount, view: View, user: Option[OBPUser]) : Boolean = {
-      view match {
-        case Anonymous => bankAccount.allowAnnoymousAccess
-        case _ => user match {
-          case Some(u) => u.permittedViews(bankAccount).contains(view)
-          case _ => false
-        }
-      }
-    }
-    
-    def authorisedAccess(bank : String, account : String, view : String)  : Boolean  = 
-    {
-      val bankAccount = BankAccount(bank, account)
-      val viewBox = View.fromUrl(view)
-      val result = for {
-        b <- bankAccount
-        v <- viewBox
-      } yield authorisedAccess2(b, v, OBPUser.currentUser)
-      
-      result getOrElse false
-    }       
+     
     def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
     {
       val bank = URLParameters(0)
@@ -138,7 +116,7 @@ class Boot extends Loggable{
       for {
         b <- bankAccount
         v <- view
-        if(authorisedAccess2(b, v, OBPUser.currentUser))
+        if(b.authorisedAccess(v, OBPUser.currentUser))
       } yield (b.getModeratedTransactions()(v.moderate), v)
       
     }

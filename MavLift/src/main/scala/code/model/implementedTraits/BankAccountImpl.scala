@@ -14,6 +14,8 @@ import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.common.Box
 import code.model.dataAccess.LocalStorage
 import code.model.dataAccess.OBPEnvelope._
+import code.model.dataAccess.OBPUser
+import code.model.traits.View
 
 class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType_ : String,
   currency_ : String, label_ : String, nationalIdentifier_ : String, swift_bic_ : Option[String],
@@ -67,6 +69,16 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
 
   def getTransactions(bank: String, account: String): Box[List[Transaction]] = {
    LocalStorage.getTransactions(permalink, bankPermalink)
+  }
+
+  def authorisedAccess(view: View, user: Option[OBPUser]) = {
+    view match {
+      case Anonymous => allowAnnoymousAccess
+      case _ => user match {
+        case Some(u) => u.permittedViews(this).contains(view)
+        case _ => false
+      }
+    }
   }
 
 }
