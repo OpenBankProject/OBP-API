@@ -6,6 +6,7 @@ import code.model.dataAccess.LocalStorage
 import net.liftweb.common.{Full, Empty}
 import code.model.dataAccess.Account
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.model.dataAccess.OBPUser
 
 trait BankAccount {
 
@@ -48,6 +49,7 @@ trait BankAccount {
   
   def getModeratedTransactions(queryParams: OBPQueryParam*)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction]
   
+  def authorisedAccess(view: View, user: Option[OBPUser]) : Boolean
 }
 
 object BankAccount {
