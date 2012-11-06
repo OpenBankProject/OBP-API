@@ -224,18 +224,24 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
       ".balance_number *" #> { "€" + {aTransaction.balance }} & 
       ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
-  
+
   //TODO: show bankname then account label
   def accountDetails = {
-    "#accountName *" #> {filteredTransactions(0).bankAccount match 
-    {
-      case Some(bankAccount) => bankAccount.label match {
-        case Some(label) => label
-        case _ => ""
+    filteredTransactions match {
+      case Nil => "#accountName *" #> ""
+      case x :: xs => {
+        "#accountName *" #> {
+          x.bankAccount match {
+            case Some(bankAccount) => bankAccount.label match {
+              case Some(label) => label
+              case _ => ""
+            }
+            case _ => ""
+          }
+        }
       }
-      case _ => ""
     }
-  }}
+  }
   def hideSocialWidgets = {
     if(view.name!="Anonymous") ".box *" #> ""
     else ".box *+" #> "" 
