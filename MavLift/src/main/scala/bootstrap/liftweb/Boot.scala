@@ -131,18 +131,16 @@ class Boot extends Loggable{
     {
       val bank = URLParameters(0)
       val account = URLParameters(1)
-      val view = URLParameters(2)
-      logger.debug("checking whether "+URLParameters+" is a valid combination")
-      if( LocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
-        View.fromUrl(view) match {
-          case Full(currentView) => {
-            logger.debug("yes, " + URLParameters + " is a valid combination")
-            Full((LocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
-          }
-          case _ => Empty
-        }
-      else
-        Empty        
+      val viewName = URLParameters(2)
+      val bankAccount = BankAccount(bank, account)
+      val view = View.fromUrl(viewName)
+      
+      for {
+        b <- bankAccount
+        v <- view
+        if(authorisedAccess2(b, v, OBPUser.currentUser))
+      } yield (b.getModeratedTransactions()(v.moderate), v)
+      
     }
     def getAccount(URLParameters : List[String]) = 
     {
