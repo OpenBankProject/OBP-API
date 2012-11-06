@@ -76,7 +76,7 @@ import code.model.dataAccess.OBPEnvelope._
   object OBPRest extends RestHelper with Loggable {
 
 	val dateFormat = ModeratedTransaction.dateFormat
-  
+	
     serve("obp" / "v1.0" prefix {
       case bankAlias :: "accounts" :: accountAlias :: "transactions" :: viewName :: Nil JsonGet json => {
 
@@ -89,7 +89,19 @@ import code.model.dataAccess.OBPEnvelope._
 
         val limit = asInt(json.header("obp_limit"), 50)
         val offset = asInt(json.header("obp_offset"), 0)
-        val sortBy = json.header("obp_sort_by")
+        /**
+         * sortBy is currently disabled as it would open up a security hole:
+         * 
+         * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
+         * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
+         * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
+         * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
+         * 
+         * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
+         * 
+         */
+        //val sortBy = json.header("obp_sort_by")
+        val sortBy = None
         val sortDirection = OBPOrder(json.header("obp_sort_by"))
         val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
         val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
@@ -132,7 +144,7 @@ import code.model.dataAccess.OBPEnvelope._
               case Full(currentView) => {
                 val basicParams = List(OBPLimit(limit), 
                 						OBPOffset(offset), 
-                						OBPOrdering("obp_transaction.details.completed", sortDirection))
+                						OBPOrdering(sortBy, sortDirection))
                 
                 val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
                 LocalStorage.getModeratedTransactions(bankAlias, accountAlias, params: _*)(currentView.moderate)

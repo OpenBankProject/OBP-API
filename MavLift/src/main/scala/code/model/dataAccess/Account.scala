@@ -47,12 +47,13 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery.get)
 
   def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
+    val DefaultSortField = "obp_transaction.details.completed"
     //This is ugly with the casts but it is a similar approach to mongo's .findAll implementation
     val limit = queryParams.find(q => q.isInstanceOf[OBPLimit]).asInstanceOf[Option[OBPLimit]].map(x => x.value).getOrElse(50)
     val offset = queryParams.find(q => q.isInstanceOf[OBPOffset]).asInstanceOf[Option[OBPOffset]].map(x => x.value).getOrElse(0)
     val orderingParams = queryParams.find(q => q.isInstanceOf[OBPOrdering]).
     						asInstanceOf[Option[OBPOrdering]].map(x => x).
-    						getOrElse(OBPOrdering("obp_transaction.details.completed", OBPDescending))
+    						getOrElse(OBPOrdering(Some(DefaultSortField), OBPDescending))
     
     val fromDate = queryParams.find(q => q.isInstanceOf[OBPFromDate]).asInstanceOf[Option[OBPFromDate]]
     val toDate = queryParams.find(q => q.isInstanceOf[OBPToDate]).asInstanceOf[Option[OBPToDate]]
@@ -66,7 +67,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
       end.get
     }
     
-    val ordering =  QueryBuilder.start(orderingParams.field).is(orderingParams.order.orderValue).get
+    val ordering =  QueryBuilder.start(orderingParams.field.getOrElse(DefaultSortField)).is(orderingParams.order.orderValue).get
     
     OBPEnvelope.findAll(mongoParams, ordering, Limit(limit), Skip(offset))
   }
