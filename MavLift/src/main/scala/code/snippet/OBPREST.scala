@@ -91,8 +91,8 @@ import code.model.dataAccess.OBPEnvelope._
         val offset = asInt(json.header("obp_offset"), 0)
         val sortBy = json.header("obp_sort_by")
         val sortDirection = OBPOrder(json.header("obp_sort_by"))
-        val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}
-        val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}
+        val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
+        val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
 
         //TODO: This code is duplicated from Boot: it should be moved somewhere else where it can
         // be used here and in boot
@@ -133,15 +133,9 @@ import code.model.dataAccess.OBPEnvelope._
                 val basicParams = List(OBPLimit(limit), 
                 						OBPOffset(offset), 
                 						OBPOrdering("obp_transaction.details.completed", sortDirection))
-                val moreParams = toDate match {
-                  case Full(d) => OBPToDate(d) :: basicParams
-                  case _ => basicParams
-                }
-                val allParams = fromDate match {
-                  case Full(d) => OBPFromDate(d) :: moreParams
-                  case _ => moreParams
-                }
-                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, allParams: _*)(currentView.moderate)
+                
+                val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
+                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, params: _*)(currentView.moderate)
               }
               case _ => Nil
             }
