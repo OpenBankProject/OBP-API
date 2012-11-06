@@ -67,6 +67,8 @@ import code.model.traits.ModeratedTransaction
 import code.model.traits.View
 import code.model.implementedTraits.View
 import code.model.dataAccess.OBPEnvelope._
+import code.model.traits.BankAccount
+import code.model.implementedTraits.Anonymous
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -86,7 +88,7 @@ import code.model.dataAccess.OBPEnvelope._
             case _ => default
           }
         }
-
+        val bankAccount = BankAccount(bankAlias, accountAlias)
         val limit = asInt(json.header("obp_limit"), 50)
         val offset = asInt(json.header("obp_offset"), 0)
         /**
@@ -105,57 +107,41 @@ import code.model.dataAccess.OBPEnvelope._
         val sortDirection = OBPOrder(json.header("obp_sort_by"))
         val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
         val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
-
-        //TODO: This code is duplicated from Boot: it should be moved somewhere else where it can
-        // be used here and in boot
-        def authorisedAccess(bank: String, account: String, view: String): Boolean =
-          {
-            if (view == "anonymous")
-              LocalStorage.getTransactions(bank, account) match {
-                // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
-                case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
-                case _ => false
-              }
-            else {
-              import net.liftweb.json.JsonDSL._
-              //get the current user
-              OBPUser.currentUserId match {
-                case Full(id) =>
-                  OBPUser.find(By(OBPUser.id, id.toLong)) match {
-                    case Full(user) => {
-                      View.fromUrl(view) match {
-                        //compare the views
-                        case Full(view) => user.permittedViews(bank, account).contains(view)
-                        case _ => false
-                      }
-                    }
-                    case _ => false
-                  }
-                case _ => false
-              }
+        
+        def authorisedAccess(bankAccount: BankAccount, view: View, user: Option[OBPUser]) = {
+          view match {
+            case Anonymous => bankAccount.allowAnnoymousAccess
+            case _ => user match {
+              case Some(u) => u.permittedViews(bankAccount).contains(view)
+              case _ => false
             }
           }
+        }
 
-        def getTransactions() = {
-          if (LocalStorage.correctBankAndAccount(bankAlias, accountAlias) &&
-            authorisedAccess(bankAlias, accountAlias, viewName)) {
-
-            View.fromUrl(viewName) match {
-              case Full(currentView) => {
-                val basicParams = List(OBPLimit(limit), 
+        def getTransactions(bankAccount: BankAccount, view: View, user: Option[OBPUser]) = {
+          if(authorisedAccess(bankAccount, view, user)) {
+            val basicParams = List(OBPLimit(limit), 
                 						OBPOffset(offset), 
                 						OBPOrdering(sortBy, sortDirection))
                 
-                val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
-                LocalStorage.getModeratedTransactions(bankAlias, accountAlias, params: _*)(currentView.moderate)
-              }
-              case _ => Nil
-            }
+            val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
+            bankAccount.getModeratedTransactions(params: _*)(view.moderate)
           } else Nil
         }
-
-        val transactions = getTransactions()
-        transactions
+        
+        def getUser() : Box[OBPUser] = {
+          None //TODO: Implement oAuth
+        }
+        
+        val transactions = for {
+          b <- bankAccount
+          v <- View.fromUrl(viewName) //TODO: This will have to change if we implement custom view names for different accounts
+        } yield getTransactions(b, v, getUser())
+        
+        transactions match {
+          case Full(t) => t
+          case _ => NotFoundResponse("no account found")
+        }
       }
 
     })

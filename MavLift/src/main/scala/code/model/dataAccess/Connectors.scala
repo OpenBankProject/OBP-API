@@ -94,18 +94,7 @@ class MongoDBLocalStorage extends LocalStorage {
       Account.find(("permalink" -> account) ~ ("bankPermalink" -> bank)) match {
         case Full(account) => {
           val envs = envelopesForAccount(account)
-          val transactions = envs.map(createTransaction(_, Full(account)))
-          val bankAccountBalance = if(envs.isEmpty) None 
-          	else Some((envelopesForAccount(account).maxBy(a => a)(OBPEnvelope.DateDescending)).obp_transaction.get.
-          		 details.get.new_balance.get.amount.get)
-          val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
-
-          val bankAccount: BankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString,
-            bankAccountBalance, account.currency.toString, account.label.toString,
-            "", None, iban, transactions.toSet, account.anonAccess.get, account.number.get, account.bankName.get)
-          bankAccount.owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
-          bankAccount.transactions.map(_.thisAccount = bankAccount)
-          Full(transactions)
+          Full(envs.map(createTransaction(_, Full(account))))
         }
         case _ => Empty
       }

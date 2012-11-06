@@ -15,6 +15,8 @@ import net.liftweb.record.field.{ StringField, BooleanField }
 import net.liftweb.mongodb.{Limit, Skip}
 import code.model.dataAccess.OBPEnvelope._
 import code.model.traits.ModeratedTransaction
+import code.model.traits.BankAccount
+import code.model.implementedTraits.{ BankAccountImpl, AccountOwnerImpl }
 
 /**
  * There should be only one of these for every real life "this" account. TODO: Enforce this
@@ -132,7 +134,17 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   }
 }
 
-object Account extends Account with MongoMetaRecord[Account]
+object Account extends Account with MongoMetaRecord[Account] {
+  def toBankAccount(account: Account): BankAccount = {
+    val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
+    val bankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString, account.currency.toString, account.label.toString,
+      "", None, iban, account.anonAccess.get, account.number.get, account.bankName.get)
+    val owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
+    bankAccount.owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
+    
+    bankAccount
+  }
+}
 
 class OtherAccount private () extends BsonRecord[OtherAccount] {
   def meta = OtherAccount

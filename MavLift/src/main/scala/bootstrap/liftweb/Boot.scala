@@ -44,8 +44,9 @@ import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
 import net.liftweb.util.Schedule
-import net.liftweb.mongodb.BsonDSL._  
+import net.liftweb.mongodb.BsonDSL._
 import code.model.dataAccess.LocalStorage
+import code.model.traits.BankAccount
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -104,33 +105,27 @@ class Boot extends Loggable{
       }
     }
 
-    def authorisedAccess(bank : String, account : String, view : String)  : Boolean  = 
-    {
-      if(view=="anonymous")
-        LocalStorage.getTransactions(bank,account) match {
-          // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
-          case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
-          case _ => false
-        }
-      else
-      {
-        import net.liftweb.json.JsonDSL._
-        //get the current user
-        OBPUser.currentUserId match {
-          case Full(id) =>         
-            OBPUser.find(By(OBPUser.id,id.toLong)) match {
-              case Full(user) => {
-                View.fromUrl(view) match {
-                  //compare the views
-                  case Full(view) => user.permittedViews(bank, account).contains(view)
-                  case _ => false
-                }
-              }
-              case _ => false 
-            }
+    //TODO: merge with same function in OBPREST
+    def authorisedAccess2(bankAccount: BankAccount, view: View, user: Option[OBPUser]) : Boolean = {
+      view match {
+        case Anonymous => bankAccount.allowAnnoymousAccess
+        case _ => user match {
+          case Some(u) => u.permittedViews(bankAccount).contains(view)
           case _ => false
         }
       }
+    }
+    
+    def authorisedAccess(bank : String, account : String, view : String)  : Boolean  = 
+    {
+      val bankAccount = BankAccount(bank, account)
+      val viewBox = View.fromUrl(view)
+      val result = for {
+        b <- bankAccount
+        v <- viewBox
+      } yield authorisedAccess2(b, v, OBPUser.currentUser)
+      
+      result getOrElse false
     }       
     def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
     {

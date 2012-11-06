@@ -14,6 +14,7 @@ import code.model.dataAccess.{OBPUser,Account, LocalStorage}
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._Noop
+import code.model.traits.BankAccount
 
 class Nav {
 
@@ -40,7 +41,11 @@ class Nav {
     if(url.size>4)
       OBPUser.currentUser match {
         case Full(user) => {
-          val viewsList = user.permittedViews(url(2), url(4))
+          val bankAccount = BankAccount(url(2), url(4))
+          val viewsListBox = for {
+            b <- bankAccount
+          } yield user.permittedViews(b)
+          val viewsList = viewsListBox getOrElse Nil
           if(viewsList.size>0)
             ".navitem *" #> {
             viewsList.toList.map(view => {
@@ -115,10 +120,11 @@ class Nav {
   def listAccounts  = {
     var accounts : List[(String, String)] = List()
     OBPUser.currentUser match {
-      case Full(user) => Account.findAll.map(account =>
-        if(user.permittedViews(account.bankPermalink.is, account.permalink.is).size != 0)
+      case Full(user) => Account.findAll.map(account => {
+        val bankAccount = Account.toBankAccount(account)
+        if(user.permittedViews(bankAccount).size != 0)
           accounts ::= (account.bankPermalink + "," + account.permalink, account.bankName + " - " + account.name)  
-        )
+      })
       case _ => Account.findAll.map(account => 
         if(account.anonAccess.is)
           accounts ::= (account.bankPermalink + "," + account.permalink, account.bankName + " - " + account.name)   
