@@ -44,8 +44,9 @@ import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
 import net.liftweb.util.Schedule
-import net.liftweb.mongodb.BsonDSL._  
+import net.liftweb.mongodb.BsonDSL._
 import code.model.dataAccess.LocalStorage
+import code.model.traits.BankAccount
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -95,7 +96,7 @@ class Boot extends Loggable{
     Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)   
 
 
-    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited")) //TODO: Remove
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
         Empty
@@ -103,51 +104,21 @@ class Boot extends Loggable{
         Full(PlainTextResponse("unauthorized"))
       }
     }
-
-    def authorisedAccess(bank : String, account : String, view : String)  : Boolean  = 
-    {
-      if(view=="anonymous")
-        LocalStorage.getTransactions(bank,account) match {
-          // TODO: this is hell inefficient; is there no constant-time lookup for the account? -- tgp.
-          case Full(transactions) => transactions(0).thisAccount.allowAnnoymousAccess
-          case _ => false
-        }
-      else
-      {
-        import net.liftweb.json.JsonDSL._
-        //get the current user
-        OBPUser.currentUserId match {
-          case Full(id) =>         
-            OBPUser.find(By(OBPUser.id,id.toLong)) match {
-              case Full(user) => {
-                View.fromUrl(view) match {
-                  //compare the views
-                  case Full(view) => user.permittedViews(bank, account).contains(view)
-                  case _ => false
-                }
-              }
-              case _ => false 
-            }
-          case _ => false
-        }
-      }
-    }       
+     
     def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
     {
       val bank = URLParameters(0)
       val account = URLParameters(1)
-      val view = URLParameters(2)
-      logger.debug("checking whether "+URLParameters+" is a valid combination")
-      if( LocalStorage.correctBankAndAccount(bank, account) &  authorisedAccess(bank, account, view))
-        View.fromUrl(view) match {
-          case Full(currentView) => {
-            logger.debug("yes, " + URLParameters + " is a valid combination")
-            Full((LocalStorage.getTransactions(bank,account).get.map(currentView.moderate(_)), currentView))
-          }
-          case _ => Empty
-        }
-      else
-        Empty        
+      val viewName = URLParameters(2)
+      val bankAccount = BankAccount(bank, account)
+      val view = View.fromUrl(viewName)
+      
+      for {
+        b <- bankAccount
+        v <- view
+        if(b.authorisedAccess(v, OBPUser.currentUser))
+      } yield (b.getModeratedTransactions()(v.moderate), v)
+      
     }
     def getAccount(URLParameters : List[String]) = 
     {

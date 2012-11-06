@@ -1,6 +1,12 @@
 package code.model.traits
 import scala.math.BigDecimal
 import java.util.Date
+import net.liftweb.common.Box
+import code.model.dataAccess.LocalStorage
+import net.liftweb.common.{Full, Empty}
+import code.model.dataAccess.Account
+import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.model.dataAccess.OBPUser
 
 trait BankAccount {
 
@@ -22,6 +28,10 @@ trait BankAccount {
   
   def bankName : String
   
+  def bankPermalink : String
+  
+  def permalink : String
+  
   def number: String
   
   def nationalIdentifier : String
@@ -30,13 +40,23 @@ trait BankAccount {
   
   def iban : Option[String]
   
-  def transactions : Set[Transaction]
-  
-  def transactions(from: Date, to: Date) : Set[Transaction]
-  
   def transaction(id: String) : Option[Transaction]
   
   //Is an anonymous view available for this bank account
   def allowAnnoymousAccess : Boolean
   
+  def getModeratedTransactions(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction]
+  
+  def getModeratedTransactions(queryParams: OBPQueryParam*)(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction]
+  
+  def authorisedAccess(view: View, user: Option[OBPUser]) : Boolean
+}
+
+object BankAccount {
+  def apply(bankpermalink: String, bankAccountPermalink: String) : Box[BankAccount] = {
+    LocalStorage.getAccount(bankpermalink, bankAccountPermalink) match {
+      case Full(account) => Full(Account.toBankAccount(account))
+      case _ => Empty
+    }
+  }
 }
