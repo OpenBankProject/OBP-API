@@ -143,14 +143,7 @@ class Boot extends Loggable{
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
-            check(
-              if(Account.findAll.count(OBPUser.hasOwnerPermission _) > 0)
-                true
-              else
-                false
-            )
-          }) >> LocGroup("admin") 
+          Menu.i("Privilege Admin") / "admin" / "privilege"  >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("About") / "about",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
@@ -171,7 +164,7 @@ class Boot extends Loggable{
           //TODO : delete this URL
           Menu.i("Comments") / "comments" >> TestAccess(() => {
                     check(theOnlyAccount match{
-            		      case Full(a) => OBPUser.hasMoreThanAnonAccess(a)
+            		      case Full(a) => OBPUser.hasMoreThanAnonAccess(Account.toBankAccount(a))
             		      case _ => false
             		    })
                   }) >> Hidden

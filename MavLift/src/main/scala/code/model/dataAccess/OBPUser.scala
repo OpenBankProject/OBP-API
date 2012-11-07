@@ -53,28 +53,21 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
   
   def emailAddress = email.get
   def userName = firstName.get
-  
-  def permittedViews(bankAccount: BankAccount) : Set[View] = {
-    LocalStorage.getAccount(bankAccount.bankName, bankAccount.label) match {
-      case Full(account) => {
-        var views : Set[View] = Set()
-        if(OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
-        if(OBPUser.hasTeamPermission(account)) views = views + Team
-        if(OBPUser.hasBoardPermission(account)) views = views + Board
-        if(OBPUser.hasAuthoritiesPermission(account)) views = views + Authorities
-        if(OBPUser.hasOwnerPermission(account)) views = views + Owner
-        if(account.anonAccess.get) views = views + Anonymous
-        views
-      }
-      case _ => Set() 
-    }
+
+  def permittedViews(account: BankAccount): Set[View] = {
+    var views: Set[View] = Set()
+    if (OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
+    if (OBPUser.hasTeamPermission(account)) views = views + Team
+    if (OBPUser.hasBoardPermission(account)) views = views + Board
+    if (OBPUser.hasAuthoritiesPermission(account)) views = views + Authorities
+    if (OBPUser.hasOwnerPermission(account)) views = views + Owner
+    if (account.allowAnnoymousAccess) views = views + Anonymous
+    views
   }
   
   def hasMangementAccess(bankpermalink : String, bankAccountPermalink : String)  = {
-    LocalStorage.getAccount(bankpermalink, bankAccountPermalink) match {
-      case Full(account) => OBPUser.hasManagementPermission(account)
-      case _ => false
-    }
+    val bankAccount = BankAccount(bankAccountPermalink, bankpermalink)
+    bankAccount.map(OBPUser.hasManagementPermission).getOrElse(false)
   }
 }
 
@@ -109,30 +102,30 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
     super.login
   }
   
-  def hasOurNetworkPermission(account: Account) : Boolean = {
+  def hasOurNetworkPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ourNetworkPermission.is)
   }
   
-  def hasTeamPermission(account: Account) : Boolean = {
+  def hasTeamPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.teamPermission.is)
   }
   
-  def hasBoardPermission(account: Account) : Boolean = {
+  def hasBoardPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.boardPermission.is)
   }
   
-  def hasAuthoritiesPermission(account: Account) : Boolean = {
+  def hasAuthoritiesPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.authoritiesPermission.is)
   }
   
-  def hasOwnerPermission(account: Account) : Boolean = {
+  def hasOwnerPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ownerPermission.is)
   }
-  def hasManagementPermission(account: Account) : Boolean = {
+  def hasManagementPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.mangementPermission.is)
   }
   
-  def hasMoreThanAnonAccess(account: Account) : Boolean = {
+  def hasMoreThanAnonAccess(account: BankAccount) : Boolean = {
       OBPUser.hasAuthoritiesPermission(account) ||
       OBPUser.hasBoardPermission(account) ||
       OBPUser.hasOurNetworkPermission(account) ||
@@ -141,10 +134,10 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
       OBPUser.hasManagementPermission(account)
   }
   
-  def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
+  def hasPermission(bankAccount: BankAccount, permissionCheck: (Privilege) => Boolean) : Boolean = {
     currentUser match{
       case Full(u) => 
-        HostedAccount.find(By(HostedAccount.accountID,account.id.toString)) match {
+        HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
           case Full(hostedAccount) =>
                   Privilege.find(By(Privilege.account, hostedAccount), By(Privilege.user, u)) match{
                     case Full(p) => permissionCheck(p)
