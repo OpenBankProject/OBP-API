@@ -143,7 +143,9 @@ class Boot extends Loggable{
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege"  >> LocGroup("admin") 
+          Menu.i("Privilege Admin") / "admin" / "privilege"  >> TestAccess(() => {
+            check(OBPUser.loggedIn_?)
+          }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("About") / "about",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
