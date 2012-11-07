@@ -127,7 +127,8 @@ class Boot extends Loggable{
       for {
         account <- LocalStorage.getAccount(bankUrl,accountUrl)
         user <- OBPUser.currentUser
-        if(user.hasMangementAccess(bankUrl, accountUrl))
+        bankAccount <- BankAccount(bankUrl, accountUrl)
+        if(user.hasMangementAccess(bankAccount))
       } yield account
     }
     // Build SiteMap

@@ -74,28 +74,26 @@ class Nav {
     else
        eraseMenu      
   }
-  
-  
+
   def management = {
-    OBPUser.currentUser match {
-      case Full(user) => {
-        val url = S.uri.split("/",0)
-        if(url.size>4)
-          if(user.hasMangementAccess(url(2), url(4)))
-          {
-            val managementUrl = "/banks/"+url(2)+"/accounts/"+url(4)+"/management"
-            ".navlink [href]" #>  {managementUrl} &
-            ".navlink *" #> "Management" &
-            ".navlink [class+]" #> markIfSelected(managementUrl)  
-          }
-          else
-            eraseMenu
-        else
-          eraseMenu     
-      }
-      case _ => eraseMenu
+    val url = S.uri.split("/", 0)
+
+    def getManagement = for {
+      user <- OBPUser.currentUser
+      bankAccount <- BankAccount(url(2), url(4))
+      if (user.hasMangementAccess(bankAccount))
+    } yield {
+      val managementUrl = "/banks/" + url(2) + "/accounts/" + url(4) + "/management"
+      ".navlink [href]" #> { managementUrl } &
+        ".navlink *" #> "Management" &
+        ".navlink [class+]" #> markIfSelected(managementUrl)
     }
+
+    if (url.size > 4) getManagement getOrElse eraseMenu
+    else eraseMenu
+
   }
+    
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")

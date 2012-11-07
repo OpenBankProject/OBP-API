@@ -65,9 +65,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
     views
   }
   
-  def hasMangementAccess(bankpermalink : String, bankAccountPermalink : String)  = {
-    val bankAccount = BankAccount(bankAccountPermalink, bankpermalink)
-    bankAccount.map(OBPUser.hasManagementPermission).getOrElse(false)
+  def hasMangementAccess(bankAccount: BankAccount)  = {
+    OBPUser.hasManagementPermission(bankAccount)
   }
 }
 
