@@ -74,6 +74,8 @@ class Nav {
     else
        eraseMenu      
   }
+  
+  
   def management = {
     OBPUser.currentUser match {
       case Full(user) => {
@@ -109,6 +111,26 @@ class Nav {
         ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
       })
     }
+  }
+  
+  def privilegeAdmin = {
+    val url = S.uri.split("/", 0)
+
+    def hide = ".navitem *" #> ""
+    def getPrivilegeAdmin = for {
+
+      bankAccount <- BankAccount(url(2), url(4))
+      if (OBPUser.hasOwnerPermission(bankAccount))
+      loc <- new SiteMapSingleton().findAndTestLoc("Privilege Admin")
+    } yield {
+      ".navitem *" #> {
+        ".navlink [href]" #> loc.calcDefaultHref &
+          ".navlink *" #> loc.linkText &
+          ".navlink [class+]" #> markIfSelected(loc.calcDefaultHref)
+      }
+    }
+    
+    if(url.size > 4) getPrivilegeAdmin.getOrElse(hide) else hide
   }
   
   def markIfSelected(href : String) : Box[String]= {
