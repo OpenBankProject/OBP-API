@@ -124,21 +124,11 @@ class Boot extends Loggable{
     {
       val bankUrl = URLParameters(0)
       val accountUrl = URLParameters(1)
-      LocalStorage.getAccount(bankUrl,accountUrl) match {
-        case Full(account) => 
-            OBPUser.currentUserId match {
-              case Full(id) =>         
-                OBPUser.find(By(OBPUser.id,id.toLong)) match {
-                  case Full(user) =>  if(user.hasMangementAccess(bankUrl,accountUrl))
-                                        Full(account)
-                                      else
-                                        Empty    
-                  case _ => Empty 
-                }
-              case _ => Empty
-            } 
-        case _ => Empty 
-      }
+      for {
+        account <- LocalStorage.getAccount(bankUrl,accountUrl)
+        user <- OBPUser.currentUser
+        if(user.hasMangementAccess(bankUrl, accountUrl))
+      } yield account
     }
     // Build SiteMap
     val sitemap = List(
