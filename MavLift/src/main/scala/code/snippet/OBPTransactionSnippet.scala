@@ -45,14 +45,31 @@ import java.util.Date
 import net.liftweb.http.js.JsCmds.Noop
 import code.model.implementedTraits._
 import code.model.traits._
+import java.util.Currency
 
 class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransaction],View)){
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val FORBIDDEN = "---"
-  
   val filteredTransactions = filteredTransactionsAndView._1
   val view = filteredTransactionsAndView._2
+  val currencySymbol  = filteredTransactions match {
+    case Nil => ""
+    case x :: xs => x.bankAccount match {
+      case Some(bankAccount) => bankAccount.currency match {
+                case Some(currencyISOCode) =>{ 
+                  tryo{
+                    Currency.getInstance(currencyISOCode)
+                  } match {
+                    case Full(currency) => currency.getSymbol
+                    case _ => ""
+                  }
+                }
+                case _ => ""
+              }
+      case _ => ""
+    }
+  }  
   def individualTransaction(transaction: ModeratedTransaction): CssSel = {
     
     def otherPartyInfo: CssSel = {
@@ -123,7 +140,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
         }
     }
     def transactionInformations = {
-      ".amount *" #>  {"€" + { transaction.amount match { 
+      ".amount *" #>  {currencySymbol + { transaction.amount match { 
 								      					 case Some(o) => o.toString().stripPrefix("-")
 								      					 case _ => ""
 								      				   }}} &  
@@ -221,21 +238,21 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
         case _ => ""
       }
     ".date *" #> date &
-      ".balance_number *" #> { "€" + {aTransaction.balance }} & 
+      ".balance_number *" #> {currencySymbol + " " + aTransaction.balance } & 
       ".transaction_row *" #> transactionsForDay.map(t => individualTransaction(t))
   }
 
-  //TODO: show bankname then account label
   def accountDetails = {
     filteredTransactions match {
       case Nil => "#accountName *" #> ""
       case x :: xs => {
         "#accountName *" #> {
           x.bankAccount match {
-            case Some(bankAccount) => bankAccount.label match {
-              case Some(label) => label
-              case _ => ""
-            }
+            case Some(bankAccount) => 
+              bankAccount.label match {
+                case Some(label) => label
+                case _ => ""
+              }
             case _ => ""
           }
         }
