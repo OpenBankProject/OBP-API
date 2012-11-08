@@ -111,12 +111,11 @@ class MongoDBLocalStorage extends LocalStorage {
     }
   //check if the bank and the accounts exist in the database
   def correctBankAndAccount(bank: String, account: String): Boolean =
-    {
-      Account.find(("permalink" -> account) ~ ("bankPermalink" -> bank)) match {
-        case Full(account) => true
-        case _ => false
-      }
-    }
+  if(Account.count(("permalink" -> account) ~ ("bankPermalink" -> bank)) == 1)
+    true
+  else 
+    false 
+  
   def getAccount(bankpermalink: String, account: String): Box[Account] =
     Account.find(("permalink" -> account) ~ ("bankPermalink" -> bankpermalink))
 }
