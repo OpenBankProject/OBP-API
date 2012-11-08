@@ -165,7 +165,10 @@ object ModeratedBankAccount {
   }
   
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
-    val holderName = mBankAccount.owners.mkString(",")
+    val holderName = (for {
+      owners <- mBankAccount.owners.toList
+      owner <- owners
+    } yield owner.name).mkString(", ")
     val isAlias = false
     val number = mBankAccount.number getOrElse ""
     val kind = mBankAccount.accountType getOrElse ""

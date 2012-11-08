@@ -51,7 +51,8 @@ object Anonymous extends BaseView {
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
-    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
+    val owners : Set[AccountOwner] = Set(new AccountOwnerImpl("", transaction.thisAccount.label.toString, Set())) //TODO: Currently Set() is wrong
+    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, Some(owners), None, 
       if(transaction.thisAccount.toString().startsWith("-")) "-" else "+", Some(transaction.thisAccount.currency), 
       Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
       Some(transaction.thisAccount.bankName)))
@@ -102,7 +103,8 @@ object Anonymous extends BaseView {
     override def permalink ="our-network"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
-    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
+    val owners = transaction.thisAccount.owners
+    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, Some(owners), None, 
       transaction.thisAccount.toString(), Some(transaction.thisAccount.currency), 
       Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
       Some(transaction.thisAccount.bankName)))
