@@ -61,7 +61,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
                   tryo{
                     Currency.getInstance(currencyISOCode)
                   } match {
-                    case Full(currency) => currency.getSymbol
+                    case Full(currency) => currency.getSymbol(S.locale)
                     case _ => ""
                   }
                 }
