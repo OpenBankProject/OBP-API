@@ -88,6 +88,13 @@ object ModeratedTransaction {
     JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
   
+  //TODO: Get rid of this. It currently exists because one of the importers is setting € values instead of the iso code EUR.
+  // Eventually currency values should probably be validated when new transactions are added.
+  def currencyDisplayHack(currency: Option[String]) = {
+    if(currency.getOrElse("") == "€") Some("EUR")
+    else currency
+  }
+  
   implicit def moderatedTransaction2Json(mTransaction: ModeratedTransaction) : JObject = {
     ("this_account" -> mTransaction.bankAccount) ~
     ("other_account" -> mTransaction.otherBankAccount) ~
@@ -97,10 +104,10 @@ object ModeratedTransaction {
     	("posted" -> mTransaction.startDate) ~
     	("completed" -> mTransaction.finishDate) ~
     	("new_balance" -> 
-    		("currency" -> mTransaction.currency) ~ //TODO: Need separate currency for balances and values?
+    		("currency" -> currencyDisplayHack(mTransaction.currency)) ~ //TODO: Need separate currency for balances and values?
     		("amount" -> mTransaction.balance)) ~
     	("value" ->
-    		("currency" -> mTransaction.currency) ~
+    		("currency" -> currencyDisplayHack(mTransaction.currency)) ~
     		("amount" -> mTransaction.amount)))
   }
   
