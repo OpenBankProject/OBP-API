@@ -137,6 +137,60 @@ import code.model.implementedTraits.Anonymous
     })
 
     serve {
+	  //a temporary way to add transaction via api for a single specific exception case. should be removed later.
+      case "api" :: "tmp" :: "transactions" :: Nil JsonPost json => {
+        val secretKey = S.param("secret")
+
+        def addMatchingTransactions(secret: String) = {
+          val rawEnvelopes = json._1.children
+          val envelopes = rawEnvelopes.flatMap(OBPEnvelope.fromJValue)
+          val matchingEnvelopes = for {
+            e <- envelopes
+            bankName <- Props.get("exceptional_account_bankName")
+            number <- Props.get("exceptional_account_number")
+            kind <- Props.get("exceptional_account_kind")
+            if(e.obp_transaction.get.this_account.get.bank.get.name.get == bankName)
+            if(e.obp_transaction.get.this_account.get.number.get == number)
+            if(e.obp_transaction.get.this_account.get.kind.get == kind)
+          } yield e
+
+          val ipAddress = json._2.remoteAddr
+          logger.info("Received " + rawEnvelopes.size +
+            " json transactions to insert from ip address " + ipAddress)
+          logger.info("Received " + envelopes.size +
+            " valid transactions to insert from ip address " + ipAddress)
+
+          /**
+           * Using an actor to do insertions avoids concurrency issues with
+           * duplicate transactions by processing transaction batches one
+           * at a time. We'll have to monitor this to see if non-concurrent I/O
+           * is too inefficient. If it is, we could break it up into one actor
+           * per "Account".
+           */
+          val createdEnvelopes = EnvelopeInserter !? (3 seconds, matchingEnvelopes)
+
+          createdEnvelopes match {
+            case Full(l: List[JObject]) => JsonResponse(JArray(l))
+            case _ => InternalServerErrorResponse()
+          }
+        }
+        
+        def valid(secret : String) = {
+          val authorised = for (validSecret <- Props.get("exceptional_account_secret"))
+        	  yield secret == validSecret 
+        	  
+          authorised getOrElse false
+        }
+        
+        secretKey match {
+          case Full(s) => if(valid(s)) addMatchingTransactions(s) else NotFoundResponse()
+          case _ => NotFoundResponse()
+        }
+        
+      }
+    }
+	
+    serve {
 
       /**
        * curl -i -H "Content-Type: application/json" -X POST -d '{
