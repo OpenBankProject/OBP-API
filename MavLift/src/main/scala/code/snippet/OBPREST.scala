@@ -183,7 +183,10 @@ import code.model.implementedTraits.Anonymous
         }
         
         secretKey match {
-          case Full(s) => if(valid(s)) addMatchingTransactions(s) else NotFoundResponse()
+          case Full(s) => if(valid(s)) 
+                            addMatchingTransactions(s) 
+                          else 
+                            UnauthorizedResponse("azezae")
           case _ => NotFoundResponse()
         }
         
