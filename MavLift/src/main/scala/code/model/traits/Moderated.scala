@@ -99,10 +99,10 @@ object ModeratedTransaction {
     	("posted" -> mTransaction.startDate) ~
     	("completed" -> mTransaction.finishDate) ~
     	("new_balance" -> 
-    		("currency" -> mTransaction.currency) ~ //TODO: Need separate currency for balances and values?
+    		("currency" -> mTransaction.currency.getOrElse("")) ~ //TODO: Need separate currency for balances and values?
     		("amount" -> mTransaction.balance)) ~
     	("value" ->
-    		("currency" -> mTransaction.currency) ~
+    		("currency" -> mTransaction.currency.getOrElse("")) ~
     		("amount" -> mTransaction.amount)))
   }
   
