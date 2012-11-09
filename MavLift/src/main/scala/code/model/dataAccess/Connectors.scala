@@ -44,9 +44,6 @@ trait LocalStorage extends Loggable {
 
 class MongoDBLocalStorage extends LocalStorage {
 
-  //For the moment there is only one bank 
-  //but for multiple banks we should look in the
-  //data base to check if the bank exists or not
   def getTransactions(permalink: String, bankPermalink: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]] =
     {
       logger.debug("getTransactions for " + bankPermalink + "/" + permalink)
