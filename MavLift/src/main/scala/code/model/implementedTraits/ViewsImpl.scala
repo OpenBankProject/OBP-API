@@ -51,7 +51,8 @@ object Anonymous extends BaseView {
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
-    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
+    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, 
+      Some(transaction.thisAccount.owners), Some(transaction.thisAccount.accountType), 
       if(transaction.thisAccount.toString().startsWith("-")) "-" else "+", Some(transaction.thisAccount.currency), 
       Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
       Some(transaction.thisAccount.bankName)))
