@@ -32,7 +32,6 @@ object ModeratedOtherBankAccount {
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
     val holderName = mOtherBank.label.display
     val isAlias = if(mOtherBank.isAlias) "yes" else "no"
-    val holders = Set((holderName,isAlias))
     val number = mOtherBank.number getOrElse ""
     val kind = ""
     val bankIBAN = (for { //TODO: This should be handled a bit better... might want to revisit the Option stuff in ModeratedOtherAccount etc.
@@ -41,7 +40,7 @@ object ModeratedOtherBankAccount {
     } yield iString).getOrElse("")
     val bankNatIdent = mOtherBank.nationalIdentifier getOrElse ""
     val bankName = mOtherBank.bankName getOrElse ""
-    ModeratedBankAccount.bankJson(holders, number, kind, bankIBAN, bankNatIdent, bankName)
+    ModeratedBankAccount.bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }
 
@@ -90,7 +89,7 @@ object ModeratedTransaction {
   }
   
   implicit def moderatedTransaction2Json(mTransaction: ModeratedTransaction) : JObject = {
-    ("obp_uuid" -> mTransaction.id) ~
+    ("uuid" -> mTransaction.id) ~
     ("this_account" -> mTransaction.bankAccount) ~
     ("other_account" -> mTransaction.otherBankAccount) ~
     ("details" -> 
@@ -152,16 +151,14 @@ class ModeratedBankAccount(filteredId : String,
 
 object ModeratedBankAccount {
   
-  def bankJson(holders: Set[(String,String)], number: String,
+  def bankJson(holderName: String, isAlias : String, number: String,
       	kind: String, bankIBAN: String, bankNatIdent: String,
       	bankName: String) : JObject = {
-    ("holders" -> 
-    {
-      holders.map(holder => 
-    	 ("name" -> holder._1) ~
-    	 ("alias"-> holder._2) 
-      )
-    }) ~
+    ("holder" -> 
+      (
+    	 ("name" -> holderName) ~
+    	 ("alias"-> isAlias) 
+      ))~
     ("number" -> number) ~
     ("kind" -> kind) ~
     ("bank" ->
@@ -171,11 +168,14 @@ object ModeratedBankAccount {
   }
   
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
-    val holders: Set[(String,String)] = mBankAccount.owners match{
-        case Some(ownersSet) => ownersSet.map(owner => (owner.name,"no"))
-        case _ => Set()
+    val holderName = mBankAccount.owners match{
+        case Some(ownersSet) => if(ownersSet.size!=0)
+                                  ownersSet.toList(0).name
+                                else
+                                  ""
+        case _ => ""
       } 
-    val isAlias = false
+    val isAlias = "no"
     val number = mBankAccount.number getOrElse ""
     val kind = mBankAccount.accountType getOrElse ""
     val bankIBAN = (for { //TODO: This should be handled a bit better... might want to revisit the Option stuff in ModeratedOtherAccount etc.
@@ -184,6 +184,6 @@ object ModeratedBankAccount {
     } yield iString).getOrElse("")
     val bankNatIdent = mBankAccount.nationalIdentifier getOrElse ""
     val bankName = mBankAccount.bankName getOrElse ""
-    bankJson(holders, number, kind, bankIBAN, bankNatIdent, bankName)
+    bankJson(holderName, isAlias, number, kind, bankIBAN, bankNatIdent, bankName)
   }
 }

@@ -157,7 +157,7 @@ import code.model.implementedTraits.Anonymous
           val ipAddress = json._2.remoteAddr
           logger.info("Received " + rawEnvelopes.size +
             " json transactions to insert from ip address " + ipAddress)
-          logger.info("Received " + envelopes.size +
+          logger.info("Received " + matchingEnvelopes.size +
             " valid transactions to insert from ip address " + ipAddress)
 
           /**
@@ -183,7 +183,10 @@ import code.model.implementedTraits.Anonymous
         }
         
         secretKey match {
-          case Full(s) => if(valid(s)) addMatchingTransactions(s) else NotFoundResponse()
+          case Full(s) => if(valid(s)) 
+                            addMatchingTransactions(s) 
+                          else 
+                            UnauthorizedResponse("wrong secret key")
           case _ => NotFoundResponse()
         }
         
