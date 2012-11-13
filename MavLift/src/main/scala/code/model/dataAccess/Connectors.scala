@@ -7,6 +7,7 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import net.liftweb.mapper.By
 
 object LocalStorage extends MongoDBLocalStorage
 
@@ -37,6 +38,8 @@ trait LocalStorage extends Loggable {
 
   def getBank(name: String): Box[Bank]
 
+  def getBankAccounts(bank: Bank): Set[BankAccount]
+  
   def correctBankAndAccount(bank: String, account: String): Boolean
 
   def getAccount(bankpermalink: String, account: String): Box[Account]
@@ -102,10 +105,16 @@ class MongoDBLocalStorage extends LocalStorage {
   def getBank(name: String): Box[Bank] =
     {
       if (name == "postbank")
-        Full(new BankImpl("01", "Post Bank", Set((getTransactions("postbank", "tesobe")).get(0).thisAccount)))
+        Full(new BankImpl("01", "POSTBANK"))
       else
         Empty
     }
+  
+  def getBankAccounts(bank: Bank): Set[BankAccount] = {
+    val rawAccounts = Account.findAll("bankName", bank.name).toSet
+    rawAccounts.map(Account.toBankAccount)
+  }
+  
   //check if the bank and the accounts exist in the database
   def correctBankAndAccount(bank: String, account: String): Boolean =
   if(Account.count(("permalink" -> account) ~ ("bankPermalink" -> bank)) == 1)
