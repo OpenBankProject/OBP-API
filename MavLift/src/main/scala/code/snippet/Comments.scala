@@ -49,81 +49,86 @@ import java.text.SimpleDateFormat
 import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
 import code.model.dataAccess.Account
+import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias}
+import java.util.Currency
 
 /**
  * This whole class is a rather hastily put together mess
  */
-class Comments extends Loggable{
+class Comments(transaction : ModeratedTransaction) extends Loggable{
 
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
-    val accessLevel = S.param("accessLevel") getOrElse "anonymous"
-    val envelopeID = S.param("envelopeID") getOrElse ""
-
-    val envelope = OBPEnvelope.find(envelopeID)
-
-    envelope match {
-      case Full(e) => {
-
-        val FORBIDDEN = "---"
-        val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
-
-        val transaction = e.obp_transaction.get
-        val transactionDetails = transaction.details.get
-        val transactionValue = transactionDetails.value.get
-        val thisAccount = transaction.this_account.get
-        val otherAccount = transaction.other_account.get
-
-        def formatDate(date: Box[Date]): String = {
-          date match {
-            case Full(d) => dateFormat.format(d)
-            case _ => FORBIDDEN
-          }
-        }
-
-        (
-          ".amount *" #> transactionValue.mediated_amount(accessLevel).getOrElse(FORBIDDEN) &
-          ".other_account_holder *" #> {
-	        val otherHolder = otherAccount.mediated_holder(accessLevel, e.theAccount.getOrElse(Account.createRecord))
-	        val holderName = otherHolder._1 match {
-	          case Full(h) => h
-	          case _ => FORBIDDEN
-	        }
-	        val aliasType = otherHolder._2 match{
-	          case Full(APublicAlias) => "/media/images/public_alias.png"
-	          case Full(APrivateAlias) => "/media/images/private_alias.png"
-	          case _ => ""
-	        }
-	        {aliasType + holderName}
-	      } &
-          ".currency *" #> transactionValue.mediated_currency(accessLevel).getOrElse(FORBIDDEN) &
-          ".date_cleared *" #> formatDate(transactionDetails.mediated_posted(accessLevel)) &
-          ".new_balance *" #> {
-            transactionDetails.new_balance.get.mediated_amount(accessLevel).getOrElse(FORBIDDEN) + " " +
-              transactionDetails.new_balance.get.mediated_currency(accessLevel).getOrElse(FORBIDDEN)
-          }).apply(xhtml)
-
+    val FORBIDDEN = "---"
+    val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
+    val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
+    var theCurrency = FORBIDDEN
+    def formatDate(date: Box[Date]): String = {
+      date match {
+        case Full(d) => dateFormat.format(d)
+        case _ => FORBIDDEN
       }
-      case _ => Text("")
     }
 
+    (
+      ".amount *" #>{ 
+        val amount = transaction.amount match {
+          case Some(amount) => amount.toString
+          case _ => FORBIDDEN
+        }
+        theCurrency = transaction.currency match {
+          case Some(currencyISOCode) => tryo{
+                    Currency.getInstance(currencyISOCode)
+                  } match {
+                    case Full(currency) => currency.getSymbol(S.locale)
+                    case _ => FORBIDDEN
+                  }
+          case _ => FORBIDDEN
+        } 
+        {amount + " " + theCurrency}
+      } &
+      ".other_account_holder *" #> {
+        transaction.otherBankAccount match {
+          case Some(otherBankaccount) =>{
+            ".the_name" #> otherBankaccount.label.display &
+            {otherBankaccount.label.aliasType match {
+                case Public => ".alias_indicator [class+]" #> "alias_indicator_public" &
+                    ".alias_indicator *" #> "(Alias)"
+                case Private => ".alias_indicator [class+]" #> "alias_indicator_private" &
+                    ".alias_indicator *" #> "(Alias)"
+                case _ => NOOP_SELECTOR
+            }} 
+          }
+          case _ => "* *" #> FORBIDDEN
+        }
+      } &
+      ".date_cleared *" #> {
+        transaction.finishDate match {
+          case Some(date) => formatDate(Full(date))
+          case _ => FORBIDDEN 
+        }
+      } &
+      ".new_balance *" #> {
+            transaction.balance + " " + theCurrency
+      }
+    ).apply(xhtml)
   }
   
   def showAll(xhtml: NodeSeq) : NodeSeq = {
-    val accessLevel = S.param("accessLevel") getOrElse "anonymous"
-    val envelopeID = S.param("envelopeID") getOrElse ""
-    
-    val envelope = OBPEnvelope.find(envelopeID)
-    
-    envelope match{
-      case Full(e) => {
-       val comments = e.mediated_obpComments(accessLevel) getOrElse List()
-       if(comments.size == 0) (".the_comments *" #> "No comments").apply(xhtml)
-       else comments.flatMap(comment => {
-          (".comment *" #> comment.text.is &
-           ".commenter_email *" #> {"- " + comment.email}).apply(xhtml)
-        })
-      }
-      case _ => (".comment *" #> "No comments").apply(xhtml)
+    def noComments = (".the_comments *" #> "No comments").apply(xhtml)
+    transaction.metadata match {
+      case Some(metadata)  => 
+        metadata.comments match {
+          case Some(comments) => 
+            if(comments.size==0)
+              noComments
+            else
+              comments.flatMap(comment => {
+                (".comment *" #> comment.text &
+                ".commenter_email *" #> {"- use email"}).apply(xhtml)
+              })
+          case _ => noComments 
+        }
+      case _ => noComments
     }
   }
   
