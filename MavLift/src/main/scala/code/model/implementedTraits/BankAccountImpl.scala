@@ -50,8 +50,8 @@ class BankAccountImpl(id_ : String, var _owners : Set[AccountOwner], accountType
   def transactions(from: Date, to: Date): Set[Transaction] = { 
     throw new NotImplementedException
   }
-  def transaction(id: String): Option[Transaction] = { 
-    throw new NotImplementedException
+  def transaction(id: String): Box[Transaction] = { 
+    LocalStorage.getTransaction(id, bankPermalink, permalink)    
   }
   def allowAnnoymousAccess = allowAnnoymousAccess_
 
