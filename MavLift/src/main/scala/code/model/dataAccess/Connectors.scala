@@ -102,13 +102,25 @@ class MongoDBLocalStorage extends LocalStorage {
       }
     }
 
-  def getBank(name: String): Box[Bank] =
-    {
-      if (name == "postbank")
-        Full(new BankImpl("01", "POSTBANK"))
-      else
-        Empty
-    }
+  def getBank(permalink: String): Box[Bank] = {
+    /**
+     * As banks are not actually represented anywhere in the system as a single object (yet?), but are rather more
+     * abstract entities referenced by permalink in transactions and accounts, we can't just as the data store
+     * for a bank by permalink.
+     * 
+     * Until a bank model is defined (and I suggest this doesn't happen until we have a nice interface for CRUD ops on banks
+     *  as mucking around with the database manually isn't worth the time IMO -E.S.), this hacky way of doing things will apply:
+     * 
+     */
+    if (permalink == "postbank")
+      Full(new BankImpl("01", "POSTBANK"))
+    else if (permalink == "gls")
+      Full(new BankImpl("02", "GLS"))
+    else if (permalink == "banco-do-brasil") 
+      Full(new BankImpl("03", "BANCO DO BRASIL"))
+    else
+      Empty
+  }
   
   def getBankAccounts(bank: Bank): Set[BankAccount] = {
     val rawAccounts = Account.findAll("bankName", bank.name).toSet

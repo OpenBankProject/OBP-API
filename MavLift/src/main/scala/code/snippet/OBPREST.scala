@@ -171,10 +171,11 @@ import code.model.traits.User
           JsonResponse(("accounts" -> accJson))
         }
         
-        val publicAccounts = (for ( bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"} ) 
-    		  					 yield bank.accounts.filter(_.allowAnnoymousAccess)) getOrElse Set()
-    	      
-    	bankAccountSet2JsonResponse(publicAccounts)
+    	for {
+    	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
+    	  publicAccounts <- Full(bank.accounts.filter(_.allowAnnoymousAccess))
+    	} yield bankAccountSet2JsonResponse(publicAccounts)
+    	
       }
     }
 
