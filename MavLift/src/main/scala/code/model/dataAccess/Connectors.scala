@@ -112,14 +112,8 @@ class MongoDBLocalStorage extends LocalStorage {
      *  as mucking around with the database manually isn't worth the time IMO -E.S.), this hacky way of doing things will apply:
      * 
      */
-    if (permalink == "postbank")
-      Full(new BankImpl("01", "POSTBANK"))
-    else if (permalink == "gls")
-      Full(new BankImpl("02", "GLS"))
-    else if (permalink == "banco-do-brasil") 
-      Full(new BankImpl("03", "BANCO DO BRASIL"))
-    else
-      Empty
+    val accountForBank = Account.find("bankPermalink", permalink)
+    accountForBank.map(acc => new BankImpl("", acc.bankName.get))
   }
   
   def getBankAccounts(bank: Bank): Set[BankAccount] = {
