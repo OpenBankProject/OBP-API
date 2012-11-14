@@ -52,7 +52,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
   def getSingleton = OBPUser // what's the "meta" server
   
   def emailAddress = email.get
-  def userName = firstName.get
+  def theFistName : String = firstName.get
+  def theLastName : String = lastName.get
 
   def permittedViews(account: BankAccount): Set[View] = {
     var views: Set[View] = Set()

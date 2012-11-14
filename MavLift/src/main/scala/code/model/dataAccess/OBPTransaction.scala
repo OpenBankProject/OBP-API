@@ -36,13 +36,14 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import net.liftweb.json.DefaultFormats
 import java.util.Date
-import net.liftweb.record.field.{StringField}
+import net.liftweb.record.field.{StringField,LongField}
 import net.liftweb.json.JsonAST._
 import net.liftweb.mongodb.record.{MongoId}
 import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
 import scala.util.Random
 import com.mongodb.QueryBuilder
 import com.mongodb.BasicDBObject
+import code.model.traits.Comment
 
 /**
  * "Current Account View"
@@ -144,10 +145,12 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
    * @param email The email address of the person posting the comment
    * @param text The text of the comment
    */
-  def addComment(email: String, text: String) = {
-    println("adding : "+ email + " "+ text)
+  def addComment(userId: Long, text: String, datePosted : Date) = {
+    println("adding a comment from the user : "+ userId + " with this content"+ text)
     val comments = obp_comments.get
-    val c2 = comments ++ List(OBPComment.createRecord.email(email).text(text))
+    val c2 = comments ++ List(OBPComment.createRecord.userId(userId).
+      textField(text).
+      date(datePosted))
     obp_comments(c2).saveTheRecord()
   }
 
@@ -209,16 +212,19 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   def asMediatedJValue(user: String) : JObject  = {
     JObject(List(JField("obp_transaction", obp_transaction.get.asMediatedJValue(user,id.toString, theAccount)),
         		 JField("obp_comments", JArray(obp_comments.get.map(comment => {
-        		   JObject(List(JField("email", JString(comment.email.is)), JField("text", JString(comment.text.is))))
+        		   JObject(List(JField("text", JString(comment.textField.is))))
         		 })))))
   }
 }
 
-class OBPComment private() extends BsonRecord[OBPComment] {
+class OBPComment private() extends BsonRecord[OBPComment] with Comment {
   def meta = OBPComment
-  
-  object email extends StringField(this, 255)
-  object text extends StringField(this, 255)
+  object userId extends LongField(this)
+  def postedBy = OBPUser.find(userId)
+  def text = textField.get
+  def datePosted = date.get
+  object textField extends StringField(this, 255)
+  object date extends DateField(this)
 }
 
 object OBPComment extends OBPComment with BsonMetaRecord[OBPComment]

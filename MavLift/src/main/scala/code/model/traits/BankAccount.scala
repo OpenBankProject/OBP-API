@@ -40,7 +40,7 @@ trait BankAccount {
   
   def iban : Option[String]
   
-  def transaction(id: String) : Option[Transaction]
+  def transaction(id: String) : Box[Transaction]
   
   //Is an anonymous view available for this bank account
   def allowAnnoymousAccess : Boolean

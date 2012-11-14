@@ -96,7 +96,6 @@ class Boot extends Loggable{
     Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)   
 
 
-    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited")) //TODO: Remove
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
         Empty
@@ -131,6 +130,24 @@ class Boot extends Loggable{
         if(user.hasMangementAccess(bankAccount))
       } yield account
     }
+    def getTransaction(URLParameters : List[String]) = 
+    {
+      if(URLParameters.length==4)
+      {
+        val bank = URLParameters(0)
+        val account = URLParameters(1)
+        val transactionID = URLParameters(2)
+        val viewName = URLParameters(3)
+        for{
+          bankAccount <- BankAccount(bank, account)
+          transaction <- bankAccount.transaction(transactionID)
+          view <- View.fromUrl(viewName)
+          if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
+        } yield view.moderate(transaction)
+      }
+      else
+        Empty
+    }       
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
@@ -147,25 +164,15 @@ class Boot extends Loggable{
           //list of open accounts in a specific bank
           Menu.param[Bank]("Accounts", "accounts", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
           
-          //test if the bank exists and if the user have access to this view => management page
+          //test if the bank exists and if the user have access to management page
           Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management",
           
           Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
-          / "banks" / * / "accounts" / * / * , 
+          / "banks" / * / "accounts" / * / *,
 
-
-          //TODO : delete this URL
-          Menu.i("Comments") / "comments" >> TestAccess(() => {
-                    check(theOnlyAccount match{
-            		      case Full(a) => OBPUser.hasMoreThanAnonAccess(Account.toBankAccount(a))
-            		      case _ => false
-            		    })
-                  }) >> Hidden
+          Menu.params[ModeratedTransaction]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
+          / "banks" / * / "accounts" / * / "transactions" / * / *           
     )
-    LiftRules.statelessRewrite.append{
-        case RewriteRequest(ParsePath("banks" :: bank :: "accounts" :: accountName :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
-          					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
-    }
 
     def sitemapMutators = OBPUser.sitemapMutator
 
@@ -201,7 +208,7 @@ class Boot extends Loggable{
     /**
      * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
      */
-    theOnlyAccount match{
+    Account.find(("holder", "Music Pictures Limited")) match{
       case Full(a) => 
         HostedAccount.find(By(HostedAccount.accountID,a.id.toString)) match {
           case Empty => { 
@@ -211,7 +218,9 @@ class Boot extends Loggable{
             // val randomPassword = StringHelpers.randomString(12)
             // println ("The admin password is :"+randomPassword )
             val userEmail = "tesobe@tesobe.com"
-            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+            val firstName = "tesobe first name"
+            val lastName = "tesobe last name"            
+            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
             Privilege.create.account(hostedAccount).ownerPermission(true).user(theUserOwner).saveMe              
           }  
           case Full(hostedAccount) => 
@@ -221,7 +230,9 @@ class Boot extends Loggable{
                 // val randomPassword = StringHelpers.randomString(12)
                 // println ("The admin password is :"+randomPassword )
                 val userEmail = "tesobe@tesobe.com"
-                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+                val firstName = "tesobe first name"
+                val lastName = "tesobe last name"
+                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
                 Privilege.create.account(hostedAccount).ownerPermission(true)
                   .mangementPermission(true).authoritiesPermission(true).boardPermission(true)
                   .teamPermission(true).ourNetworkPermission(true).user(theUserOwner).saveMe 
