@@ -42,7 +42,10 @@ import code.model.implementedTraits._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.http.SHtml
 import net.liftweb.http.S
-
+import net.liftweb.util.Helpers._
+import org.bson.types.ObjectId
+import com.mongodb.DBObject
+import net.liftweb.json.JsonAST.JObject
 
 
 /**
@@ -68,6 +71,59 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
   
   def hasMangementAccess(bankAccount: BankAccount)  = {
     OBPUser.hasManagementPermission(bankAccount)
+  }
+  
+  def accountsWithMoreThanAnonAccess : Set[BankAccount] = {
+    
+    val hostedAccountTable = HostedAccount._dbTableNameLC
+    val privilegeTable = Privilege._dbTableNameLC
+    val userTable = OBPUser._dbTableNameLC
+    
+    val hostedId = hostedAccountTable + "." + HostedAccount.id.dbColumnName
+    val privilegeAccId = privilegeTable + "." + Privilege.account.dbColumnName
+    val privilegeUserId = privilegeTable + "." + Privilege.user.dbColumnName
+    val userId = userTable + "." + this.id.get
+    
+    val ourNetworkPrivilege = privilegeTable + "." + Privilege.ourNetworkPermission.dbColumnName
+    val teamPrivilege = privilegeTable + "." + Privilege.teamPermission.dbColumnName
+    val boardPrivilege = privilegeTable + "." + Privilege.boardPermission.dbColumnName
+    val authoritiesPrivilege = privilegeTable + "." + Privilege.authoritiesPermission.dbColumnName
+    val ownerPrivilege = privilegeTable + "." + Privilege.ownerPermission.dbColumnName
+    
+    val qTest = "SELECT * FROM " + hostedAccountTable
+    
+    val query = "SELECT " + hostedAccountTable +
+    			" FROM " + hostedAccountTable + ", " + privilegeTable + ", " + userTable +
+    			" WHERE " + "( " + hostedId + " = " + privilegeAccId + ")" + "," +
+    				" AND " + "( " + privilegeUserId + " = " + userId + ")" +
+    				" AND " + "( " + ourNetworkPrivilege + " = true" +
+    					" OR " + teamPrivilege + " = true" +
+    					" OR " + boardPrivilege + " = true" +
+    					" OR " + authoritiesPrivilege + " = true" +
+    					" OR " + ownerPrivilege + " = true)"
+    
+    val moreThanAnon = HostedAccount.findAllByInsecureSql(qTest, IHaveValidatedThisSQL("everett", "nov. 14 2012"))
+    
+    val aaa = "a"
+    
+    //Not ideal that we have to go from hosted account to account (as account is in mongodb, not in the sql db)
+    //This gives one mongo query per found account
+    moreThanAnon.flatMap(hostedAcc => {
+      val acc = Account.find("_id", new ObjectId(hostedAcc.accountID.get))
+      acc.map(Account.toBankAccount)
+    }).toSet
+    
+    val mIds = moreThanAnon.map(_.accountID.get)
+    val mongoIds = moreThanAnon.map("\"" + _.accountID.get + "\"")
+    import net.liftweb.json.JsonDSL._
+    val mQuery : JObject = ("_id" -> 
+    							("$in" -> List(mIds)))
+    val mongoQuery = "{_id:{$in: [" + mongoIds.mkString(",") + "]}}"
+    val mongoAccs = Account.find(mongoQuery)
+    val mAccs = Account.find(mQuery)
+    mongoAccs.map(Account.toBankAccount).toSet
+    
+    //TODO: Figure out how to get multiple docs by id in a single query
   }
 }
 
