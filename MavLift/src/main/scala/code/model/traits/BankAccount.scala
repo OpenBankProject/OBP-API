@@ -65,4 +65,12 @@ object BankAccount {
       case _ => Empty
     }
   }
+  
+  def all : List[BankAccount] = {
+    LocalStorage.getAllAccounts() map Account.toBankAccount
+  }
+  
+  def publicAccounts : List[BankAccount] = {
+    LocalStorage.getAllPublicAccounts() map Account.toBankAccount
+  }
 }

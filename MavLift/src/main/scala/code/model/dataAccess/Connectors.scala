@@ -163,4 +163,8 @@ class MongoDBLocalStorage extends LocalStorage {
       envelope <- OBPEnvelope.find(id) 
     } yield createTransaction(envelope,account)
   }
+
+  def getAllAccounts() : List[Account] = Account.findAll
+  
+  def getAllPublicAccounts() : List[Account] = Account.findAll("anonAccess", true)
 }
