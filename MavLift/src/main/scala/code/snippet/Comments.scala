@@ -27,6 +27,8 @@ Open Bank Project (http://www.openbankproject.com)
  */
 package code.snippet
 
+import net.liftweb.http.js.JsCmds.Noop
+import net.liftweb.http.TemplateFinder
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import code.model.dataAccess.OBPEnvelope
@@ -36,6 +38,7 @@ import scala.xml.NodeSeq
 import net.liftweb.http.SHtml
 import net.liftweb.common.Box
 import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds.RedirectTo
 import net.liftweb.http.SessionVar
 import scala.xml.Text
@@ -49,8 +52,9 @@ import java.text.SimpleDateFormat
 import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
 import code.model.dataAccess.Account
-import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias}
+import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias,Comment}
 import java.util.Currency
+import net.liftweb.http.js.jquery.JqJsCmds.AppendHtml
 
 /**
  * This whole class is a rather hastily put together mess
@@ -113,8 +117,8 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
     ).apply(xhtml)
   }
   
-  def showAll(xhtml: NodeSeq) : NodeSeq = {
-    def noComments = (".the_comments *" #> "No comments").apply(xhtml)
+  def showAll = {
+    def noComments = ".container *" #> "No comments"
     transaction.metadata match {
       case Some(metadata)  => 
         metadata.comments match {
@@ -122,40 +126,58 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
             if(comments.size==0)
               noComments
             else
-              comments.flatMap(comment => {
-                (".comment *" #> comment.text &
-                ".commenter_email *" #> {"- use email"}).apply(xhtml)
+            ".container" #>
+             { 
+              def orderByDateDescending = (comment1 : Comment, comment2 : Comment) =>
+                comment1.datePosted.before(comment2.datePosted)
+              ".comment" #>
+              comments.sort(orderByDateDescending).map(comment => {
+                ".text *" #> {comment.text} &
+                ".commentDate" #> {
+                  val dateFormat = new SimpleDateFormat("kk:mm:ss EEE MMM dd yyyy")
+                  dateFormat.format(comment.datePosted)
+                  } &
+                ".userInfo *" #> {comment.postedBy match {
+                  case Full(user) => {"-- " + user.theFistName + " "+ user.theLastName}
+                  case _ => "-- user not found" 
+                }
+                }
               })
+            }
           case _ => noComments 
         }
       case _ => noComments
     }
   }
-  
-  
+
   def addComment(xhtml: NodeSeq) : NodeSeq = {
-    val accessLevel = S.param("accessLevel") getOrElse "anonymous"
-    val envelopeID = S.param("envelopeID") getOrElse ""
-    OBPEnvelope.find(envelopeID) match{
-      case Full(e) => {
-        e.mediated_obpComments(accessLevel) match{
-          case Full(x) => {
-            SHtml.ajaxForm(<p>{
-          		SHtml.text("",comment => {
-          		  OBPUser.currentUser match{
-          		    case Full(u) => e.addComment(u.email.get, comment)
-          		    case _ => logger.warn("No logged in user found when someone tried to post a comment. This shouldn't happen.")
-          		  }
-          		  
-          		})}</p> ++
-          			<input type="submit" onClick="history.go(0)" value="Add Comment"/>
-            )
-          }
-          case _ => Text("Anonymous users may not view or submit comments")
+    OBPUser.currentUser match {
+      case Full(user) =>     
+        transaction.metadata match {
+          case Some(metadata) =>
+            metadata.addComment match {
+              case Some(addComment) => {
+                var commentText=""
+                SHtml.ajaxForm(
+                  SHtml.textarea("put a comment here",comment => {
+                    commentText = comment
+                    addComment(user.id,comment,new Date)},
+                    ("rows","4"),("cols","50")) ++
+                  SHtml.submit("add a comment",() => {},("id","submitComment")),
+                  Noop,
+                  {
+                    // val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map( 
+                    //   ".text *" #> {commentText} &
+                    //   ".userInfo *" #> { "-- " + user.theFistName + " "+ user.theLastName}
+                    //   )
+                    // AppendHtml("comment_list",commentXml.getOrElse(NodeSeq.Empty))
+                    JsRaw("location.reload()").cmd
+                  })}
+              case _ => (".add" #> "you cannot add comment to transactions on this view").apply(xhtml)
+            }
+          case _ => (".add" #> "you Cannot add comment to transactions on this view").apply(xhtml)
         }
-      }
-      case _ => Text("Cannot add comment to non-existant transaction")
+      case _ => (".add" #> "you need to login before you can submit a comment").apply(xhtml) 
     }
   }
-  
 }

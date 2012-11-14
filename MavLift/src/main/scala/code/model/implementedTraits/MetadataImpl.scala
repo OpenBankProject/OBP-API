@@ -3,6 +3,7 @@ package code.model.implementedTraits
 import code.model.traits.{Comment, OtherBankAccountMetadata, TransactionMetadata}
 import code.model.dataAccess.{OtherAccount, OBPComment}
 import net.liftweb.common.Loggable
+import java.util.Date
 
 class OtherBankAccountMetadataImpl(_publicAlias : String, _privateAlias : String,_moreInfo : String,
 _url : String, _imageUrl : String, _openCorporatesUrl : String) extends OtherBankAccountMetadata {
@@ -14,23 +15,17 @@ _url : String, _imageUrl : String, _openCorporatesUrl : String) extends OtherBan
    def imageUrl : String = _imageUrl
    def openCorporatesUrl : String = _openCorporatesUrl
 }
-//comment => env.narrative(comment).save
 class TransactionMetadataImpl(narative : String, comments_ : List[Comment], 
-  saveOwnerComment : String => Unit, addCommentFunc : (String, String) => Unit ) extends TransactionMetadata with Loggable
+  saveOwnerComment : String => Unit, addCommentFunc : (Long, String, Date) => Unit ) 
+  extends TransactionMetadata with Loggable
 {
   def ownerComment = if(! narative.isEmpty) Some(narative) else None
   def ownerComment(comment : String) = saveOwnerComment(comment)
   def comments : List[Comment] = comments_
-  def addComment(comment : Comment) : Unit =
-  { 
-    val emailAddress = for{
-      poster <- comment.postedBy
-    } yield poster.emailAddress
-    
-    emailAddress match{
-      case Some(emailAdr) => addCommentFunc(emailAdr, comment.text)
-      case _ => logger.warn("A comment was not added due to a lack of valid email address")
-    }
-  }
+  def addComment(userId: Long, text: String, datePosted : Date) : Unit = 
+  {
+    println("--> received values : " + userId + " "+ text + " " + datePosted)
+    addCommentFunc(userId, text, datePosted)
+  }  
 }
 

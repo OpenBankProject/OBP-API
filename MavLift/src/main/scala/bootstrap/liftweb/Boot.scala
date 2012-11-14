@@ -141,7 +141,8 @@ class Boot extends Loggable{
         for{
           bankAccount <- BankAccount(bank, account)
           transaction <- bankAccount.transaction(transactionID)
-          view <- View.fromUrl(viewName)  
+          view <- View.fromUrl(viewName)
+          if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
         } yield view.moderate(transaction)
       }
       else
@@ -217,7 +218,9 @@ class Boot extends Loggable{
             // val randomPassword = StringHelpers.randomString(12)
             // println ("The admin password is :"+randomPassword )
             val userEmail = "tesobe@tesobe.com"
-            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+            val firstName = "tesobe first name"
+            val lastName = "tesobe last name"            
+            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
             Privilege.create.account(hostedAccount).ownerPermission(true).user(theUserOwner).saveMe              
           }  
           case Full(hostedAccount) => 
@@ -227,7 +230,9 @@ class Boot extends Loggable{
                 // val randomPassword = StringHelpers.randomString(12)
                 // println ("The admin password is :"+randomPassword )
                 val userEmail = "tesobe@tesobe.com"
-                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
+                val firstName = "tesobe first name"
+                val lastName = "tesobe last name"
+                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
                 Privilege.create.account(hostedAccount).ownerPermission(true)
                   .mangementPermission(true).authoritiesPermission(true).boardPermission(true)
                   .teamPermission(true).ourNetworkPermission(true).user(theUserOwner).saveMe 

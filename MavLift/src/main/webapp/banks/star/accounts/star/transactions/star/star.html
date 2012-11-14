@@ -50,17 +50,13 @@ Open Bank Project (http://www.openbankproject.com)
       </table>
       <p>
         <div>Comments:</div>
-        <table>
-	  	    <tbody>
-            <tr class="lift:Comments.showAll">
-	  			    <td class="the_comments">
-               	<span class="comment">The comment goes here</span>
-               	<br/><br/>
-                <span class="commenter_email">Commenter's email address goes here</span>
-	  			    </td>
-            </tr>
-	  	    </tbody>
-	      </table>
-        <div class="lift:Comments.addComment"><span class="add">Add a comment here</span></div>
+        <ul id="comment_list" class="lift:Comments.showAll?eager_eval=true container">
+          <div class="lift:embed?what=_comment"></div>
+	      </ul>
+        <div id="addCommentbloc">
+        <div class="lift:Comments.addComment" >
+          <span class="add">Add a comment here</span>
+        </div>
+        </div>
 	    </p>
     </div>
