@@ -69,6 +69,8 @@ import code.model.implementedTraits.View
 import code.model.dataAccess.OBPEnvelope._
 import code.model.traits.BankAccount
 import code.model.implementedTraits.Anonymous
+import code.model.traits.Bank
+import code.model.traits.User
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -133,8 +135,51 @@ import code.model.implementedTraits.Anonymous
           case _ => NotFoundResponse("no account found")
         }
       }
+      
+      case bankPermalink :: "accounts" :: Nil JsonGet json => {
 
-    })
+        def getUser() : Box[User] = {
+          None
+        }
+        
+        def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
+          
+          def view2Json(view: View) : JObject = {
+            ("name" -> view.name) ~
+            ("description" -> view.description)
+          }
+
+          def views2LinksJson(views: Set[View], accPermalink: String): JObject = {
+            val viewsJson = views.map(view => {
+              ("rel" -> "account") ~
+              ("href" -> {"/" + bankPermalink + "/account/" + accPermalink + "/" + view.permalink}) ~
+              ("method" -> "GET") ~
+              ("title" -> "Get information about one account")
+            })
+            
+            ("links" -> viewsJson)
+          }
+           
+          val accJson = bankAccounts.map(bAcc => {
+            val views = bAcc.permittedViews(getUser())
+            ("number" -> bAcc.number) ~
+              ("account_alias" -> bAcc.label) ~
+              ("owner_description" -> "") ~
+              ("views_available" -> views.map(view2Json)) ~
+              views2LinksJson(views, bAcc.permalink)
+          })
+          JsonResponse(("accounts" -> accJson))
+        }
+        
+    	for {
+    	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
+    	  publicAccounts <- Full(bank.accounts.filter(_.allowAnnoymousAccess))
+    	} yield bankAccountSet2JsonResponse(publicAccounts)
+    	
+      }
+    }
+
+    )
 
     serve {
 	  //a temporary way to add transaction via api for a single specific exception case. should be removed later.

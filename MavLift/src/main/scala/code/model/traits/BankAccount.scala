@@ -7,6 +7,10 @@ import net.liftweb.common.{Full, Empty}
 import code.model.dataAccess.Account
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import code.model.dataAccess.OBPUser
+import net.liftweb.json.JObject
+import net.liftweb.json.JsonDSL._
+import net.liftweb.http.LiftResponse
+import net.liftweb.http.JsonResponse
 
 trait BankAccount {
 
@@ -44,6 +48,8 @@ trait BankAccount {
   
   //Is an anonymous view available for this bank account
   def allowAnnoymousAccess : Boolean
+  
+  def permittedViews(user: Box[User]) : Set[View]
   
   def getModeratedTransactions(moderate: Transaction => ModeratedTransaction): List[ModeratedTransaction]
   
