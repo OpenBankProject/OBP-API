@@ -10,5 +10,5 @@ trait Bank
 }
 
 object Bank {
-  def apply(bankName: String) : Box[Bank] = LocalStorage.getBank(bankName)
+  def apply(bankPermalink: String) : Box[Bank] = LocalStorage.getBank(bankPermalink)
 }
