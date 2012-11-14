@@ -13,6 +13,7 @@ trait View {
 	  
   //e.g. "Anonymous", "Authorities", "Our Network", etc.
   def name: String
+  def description : String
   def permalink : String
   
   //the view settings 
@@ -214,6 +215,7 @@ trait View {
 class BaseView extends View {
   def name = "Restricted"
   def permalink = "restricted"
+  def description = ""
   
   //the view settings 
   def usePrivateAliasIfOneExists = true
@@ -272,6 +274,7 @@ class BaseView extends View {
 class FullView extends View {
   def name = "Full"
   def permalink ="full"
+  def description = ""
 
   //the view settings 
   def usePrivateAliasIfOneExists = false
