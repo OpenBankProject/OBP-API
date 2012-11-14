@@ -61,6 +61,8 @@ import net.liftweb.http.js.jquery.JqJsCmds.AppendHtml
  */
 class Comments(transaction : ModeratedTransaction) extends Loggable{
 
+  val commentDateFormat = new SimpleDateFormat("kk:mm:ss EEE MMM dd yyyy")
+  
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
     val FORBIDDEN = "---"
     val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
@@ -127,22 +129,20 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
               noComments
             else
             ".container" #>
-             { 
+            { 
               def orderByDateDescending = (comment1 : Comment, comment2 : Comment) =>
                 comment1.datePosted.before(comment2.datePosted)
               ".comment" #>
-              comments.sort(orderByDateDescending).map(comment => {
-                ".text *" #> {comment.text} &
-                ".commentDate" #> {
-                  val dateFormat = new SimpleDateFormat("kk:mm:ss EEE MMM dd yyyy")
-                  dateFormat.format(comment.datePosted)
-                  } &
-                ".userInfo *" #> {comment.postedBy match {
-                  case Full(user) => {"-- " + user.theFistName + " "+ user.theLastName}
-                  case _ => "-- user not found" 
-                }
-                }
-              })
+                comments.sort(orderByDateDescending).map(comment => {
+                  ".text *" #> {comment.text} &
+                  ".commentDate" #> {commentDateFormat.format(comment.datePosted)} &
+                  ".userInfo *" #> {
+                      comment.postedBy match {
+                        case Full(user) => {" -- " + user.theFistName + " "+ user.theLastName}
+                        case _ => "-- user not found" 
+                      }
+                  }
+                })
             }
           case _ => noComments 
         }
@@ -157,27 +157,29 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
           case Some(metadata) =>
             metadata.addComment match {
               case Some(addComment) => {
-                var commentText=""
+                var commentText = ""
+                var commentDate = new Date
                 SHtml.ajaxForm(
                   SHtml.textarea("put a comment here",comment => {
                     commentText = comment
-                    addComment(user.id,comment,new Date)},
+                    commentDate = new Date
+                    addComment(user.id,comment,commentDate)},
                     ("rows","4"),("cols","50")) ++
-                  SHtml.submit("add a comment",() => {},("id","submitComment")),
-                  Noop,
-                  {
-                    // val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map( 
-                    //   ".text *" #> {commentText} &
-                    //   ".userInfo *" #> { "-- " + user.theFistName + " "+ user.theLastName}
-                    //   )
-                    // AppendHtml("comment_list",commentXml.getOrElse(NodeSeq.Empty))
-                    JsRaw("location.reload()").cmd
-                  })}
-              case _ => (".add" #> "you cannot add comment to transactions on this view").apply(xhtml)
+                  SHtml.ajaxSubmit("add a comment",() => {
+                    val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map( 
+                      ".text *" #> {commentText} &
+                      ".commentDate" #> {commentDateFormat.format(commentDate)} &
+                      ".userInfo *" #> { " -- " + user.theFistName + " "+ user.theLastName}
+                    )
+                    AppendHtml("comment_list",commentXml.getOrElse(NodeSeq.Empty))
+                  },("id","submitComment"))
+                )
+              }
+              case _ => (".add" #> "You cannot comment transactions on this view").apply(xhtml)
             }
-          case _ => (".add" #> "you Cannot add comment to transactions on this view").apply(xhtml)
+          case _ => (".add" #> "You Cannot comment transactions on this view").apply(xhtml)
         }
-      case _ => (".add" #> "you need to login before you can submit a comment").apply(xhtml) 
+      case _ => (".add" #> "You need to login before you can submit a comment").apply(xhtml) 
     }
   }
 }
