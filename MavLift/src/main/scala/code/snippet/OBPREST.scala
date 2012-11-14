@@ -146,17 +146,15 @@ import code.model.traits.User
           
           def view2Json(view: View) : JObject = {
             ("name" -> view.name) ~
-            ("description" -> "")
+            ("description" -> view.description)
           }
 
           def views2LinksJson(views: Set[View], accPermalink: String): JObject = {
             val viewsJson = views.map(view => {
-              val foo = ("rel" -> "account") ~ ("fii" -> "sss") 
-              /*("rel" -> "account") ~
-              ("href" -> "/" + bankPermalink + "/account/" + accPermalink + "/" + view.name) ~
+              ("rel" -> "account") ~
+              ("href" -> {"/" + bankPermalink + "/account/" + accPermalink + "/" + view.permalink}) ~
               ("method" -> "GET") ~
-              ("title" -> "Get information about one account")*/
-              foo
+              ("title" -> "Get information about one account")
             })
             
             ("links" -> viewsJson)
@@ -168,7 +166,7 @@ import code.model.traits.User
               ("account_alias" -> bAcc.label) ~
               ("owner_description" -> "") ~
               ("views_available" -> views.map(view2Json)) ~
-              ("links" -> "")
+              views2LinksJson(views, bAcc.permalink)
           })
           JsonResponse(("accounts" -> accJson))
         }

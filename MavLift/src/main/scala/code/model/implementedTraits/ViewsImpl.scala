@@ -20,16 +20,19 @@ object View
 object Team extends FullView {
   override def name = "Team"
   override def permalink = "team"
+  override def description = "A view for team members related to the account. E.g. for a company bank account -> employees/contractors"
   override def canEditOwnerComment= false
 }
 object Board extends FullView {
   override def name = "Board"
   override def permalink = "board"
+  override def description = "A view for board members of a company to view that company's account data."
   override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
   override def name = "Authorities"
   override def permalink = "authorities"
+  override def description = "A view for authorities such as tax officials to view an account's data"
   override def canEditOwnerComment= false    
 }
 
@@ -48,6 +51,7 @@ object Anonymous extends BaseView {
   
   override def name = "Anonymous"
   override def permalink = "anonymous" 
+  override def description = "A view of the account accessible by anyone."
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
@@ -101,6 +105,8 @@ object Anonymous extends BaseView {
   {
     override def name = "Our Network"
     override def permalink ="our-network"
+    override def description = "A view for people related to the account in some way. E.g. for a company account this could include investors" +
+    	" or current/potential clients"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
