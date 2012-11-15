@@ -24,12 +24,21 @@
 
   <repositories>
     <repository>
+      <id>sonatype.releases</id>
+      <name>sonatype Dependencies Repository for Releases</name>
+      <url>https://oss.sonatype.org/content/groups/scala-tools</url>
+    </repository>
+    <repository>
+      <id>sonatype.snapshots</id>
+      <name>sonatype Dependencies Repository for Snapshots</name>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </repository>
+    <repository>
       <id>scala-tools.releases</id>
       <name>Scala-Tools Dependencies Repository for Releases</name>
       <url>http://scala-tools.org/repo-releases</url>
     </repository>
-
-       <repository>
+    <repository>
       <id>scala-tools.snapshots</id>
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>http://scala-tools.org/repo-snapshots</url>
@@ -37,6 +46,11 @@
   </repositories>
 
   <pluginRepositories>
+    <pluginRepository>
+      <id>sonatype.releases</id>
+      <name>sonatype Dependencies Repository for Releases</name>
+      <url>https://oss.sonatype.org/content/groups/scala-tools</url>
+    </pluginRepository>
     <pluginRepository>
       <id>scala-tools.releases</id>
       <name>Scala-Tools Plugins Repository for Releases</name>
