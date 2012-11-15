@@ -134,11 +134,14 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
               def orderByDateDescending = (comment1 : Comment, comment2 : Comment) =>
                 comment1.datePosted.before(comment2.datePosted)
               ".comment" #>
-                comments.sort(orderByDateDescending).map(comment => {
-                  ".text *" #> {comment.text} &
-                  ".commentDate" #> {commentDateFormat.format(comment.datePosted)} &
+                comments.sort(orderByDateDescending).zipWithIndex.map(comment => {
+                  println("--> comment # " + comment._2)
+                  // ".commentLink" #>{"# "+ comment._2} &
+                  // ".commentLink [href]" #>{S.uri+"#"+ comment._2} & 
+                  // ".text *" #> {comment._1.text} &
+                  ".commentDate" #> {commentDateFormat.format(comment._1.datePosted)} &
                   ".userInfo *" #> {
-                      comment.postedBy match {
+                      comment._1.postedBy match {
                         case Full(user) => {" -- " + user.theFistName + " "+ user.theLastName}
                         case _ => "-- user not found" 
                       }

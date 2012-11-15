@@ -37,6 +37,7 @@ import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.field.MongoJsonObjectListField
+import net.liftweb.mongodb.record.field.DateField
 import net.liftweb.common.{ Box, Empty, Full }
 import net.liftweb.mongodb.record.field.BsonRecordListField
 import net.liftweb.mongodb.record.{ BsonRecord, BsonMetaRecord }
@@ -68,6 +69,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   object label extends StringField(this, 255)
   object currency extends StringField(this, 255)
   object iban extends StringField(this, 255)
+  object lastUpdate extends DateField(this)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
 
   def baseQuery = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
