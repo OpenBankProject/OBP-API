@@ -36,6 +36,9 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.mapper.By
+import net.liftweb.mongodb.MongoDB
+import com.mongodb.BasicDBList
+import java.util.ArrayList
 
 object LocalStorage extends MongoDBLocalStorage
 
@@ -142,7 +145,23 @@ class MongoDBLocalStorage extends LocalStorage {
      * 
      */
     val accountForBank = Account.find("bankPermalink", permalink)
-    accountForBank.map(acc => new BankImpl("", acc.bankName.get))
+    accountForBank.map(acc => new BankImpl("", acc.bankName.get, permalink))
+  }
+  
+  def allBanks : List[Bank] = {
+    //query collects a list of all the distinct values of Account.bankPermalink found in the db
+    val bankPermalinks = Account.useColl(_.distinct("bankPermalink"))
+    val banks : List[Box[Bank]] = bankPermalinks match {
+      case permalinks: ArrayList[String] => {
+        import scala.collection.JavaConversions._
+        permalinks.toList.map(getBank)
+      }
+      case _ => {
+        logger.warn("Conversion from java List to scala List[String] didn't work as expected. No banks will be returned")
+        Nil
+      }
+    }
+    banks.flatten
   }
   
   def getBankAccounts(bank: Bank): Set[BankAccount] = {
