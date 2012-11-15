@@ -178,6 +178,28 @@ import code.model.traits.User
     	} yield bankAccountSet2JsonResponse(publicAccounts)
     	
       }
+      
+      case "banks" :: Nil JsonGet json => {
+        val banks = Bank.all
+        
+        def linkJson(bank: Bank) = {
+          ("rel" -> "bank") ~
+          ("href" -> {"/" + bank.permalink + "/bank"}) ~
+          ("method" -> "GET") ~
+          ("title" -> {"Get information about the bank identified by " + bank.permalink})
+        }
+        
+        def banksJson: List[JObject] = {
+          banks.map(bank => {
+            ("alias" -> bank.permalink) ~
+            ("name" -> bank.name) ~
+            ("logo" -> "") ~
+            ("links" -> linkJson(bank))
+          })
+        }
+        
+        JsonResponse("banks" -> banksJson)
+      }
     }
 
     )
