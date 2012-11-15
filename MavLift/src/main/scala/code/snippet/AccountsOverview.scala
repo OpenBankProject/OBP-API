@@ -47,7 +47,7 @@ class AccountsOverview {
     }
     
     def loggedOutSnippet = {
-      ".authorised_accounts" #> ""
+      "#authorised_accounts" #> ""
     }
     
     OBPUser.currentUser match {
