@@ -184,10 +184,12 @@ class Nav {
     {
       val bankAndaccount = selectValue.split(",",0)      
       if(bankAndaccount.size==2)
-        LocalStorage.getAccount(bankAndaccount(0), bankAndaccount(1)) match {
-          case Full(acc) => S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
-          case _ => _Noop
-        }
+        if (LocalStorage.correctBankAndAccount(bankAndaccount(0), bankAndaccount(1)))
+          //TODO : the account may not has an anonymous view, so this redirection would retun a 404
+          //a better solution has to be found
+          S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
+        else 
+        _Noop
       else
         _Noop
     } 
