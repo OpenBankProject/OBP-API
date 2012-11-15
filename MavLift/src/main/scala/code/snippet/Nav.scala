@@ -47,22 +47,6 @@ import code.model.traits.BankAccount
 
 class Nav {
 
-  def group = {
-    val attrs = S.prefixedAttrsToMetaData("a")
-    val group = S.attr("group").getOrElse("")
-
-    val locs = (for{
-      sitemap <- LiftRules.siteMap
-    } yield sitemap.locForGroup(group)).getOrElse(List())
-    
-    ".navitem *" #> {
-      locs.map(l => {
-        ".navlink [href]" #> l.calcDefaultHref &
-        ".navlink *" #> l.linkText &
-        ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
-    })
-    }
-  }
   def eraseMenu = 
      "* * " #> ""  
   def views :net.liftweb.util.CssSel = {
@@ -120,9 +104,8 @@ class Nav {
 
     if (url.size > 4) getManagement getOrElse eraseMenu
     else eraseMenu
-
   }
-    
+  
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")
@@ -138,14 +121,13 @@ class Nav {
         ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
       })
     }
-  }
+  }      
   
   def privilegeAdmin = {
     val url = S.uri.split("/", 0)
 
     def hide = ".navitem *" #> ""
     def getPrivilegeAdmin = for {
-
       bankAccount <- BankAccount(url(2), url(4))
       if (OBPUser.hasOwnerPermission(bankAccount))
       loc <- new SiteMapSingleton().findAndTestLoc("Privilege Admin")
