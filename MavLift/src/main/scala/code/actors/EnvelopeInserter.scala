@@ -22,6 +22,7 @@ object EnvelopeInserter extends LiftActor with Loggable{
     t1.details.get.completed.get.equals(t2.details.get.completed.get) &&
     t1.details.get.value.get.amount.get.equals(t2.details.get.value.get.amount.get) &&
     t1.other_account.get.holder.get.equals(t2.other_account.get.holder.get)
+  
   }
   
   /**

@@ -1,31 +1,38 @@
 package code.model.implementedTraits
 
 import code.model.traits._
-
+import net.liftweb.common.{Box,Empty, Full}
 object View 
 {
   //transforme the url into a view 
   //TODO : load the view from the Data base
-  def fromUrl(viewNameURL: String): View = 
+  def fromUrl(viewNameURL: String): Box[View] = 
   viewNameURL match {
-    case "authorities" => Authorities
-    case "board" => Board
-    case "our-network" => OurNetwork
-    case "team" => Team
-    case "my-view" => Owner //a solution has to be found for the editing case
-    case _ => Anonymous
+    case "authorities" => Full(Authorities)
+    case "board" => Full(Board)
+    case "our-network" => Full(OurNetwork)
+    case "team" => Full(Team)
+    case "owner" => Full(Owner)
+    case "anonymous" => Full(Anonymous)
+    case _ => Empty
   }
 }
 object Team extends FullView {
   override def name = "Team"
+  override def permalink = "team"
+  override def description = "A view for team members related to the account. E.g. for a company bank account -> employees/contractors"
   override def canEditOwnerComment= false
 }
 object Board extends FullView {
   override def name = "Board"
+  override def permalink = "board"
+  override def description = "A view for board members of a company to view that company's account data."
   override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
   override def name = "Authorities"
+  override def permalink = "authorities"
+  override def description = "A view for authorities such as tax officials to view an account's data"
   override def canEditOwnerComment= false    
 }
 
@@ -43,13 +50,16 @@ object Anonymous extends BaseView {
    */
   
   override def name = "Anonymous"
-   
+  override def permalink = "anonymous" 
+  override def description = "A view of the account accessible by anyone."
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
-    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
+    val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, 
+      Some(transaction.thisAccount.owners), Some(transaction.thisAccount.accountType), 
       if(transaction.thisAccount.toString().startsWith("-")) "-" else "+", Some(transaction.thisAccount.currency), 
-      Some(transaction.thisAccount.label),None, None, None))
+      Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
+      Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {
       val otherAccountLabel = {
         val publicAlias = transaction.otherAccount.metadata.publicAlias
@@ -71,7 +81,8 @@ object Anonymous extends BaseView {
         Some(new ModeratedOtherBankAccountMetadata(moreInfo, url, imageUrl, openCorporatesUrl))
       } 
 
-      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,otherAccountMetadata))
+      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,
+          None, None, None, otherAccountMetadata))
     }
     val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,None,None,None))
     val transactionType = Some(transaction.transactionType)
@@ -92,12 +103,16 @@ object Anonymous extends BaseView {
 
   object OurNetwork extends BaseView 
   {
-    override def name = "our-network"
+    override def name = "Our Network"
+    override def permalink ="our-network"
+    override def description = "A view for people related to the account in some way. E.g. for a company account this could include investors" +
+    	" or current/potential clients"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
       transaction.thisAccount.toString(), Some(transaction.thisAccount.currency), 
-      Some(transaction.thisAccount.label),None, None, None))
+      Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
+      Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {
       val otherAccountLabel = {
         val privateAlias = transaction.otherAccount.metadata.privateAlias
@@ -111,7 +126,8 @@ object Anonymous extends BaseView {
           Some(transaction.otherAccount.metadata.url), Some(transaction.otherAccount.metadata.imageUrl), 
           Some(transaction.otherAccount.metadata.openCorporatesUrl)))
 
-      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,otherAccountMetadata))
+      Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,None,
+          None, None, otherAccountMetadata))
     }      
     val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,
       Some(transaction.metadata.comments),None,Some(transaction.metadata.addComment _)))
@@ -131,5 +147,6 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
-  override def name="my-view"
+  override def name="Owner"
+  override def permalink = "owner"
 }

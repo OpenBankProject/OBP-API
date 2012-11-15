@@ -61,34 +61,38 @@ Open Bank Project (http://www.openbankproject.com)
                 </div>
                 <!-- LOGGED IN -->
 				<div class="lift:Login.loggedIn">
-                    <div class="account-info">
-                        <h2>Account: <span class="account-number"></span> (Tesobe)</h2>
-                    </div>
 	                <div class="profile-info">
                         Logged in as <span class="username">username@domain.com</span>
                         <a href="" class="logout">Logout</a>
 	                </div>
                 </div>
+                <form class="lift:Nav.listAccounts" method="POST" action="." >             
+                    <div id="accountList">
+                        <select>                    
+                            <option class="account" value="foo">Foo</option>
+                        </select>
+                    </div>
+                </form>
             </div>
-
         </div>
         <div id="nav">
         	<ul>
-        	  <li class="lift:Nav.group?group=owner navitem">
-			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-			  </li>
- 			  <li class="lift:Nav.group?group=views navitem">
-			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-			  </li>
-			  <li class="lift:Nav.item?name=Privilege%20Admin navitem">
-			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-			  </li>
+            <span class="lift:Nav.views">
+              <li class="navitem">                    
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+            </span>
+               <li class="lift:Nav.management navitem">
+                <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+              </li>
+              <li class="lift:Nav.privilegeAdmin navitem">
+                <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+              </li>              
 			  <li class="lift:Nav.item?name=About navitem">
 			    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
 			  </li>
 			</ul>
         </div>
-
         <div id="content">
             <lift:bind name="content" />
 			The main content gets bound here
@@ -102,8 +106,9 @@ Open Bank Project (http://www.openbankproject.com)
             	<a href="http://www.facebook.com/pages/Open-Bank-Project/118851468190327">Facebook Page</a> | 
             	<a href="http://twitter.com/#!/OpenBankProject">Follow us on Twitter</a> | 
             	<a href="http://eviscape.com/profile/openbankproject/">Eviscape Profile</a> | 
-<!--             	<a href="http://polarizeit.tesobe.com/polarize/the-open-bank-project---an-open-source-a-82602778985">Polarize it!</a> |  -->
+                <a href="http://polarize.it/polarize/openbankprojectdemoa_78828874370">Polarize it!</a> |  
             	<a href="/api/accounts/tesobe/anonymous">JSON API</a></p> 
+
         </div>
     </div>
 </body>

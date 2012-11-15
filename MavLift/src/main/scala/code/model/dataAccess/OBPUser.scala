@@ -20,9 +20,10 @@ Open Bank Project (http://www.openbankproject.com)
 
       This product includes software developed at
       TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
+    by 
+    Simon Redfern : simon AT tesobe DOT com
+    Everett Sochowski: everett AT tesobe DOT com
+    Ayoub Benali : ayoub AT tesobe DOT com
 
  */
 package code.model.dataAccess
@@ -38,31 +39,35 @@ import net.liftweb.http.SessionVar
 import com.mongodb.QueryBuilder
 import code.model.traits.{View,BankAccount,User}
 import code.model.implementedTraits._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.http.SHtml
+import net.liftweb.http.S
+
+
+
 /**
  * An O-R mapped "User" class that includes first name, last name, password
  */
-class OBPUser extends MegaProtoUser[OBPUser] with OneToMany[Long, OBPUser] with User{
+class OBPUser extends MegaProtoUser[OBPUser] with User{
   def getSingleton = OBPUser // what's the "meta" server
   
   def emailAddress = email.get
-  def userName = firstName.get
-  def permittedViews(bankAccount : BankAccount) : Set[View] = {
-    //TODO: Stop ignoring the bankAccount parameter
-    val acc = Account.currentAccount
-    
-    
-    var views : Set[View] = Set()
-    acc match{
-      case Full(a) => {
-        if(OBPUser.hasOurNetworkPermission(a)) views = views + OurNetwork
-        if(OBPUser.hasTeamPermission(a)) views = views + Team
-        if(OBPUser.hasBoardPermission(a)) views = views + Board
-        if(OBPUser.hasAuthoritiesPermission(a)) views = views + Authorities
-        if(a.anonAccess.get) views = views + Anonymous
-        views
-      }
-      case _ => Set()
-    }
+  def theFistName : String = firstName.get
+  def theLastName : String = lastName.get
+
+  def permittedViews(account: BankAccount): Set[View] = {
+    var views: Set[View] = Set()
+    if (OBPUser.hasOurNetworkPermission(account)) views = views + OurNetwork
+    if (OBPUser.hasTeamPermission(account)) views = views + Team
+    if (OBPUser.hasBoardPermission(account)) views = views + Board
+    if (OBPUser.hasAuthoritiesPermission(account)) views = views + Authorities
+    if (OBPUser.hasOwnerPermission(account)) views = views + Owner
+    if (account.allowAnnoymousAccess) views = views + Anonymous
+    views
+  }
+  
+  def hasMangementAccess(bankAccount: BankAccount)  = {
+    OBPUser.hasManagementPermission(bankAccount)
   }
 }
 
@@ -74,7 +79,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   override def dbTableName = "users" // define the DB table name
     
   override def screenWrap = Full(<lift:surround with="default" at="content">
-			       <lift:bind /></lift:surround>)
+             <lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email,
   locale, timezone, password)
@@ -97,46 +102,49 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
     super.login
   }
   
-  def hasOurNetworkPermission(account: Account) : Boolean = {
+  def hasOurNetworkPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ourNetworkPermission.is)
   }
   
-  def hasTeamPermission(account: Account) : Boolean = {
+  def hasTeamPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.teamPermission.is)
   }
   
-  def hasBoardPermission(account: Account) : Boolean = {
+  def hasBoardPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.boardPermission.is)
   }
   
-  def hasAuthoritiesPermission(account: Account) : Boolean = {
+  def hasAuthoritiesPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.authoritiesPermission.is)
   }
   
-  def hasOwnerPermission(account: Account) : Boolean = {
+  def hasOwnerPermission(account: BankAccount) : Boolean = {
     hasPermission(account, (p: Privilege) => p.ownerPermission.is)
   }
+  def hasManagementPermission(account: BankAccount) : Boolean = {
+    hasPermission(account, (p: Privilege) => p.mangementPermission.is)
+  }
   
-  def hasMoreThanAnonAccess(account: Account) : Boolean = {
+  def hasMoreThanAnonAccess(account: BankAccount) : Boolean = {
       OBPUser.hasAuthoritiesPermission(account) ||
       OBPUser.hasBoardPermission(account) ||
       OBPUser.hasOurNetworkPermission(account) ||
       OBPUser.hasOwnerPermission(account) ||
-      OBPUser.hasTeamPermission(account)
+      OBPUser.hasTeamPermission(account) ||
+      OBPUser.hasManagementPermission(account)
   }
   
-  def hasPermission(account: Account, permissionCheck: (Privilege) => Boolean) : Boolean = {
+  def hasPermission(bankAccount: BankAccount, permissionCheck: (Privilege) => Boolean) : Boolean = {
     currentUser match{
-      case Full(u) => {
-        val permission = Privilege.find(By(Privilege.accountID, account.id.toString), 
-            							 By(Privilege.user, u))
-        permission match{
-          case Full(p) => {
-        	permissionCheck(p)
-          }
-          case _ => false
+      case Full(u) => 
+        HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
+          case Full(hostedAccount) =>
+                  Privilege.find(By(Privilege.account, hostedAccount), By(Privilege.user, u)) match{
+                    case Full(p) => permissionCheck(p)
+                    case _ => false
+                  } 
+          case _ => false 
         }
-      }
       case _ => false
     }
   }
@@ -150,45 +158,69 @@ class ourMappedBoolean[T<:Mapper[T]](fieldOwner: T) extends MappedBoolean[T](fie
   override def defaultValue = false
 }
 
-class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
-	with OneToMany[Long, Privilege]{
+class Privilege extends LongKeyedMapper[Privilege] with CreatedUpdated{
   def getSingleton = Privilege
-  object user extends LongMappedMapper(this, OBPUser){
+  def primaryKeyField = id
+  object id extends MappedLongIndex(this) 
+  object user extends MappedLongForeignKey(this, OBPUser){
+    var userError = false
     override def validSelectValues =
-    	Full(OBPUser.findMap(
-    			OrderBy(OBPUser.email, Ascending)){
-    			case u: User => Full(u.id.is -> u.email.is)
-    	})
-    override def displayHtml = <span>User email</span>  //TODO: we don't want HTML in the code
+      Full(OBPUser.findMap(OrderBy(OBPUser.email, Ascending)){
+          case u: User => Full(u.id.is -> u.email.is)
+      })
+    override def displayHtml = <span>User email</span>  
     override def asHtml = {
       val email = (for {
-    	  u <- OBPUser.find(user.get)
+        u <- OBPUser.find(user.get)
       } yield u.email.get).getOrElse("User email not found")
 
       <span>{email}</span>
     }
-  }
-  
-  object accountID extends MappedString(this, 255){
-    //
-    // WARNING!
-    //
-    // Once we extend the OBP functionality to support multiple accounts, this will need to be changed
-    // or else any account owner (i.e. anyone who sets privileges) will be setting privileges on the 
-    // music pictures account instead of their own.
-    //
-    override def defaultValue = {
-      val qry = QueryBuilder.start("obp_transaction.other_account.holder").is("Music Pictures Limited").get
-      val currentAcc = Account.currentAccount
-      
-      currentAcc match{
-        case Full(a) => {
-          a.id.get.toString
-        }
-        case _ => "no_acc_id_defined"
+    def userEmailCheck(user : Long) : List[FieldError]=    
+      if(userError) List(FieldError(this, "No user with this email")) 
+      else Nil
+    override def validations = userEmailCheck _ :: super.validations
+    override def _toForm =
+    { 
+      val initialValue = user.obj match {
+        case Full(theUser) => theUser.email.is
+        case _ => "" 
       }
+      def saveTheUser(email : String) = 
+       OBPUser.find(By(OBPUser.email, email)) match {
+                case Full(theUser) => user(theUser)
+                case _ => userError=true
+              }           
+      Full(SHtml.text(initialValue, saveTheUser(_)))
     }
   }
+  
+  object account extends MappedLongForeignKey(this, HostedAccount){
+    
+    override def displayHtml = <span>Account</span>  
+    override def asHtml = {
+      <span>{
+        HostedAccount.find(account.get) match {
+          case Full(account) => account.bank + " - " + account.name
+          case _ => "account not found"
+        }
+      }</span>  
+    }
+    override def validSelectValues =
+    Full(
+      OBPUser.currentUser match {
+        case Full(user) => Privilege.findMap(By(Privilege.user,user),
+          By(Privilege.ownerPermission,true),
+          OrderBy(Privilege.account, Ascending)){
+            case privilege: Privilege => HostedAccount.find(privilege.account.is) match {
+              case Full(hosted) => Full(hosted.id.is -> (hosted.bank + " - "+ hosted.name + " - " + hosted.number) )
+            } 
+          }
+        case _ => List()
+      }
+    )
+  }
+
   object ourNetworkPermission extends ourMappedBoolean(this){
     override def displayName = "Our Network"
   }
@@ -204,16 +236,58 @@ class Privilege extends LongKeyedMapper[Privilege] with IdPK with CreatedUpdated
   object ownerPermission extends ourMappedBoolean(this) {
     override def displayName = "Owner"
   }
+  object mangementPermission extends ourMappedBoolean(this) {
+    override def displayName = "Management"
+  }
 }
 
 object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUDify[Long, Privilege]{
   override def calcPrefix = List("admin",_dbTableNameLC)
+  override def fieldOrder = List(account, user,updatedAt, ownerPermission, mangementPermission,
+    ourNetworkPermission, teamPermission, boardPermission) 
   override def displayName = "Privilege"
   override def showAllMenuLocParams = LocGroup("admin") :: Nil
   override def createMenuLocParams = LocGroup("admin") :: Nil
-  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt, accountID)
-  override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt, accountID)
-  
+  override def fieldsForDisplay = super.fieldsForDisplay -- List(createdAt)
+  override def fieldsForEditing = super.fieldsForEditing -- List(createdAt, updatedAt)
   def showAll = doCrudAll(_)
+  override def findForList(start : Long, count : Int)= {
+    OBPUser.currentUser match {
+      case Full(user) => {
+        def ownerPermissionTest(privilege : Privilege) : Boolean = 
+          Privilege.find(By(Privilege.user, user), By(Privilege.account, privilege.account)) match {
+            case Full(currentUserPrivilege) => currentUserPrivilege.ownerPermission
+            case _ => false 
+          }
+        //we show only the privileges that concernes accounts were the current user  
+        //has owner permissions on
+        Privilege.findAll(OrderBy(Privilege.account, Ascending)).filter(ownerPermissionTest _) 
+      }
+      case _ => List()
+    }
+  }
 }
+class HostedAccount extends LongKeyedMapper[HostedAccount] {
+    def getSingleton = HostedAccount
+    def primaryKeyField = id
+    
+    object id extends MappedLongIndex(this)  
+    object accountID extends MappedString(this, 255)
 
+    def theAccount = Account.find(("_id", accountID.toString))
+
+    def name : String= theAccount match {
+      case Full(account) => account.name.get.toString()
+      case _ => "" 
+    }
+    def bank : String = theAccount match {
+      case Full(account) => account.bankName.get
+      case _ => ""
+    }
+    def number : String = theAccount match {
+      case Full(account) => account.number.get
+      case _ => ""
+    }   
+
+  }
+  object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{}

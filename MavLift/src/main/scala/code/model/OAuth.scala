@@ -71,7 +71,7 @@ class Nonce extends LongKeyedMapper[Nonce] {
   
 	def getSingleton = Nonce
 	def primaryKeyField = id
-	object id extends MappedLongIndex(this) // TODO: auto increment
+	object id extends MappedLongIndex(this) 
 	object consumerkey extends MappedString(this, 250) //we store the consumer Key and we don't need to keep a reference to the token consumer as foreign key
 	object tokenKey extends MappedString(this, 250){ //we store the token Key and we don't need to keep a reference to the token object as foreign key
 		override def defaultValue = ""
