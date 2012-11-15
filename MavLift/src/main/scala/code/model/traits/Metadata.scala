@@ -1,4 +1,5 @@
 package code.model.traits
+import java.util.Date
 
 trait TransactionMetadata {
   
@@ -6,7 +7,7 @@ trait TransactionMetadata {
   def ownerComment : Option[String]
   def ownerComment(comment : String) : Unit 
   def comments : List[Comment]
-  def addComment(comment : Comment) : Unit
+  def addComment(userId : Long, text : String, postedDate : Date) : Unit
 }
 trait OtherBankAccountMetadata 
 {

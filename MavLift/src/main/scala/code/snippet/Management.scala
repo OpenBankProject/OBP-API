@@ -4,14 +4,14 @@ import code.model.dataAccess.{Account,OtherAccount}
 import net.liftweb.util.Helpers._
 import scala.xml.NodeSeq
 import scala.xml.Text
-import net.liftweb.http.SHtml
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.http.js.JsCmds.Noop
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.widgets.tablesorter.{TableSorter, DisableSorting, Sorting, Sorter}
 import net.liftweb.http.js.JsCmd
 
-class Management {
+class Management(currentAccount : Account) {
 
   val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
   val sortList = (0, Sorting.DSC) :: Nil
@@ -23,9 +23,6 @@ class Management {
   }
   
   def showAll(xhtml: NodeSeq) : NodeSeq = {
-    //temporary way to retrieve the account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
     
     def getMostUpToDateOtherAccount(holder: String) = {
       currentAccount.otherAccounts.get.find(o => {
@@ -82,7 +79,7 @@ class Management {
       }, defaultValue)
     }
     
-    currentAccount.otherAccounts.get.flatMap(other => {
+    currentAccount.otherAccounts.get.sortBy(_.holder.get).flatMap(other => {
       
       val account = other.holder.get
       val publicAlias = other.publicAlias.get
@@ -118,10 +115,7 @@ class Management {
   
   def listAll(xhtml: NodeSeq) : NodeSeq  = {
     
-    //temporary way to retrieve the account
-    val accJObj = JObject(List(JField("holder", JString("Music Pictures Limited"))))
-    val currentAccount = Account.find(accJObj) getOrElse Account.createRecord
-    
+
     def getMostUpToDateOtherAccount(holder: String) = {
       currentAccount.otherAccounts.get.find(o => {
         o.holder.get.equals(holder)

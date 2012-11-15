@@ -13,6 +13,8 @@ trait View {
 	  
   //e.g. "Anonymous", "Authorities", "Our Network", etc.
   def name: String
+  def description : String
+  def permalink : String
   
   //the view settings 
   def usePrivateAliasIfOneExists: Boolean
@@ -45,11 +47,15 @@ trait View {
   def canSeeBankAccountNationalIdentifier : Boolean
   def canSeeBankAccountSwift_bic : Boolean
   def canSeeBankAccountIban : Boolean
+  def canSeeBankAccountNumber : Boolean
+  def canSeeBankAccountName : Boolean
 
   //other bank account fields 
   def canSeeOtherAccountNationalIdentifier : Boolean 
   def canSeeSWIFT_BIC : Boolean
   def canSeeOtherAccountIBAN : Boolean
+  def canSeeOtherAccountBankName : Boolean
+  def canSeeOtherAccountNumber : Boolean
   def canSeeOtherAccountMetadata :Boolean
 
   //other bank account meta data
@@ -76,6 +82,8 @@ trait View {
       val balance = if(canSeeBankAccountBalance) transaction.thisAccount.balance.toString else ""
       val currency = if(canSeeBankAccountCurrency) Some(transaction.thisAccount.currency) else None  
       val label = if(canSeeBankAccountLabel) Some(transaction.thisAccount.label) else None
+      val number = if(canSeeBankAccountNumber) Some(transaction.thisAccount.number) else None
+      val bankName = if(canSeeBankAccountName) Some(transaction.thisAccount.bankName) else None
       val nationalIdentifier = 
         if(canSeeBankAccountNationalIdentifier) 
           Some(transaction.thisAccount.nationalIdentifier) 
@@ -92,7 +100,7 @@ trait View {
         else 
           None
       Some(new ModeratedBankAccount(transaction.thisAccount.id, owners, accountType, balance, currency, label,
-      nationalIdentifier, swift_bic, iban))
+      nationalIdentifier, swift_bic, iban, number, bankName))
     }
     else
       None
@@ -124,6 +132,8 @@ trait View {
       val otherAccountNationalIdentifier = if (canSeeOtherAccountNationalIdentifier) Some(transaction.otherAccount.nationalIdentifier) else None
       val otherAccountSWIFT_BIC = if (canSeeSWIFT_BIC) Some(transaction.otherAccount.swift_bic) else None
       val otherAccountIBAN = if(canSeeOtherAccountIBAN) Some(transaction.otherAccount.iban) else None 
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(transaction.otherAccount.bankName) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(transaction.otherAccount.number) else None
       val otherAccountMetadata = 
         if(canSeeOtherAccountMetadata) 
         {
@@ -147,7 +157,7 @@ trait View {
             None
 
       Some(new ModeratedOtherBankAccount(otherAccountId,otherAccountLabel, otherAccountNationalIdentifier, 
-        otherAccountSWIFT_BIC, otherAccountIBAN, otherAccountMetadata))
+        otherAccountSWIFT_BIC, otherAccountIBAN, otherAccountBankName, otherAccountNumber, otherAccountMetadata))
     }
     else  
       None
@@ -204,6 +214,8 @@ trait View {
 //An implementation that has the least amount of permissions possible
 class BaseView extends View {
   def name = "Restricted"
+  def permalink = "restricted"
+  def description = ""
   
   //the view settings 
   def usePrivateAliasIfOneExists = true
@@ -236,11 +248,15 @@ class BaseView extends View {
   def canSeeBankAccountNationalIdentifier = false
   def canSeeBankAccountSwift_bic = false
   def canSeeBankAccountIban = false
+  def canSeeBankAccountNumber = false
+  def canSeeBankAccountName = false
 
   //other bank account fields 
   def canSeeOtherAccountNationalIdentifier = false 
   def canSeeSWIFT_BIC = false
   def canSeeOtherAccountIBAN = false
+  def canSeeOtherAccountBankName = false
+  def canSeeOtherAccountNumber = false
   def canSeeOtherAccountMetadata = false
 
   //other bank account meta data
@@ -257,6 +273,8 @@ class BaseView extends View {
 
 class FullView extends View {
   def name = "Full"
+  def permalink ="full"
+  def description = ""
 
   //the view settings 
   def usePrivateAliasIfOneExists = false
@@ -289,12 +307,16 @@ class FullView extends View {
   def canSeeBankAccountNationalIdentifier = true
   def canSeeBankAccountSwift_bic = true
   def canSeeBankAccountIban = true
+  def canSeeBankAccountNumber = true
+  def canSeeBankAccountName = true
 
   //other bank account fields 
   def canSeeOtherAccountNationalIdentifier = true 
   def canSeeSWIFT_BIC = true
   def canSeeOtherAccountIBAN = true
   def canSeeOtherAccountMetadata = true
+  def canSeeOtherAccountBankName = true
+  def canSeeOtherAccountNumber = true
 
   //other bank account meta data
   def canSeeMoreInfo = true

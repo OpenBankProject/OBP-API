@@ -35,14 +35,19 @@ import http._
 import sitemap._
 import Loc._
 import mapper._
-import code.model.dataAccess.{MongoConfig,OBPUser,Privilege,Account}
+import code.model.dataAccess.{MongoConfig,OBPUser,Privilege,Account, MongoDBLocalStorage, HostedAccount}
 import code.model.{Nonce, Consumer, Token}
+import code.model.traits.{Bank, View, ModeratedTransaction}
+import code.model.implementedTraits.{BankImpl, Anonymous, View}
 import com.tesobe.utils._
 import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.snippet.OAuthHandshake
 import net.liftweb.util.Schedule
+import net.liftweb.mongodb.BsonDSL._
+import code.model.dataAccess.LocalStorage
+import code.model.traits.BankAccount
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -86,11 +91,12 @@ class Boot extends Loggable{
     //OAuth Mapper 
     Schemifier.schemify(true, Schemifier.infoF _, Nonce)
     Schemifier.schemify(true, Schemifier.infoF _, Token)
-    Schemifier.schemify(true, Schemifier.infoF _, Consumer)
-    
-    val theOnlyAccount = Account.find(("holder", "Music Pictures Limited"))
+    Schemifier.schemify(true, Schemifier.infoF _, Consumer) 
+    Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
+    //lunch the scheduler to clean the database from the expired tokens and nonces
+    Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)   
 
-    
+
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
         Empty
@@ -98,78 +104,76 @@ class Boot extends Loggable{
         Full(PlainTextResponse("unauthorized"))
       }
     }
+     
+    def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View)] = 
+    {
+      val bank = URLParameters(0)
+      val account = URLParameters(1)
+      val viewName = URLParameters(2)
+      val bankAccount = BankAccount(bank, account)
+      val view = View.fromUrl(viewName)
+      
+      for {
+        b <- bankAccount
+        v <- view
+        if(b.authorisedAccess(v, OBPUser.currentUser))
+      } yield (b.getModeratedTransactions()(v.moderate), v)
+    }
     
+    def getAccount(URLParameters : List[String]) = 
+    {
+      val bankUrl = URLParameters(0)
+      val accountUrl = URLParameters(1)
+      for {
+        account <- LocalStorage.getAccount(bankUrl,accountUrl)
+        user <- OBPUser.currentUser
+        bankAccount <- BankAccount(bankUrl, accountUrl)
+        if(user.hasMangementAccess(bankAccount))
+      } yield account
+    }
+    def getTransaction(URLParameters : List[String]) = 
+    {
+      if(URLParameters.length==4)
+      {
+        val bank = URLParameters(0)
+        val account = URLParameters(1)
+        val transactionID = URLParameters(2)
+        val viewName = URLParameters(3)
+        for{
+          bankAccount <- BankAccount(bank, account)
+          transaction <- bankAccount.transaction(transactionID)
+          view <- View.fromUrl(viewName)
+          if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
+        } yield view.moderate(transaction)
+      }
+      else
+        Empty
+    }       
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege" >> TestAccess(() => {
-            check(theOnlyAccount match{
-              case Full(a) => OBPUser.hasOwnerPermission(a)
-              case _ => false
-            })
+          Menu.i("Privilege Admin") / "admin" / "privilege"  >> TestAccess(() => {
+            check(OBPUser.loggedIn_?)
           }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
-          Menu.i("Accounts") / "accounts" submenus(
-				Menu.i("TESOBE") / "accounts" / "tesobe" submenus(
-		  Menu.i("TESOBE View") / "accounts" / "tesobe" / "my-view" >> LocGroup("owner") >> TestAccess(() => {
-		    check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasOwnerPermission(a)
-		      case _ => false
-		    })
-		  }),
-		  Menu.i("Management") / "accounts" / "tesobe" / "management" >> LocGroup("owner") >> TestAccess(() => {
-		    check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasOwnerPermission(a)
-		      case _ => false
-		    })
-		  }),
-          Menu.i("Anonymous") / "accounts" / "tesobe" / "anonymous" >> LocGroup("views") >> TestAccess(() => {
-            check(theOnlyAccount match {
-              case Full(a) => a.anonAccess.is
-              case _ => false
-            })
-          }),
-          Menu.i("Our Network") / "accounts" / "tesobe" / "our-network" >> LocGroup("views") >> TestAccess(() => {
-            check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasOurNetworkPermission(a)
-		      case _ => false
-		    })
-          }),
-          Menu.i("Team") / "accounts" / "tesobe" / "team" >> LocGroup("views") >> TestAccess(() => {
-            check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasTeamPermission(a)
-		      case _ => false
-		    })
-          }),
-          Menu.i("Board") / "accounts" / "tesobe" / "board" >> LocGroup("views") >> TestAccess(() => {
-            check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasBoardPermission(a)
-		      case _ => false
-		    })
-          }),
-          Menu.i("Authorities") / "accounts" / "tesobe" / "authorities" >> LocGroup("views") >> TestAccess(() => {
-            check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasAuthoritiesPermission(a)
-		      case _ => false
-		    })
-          }),
-          Menu.i("Comments") / "comments" >> TestAccess(() => {
-            check(theOnlyAccount match{
-		      case Full(a) => OBPUser.hasMoreThanAnonAccess(a)
-		      case _ => false
-		    })
-          }) >> Hidden,
           Menu.i("About") / "about",
-          Menu.i("OAuth") / "oauth" / "authorize" //oAuth authorization page
-        )))
+          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
+          
+          Menu.i("Banks") / "banks", //no test => list of open banks
+          //list of open banks (banks with a least a bank account with an open account)
+          Menu.param[Bank]("Bank", "bank", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
+          //list of open accounts in a specific bank
+          Menu.param[Bank]("Accounts", "accounts", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
+          
+          //test if the bank exists and if the user have access to management page
+          Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management",
+          
+          Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
+          / "banks" / * / "accounts" / * / *,
 
-    LiftRules.statelessRewrite.append{
-        case RewriteRequest(ParsePath("accounts" :: "tesobe" :: accessLevel :: "transactions" :: envelopeID :: "comments" :: Nil, "", true, _), _, therequest) =>
-          					RewriteResponse("comments" :: Nil, Map("envelopeID" -> envelopeID, "accessLevel" -> accessLevel))
-    }
-
-    //lunch the scheduler to clean the database from the expired tokens ans nonces
-    Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)
+          Menu.params[ModeratedTransaction]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
+          / "banks" / * / "accounts" / * / "transactions" / * / *           
+    )
 
     def sitemapMutators = OBPUser.sitemapMutator
 
@@ -205,24 +209,39 @@ class Boot extends Loggable{
     /**
      * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
      */
-    theOnlyAccount match{
-      case Full(a) => {
-        val theOnlyOwnerPriv = Privilege.find(By(Privilege.accountID, a.id.get.toString), By(Privilege.ownerPermission, true))
-        theOnlyOwnerPriv match{
-          case Empty => {
+    Account.find(("holder", "Music Pictures Limited")) match{
+      case Full(a) => 
+        HostedAccount.find(By(HostedAccount.accountID,a.id.toString)) match {
+          case Empty => { 
+            val hostedAccount = HostedAccount.create.accountID(a.id.toString).saveMe  
+            logger.debug("Creating tesobe account user and granting it owner permissions")
             //create one
             // val randomPassword = StringHelpers.randomString(12)
             // println ("The admin password is :"+randomPassword )
-            
-            logger.debug("Creating tesobe account user and granting it owner permissions")
             val userEmail = "tesobe@tesobe.com"
-            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).saveMe)
-        	val newPriv = Privilege.create.accountID(a.id.get.toString).ownerPermission(true).user(theUserOwner)
-        	newPriv.saveMe
-          }
-          case _ => logger.debug("Owner privilege already exists")
-        }
-      }
+            val firstName = "tesobe first name"
+            val lastName = "tesobe last name"            
+            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
+            Privilege.create.account(hostedAccount).ownerPermission(true).user(theUserOwner).saveMe              
+          }  
+          case Full(hostedAccount) => 
+            Privilege.find(By(Privilege.account,hostedAccount), By(Privilege.ownerPermission, true)) match{
+              case Empty => {
+                //create one
+                // val randomPassword = StringHelpers.randomString(12)
+                // println ("The admin password is :"+randomPassword )
+                val userEmail = "tesobe@tesobe.com"
+                val firstName = "tesobe first name"
+                val lastName = "tesobe last name"
+                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
+                Privilege.create.account(hostedAccount).ownerPermission(true)
+                  .mangementPermission(true).authoritiesPermission(true).boardPermission(true)
+                  .teamPermission(true).ourNetworkPermission(true).user(theUserOwner).saveMe 
+              }
+              case _ => logger.debug("Owner privilege already exists")
+            }
+          case _ => None
+        }  
       case _ => logger.debug("No account found")
     }
     
