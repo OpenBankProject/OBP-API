@@ -80,9 +80,10 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
     val userTable = OBPUser._dbTableNameLC
     
     val hostedId = hostedAccountTable + "." + HostedAccount.id.dbColumnName
+    val hostedAccId = hostedAccountTable + "." + HostedAccount.accountID.dbColumnName
     val privilegeAccId = privilegeTable + "." + Privilege.account.dbColumnName
     val privilegeUserId = privilegeTable + "." + Privilege.user.dbColumnName
-    val userId = userTable + "." + this.id.get
+    val userId = this.id.get
     
     val ourNetworkPrivilege = privilegeTable + "." + Privilege.ourNetworkPermission.dbColumnName
     val teamPrivilege = privilegeTable + "." + Privilege.teamPermission.dbColumnName
@@ -90,11 +91,9 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
     val authoritiesPrivilege = privilegeTable + "." + Privilege.authoritiesPermission.dbColumnName
     val ownerPrivilege = privilegeTable + "." + Privilege.ownerPermission.dbColumnName
     
-    val qTest = "SELECT * FROM " + hostedAccountTable
-    
-    val query = "SELECT " + hostedAccountTable +
+    val query = "SELECT " + hostedId + ", " + hostedAccId + 
     			" FROM " + hostedAccountTable + ", " + privilegeTable + ", " + userTable +
-    			" WHERE " + "( " + hostedId + " = " + privilegeAccId + ")" + "," +
+    			" WHERE " + "( " + hostedId + " = " + privilegeAccId + ")" +
     				" AND " + "( " + privilegeUserId + " = " + userId + ")" +
     				" AND " + "( " + ourNetworkPrivilege + " = true" +
     					" OR " + teamPrivilege + " = true" +
@@ -102,28 +101,10 @@ class OBPUser extends MegaProtoUser[OBPUser] with User{
     					" OR " + authoritiesPrivilege + " = true" +
     					" OR " + ownerPrivilege + " = true)"
     
-    val moreThanAnon = HostedAccount.findAllByInsecureSql(qTest, IHaveValidatedThisSQL("everett", "nov. 14 2012"))
+    val moreThanAnon = HostedAccount.findAllByInsecureSql(query, IHaveValidatedThisSQL("everett", "nov. 15 2012"))
+    val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
     
-    val aaa = "a"
-    
-    //Not ideal that we have to go from hosted account to account (as account is in mongodb, not in the sql db)
-    //This gives one mongo query per found account
-    moreThanAnon.flatMap(hostedAcc => {
-      val acc = Account.find("_id", new ObjectId(hostedAcc.accountID.get))
-      acc.map(Account.toBankAccount)
-    }).toSet
-    
-    val mIds = moreThanAnon.map(_.accountID.get)
-    val mongoIds = moreThanAnon.map("\"" + _.accountID.get + "\"")
-    import net.liftweb.json.JsonDSL._
-    val mQuery : JObject = ("_id" -> 
-    							("$in" -> List(mIds)))
-    val mongoQuery = "{_id:{$in: [" + mongoIds.mkString(",") + "]}}"
-    val mongoAccs = Account.find(mongoQuery)
-    val mAccs = Account.find(mQuery)
-    mongoAccs.map(Account.toBankAccount).toSet
-    
-    //TODO: Figure out how to get multiple docs by id in a single query
+    Account.findAll(mongoIds).map(Account.toBankAccount).toSet
   }
 }
 
@@ -317,7 +298,8 @@ object Privilege extends Privilege with LongKeyedMetaMapper[Privilege] with CRUD
           }
         //we show only the privileges that concernes accounts were the current user  
         //has owner permissions on
-        Privilege.findAll(OrderBy(Privilege.account, Ascending)).filter(ownerPermissionTest _) 
+        //TODO: This is inefficient (it loads all privileges)
+        Privilege.findAll(OrderBy(Privilege.account, Ascending)).filter(ownerPermissionTest _)
       }
       case _ => List()
     }
