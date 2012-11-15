@@ -23,6 +23,7 @@ Open Bank Project (http://www.openbankproject.com)
 		by 
 		Simon Redfern : simon AT tesobe DOT com
 		Everett Sochowski: everett AT tesobe DOT com
+    Benali Ayoub : ayoub AT tesobe DOT com
 
  */
 package bootstrap.liftweb

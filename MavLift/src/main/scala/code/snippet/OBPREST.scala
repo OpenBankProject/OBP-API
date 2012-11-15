@@ -23,6 +23,7 @@
  * by
  * Simon Redfern : simon AT tesobe DOT com
  * Everett Sochowski: everett AT tesobe DOT com
+ * Ayoub Benali : ayoub AT tesobe DOT com
  *
  */
 package com.tesobe.utils {
