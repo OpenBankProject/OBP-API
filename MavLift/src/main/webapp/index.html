@@ -27,17 +27,17 @@ Open Bank Project (http://www.openbankproject.com)
 -->
 
     <div id="main" class="lift:surround?with=default;at=content">
-    	<div class="public_accounts">
+    	<div class="lift:AccountsOverview.publicAccounts public_accounts">
     		<h2>Public Accounts</h2>
-	        <ul class="lift:AccountsOverview.publicAccounts">
-	        	<li class="account">Account Name</li>
+	        <ul class="accountList">
+	        	<li class="account"><a class="accLink" href="">Account Name</a></li>
 	        </ul>
         </div>
         
-        <div class="private_accounts">
-        	<h2>Private Accounts</h2>
-	        <ul class="lift:AccountsOverview.privateAccounts">
-	        	<li class="account">Account Name</li>
+        <div class="lift:AccountsOverview.authorisedAccounts authorised_accounts">
+        	<h2>Authorised Accounts</h2>
+	        <ul class="accountList">
+	        	<li class="account"><a class="accLink" href="">Account Name</a></li>
 	        </ul>
         </div>
         
