@@ -13,17 +13,18 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
-limitations under the License.  
+limitations under the License.      
 
- Open Bank Project (http://www.openbankproject.com)
+Open Bank Project (http://www.openbankproject.com)
       Copyright 2011,2012 TESOBE / Music Pictures Ltd
 
       This product includes software developed at
       TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
-    
+    by 
+    Simon Redfern : simon AT tesobe DOT com
+    Everett Sochowski: everett AT tesobe DOT com
+    Benali Ayoub : ayoub AT tesobe DOT com
+
  */
 package code.model.dataAccess
 
@@ -145,12 +146,14 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
    * @param email The email address of the person posting the comment
    * @param text The text of the comment
    */
-  def addComment(userId: Long, text: String, datePosted : Date) = {
-    println("adding a comment from the user : "+ userId + " with this content"+ text)
+  def addComment(userId: Long, viewId : Long, text: String, datePosted : Date) = {
+    println("adding a comment from the user : "+ userId + " with this content "+ text)
+    println("view ID : "+viewId)
     val comments = obp_comments.get
     val c2 = comments ++ List(OBPComment.createRecord.userId(userId).
       textField(text).
-      date(datePosted))
+      date(datePosted).
+      viewID(viewId))
     obp_comments(c2).saveTheRecord()
   }
 
@@ -219,10 +222,12 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 class OBPComment private() extends BsonRecord[OBPComment] with Comment {
   def meta = OBPComment
-  object userId extends LongField(this)
   def postedBy = OBPUser.find(userId)
+  def viewId = viewID.get
   def text = textField.get
   def datePosted = date.get
+  object userId extends LongField(this)
+  object viewID extends LongField(this)
   object textField extends StringField(this, 255)
   object date extends DateField(this)
 }

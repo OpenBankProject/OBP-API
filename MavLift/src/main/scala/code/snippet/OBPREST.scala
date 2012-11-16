@@ -23,6 +23,7 @@
  * by
  * Simon Redfern : simon AT tesobe DOT com
  * Everett Sochowski: everett AT tesobe DOT com
+ * Ayoub Benali : ayoub AT tesobe DOT com
  *
  */
 package com.tesobe.utils {
@@ -60,7 +61,7 @@ import net.liftweb.mongodb.{Skip, Limit}
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ OBPEnvelope, OBPUser }
+import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser }
 import code.model.dataAccess.HostedAccount
 import code.model.dataAccess.LocalStorage
 import code.model.traits.ModeratedTransaction
@@ -71,6 +72,7 @@ import code.model.traits.BankAccount
 import code.model.implementedTraits.Anonymous
 import code.model.traits.Bank
 import code.model.traits.User
+import java.util.Date
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -213,7 +215,10 @@ import code.model.traits.User
           val createdEnvelopes = EnvelopeInserter !? (3 seconds, matchingEnvelopes)
 
           createdEnvelopes match {
-            case Full(l: List[JObject]) => JsonResponse(JArray(l))
+            case Full(l: List[JObject]) =>{
+              Account.lastUpdate(new Date).save
+              JsonResponse(JArray(l))
+            }
             case _ => InternalServerErrorResponse()
           }
         }
@@ -318,7 +323,10 @@ import code.model.traits.User
         val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
 
         createdEnvelopes match {
-          case Full(l: List[JObject]) => JsonResponse(JArray(l))
+          case Full(l: List[JObject]) =>{
+              Account.lastUpdate(new Date).save
+              JsonResponse(JArray(l))
+            } 
           case _ => InternalServerErrorResponse()
         }
       }

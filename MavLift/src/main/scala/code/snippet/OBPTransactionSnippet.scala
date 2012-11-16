@@ -246,26 +246,42 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
     filteredTransactions match {
       case Nil => "#accountName *" #> ""
       case x :: xs => {
-        "#accountName *" #> {
-          x.bankAccount match {
-            case Some(bankAccount) => 
-              bankAccount.label match {
-                case Some(label) => label
-                case _ => ""
+        x.bankAccount match {
+          case Some(bankAccount) => {
+            val url = S.uri.split("/",0)
+            var accountLastUpdate = 
+              if(url.size>4)
+              {
+                import code.model.dataAccess.LocalStorage
+                import java.text.SimpleDateFormat
+                LocalStorage.getAccount(url(2), url(4)) match {
+                  case Full(account) => "#lastUpdate *"#> {
+                    val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
+                     if(!account.lastUpdate.asString.contains("Empty"))
+                       "last update : " + dateFormat.format(account.lastUpdate.get)
+                     else
+                       "Not yet updated"
+                  }
+                  case _ =>  NOOP_SELECTOR
+                }
               }
-            case _ => ""
+              else
+                NOOP_SELECTOR
+            //set accout last update
+            val accountLabel = bankAccount.label match {
+              case Some(label) => "#accountName *" #> label
+              case _ => NOOP_SELECTOR
+            }
+            accountLabel & accountLastUpdate
           }
+          case _ => NOOP_SELECTOR
         }
       }
     }
   }
   def hideSocialWidgets = {
-    if(view.name!="Anonymous") ".box *" #> ""
-    else ".box *+" #> "" 
+    if(view.name!="Anonymous") "#socialButtons *" #> NodeSeq.Empty
+    else NOOP_SELECTOR
   }
-  def socialAdress = 
-    ".fb-like [data-href] * " #> S.uri &
-    ".twitter-share-button [data-url] " #> S.uri &
-    "g:plusone [href] * " #> S.uri
 }
 

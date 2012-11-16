@@ -13,17 +13,18 @@ Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and 
-limitations under the License. 
+limitations under the License.      
 
 Open Bank Project (http://www.openbankproject.com)
       Copyright 2011,2012 TESOBE / Music Pictures Ltd
 
       This product includes software developed at
       TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
-      
+    by 
+    Simon Redfern : simon AT tesobe DOT com
+    Everett Sochowski: everett AT tesobe DOT com
+    Benali Ayoub : ayoub AT tesobe DOT com
+
  */
 package code.snippet
 
@@ -52,20 +53,22 @@ import java.text.SimpleDateFormat
 import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
 import code.model.dataAccess.Account
-import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias,Comment}
+import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias,Comment, View}
 import java.util.Currency
 import net.liftweb.http.js.jquery.JqJsCmds.AppendHtml
+import net.liftweb.http.js.JsCmds.{SetHtml,SetValById} 
+import net.liftweb.http.js.JE.Str 
 
 /**
  * This whole class is a rather hastily put together mess
  */
-class Comments(transaction : ModeratedTransaction) extends Loggable{
-
+class Comments(transactionAndView : (ModeratedTransaction,View)) extends Loggable{
+  val transaction = transactionAndView._1
+  val view = transactionAndView._2
   val commentDateFormat = new SimpleDateFormat("kk:mm:ss EEE MMM dd yyyy")
-  
+  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""  
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
     val FORBIDDEN = "---"
-    val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
     val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
     var theCurrency = FORBIDDEN
     def formatDate(date: Box[Date]): String = {
@@ -119,37 +122,48 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
     ).apply(xhtml)
   }
   
-  def showAll = {
-    def noComments = ".container *" #> "No comments"
+  def showAll = 
     transaction.metadata match {
       case Some(metadata)  => 
         metadata.comments match {
           case Some(comments) => 
             if(comments.size==0)
-              noComments
+              ".comment" #> ""
             else
             ".container" #>
             { 
               def orderByDateDescending = (comment1 : Comment, comment2 : Comment) =>
                 comment1.datePosted.before(comment2.datePosted)
+              "#noComments" #> "" &
               ".comment" #>
-                comments.sort(orderByDateDescending).map(comment => {
-                  ".text *" #> {comment.text} &
-                  ".commentDate" #> {commentDateFormat.format(comment.datePosted)} &
+                comments.sort(orderByDateDescending).zipWithIndex.map(comment => {
+                  val commentId="comment_"+{comment._2 + 1 }
+                  ".commentLink * " #>{"#"+ {comment._2 + 1}} &
+                  ".commentLink [id]"#>commentId &                  
+                  ".commentLink [href]" #>{"#"+ commentId} & 
+                  ".text *" #> {comment._1.text} &
+                  ".commentDate *" #> {commentDateFormat.format(comment._1.datePosted)} &
                   ".userInfo *" #> {
-                      comment.postedBy match {
+                      comment._1.postedBy match {
                         case Full(user) => {" -- " + user.theFistName + " "+ user.theLastName}
                         case _ => "-- user not found" 
                       }
                   }
                 })
             }
-          case _ => noComments 
+          case _ => ".comment" #> "" 
         }
-      case _ => noComments
+      case _ => ".comment" #> ""
     }
+  
+  var commentsListSize = transaction.metadata match {
+    case Some(metadata) => metadata.comments match {
+      case Some(comments) => comments.size
+      case _ =>  0
+    }
+    case _ => 0 
   }
-
+  
   def addComment(xhtml: NodeSeq) : NodeSeq = {
     OBPUser.currentUser match {
       case Full(user) =>     
@@ -163,14 +177,22 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
                   SHtml.textarea("put a comment here",comment => {
                     commentText = comment
                     commentDate = new Date
-                    addComment(user.id,comment,commentDate)},
-                    ("rows","4"),("cols","50")) ++
+                    addComment(user.id, view.id, comment,commentDate)},
+                    ("rows","4"),("cols","50"),("id","addCommentTextArea") ) ++
                   SHtml.ajaxSubmit("add a comment",() => {
-                    val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map( 
+                    val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map({ 
+                      commentsListSize = commentsListSize + 1
+                      val commentId="comment_"+commentsListSize.toString
+                      ".commentLink * " #>{"#"+ commentsListSize} &
+                      ".commentLink [id]"#>commentId &                  
+                      ".commentLink [href]" #>{"#"+ commentId} & 
                       ".text *" #> {commentText} &
-                      ".commentDate" #> {commentDateFormat.format(commentDate)} &
+                      ".commentDate *" #> {commentDateFormat.format(commentDate)} &
                       ".userInfo *" #> { " -- " + user.theFistName + " "+ user.theLastName}
-                    )
+                    })
+                    val content = Str("")
+                    SetValById("addCommentTextArea",content)&
+                    SetHtml("noComments",NodeSeq.Empty) &
                     AppendHtml("comment_list",commentXml.getOrElse(NodeSeq.Empty))
                   },("id","submitComment"))
                 )
