@@ -53,7 +53,7 @@ import java.text.SimpleDateFormat
 import code.model.dataAccess.{OBPAccount,OBPUser}
 import net.liftweb.common.Loggable
 import code.model.dataAccess.Account
-import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias,Comment}
+import code.model.traits.{ModeratedTransaction,Public,Private,NoAlias,Comment, View}
 import java.util.Currency
 import net.liftweb.http.js.jquery.JqJsCmds.AppendHtml
 import net.liftweb.http.js.JsCmds.{SetHtml,SetValById} 
@@ -62,8 +62,9 @@ import net.liftweb.http.js.JE.Str
 /**
  * This whole class is a rather hastily put together mess
  */
-class Comments(transaction : ModeratedTransaction) extends Loggable{
-
+class Comments(transactionAndView : (ModeratedTransaction,View)) extends Loggable{
+  val transaction = transactionAndView._1
+  val view = transactionAndView._2
   val commentDateFormat = new SimpleDateFormat("kk:mm:ss EEE MMM dd yyyy")
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""  
   def commentPageTitle(xhtml: NodeSeq): NodeSeq = {
@@ -176,7 +177,7 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
                   SHtml.textarea("put a comment here",comment => {
                     commentText = comment
                     commentDate = new Date
-                    addComment(user.id,comment,commentDate)},
+                    addComment(user.id, view.id, comment,commentDate)},
                     ("rows","4"),("cols","50"),("id","addCommentTextArea") ) ++
                   SHtml.ajaxSubmit("add a comment",() => {
                     val commentXml = TemplateFinder.findAnyTemplate(List("templates-hidden","_comment")).map({ 
