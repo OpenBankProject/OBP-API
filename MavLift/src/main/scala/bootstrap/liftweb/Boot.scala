@@ -144,7 +144,7 @@ class Boot extends Loggable{
           transaction <- bankAccount.transaction(transactionID)
           view <- View.fromUrl(viewName)
           if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
-        } yield view.moderate(transaction)
+        } yield (view.moderate(transaction),view)
       }
       else
         Empty
@@ -171,7 +171,7 @@ class Boot extends Loggable{
           Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
           / "banks" / * / "accounts" / * / *,
 
-          Menu.params[ModeratedTransaction]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
+          Menu.params[(ModeratedTransaction,View)]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
           / "banks" / * / "accounts" / * / "transactions" / * / *           
     )
 

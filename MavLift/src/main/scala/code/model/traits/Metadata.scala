@@ -7,7 +7,7 @@ trait TransactionMetadata {
   def ownerComment : Option[String]
   def ownerComment(comment : String) : Unit 
   def comments : List[Comment]
-  def addComment(userId : Long, text : String, postedDate : Date) : Unit
+  def addComment(userId : Long, viewId : Long, text : String, postedDate : Date) : Unit
 }
 trait OtherBankAccountMetadata 
 {
