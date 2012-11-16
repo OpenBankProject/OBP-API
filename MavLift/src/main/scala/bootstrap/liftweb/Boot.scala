@@ -117,7 +117,7 @@ class Boot extends Loggable{
         b <- bankAccount
         v <- view
         if(b.authorisedAccess(v, OBPUser.currentUser))
-      } yield (b.getModeratedTransactions()(v.moderate), v)
+      } yield (b.getModeratedTransactions(v.moderate), v)
     }
     
     def getAccount(URLParameters : List[String]) = 
@@ -156,7 +156,6 @@ class Boot extends Loggable{
             check(OBPUser.loggedIn_?)
           }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
-          Menu.i("About") / "about",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
           
           Menu.i("Banks") / "banks", //no test => list of open banks
