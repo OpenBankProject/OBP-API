@@ -526,3 +526,7 @@ div#addCommentbloc
 	font-size: 13px;
 	display: block;	 
 }
+#account_details 
+{
+	margin-bottom: 25px;
+}
