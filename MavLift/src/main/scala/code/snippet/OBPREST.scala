@@ -218,7 +218,17 @@ import java.util.Date
 
           createdEnvelopes match {
             case Full(l: List[JObject]) =>{
-              Account.lastUpdate(new Date).save
+              if(matchingEnvelopes.size!=0)
+              {  
+                val accountNumber = matchingEnvelopes(0).obp_transaction.get.this_account.get.number.get
+                val bankName = matchingEnvelopes(0).obp_transaction.get.this_account.get.bank.get.name.get
+                val accountKind = matchingEnvelopes(0).obp_transaction.get.this_account.get.kind.get
+                Account.find(("number" -> accountNumber) ~ ("bankName" -> bankName) ~ ("kind" -> accountKind))
+                match {
+                  case Full(account) =>  account.lastUpdate(new Date).save
+                  case _ => 
+                }
+              }
               JsonResponse(JArray(l))
             }
             case _ => InternalServerErrorResponse()
@@ -326,7 +336,17 @@ import java.util.Date
 
         createdEnvelopes match {
           case Full(l: List[JObject]) =>{
-              Account.lastUpdate(new Date).save
+              if(matchingEnvelopes.size!=0)
+              {  
+                val accountNumber = matchingEnvelopes(0).obp_transaction.get.this_account.get.number.get
+                val bankName = matchingEnvelopes(0).obp_transaction.get.this_account.get.bank.get.name.get
+                val accountKind = matchingEnvelopes(0).obp_transaction.get.this_account.get.kind.get
+                Account.find(("number" -> accountNumber) ~ ("bankName" -> bankName) ~ ("kind" -> accountKind))
+                match {
+                  case Full(account) =>  account.lastUpdate(new Date).save
+                  case _ => 
+                }
+              }
               JsonResponse(JArray(l))
             } 
           case _ => InternalServerErrorResponse()
