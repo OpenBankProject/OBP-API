@@ -280,12 +280,8 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
     }
   }
   def hideSocialWidgets = {
-    if(view.name!="Anonymous") ".box *" #> ""
-    else ".box *+" #> "" 
+    if(view.name!="Anonymous") "#socialButtons *" #> NodeSeq.Empty
+    else NOOP_SELECTOR
   }
-  def socialAddress = 
-    ".fb-like [data-href]" #> S.uri &
-    ".twitter-share-button [data-url] " #> S.uri &
-    "g:plusone [href] " #> S.uri
 }
 
