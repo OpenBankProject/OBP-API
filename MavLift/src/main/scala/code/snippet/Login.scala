@@ -68,12 +68,4 @@ class Login {
     }
   }
 
-  def redirectTesobeAnonymousIfLoggedOut = {
-    if(!OBPUser.loggedIn_?){
-      S.redirectTo("banks/postbank/accounts/tesobe/anonymous")
-    }  else {
-      "*" #> NodeSeq.Empty
-    }
-  }
-
 }

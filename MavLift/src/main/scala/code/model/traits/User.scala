@@ -7,5 +7,6 @@ trait User {
   def theLastName : String
   def permittedViews(bankAccount: BankAccount) : Set[View]
   def hasMangementAccess(bankAccount: BankAccount)  : Boolean
+  def accountsWithMoreThanAnonAccess : Set[BankAccount]
   
 }
