@@ -12,6 +12,7 @@ case class AccountName(display: String, aliasType: AliasType)
 trait View {
 	  
   //e.g. "Anonymous", "Authorities", "Our Network", etc.
+  def id: Long
   def name: String
   def description : String
   def permalink : String
@@ -168,7 +169,8 @@ trait View {
     {
       val ownerComment = if (canSeeOwnerComment) transaction.metadata.ownerComment else None
       val comments = 
-        if (canSeeComments) Some(transaction.metadata.comments)
+        if (canSeeComments)
+          Some(transaction.metadata.comments.filter(comment => comment.viewId==id))
         else None
       val addCommentFunc= if(canAddComments) Some(transaction.metadata.addComment _) else None
       val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.ownerComment _) else None
@@ -213,6 +215,7 @@ trait View {
 
 //An implementation that has the least amount of permissions possible
 class BaseView extends View {
+  def id = 1
   def name = "Restricted"
   def permalink = "restricted"
   def description = ""
@@ -272,6 +275,7 @@ class BaseView extends View {
 }
 
 class FullView extends View {
+  def id = 2
   def name = "Full"
   def permalink ="full"
   def description = ""

@@ -1,3 +1,32 @@
+/** 
+Open Bank Project
+
+Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and 
+limitations under the License.      
+
+Open Bank Project (http://www.openbankproject.com)
+      Copyright 2011,2012 TESOBE / Music Pictures Ltd
+
+      This product includes software developed at
+      TESOBE (http://www.tesobe.com/)
+    by 
+    Simon Redfern : simon AT tesobe DOT com
+    Everett Sochowski: everett AT tesobe DOT com
+    Benali Ayoub : ayoub AT tesobe DOT com
+
+ */
+
 package code.snippet
 import scala.xml.NodeSeq
 import net.liftweb.http.S
@@ -18,22 +47,6 @@ import code.model.traits.BankAccount
 
 class Nav {
 
-  def group = {
-    val attrs = S.prefixedAttrsToMetaData("a")
-    val group = S.attr("group").getOrElse("")
-
-    val locs = (for{
-      sitemap <- LiftRules.siteMap
-    } yield sitemap.locForGroup(group)).getOrElse(List())
-    
-    ".navitem *" #> {
-      locs.map(l => {
-        ".navlink [href]" #> l.calcDefaultHref &
-        ".navlink *" #> l.linkText &
-        ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
-    })
-    }
-  }
   def eraseMenu = 
      "* * " #> ""  
   def views :net.liftweb.util.CssSel = {
@@ -91,9 +104,8 @@ class Nav {
 
     if (url.size > 4) getManagement getOrElse eraseMenu
     else eraseMenu
-
   }
-    
+  
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")
@@ -109,14 +121,13 @@ class Nav {
         ".navlink [class+]" #> markIfSelected(l.calcDefaultHref)
       })
     }
-  }
+  }      
   
   def privilegeAdmin = {
     val url = S.uri.split("/", 0)
 
     def hide = ".navitem *" #> ""
     def getPrivilegeAdmin = for {
-
       bankAccount <- BankAccount(url(2), url(4))
       if (OBPUser.hasOwnerPermission(bankAccount))
       loc <- new SiteMapSingleton().findAndTestLoc("Privilege Admin")
@@ -155,10 +166,12 @@ class Nav {
     {
       val bankAndaccount = selectValue.split(",",0)      
       if(bankAndaccount.size==2)
-        LocalStorage.getAccount(bankAndaccount(0), bankAndaccount(1)) match {
-          case Full(acc) => S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
-          case _ => _Noop
-        }
+        if (LocalStorage.correctBankAndAccount(bankAndaccount(0), bankAndaccount(1)))
+          //TODO : the account may not has an anonymous view, so this redirection would retun a 404
+          //a better solution has to be found
+          S.redirectTo("/banks/" + bankAndaccount(0) + "/accounts/" + bankAndaccount(1) +"/anonymous")
+        else 
+        _Noop
       else
         _Noop
     } 
