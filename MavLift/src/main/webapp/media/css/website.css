@@ -88,9 +88,7 @@ input.submit {
 
 #accountName {
 	font-size: 20px;
-	display: block;
-	margin-bottom: 20px;
-	float: left;	
+	display: inline-block;
 }
 
 #social {
@@ -521,4 +519,10 @@ div#addCommentbloc
 #submitComment
 {
 	display: block;
+}
+#lastUpdate
+{
+	margin-top: 5px;
+	font-size: 13px;
+	display: block;	 
 }
