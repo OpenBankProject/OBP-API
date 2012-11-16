@@ -27,28 +27,13 @@ Open Bank Project (http://www.openbankproject.com)
 -->
 <div class="lift:surround?with=default;at=content">
 
-<!-- Google Plus -->
-    <script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
-      {lang: 'en-GB'}
-    </script>
-
-	<div id="fb-root"></div>
-	<script>(function(d, s, id) {
-	  var js, fjs = d.getElementsByTagName(s)[0];
-	  if (d.getElementById(id)) return;
-	  js = d.createElement(s); js.id = id;
-	  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
-	  fjs.parentNode.insertBefore(js, fjs);
-	}(document, 'script', 'facebook-jssdk'));</script>
-	<!-- end Facebook like code -->
-
 	<div id="account_details" class="lift:OBPTransactionSnippet.accountDetails">
 		<span id="accountName">Account Name</span>
+		<span id="lastUpdate"></span>
 	</div>
-	
+
 	<div id="social">
 		<div class="lift:OBPTransactionSnippet.hideSocialWidgets">
-			<div class="box">
 				<!-- Facebook -->
 				<script>(function(d, s, id) {
 					  var js, fjs = d.getElementsByTagName(s)[0];
@@ -58,31 +43,30 @@ Open Bank Project (http://www.openbankproject.com)
 					  fjs.parentNode.insertBefore(js, fjs);
 					}(document, 'script', 'facebook-jssdk'));
 				</script>
-				<div class="fb-like" data-href="https://demo.openbankproject.com" data-send="false" data-layout="button_count" data-width="60"
-					data-show-faces="false"></div>
+				<div class="fb-like" data-href="https://demo.openbankproject.com" data-send="false" data-layout="button_count" data-width="60"data-show-faces="false"></div>
 	
-				<a href="https://twitter.com/share" class="twitter-share-button" data-url="https://demo.openbankproject.com" data-via="OpenBankProject" data-hashtags="openbankproject">Tweet</a>
-				<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+				<!-- Twitter -->
+<a href="https://twitter.com/share" class="twitter-share-button" data-via="openbankproject" data-lang="fr" data-hashtags="openbankproject">Tweeter</a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+
 				
-				    <!-- Google Plus -->
-				    <script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
-				      {lang: 'en-GB'}
-				    </script>
+				<!-- Google Plus -->
+				<script class="lift:head" type="text/javascript" src="https://apis.google.com/js/plusone.js">
+				    {lang: 'en-GB'}
+				 </script>
 				<g:plusone size="medium" href="https://demo.openbankproject.com"></g:plusone>
-			</div>
 			<div class="corner"></div>
 		</div>
     </div>
 	<div class="lift:OBPTransactionSnippet.displayAll">
 		<table class="transactions">
-
 			<thead>
 				<tr>
 					<th colspan="7">
 						<h5 class="date">March 10, 2012</h5>
 						<h6 class="balance">
-							<span class="text">Balance</span> <span
-								class="number balance_number">€2304.42</span>
+							<span class="text">Balance</span> 
+							<span class="number balance_number">€2304.42</span>
 						</h6>
 					</th>
 				</tr>
@@ -90,12 +74,8 @@ Open Bank Project (http://www.openbankproject.com)
 
 			<tbody>
 				<tr class="transaction_row">
-					<!-- Money going out -->
 					<td class="icon"><div class="out">Out</div></td>
 					<td class="symbol">-</td>
-					<!-- Money coming in -->
-<!-- 					<td class="icon"><div class="out">Out</div></td> -->
-<!-- 					<td class="symbol">-</td> -->
 					<td class="amount">€24.32</td>
 					<td class="name">
 					    <span class="the_name">Ronald Montgomery</span>
@@ -114,15 +94,10 @@ Open Bank Project (http://www.openbankproject.com)
 						    <a href="#" class="open_corporates_link">Open Corporates</a>
 					   </div>
 					</td>
-					<td class="comments"><a href="#" class="comments_ext"><span
-							class="comment">0</span> </a></td>
+					<td class="comments"><a href="#" class="comments_ext">
+						<span class="comment">0</span> </a></td>
 				</tr>
 			</tbody>
 		</table>
-
 	</div>
-    <!-- Google Plus -->
-    <script type="text/javascript" src="https://apis.google.com/js/plusone.js">
-      {lang: 'en-GB'}
-    </script>
 </div>

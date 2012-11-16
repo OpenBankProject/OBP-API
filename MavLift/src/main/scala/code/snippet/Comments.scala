@@ -135,7 +135,6 @@ class Comments(transaction : ModeratedTransaction) extends Loggable{
                 comment1.datePosted.before(comment2.datePosted)
               ".comment" #>
                 comments.sort(orderByDateDescending).zipWithIndex.map(comment => {
-                  println("--> comment # " + comment._2)
                   // ".commentLink" #>{"# "+ comment._2} &
                   // ".commentLink [href]" #>{S.uri+"#"+ comment._2} & 
                   // ".text *" #> {comment._1.text} &

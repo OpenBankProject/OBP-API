@@ -51,9 +51,6 @@ class TransactionMetadataImpl(narative : String, comments_ : List[Comment],
   def ownerComment(comment : String) = saveOwnerComment(comment)
   def comments : List[Comment] = comments_
   def addComment(userId: Long, text: String, datePosted : Date) : Unit = 
-  {
-    println("--> received values : " + userId + " "+ text + " " + datePosted)
     addCommentFunc(userId, text, datePosted)
-  }  
 }
 
