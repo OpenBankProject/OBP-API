@@ -218,10 +218,9 @@ import java.util.Date
             case Full(l: List[JObject]) =>{
               if(matchingEnvelopes.size!=0)
               {  
-                val accountNumber = matchingEnvelopes(0).obp_transaction.get.this_account.get.number.get
-                val bankName = matchingEnvelopes(0).obp_transaction.get.this_account.get.bank.get.name.get
-                val accountKind = matchingEnvelopes(0).obp_transaction.get.this_account.get.kind.get
-                Account.find(("number" -> accountNumber) ~ ("bankName" -> bankName) ~ ("kind" -> accountKind))
+                Account.find(("number" -> Props.get("exceptional_account_number").getOrElse("")) ~ 
+                  ("bankName" -> Props.get("exceptional_account_bankName").getOrElse("")) ~ 
+                  ("kind" -> Props.get("exceptional_account_kind").getOrElse("")))
                 match {
                   case Full(account) =>  account.lastUpdate(new Date).save
                   case _ => 
@@ -336,6 +335,7 @@ import java.util.Date
           case Full(l: List[JObject]) =>{
               if(envelopes.size!=0)
               {  
+                //we assume here that all the Envelopes concerns only one account 
                 val accountNumber = envelopes(0).get.obp_transaction.get.this_account.get.number.get
                 val bankName = envelopes(0).get.obp_transaction.get.this_account.get.bank.get.name.get
                 val accountKind = envelopes(0).get.obp_transaction.get.this_account.get.kind.get
