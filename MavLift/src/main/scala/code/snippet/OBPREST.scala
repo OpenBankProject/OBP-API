@@ -336,11 +336,11 @@ import java.util.Date
 
         createdEnvelopes match {
           case Full(l: List[JObject]) =>{
-              if(matchingEnvelopes.size!=0)
+              if(envelopes.size!=0)
               {  
-                val accountNumber = matchingEnvelopes(0).obp_transaction.get.this_account.get.number.get
-                val bankName = matchingEnvelopes(0).obp_transaction.get.this_account.get.bank.get.name.get
-                val accountKind = matchingEnvelopes(0).obp_transaction.get.this_account.get.kind.get
+                val accountNumber = envelopes(0).get.obp_transaction.get.this_account.get.number.get
+                val bankName = envelopes(0).get.obp_transaction.get.this_account.get.bank.get.name.get
+                val accountKind = envelopes(0).get.obp_transaction.get.this_account.get.kind.get
                 Account.find(("number" -> accountNumber) ~ ("bankName" -> bankName) ~ ("kind" -> accountKind))
                 match {
                   case Full(account) =>  account.lastUpdate(new Date).save

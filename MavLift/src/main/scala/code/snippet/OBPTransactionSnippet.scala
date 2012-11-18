@@ -256,7 +256,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
                 import java.text.SimpleDateFormat
                 LocalStorage.getAccount(url(2), url(4)) match {
                   case Full(account) => "#lastUpdate *"#> {
-                    val dateFormat = new SimpleDateFormat("EEE MMM dd yyyy")
+                    val dateFormat = new SimpleDateFormat("kk:mm EEE MMM dd yyyy")
                      if(!account.lastUpdate.asString.contains("Empty"))
                        "last update : " + dateFormat.format(account.lastUpdate.get)
                      else
