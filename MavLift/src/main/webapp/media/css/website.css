@@ -546,3 +546,9 @@ div#addCommentbloc
 {
 	display: block;
 }
+#lastUpdate
+{
+	margin-top: 5px;
+	font-size: 13px;
+	display: block;	 
+}
