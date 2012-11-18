@@ -258,7 +258,7 @@ class OBPTransactionSnippet (filteredTransactionsAndView : (List[ModeratedTransa
                   case Full(account) => "#lastUpdate *"#> {
                     val dateFormat = new SimpleDateFormat("kk:mm EEE MMM dd yyyy")
                      if(!account.lastUpdate.asString.contains("Empty"))
-                       "last update : " + dateFormat.format(account.lastUpdate.get)
+                       "Last updated : " + dateFormat.format(account.lastUpdate.get)
                      else
                        "Not yet updated"
                   }
