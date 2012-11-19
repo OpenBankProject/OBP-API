@@ -28,7 +28,7 @@
  */
 package com.tesobe.utils {
 
-  import code.actors.EnvelopeInserter
+import code.actors.EnvelopeInserter
 import net.liftweb.http._
 import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
@@ -61,7 +61,7 @@ import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ OBPEnvelope, OBPUser }
+import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser }
 import code.model.dataAccess.HostedAccount
 import code.model.dataAccess.LocalStorage
 import code.model.traits.ModeratedTransaction
@@ -72,6 +72,7 @@ import code.model.traits.BankAccount
 import code.model.implementedTraits.Anonymous
 import code.model.traits.Bank
 import code.model.traits.User
+import java.util.Date
 
   // Note: on mongo console db.chooseitems.ensureIndex( { location : "2d" } )
 
@@ -238,7 +239,19 @@ import code.model.traits.User
           val createdEnvelopes = EnvelopeInserter !? (3 seconds, matchingEnvelopes)
 
           createdEnvelopes match {
-            case Full(l: List[JObject]) => JsonResponse(JArray(l))
+            case Full(l: List[JObject]) =>{
+              if(matchingEnvelopes.size!=0)
+              {  
+                Account.find(("number" -> Props.get("exceptional_account_number").getOrElse("")) ~ 
+                  ("bankName" -> Props.get("exceptional_account_bankName").getOrElse("")) ~ 
+                  ("kind" -> Props.get("exceptional_account_kind").getOrElse("")))
+                match {
+                  case Full(account) =>  account.lastUpdate(new Date).save
+                  case _ => 
+                }
+              }
+              JsonResponse(JArray(l))
+            }
             case _ => InternalServerErrorResponse()
           }
         }
@@ -343,7 +356,21 @@ import code.model.traits.User
         val createdEnvelopes = EnvelopeInserter !? (3 seconds, envelopes.flatten)
 
         createdEnvelopes match {
-          case Full(l: List[JObject]) => JsonResponse(JArray(l))
+          case Full(l: List[JObject]) =>{
+              if(envelopes.size!=0)
+              {  
+                //we assume here that all the Envelopes concerns only one account 
+                val accountNumber = envelopes(0).get.obp_transaction.get.this_account.get.number.get
+                val bankName = envelopes(0).get.obp_transaction.get.this_account.get.bank.get.name.get
+                val accountKind = envelopes(0).get.obp_transaction.get.this_account.get.kind.get
+                Account.find(("number" -> accountNumber) ~ ("bankName" -> bankName) ~ ("kind" -> accountKind))
+                match {
+                  case Full(account) =>  account.lastUpdate(new Date).save
+                  case _ => 
+                }
+              }
+              JsonResponse(JArray(l))
+            } 
           case _ => InternalServerErrorResponse()
         }
       }

@@ -111,7 +111,7 @@ object ModeratedTransaction {
 }
 
 class ModeratedTransactionMetadata(filteredOwnerComment : Option[String], filteredComments : Option[List[Comment]], 
-  addOwnerComment : Option[(String => Unit)], addCommentFunc: Option[(Long, String, Date) => Unit])
+  addOwnerComment : Option[(String => Unit)], addCommentFunc: Option[(Long, Long, String, Date) => Unit])
   {
     def ownerComment = filteredOwnerComment
     def comments = filteredComments
