@@ -384,7 +384,7 @@ table.management th {
 }
 
 table.management th.account {
-	width: 195px;
+	width: 155px;
 }
 
 table.management td.account {
@@ -422,7 +422,7 @@ table.management td.website {
 }
 
 table.management th.information {
-	width: 230px;
+	width: 200px;
 }
 
 table.management td.information {
