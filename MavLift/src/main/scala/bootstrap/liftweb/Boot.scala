@@ -117,7 +117,7 @@ class Boot extends Loggable{
         b <- bankAccount
         v <- view
         if(b.authorisedAccess(v, OBPUser.currentUser))
-      } yield (b.getModeratedTransactions()(v.moderate), v)
+      } yield (b.getModeratedTransactions(v.moderate), v)
     }
     
     def getAccount(URLParameters : List[String]) = 
@@ -144,7 +144,7 @@ class Boot extends Loggable{
           transaction <- bankAccount.transaction(transactionID)
           view <- View.fromUrl(viewName)
           if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
-        } yield view.moderate(transaction)
+        } yield (view.moderate(transaction),view)
       }
       else
         Empty
@@ -156,7 +156,6 @@ class Boot extends Loggable{
             check(OBPUser.loggedIn_?)
           }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
-          Menu.i("About") / "about",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
           
           Menu.i("Banks") / "banks", //no test => list of open banks
@@ -171,7 +170,7 @@ class Boot extends Loggable{
           Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
           / "banks" / * / "accounts" / * / *,
 
-          Menu.params[ModeratedTransaction]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
+          Menu.params[(ModeratedTransaction,View)]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
           / "banks" / * / "accounts" / * / "transactions" / * / *           
     )
 

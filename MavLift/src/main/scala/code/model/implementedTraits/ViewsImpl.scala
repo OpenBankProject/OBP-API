@@ -47,18 +47,21 @@ object View
   }
 }
 object Team extends FullView {
+  override def id = 3
   override def name = "Team"
   override def permalink = "team"
   override def description = "A view for team members related to the account. E.g. for a company bank account -> employees/contractors"
   override def canEditOwnerComment= false
 }
 object Board extends FullView {
+  override def id = 4
   override def name = "Board"
   override def permalink = "board"
   override def description = "A view for board members of a company to view that company's account data."
   override def canEditOwnerComment= false    
 }
 object Authorities extends FullView {
+  override def id = 5
   override def name = "Authorities"
   override def permalink = "authorities"
   override def description = "A view for authorities such as tax officials to view an account's data"
@@ -77,7 +80,7 @@ object Anonymous extends BaseView {
    * If our network, and a private alias exists : Show the private alias
    * If our network, and no private alias exists : Show the real account holder
    */
-  
+  override def id = 6  
   override def name = "Anonymous"
   override def permalink = "anonymous" 
   override def description = "A view of the account accessible by anyone."
@@ -113,7 +116,9 @@ object Anonymous extends BaseView {
       Some(new ModeratedOtherBankAccount(transaction.otherAccount.id,otherAccountLabel,None,None,
           None, None, None, otherAccountMetadata))
     }
-    val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,None,None,None))
+    val transactionMetadata = Some(new ModeratedTransactionMetadata(
+      transaction.metadata.ownerComment,Some(transaction.metadata.comments.filter(comment => comment.viewId==id)),
+      None,Some(transaction.metadata.addComment _)))
     val transactionType = Some(transaction.transactionType)
     val transactionAmount = Some(transaction.amount)
     val transactionCurrency = Some(transaction.currency)
@@ -132,6 +137,7 @@ object Anonymous extends BaseView {
 
   object OurNetwork extends BaseView 
   {
+    override def id = 7
     override def name = "Our Network"
     override def permalink ="our-network"
     override def description = "A view for people related to the account in some way. E.g. for a company account this could include investors" +
@@ -159,7 +165,7 @@ object Anonymous extends BaseView {
           None, None, otherAccountMetadata))
     }      
     val transactionMetadata = Some(new ModeratedTransactionMetadata(transaction.metadata.ownerComment,
-      Some(transaction.metadata.comments),None,Some(transaction.metadata.addComment _)))
+      Some(transaction.metadata.comments.filter(comment => comment.viewId==id)),None,Some(transaction.metadata.addComment _)))
 
     val transactionType = Some(transaction.transactionType)
     val transactionAmount = Some(transaction.amount)
@@ -176,6 +182,7 @@ object Anonymous extends BaseView {
   }
 
 object Owner extends FullView {
+  override def id = 8  
   override def name="Owner"
   override def permalink = "owner"
 }
