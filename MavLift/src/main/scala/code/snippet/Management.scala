@@ -44,7 +44,7 @@ import net.liftweb.http.js.JsCmd
 class Management(currentAccount : Account) {
 
   val headers = (0, Sorter("text")) :: (5, DisableSorting()) :: (6, DisableSorting()) :: Nil
-  val sortList = (0, Sorting.DSC) :: Nil
+  val sortList = (0, Sorting.ASC) :: Nil
   
   val options = TableSorter.options(headers, sortList)
   
