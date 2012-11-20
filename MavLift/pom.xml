@@ -6,10 +6,10 @@
   
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.tesobe</groupId>
-  <artifactId>opan_bank</artifactId>
+  <artifactId>OBP-API</artifactId>
   <version>1.0</version>
   <packaging>war</packaging>
-  <name>Opan Bank</name>
+  <name>OBP-API</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.9.1</scala.version>
