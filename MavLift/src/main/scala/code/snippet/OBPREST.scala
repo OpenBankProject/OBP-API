@@ -175,8 +175,8 @@ import java.util.Date
         
     	for {
     	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
-    	  publicAccounts <- Full(bank.accounts.filter(_.allowAnnoymousAccess))
-    	} yield bankAccountSet2JsonResponse(publicAccounts)
+    	  availableAccounts <- Full(bank.accounts.filter(_.permittedViews(getUser).size!=0))
+    	} yield bankAccountSet2JsonResponse(availableAccounts)
     	
       }
       
