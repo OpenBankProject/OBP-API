@@ -67,6 +67,7 @@ trait LocalStorage extends Loggable {
 
   def getTransactions(bank: String, account: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]]
 
+  def allBanks : List[Bank]
   def getBank(name: String): Box[Bank]
 
   def getBankAccounts(bank: Bank): Set[BankAccount]
