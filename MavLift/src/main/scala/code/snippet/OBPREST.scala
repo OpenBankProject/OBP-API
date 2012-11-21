@@ -183,12 +183,21 @@ import java.util.Date
           JsonResponse(("accounts" -> accJson))
         }
         
-      	for {
-      	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
-      	  availableAccounts <- Full(bank.accounts.filter(_.permittedViews(user).size!=0))
-      	} yield bankAccountSet2JsonResponse(availableAccounts)
+        Bank(bankPermalink) match {
+          case Full(bank) => 
+          {
+            val availableAccounts = bank.accounts.filter(_.permittedViews(user).size!=0)
+            if(availableAccounts.size!=0)
+              bankAccountSet2JsonResponse(availableAccounts) 
+            else
+              InMemoryResponse(data, headers, Nil, httpCode)
+          }
+          case _ =>  {
+            val error = "bank " + bankPermalink + " not found"
+            InMemoryResponse(error.getBytes(), headers, Nil, 404)
+          }
+        }
       }
-      
       case "banks" :: Nil JsonGet json => {
         val banks = Bank.all
         
