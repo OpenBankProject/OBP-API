@@ -152,26 +152,7 @@ class Boot extends Loggable{
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege"  >> TestAccess(() => {
-            check(OBPUser.loggedIn_?)
-          }) >> LocGroup("admin") 
-          	submenus(Privilege.menus : _*),
-          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
-          
-          Menu.i("Banks") / "banks", //no test => list of open banks
-          //list of open banks (banks with a least a bank account with an open account)
-          Menu.param[Bank]("Bank", "bank", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
-          //list of open accounts in a specific bank
-          Menu.param[Bank]("Accounts", "accounts", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts", 
-          
-          //test if the bank exists and if the user have access to management page
-          Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management",
-          
-          Menu.params[(List[ModeratedTransaction], View)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") ) 
-          / "banks" / * / "accounts" / * / *,
-
-          Menu.params[(ModeratedTransaction,View)]("transaction", "transaction", getTransaction _ ,  t => List("") ) 
-          / "banks" / * / "accounts" / * / "transactions" / * / *           
+          Menu.i("OAuth") / "oauth" / "authorize" //OAuth authorization page            
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
