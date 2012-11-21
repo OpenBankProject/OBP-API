@@ -82,10 +82,24 @@ import java.util.Date
   object OBPRest extends RestHelper with Loggable {
 
 	val dateFormat = ModeratedTransaction.dateFormat
-	
+	private def getUser(httpCode : Int, tokenID : Box[String]) : Box[OBPUser] = 
+  if(httpCode==200)
+  {
+    import code.model.Token
+    Token.find(By(Token.key, tokenID.get)) match {
+      case Full(token) => OBPUser.find(By(OBPUser.id, token.userId))
+      case _ => Empty   
+    }         
+  }
+  else 
+    Empty 
+
     serve("obp" / "v1.0" prefix {
       case bankAlias :: "accounts" :: accountAlias :: "transactions" :: viewName :: Nil JsonGet json => {
-
+        import code.snippet.OAuthHandshake._
+        val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET") 
+        val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil 
+        
         def asInt(s: Box[String], default: Int): Int = {
           s match {
             case Full(str) => tryo { str.toInt } getOrElse default
@@ -123,26 +137,22 @@ import java.util.Date
           } else Nil
         }
         
-        def getUser() : Box[OBPUser] = {
-          None //TODO: Implement oAuth
-        }
-        
         val transactions = for {
           b <- bankAccount
           v <- View.fromUrl(viewName) //TODO: This will have to change if we implement custom view names for different accounts
-        } yield getTransactions(b, v, getUser())
+        } yield getTransactions(b, v, getUser(httpCode,oAuthParameters.get("oauth_token")))
         
         transactions match {
           case Full(t) => t
-          case _ => NotFoundResponse("no account found")
+          case _ => InMemoryResponse(data, headers, Nil, 401)
         }
       }
       
       case bankPermalink :: "accounts" :: Nil JsonGet json => {
-
-        def getUser() : Box[User] = {
-          None
-        }
+        import code.snippet.OAuthHandshake._
+        val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET") 
+        val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil 
+        val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
         
         def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
           
@@ -158,26 +168,25 @@ import java.util.Date
               ("method" -> "GET") ~
               ("title" -> "Get information about one account")
             })
-            
             ("links" -> viewsJson)
           }
            
           val accJson = bankAccounts.map(bAcc => {
-            val views = bAcc.permittedViews(getUser())
+            val views = bAcc.permittedViews(user)
             ("number" -> bAcc.number) ~
-              ("account_alias" -> bAcc.label) ~
-              ("owner_description" -> "") ~
-              ("views_available" -> views.map(view2Json)) ~
-              views2LinksJson(views, bAcc.permalink)
+            ("account_alias" -> bAcc.label) ~
+            ("owner_description" -> "") ~
+            ("views_available" -> views.map(view2Json)) ~
+            views2LinksJson(views, bAcc.permalink)
           })
+        
           JsonResponse(("accounts" -> accJson))
         }
         
-    	for {
-    	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
-    	  availableAccounts <- Full(bank.accounts.filter(_.permittedViews(getUser).size!=0))
-    	} yield bankAccountSet2JsonResponse(availableAccounts)
-    	
+      	for {
+      	  bank <- Bank(bankPermalink) ?~ { "bank " + bankPermalink + " not found"}
+      	  availableAccounts <- Full(bank.accounts.filter(_.permittedViews(user).size!=0))
+      	} yield bankAccountSet2JsonResponse(availableAccounts)
       }
       
       case "banks" :: Nil JsonGet json => {
@@ -198,7 +207,6 @@ import java.util.Date
             ("links" -> linkJson(bank))
           })
         }
-        
         JsonResponse("banks" -> banksJson)
       }
     }
