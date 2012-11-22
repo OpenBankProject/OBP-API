@@ -39,9 +39,9 @@ import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.mongodb.record.field.DateField
 import net.liftweb.common.{ Box, Empty, Full }
-import net.liftweb.mongodb.record.field.BsonRecordListField
+import net.liftweb.mongodb.record.field.{BsonRecordListField,ObjectIdRefField}
 import net.liftweb.mongodb.record.{ BsonRecord, BsonMetaRecord }
-import net.liftweb.record.field.{ StringField, BooleanField }
+import net.liftweb.record.field.{ StringField, BooleanField}
 import net.liftweb.mongodb.{Limit, Skip}
 import code.model.dataAccess.OBPEnvelope._
 import code.model.traits.ModeratedTransaction
@@ -63,18 +63,25 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
   object name extends StringField(this, 255)
-  object bankName extends StringField(this, 255)
   object permalink extends StringField(this, 255)
-  object bankPermalink extends StringField(this, 255)
+  object bankID extends ObjectIdRefField(this, HostedBank)
   object label extends StringField(this, 255)
   object currency extends StringField(this, 255)
   object iban extends StringField(this, 255)
   object lastUpdate extends DateField(this)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
 
+  def bankName : String = bankID.obj match	{
+    case Full(bank) => bank.name.get
+    case _ => "" 
+  }
+  def bankPermalink : String  = bankID.obj match	{
+    case Full(bank) => bank.permalink.get
+    case _ => "" 
+  }
   def baseQuery = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
     put("obp_transaction.this_account.kind").is(kind.get).
-    put("obp_transaction.this_account.bank.name").is(bankName.get)
+    put("obp_transaction.this_account.bank.name").is(bankName)
 
   //find all the envelopes related to this account 
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery.get)
@@ -169,7 +176,7 @@ object Account extends Account with MongoMetaRecord[Account] {
   def toBankAccount(account: Account): BankAccount = {
     val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
     var bankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString, account.currency.toString, account.label.toString,
-      "", None, iban, account.anonAccess.get, account.number.get, account.bankName.get, account.bankPermalink.get, account.permalink.get)
+      "", None, iban, account.anonAccess.get, account.number.get, account.bankName, account.bankPermalink, account.permalink.get)
     val owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
     bankAccount.owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
     
@@ -193,3 +200,18 @@ class OtherAccount private () extends BsonRecord[OtherAccount] {
 }
 
 object OtherAccount extends OtherAccount with BsonMetaRecord[OtherAccount]
+
+class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
+  def meta = HostedBank
+
+  object name extends StringField(this, 255)
+  object alias extends StringField(this, 255)
+  object logo extends StringField(this, 255)
+  object website extends StringField(this, 255)
+  object email extends StringField(this, 255)
+  object permalink extends StringField(this, 255)
+  object SWIFT_BIC extends StringField(this, 255)
+  object national_identifier extends StringField(this, 255)
+}
+
+object HostedBank extends HostedBank with MongoMetaRecord[HostedBank]

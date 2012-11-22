@@ -320,7 +320,7 @@ class HostedAccount extends LongKeyedMapper[HostedAccount] {
       case _ => "" 
     }
     def bank : String = theAccount match {
-      case Full(account) => account.bankName.get
+      case Full(account) => account.bankName
       case _ => ""
     }
     def number : String = theAccount match {
