@@ -146,7 +146,7 @@ class MongoDBLocalStorage extends LocalStorage {
      * 
      */
     val accountForBank = Account.find("bankPermalink", permalink)
-    accountForBank.map(acc => new BankImpl("", acc.bankName.get, permalink))
+    accountForBank.map(acc => new BankImpl("", acc.bankName, permalink))
   }
   
   def allBanks : List[Bank] = {
