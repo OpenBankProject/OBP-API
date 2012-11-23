@@ -135,35 +135,13 @@ class MongoDBLocalStorage extends LocalStorage {
       }
   }
 
-  def getBank(permalink: String): Box[Bank] = {
-    /**
-     * As banks are not actually represented anywhere in the system as a single object (yet?), but are rather more
-     * abstract entities referenced by permalink in transactions and accounts, we can't just as the data store
-     * for a bank by permalink.
-     * 
-     * Until a bank model is defined (and I suggest this doesn't happen until we have a nice interface for CRUD ops on banks
-     *  as mucking around with the database manually isn't worth the time IMO -E.S.), this hacky way of doing things will apply:
-     * 
-     */
-    val accountForBank = Account.find("bankPermalink", permalink)
-    accountForBank.map(acc => new BankImpl("", acc.bankName, permalink))
-  }
+  def getBank(permalink: String): Box[Bank] = 
+    HostedBank.find("permalink", permalink).
+      map( bank => new BankImpl(bank.id.toString, bank.name.get, permalink))
   
-  def allBanks : List[Bank] = {
-    //query collects a list of all the distinct values of Account.bankPermalink found in the db
-    val bankPermalinks = Account.useColl(_.distinct("bankPermalink"))
-    val banks : List[Box[Bank]] = bankPermalinks match {
-      case permalinks: ArrayList[String] => {
-        import scala.collection.JavaConversions._
-        permalinks.toList.map(getBank)
-      }
-      case _ => {
-        logger.warn("Conversion from java List to scala List[String] didn't work as expected. No banks will be returned")
-        Nil
-      }
-    }
-    banks.flatten
-  }
+  def allBanks : List[Bank] = 
+  HostedBank.findAll.
+    map(bank => new BankImpl(bank.id.toString, bank.name.get, bank.permalink.get))
   
   def getBankAccounts(bank: Bank): Set[BankAccount] = {
     val rawAccounts = Account.findAll("bankName", bank.name).toSet
