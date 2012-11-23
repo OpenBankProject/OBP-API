@@ -35,7 +35,7 @@ import http._
 import sitemap._
 import Loc._
 import mapper._
-import code.model.dataAccess.{MongoConfig,OBPUser,Privilege,Account, MongoDBLocalStorage, HostedAccount}
+import code.model.dataAccess.{MongoConfig,OBPUser,Privilege,Account, HostedBank, MongoDBLocalStorage, HostedAccount}
 import code.model.{Nonce, Consumer, Token}
 import code.model.traits.{Bank, View, ModeratedTransaction}
 import code.model.implementedTraits.{BankImpl, Anonymous, View}
@@ -189,6 +189,7 @@ class Boot extends Loggable{
     /**
      * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
      */
+
     Account.find(("holder", "Music Pictures Limited")) match{
       case Full(a) => 
         HostedAccount.find(By(HostedAccount.accountID,a.id.toString)) match {
