@@ -1,35 +1,39 @@
-README
+# README
 
-Welcome to the Open Bank Project Social Finance / Transparency Web Application!
+Welcome to the Open Bank Project API 
 
-ABOUT
+## ABOUT
 
-This appliation demostrates some of the principles of the Open Bank Project:
+The API aims to provide a read only access to bank transaction in a simple and consistent structure by abstracting away the peculiarities of each banking system. 
 
-1) Sliding scale of privacy and disclosure. e.g. Use aliases to protect real names but still show the flow of money .
-2) Different views on account data (Public / Share holders / Team etc.) e.g. hide balances on public view.
-3) Comment on transactions
-4) Add other meta data e.g. tags / images to transactions / payees.
+The API aims also to facilitate the data sharing with users, with several level of details in a secure way and to enhance the raw transactions with some metadata : comments, tags, pictures etc.
 
+The API provides also OAuth 1.0 authentication.
 
-STATUS
+## Document 
 
-Currently this repository also contains API code - but that is in the process of moving to https://github.com/OpenBankProject/OBP-API
+Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to see the API specification. 
 
 
-LICENSE
+## STATUS
+
+For the moment some ready only API calls are implemented, by in the future there will be write API calls to post metadata like : comments, pictures, etc.
+
+
+## LICENSE
 
 This project is dual licensed under the AGPL V3 (see NOTICE) and a commercial license from TESOBE
 Some files (OAuth related) are licensed under the Apache 2 license.
 
-SETUP
+## SETUP
 
-The project is using sbt or Maven 2 as a build tool.
-See build.scala or pom.xml respectively for the dependencies.
+We recommend to use the Vagrant and Puppet scripts available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+
+Other wise the project is using sbt or Maven 2 as a build tool.
 
 ----
 
-To compile and run jetty, cd into the root directory (where this file is) and run:
+To compile and run jetty, cd into the "MavLift" directory and run:
 
 $ sbt
 ...
@@ -42,25 +46,8 @@ In OS X, sbt can be installed with $ sudo port install sbt
 
 ----
 
-
 Alternatively, maven can also be used:
 
 mvn jetty:run
 
-Note: You may need to add the pluginGroup to the $HOME/.m2/settings.xml
-
-<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
-                      http://maven.apache.org/xsd/settings-1.0.0.xsd">
-  ...
-  <pluginGroups>
-    <pluginGroup>org.mortbay.jetty</pluginGroup>
-  </pluginGroups>
-  ...
-</settings>
-
----
-
 You need to install MongoDB and create an empty database called "OBP006".
-
