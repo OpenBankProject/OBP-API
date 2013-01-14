@@ -1,29 +1,32 @@
 /** 
-Open Bank Project
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.      
+Email: contact@tesobe.com 
+TESOBE / Music Pictures Ltd 
+Osloerstrasse 16/17
+Berlin 13359, Germany
 
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-    by 
-    Simon Redfern : simon AT tesobe DOT com
-    Everett Sochowski: everett AT tesobe DOT com
-    Benali Ayoub : ayoub AT tesobe DOT com
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by 
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
 
  */
 package code.model.dataAccess
@@ -39,6 +42,7 @@ import net.liftweb.mapper.By
 import net.liftweb.mongodb.MongoDB
 import com.mongodb.BasicDBList
 import java.util.ArrayList
+import org.bson.types.ObjectId
 
 object LocalStorage extends MongoDBLocalStorage
 
@@ -67,7 +71,6 @@ trait LocalStorage extends Loggable {
 
   def getTransactions(bank: String, account: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]]
 
-  def allBanks : List[Bank]
   def getBank(name: String): Box[Bank]
 
   def getBankAccounts(bank: Bank): Set[BankAccount]
@@ -110,7 +113,7 @@ class MongoDBLocalStorage extends LocalStorage {
         bankName_ = "", //TODO: need to add this to the json/model
         metadata_ = new OtherBankAccountMetadataImpl(oAcc.publicAlias.get, oAcc.privateAlias.get, oAcc.moreInfo.get,
         oAcc.url.get, oAcc.imageUrl.get, oAcc.openCorporatesUrl.get))
-    val metadata = new TransactionMetadataImpl(env.narrative.get, env.obp_comments.get,
+    val metadata = new TransactionMetadataImpl(env.narrative.get, env.obp_comments.objs,
       (text => env.narrative(text).save), env.addComment _)
     val transactionType = env.obp_transaction.get.details.get.type_en.get
     val amount = env.obp_transaction.get.details.get.value.get.amount.get
@@ -126,39 +129,52 @@ class MongoDBLocalStorage extends LocalStorage {
   def getTransactions(permalink: String, bankPermalink: String, envelopesForAccount: Account => List[OBPEnvelope]): Box[List[Transaction]] =
   {
       logger.debug("getTransactions for " + bankPermalink + "/" + permalink)
-      Account.find(("permalink" -> permalink) ~ ("bankPermalink" -> bankPermalink)) match {
-        case Full(account) => {
-          val envs = envelopesForAccount(account)
-          Full(envs.map(createTransaction(_, account)))
-        }
+      HostedBank.find("permalink",bankPermalink) match {
+        case Full (bank) => bank.getAccount(permalink) match {
+            case Full(account) => {
+              val envs = envelopesForAccount(account)
+              Full(envs.map(createTransaction(_, account)))
+            }
+            case _ => Empty
+          }
         case _ => Empty
-      }
+      }      
   }
 
   def getBank(permalink: String): Box[Bank] = 
     HostedBank.find("permalink", permalink).
       map( bank => new BankImpl(bank.id.toString, bank.name.get, permalink))
   
+  
   def allBanks : List[Bank] = 
   HostedBank.findAll.
     map(bank => new BankImpl(bank.id.toString, bank.name.get, bank.permalink.get))
   
   def getBankAccounts(bank: Bank): Set[BankAccount] = {
-    val rawAccounts = Account.findAll("bankName", bank.name).toSet
+    val bankId = new ObjectId(bank.id)
+    val rawAccounts = Account.findAll(("bankID" -> bankId)).toSet
     rawAccounts.map(Account.toBankAccount)
   }
   
   //check if the bank and the accounts exist in the database
   def correctBankAndAccount(bank: String, account: String): Boolean =
-    Account.count(("permalink" -> account) ~ ("bankPermalink" -> bank)) == 1
-  
+    HostedBank.find("permalink",bank) match {
+        case Full(bank) => bank.isAccount(account)
+        case _ => false
+      }
   def getAccount(bankpermalink: String, account: String): Box[Account] =
-    Account.find(("permalink" -> account) ~ ("bankPermalink" -> bankpermalink))
+    HostedBank.find("permalink",bankpermalink) match {
+      case Full (bank) => bank.getAccount(account)
+      case _ => Empty
+    }
+    
   def getTransaction(id : String, bankPermalink : String, accountPermalink : String) : Box[Transaction] = 
   {
     for{
-      account  <- Account.find(("permalink" -> accountPermalink) ~ ("bankPermalink" -> bankPermalink))
-      envelope <- OBPEnvelope.find(id) 
+      bank <- HostedBank.find("permalink",bankPermalink)
+      account  <- bank.getAccount(accountPermalink)
+      ifTransactionsIsInAccount <- Full(account.transactionsForAccount.put("_id").is(new ObjectId(id)).get)
+      envelope <- OBPEnvelope.find(ifTransactionsIsInAccount)
     } yield createTransaction(envelope,account)
   }
 
