@@ -4,21 +4,21 @@ Welcome to the Open Bank Project API
 
 ## ABOUT
 
-The API aims to provide a read only access to bank transaction in a simple and consistent structure by abstracting away the peculiarities of each banking system. 
+The Open Bank Project is an open source API for banks that enables account holders to interact with their transaction data using a wider range of applications and services. 
+The OBP API supports transparency options (enabling account holders to share configurable views of their transaction data with trusted individuals and even the publi, 
+data blurring (to preserve sensitive information) and data enrichment (enabling users to add tags, comments and images to transactions). 
 
-The API aims also to facilitate the data sharing with users, with several level of details in a secure way and to enhance the raw transactions with some metadata : comments, tags, pictures etc.
+Thus, the OBP API aims to abstract away the peculiarities of each core banking system so that a wide range of apps can read (and one day write) transactions to many banks.
 
-The API provides also OAuth 1.0 authentication.
+The API provides OAuth 1.0 authentication.
 
-## Document 
+## DOCUMENTATION 
 
 Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to see the API specification. 
 
-
 ## STATUS
 
-For the moment some ready only API calls are implemented, by in the future there will be write API calls to post metadata like : comments, pictures, etc.
-
+Currently most of the read only API calls are implemented.
 
 ## LICENSE
 
