@@ -1,29 +1,32 @@
 /** 
-Open Bank Project
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.      
+Email: contact@tesobe.com 
+TESOBE / Music Pictures Ltd 
+Osloerstrasse 16/17
+Berlin 13359, Germany
 
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-    by 
-    Simon Redfern : simon AT tesobe DOT com
-    Everett Sochowski: everett AT tesobe DOT com
-    Benali Ayoub : ayoub AT tesobe DOT com
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by 
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
 
  */
 
@@ -31,19 +34,32 @@ package code.model.implementedTraits
 
 import code.model.traits._
 import net.liftweb.common.{Box,Empty, Full}
-object View 
-{
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.JObject
+
+object View {
   //transforme the url into a view 
   //TODO : load the view from the Data base
-  def fromUrl(viewNameURL: String): Box[View] = 
-  viewNameURL match {
-    case "authorities" => Full(Authorities)
-    case "board" => Full(Board)
-    case "our-network" => Full(OurNetwork)
-    case "team" => Full(Team)
-    case "owner" => Full(Owner)
-    case "anonymous" => Full(Anonymous)
-    case _ => Empty
+  def fromUrl(viewNameURL: String): Box[View] =
+    viewNameURL match {
+      case "authorities" => Full(Authorities)
+      case "board" => Full(Board)
+      case "our-network" => Full(OurNetwork)
+      case "team" => Full(Team)
+      case "owner" => Full(Owner)
+      case "anonymous" => Full(Anonymous)
+      case _ => Empty
+    }
+
+  def linksJson(views: Set[View], accountPermalink: String, bankPermalink: String): JObject = {
+    val viewsJson = views.map(view => {
+      ("rel" -> "account") ~
+        ("href" -> { "/" + bankPermalink + "/account/" + accountPermalink + "/" + view.permalink }) ~
+        ("method" -> "GET") ~
+        ("title" -> "Get information about one account")
+    })
+
+    ("links" -> viewsJson)
   }
 }
 object Team extends FullView {
@@ -84,12 +100,28 @@ object Anonymous extends BaseView {
   override def name = "Anonymous"
   override def permalink = "anonymous" 
   override def description = "A view of the account accessible by anyone."
+    
+  //Bank account fields
+  override def canSeeBankAccountOwners = true
+  override def canSeeBankAccountType = true
+  override def canSeeBankAccountBalancePositiveOrNegative = true
+  override def canSeeBankAccountCurrency = true
+  override def canSeeBankAccountLabel = true
+  override def canSeeBankAccountNationalIdentifier = true
+  override def canSeeBankAccountSwift_bic = true
+  override def canSeeBankAccountIban = true
+  override def canSeeBankAccountNumber = true
+  override def canSeeBankAccountName = true
+    
   override def moderate(transaction: Transaction): ModeratedTransaction = {
     
     val transactionId = transaction.id //toString().startsWith("-")) "-" else "+"
+    val accountBalance = "" //not used when displaying transactions, but we might eventually need it. if so, we need a ref to
+      //the bank account so we could do something like if(canSeeBankAccountBalance) bankAccount.balance else if
+      // canSeeBankAccountBalancePositiveOrNegative {show + or -} else ""
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, 
       Some(transaction.thisAccount.owners), Some(transaction.thisAccount.accountType), 
-      if(transaction.thisAccount.toString().startsWith("-")) "-" else "+", Some(transaction.thisAccount.currency), 
+      accountBalance, Some(transaction.thisAccount.currency), 
       Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
       Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {
@@ -144,8 +176,11 @@ object Anonymous extends BaseView {
     	" or current/potential clients"
     override def moderate(transaction: Transaction): ModeratedTransaction = {
     val transactionId = transaction.id
+    val accountBalance = "" //not used when displaying transactions, but we might eventually need it. if so, we need a ref to
+      //the bank account so we could do something like if(canSeeBankAccountBalance) bankAccount.balance else if
+      // canSeeBankAccountBalancePositiveOrNegative {show + or -} else ""
     val thisBankAccount = Some(new ModeratedBankAccount(transaction.thisAccount.id, None, None, 
-      transaction.thisAccount.toString(), Some(transaction.thisAccount.currency), 
+      accountBalance, Some(transaction.thisAccount.currency), 
       Some(transaction.thisAccount.label),None, None, None, Some(transaction.thisAccount.number),
       Some(transaction.thisAccount.bankName)))
     val otherBankAccount = {

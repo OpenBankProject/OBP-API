@@ -1,29 +1,32 @@
 /** 
-Open Bank Project
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.      
+Email: contact@tesobe.com 
+TESOBE / Music Pictures Ltd 
+Osloerstrasse 16/17
+Berlin 13359, Germany
 
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-		by 
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
-    Benali Ayoub : ayoub AT tesobe DOT com
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by 
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
 
  */
 package bootstrap.liftweb
@@ -49,7 +52,8 @@ import net.liftweb.util.Schedule
 import net.liftweb.mongodb.BsonDSL._
 import code.model.dataAccess.LocalStorage
 import code.model.traits.BankAccount
-
+import net.liftweb.http.js.jquery.JqJsCmds
+import javax.mail.{ Authenticator, PasswordAuthentication }
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -73,6 +77,13 @@ class Boot extends Loggable{
 
       DB.defineConnectionManager(DefaultConnectionIdentifier, vendor)
     }
+    Mailer.authenticator = for { 
+      user <- Props.get("mail.username")
+      pass <- Props.get("mail.password") 
+    } yield new Authenticator {
+      override def getPasswordAuthentication = 
+        new PasswordAuthentication(user,pass) 
+    }    
 
     // Use Lift's Mapper ORM to populate the database
     // you don't need to use Mapper to use Lift... use
@@ -96,8 +107,7 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
     //lunch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthHandshake.dataBaseCleaner, 2 minutes)   
-
-
+    
     def check(bool: Boolean) : Box[LiftResponse] = {
       if(bool){
         Empty
@@ -111,26 +121,36 @@ class Boot extends Loggable{
       val bank = URLParameters(0)
       val account = URLParameters(1)
       val viewName = URLParameters(2)
-      val bankAccount = BankAccount(bank, account)
-      val view = View.fromUrl(viewName)
       
-      for {
-        b <- bankAccount
-        v <- view
+      val transactionsAndView : Box[(List[ModeratedTransaction], View)] = for {
+        b <- BankAccount(bank, account) ?~ {"account " + account + " not found for bank " + bank} 
+        v <- View.fromUrl(viewName) ?~ {"view " + viewName + " not found for account " + account + " and bank " + bank} 
         if(b.authorisedAccess(v, OBPUser.currentUser))
       } yield (b.getModeratedTransactions(v.moderate), v)
+
+      transactionsAndView match {
+        case Failure(msg, _, _) => logger.info("Could not get transactions and view: " + msg)
+        case _ => //don't log anything
+      }
+      transactionsAndView
     }
     
     def getAccount(URLParameters : List[String]) = 
     {
       val bankUrl = URLParameters(0)
       val accountUrl = URLParameters(1)
-      for {
-        account <- LocalStorage.getAccount(bankUrl,accountUrl)
-        user <- OBPUser.currentUser
-        bankAccount <- BankAccount(bankUrl, accountUrl)
+      val account = for {
+        account <- LocalStorage.getAccount(bankUrl,accountUrl) ?~ {"account " + accountUrl + " not found for bank " + bankUrl} 
+        user <- OBPUser.currentUser  ?~ {"user not found when attempting to access account " + account + " of bank " + bankUrl}
+        bankAccount <- BankAccount(bankUrl, accountUrl) ?~ {"account " + account + " not found for bank " + bankUrl}
         if(user.hasMangementAccess(bankAccount))
       } yield account
+      
+      account match {
+        case Failure(msg, _, _) => logger.info("Could not get account: " + msg)
+        case _ => //don't log anything
+      }
+      account
     }
     def getTransaction(URLParameters : List[String]) = 
     {
@@ -140,12 +160,18 @@ class Boot extends Loggable{
         val account = URLParameters(1)
         val transactionID = URLParameters(2)
         val viewName = URLParameters(3)
-        for{
-          bankAccount <- BankAccount(bank, account)
-          transaction <- bankAccount.transaction(transactionID)
-          view <- View.fromUrl(viewName)
+        val transaction = for{
+          bankAccount <- BankAccount(bank, account) ?~ {"account " + account + " not found for bank " + bank} 
+          transaction <- bankAccount.transaction(transactionID) ?~ {"transaction " + transactionID + " not found in account " + account + " for bank " + bank} 
+          view <- View.fromUrl(viewName) ?~ {"view " + viewName + " not found"}
           if(bankAccount.authorisedAccess(view, OBPUser.currentUser))  
         } yield (view.moderate(transaction),view)
+        
+      transaction match {
+        case Failure(msg, _, _) => logger.info("Could not get transaction: " + msg)
+        case _ => //don't log anything
+      }
+      transaction
       }
       else
         Empty
@@ -158,7 +184,8 @@ class Boot extends Loggable{
           }) >> LocGroup("admin") 
           	submenus(Privilege.menus : _*),
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page            
-          
+          Menu.i("Connect") / "connect", 
+
           Menu.i("Banks") / "banks", //no test => list of open banks
           //list of open banks (banks with a least a bank account with an open account)
           Menu.param[Bank]("Bank", "bank", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
