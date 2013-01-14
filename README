@@ -1,8 +1,31 @@
-This project contains some try outs so far.
+README
 
-The project is using sbt or Maven 2 as a build tool. See build.scala or pom.xml respectively for the dependencies.
+Welcome to the Open Bank Project Social Finance / Transparency Web Application!
 
-I used IntelliJ IDEA as my IDE. It has nice autocompletion.
+ABOUT
+
+This appliation demostrates some of the principles of the Open Bank Project:
+
+1) Sliding scale of privacy and disclosure. e.g. Use aliases to protect real names but still show the flow of money .
+2) Different views on account data (Public / Share holders / Team etc.) e.g. hide balances on public view.
+3) Comment on transactions
+4) Add other meta data e.g. tags / images to transactions / payees.
+
+
+STATUS
+
+Currently this repository also contains API code - but that is in the process of moving to https://github.com/OpenBankProject/OBP-API
+
+
+LICENSE
+
+This project is dual licensed under the AGPL V3 (see NOTICE) and a commercial license from TESOBE
+Some files (OAuth related) are licensed under the Apache 2 license.
+
+SETUP
+
+The project is using sbt or Maven 2 as a build tool.
+See build.scala or pom.xml respectively for the dependencies.
 
 ----
 
@@ -37,45 +60,7 @@ Note: You may need to add the pluginGroup to the $HOME/.m2/settings.xml
   ...
 </settings>
 
-----
+---
 
+You need to install MongoDB and create an empty database called "OBP006".
 
-
-To test one of the URL's use:
-curl http://localhost:8080/mongodb
-
-Other important files:
- Boot.scala
- SomeThing.scala - This file contains the URL routes (like urls.py) and my try outs- See serve case Req
-
-
-----
-
-
-I tried several approaches for scala talking to mongodb
-
-Lift Record: works for inserts and simple (inc geo) queries. but i couldn't figure out how to sort.
-Rogue: I got this to import but couldn't get the "where" syntax to compile.
-Casbah: works including sorting. :-)
-
-Casbah is the officialy supported Scala driver for MongoDB. It is a thin wrapper for the Java driver which is very well used
-so I guess its a good choice at least until we understand how to use Lift Record/ Rogue better.
-We can still use Lift Record for inserts etc.
-
-It also has a full time developer working on it. The documentation tends to lack examples, but this helps:
-https://github.com/mongodb/casbah/blob/master/casbah-query/src/test/scala/DSLCoreOperatorsSpec.scala#L861-984
-
-You'll also need to add the import statement to get the query syntax:
-import com.mongodb.casbah.query.Imports._
-
-To start mongodb
-sudo mongod
-
-
-Note: you might want to look at the mongo data from the mongo command line:
- db.chooseitems.find( { location : { $near : [2,2] } } )
-
- etc.
-
-
- s.r.

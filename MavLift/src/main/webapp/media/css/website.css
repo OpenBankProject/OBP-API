@@ -80,7 +80,7 @@ input.submit {
 	background: transparent url(../images/header.png) repeat-x 50% 100%;
 }
 
-#accountName {
+#accountShortDiscription {
 	font-size: 20px;
 	display: inline-block;
 }
@@ -96,11 +96,12 @@ input.submit {
 }
 
 #about_text {
-	text-align: left;
-	width: 600px;
-	margin-left: auto;
-	margin-right: auto;
+	text-align: justify;
+	width: 500px;
 	margin-top: 15px;
+	float: left;
+	margin-left: 20px;
+	margin-right: 20px;
 }
 
 #nav ul {
@@ -495,23 +496,13 @@ span.edit_error_class {
 	float : right;
 }
 
-#public_accounts {
+#public_accounts, #authorised_accounts {
 	background: #FAFAFA;
-	width: 230px;
+	width: 200px;
 	border-radius: 8px 8px 8px 8px;
 	padding: 10px 10px 20px 10px;
 	margin-top: 20px;
-	margin-right: 80px;
 	float: left;
-}
-
-#authorised_accounts {
-	background: #FAFAFA;
-	width: 230px;
-	border-radius: 8px 8px 8px 8px;
-	padding: 10px 10px 20px 10px;
-	margin-top: 20px;
-	float: right;
 }
 
 #homeContent {
@@ -566,4 +557,34 @@ a#feedBack
 	height: 87px;
 	background: url(../images/feedback-button.gif);
 	cursor: pointer;
+}
+span#registrationDetails
+{
+	font-size: 10px;
+}
+span.error
+{
+	color:red;
+}
+img.moreInfoIcon
+{
+	margin-left: 5px;
+}
+span#submissionMessage
+{
+	display: block;
+}
+span#submissionSuccess, span#submissionFailed
+{
+	display: block;
+	padding: 15px 20px;
+	background: #66ee55;
+}
+span#submissionFailed 
+{
+	background: #ff3311;
+}
+span#accountsMsg
+{
+	font-size: 13px;
 }
