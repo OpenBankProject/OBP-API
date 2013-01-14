@@ -119,6 +119,11 @@
       <version>6.1.25</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpg-jdk16</artifactId>
+      <version>1.46</version>
+    </dependency>   
     <!-- for LiftConsole -->
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -126,55 +131,33 @@
       <version>${scala.version}</version>
       <scope>test</scope>
     </dependency>
-
-
-   <!--
-   <dependency>
-        <groupId>postgresql</groupId>
-        <artifactId>postgresql</artifactId>
-        <version>8.4-701.jdbc4</version>
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-mongodb_2.9.1</artifactId>
+      <version>2.4</version>
     </dependency>
--->
-
-
-
-
-
-<dependency>
-  <groupId>net.liftweb</groupId>
-  <artifactId>lift-mongodb_2.9.1</artifactId>
-  <version>2.4</version>
-</dependency>
-
-
-<dependency>
-  <groupId>net.liftweb</groupId>
-  <artifactId>lift-mongodb-record_2.9.1</artifactId>
-  <version>2.4</version>
-</dependency>
-
-<dependency>
-<groupId>org.mongodb</groupId>
-<artifactId>casbah_${scala.version}</artifactId>
-<version>2.3.0</version>
-<scope>compile</scope>
-<type>pom</type>
-</dependency>
-
-
-
-
-
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-mongodb-record_2.9.1</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+    <groupId>org.mongodb</groupId>
+    <artifactId>casbah_${scala.version}</artifactId>
+    <version>2.3.0</version>
+    <scope>compile</scope>
+    <type>pom</type>
+    </dependency>
   </dependencies>
 
   <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
+    <sourceDirectory>src/main</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.14.3</version>
+        <version>2.9</version>
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>
@@ -191,6 +174,11 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-war-plugin</artifactId>
+          <version>2.1.1</version>
+      </plugin>      
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>
@@ -227,7 +215,6 @@
           <scanIntervalSeconds>5</scanIntervalSeconds>
         </configuration>
       </plugin>
-
       <plugin>
         <groupId>net.sf.alchim</groupId>
         <artifactId>yuicompressor-maven-plugin</artifactId>
@@ -269,6 +256,24 @@
           </classpathContainers>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>2.1.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+          </execution>
+        </executions>
+		<configuration>
+			<dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+				<generateGitPropertiesFile>true</generateGitPropertiesFile>
+				<generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
+				<failOnNoGitDirectory>false</failOnNoGitDirectory>
+        </configuration>
+     </plugin>
     </plugins>
   </build>
   <reporting>

@@ -1,6 +1,44 @@
+/** 
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com 
+TESOBE / Music Pictures Ltd 
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by 
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+
+ */
+
+
 package code.model.traits
 import code.snippet.CustomEditable
 import net.liftweb.http.SHtml
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Full
 
 class AliasType
 class Alias extends AliasType
@@ -43,6 +81,7 @@ trait View {
   def canSeeBankAccountOwners : Boolean
   def canSeeBankAccountType : Boolean
   def canSeeBankAccountBalance : Boolean
+  def canSeeBankAccountBalancePositiveOrNegative : Boolean
   def canSeeBankAccountCurrency : Boolean
   def canSeeBankAccountLabel : Boolean
   def canSeeBankAccountNationalIdentifier : Boolean
@@ -80,7 +119,11 @@ trait View {
     {
       val owners = if(canSeeBankAccountOwners) Some(transaction.thisAccount.owners) else None
       val accountType = if(canSeeBankAccountType) Some(transaction.thisAccount.accountType) else None
-      val balance = if(canSeeBankAccountBalance) transaction.thisAccount.balance.toString else ""
+      val balance = if(canSeeBankAccountBalance) {
+        transaction.thisAccount.balance.toString
+      } else if (canSeeBankAccountBalancePositiveOrNegative) {
+        if(transaction.thisAccount.balance.toString.startsWith("-")) "-" else "+"
+      } else ""
       val currency = if(canSeeBankAccountCurrency) Some(transaction.thisAccount.currency) else None  
       val label = if(canSeeBankAccountLabel) Some(transaction.thisAccount.label) else None
       val number = if(canSeeBankAccountNumber) Some(transaction.thisAccount.number) else None
@@ -211,6 +254,45 @@ trait View {
      transactionType, transactionAmount, transactionCurrency, transactionLabel, transactionStartDate,
       transactionFinishDate, transactionBalance)
   }
+  
+  def moderate(bankAccount: BankAccount) : Box[ModeratedBankAccount] = {
+    if(bankAccount.allowAnnoymousAccess) {
+      val owners : Set[AccountOwner] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
+      val balance = if(canSeeBankAccountBalance){
+        bankAccount.balance.toString
+      } else if(canSeeBankAccountBalancePositiveOrNegative) {
+        if(bankAccount.balance.toString.startsWith("-")) "-" else "+"
+      } else ""
+      val accountType = if(canSeeBankAccountType) Some(bankAccount.accountType) else None
+      val currency = if(canSeeBankAccountCurrency) Some(bankAccount.currency) else None
+      val label = if(canSeeBankAccountLabel) Some(bankAccount.label) else None
+      val nationalIdentifier = if(canSeeBankAccountNationalIdentifier) Some(bankAccount.label) else None
+      val swiftBic = if(canSeeBankAccountSwift_bic) Some(bankAccount.swift_bic) else None
+      val iban = if(canSeeBankAccountIban) Some(bankAccount.iban) else None
+      val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
+      val bankName = if(canSeeBankAccountName) Some(bankAccount.bankName) else None
+      
+      Full(new ModeratedBankAccount(filteredId = bankAccount.id,
+          							filteredOwners = Some(owners),
+          							filteredAccountType = accountType,
+          							filteredBalance = balance,
+          							filteredCurrency = currency,
+          							filteredLabel = label,
+          							filteredNationalIdentifier = nationalIdentifier,
+          							filteredSwift_bic = swiftBic,
+          							filteredIban = iban,
+          							filteredNumber = number,
+          							filteredBankName = bankName
+          							))
+    }
+    else Empty
+  }
+  
+  def toJson : JObject = {
+    ("name" -> name) ~
+    ("description" -> description)
+  }
+  
 }
 
 //An implementation that has the least amount of permissions possible
@@ -246,6 +328,7 @@ class BaseView extends View {
   def canSeeBankAccountOwners = false
   def canSeeBankAccountType = false
   def canSeeBankAccountBalance = false
+  def canSeeBankAccountBalancePositiveOrNegative = false
   def canSeeBankAccountCurrency = false
   def canSeeBankAccountLabel = false
   def canSeeBankAccountNationalIdentifier = false
@@ -306,6 +389,7 @@ class FullView extends View {
   def canSeeBankAccountOwners = true
   def canSeeBankAccountType = true
   def canSeeBankAccountBalance = true
+  def canSeeBankAccountBalancePositiveOrNegative = true
   def canSeeBankAccountCurrency = true
   def canSeeBankAccountLabel = true
   def canSeeBankAccountNationalIdentifier = true

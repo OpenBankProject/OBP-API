@@ -1,29 +1,32 @@
 /** 
-Open Bank Project
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and 
-limitations under the License.      
+Email: contact@tesobe.com 
+TESOBE / Music Pictures Ltd 
+Osloerstrasse 16/17
+Berlin 13359, Germany
 
-Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-    by 
-    Simon Redfern : simon AT tesobe DOT com
-    Everett Sochowski: everett AT tesobe DOT com
-    Benali Ayoub : ayoub AT tesobe DOT com
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by 
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
 
  */
  
@@ -35,7 +38,7 @@ import net.liftweb.mongodb.JsonObject
 import net.liftweb.mongodb.record.MongoMetaRecord
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.mongodb.record.MongoRecord
-import net.liftweb.mongodb.record.field.BsonRecordField
+import net.liftweb.mongodb.record.field.{BsonRecordField , ObjectIdRefField}
 import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.mongodb.record.field.DateField
 import net.liftweb.common.{ Box, Empty, Full }
@@ -47,6 +50,8 @@ import code.model.dataAccess.OBPEnvelope._
 import code.model.traits.ModeratedTransaction
 import code.model.traits.BankAccount
 import code.model.implementedTraits.{ BankAccountImpl, AccountOwnerImpl }
+import net.liftweb.mongodb.BsonDSL._
+
 
 /**
  * There should be only one of these for every real life "this" account. TODO: Enforce this
@@ -63,21 +68,29 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
   object name extends StringField(this, 255)
-  object bankName extends StringField(this, 255)
   object permalink extends StringField(this, 255)
-  object bankPermalink extends StringField(this, 255)
+  object bankID extends ObjectIdRefField(this, HostedBank)
   object label extends StringField(this, 255)
   object currency extends StringField(this, 255)
   object iban extends StringField(this, 255)
   object lastUpdate extends DateField(this)
   object otherAccounts extends BsonRecordListField(this, OtherAccount)
-
-  def baseQuery = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
+  
+  def bankName : String = bankID.obj match  {
+    case Full(bank) => bank.name.get
+    case _ => "" 
+  }
+  def bankPermalink : String  = bankID.obj match  {
+    case Full(bank) => bank.permalink.get
+    case _ => "" 
+  }
+  
+  def transactionsForAccount = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
     put("obp_transaction.this_account.kind").is(kind.get).
-    put("obp_transaction.this_account.bank.name").is(bankName.get)
+    put("obp_transaction.this_account.bank.name").is(bankName)
 
   //find all the envelopes related to this account 
-  def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(baseQuery.get)
+  def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(transactionsForAccount.get)
 
   def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
     val DefaultSortField = "obp_transaction.details.completed"
@@ -92,7 +105,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
     val toDate = queryParams.find(q => q.isInstanceOf[OBPToDate]).asInstanceOf[Option[OBPToDate]]
     
     val mongoParams = {
-      val start = baseQuery
+      val start = transactionsForAccount
       val start2 = if(fromDate.isDefined) start.put("obp_transaction.details.completed").greaterThanEquals(fromDate.get.value)
       			   else start
       val end = if(toDate.isDefined) start2.put("obp_transaction.details.completed").lessThanEquals(toDate.get.value)
@@ -104,72 +117,13 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
     
     OBPEnvelope.findAll(mongoParams, ordering, Limit(limit), Skip(offset))
   }
-
-  def getUnmediatedOtherAccountUrl(user: String, otherAccountHolder: String): Box[String] = {
-    for {
-      o <- otherAccounts.get.find(acc => {
-        acc.holder.get.equals(otherAccountHolder)
-      })
-    } yield o.url.get
-  }
-
-  def getMediatedOtherAccountURL(user: String, otherAccountHolder: String): Box[String] = {
-    val otherAccountURL = for {
-      o <- otherAccounts.get.find(acc => {
-        acc.holder.get.equals(otherAccountHolder)
-      })
-    } yield o.url.get
-
-    user match {
-      case "team" => otherAccountURL
-      case "board" => otherAccountURL
-      case "authorities" => otherAccountURL
-      case "my-view" => otherAccountURL
-      case "our-network" => otherAccountURL
-      case _ => Empty
-    }
-  }
-
-  def getMediatedOtherAccountImageURL(user: String, otherAccountHolder: String): Box[String] = {
-    val otherAccountImageURL = for {
-      o <- otherAccounts.get.find(acc => {
-        acc.holder.get.equals(otherAccountHolder)
-      })
-    } yield o.imageUrl.get
-
-    user match {
-      case "team" => otherAccountImageURL
-      case "board" => otherAccountImageURL
-      case "authorities" => otherAccountImageURL
-      case "my-view" => otherAccountImageURL
-      case "our-network" => otherAccountImageURL
-      case _ => Empty
-    }
-  }
-
-  def getMediatedOtherAccountMoreInfo(user: String, otherAccountHolder: String): Box[String] = {
-    val otherAccountMoreInfo = for {
-      o <- otherAccounts.get.find(acc => {
-        acc.holder.get.equals(otherAccountHolder)
-      })
-    } yield o.moreInfo.get
-
-    user match {
-      case "team" => otherAccountMoreInfo
-      case "board" => otherAccountMoreInfo
-      case "authorities" => otherAccountMoreInfo
-      case "my-view" => otherAccountMoreInfo
-      case "our-network" => otherAccountMoreInfo
-      case _ => Empty
-    }
-  }
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
   def toBankAccount(account: Account): BankAccount = {
     val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
     var bankAccount = new BankAccountImpl(account.id.toString, Set(), account.kind.toString, account.currency.toString, account.label.toString,
-      "", None, iban, account.anonAccess.get, account.number.get, account.bankName.get, account.bankPermalink.get, account.permalink.get)
+      "", None, iban, account.anonAccess.get, account.number.get, account.bankName, account.bankPermalink, account.permalink.get)
     val owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
     bankAccount.owners = Set(new AccountOwnerImpl("", account.holder.toString, Set(bankAccount)))
     
@@ -193,3 +147,25 @@ class OtherAccount private () extends BsonRecord[OtherAccount] {
 }
 
 object OtherAccount extends OtherAccount with BsonMetaRecord[OtherAccount]
+
+class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
+  def meta = HostedBank
+
+  object name extends StringField(this, 255)
+  object alias extends StringField(this, 255)
+  object logo extends StringField(this, 255)
+  object website extends StringField(this, 255)
+  object email extends StringField(this, 255)
+  object permalink extends StringField(this, 255)
+  object SWIFT_BIC extends StringField(this, 255)
+  object national_identifier extends StringField(this, 255)
+
+  def getAccount(bankAccountPermalink : String) : Box[Account] = 
+    Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is))
+  
+  def isAccount(bankAccountPermalink : String) : Boolean = 
+    Account.count(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) == 1
+
+}
+
+object HostedBank extends HostedBank with MongoMetaRecord[HostedBank]
