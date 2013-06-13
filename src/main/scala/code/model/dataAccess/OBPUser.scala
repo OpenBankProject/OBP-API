@@ -136,12 +136,11 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   // comment this line out to require email validations
   override def skipEmailValidation = true
 
-  //Keep track of the referer on login
-  object loginReferer extends SessionVar("/")
+  object redirectToOnLogin extends SessionVar("/")
   //This is where the user gets redirected to after login
   override def homePage = {
-    var ret = loginReferer.is
-    loginReferer.remove()
+    var ret = redirectToOnLogin.is
+    redirectToOnLogin.remove()
     ret
   }
 
@@ -163,12 +162,6 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
         }
       })
       SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
-  }
-
-  //Set the login referer
-  override def login = {
-    for(r <- S.referer if loginReferer.is.equals("/")) loginReferer.set(r)
-    super.login
   }
 
 }
