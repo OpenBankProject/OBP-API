@@ -40,7 +40,7 @@ import sitemap._
 import Loc._
 import mapper._
 import code.model.dataAccess._
-import code.model.{Nonce, Consumer, Token, Bank, ModeratedTransaction, View, BankAccount}
+import code.model.{Nonce, Consumer, Token}
 import code.api._
 import net.liftweb.util.Helpers._
 import net.liftweb.widgets.tablesorter.TableSorter
@@ -139,93 +139,15 @@ class Boot extends Loggable{
       }
     }
 
-    def getTransactionsAndView (URLParameters : List[String]) : Box[(List[ModeratedTransaction], View, BankAccount)] =
-    {
-      val bank = URLParameters(0)
-      val account = URLParameters(1)
-      val viewName = URLParameters(2)
-
-      val transactionsAndView : Box[(List[ModeratedTransaction], View, BankAccount)] = for {
-        b <- BankAccount(bank, account) ?~ {"account " + account + " not found for bank " + bank}
-        v <- View.fromUrl(viewName) ?~ {"view " + viewName + " not found for account " + account + " and bank " + bank}
-        transactions <- b.getModeratedTransactions(OBPUser.currentUser, v)
-      } yield (transactions, v, b)
-
-      transactionsAndView match {
-        case Failure(msg, _, _) => logger.warn("Could not get transactions and view: " + msg)
-        case _ => //don't log anything
-      }
-      transactionsAndView
-    }
-
-    def getAccount(URLParameters : List[String]) =
-    {
-      val bankUrl = URLParameters(0)
-      val accountUrl = URLParameters(1)
-      val account = for {
-        bank <- HostedBank.find("permalink",bankUrl)
-        account <- bank.getAccount(accountUrl)
-        user <- OBPUser.currentUser  ?~ {"user not found when attempting to access account " + account + " of bank " + bankUrl}
-        if(user.hasMangementAccess(Account toBankAccount account))
-      } yield account
-
-      account match {
-        case Failure(msg, _, _) => logger.info("Could not get account: " + msg)
-        case _ => //don't log anything
-      }
-      account
-    }
-    def getTransaction(URLParameters : List[String]) =
-    {
-      if(URLParameters.length==4){
-        val bank = URLParameters(0)
-        val account = URLParameters(1)
-        val transactionID = URLParameters(2)
-        val viewName = URLParameters(3)
-        val transaction = for{
-          bankAccount <- BankAccount(bank, account) ?~ {"account " + account + " not found for bank " + bank}
-          view <- View.fromUrl(viewName)
-          transaction <- bankAccount.moderatedTransaction(transactionID, view, OBPUser.currentUser)
-        } yield (transaction,view)
-
-        transaction match {
-          case Failure(msg, _, _) => logger.info("Could not get transaction: " + msg)
-          case _ => //don't log anything
-        }
-
-        transaction
-      }
-      else
-        Empty
-    }
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Privilege Admin") / "admin" / "privilege"  >> TestAccess(() => {
-            check(OBPUser.loggedIn_?)
-          }) >> LocGroup("admin")
-          	submenus(Privilege.menus : _*),
           Menu.i("Consumer Admin") / "admin" / "consumers" >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           Menu.i("Metrics") / "metrics",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Connect") / "connect",
-
-          Menu.i("Banks") / "banks", //no test => list of open banks
-          //list of open banks (banks with a least a bank account with an open account)
-          Menu.param[Bank]("Bank", "bank", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * ,
-          //list of open accounts in a specific bank
-          Menu.param[Bank]("Accounts", "accounts", LocalStorage.getBank _ ,  bank => bank.id ) / "banks" / * / "accounts",
-
-          //test if the bank exists and if the user have access to management page
-          Menu.params[Account]("Management", "management", getAccount _ , t => List("")) / "banks" / * / "accounts" / * / "management",
-
-          Menu.params[(List[ModeratedTransaction], View, BankAccount)]("Bank Account", "bank accounts", getTransactionsAndView _ ,  t => List("") )
-          / "banks" / * / "accounts" / * / *,
-
-          Menu.params[(ModeratedTransaction,View)]("transaction", "transaction", getTransaction _ ,  t => List("") )
-          / "banks" / * / "accounts" / * / "transactions" / * / *
+          Menu.i("Connect") / "connect"
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
