@@ -71,23 +71,16 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 	object name extends MappedString(this, 100){
 		override def validations = minLength3(this) _ :: super.validations
 		override def dbIndexed_? = true
-		override def displayName = "App name:"
+		override def displayName = "Application name:"
 	}
 	object appType extends MappedEnum(this,AppType) {
-	  override def displayName = "App type:"
+	  override def displayName = "Application type:"
 	}
 	object description extends MappedText(this) {
 	  override def displayName = "Description:"
 	}
 	object developerEmail extends MappedEmail(this, 100) {
-	  def uniqueEmail(field: MappedEmail[Consumer])(s : String) = {
-	    Consumer.find(By(Consumer.developerEmail, s)) match {
-	      case Full(c) => List(FieldError(field, {"This email address is already registered."}))
-	      case _ => Nil
-	    }
-	  }
 	  override def displayName = "Email:"
-	  override def validations = uniqueEmail(this) _ :: super.validations
 	}
 
 }

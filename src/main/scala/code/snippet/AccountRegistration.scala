@@ -49,7 +49,7 @@ import net.liftweb.common.Loggable
 
 class AccountRegistration extends Loggable {
 
-	private object bankName 		extends RequestVar("")
+	private object bankName 	extends RequestVar("")
 	private object accountNumber 	extends RequestVar("")
 	private object accountPIN    	extends RequestVar("")
 	private object publicAccess  	extends RequestVar(false)
@@ -61,8 +61,9 @@ class AccountRegistration extends Loggable {
 	def renderForm = {
 		OBPUser.currentUser match {
 			case Full(user) => {
-				//load the suported banks list from the database
-				val banks = "Choose a Bank" :: HostedBank.findAll.map(_.name.get)
+				//load the supported banks list from the database
+				val defaultSelectValue = "Choose a Bank"
+				val banks =  defaultSelectValue :: HostedBank.findAll.map(_.name.get)
 				val options = Map("yes" -> true,"no" -> false)
 				val optionsSwaped	= options.map{_.swap}
 
@@ -83,7 +84,7 @@ class AccountRegistration extends Loggable {
 					if( !accountNumber.is.isEmpty && !accountPIN.is.isEmpty 	&
 							!accountName.is.isEmpty	&& !accountHolder.is.isEmpty &
 							!accountKind.is.isEmpty && ! accountLabel.is.isEmpty &
-							bankName.is != "Choose a Bank" )
+							bankName.is != defaultSelectValue )
 					{
 						var reponceText = "Submission Failed. Please try later."
 						var reponceId 	= "submissionFailed"
