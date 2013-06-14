@@ -1,4 +1,4 @@
-<!-- 
+<!--
 Open Bank Project - Transparency / Social Finance Web Application
 Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
@@ -15,14 +15,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Email: contact@tesobe.com 
-TESOBE / Music Pictures Ltd 
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by 
+  by
   Simon Redfern : simon AT tesobe DOT com
   Stefan Bethge : stefan AT tesobe DOT com
   Everett Sochowski : everett AT tesobe DOT com
@@ -62,32 +62,57 @@ Berlin 13359, Germany
 	                </form>
                 </div>
                 <!-- LOGGED IN -->
-				<div class="lift:Login.loggedIn">
-	                <div class="profile-info">
+                <div class="lift:Login.loggedIn">
+                    <div class="profile-info">
                         Logged in as <span class="username">username@domain.com</span>
                         <a href="" class="logout">Logout</a>
-	                </div>
+                    </div>
                 </div>
             </div>
         </div>
+        <div id="nav">
+            <ul>
+                <li class="lift:Nav.item?name=Home navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.management navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.privilegeAdmin navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <span class="lift:Nav.views">
+                  <li class="navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                </span>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Consumer%20Registration&name=Consumer%20Registration navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Metrics&name=Metrics navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Connect&name=Connect navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+            </ul>
+        </div>
         <div id="content">
             <lift:bind name="content" />
-			The main content gets bound here
+            The main content gets bound here
         </div>
-		
+
 		<div id="footer">
-            <p><a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2012 <a href="http://tesobe.com">TESOBE</a> and distributed under the Apache 2.0 License.</p>
-            <br/> 
+            <p><a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2013 <a href="http://tesobe.com">TESOBE</a> and distributed under the Apache 2.0 License.</p>
+            <br/>
             <p>
-            	<a href="http://www.facebook.com/pages/Open-Bank-Project/118851468190327">Facebook Page</a> | 
-            	<a href="http://twitter.com/#!/OpenBankProject">Follow us on Twitter</a> | 
-            	<a href="http://eviscape.com/profile/openbankproject/">Eviscape Profile</a> | 
-                <a href="http://polarize.it/polarize/openbankprojectdemoa_78828874370">Polarize it!</a> |  
-                <a href="https://github.com/OpenBankProject">Sources on Github</a> | 
-            	<a href="https://github.com/OpenBankProject/OBP-API/wiki/OBP-Public-Facing-REST-API-V1.0-DRAFT">
-                    RESTful API
-                </a>
-            </p> 
+                <a href="http://www.facebook.com/pages/Open-Bank-Project/118851468190327">Facebook Page</a> |
+                <a href="http://twitter.com/#!/OpenBankProject">Follow us on Twitter</a> |
+                <a href="http://eviscape.com/profile/openbankproject/">Eviscape Profile</a> |
+                <a href="http://polarize.it/polarize/openbankprojectdemoa_78828874370">Polarize it!</a> |
+                <a href="https://github.com/OpenBankProject">Sources on Github</a> |
+                <a href="https://github.com/OpenBankProject/OBP-API/wiki">API Documentation</a>
+            </p>
         </div>
     </div>
     <a id="feedBack" href="http://polarize.it/polarize/openbankprojectdemoa_78828874370"></a>

@@ -1,4 +1,4 @@
-/** 
+/**
 Open Bank Project - Transparency / Social Finance Web Application
 Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
@@ -15,35 +15,52 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Email: contact@tesobe.com 
-TESOBE / Music Pictures Ltd 
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by 
+  by
   Simon Redfern : simon AT tesobe DOT com
   Stefan Bethge : stefan AT tesobe DOT com
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.model.implementedTraits
 
-import code.model.traits.{OtherBankAccountMetadata,OtherBankAccount}
+package code.model
 
-class OtherBankAccountImpl(id_ : String, label_ : String, nationalIdentifier_ : String,
-	swift_bic_ : Option[String], iban_ : Option[String], number_ : String,
-	bankName_ : String, metadata_ : OtherBankAccountMetadata) extends OtherBankAccount
-{
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.JsonAST.JObject
+import code.model.dataAccess.LocalStorage
+import net.liftweb.common.Box
 
-	def id = id_
-	def label = label_
-	def nationalIdentifier = nationalIdentifier_
-	def swift_bic = swift_bic_
-	def iban = iban_
-	def number = number_
-	def bankName = bankName_
-	def metadata = metadata_
+trait User {
+  def id_ : String
+  def provider : String
+  def emailAddress : String
+  def theFirstName : String
+  def theLastName : String
+  def permittedViews(bankAccount: BankAccount) : Set[View]
+  def hasMangementAccess(bankAccount: BankAccount)  : Boolean
+  override def toString = emailAddress
+
+  /**
+  * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+  */
+  def nonPublicAccounts : Box[List[BankAccount]] = LocalStorage.getNonPublicBankAccounts(this)
+
+  def toJson : JObject =
+    ("id" -> id_) ~
+    ("provider" -> "sofi.openbankproject.com") ~
+    ("display_name" -> {theFirstName + " " + theLastName})
+}
+
+object User {
+  def findById(id : String) : Box[User] =
+    LocalStorage.getUser(id)
+  def currentUser : Box[User] =
+    LocalStorage.getCurrentUser
 }

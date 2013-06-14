@@ -1,4 +1,4 @@
-/** 
+/**
 Open Bank Project - Transparency / Social Finance Web Application
 Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
 
@@ -15,14 +15,14 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Email: contact@tesobe.com 
-TESOBE / Music Pictures Ltd 
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
   This product includes software developed at
   TESOBE (http://www.tesobe.com/)
-  by 
+  by
   Simon Redfern : simon AT tesobe DOT com
   Stefan Bethge : stefan AT tesobe DOT com
   Everett Sochowski : everett AT tesobe DOT com
@@ -47,8 +47,13 @@ import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField
 import scala.util.Random
 import com.mongodb.QueryBuilder
 import com.mongodb.BasicDBObject
-import code.model.traits.Comment
+import code.model.{Comment,Tag,GeoTag,TransactionImage, User}
 import net.liftweb.common.Loggable
+import org.bson.types.ObjectId
+import net.liftweb.util.Helpers._
+import net.liftweb.http.S
+import java.net.URL
+import net.liftweb.record.field.{DoubleField,DecimalField}
 
 /**
  * "Current Account View"
@@ -141,38 +146,25 @@ curl -i -H "Content-Type: application/json" -X POST -d '[{
  */
 
 // Seems to map to a collection of the plural name
-class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] {
+class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with Loggable{
   def meta = OBPEnvelope
 
-  /**
-   * Add a user generated comment to the transaction. Saves the db model when called.
-   * 
-   * @param email The email address of the person posting the comment
-   * @param text The text of the comment
-   */
-  def addComment(userId: Long, viewId : Long, text: String, datePosted : Date) = {
-    val comment = OBPComment.createRecord.userId(userId).
-      textField(text).
-      date(datePosted).
-      viewID(viewId).save
-    obp_comments(comment.id.is :: obp_comments.get ).save
-  }
+  // This creates a json attribute called "obp_transaction"
+  object obp_transaction extends BsonRecordField(this, OBPTransaction)
 
-  lazy val theAccount = {
-    val thisAcc = obp_transaction.get.this_account.get
-    val num = thisAcc.number.get
-    val accKind = thisAcc.kind.get
-    val bankName = thisAcc.bank.get.name.get
-    val accQry = QueryBuilder.start("number").is(num).
-      put("kind").is(accKind).get
-    
-    for {
-      account <- Account.find(accQry)
-      bank <- HostedBank.find("name", bankName)
-      if(bank.id.get == account.bankID.get)
-    } yield account
-  }
-   
+  object narrative extends StringField(this, 255)
+
+  //not named comments as "comments" was used in an older mongo document version
+  object obp_comments extends ObjectIdRefListField[OBPEnvelope, OBPComment](this, OBPComment)
+
+  object tags extends ObjectIdRefListField(this, OBPTag)
+
+  object images extends ObjectIdRefListField(this, OBPTransactionImage)
+
+  //we store a list of geo tags, one per view
+  object whereTags extends BsonRecordListField(this, OBPGeoTag)
+
+
   object DateDescending extends Ordering[OBPEnvelope] {
     def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
       val date1 = e1.obp_transaction.get.details.get.completed.get
@@ -180,20 +172,205 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       date1.compareTo(date2)
     }
   }
-  
+
+  lazy val theAccount = {
+    val thisAcc = obp_transaction.get.this_account.get
+    val num = thisAcc.number.get
+    val accKind = thisAcc.kind.get
+    val bankName = thisAcc.bank.get.name.get
+    val holder = thisAcc.holder.get
+    val accQry = QueryBuilder.start("number").is(num).
+      put("kind").is(accKind).put("holder").is(holder).get
+
+    for {
+      account <- Account.find(accQry)
+      bank <- HostedBank.find("name", bankName)
+      if(bank.id.get == account.bankID.get)
+    } yield account
+  }
+
+  /**
+   * Add a user generated comment to the transaction. Saves the db model when called.
+   *
+   * @param email The email address of the person posting the comment
+   * @param text The text of the comment
+   */
+  def addComment(userId: String, viewId : Long, text: String, datePosted : Date) : Comment = {
+    val comment = OBPComment.createRecord.userId(userId).
+      textField(text).
+      date(datePosted).
+      viewID(viewId).save
+    obp_comments(comment.id.is :: obp_comments.get ).save
+    comment
+  }
+
+  def deleteComment(id : String) : Box[Unit]= {
+    OBPComment.find(id) match {
+      case Full(comment) => {
+        if(comment.delete_!){
+          obp_comments(obp_comments.get.diff(Seq(new ObjectId(id)))).save
+          Full()
+        }
+        else Failure("Delete not completed")
+      }
+      case _ => Failure("Comment "+id+" not found")
+    }
+  }
+
+  def addWhereTag(userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+    val newTag = OBPGeoTag.createRecord.
+                userId(userId).
+                viewID(viewId).
+                date(datePosted).
+                geoLongitude(longitude).
+                geoLatitude(latitude)
+
+
+    //before to save the geo tag we need to be sure there is only one per view
+    //so we look if there is allready a tag with the same view (viewId)
+    val tags = whereTags.get.find(geoTag => geoTag.viewID equals viewId) match {
+      case Some(tag) => {
+        //if true remplace it with the new one
+        newTag :: whereTags.get.diff(Seq(tag))
+      }
+      case _ =>
+        //else just add this one
+        newTag :: whereTags.get
+    }
+    whereTags(tags).save
+    true
+  }
+
+  def deleteWhereTag(viewId : Long):Boolean = {
+    val where :Option[OBPGeoTag] = whereTags.get.find(loc=>{loc.viewId ==viewId})
+    where match {
+      case Some(w) => {
+        val newWhereTags = whereTags.get.diff(Seq(w))
+        whereTags(newWhereTags).save
+      true
+      }
+      case None => false
+    }
+  }
+
+  def addTag(userId: String, viewId : Long, value: String, datePosted : Date) : Tag = {
+    val tag = OBPTag.createRecord.
+      userId(userId).
+      tag(value).
+      date(datePosted).
+      viewID(viewId).save
+    tags(tag.id.is :: tags.get ).save
+    tag
+  }
+
+  def deleteTag(id : String) : Box[Unit] = {
+    OBPTag.find(id) match {
+      case Full(tag) => {
+        if(tag.delete_!){
+          tags(tags.get.diff(Seq(new ObjectId(id)))).save
+          Full()
+        }
+        else Failure("Delete not completed")
+      }
+      case _ => Failure("Tag "+id+" not found")
+    }
+  }
+
+  /**
+   * @return the id of the newly added image
+   */
+  def addImage(userId: String, viewId : Long, description: String, datePosted : Date, imageURL : URL) : TransactionImage = {
+    val image = OBPTransactionImage.createRecord.
+        userId(userId).imageComment(description).date(datePosted).viewID(viewId).url(imageURL.toString).save
+    images(image.id.is :: images.get).save
+    image
+  }
+
+  def deleteImage(id : String){
+    OBPTransactionImage.find(id) match {
+      case Full(image) => {
+        //if(image.postedBy.isDefined && image.postedBy.get.id.get == userId) {
+          if (image.delete_!) {
+            logger.info("==> deleted image id : " + id)
+            images(images.get.diff(Seq(new ObjectId(id)))).save
+            //TODO: Delete the actual image file? We don't always control the url of the image so we can't always delete it
+          }
+      }
+      case _ => logger.warn("Could not find image with id " + id + " to delete.")
+    }
+  }
+
   def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
     val date1 = e1.obp_transaction.get.details.get.completed.get
     val date2 = e2.obp_transaction.get.details.get.completed.get
     date1.after(date2)
   }
-  
-  // This creates a json attribute called "obp_transaction"
-  object obp_transaction extends BsonRecordField(this, OBPTransaction)
-  
-  //not named comments as "comments" was used in an older mongo document version
-  object obp_comments extends ObjectIdRefListField[OBPEnvelope, OBPComment](this, OBPComment)
-  object narrative extends StringField(this, 255)
-  
+  def createAliases : Box[String] = {
+    val realOtherAccHolder = this.obp_transaction.get.other_account.get.holder.get
+
+    def publicAliasExists(realValue: String): Boolean = {
+      this.theAccount match {
+        case Full(a) => {
+          val otherAccs = a.otherAccounts.objs
+          val aliasInQuestion = otherAccs.find(o =>
+            o.holder.get.equals(realValue))
+          aliasInQuestion.isDefined
+        }
+        case _ => false
+      }
+    }
+
+    def createPublicAlias(realOtherAccHolder : String) : Box[String] = {
+
+      /**
+       * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+       * for the account in question
+       */
+      def newPublicAliasName(account: Account): String = {
+        val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
+
+        /**
+         * Returns true if @publicAlias is already the name of a public alias within @account
+         */
+        def isDuplicate(publicAlias: String, account: Account) = {
+          account.otherAccounts.objs.find(oAcc => {
+            oAcc.publicAlias.get == publicAlias
+          }).isDefined
+        }
+
+        /**
+         * Appends things to @publicAlias until it a unique public alias name within @account
+         */
+        def appendUntilUnique(publicAlias: String, account: Account): String = {
+          val newAlias = publicAlias + Random.nextLong().toString.take(1)
+          if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
+          else newAlias
+        }
+
+        if (isDuplicate(firstAliasAttempt, account)) appendUntilUnique(firstAliasAttempt, account)
+        else firstAliasAttempt
+      }
+
+      this.theAccount match {
+        case Full(a) => {
+          val randomAliasName = newPublicAliasName(a)
+          //create a new "otherAccount"
+          val otherAccount = OtherAccount.createRecord.holder(realOtherAccHolder).publicAlias(randomAliasName).save
+          a.otherAccounts(otherAccount.id.is :: a.otherAccounts.get).save
+          Full(randomAliasName)
+        }
+        case _ => {
+          logger.warn("Account not found to create aliases for")
+          Failure("Account not found to create aliases for")
+        }
+      }
+    }
+
+    if (!publicAliasExists(realOtherAccHolder))
+      createPublicAlias(realOtherAccHolder)
+    else
+      Full(realOtherAccHolder)
+  }
   /**
    * A JSON representation of the transaction to be returned when successfully added via an API call
    */
@@ -207,21 +384,23 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
   def meta = OBPComment
-  def postedBy = OBPUser.find(userId)
+  def postedBy = User.findById(userId.get)
   def viewId = viewID.get
   def text = textField.get
   def datePosted = date.get
   def id_ = id.is.toString
-  object userId extends LongField(this)
+  def replyToID = replyTo.get
+  object userId extends StringField(this,255)
   object viewID extends LongField(this)
   object textField extends StringField(this, 255)
   object date extends DateField(this)
+  object replyTo extends StringField(this,255)
 }
 
 object OBPComment extends OBPComment with MongoMetaRecord[OBPComment]
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {
-  
+
   class OBPQueryParam
   trait OBPOrder { def orderValue : Int }
   object OBPOrder {
@@ -237,143 +416,28 @@ object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Lo
   case class OBPFromDate(value: Date) extends OBPQueryParam
   case class OBPToDate(value: Date) extends OBPQueryParam
   case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
-  
-  override def fromJValue(jval: JValue) = {
 
-    def createAliases(env: OBPEnvelope) = {
-      val realOtherAccHolder = env.obp_transaction.get.other_account.get.holder.get
-
-      def publicAliasExists(realValue: String): Boolean = {
-        env.theAccount match {
-          case Full(a) => {
-            val otherAccs = a.otherAccounts.get
-            val aliasInQuestion = otherAccs.find(o =>
-              o.holder.get.equals(realValue))
-            aliasInQuestion.isDefined
-          }
-          case _ => false
-        }
-      }
-
-      def privateAliasExists(realValue: String): Boolean = {
-        env.theAccount match {
-          case Full(a) => {
-            val otherAccs = a.otherAccounts.get
-            val aliasInQuestion = otherAccs.find(o =>
-              o.holder.get.equals(realValue))
-            aliasInQuestion.isDefined
-          }
-          case _ => false
-        }
-      }
-
-      def createPublicAlias() = {
-        //TODO: Guarantee a unique public alias string
-
-        /**
-         * Generates a new alias name that is guaranteed not to collide with any existing public alias names
-         * for the account in question
-         */
-        def newPublicAliasName(account: Account): String = {
-          val newAlias = "ALIAS_" + Random.nextLong().toString.take(6)
-
-          /**
-           * Returns true if @publicAlias is already the name of a public alias within @account
-           */
-          def isDuplicate(publicAlias: String, account: Account) = {
-            account.otherAccounts.get.find(oAcc => {
-              oAcc.publicAlias.get == newAlias
-            }).isDefined
-          }
-
-          /**
-           * Appends things to @publicAlias until it a unique public alias name within @account
-           */
-          def appendUntilUnique(publicAlias: String, account: Account): String = {
-            val newAlias = publicAlias + Random.nextLong().toString.take(1)
-            if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
-            else newAlias
-          }
-
-          if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
-          else newAlias
-        }
-
-        env.theAccount match {
-          case Full(a) => {
-            val randomAliasName = newPublicAliasName(a)
-            val oAccHolderName = env.obp_transaction.get.other_account.get.holder.get
-            val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(oAccHolderName))
-            val updatedAccount = otherAccount match {
-              case Some(o) => {
-                //update the "otherAccount"
-                val newOtherAcc = o.publicAlias(randomAliasName)
-                a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-              }
-              case _ => {
-                //create a new "otherAccount"
-                a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(oAccHolderName).publicAlias(randomAliasName)))
-              }
-            }
-
-            updatedAccount.saveTheRecord()
-            Full(randomAliasName)
-          }
-          case _ => {
-            logger.warn("Account not found to create aliases for")
-            Empty
-          }
-        }
-      }
-
-      def createPlaceholderPrivateAlias() = {
-        env.theAccount match {
-          case Full(a) => {
-            val oAccHolderName = env.obp_transaction.get.other_account.get.holder.get
-            val otherAccount = a.otherAccounts.get.find(acc => acc.holder.equals(oAccHolderName))
-            val updatedAccount = otherAccount match {
-              case Some(o) => {
-                //update the "otherAccount"
-                val newOtherAcc = o.privateAlias("")
-                a.otherAccounts(a.otherAccounts.get -- List(o) ++ List(newOtherAcc))
-              }
-              case _ => {
-                //create a new "otherAccount"
-                a.otherAccounts(a.otherAccounts.get ++ List(OtherAccount.createRecord.holder(oAccHolderName)))
-              }
-            }
-            updatedAccount.saveTheRecord()
-            Full("")
-          }
-          case _ => Empty
-        }
-      }
-      
-      
-      if (!publicAliasExists(realOtherAccHolder)) {
-        createPublicAlias()
-      }
-      if (!privateAliasExists(realOtherAccHolder)) createPlaceholderPrivateAlias()
-    }
-    
-    val created = super.fromJValue(jval)
+  def envlopesFromJvalue(jval: JValue) : Box[OBPEnvelope] = {
+    val created = fromJValue(jval)
     created match {
-      case Full(c) => createAliases(c)
-      case _ => //don't create anything
+      case Full(c) => c.createAliases match {
+          case Full(alias) => Full(c)
+          case Failure(msg, _, _ ) => Failure(msg)
+          case _ => Failure("Alias not created")
+        }
+      case _ => Failure("could not create Envelope form JValue")
     }
-    created
   }
-  
 }
 
 
 class OBPTransaction private() extends BsonRecord[OBPTransaction]{
   def meta = OBPTransaction
-  
+
   object this_account extends BsonRecordField(this, OBPAccount)
   object other_account extends BsonRecordField(this, OBPAccount)
   object details extends BsonRecordField(this, OBPDetails)
-  
+
   def whenAddedJson(envelopeId : String) : JObject  = {
     JObject(List(JField("obp_transaction_uuid", JString(envelopeId)),
     			 JField("this_account", this_account.get.whenAddedJson),
@@ -421,7 +485,7 @@ class OBPBank private() extends BsonRecord[OBPBank]{
   object national_identifier extends net.liftweb.record.field.StringField(this, 255)
   object name extends net.liftweb.record.field.StringField(this, 255)
 
-  
+
   def whenAddedJson : JObject = {
     JObject(List( JField("IBAN", JString(IBAN.get)),
         		  JField("national_identifier", JString(national_identifier.get)),
@@ -443,12 +507,13 @@ class OBPDetails private() extends BsonRecord[OBPDetails]{
   object new_balance extends BsonRecordField(this, OBPBalance)
   object value extends BsonRecordField(this, OBPValue)
   object completed extends DateField(this)
-  
-  
+  object label extends net.liftweb.record.field.StringField(this, 255)
+
+
   def formatDate(date : Date) : String = {
     OBPDetails.formats.dateFormat.format(date)
   }
-  
+
   def whenAddedJson : JObject = {
     JObject(List( JField("type_en", JString(type_en.get)),
         		  JField("type_de", JString(type_de.get)),
@@ -466,8 +531,8 @@ object OBPDetails extends OBPDetails with BsonMetaRecord[OBPDetails]
 class OBPBalance private() extends BsonRecord[OBPBalance]{
   def meta = OBPBalance
 
-  object currency extends net.liftweb.record.field.StringField(this, 5)
-  object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
+  object currency extends StringField(this, 5)
+  object amount extends DecimalField(this, 0) // ok to use decimal?
 
   def whenAddedJson : JObject = {
     JObject(List( JField("currency", JString(currency.get)),
@@ -482,7 +547,7 @@ class OBPValue private() extends BsonRecord[OBPValue]{
 
   object currency extends net.liftweb.record.field.StringField(this, 5)
   object amount extends net.liftweb.record.field.DecimalField(this, 0) // ok to use decimal?
-  
+
   def whenAddedJson : JObject = {
     JObject(List( JField("currency", JString(currency.get)),
         		  JField("amount", JString(amount.get.toString))))
@@ -491,4 +556,62 @@ class OBPValue private() extends BsonRecord[OBPValue]{
 
 object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
 
+class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
+  def meta = OBPTag
+  object userId extends StringField(this,255)
+  object viewID extends LongField(this)
+  object tag extends StringField(this, 255)
+  object date extends DateField(this)
 
+  def id_ = id.is.toString
+  def datePosted = date.get
+  def postedBy = User.findById(userId.get)
+  def viewId = viewID.get
+  def value = tag.get
+}
+
+object OBPTag extends OBPTag with MongoMetaRecord[OBPTag]
+
+class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
+		with ObjectIdPk[OBPTransactionImage] with TransactionImage {
+  def meta = OBPTransactionImage
+
+  object userId extends StringField(this,255)
+  object viewID extends LongField(this)
+  object imageComment extends StringField(this, 1000)
+  object date extends DateField(this)
+  object url extends StringField(this, 500)
+
+  def id_ = id.is.toString
+  def datePosted = date.get
+  def postedBy = User.findById(userId.get)
+  def viewId = viewID.get
+  def description = imageComment.get
+  def imageUrl = {
+    tryo {new URL(url.get)} getOrElse OBPTransactionImage.notFoundUrl
+  }
+}
+
+object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
+  val notFoundUrl = new URL(S.hostAndPath + "/notfound.png") //TODO: Make this image exist?
+}
+
+
+class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
+  def meta = OBPGeoTag
+
+  object userId extends StringField(this,255)
+  object viewID extends LongField(this)
+  object date extends DateField(this)
+
+  object geoLongitude extends DoubleField(this,0)
+  object geoLatitude extends DoubleField(this,0)
+
+  def datePosted = date.get
+  def postedBy = User.findById(userId.get)
+  def viewId = viewID.get
+  def longitude = geoLongitude.get
+  def latitude = geoLatitude.get
+
+}
+object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
