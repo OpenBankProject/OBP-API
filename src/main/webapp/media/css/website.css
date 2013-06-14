@@ -572,7 +572,7 @@ span#registrationDetails
 {
 	font-size: 10px;
 }
-span.error
+.error
 {
 	color:red;
 }
@@ -598,7 +598,7 @@ span#accountsMsg
 {
 	font-size: 13px;
 }
-#registration-error{
+#registration-errors{
 	color: red;
 	border: solid 1px red;
 	margin: 20px;

@@ -53,27 +53,27 @@ class ConsumerRegistration {
 
     def registerWithoutWarnings =
       register &
-      ".registration-error" #> ""
+      "#registration-errors" #> ""
 
     def register = {
       ".register" #> {
-      ".app-type-option" #> {
-        val appTypes = Consumer.appType.enum.values.map(appType => appType.toString)
-          appTypes.map(t => {
-            val selected = appTypeVar.get.toString == t
+        ".app-type-option" #> {
+          val appTypes = Consumer.appType.enum.values.map(appType => appType.toString)
+            appTypes.map(t => {
+              val selected = appTypeVar.get.toString == t
 
-            def markIfSelected =
-              if(selected) "* [selected]" #> "selected"
-              else NOOP_SELECTOR
+              def markIfSelected =
+                if(selected) "* [selected]" #> "selected"
+                else NOOP_SELECTOR
 
-            markIfSelected &
-            "* *" #> t &
-            "* [value]" #> t
-          })
-        } &
-    	"name=app-name [value]" #> nameVar.get &
-    	"name=app-description *" #> descriptionVar.get &
-    	"name=app-developer [value]" #> devEmailVar.get
+              markIfSelected &
+              "* *" #> t &
+              "* [value]" #> t
+            })
+          } &
+      	"name=app-name [value]" #> nameVar.get &
+      	"name=app-description *" #> descriptionVar.get &
+      	"name=app-developer [value]" #> devEmailVar.get
       } &
       ".success" #> ""
     }
@@ -98,8 +98,14 @@ class ConsumerRegistration {
     }
 
     def showErrors(errors : List[FieldError]) = {
+      val errorsString = errors.map(_.msg.toString)
       register &
-      "#registration-error *" #> errors.map(_.msg.toString).mkString(", ")
+      "#registration-errors *" #> {
+        ".error *" #>
+          errorsString.map({ e=>
+            ".errorContent *" #> e
+        })
+      }
     }
 
     def analyseResult = {
@@ -132,7 +138,7 @@ class ConsumerRegistration {
     }
 
     if(S.post_?) analyseResult
-    else register
+    else registerWithoutWarnings
 
   }
 

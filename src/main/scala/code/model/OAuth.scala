@@ -71,10 +71,10 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 	object name extends MappedString(this, 100){
 		override def validations = minLength3(this) _ :: super.validations
 		override def dbIndexed_? = true
-		override def displayName = "App name:"
+		override def displayName = "Application name:"
 	}
 	object appType extends MappedEnum(this,AppType) {
-	  override def displayName = "App type:"
+	  override def displayName = "Application type:"
 	}
 	object description extends MappedText(this) {
 	  override def displayName = "Description:"
