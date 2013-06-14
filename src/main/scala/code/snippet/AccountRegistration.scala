@@ -49,7 +49,7 @@ import net.liftweb.common.Loggable
 
 class AccountRegistration extends Loggable {
 
-	private object bankName 		extends RequestVar("")
+	private object bankName 	extends RequestVar("")
 	private object accountNumber 	extends RequestVar("")
 	private object accountPIN    	extends RequestVar("")
 	private object publicAccess  	extends RequestVar(false)

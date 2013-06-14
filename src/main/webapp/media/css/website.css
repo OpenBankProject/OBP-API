@@ -86,7 +86,7 @@ input.submit {
 }
 
 #social {
-	float: right;	
+	float: right;
 }
 
 #nav {
@@ -450,7 +450,7 @@ div.extra_account_logo {
 
 div.extra_account_logo img {
     max-width: 200px;
-    max-height: 100px;    
+    max-height: 100px;
 }
 
 div.extra_info_and_links {
@@ -520,11 +520,11 @@ span.edit_error_class {
 }
 
 .account_header {
-	margin-bottom: 10px;	
+	margin-bottom: 10px;
 }
 
 .account {
-	margin-bottom: 5px;	
+	margin-bottom: 5px;
 }
 
 li.comment
@@ -535,7 +535,7 @@ li.comment
 	line-height: 1em;
 	font-size: 13px;
 }
-#comment_list 
+#comment_list
 {
 	margin-top: 10px;
 }
@@ -551,9 +551,9 @@ div#addCommentbloc
 {
 	margin-top: 5px;
 	font-size: 13px;
-	display: block;	 
+	display: block;
 }
-#account_details 
+#account_details
 {
 	margin-bottom: 25px;
 }
@@ -590,11 +590,17 @@ span#submissionSuccess, span#submissionFailed
 	padding: 15px 20px;
 	background: #66ee55;
 }
-span#submissionFailed 
+span#submissionFailed
 {
 	background: #ff3311;
 }
 span#accountsMsg
 {
 	font-size: 13px;
+}
+#registration-error{
+	color: red;
+	border: solid 1px red;
+	margin: 20px;
+	padding: 15px;
 }
