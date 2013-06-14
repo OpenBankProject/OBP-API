@@ -1,0 +1,120 @@
+<!--
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title class="lift:Menu.title">Open Bank Project: %*%</title>
+
+    <link href="/media/css/website.css?20120412" rel="stylesheet" type="text/css" />
+    <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
+	<script src="/media/js/website.js" type="text/javascript"></script>
+</head>
+<body>
+    <div id="wrapper">
+        <div id="header">
+            <h1 id="logo" onclick="javascript:window.location='/';">Open Bank Project</h1>
+            <div id="account">
+                <!-- LOGGED OUT -->
+				<div class="lift:Login.loggedOut">
+                    <form class="login" action="." method="post">
+	                    <div class="field username">
+	                        <label>Username</label>
+	                        <input class="username" type="text" name="username" tabindex=1/>
+	                    </div>
+	                    <div class="field password">
+	                        <label>Password</label>
+	                        <a href="#" class="forgot" tabindex=5>Forgotten?</a>
+	                        <a href="#" class="signup" tabindex=4>Sign up</a>
+	                        <input class="password" type="password" name="password" tabindex=2 />
+	                    </div>
+	                    <div class="button submit">
+	                        <input class="submit" type="submit" value="Login" tabindex=3/>
+	                    </div>
+	                </form>
+                </div>
+                <!-- LOGGED IN -->
+                <div class="lift:Login.loggedIn">
+                    <div class="profile-info">
+                        Logged in as <span class="username">username@domain.com</span>
+                        <a href="" class="logout">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="nav">
+            <ul>
+                <li class="lift:Nav.item?name=Home navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.management navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.privilegeAdmin navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <span class="lift:Nav.views">
+                  <li class="navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                </span>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Consumer%20Registration&name=Consumer%20Registration navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Metrics&name=Metrics navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+                <li class="lift:Nav.onlyOnSomePages?pages=Home,Connect&name=Connect navitem">
+                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                </li>
+            </ul>
+        </div>
+        <div id="content">
+            <lift:bind name="content" />
+            The main content gets bound here
+        </div>
+
+		<div id="footer">
+            <p><a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2013 <a href="http://tesobe.com">TESOBE</a> and distributed under the Apache 2.0 License.</p>
+            <br/>
+            <p>
+                <a href="http://www.facebook.com/pages/Open-Bank-Project/118851468190327">Facebook Page</a> |
+                <a href="http://twitter.com/#!/OpenBankProject">Follow us on Twitter</a> |
+                <a href="http://eviscape.com/profile/openbankproject/">Eviscape Profile</a> |
+                <a href="http://polarize.it/polarize/openbankprojectdemoa_78828874370">Polarize it!</a> |
+                <a href="https://github.com/OpenBankProject">Sources on Github</a> |
+                <a href="https://github.com/OpenBankProject/OBP-API/wiki">API Documentation</a>
+            </p>
+        </div>
+    </div>
+    <a id="feedBack" href="http://polarize.it/polarize/openbankprojectdemoa_78828874370"></a>
+</body>
+</html>
