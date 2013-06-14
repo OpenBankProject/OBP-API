@@ -1,0 +1,105 @@
+<!--
+Open Bank Project - Transparency / Social Finance Web Application
+Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+-->
+
+<div id="main" class="lift:surround?with=default;at=content">
+	<div class="lift:ConsumerRegistration.registerForm">
+		<h1 class="register-header">Register to use the Open Bank API with your application:</h1>
+		<div class="registration">
+			<div>
+				<span class="registration-error"></span>
+			</div>
+			<form class="register" method="post">
+				<TABLE>
+					<tbody>
+						<tr>
+							<td colspan="2" >
+								Please complete the information below so we can get an OAuth key and secret.
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="appType">Application Type</label>
+							</td>
+							<td>
+								<select name="app-type" id="appType">
+									<option class="app-type-option"></option>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="appName">Application Name</label>
+							</td>
+							<td>
+								<input type="text" name="app-name" id="appName"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="appDev">Developer Email</label>
+							</td>
+							<td>
+								<input type="text" name="app-developer" id="appDev"></input>
+							</td>
+						</tr>
+						<tr>
+							<td>
+								<label for="appDesc">App Description</label>
+							</td>
+							<td>
+								<textarea rows="4" name="app-description" id="appDesc"></textarea>
+							</td>
+						</tr>
+						<tr>
+							<td>
+							</td>
+							<td>
+								<input type="submit" value="Register"	/>
+							</td>
+						</tr>
+					</tbody>
+				</TABLE>
+			</form>
+			<div class="success">
+				<h1 class="success-message">Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location.</h1>
+				<div class="user-generated">
+					<div class="info">Application Name: <span class=app-name>ABC</span></div>
+					<div class="info">Application Type: <span class=app-type>web</span></div>
+					<div class="info">Description: <span class=app-description>ABCDEF</span></div>
+					<div class="info">Developer Email: <span class=app-developer>abc@example.com</span></div>
+				</div>
+				<div class="server-generated">
+					<div class="info">Consumer Key: <span class="auth-key">23432432432432</span></div>
+					<div class="info">Consumer Secret: <span class="secret-key">3334543543543</span></div>
+				</div>
+			</div>
+	</div>
+</div>

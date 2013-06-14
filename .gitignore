@@ -10,5 +10,5 @@
 .project
 .cache
 target
-MavLift/src/main/resources/
-MavLift/src/test/resources/
+src/main/resources/
+src/test/resources/
