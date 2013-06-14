@@ -17,6 +17,7 @@ limitations under the License.
  */
 import bootstrap.liftweb.Boot
 import scala.tools.nsc.MainGenericRunner
+import scala.sys._
 
 object LiftConsole {
   def main(args : Array[String]) {
@@ -27,6 +28,6 @@ object LiftConsole {
     // Now run the MainGenericRunner to get your repl
     MainGenericRunner.main(args)
     // After the repl exits, then exit the scala script
-    exit(0)
+    sys.exit(0)
   }
 }

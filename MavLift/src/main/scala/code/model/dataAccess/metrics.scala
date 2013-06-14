@@ -29,24 +29,17 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
+ 
+ package code.model.dataAccess
 
-package code.model.traits
-import java.util.Date
+ import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
+ import net.liftweb.record.field.{StringField}
+ import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
 
-trait TransactionMetadata {
-  
-  // Owner provided comment, done in OBP
-  def ownerComment : Option[String]
-  def ownerComment(comment : String) : Unit 
-  def comments : List[Comment]
-  def addComment(userId : Long, viewId : Long, text : String, postedDate : Date) : Unit
+class APIMetric extends MongoRecord[APIMetric] with ObjectIdPk[APIMetric] {
+  def meta = APIMetric
+  object url extends StringField(this,255)
+  object date extends DateField(this)
 }
-trait OtherBankAccountMetadata 
-{
-	def publicAlias : String
-  def privateAlias : String
-  def moreInfo : String
-	def url : String
-	def imageUrl : String
-	def openCorporatesUrl : String
-}
+
+object APIMetric extends APIMetric with MongoMetaRecord[APIMetric]

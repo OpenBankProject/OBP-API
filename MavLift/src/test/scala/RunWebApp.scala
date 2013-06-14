@@ -32,8 +32,9 @@ import org.mortbay.jetty.Connector
 import org.mortbay.jetty.Server
 import org.mortbay.jetty.webapp.WebAppContext
 import org.mortbay.jetty.nio._
+import scala.sys._
 
-object RunWebApp extends Application {
+object RunWebApp extends App {
   val server = new Server
   val scc = new SelectChannelConnector
   scc.setPort(8080)
@@ -57,7 +58,7 @@ object RunWebApp extends Application {
   } catch {
     case exc : Exception => {
       exc.printStackTrace()
-      System.exit(100)
+      sys.exit(100)
     }
   }
 }

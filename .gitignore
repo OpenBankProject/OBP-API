@@ -8,6 +8,7 @@
 .settings
 .classpath
 .project
-MavLift/.cache
-MavLift/src/main/resources/rebel.xml
-MavLift/src/main/resources/props
+.cache
+target
+MavLift/src/main/resources/
+MavLift/src/test/resources/

@@ -1,3 +1,5 @@
+
+
 import sbt._
 import Keys._
 import com.github.siasia._
@@ -9,9 +11,9 @@ object LiftProjectBuild extends Build {
   override lazy val settings = super.settings ++ buildSettings
   
   lazy val buildSettings = Seq(
-    organization := "com.tesobe",
-    version      := "0.1",
-    scalaVersion := "2.9.1")
+    organization := pom.groupId,
+    version      := pom.version
+  )
   
   def yourWebSettings = webSettings ++ Seq(
     // If you are use jrebel
@@ -19,39 +21,73 @@ object LiftProjectBuild extends Build {
     )
   
   lazy val opanBank = Project(
-    "OpanBank",
+    pom.artifactId,
     base = file("."),
-    settings = defaultSettings ++ yourWebSettings)
+    settings = defaultSettings ++ yourWebSettings ++ pom.settings)
+
+  object pom {
+
+    val pomFile = "pom.xml"
+    lazy val pom = xml.XML.loadFile(pomFile)
+
+    lazy val pomProperties = (for{
+      props <- (pom \ "properties")
+      p <- props.child
+    } yield {
+      p.label -> p.text
+    }).toMap
+
+    private lazy val PropertiesExpr = """.*\$\{(.*?)\}.*""".r
+
+    def populateProps(t: String) = t match {
+      case PropertiesExpr(p) => {
+        val replaceWith = pomProperties.get(p)
+        t.replace("${"+p+"}", replaceWith.getOrElse(throw new Exception("Cannot find property: '" + p + "' required by: '" + t +  "' in: " + pomFile)))
+      }
+      case _ => t
+    }
+
+    lazy val pomDeps = (for{
+      dep <- pom \ "dependencies" \ "dependency"
+    } yield {
+      val scope = (dep \ "scope")
+      val groupId = (dep \ "groupId").text
+      val noScope = populateProps(groupId) % populateProps((dep \ "artifactId").text) % populateProps((dep \ "version").text)
+      val nonCustom = if (scope.nonEmpty) noScope  % populateProps(scope.text)
+                      else noScope
+
+      if (groupId.endsWith("jetty")) Seq(noScope % "container", nonCustom) //hack to add jetty deps in container scope as it is required by the web plugin
+      else Seq(nonCustom)
+    }).flatten
+
+    lazy val pomRepos = for {
+      rep <- pom \ "repositories" \ "repository"
+    } yield {
+      populateProps((rep \ "url").text) at populateProps((rep \ "url").text)
+    }
+
+    lazy val pomScalaVersion = (pom \ "properties" \ "scala.version").text
+
+    lazy val artifactId = (pom \ "artifactId").text
+    lazy val groupId = (pom \ "groupId").text
+    lazy val version = (pom \ "version").text
+    lazy val name = (pom \ "name").text
+
+    lazy val settings = Seq(
+      scalaVersion := pomScalaVersion,
+      libraryDependencies ++= pomDeps,
+      resolvers ++= pomRepos
+    )
+
+  }
     
   lazy val defaultSettings = Defaults.defaultSettings ++ Seq(
-    name := "Opan Bank",
+    name := pom.name,
     resolvers ++= Seq(
       "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases", 
       "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
       "Scala-Tools Dependencies Repository for Releases" at "http://scala-tools.org/repo-releases",
       "Scala-Tools Dependencies Repository for Snapshots" at "http://scala-tools.org/repo-snapshots"),
-
-    libraryDependencies ++= {
-	  val liftVersion = "2.4-M4"
-	  Seq(
-	    //%% means: add current scala version to artifact name
-	    
-	    "net.liftweb" %% "lift-webkit" % liftVersion % "compile",
-	    "net.liftweb" %% "lift-mapper" % liftVersion % "compile",
-	    "net.liftweb" %% "lift-mongodb" % liftVersion % "compile",
-	    "net.liftweb" %% "lift-mongodb-record" % liftVersion % "compile",
-	    "net.liftweb" %% "lift-widgets" % liftVersion % "compile",	    
-//	    "org.eclipse.jetty" % "jetty-webapp" % "7.5.4.v20111024" % "container",
-//      "org.eclipse.jetty" % "jetty-webapp" % "8.0.4.v20111024" % "container",
-        "org.mortbay.jetty" % "jetty" % "6.1.22" % "container",
-        "javax.servlet" % "servlet-api" % "2.5" % "provided->default",	    
-	    "ch.qos.logback" % "logback-classic" % "1.0.0" % "compile",
-	    "com.h2database" % "h2" % "1.2.138" % "runtime",
-	    "com.mongodb.casbah" %% "casbah" % "2.1.5-1" % "compile",	    
-	    "org.scalatest" %% "scalatest" % "1.6.1" % "test",
-	    "org.scala-tools.testing" %% "specs" % "1.6.9" % "test",
-	    "junit" % "junit" % "4.10" % "test")
-	},
 
     // compile options
     scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
