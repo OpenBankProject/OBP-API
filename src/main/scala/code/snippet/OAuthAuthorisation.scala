@@ -98,7 +98,10 @@ object OAuthAuthorisation {
               } else {
                 if(OBPUser.loggedIn_?) OBPUser.logUserOut()
                 val currentUrl = S.uriAndQueryString.getOrElse("/")
-                OBPUser.redirectToOnLogin.set(Helpers.appendParams(currentUrl, List(("logUserOut", "false"))))
+                //if login succeeds, reload the page with logUserOut=false to process it
+                OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("logUserOut", "false")))))
+                //if login fails, just reload the page with the login form visible
+                OBPUser.failedLoginRedirect.set(Full(currentUrl))
                 //the user is not logged in so we show a login form
                 Consumer.find(By(Consumer.id, appToken.consumerId)) match {
                   case Full(consumer) => {
