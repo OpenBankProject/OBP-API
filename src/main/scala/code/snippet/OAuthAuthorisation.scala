@@ -52,11 +52,19 @@ import net.liftweb.util.Helpers._
 
 object OAuthAuthorisation {
 
+  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   
   def shouldNotLogUserOut() : Boolean = {
     S.param("logUserOut") match {
       case Full("false") => true
       case _ => false
+    }
+  }
+  
+  def hideFailedLoginMessageIfNeeded() = {
+    S.param("failedLogin") match {
+      case Full("true") => NOOP_SELECTOR
+      case _ => ".login-error" #> ""
     }
   }
   
@@ -101,10 +109,11 @@ object OAuthAuthorisation {
                 //if login succeeds, reload the page with logUserOut=false to process it
                 OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("logUserOut", "false")))))
                 //if login fails, just reload the page with the login form visible
-                OBPUser.failedLoginRedirect.set(Full(currentUrl))
+                OBPUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("failedLogin", "true")))))
                 //the user is not logged in so we show a login form
                 Consumer.find(By(Consumer.id, appToken.consumerId)) match {
                   case Full(consumer) => {
+                    hideFailedLoginMessageIfNeeded &
                     "#applicationName" #> consumer.name &
                       "#verifier" #> NodeSeq.Empty &
                       "#errorMessage" #> NodeSeq.Empty &

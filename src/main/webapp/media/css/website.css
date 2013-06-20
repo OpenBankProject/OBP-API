@@ -482,8 +482,14 @@ span.alias_indicator_private {
 	text-align: center;
 }
 #authorizeSection{
-	margin-bottom: 50px;
+	margin-bottom: 80px;
 }
+
+.login-error {
+	margin-bottom: 10px;
+	color: red;
+}
+
 #authorizeSection form.login {
 	float : left;
 	margin-top: 20px;
