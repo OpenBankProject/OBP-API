@@ -1,30 +1,30 @@
-/**
- * Open Bank Project
- *
- * Copyright 2011,2012 TESOBE / Music Pictures Ltd.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * Open Bank Project (http://www.openbankproject.com)
- * Copyright 2011,2012 TESOBE / Music Pictures Ltd
- *
- * This product includes software developed at
- * TESOBE (http://www.tesobe.com/)
- * by
- * Simon Redfern : simon AT tesobe DOT com
- * Everett Sochowski: everett AT tesobe DOT com
- * Ayoub Benali : ayoub AT tesobe Dot com
- */
+ /**
+Open Bank Project
+
+Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+ Open Bank Project (http://www.openbankproject.com)
+      Copyright 2011,2012 TESOBE / Music Pictures Ltd
+
+      This product includes software developed at
+      TESOBE (http://www.tesobe.com/)
+		by
+		Simon Redfern : simon AT tesobe DOT com
+		Everett Sochowski: everett AT tesobe DOT com
+		Ayoub Benali : ayoub AT tesobe Dot com
+*/
 package code.snippet
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.Req
@@ -33,12 +33,12 @@ import net.liftweb.http.PostRequest
 import net.liftweb.http.LiftResponse
 import net.liftweb.common.Box
 import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.{ Full, Empty }
+import net.liftweb.common.{Full,Empty}
 import net.liftweb.http.S
-import code.model.{ Nonce, Consumer, Token }
+import code.model.{Nonce, Consumer, Token}
 import net.liftweb.mapper.By
 import java.util.Date
-import java.net.{ URLEncoder, URLDecoder }
+import java.net.{URLEncoder, URLDecoder}
 import javax.crypto.spec.SecretKeySpec
 import javax.crypto.Mac
 import net.liftweb.util.Helpers
@@ -94,7 +94,7 @@ object OAuthAuthorisation {
                 // show the verifier if the application does not support
                 // redirection
                 if (appToken.callbackURL.is == "oob")
-                  "#verify-code *" #> verifier &
+                  "#verifier *" #> verifier &
                     "#errorMessage" #> "" &
                     "#account" #> ""
                 else {
@@ -104,8 +104,14 @@ object OAuthAuthorisation {
                   "#verifier" #> "you should be redirected"
                 }
               } else {
-                if(OBPUser.loggedIn_?) OBPUser.logUserOut()
                 val currentUrl = S.uriAndQueryString.getOrElse("/")
+                if(OBPUser.loggedIn_?) {
+                  OBPUser.logUserOut()
+                  //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
+                  //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
+                  //properly and the redirect after login gets messed up. -E.S.
+                  S.redirectTo(currentUrl)
+                }
                 //if login succeeds, reload the page with logUserOut=false to process it
                 OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("logUserOut", "false")))))
                 //if login fails, just reload the page with the login form visible
@@ -147,22 +153,22 @@ object OAuthAuthorisation {
           "#userAccess" #> NodeSeq.Empty
     }
 
-  //looks for expired tokens and nonces and delete them
-  def dataBaseCleaner: Unit = {
-    import net.liftweb.util.Schedule
-    import net.liftweb.mapper.By_<
-    Schedule.schedule(dataBaseCleaner _, 1 hour)
+	//looks for expired tokens and nonces and delete them
+	def dataBaseCleaner : Unit = {
+		import net.liftweb.util.Schedule
+		import net.liftweb.mapper.By_<
+		Schedule.schedule(dataBaseCleaner _, 1 hour)
 
-    val currentDate = new Date()
+		val currentDate = new Date()
 
-    /*
+		/*
 			As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
 			requests. So this function will delete nonces which have a timestamp older than
 			currentDate - 3 minutes
 		*/
-    val timeLimit = new Date(currentDate.getTime + 180000)
+		val timeLimit = new Date(currentDate.getTime + 180000)
 
-    //delete expired tokens and nonces
-    (Token.findAll(By_<(Token.expirationDate, currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp, timeLimit))).foreach(t => t.delete_!)
-  }
+		//delete expired tokens and nonces
+		(Token.findAll(By_<(Token.expirationDate,currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp,timeLimit))).foreach(t => t.delete_!)
+	}
 }
