@@ -106,7 +106,7 @@ trait ServerSetup extends FeatureSpec
     }
 
     //fake transactions
-    val postTransaction = baseRequest / "api"/ "transactions"
+    val postTransaction = baseRequest / "api"/ "transactions" <<? List(("secret", Props.get("importer_secret","")))
     accounts.foreach(account => {
       val transactions =
         for{i <- 0 until 10} yield{
@@ -120,7 +120,11 @@ trait ServerSetup extends FeatureSpec
           val obpTransaction = OBPTransaction(thisAccount, otherAccount, details)
           OBPTransactionWrapper(obpTransaction)
         }
-      makePostRequest(postTransaction, write(transactions))
+      val reply = makePostRequest(postTransaction, write(transactions))
+      if(reply.code != 200)
+      {
+        logger.warn("could not post transactions: " + reply.body)
+      }
     })
     specificSetup()
   }
