@@ -36,7 +36,7 @@ class OAuthTest extends ServerSetup{
   lazy val user1Password = randomString(10)
   lazy val user1 =
     OBPUser.create.
-      email("testuser1@example.com").
+      email(randomString(3)+"@example.com").
       password(user1Password).
       validated(true).
       firstName(randomString(10)).
