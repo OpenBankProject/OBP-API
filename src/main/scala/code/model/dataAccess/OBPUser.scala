@@ -172,6 +172,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
         case Full(user) if user.validated_? &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
+            println("login redir: " + loginRedirect.is)
             val redir = loginRedirect.is match {
               case Full(url) =>
                 loginRedirect(Empty)
@@ -190,6 +191,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
           }
 
         case _ => {
+          println("failed: " + failedLoginRedirect.get)
           failedLoginRedirect.get.foreach(S.redirectTo(_))
         }
       }
