@@ -52,81 +52,91 @@ import net.liftweb.util.Helpers._
 
 object OAuthAuthorisation {
 
- 	// this method is specific to the authorization page ( where the user login to grant access
- 	// to the application (step 2))
- 	def tokenCheck =
-  	S.param("oauth_token") match {
-	    case Full(token) =>
-      	Token.find(By(Token.key,Helpers.urlDecode(token.toString)),By(Token.tokenType,TokenType.Request)) match {
-	        case Full(appToken) =>
-          	//check if the token is still valid
-          	if(appToken.isValid)
-        	  	if(OBPUser.loggedIn_?)
-            	{
-						    var verifier =""
-						    // if the user is logged in and no verifier have been generated
-						    if(appToken.verifier.isEmpty)
-						    {
-						    	val randomVerifier = appToken.gernerateVerifier
+  
+  def shouldNotLogUserOut() : Boolean = {
+    S.param("logUserOut") match {
+      case Full("false") => true
+      case _ => false
+    }
+  }
+  
+  // this method is specific to the authorization page ( where the user login to grant access
+  // to the application (step 2))
+  def tokenCheck =
+    S.param("oauth_token") match {
+      case Full(token) =>
+        Token.find(By(Token.key, Helpers.urlDecode(token.toString)), By(Token.tokenType, TokenType.Request)) match {
+          case Full(appToken) =>
+            //check if the token is still valid
+            if (appToken.isValid) {
+              if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
+                var verifier = ""
+                // if the user is logged in and no verifier have been generated
+                if (appToken.verifier.isEmpty) {
+                  val randomVerifier = appToken.gernerateVerifier
                   //the user is logged in so we have the current user
                   val user = OBPUser.currentUser.get
                   //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
-						    	appToken.userId(user.id_)
-						    	if(appToken.save())
-						    		verifier = randomVerifier
-					    	}
-					    	else
-					    		verifier=appToken.verifier
+                  appToken.userId(user.id_)
+                  if (appToken.save())
+                    verifier = randomVerifier
+                } else
+                  verifier = appToken.verifier
 
-				   			// show the verifier if the application does not support
-				   			// redirection
-                if(appToken.callbackURL.is =="oob")
-                	"#verifier *" #> verifier &
-                	"#errorMessage" #> "" &
-                	"#account" #> ""
-                else
-                {
-                	//redirect the user to the application with the verifier
-                	S.redirectTo(appToken.callbackURL+"?oauth_token="+token+
-                		"&oauth_verifier="+verifier)
-                	"#verifier" #> "you should be redirected"
+                // show the verifier if the application does not support
+                // redirection
+                if (appToken.callbackURL.is == "oob")
+                  "#verifier *" #> verifier &
+                    "#errorMessage" #> "" &
+                    "#account" #> ""
+                else {
+                  //redirect the user to the application with the verifier
+                  S.redirectTo(appToken.callbackURL + "?oauth_token=" + token +
+                    "&oauth_verifier=" + verifier)
+                  "#verifier" #> "you should be redirected"
                 }
-			  			}
-            	else
-            		//the user is not logged in so we show a login form
-	        	  	Consumer.find(By(Consumer.id,appToken.consumerId)) match {
-			            case Full(consumer) => {
-		              	"#applicationName" #> consumer.name &
-		              	"#verifier" #>NodeSeq.Empty &
-		              	"#errorMessage" #> NodeSeq.Empty &
-			              {
-			            		".login [action]" #> OBPUser.loginPageURL &
-						    			".forgot [href]" #> {
-						        		val href = for {
-						          		menu <- OBPUser.resetPasswordMenuLoc
-						        		} yield menu.loc.calcDefaultHref
+              } else {
+                if(OBPUser.loggedIn_?) OBPUser.logUserOut()
+                val currentUrl = S.uriAndQueryString.getOrElse("/")
+                //if login succeeds, reload the page with logUserOut=false to process it
+                OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("logUserOut", "false")))))
+                //if login fails, just reload the page with the login form visible
+                OBPUser.failedLoginRedirect.set(Full(currentUrl))
+                //the user is not logged in so we show a login form
+                Consumer.find(By(Consumer.id, appToken.consumerId)) match {
+                  case Full(consumer) => {
+                    "#applicationName" #> consumer.name &
+                      "#verifier" #> NodeSeq.Empty &
+                      "#errorMessage" #> NodeSeq.Empty &
+                      {
+                        ".login [action]" #> OBPUser.loginPageURL &
+                          ".forgot [href]" #> {
+                            val href = for {
+                              menu <- OBPUser.resetPasswordMenuLoc
+                            } yield menu.loc.calcDefaultHref
 
-						        		href getOrElse "#"
-						    			} &
-						    			".signup [href]" #>
-						    			OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
-			             	}
-			            }
-		            	case _ =>
-		            		"#errorMessage" #> "Application not found" &
-					    			"#userAccess" #> NodeSeq.Empty
-		          	}
-						else
-        	  	"#errorMessage" #> "Token expired" &
-		      		"#userAccess" #> NodeSeq.Empty
-	        case _ =>
-	          "#errorMessage" #> "This token does not exist" &
-		      	"#userAccess" #> NodeSeq.Empty
-      	}
-	    case _ =>
-      	"#errorMessage" #> "There is no Token"&
-      	"#userAccess" #> NodeSeq.Empty
-		}
+                            href getOrElse "#"
+                          } &
+                          ".signup [href]" #>
+                          OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+                      }
+                  }
+                  case _ =>
+                    "#errorMessage" #> "Application not found" &
+                      "#userAccess" #> NodeSeq.Empty
+                }
+              }
+            } else
+              "#errorMessage" #> "Token expired" &
+                "#userAccess" #> NodeSeq.Empty
+          case _ =>
+            "#errorMessage" #> "This token does not exist" &
+              "#userAccess" #> NodeSeq.Empty
+        }
+      case _ =>
+        "#errorMessage" #> "There is no Token" &
+          "#userAccess" #> NodeSeq.Empty
+    }
 
 	//looks for expired tokens and nonces and delete them
 	def dataBaseCleaner : Unit = {

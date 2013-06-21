@@ -47,6 +47,7 @@ import net.liftweb.util.Helpers._
 import org.bson.types.ObjectId
 import com.mongodb.DBObject
 import net.liftweb.json.JsonAST.JObject
+import net.liftweb.http.js.JsCmds.FocusOnLoad
 
 
 /**
@@ -136,15 +137,6 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   // comment this line out to require email validations
   override def skipEmailValidation = true
 
-  //Keep track of the referer on login
-  object loginReferer extends SessionVar("/")
-  //This is where the user gets redirected to after login
-  override def homePage = {
-    var ret = loginReferer.is
-    loginReferer.remove()
-    ret
-  }
-
   override def loginXhtml = {
     import net.liftweb.http.TemplateFinder
     import net.liftweb.http.js.JsCmds.Noop
@@ -164,11 +156,49 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
       })
       SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
   }
-
-  //Set the login referer
+  
+  /**
+   * Set this to redirect to a certain page after a failed login
+   */
+  object failedLoginRedirect extends SessionVar[Box[String]](Empty) {
+    override lazy val __nameSalt = Helpers.nextFuncName
+  }
+  
+  //overridden to allow a redirection if login fails
   override def login = {
-    for(r <- S.referer if loginReferer.is.equals("/")) loginReferer.set(r)
-    super.login
+    if (S.post_?) {
+      S.param("username").
+      flatMap(username => findUserByUserName(username)) match {
+        case Full(user) if user.validated_? &&
+          user.testPassword(S.param("password")) => {
+            val preLoginState = capturePreLoginState()
+            val redir = loginRedirect.is match {
+              case Full(url) =>
+                loginRedirect(Empty)
+              url
+              case _ =>
+                homePage
+            }
+
+            logUserIn(user, () => {
+              S.notice(S.??("logged.in"))
+
+              preLoginState()
+
+              S.redirectTo(redir)
+            })
+          }
+
+        case _ => {
+          failedLoginRedirect.get.foreach(S.redirectTo(_))
+        }
+      }
+    }
+
+    bind("user", loginXhtml,
+         "email" -> (FocusOnLoad(<input type="text" name="username"/>)),
+         "password" -> (<input type="password" name="password"/>),
+         "submit" -> loginSubmitButton(S.??("log.in")))
   }
 
 }

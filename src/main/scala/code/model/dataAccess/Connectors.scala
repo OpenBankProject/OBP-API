@@ -384,7 +384,7 @@ class MongoDBLocalStorage extends LocalStorage {
         val query = "SELECT DISTINCT " + hostedId + ", " + hostedAccId +
               " FROM " + hostedAccountTable + ", " + privilegeTable + ", " + userTable +
               " WHERE " + "( " + hostedId + " = " + privilegeAccId + ")" +
-                " AND " + "( " + privilegeUserId + " = ? "/* + u.id.get*/ + ")"+
+                " AND " + "( " + privilegeUserId + " = ? " + ")"+
                 " AND " + "( " + ourNetworkPrivilege + " = true" +
                   " OR " + teamPrivilege + " = true" +
                   " OR " + boardPrivilege + " = true" +
