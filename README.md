@@ -29,7 +29,9 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+# Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+
+Note: These may be a bit outdated.
 
 Otherwise use sbt or Maven 2 as a build tool.
 
@@ -54,4 +56,8 @@ Maven:
 
 mvn jetty:run
 
-Note: The default datastore for metadata is MongoDB. Postgres is used for user accounts.
+----
+
+# Databases:
+
+The default datastores used are MongoDB (metadata, transaction cache) and Postgres (user accounts).
