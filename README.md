@@ -20,7 +20,7 @@ Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to s
 
 ## STATUS
 
-Currently most of the read only API calls are implemented.
+[V1.2] (https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2) is mostly implemented
 
 ## LICENSE
 
@@ -29,11 +29,13 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-We recommend to use the Vagrant and Puppet scripts available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
 
-Other wise the project is using sbt or Maven 2 as a build tool.
+Otherwise use sbt or Maven 2 as a build tool.
 
 ----
+
+SBT:
 
 To compile and run jetty, cd into the "MavLift" directory and run:
 
@@ -48,8 +50,8 @@ In OS X, sbt can be installed with $ sudo port install sbt
 
 ----
 
-Alternatively, maven can also be used:
+Maven:
 
 mvn jetty:run
 
-You need to install MongoDB and create an empty database called "OBP006".
+Note: The default datastore for metadata is MongoDB. Postgres is used for user accounts.
