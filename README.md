@@ -29,7 +29,7 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-# Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
 
 Note: These may be a bit outdated.
 
