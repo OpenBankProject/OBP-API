@@ -208,5 +208,14 @@ class OAuthTest extends ServerSetup{
       Then("we should get an access token")
       extractToken(accessToken.body)
     }
+    scenario("we don't get an access token because the verifier is wrong", AccessToken, Oauth){
+      Given("we will first get a request token and a verifier")
+      val reply = getRequestToken(consumer, OAuth.oob)
+      val requestToken = extractToken(reply.body)
+      When("when we ask for an access token")
+      val accessTokenReply = getAccessToken(consumer, requestToken, randomString(5))
+      Then("we should get a 401")
+      accessTokenReply.code should equal (401)
+    }
   }
 }
