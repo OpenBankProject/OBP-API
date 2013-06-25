@@ -24,8 +24,6 @@ class OAuthTest extends ServerSetup{
 
   val oauthRequest = baseRequest / "oauth"
 
-
-
   lazy val testConsumer =
     OBPConsumer.create.
       name("test application").
@@ -47,17 +45,22 @@ class OAuthTest extends ServerSetup{
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
-  def getRequest(req: Request, headers : Map[String,String] = Map()): h.HttpPackage[OAuhtResponse] = {
-    val jsonReq = req <:< headers
-    val jsonHandler = jsonReq >- {s => s}
-    h x jsonHandler{
+  def sendPostRequest(req: Request): h.HttpPackage[OAuhtResponse] = {
+    val postReq = req.POST
+    val responceHandler = postReq >- {s => s}
+    h x responceHandler{
        case (code, _, _, body) => OAuhtResponse(code, body())
     }
   }
 
   def getRequestToken(consumer: Consumer, callback: String): h.HttpPackage[OAuhtResponse] = {
     val request = (oauthRequest / "initiate").POST <@ (consumer, callback)
-    getRequest(request)
+    sendPostRequest(request)
+  }
+
+  def getAccessToken(consumer: Consumer, requestToken : Token, verifier : String): h.HttpPackage[OAuhtResponse] = {
+    val request = (oauthRequest / "token").POST <@ (consumer, requestToken, verifier)
+    sendPostRequest(request)
   }
 
   def extractToken(body: String) : Token = {
@@ -83,7 +86,7 @@ class OAuthTest extends ServerSetup{
           {
             //we got redirected
             val params = newURL.split("&")
-            params(1).split("=")(0)
+            params(1).split("=")(1)
           }
           else{
             //the verifier is in the page
@@ -96,12 +99,23 @@ class OAuthTest extends ServerSetup{
     }
   }
 
+  def getVerifier(requestToken: String, userName: String, password: String): Box[String] = {
+    val b = Browser()
+    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).to_uri.toString
+    b.getVerifier(loginPage, userName, password)
+  }
+
+  def getVerifier(userName: String, password: String): Box[String] = {
+    val b = Browser()
+    val loginPage = (oauthRequest / "authorize").to_uri.toString
+    b.getVerifier(loginPage, userName, password)
+  }
+
   /************************ the tags ************************/
-
-  object RequestToken extends Tag("requestToken")
-  object Verifier extends Tag("verifier")
   object Oauth extends Tag("oauth")
-
+  object RequestToken extends Tag("requestToken")
+  object AccessToken extends Tag("accessToken")
+  object Verifier extends Tag("verifier")
 
   /************************ the tests ************************/
   feature("request token"){
@@ -109,75 +123,119 @@ class OAuthTest extends ServerSetup{
       Given("The application is registered and does not have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, OAuth.oob)
-      Then("we should get a 200 created code")
+      Then("we should get a 200 code")
       reply.code should equal (200)
-      And("we can extract the token")
+      And("we can extract the token form the body")
       val requestToken = extractToken(reply.body)
     }
     scenario("we get a request token with a callback URL", RequestToken, Oauth) {
       Given("The application is registered and have a callback URL")
       When("the request is sent")
       val reply = getRequestToken(consumer, "localhost:8080/app")
-      Then("we should get a 200 created code")
+      Then("we should get a 200 code")
       reply.code should equal (200)
-      And("we can extract the token")
+      And("we can extract the token form the body")
       val requestToken = extractToken(reply.body)
     }
     scenario("we don't get a request token since the application is not registered", RequestToken, Oauth) {
       Given("The application not registered")
       When("the request is sent")
       val reply = getRequestToken(notRegisteredConsumer, OAuth.oob)
-      Then("we should get a 401 created code")
+      Then("we should get a 401 code")
       reply.code should equal (401)
     }
     scenario("we don't get a request token since the application is not registered even with a callback URL", RequestToken, Oauth) {
       Given("The application not registered")
       When("the request is sent")
       val reply = getRequestToken(notRegisteredConsumer, "localhost:8080/app")
-      Then("we should get a 401 created code")
+      Then("we should get a 401 code")
       reply.code should equal (401)
     }
   }
+
   feature("Verifier"){
-    scenario("user login and get redirected to the application back", Verifier, Oauth){
+    scenario("the user login and get redirected to the application back", Verifier, Oauth){
       Given("we will use a valid request token")
       val reply = getRequestToken(consumer, "http://localhost:8000")
       val requestToken = extractToken(reply.body)
-      val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken.value))).to_uri.toString
-      val browser = new Browser()
       When("the browser is launched to login")
-      val verifier = browser.getVerifier(loginPage, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
       Then("we should get a verifier")
       verifier.get.nonEmpty should equal (true)
     }
-    scenario("user login and is asked to enter the verifier manually", Verifier, Oauth){
+    scenario("the user login and is asked to enter the verifier manually", Verifier, Oauth){
       Given("we will use a valid request token")
       val reply = getRequestToken(consumer, OAuth.oob)
       val requestToken = extractToken(reply.body)
-      val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken.value))).to_uri.toString
-      val browser = new Browser()
       When("the browser is launched to login")
-      val verifier = browser.getVerifier(loginPage, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
       Then("we should get a verifier")
-      verifier.get.nonEmpty should equal (true)
+      verifier.nonEmpty should equal (true)
     }
-    scenario("user cannot login because there is no token", Verifier, Oauth){
-      Given("we will use a valid request token")
-      val loginPage = (oauthRequest / "authorize").to_uri.toString
-      val browser = new Browser()
+    scenario("the user cannot login because there is no token", Verifier, Oauth){
+      Given("there will be no token")
       When("the browser is launched to login")
-      val verifier = browser.getVerifier(loginPage, user1.email.get, user1Password)
-      Then("we should get a verifier")
+      val verifier = getVerifier(user1.email.get, user1Password)
+      Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
-    scenario("user cannot login because then token does not exist", Verifier, Oauth){
-      Given("we will use a valid request token")
-      val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", randomString(4)))).to_uri.toString
-      val browser = new Browser()
+    scenario("the user cannot login because the token does not exist", Verifier, Oauth){
+      Given("we will use a random request token")
       When("the browser is launched to login")
-      val verifier = browser.getVerifier(loginPage, user1.email.get, user1Password)
-      Then("we should get a verifier")
+      val verifier = getVerifier(randomString(4), user1.email.get, user1Password)
+      Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
+    }
+  }
+  feature("access token"){
+    scenario("we get an access token without a callback", AccessToken, Oauth){
+      Given("we will first get a request token and a verifier")
+      val reply = getRequestToken(consumer, OAuth.oob)
+      val requestToken = extractToken(reply.body)
+      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      When("when we ask for an access token")
+      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
+      Then("we should get an access token")
+      extractToken(accessToken.body)
+    }
+    scenario("we get an access token with a callback", AccessToken, Oauth){
+      Given("we will first get a request token and a verifier")
+      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val requestToken = extractToken(reply.body)
+      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      When("when we ask for an access token")
+      val accessToken = getAccessToken(consumer, requestToken, verifier.get)
+      Then("we should get an access token")
+      extractToken(accessToken.body)
+    }
+    scenario("we don't get an access token because the verifier is wrong", AccessToken, Oauth){
+      Given("we will first get a request token and a random verifier")
+      val reply = getRequestToken(consumer, OAuth.oob)
+      val requestToken = extractToken(reply.body)
+      When("when we ask for an access token")
+      val accessTokenReply = getAccessToken(consumer, requestToken, randomString(5))
+      Then("we should get a 401")
+      accessTokenReply.code should equal (401)
+    }
+    scenario("we don't get an access token because the request token is wrong", AccessToken, Oauth){
+      Given("we will first get request token and a verifier")
+      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val requestToken = extractToken(reply.body)
+      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      When("when we ask for an access token with a request token")
+      val randomRequestToken = Token(randomString(5), randomString(5))
+      val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)
+      Then("we should get a 401")
+      accessTokenReply.code should equal (401)
+    }
+    scenario("we don't get an access token because the requestToken and the verifier are wrong", AccessToken, Oauth){
+      Given("we will first get request token and a verifier")
+      val reply = getRequestToken(consumer, "http://localhost:8000")
+      When("when we ask for an access token with a request token")
+      val randomRequestToken = Token(randomString(5), randomString(5))
+      val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(5))
+      Then("we should get a 401")
+      accessTokenReply.code should equal (401)
     }
   }
 }
