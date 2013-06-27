@@ -593,7 +593,7 @@ class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
 }
 
 object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
-  val notFoundUrl = new URL(S.hostAndPath + "/notfound.png") //TODO: Make this image exist?
+  val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
 }
 
 
