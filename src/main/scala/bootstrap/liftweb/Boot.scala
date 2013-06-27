@@ -59,6 +59,34 @@ import javax.mail.{ Authenticator, PasswordAuthentication }
 class Boot extends Loggable{
   def boot {
 
+
+    val contextPath = LiftRules.context.path
+
+    /**
+     * This will search for a folder props/CONTEXT_PATH before the standard locations to check for props
+     * files. That means that if two API endpoints are running in the same container with difference context paths,
+     * that it's easy to use the same war file that can include both props files, with the correct one being picked
+     * based on context path. E.g.
+     *
+     * There is an old api endpoint that needs to be maintained along with the new one, but separate instances of the
+     * API are required because they need to have different hostnames set in the properties for oauth signing purposes:
+     *
+     * mynewurl.example.com with context path /new
+     * myoldurl.example.com with context path /old
+     *
+     * /src/main/resources/props/new/production.default.props
+     * /src/main/resources/props/old/production.default.props
+     */
+    Props.whereToLook = () => Props.toTry.map {
+      f =>
+        {
+          val name = "/props" + contextPath + f() + "props"
+          name -> { () =>
+            tryo { getClass.getResourceAsStream(name) }.filter(_ ne null)
+          }
+        }
+    }
+
     // This sets up MongoDB config
     MongoConfig.init
 
@@ -116,8 +144,6 @@ class Boot extends Loggable{
     LiftRules.statelessDispatchTable.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatchTable.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatchTable.append(v1_2.OBPAPI1_2)
-    LiftRules.statelessDispatchTable.append(ImporterAPI)
-    LiftRules.statelessDispatchTable.append(CashAccountAPI)
     LiftRules.statelessDispatchTable.append(BankMockAPI)
 
     //OAuth API call
