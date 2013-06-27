@@ -15,12 +15,14 @@ import net.liftweb.json.Serialization
 import org.junit.runner.RunWith
 import net.liftweb.mongodb._
 import net.liftweb.util.Props
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, Account, HostedBank}
+import code.model.dataAccess._
 import java.util.Date
 import _root_.net.liftweb.util._
 import Helpers._
 import org.bson.types.ObjectId
 import scala.util.Random._
+import scala.math.BigDecimal
+import BigDecimal._
 case class APIResponse(code: Int, body: JValue)
 
 trait ServerSetup extends FeatureSpec
@@ -70,60 +72,61 @@ trait ServerSetup extends FeatureSpec
       HostedAccount.create.accountID(account.id.get.toString).saveMe
     })
 
-    case class OBPTransactionWrapper(
-      obp_transaction: OBPTransaction)
-
-    case class OBPTransaction(
-      this_account: OBPAccount,
-      other_account: OBPAccount,
-      details: OBPDetails)
-
-    case class OBPAccount(
-      holder: String,
-      number: String,
-      kind: String,
-      bank: OBPBank)
-
-    case class OBPBank(
-      IBAN: String,
-      national_identifier: String,
-      name: String)
-
-    case class OBPDetails(
-      type_en: String,
-      type_de: String,
-      posted: Date,
-      completed: Date,
-      new_balance: OBPAmount,
-      value: OBPAmount,
-      label: String,
-      other_data: String)
-
-    case class OBPAmount(
-      currency: String,
-      amount: String) {
-      override def toString = "OBPAmount(" + currency + ",***)"
-    }
-
     //fake transactions
-    val postTransaction = baseRequest / "api"/ "transactions" <<? List(("secret", Props.get("importer_secret","")))
     accounts.foreach(account => {
-      val transactions =
-        for{i <- 0 until 10} yield{
-          val thisAccountBank = OBPBank("", "", account.bankName)
-          val thisAccount = OBPAccount(account.holder.get, account.number.get, account.kind.get, thisAccountBank)
-          val otherAccountBank = OBPBank("", "", randomString(5))
-          val otherAccount = OBPAccount(randomString(5), randomString(5), randomString(5), otherAccountBank)
-          val balance = OBPAmount(randomString(3), nextInt(100).toString)
-          val value = OBPAmount(randomString(3), nextInt(100).toString)
-          val details = OBPDetails(randomString(5), randomString(5), now, now, balance, value, randomString(10), "")
-          val obpTransaction = OBPTransaction(thisAccount, otherAccount, details)
-          OBPTransactionWrapper(obpTransaction)
-        }
-      val reply = makePostRequest(postTransaction, write(transactions))
-      if(reply.code != 200)
-      {
-        logger.warn("could not post transactions: " + reply.body)
+      for(i <- 0 until 10){
+        val thisAccountBank = OBPBank.createRecord.
+          IBAN(randomString(5)).
+          national_identifier(randomString(5)).
+          name(account.bankName)
+
+        val thisAccount = OBPAccount.createRecord.
+          holder(account.holder.get).
+          number(account.number.get).
+          kind(account.kind.get).
+          bank(thisAccountBank)
+
+        val otherAccountBank = OBPBank.createRecord.
+          IBAN(randomString(5)).
+          national_identifier(randomString(5)).
+          name(randomString(5))
+
+        val otherAccount = OBPAccount.createRecord.
+          holder(randomString(5)).
+          number(randomString(5)).
+          kind(randomString(5)).
+          bank(otherAccountBank)
+
+        val transactionAmount = BigDecimal(nextDouble * 1000).setScale(2,RoundingMode.HALF_UP)
+
+        val newBalance : OBPBalance = OBPBalance.createRecord.
+          currency(account.currency.get).
+          amount(account.balance.get + transactionAmount)
+
+        val newValue : OBPValue = OBPValue.createRecord.
+          currency(account.currency.get).
+          amount(transactionAmount)
+
+        val details = OBPDetails.createRecord.
+          type_en(randomString(5)).
+          type_de(randomString(5)).
+          posted(now).
+          other_data(randomString(5)).
+          new_balance(newBalance).
+          value(newValue).
+          completed(now).
+          label(randomString(5))
+
+        val transaction = OBPTransaction.createRecord.
+          this_account(thisAccount).
+          other_account(otherAccount).
+          details(details)
+
+        val env = OBPEnvelope.createRecord.
+          obp_transaction(transaction).save
+        account.balance(newBalance.amount.get).lastUpdate(now).save
+        env.createAliases
+        env.save
       }
     })
     specificSetup()

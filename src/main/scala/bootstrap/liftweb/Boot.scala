@@ -59,7 +59,7 @@ import javax.mail.{ Authenticator, PasswordAuthentication }
 class Boot extends Loggable{
   def boot {
 
-    
+
     val contextPath = LiftRules.context.path
 
     /**
@@ -86,7 +86,7 @@ class Boot extends Loggable{
           }
         }
     }
-    
+
     // This sets up MongoDB config
     MongoConfig.init
 
@@ -144,8 +144,6 @@ class Boot extends Loggable{
     LiftRules.statelessDispatchTable.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatchTable.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatchTable.append(v1_2.OBPAPI1_2)
-    LiftRules.statelessDispatchTable.append(ImporterAPI)
-    LiftRules.statelessDispatchTable.append(CashAccountAPI)
     LiftRules.statelessDispatchTable.append(BankMockAPI)
 
     //OAuth API call
