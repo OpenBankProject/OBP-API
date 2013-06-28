@@ -63,7 +63,9 @@ class Boot extends Loggable{
 
 
     val contextPath = LiftRules.context.path
-    val obpPropsPath = tryo{System.getProperty("obp.resource.dir")}
+    val obpPropsPath = tryo{Box.legacyNullTest(System.getProperty("obp.resource.dir"))}.flatten
+    
+    logger.info("external props folder: " + obpPropsPath)
     
     /**
      * Where this application looks for props files:
@@ -97,7 +99,7 @@ class Boot extends Loggable{
     } yield {
       Props.toTry.map {
         f => {
-          val name = propsPath + "/" + contextPath + f() + "props"
+          val name = propsPath + contextPath + f() + "props"
           name -> { () => tryo{new FileInputStream(new File(name))} }
         }
       }
