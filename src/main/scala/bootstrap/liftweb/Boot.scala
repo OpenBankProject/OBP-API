@@ -63,9 +63,9 @@ class Boot extends Loggable{
 
 
     val contextPath = LiftRules.context.path
-    val obpPropsPath = tryo{Box.legacyNullTest(System.getProperty("obp.resource.dir"))}.flatten
+    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.flatten
     
-    logger.info("external props folder: " + obpPropsPath)
+    logger.info("external props folder: " + propsPath)
     
     /**
      * Where this application looks for props files:
@@ -73,29 +73,29 @@ class Boot extends Loggable{
      * All properties files follow the standard lift naming scheme for order of preference (see https://www.assembla.com/wiki/show/liftweb/Properties)
      * within a directory.
      * 
-     * The first choice of directory is $obp.resource.dir/CONTEXT_PATH where $obp.resource.dir is the java option set via -Dobp.resource.dir=...
-     * The second choice of directory is $obp.resource.dir
+     * The first choice of directory is $props.resource.dir/CONTEXT_PATH where $props.resource.dir is the java option set via -Dprops.resource.dir=...
+     * The second choice of directory is $props.resource.dir
      * 
      * For example, on a production system:
      * 
      * api1.example.com with context path /api1
      * 
-     * Looks first in (outside of war file): $obp.resource.dir/api1, following the normal lift naming rules (e.g. production.default.props)
-     * Looks second in (outside of war file): $obp.resource.dir, following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api1, following the normal lift naming rules (e.g. production.default.props)
+     * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file
      * 
      * and
      * 
      * api2.example.com with context path /api2
      * 
-     * Looks first in (outside of war file): $obp.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
-     * Looks second in (outside of war file): $obp.resource.dir, following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *
      */
     
     val firstChoicePropsDir = for {
-      propsPath <- obpPropsPath
+      propsPath <- propsPath
     } yield {
       Props.toTry.map {
         f => {
@@ -106,7 +106,7 @@ class Boot extends Loggable{
     }
     
     val secondChoicePropsDir = for {
-      propsPath <- obpPropsPath
+      propsPath <- propsPath
     } yield {
       Props.toTry.map {
         f => {
