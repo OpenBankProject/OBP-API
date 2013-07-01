@@ -52,6 +52,8 @@ import net.liftweb.http.js.jquery.JqJsCmds
 import code.snippet.OAuthAuthorisation
 import net.liftweb.util.Helpers
 import javax.mail.{ Authenticator, PasswordAuthentication }
+import java.io.FileInputStream
+import java.io.File
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -61,32 +63,63 @@ class Boot extends Loggable{
 
 
     val contextPath = LiftRules.context.path
-
+    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.flatten
+    
+    logger.info("external props folder: " + propsPath)
+    
     /**
-     * This will search for a folder props/CONTEXT_PATH before the standard locations to check for props
-     * files. That means that if two API endpoints are running in the same container with difference context paths,
-     * that it's easy to use the same war file that can include both props files, with the correct one being picked
-     * based on context path. E.g.
+     * Where this application looks for props files:
+     * 
+     * All properties files follow the standard lift naming scheme for order of preference (see https://www.assembla.com/wiki/show/liftweb/Properties)
+     * within a directory.
+     * 
+     * The first choice of directory is $props.resource.dir/CONTEXT_PATH where $props.resource.dir is the java option set via -Dprops.resource.dir=...
+     * The second choice of directory is $props.resource.dir
+     * 
+     * For example, on a production system:
+     * 
+     * api1.example.com with context path /api1
+     * 
+     * Looks first in (outside of war file): $props.resource.dir/api1, following the normal lift naming rules (e.g. production.default.props)
+     * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
+     * Looks third in the war file
+     * 
+     * and
+     * 
+     * api2.example.com with context path /api2
+     * 
+     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
+     * Looks third in the war file, following the normal lift naming rules
      *
-     * There is an old api endpoint that needs to be maintained along with the new one, but separate instances of the
-     * API are required because they need to have different hostnames set in the properties for oauth signing purposes:
-     *
-     * mynewurl.example.com with context path /new
-     * myoldurl.example.com with context path /old
-     *
-     * /src/main/resources/props/new/production.default.props
-     * /src/main/resources/props/old/production.default.props
      */
-    Props.whereToLook = () => Props.toTry.map {
-      f =>
-        {
-          val name = "/props" + contextPath + f() + "props"
-          name -> { () =>
-            tryo { getClass.getResourceAsStream(name) }.filter(_ ne null)
-          }
+    
+    val firstChoicePropsDir = for {
+      propsPath <- propsPath
+    } yield {
+      Props.toTry.map {
+        f => {
+          val name = propsPath + contextPath + f() + "props"
+          name -> { () => tryo{new FileInputStream(new File(name))} }
         }
+      }
     }
-
+    
+    val secondChoicePropsDir = for {
+      propsPath <- propsPath
+    } yield {
+      Props.toTry.map {
+        f => {
+          val name = propsPath +  f() + "props"
+          name -> { () => tryo{new FileInputStream(new File(name))} }
+        }
+      }
+    }
+    
+    Props.whereToLook = () => {
+      firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
+    }
+    
     // This sets up MongoDB config
     MongoConfig.init
 
