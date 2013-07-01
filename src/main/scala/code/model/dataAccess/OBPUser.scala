@@ -1,6 +1,6 @@
 /**
-Open Bank Project - Transparency / Social Finance Web Application
-Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+Open Bank Project - API
+Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -156,14 +156,14 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
       })
       SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
   }
-  
+
   /**
    * Set this to redirect to a certain page after a failed login
    */
   object failedLoginRedirect extends SessionVar[Box[String]](Empty) {
     override lazy val __nameSalt = Helpers.nextFuncName
   }
-  
+
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {
