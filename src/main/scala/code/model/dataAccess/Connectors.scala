@@ -1,6 +1,6 @@
 /**
-Open Bank Project - Transparency / Social Finance Web Application
-Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+Open Bank Project - API
+Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -361,7 +361,7 @@ class MongoDBLocalStorage extends LocalStorage {
       id <- tryo{new ObjectId(bank.id)} ?~ {"bank " + bank.fullName + " not found"}
     } yield Account.findAll(("bankID",id) ~ ("anonAccess", true)).map(Account.toBankAccount)
   }
-  
+
   private def moreThanAnonHostedAccounts(user : User) : Box[List[HostedAccount]] = {
     user match {
       case u : OBPUser => {
@@ -403,27 +403,27 @@ class MongoDBLocalStorage extends LocalStorage {
       case _ => {
         logger.error("OBPUser instance not found, could not execute the SQL query ")
         Failure("could not find non public bank accounts")
-        
+
       }
-      
+
     }
   }
-  
+
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
-    
+
     user match {
       case u : OBPUser => {
-        
+
         for {
           moreThanAnon <- moreThanAnonHostedAccounts(u)
         } yield {
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).map(Account.toBankAccount)
         }
-        
+
       }
       case u: User => {
           logger.error("OBPUser instance not found, could not execute the SQL query ")
@@ -438,19 +438,19 @@ class MongoDBLocalStorage extends LocalStorage {
   def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
       case u : OBPUser => {
-        
+
         for {
           moreThanAnon <- moreThanAnonHostedAccounts(u)
           bankObjectId <- tryo{new ObjectId(bankID)}
         } yield {
-          
+
           def sameBank(account : Account) : Boolean =
             account.bankID.get == bankObjectId
-          
+
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
         }
-        
+
       }
       case u : User => {
         logger.error("OBPUser instance not found, could not execute the SQL query ")

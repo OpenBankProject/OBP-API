@@ -1,6 +1,6 @@
 /**
-Open Bank Project - Transparency / Social Finance Web Application
-Copyright (C) 2011, 2012, TESOBE / Music Pictures Ltd
+Open Bank Project - API
+Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
