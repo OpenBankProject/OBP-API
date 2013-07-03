@@ -57,6 +57,8 @@ import code.model._
 import java.net.URL
 import code.util.APIUtil._
 import code.api.OBPRestHelper
+import code.api.ConvertableToJson
+import net.liftweb.http.GetRequest
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {
@@ -117,7 +119,24 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         Full(successJsonResponse(banksToJson(Bank.all)))
     }
   })
+  
 
+  val testApiPath : ApiPath = List(StaticElement("obp"), StaticElement("v1.2"), StaticElement("banks"), VariableElement("BANK_ID"))
+  val reqType = GetRequest
+  //get bank by id
+  val handler = ("obp" / "v1.2").oPrefix2[BankJSON, BankJSON] {
+      case "banks" :: bankId :: Nil JsonGet json => {
+      (user, input) =>
+        def bankToJson(bank : Bank) = {
+          JSONFactory.createBankJSON(bank)
+        }
+        for(bank <- Bank(bankId))
+          yield bankToJson(bank)
+    }
+  }
+    
+  registerApiCall[BankJSON, BankJSON](testApiPath, reqType, handler)
+  
   oauthServe(apiPrefix{
   //get bank by id
     case "banks" :: bankId :: Nil JsonGet json => {
