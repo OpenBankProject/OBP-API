@@ -124,7 +124,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   val testApiPath : ApiPath = List(StaticElement("obp"), StaticElement("v1.2"), StaticElement("banks"), VariableElement("BANK_ID"))
   val reqType = GetRequest
   //get bank by id
-  val handler = ("obp" / "v1.2").oPrefix2[BankJSON, BankJSON] {
+  val handler = ("obp" / "v1.2").oPrefix2[Nothing, BankJSON] {
       case "banks" :: bankId :: Nil JsonGet json => {
       (user, input) =>
         def bankToJson(bank : Bank) = {
@@ -134,8 +134,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           yield bankToJson(bank)
     }
   }
-    
-  registerApiCall[BankJSON, BankJSON](testApiPath, reqType, handler)
+  
+  //TODO: is Nothing a good way to specify no input expected?
+  registerApiCall[Nothing, BankJSON](testApiPath, reqType, handler)
   
   oauthServe(apiPrefix{
   //get bank by id

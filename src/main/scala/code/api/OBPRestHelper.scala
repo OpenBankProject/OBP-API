@@ -115,32 +115,34 @@ class OBPRestHelper extends RestHelper with Loggable {
     println("AAA: " + aaa)
     val bbb = m2.erasure.getCanonicalName()
     println("BBB: " + bbb)
-    //TODO assuming it's a case class, use 2.10 reflection to generate some sample json
     
     //Convert the handler into the more general Box[User] => Box[JsonResponse] that oauthServe expects
     val oauthHandler = new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
       def isDefinedAt(req: Req) : Boolean = handler.isDefinedAt(req)
       
       def apply(req: Req) : Box[User] => Box[JsonResponse] = {
-        val foo = handler.apply(req)
         val json = req.json
         import net.liftweb.json._
-        val in = tryo{json.map(_.extract[INPUT](DefaultFormats, m2))}.getOrElse(Empty)
-        (user: Box[User]) => caseClassBoxToJsonResponse(handler.apply(req).apply(user, in))
+        val input = for {
+          j <- json
+          in <- tryo{j.extract[INPUT]} //TODO: what if no input is expected? Nothing seems to be a bad idea since it doesn't actually exist in java and gets erased (to Object?)
+        } yield in
+        //val in = tryo{json.map(_.extract[INPUT](DefaultFormats, m2))}.getOrElse(Empty)
+        (user: Box[User]) => caseClassBoxToJsonResponse(handler.apply(req).apply(user, input))
       }
     }
     
     if(handler.isDefinedAt(testRequest)) {
       
-      //TODO how can we verify the expected input? test it and see if the result is a "bad format" error? -> that would require someone explicitely write this
-      //particular error type in every (ne
+      //TODO assuming INPUT and OUTPUT are case classes, use 2.10 reflection to generate some sample json
       
       oauthServe(oauthHandler)
       //TODO add to docs
       logger.info("added api call!!!")
     }
     else {
-      logger.error("Api call did not fulfill documented behaviour!!!") //TODO: describe which api call
+      logger.error("Api call did not fulfill documented behaviour! Path " + 
+          path + " with request type " + reqType + " did not match supplied partialfunction.") //TODO: describe which api call
     }
     
   }
