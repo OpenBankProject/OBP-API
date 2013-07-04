@@ -57,8 +57,9 @@ import code.model._
 import java.net.URL
 import code.util.APIUtil._
 import code.api.OBPRestHelper
-import code.api.ConvertableToJson
 import net.liftweb.http.GetRequest
+import code.api.StaticElement
+import code.api.VariableElement
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {

@@ -20,9 +20,12 @@ import javax.servlet.http.HttpServletRequest
 import org.apache.commons.lang.NotImplementedException
 import net.liftweb.json.Extraction
 
-class ConvertableToJson[T](conv : T) {
-  def toJValue = Extraction.decompose(conv)
-}
+trait PathElement {
+    def name : String
+  }
+
+case class StaticElement(name : String) extends PathElement
+case class VariableElement(name : String) extends PathElement
 
 class OBPRestHelper extends RestHelper with Loggable {
 
@@ -77,11 +80,6 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
   }
   
-  trait PathElement {
-    def name : String
-  }
-  case class StaticElement(name : String) extends PathElement
-  case class VariableElement(name : String) extends PathElement
   type ApiPath = List[PathElement]
   
   def caseClassBoxToJsonResponse[T](output : Box[T]) : Box[JsonResponse] = {
