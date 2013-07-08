@@ -195,13 +195,16 @@ class ModeratedBankAccount(
   val bankPermalink : Option[String]
 ){
   def toJson = {
+    def ownersJson(x : Set[AccountOwner])=
+      x.map(owner =>
+      ("id" ->owner.id) ~
+      ("name" -> owner.name))
+
     //TODO: Decide if unauthorized info (I guess that is represented by a 'none' option'? I can't really remember)
     // should just disappear from the json or if an empty string should be used.
     //I think we decided to use empty strings. What was the point of all the options again?
     ("number" -> number.getOrElse("")) ~
-    ("owners" -> owners.flatten.map(owner =>
-      ("id" ->owner.id) ~
-      ("name" -> owner.name))) ~
+    ("owners" -> ownersJson(owners.getOrElse(Set()))) ~
     ("type" -> accountType.getOrElse("")) ~
     ("balance" ->
     	("currency" -> currency.getOrElse("")) ~

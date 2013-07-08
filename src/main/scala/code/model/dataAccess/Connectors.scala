@@ -34,7 +34,6 @@ package code.model.dataAccess
 import code.model._
 import net.liftweb.common.{ Box, Empty, Full, Failure }
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
@@ -45,6 +44,9 @@ import java.util.ArrayList
 import org.bson.types.ObjectId
 import net.liftweb.mapper.BySql
 import net.liftweb.db.DB
+import net.liftweb.mongodb.JsonObject
+import com.mongodb.QueryBuilder
+
 
 object LocalStorage extends MongoDBLocalStorage
 
@@ -359,7 +361,12 @@ class MongoDBLocalStorage extends LocalStorage {
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]] = {
     for{
       id <- tryo{new ObjectId(bank.id)} ?~ {"bank " + bank.fullName + " not found"}
-    } yield Account.findAll(("bankID",id) ~ ("anonAccess", true)).map(Account.toBankAccount)
+    } yield {
+        val qry = QueryBuilder.start("bankID").is(id)
+          .put("anonAccess").is(true)
+          .get
+        Account.findAll(qry).map(Account.toBankAccount)
+      }
   }
 
   private def moreThanAnonHostedAccounts(user : User) : Box[List[HostedAccount]] = {
