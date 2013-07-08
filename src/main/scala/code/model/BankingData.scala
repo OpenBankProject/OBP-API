@@ -197,7 +197,7 @@ class BankAccount(
 
     lazy val viewsFormIds : Box[List[View]] =
       //if no failures then we return the Full views
-      if(failureList.size == 0)
+      if(failureList.isEmpty)
         Full(viewBoxes.flatten)
       else
         //we return just the first failure

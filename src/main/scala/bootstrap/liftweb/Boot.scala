@@ -43,7 +43,6 @@ import code.model.dataAccess._
 import code.model.{Nonce, Consumer, Token}
 import code.api._
 import net.liftweb.util.Helpers._
-import net.liftweb.widgets.tablesorter.TableSorter
 import net.liftweb.json.JsonDSL._
 import code.api.OAuthHandshake
 import net.liftweb.util.Schedule
@@ -63,37 +62,37 @@ class Boot extends Loggable{
 
 
     val contextPath = LiftRules.context.path
-    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.flatten
-    
+    val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
+
     logger.info("external props folder: " + propsPath)
-    
+
     /**
      * Where this application looks for props files:
-     * 
+     *
      * All properties files follow the standard lift naming scheme for order of preference (see https://www.assembla.com/wiki/show/liftweb/Properties)
      * within a directory.
-     * 
+     *
      * The first choice of directory is $props.resource.dir/CONTEXT_PATH where $props.resource.dir is the java option set via -Dprops.resource.dir=...
      * The second choice of directory is $props.resource.dir
-     * 
+     *
      * For example, on a production system:
-     * 
+     *
      * api1.example.com with context path /api1
-     * 
+     *
      * Looks first in (outside of war file): $props.resource.dir/api1, following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file
-     * 
+     *
      * and
-     * 
+     *
      * api2.example.com with context path /api2
-     * 
+     *
      * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *
      */
-    
+
     val firstChoicePropsDir = for {
       propsPath <- propsPath
     } yield {
@@ -104,7 +103,7 @@ class Boot extends Loggable{
         }
       }
     }
-    
+
     val secondChoicePropsDir = for {
       propsPath <- propsPath
     } yield {
@@ -115,11 +114,11 @@ class Boot extends Loggable{
         }
       }
     }
-    
+
     Props.whereToLook = () => {
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
-    
+
     // This sets up MongoDB config
     MongoConfig.init
 
@@ -240,11 +239,10 @@ class Boot extends Loggable{
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
-    TableSorter.init
     /**
      * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
      */
-    Account.find(("holder", "MUSIC PICTURES LIMITED")) match{
+    Account.find("holder", "MUSIC PICTURES LIMITED") match{
       case Full(a) =>
         HostedAccount.find(By(HostedAccount.accountID,a.id.toString)) match {
           case Empty => {

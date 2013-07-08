@@ -198,7 +198,11 @@ object OBPAPI1_0 extends RestHelper with Loggable {
         JsonResponse("transactions" -> transactions.map(t => t.toJson(view)))
       }
 
-      response getOrElse InMemoryResponse(data.getBytes, headers, Nil, 401) : LiftResponse
+      response match {
+        case Full(r) => () => Full(r)
+        case _ => () => Full(InMemoryResponse(data.getBytes, headers, Nil, 401))
+      }
+
     }
 
     case bankAlias :: "accounts" :: accountAlias :: "transactions" ::
@@ -375,7 +379,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       def byUsage(x : APICallAmount, y : APICallAmount) =
         x.amount > y.amount
 
-      val results = APICallAmounts(APIMetric.findAll.groupBy[String](byURL).toSeq.map(t => APICallAmount(t._1,t._2.length)).toList.sort(byUsage))
+      val results = APICallAmounts(APIMetric.findAll.groupBy[String](byURL).toSeq.map(t => APICallAmount(t._1,t._2.length)).toList.sortWith(byUsage))
 
       JsonResponse(Extraction.decompose(results))
     }
@@ -396,7 +400,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       def byOldestDate(x : APICallsForDay, y :  APICallsForDay) : Boolean =
         x.date before y.date
 
-      val results  = APICallsPerDay(APIMetric.findAll.groupBy[Date](byDay).toSeq.map(t => APICallsForDay(t._2.length,t._1)).toList.sort(byOldestDate))
+      val results  = APICallsPerDay(APIMetric.findAll.groupBy[Date](byDay).toSeq.map(t => APICallsForDay(t._2.length,t._1)).toList.sortWith(byOldestDate))
       JsonResponse(Extraction.decompose(results))
     }
 
