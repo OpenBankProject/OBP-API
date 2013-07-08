@@ -33,11 +33,11 @@ Berlin 13359, Germany
 package code.api.test
 
 import org.scalatest._
-import dispatch._
-import dispatch.liftjson.Js._
+import dispatch._, Defaults._
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonAST.{JValue, JObject}
 import _root_.net.liftweb.json.Serialization.write
+import net.liftweb.json.parse
 import net.liftweb.common._
 import org.mortbay.jetty.Connector
 import org.mortbay.jetty.Server
@@ -55,6 +55,9 @@ import org.bson.types.ObjectId
 import scala.util.Random._
 import scala.math.BigDecimal
 import BigDecimal._
+import scala.concurrent.duration._
+import scala.concurrent.Await
+
 case class APIResponse(code: Int, body: JValue)
 
 trait ServerSetup extends FeatureSpec
@@ -62,12 +65,9 @@ trait ServerSetup extends FeatureSpec
   with ShouldMatchers with Loggable{
 
   val server = ServerSetup
-
   implicit val formats = Serialization.formats(NoTypeHints)
-
-  val h = new Http with thread.Safety
-  val baseRequest = (:/(server.host, Integer.valueOf(server.port)))
-
+  val h = Http
+  def baseRequest = host(server.host, server.port)
 
   override def beforeAll() = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -172,50 +172,53 @@ trait ServerSetup extends FeatureSpec
     //drop the Database after the tests
     MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
   }
+
+  private def getAPIResponse(req : Req) : APIResponse = {
+    Await.result(
+      for(response <- Http(req > as.Response(p => p)))
+      yield
+      {
+        val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
+        APIResponse(response.getStatusCode, parse(body))
+      }
+    , Duration(1, SECONDS))
+  }
+
   /**
    this method do a post request given a URL, a JSON and an optional Headers Map
   */
-  def makePostRequest(req: Request, json: String = "", headers : Map[String,String] = Map()) : h.HttpPackage[APIResponse] = {
-    val jsonReq = req << (json, "application/json") <:< headers
-    val jsonHandler = jsonReq ># {json => json}
-    h x jsonHandler{
-       case (code, _, _, json) => APIResponse(code, json())
-    }
+  def makePostRequest(req: Req, json: String = ""): APIResponse = {
+    req.addHeader("Content-Type", "application/json")
+    req.setBody(json)
+    val jsonReq = (req).POST
+    getAPIResponse(jsonReq)
   }
 
-  def makePutRequest(req: Request, json: String, headers : Map[String,String] = Map(("Content-type","application/json"))) : h.HttpPackage[APIResponse] = {
-    val jsonReq = req <<< json <:< headers
-    val jsonHandler = jsonReq ># {json => json}
-    h x jsonHandler{
-       case (code, _, _, json) => APIResponse(code, json())
-    }
+  def makePutRequest(req: Req, json: String = "") : APIResponse = {
+    req.addHeader("Content-Type", "application/json")
+    req.setBody(json)
+    val jsonReq = (req).PUT
+    getAPIResponse(jsonReq)
   }
 
   /**
   * this method do a post request given a URL
   */
-  def makeGetRequest(req: Request, headers : Map[String,String] = Map()) : h.HttpPackage[APIResponse] = {
-    val jsonReq = req <:< headers
-    val jsonHandler = jsonReq ># {json => json}
-    h x jsonHandler{
-       case (code, _, _, json) => APIResponse(code, json())
-    }
+  def makeGetRequest(req: Req) : APIResponse = {
+    val jsonReq = req.GET
+    getAPIResponse(jsonReq)
   }
 
   /**
   * this method do a delete request given a URL
   */
-  def makeDeleteRequest(req: Request, headers : Map[String,String] = Map()) : h.HttpPackage[APIResponse] = {
-    val jsonReq = (req <:< headers).DELETE
-    val jsonHandler = jsonReq.>|
-    h x jsonHandler{
-       case (code, _, _, _) => APIResponse(code, null)
-    }
+  def makeDeleteRequest(req: Req) : APIResponse = {
+    val jsonReq = req.DELETE
+    getAPIResponse(jsonReq)
   }
 }
 
 object ServerSetup {
-
   val host = "localhost"
   val port = 8000
   val server = new Server

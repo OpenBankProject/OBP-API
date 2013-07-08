@@ -194,7 +194,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   }
 
   private def thisAccountJson(thisAccount : ModeratedBankAccount) : JObject = {
-    ("holder" -> thisAccount.owners.flatten.map(ownerJson)) ~
+    ("holder" -> thisAccount.owners.getOrElse(Set()).map(ownerJson)) ~
     ("number" -> thisAccount.number.getOrElse("")) ~
     ("kind" -> thisAccount.accountType.getOrElse("")) ~
     ("bank" ->
@@ -470,7 +470,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       def json(account: ModeratedBankAccount, views: Set[View]): JObject = {
         ("account" ->
           ("number" -> account.number.getOrElse("")) ~
-          ("owners" -> account.owners.flatten.map(ownerJson)) ~
+          ("owners" -> account.owners.getOrElse(Set()).map(ownerJson)) ~
           ("type" -> account.accountType.getOrElse("")) ~
           ("balance" -> balanceJson(account)) ~
           ("IBAN" -> account.iban.getOrElse("")) ~

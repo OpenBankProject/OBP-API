@@ -232,7 +232,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix{
-  //add access for specific user to a list of views
+    //add access for specific user to a list of views
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
@@ -249,7 +249,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add access for specific user to a specific view
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
