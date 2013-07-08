@@ -39,7 +39,7 @@ Otherwise use sbt or Maven 2 as a build tool.
 
 SBT:
 
-To compile and run jetty, cd into the "MavLift" directory and run:
+To compile and run jetty execute:
 
 $ sbt
 ...
