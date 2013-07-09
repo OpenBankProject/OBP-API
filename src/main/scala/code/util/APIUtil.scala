@@ -129,8 +129,6 @@ object APIUtil {
 
     /** Add OAuth operators to dispatch.Request */
     implicit def Request2RequestSigner(r: Request) = new RequestSigner(r)
-    /** Add String conversion since Http#str2req implicit will not chain. */
-    // implicit def Request2RequestSigner(r: String) = new RequestSigner(new Request(r))
 
     /** @return %-encoded string for use in URLs */
     def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)
