@@ -135,9 +135,13 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           yield bankToJson(bank)
     }
   }
+    
+  val docString = """
+    This is some documentation
+  """
   
   //TODO: is Nothing a good way to specify no input expected?
-  registerApiCall[Nothing, BankJSON](testApiPath, reqType, handler)
+  registerApiCall[Nothing, BankJSON](testApiPath, reqType, docString, handler)
   
   oauthServe(apiPrefix{
   //get bank by id

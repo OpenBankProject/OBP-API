@@ -2,6 +2,7 @@ package code.api
 
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
+import net.liftweb.http.RequestType
 
 trait ApiVersionDocumentation {
   val version : String
@@ -16,6 +17,7 @@ trait ApiCall {
   val inputJson : Option[String]
   val outputJson : Option[String]
   val docString : String
+  val requestType : RequestType //TODO: probably want to not make this depend on net.liftweb
 }
 
 object GeneratedDocumentation {
