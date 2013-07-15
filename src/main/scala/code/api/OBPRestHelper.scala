@@ -17,7 +17,6 @@ import net.liftweb.http.provider.HTTPRequest
 import net.liftweb.http.provider.servlet.HTTPRequestServlet
 import net.liftweb.http.LiftServlet
 import javax.servlet.http.HttpServletRequest
-import org.apache.commons.lang.NotImplementedException
 import net.liftweb.json.Extraction
 
 trait PathElement {
