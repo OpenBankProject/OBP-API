@@ -33,11 +33,12 @@ Berlin 13359, Germany
 
 package code.model
 
+import code.model.dataAccess.LocalStorage
+import java.util.Date
+import net.liftweb.common.{Box, Empty, Full, Failure}
 import net.liftweb.http.SHtml
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.common.{Box, Empty, Full, Failure}
-import java.util.Date
 
 
 class AliasType
@@ -63,6 +64,7 @@ trait View {
   //the view settings
   def usePrivateAliasIfOneExists: Boolean
   def usePublicAliasIfOneExists: Boolean
+  def hideOtherAccountMetadataIfAlias: Boolean
 
   //reading access
 
@@ -211,21 +213,22 @@ trait View {
 
         new Some(
           new ModeratedTransactionMetadata(
-            ownerComment,
-            addOwnerCommentFunc,
-            comments,
-            addCommentFunc,
-            deleteCommentFunc,
-            tags,
-            addTagFunc,
-            deleteTagFunc,
-            images,
-            addImageFunc,
-            deleteImageFunc,
-            whereTag,
-            addWhereTagFunc,
-            deleteWhereTagFunc
-        ))
+            ownerComment = ownerComment,
+            addOwnerComment = addOwnerCommentFunc,
+            comments = comments,
+            addComment = addCommentFunc,
+            deleteComment = deleteCommentFunc,
+            tags = tags,
+            addTag = addTagFunc,
+            deleteTag = deleteTagFunc,
+            images = images,
+            addImage = addImageFunc,
+            deleteImage = deleteImageFunc,
+            whereTag = whereTag,
+            addWhereTag = addWhereTagFunc,
+            deleteWhereTag = deleteWhereTagFunc
+          )
+        )
       }
       else
         None
@@ -258,9 +261,20 @@ trait View {
       if (canSeeTransactionBalance) transaction.balance.toString()
       else ""
 
-    new ModeratedTransaction(transactionUUID, transactionId, thisBankAccount, otherBankAccount, transactionMetadata,
-     transactionType, transactionAmount, transactionCurrency, transactionLabel, transactionStartDate,
-      transactionFinishDate, transactionBalance)
+    new ModeratedTransaction(
+      UUID = transactionUUID,
+      id = transactionId,
+      bankAccount = thisBankAccount,
+      otherBankAccount = otherBankAccount,
+      metadata = transactionMetadata,
+      transactionType = transactionType,
+      amount = transactionAmount,
+      currency = transactionCurrency,
+      label = transactionLabel,
+      startDate = transactionStartDate,
+      finishDate = transactionFinishDate,
+      balance = transactionBalance
+    )
   }
 
   def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {
@@ -326,12 +340,29 @@ trait View {
         } else
           AccountName(realName, NoAlias)
       }
-      val otherAccountNationalIdentifier = if (canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if (canSeeSWIFT_BIC) otherBankAccount.swift_bic else None
-      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.iban else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.bankName) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.number) else None
-      val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
+
+      def isAlias = otherAccountLabel.aliasType match {
+        case NoAlias => false
+        case _ => true
+      }
+
+      def moderateField(canSeeField: Boolean, field: String) : Option[String] = {
+        if(isAlias & hideOtherAccountMetadataIfAlias)
+            None
+        else
+          if(canSeeField)
+            Some(field)
+          else
+            None
+      }
+
+      implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
+      val otherAccountNationalIdentifier = moderateField(canSeeOtherAccountNationalIdentifier, otherBankAccount.nationalIdentifier)
+      val otherAccountSWIFT_BIC = moderateField(canSeeSWIFT_BIC, otherBankAccount.swift_bic)
+      val otherAccountIBAN = moderateField(canSeeOtherAccountIBAN, otherBankAccount.iban)
+      val otherAccountBankName = moderateField(canSeeOtherAccountBankName, otherBankAccount.bankName)
+      val otherAccountNumber = moderateField(canSeeOtherAccountNumber, otherBankAccount.number)
+      val otherAccountKind = moderateField(canSeeOtherAccountKind, otherBankAccount.kind)
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata)
         {
@@ -422,40 +453,43 @@ trait View {
 
           Some(
             new ModeratedOtherBankAccountMetadata(
-              moreInfo,
-              url,
-              imageUrl,
-              openCorporatesUrl,
-              corporateLocation,
-              physicalLocation,
-              publicAlias,
-              privateAlias,
-              addMoreInfo,
-              addURL,
-              addImageURL,
-              addOpenCorporatesUrl,
-              addCorporateLocation,
-              addPhysicalLocation,
-              addPublicAlias,
-              addPrivateAlias,
-              deleteCorporateLocation,
-              deletePhysicalLocation
-          ))
+              moreInfo = moreInfo,
+              url = url,
+              imageURL = imageUrl,
+              openCorporatesURL = openCorporatesUrl,
+              corporateLocation = corporateLocation,
+              physicalLocation = physicalLocation,
+              publicAlias = publicAlias,
+              privateAlias = privateAlias,
+              addMoreInfo = addMoreInfo,
+              addURL = addURL,
+              addImageURL = addImageURL,
+              addOpenCorporatesURL = addOpenCorporatesUrl,
+              addCorporateLocation = addCorporateLocation,
+              addPhysicalLocation = addPhysicalLocation,
+              addPublicAlias = addPublicAlias,
+              addPrivateAlias = addPrivateAlias,
+              deleteCorporateLocation = deleteCorporateLocation,
+              deletePhysicalLocation = deletePhysicalLocation
+            )
+          )
         }
         else
             None
 
       Some(
         new ModeratedOtherBankAccount(
-          otherAccountId,
-          otherAccountLabel,
-          otherAccountNationalIdentifier,
-          otherAccountSWIFT_BIC,
-          otherAccountIBAN,
-          otherAccountBankName,
-          otherAccountNumber,
-          otherAccountMetadata,
-          otherAccountKind))
+          id = otherAccountId,
+          label = otherAccountLabel,
+          nationalIdentifier = otherAccountNationalIdentifier,
+          swift_bic = otherAccountSWIFT_BIC,
+          iban = otherAccountIBAN,
+          bankName = otherAccountBankName,
+          number = otherAccountNumber,
+          metadata = otherAccountMetadata,
+          kind = otherAccountKind
+        )
+      )
     }
     else
       None
@@ -468,200 +502,13 @@ trait View {
 
 }
 
-//An implementation that has the least amount of permissions possible
-class BaseView extends View {
-  def id = 1
-  def name = "Restricted"
-  def permalink = "restricted"
-  def description = ""
-  def isPublic = false
-
-  //the view settings
-  def usePrivateAliasIfOneExists = true
-  def usePublicAliasIfOneExists = true
-
-  //reading access
-
-  //transaction fields
-  def canSeeTransactionThisBankAccount = false
-  def canSeeTransactionOtherBankAccount = false
-  def canSeeTransactionMetadata = false
-  def canSeeTransactionLabel = false
-  def canSeeTransactionAmount = false
-  def canSeeTransactionType = false
-  def canSeeTransactionCurrency = false
-  def canSeeTransactionStartDate = false
-  def canSeeTransactionFinishDate = false
-  def canSeeTransactionBalance = false
-
-  //transaction metadata
-  def canSeeComments = false
-  def canSeeOwnerComment = false
-  def canSeeTags = false
-  def canSeeImages = false
-
-  //Bank account fields
-  def canSeeBankAccountOwners = false
-  def canSeeBankAccountType = false
-  def canSeeBankAccountBalance = false
-  def canSeeBankAccountBalancePositiveOrNegative = false
-  def canSeeBankAccountCurrency = false
-  def canSeeBankAccountLabel = false
-  def canSeeBankAccountNationalIdentifier = false
-  def canSeeBankAccountSwift_bic = false
-  def canSeeBankAccountIban = false
-  def canSeeBankAccountNumber = false
-  def canSeeBankAccountBankName = false
-  def canSeeBankAccountBankPermalink = false
-
-  //other bank account fields
-  def canSeeOtherAccountNationalIdentifier = false
-  def canSeeSWIFT_BIC = false
-  def canSeeOtherAccountIBAN = false
-  def canSeeOtherAccountBankName = false
-  def canSeeOtherAccountNumber = false
-  def canSeeOtherAccountMetadata = false
-  def canSeeOtherAccountKind = false
-
-  //other bank account meta data
-  def canSeeMoreInfo = false
-  def canSeeUrl = false
-  def canSeeImageUrl = false
-  def canSeeOpenCorporatesUrl = false
-  def canSeeCorporateLocation = false
-  def canSeePhysicalLocation = false
-  def canSeePublicAlias = false
-  def canSeePrivateAlias = false
-
-  def canAddMoreInfo = false
-  def canAddURL = false
-  def canAddImageURL = false
-  def canAddOpenCorporatesUrl = false
-  def canAddCorporateLocation = false
-  def canAddPhysicalLocation = false
-  def canAddPublicAlias = false
-  def canAddPrivateAlias = false
-  def canDeleteCorporateLocation = false
-  def canDeletePhysicalLocation = false
-
-  //writing access
-  def canEditOwnerComment = false
-  def canAddComment = false
-  def canDeleteComment = false
-  def canAddTag = false
-  def canDeleteTag = false
-  def canAddImage = false
-  def canDeleteImage = false
-  def canSeeWhereTag = false
-  def canAddWhereTag = false
-  def canDeleteWhereTag = false
-}
-
-class FullView extends View {
-  def id = 2
-  def name = "Full"
-  def permalink ="full"
-  def description = ""
-  def isPublic = false
-
-  //the view settings
-  def usePrivateAliasIfOneExists = false
-  def usePublicAliasIfOneExists = false
-
-  //reading access
-
-  //transaction fields
-  def canSeeTransactionThisBankAccount = true
-  def canSeeTransactionOtherBankAccount = true
-  def canSeeTransactionMetadata = true
-  def canSeeTransactionLabel = true
-  def canSeeTransactionAmount = true
-  def canSeeTransactionType = true
-  def canSeeTransactionCurrency = true
-  def canSeeTransactionStartDate = true
-  def canSeeTransactionFinishDate = true
-  def canSeeTransactionBalance = true
-
-  //transaction metadata
-  def canSeeComments = true
-  def canSeeOwnerComment = true
-  def canSeeTags = true
-  def canSeeImages = true
-
-  //Bank account fields
-  def canSeeBankAccountOwners = true
-  def canSeeBankAccountType = true
-  def canSeeBankAccountBalance = true
-  def canSeeBankAccountBalancePositiveOrNegative = true
-  def canSeeBankAccountCurrency = true
-  def canSeeBankAccountLabel = true
-  def canSeeBankAccountNationalIdentifier = true
-  def canSeeBankAccountSwift_bic = true
-  def canSeeBankAccountIban = true
-  def canSeeBankAccountNumber = true
-  def canSeeBankAccountBankName = true
-  def canSeeBankAccountBankPermalink = true
-
-  //other bank account fields
-  def canSeeOtherAccountNationalIdentifier = true
-  def canSeeSWIFT_BIC = true
-  def canSeeOtherAccountIBAN = true
-  def canSeeOtherAccountMetadata = true
-  def canSeeOtherAccountBankName = true
-  def canSeeOtherAccountNumber = true
-  def canSeeOtherAccountKind = true
-
-  //other bank account meta data
-  def canSeeMoreInfo = true
-  def canSeeUrl = true
-  def canSeeImageUrl = true
-  def canSeeOpenCorporatesUrl = true
-  def canSeeCorporateLocation = true
-  def canSeePhysicalLocation = true
-  def canSeePublicAlias = true
-  def canSeePrivateAlias = true
-
-  def canAddMoreInfo = true
-  def canAddURL = true
-  def canAddImageURL = true
-  def canAddOpenCorporatesUrl = true
-  def canAddCorporateLocation = true
-  def canAddPhysicalLocation = true
-  def canAddPublicAlias = true
-  def canAddPrivateAlias = true
-  def canDeleteCorporateLocation = true
-  def canDeletePhysicalLocation = true
-
-  //writing access
-  def canEditOwnerComment = true
-  def canAddComment = true
-  def canDeleteComment = true
-  def canAddTag = true
-  def canDeleteTag = true
-  def canAddImage = true
-  def canDeleteImage = true
-  def canSeeWhereTag = true
-  def canAddWhereTag = true
-  def canDeleteWhereTag = true
-}
-
-
 object View {
-  //transform the url into a view
-  //TODO : load the view from the Data base
-  def fromUrl(viewNameURL: String): Box[View] =
-    viewNameURL match {
-      case "authorities" => Full(Authorities)
-      case "board" => Full(Board)
-      case "our-network" => Full(OurNetwork)
-      case "team" => Full(Team)
-      case "owner" => Full(Owner)
-      case "public" | "anonymous" => Full(Public)
-      case "management" => Full(Management)
-      case _ => Failure("view " + viewNameURL + " not found", Empty, Empty)
-    }
+  def fromUrl(viewPermalink: String): Box[View] =
+    LocalStorage.view(viewPermalink)
+  def createView(v: ViewCreationJSON): Box[View] =
+    LocalStorage.createView(v)
 
-  def linksJson(views: Set[View], accountPermalink: String, bankPermalink: String): JObject = {
+  def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~
         ("href" -> { "/" + bankPermalink + "/account/" + accountPermalink + "/" + view.permalink }) ~
@@ -671,292 +518,4 @@ object View {
 
     ("links" -> viewsJson)
   }
-}
-
-object Team extends FullView {
-  override def id = 3
-  override def name = "Team"
-  override def permalink = "team"
-  override def description = "A view for team members related to the account. E.g. for a company bank account -> employees/contractors"
-  override def canEditOwnerComment= false
-
-}
-object Board extends FullView {
-  override def id = 4
-  override def name = "Board"
-  override def permalink = "board"
-  override def description = "A view for board members of a company to view that company's account data."
-  override def canEditOwnerComment= false
-}
-object Authorities extends FullView {
-  override def id = 5
-  override def name = "Authorities"
-  override def permalink = "authorities"
-  override def description = "A view for authorities such as tax officials to view an account's data"
-  override def canEditOwnerComment= false
-}
-
-object Public extends BaseView {
-  //the actual class extends the BaseView but in fact it does not matters be cause we don't care about the values
-  //of the canSeeMoreInfo, canSeeUrl,etc  attributes and we implement a specific moderate method
-
-    /**
-   * Current rules:
-   *
-   * If Public, and a public alias exists : Show the public alias
-   * If Public, and no public alias exists : Show the real account holder
-   * If our network, and a private alias exists : Show the private alias
-   * If our network, and no private alias exists : Show the real account holder
-   */
-  override def id = 6
-  override def name = "Public"
-  override def permalink = "public"
-  override def description = "A view of the account accessible by anyone."
-  override def isPublic = true
-
-
-  //Bank account fields
-  override def canSeeBankAccountOwners = true
-  override def canSeeBankAccountType = true
-  override def canSeeBankAccountBalancePositiveOrNegative = true
-  override def canSeeBankAccountCurrency = true
-  override def canSeeBankAccountLabel = true
-  override def canSeeBankAccountNationalIdentifier = true
-  override def canSeeBankAccountSwift_bic = true
-  override def canSeeBankAccountIban = true
-  override def canSeeBankAccountNumber = true
-  override def canSeeBankAccountBankName = true
-
-  override def moderate(transaction: Transaction): ModeratedTransaction = {
-
-    val transactionId = transaction.id
-    val transactionUUID = transaction.uuid
-    val accountBalance = "" //not used when displaying transactions, but we might eventually need it. if so, we need a ref to
-      //the bank account so we could do something like if(canSeeBankAccountBalance) bankAccount.balance else if
-      // canSeeBankAccountBalancePositiveOrNegative {show + or -} else ""
-    val thisBankAccount = moderate(transaction.thisAccount)
-    val otherBankAccount = moderate(transaction.otherAccount)
-    val transactionMetadata =
-      Some(
-        new ModeratedTransactionMetadata(
-          Some(transaction.metadata.ownerComment),
-          None,
-          Some(transaction.metadata.comments.filter(comment => comment.viewId==id)),
-          Some(transaction.metadata.addComment),
-          Some(transaction.metadata.deleteComment),
-          Some(transaction.metadata.tags.filter(_.viewId==id)),
-          Some(transaction.metadata.addTag),
-          Some(transaction.metadata.deleteTag),
-          Some(transaction.metadata.images.filter(_.viewId==id)), //TODO: Better if image takes a view as a parameter?
-          Some(transaction.metadata.addImage),
-          Some(transaction.metadata.deleteImage),
-          transaction.metadata.whereTags.find(tag => tag.viewId == id),
-          Some(transaction.metadata.addWhereTag),
-          Some(transaction.metadata.deleteWhereTag)
-      ))
-
-    val transactionType = Some(transaction.transactionType)
-    val transactionAmount = Some(transaction.amount)
-    val transactionCurrency = Some(transaction.currency)
-    val transactionLabel = None
-    val transactionStartDate = Some(transaction.startDate)
-    val transactionFinishDate = Some(transaction.finishDate)
-    val transactionBalance =  if (transaction.balance.toString().startsWith("-")) "-" else "+"
-
-    new ModeratedTransaction(
-      transactionUUID,
-      transactionId,
-      thisBankAccount,
-      otherBankAccount,
-      transactionMetadata,
-      transactionType,
-      transactionAmount,
-      transactionCurrency,
-      transactionLabel,
-      transactionStartDate,
-      transactionFinishDate,
-      transactionBalance
-    )
-  }
-  override def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {
-    Some(
-        new ModeratedBankAccount(
-          id = bankAccount.permalink,
-          owners = Some(bankAccount.owners),
-          accountType = Some(bankAccount.accountType),
-          currency = Some(bankAccount.currency),
-          label = Some(bankAccount.label),
-          nationalIdentifier = None,
-          swift_bic = None,
-          iban = None,
-          number = Some(bankAccount.number),
-          bankName = Some(bankAccount.bankName),
-          bankPermalink = Some(bankAccount.bankPermalink)
-        )
-      )
-  }
-  override def moderate(otherAccount : OtherBankAccount) : Option[ModeratedOtherBankAccount] = {
-    val otherAccountLabel = {
-      val publicAlias = otherAccount.metadata.publicAlias
-      if(publicAlias.isEmpty)
-        AccountName(otherAccount.label, NoAlias)
-      else
-        AccountName(publicAlias, PublicAlias)
-    }
-    val otherAccountMetadata = {
-      def isPublicAlias = otherAccountLabel.aliasType match {
-        case PublicAlias => true
-        case _ => false
-      }
-      val moreInfo = if (isPublicAlias) None else Some(otherAccount.metadata.moreInfo)
-      val url = if (isPublicAlias) None else Some(otherAccount.metadata.url)
-      val imageUrl = if (isPublicAlias) None else Some(otherAccount.metadata.imageURL)
-      val openCorporatesUrl = if (isPublicAlias) None else Some(otherAccount.metadata.openCorporatesURL)
-      val corporateLocation = if (isPublicAlias) None else Some(otherAccount.metadata.corporateLocation)
-      val physicalLocation = if (isPublicAlias) None else Some(otherAccount.metadata.physicalLocation)
-
-      Some(
-        new ModeratedOtherBankAccountMetadata(
-          moreInfo,
-          url,
-          imageUrl,
-          openCorporatesUrl,
-          corporateLocation,
-          physicalLocation,
-          Some(otherAccount.metadata.publicAlias),
-          None,
-          None,
-          None,
-          None,
-          None,
-          Some(otherAccount.metadata.addCorporateLocation),
-          Some(otherAccount.metadata.addPhysicalLocation),
-          None,
-          None,
-          Some(otherAccount.metadata.deleteCorporateLocation),
-          Some(otherAccount.metadata.deletePhysicalLocation)
-      ))
-    }
-
-    Some(
-      new ModeratedOtherBankAccount(
-        otherAccount.id,
-        otherAccountLabel,
-        None,
-        None,
-        None,
-        None,
-        None,
-        otherAccountMetadata,
-        None))
-  }
-}
-
-object OurNetwork extends BaseView {
-  override def id = 7
-  override def name = "Our Network"
-  override def permalink ="our-network"
-  override def description = "A view for people related to the account in some way. E.g. for a company account this could include investors" +
-    " or current/potential clients"
-  override def moderate(transaction: Transaction): ModeratedTransaction = {
-    val transactionId = transaction.id
-    val transactionUUID = transaction.uuid
-    val accountBalance = "" //not used when displaying transactions, but we might eventually need it. if so, we need a ref to
-      //the bank account so we could do something like if(canSeeBankAccountBalance) bankAccount.balance else if
-      // canSeeBankAccountBalancePositiveOrNegative {show + or -} else ""
-    val thisBankAccount = moderate(transaction.thisAccount)
-    val otherBankAccount = moderate(transaction.otherAccount)
-    val transactionMetadata =
-      Some(
-        new ModeratedTransactionMetadata(
-          Some(transaction.metadata.ownerComment),
-          None,
-          Some(transaction.metadata.comments.filter(comment => comment.viewId==id)),
-          Some(transaction.metadata.addComment),
-          Some(transaction.metadata.deleteComment),
-          Some(transaction.metadata.tags.filter(_.viewId==id)),
-          Some(transaction.metadata.addTag),
-          Some(transaction.metadata.deleteTag),
-          Some(transaction.metadata.images.filter(_.viewId==id)), //TODO: Better if image takes a view as a parameter?
-          Some(transaction.metadata.addImage),
-          Some(transaction.metadata.deleteImage),
-          transaction.metadata.whereTags.find(tag => tag.viewId == id),
-          Some(transaction.metadata.addWhereTag),
-          Some(transaction.metadata.deleteWhereTag)
-      ))
-    val transactionType = Some(transaction.transactionType)
-    val transactionAmount = Some(transaction.amount)
-    val transactionCurrency = Some(transaction.currency)
-    val transactionLabel = transaction.label
-    val transactionStartDate = Some(transaction.startDate)
-    val transactionFinishDate = Some(transaction.finishDate)
-    val transactionBalance =  transaction.balance.toString()
-
-    new ModeratedTransaction(transactionUUID, transactionId, thisBankAccount, otherBankAccount, transactionMetadata,
-     transactionType, transactionAmount, transactionCurrency, transactionLabel, transactionStartDate,
-      transactionFinishDate, transactionBalance)
-  }
-  override def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {
-    Some(
-        new ModeratedBankAccount(
-          id = bankAccount.permalink,
-          owners = Some(bankAccount.owners),
-          accountType = Some(bankAccount.accountType),
-          currency = Some(bankAccount.currency),
-          label = Some(bankAccount.label),
-          nationalIdentifier = None,
-          swift_bic = None,
-          iban = None,
-          number = Some(bankAccount.number),
-          bankName = Some(bankAccount.bankName),
-          bankPermalink = Some(bankAccount.bankPermalink)
-        )
-      )
-  }
-  override def moderate(otherAccount : OtherBankAccount) : Option[ModeratedOtherBankAccount] = {
-    val otherAccountLabel = {
-      val privateAlias = otherAccount.metadata.privateAlias
-      if(privateAlias.isEmpty)
-        AccountName(otherAccount.label, NoAlias)
-      else
-        AccountName(privateAlias, PrivateAlias)
-    }
-    val otherAccountMetadata =
-      Some(
-        new ModeratedOtherBankAccountMetadata(
-        Some(otherAccount.metadata.moreInfo),
-        Some(otherAccount.metadata.url),
-        Some(otherAccount.metadata.imageURL),
-        Some(otherAccount.metadata.openCorporatesURL),
-        Some(otherAccount.metadata.corporateLocation),
-        Some(otherAccount.metadata.physicalLocation),
-        Some(otherAccount.metadata.publicAlias),
-        Some(otherAccount.metadata.privateAlias),
-        None,
-        None,
-        None,
-        None,
-        Some(otherAccount.metadata.addCorporateLocation),
-        Some(otherAccount.metadata.addPhysicalLocation),
-        Some(otherAccount.metadata.addPublicAlias),
-        Some(otherAccount.metadata.addPrivateAlias),
-        Some(otherAccount.metadata.deleteCorporateLocation),
-        Some(otherAccount.metadata.deletePhysicalLocation)
-      ))
-
-    Some(new ModeratedOtherBankAccount(otherAccount.id,otherAccountLabel,None,None,None,
-        None, None, otherAccountMetadata, None))
-  }
-}
-
-object Owner extends FullView {
-  override def id = 8
-  override def name="Owner"
-  override def permalink = "owner"
-}
-
-object Management extends FullView {
-  override def id = 9
-  override def name="Management"
-  override def permalink = "management"
 }
