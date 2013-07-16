@@ -16,6 +16,7 @@ object APIUtil {
 
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
+  val headers = ("Access-Control-Allow-Origin","*") :: Nil
 
   def httpMethod : String =
     S.request match {
@@ -49,16 +50,16 @@ object APIUtil {
   }
 
   def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), Nil, Nil, 204)
+    JsonResponse(JsRaw(""), headers, Nil, 204)
 
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(json, Nil, Nil, httpCode)
+    JsonResponse(json, headers, Nil, httpCode)
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), Nil, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 
   def oauthHeaderRequiredJsonResponce : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), Nil, Nil, 400)
+    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
@@ -129,8 +130,6 @@ object APIUtil {
 
     /** Add OAuth operators to dispatch.Request */
     implicit def Request2RequestSigner(r: Request) = new RequestSigner(r)
-    /** Add String conversion since Http#str2req implicit will not chain. */
-    // implicit def Request2RequestSigner(r: String) = new RequestSigner(new Request(r))
 
     /** @return %-encoded string for use in URLs */
     def encode_% (s: String) = java.net.URLEncoder.encode(s, org.apache.http.protocol.HTTP.UTF_8)

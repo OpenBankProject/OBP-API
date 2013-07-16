@@ -53,21 +53,21 @@ import net.liftweb.util.Helpers._
 object OAuthAuthorisation {
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
-  
+
   def shouldNotLogUserOut() : Boolean = {
     S.param("logUserOut") match {
       case Full("false") => true
       case _ => false
     }
   }
-  
+
   def hideFailedLoginMessageIfNeeded() = {
     S.param("failedLogin") match {
       case Full("true") => NOOP_SELECTOR
       case _ => ".login-error" #> ""
     }
   }
-  
+
   // this method is specific to the authorization page ( where the user login to grant access
   // to the application (step 2))
   def tokenCheck =
@@ -121,7 +121,7 @@ object OAuthAuthorisation {
                   case Full(consumer) => {
                     hideFailedLoginMessageIfNeeded &
                     "#applicationName" #> consumer.name &
-                      "#verifier" #> NodeSeq.Empty &
+                      "#verifierBloc" #> NodeSeq.Empty &
                       "#errorMessage" #> NodeSeq.Empty &
                       {
                         ".login [action]" #> OBPUser.loginPageURL &
