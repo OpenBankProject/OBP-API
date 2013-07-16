@@ -56,9 +56,6 @@ trait LocalStorage extends Loggable {
 
   def allBanks : List[Bank]
 
-  //TODO: remove after the split because useless
-  def getAccount(bankpermalink: String, account: String): Box[Account]
-
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount]
 
   def getAllPublicAccounts() : List[BankAccount]
@@ -68,9 +65,6 @@ trait LocalStorage extends Loggable {
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
 
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
-
-  //TODO: remove after the split because useless
-  def correctBankAndAccount(bank: String, account: String): Boolean
 
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
@@ -95,13 +89,23 @@ trait LocalStorage extends Loggable {
 
   def revokeAllPermission(bankAccountId : String, user : User) : Box[Boolean]
 
+  def view(viewPermalink : String) : Box[View]
+
+  def createView(view: ViewCreationJSON) : Box[View]
+
   def views(bankAccountID : String) : Box[List[View]]
+
+  def permittedViews(user: User, bankAccount: BankAccount): List[View]
+
+  def permittedView(user: User, v: View, bankAccount: BankAccount): Boolean
+
+  def publicViews(bankAccountID : String) : Box[List[View]]
+
+  def ownerAccess(user: User, bankAccount: BankAccount) : Boolean
 
 }
 
 class MongoDBLocalStorage extends LocalStorage {
-
-  private val availableViews = List(Team, Board, Authorities, Public, OurNetwork, Owner, Management)
 
   private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
     import net.liftweb.json.JsonDSL._
@@ -288,15 +292,7 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   private def setPrivilegeFromView(privilege : Privilege, view : View, value : Boolean ) = {
-    view match {
-      case OurNetwork => privilege.ourNetworkPermission(value)
-      case Team => privilege.teamPermission(value)
-      case Board => privilege.boardPermission(value)
-      case Authorities => privilege.authoritiesPermission(value)
-      case Owner => privilege.ownerPermission(value)
-      case Management => privilege.mangementPermission(value)
-      case _ =>
-    }
+    //TODO: Implement
   }
 
   private def createBank(bank : HostedBank) : Bank = {
@@ -342,13 +338,6 @@ class MongoDBLocalStorage extends LocalStorage {
   def allBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
 
-  //TODO: remove after the split because useless
-  def getAccount(bankpermalink: String, account: String): Box[Account] =
-    for{
-      hostedBank <- getHostedBank(bankpermalink)
-      account <- hostedBank.getAccount(account)
-    } yield account
-
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankId)
@@ -372,47 +361,14 @@ class MongoDBLocalStorage extends LocalStorage {
   private def moreThanAnonHostedAccounts(user : User) : Box[List[HostedAccount]] = {
     user match {
       case u : OBPUser => {
-        val hostedAccountTable = HostedAccount._dbTableNameLC
-        val privilegeTable = Privilege._dbTableNameLC
-        val userTable = OBPUser._dbTableNameLC
-
-        val hostedId = hostedAccountTable + "." + HostedAccount.id.dbColumnName
-        val hostedAccId = hostedAccountTable + "." + HostedAccount.accountID.dbColumnName
-        val privilegeAccId = privilegeTable + "." + Privilege.account.dbColumnName
-        val privilegeUserId = privilegeTable + "." + Privilege.user.dbColumnName
-
-        val ourNetworkPrivilege = privilegeTable + "." + Privilege.ourNetworkPermission.dbColumnName
-        val teamPrivilege = privilegeTable + "." + Privilege.teamPermission.dbColumnName
-        val boardPrivilege = privilegeTable + "." + Privilege.boardPermission.dbColumnName
-        val authoritiesPrivilege = privilegeTable + "." + Privilege.authoritiesPermission.dbColumnName
-        val ownerPrivilege = privilegeTable + "." + Privilege.ownerPermission.dbColumnName
-        val managementPrivilege = privilegeTable + "." + Privilege.mangementPermission.dbColumnName
-
-        val query = "SELECT DISTINCT " + hostedId + ", " + hostedAccId +
-              " FROM " + hostedAccountTable + ", " + privilegeTable + ", " + userTable +
-              " WHERE " + "( " + hostedId + " = " + privilegeAccId + ")" +
-                " AND " + "( " + privilegeUserId + " = ? " + ")"+
-                " AND " + "( " + ourNetworkPrivilege + " = true" +
-                  " OR " + teamPrivilege + " = true" +
-                  " OR " + boardPrivilege + " = true" +
-                  " OR " + authoritiesPrivilege + " = true" +
-                  " OR " + managementPrivilege + " = true" +
-                  " OR " + ownerPrivilege + " = true)"
-
-        Full(HostedAccount.findAllByPreparedStatement({
-          superconn => {
-            val statement = superconn.connection.prepareStatement(query)
-            statement.setLong(1, u.id.get)
-            statement
-          }
-        }))
+        Full(Privilege.findAll(By(Privilege.user, u.id)).
+          filter(_.views.exists(_.isPublic==false)).
+          map(_.account.obj.get))
       }
       case _ => {
         logger.error("OBPUser instance not found, could not execute the SQL query ")
         Failure("could not find non public bank accounts")
-
       }
-
     }
   }
 
@@ -445,19 +401,16 @@ class MongoDBLocalStorage extends LocalStorage {
   def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
       case u : OBPUser => {
-
         for {
           moreThanAnon <- moreThanAnonHostedAccounts(u)
           bankObjectId <- tryo{new ObjectId(bankID)}
         } yield {
-
           def sameBank(account : Account) : Boolean =
             account.bankID.get == bankObjectId
 
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
         }
-
       }
       case u : User => {
         logger.error("OBPUser instance not found, could not execute the SQL query ")
@@ -466,31 +419,23 @@ class MongoDBLocalStorage extends LocalStorage {
     }
   }
 
-  //TODO: remove after the split because useless
-  def correctBankAndAccount(bank: String, account: String): Boolean =
-    getHostedBank(bank) match {
-        case Full(bank) => bank.isAccount(account)
-        case _ => false
-      }
-
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
-  	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
-    for{
-      id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
-      account <- Account.find("_id",id)
-      otherAccount <- account.otherAccounts.objs.find(_.id.get.equals(otherAccountID))
-    } yield{
-        val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
-          case Full(envelope) =>
-            envelope.obp_transaction.get.other_account.get
-          case _ => OBPAccount.createRecord
+  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
+      for{
+        id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
+        account <- Account.find("_id",id)
+        otherAccount <- account.otherAccounts.objs.find(_.id.get.equals(otherAccountID))
+      } yield{
+          val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
+            case Full(envelope) => envelope.obp_transaction.get.other_account.get
+            case _ => OBPAccount.createRecord
+          }
+          moderate(createOtherBankAccount(otherAccount, otherAccountFromTransaction)).get
         }
-        moderate(createOtherBankAccount(otherAccount, otherAccountFromTransaction)).get
-      }
   }
 
   def getModeratedOtherBankAccounts(accountID : String)
-    (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
+  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
     for{
       id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
       account <- Account.find("_id",id)
@@ -511,7 +456,7 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
-    (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]] = {
+  (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]] = {
     for{
       rawTransactions <- getTransactions(permalink, bankPermalink, queryParams: _*)
     } yield rawTransactions.map(moderate)
@@ -524,7 +469,7 @@ class MongoDBLocalStorage extends LocalStorage {
     }
 
   def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
-    (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
+  (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
     for{
       transaction <- getTransaction(id,bankPermalink,accountPermalink)
     } yield moderate(transaction)
@@ -537,23 +482,14 @@ class MongoDBLocalStorage extends LocalStorage {
     HostedAccount.find(By(HostedAccount.accountID,account.id)) match {
       case Full(acc) => {
         val privileges = Privilege.findAll(By(Privilege.account, acc.id.get)).sortWith((p1,p2) => p1.updatedAt.get after p2.updatedAt.get)
-        val permissions : List[Box[Permission]] = privileges.map( p => {
-            if(
-              p.ourNetworkPermission.get != false
-              | p.teamPermission.get != false
-              | p.boardPermission.get != false
-              | p.authoritiesPermission.get != false
-              | p.ownerPermission.get != false
-              | p.mangementPermission.get != false
-            )
-              p.user.obj.map(u => {
-                  new Permission(
-                    u,
-                    u.permittedViews(account).toList
-                  )
-                })
-            else
-              Empty
+        val permissions : List[Box[Permission]] =
+          privileges.map( p => {
+            p.user.obj.map(u => {
+              new Permission(
+                u,
+                p.views.toList
+              )
+            })
           })
         Full(permissions.flatten)
       }
@@ -650,21 +586,15 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def revokeAllPermission(bankAccountId : String, user : User) : Box[Boolean] = {
     user match {
-      case user:OBPUser =>
+      case u:OBPUser =>{
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
+          p <- Privilege.find(By(Privilege.user, u), By(Privilege.account, bankAccount))
         } yield {
-            Privilege.find(By(Privilege.user, user.id), By(Privilege.account, bankAccount)) match {
-              case Full(privilege) => {
-                availableViews.foreach({view =>
-                  setPrivilegeFromView(privilege, view, false)
-                })
-                privilege.save
-              }
-              //there is no privilege to this user, so there is nothing to revoke
-              case _ => true
-            }
-          }
+          ViewPrivileges.findAll(By(ViewPrivileges.privilege, p)).map(_.delete_!)
+          true
+        }
+      }
       case u: User => {
         logger.error("OBPUser instance not found, could not revoke access ")
         Empty
@@ -672,7 +602,89 @@ class MongoDBLocalStorage extends LocalStorage {
     }
   }
 
+  def view(viewPermalink : String) : Box[View] = {
+    ViewImpl.find(By(ViewImpl.permalink_, viewPermalink))
+  }
+
+  def createView(view: ViewCreationJSON) : Box[View] = {
+    // val createdView = ViewImpl.create.
+    //   name_(view.name).
+    //   description_(view.description).
+    //   permalink_(generatePermalink(view.name)).
+    //   isPublic_(view.isPublic)
+
+    // if()
+
+
+  }
+
   def views(bankAccountID : String) : Box[List[View]] = {
-    Full(availableViews)
+    for(account <- HostedAccount.find(By(HostedAccount.accountID,bankAccountID)))
+       yield account.views.toList
+  }
+
+
+  def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
+    user match {
+      case u: OBPUser=> {
+        HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
+          case Full(account) =>
+            Privilege.find(By(Privilege.user, u.id), By(Privilege.account,account)) match {
+              case Full(p) => p.views.toList
+              case _ => Nil
+            }
+          case _ => Nil
+        }
+      }
+      case _ => {
+        logger.error("OBPUser instance not found, could not get Permitted views")
+        List()
+      }
+    }
+  }
+
+  def permittedView(user: User, v: View, bankAccount: BankAccount): Boolean = {
+    user match {
+      case u: OBPUser=> {
+        HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
+          case Full(account) =>
+            Privilege.find(By(Privilege.user, u.id), By(Privilege.account, account)) match {
+              case Full(p) => ViewPrivileges.count(By(ViewPrivileges.privilege, p), By(ViewPrivileges.view, v.id)) == 1
+              case _ => false
+            }
+          case _ => false
+        }
+      }
+      case _ => {
+        logger.error("OBPUser instance not found, could not get the privilege")
+        false
+      }
+    }
+  }
+
+  def publicViews(bankAccountID: String) : Box[List[View]] = {
+    for{account <- HostedAccount.find(By(HostedAccount.accountID,bankAccountID))}
+      yield{
+        account.views.toList.filter(v => v.isPublic==true)
+      }
+  }
+
+  def ownerAccess(user: User, bankAccount: BankAccount) : Boolean = {
+    user match {
+      case u: OBPUser=> {
+        val ownerView = for{
+          account <- HostedAccount.find(By(HostedAccount.accountID,bankAccount.id))
+          v <- ViewImpl.find(By(ViewImpl.account, account.id), By(ViewImpl.name_, "Owner"))
+          p <- Privilege.find(By(Privilege.user, u.id), By(Privilege.account, account))
+        } yield {
+          p.views.contains(v)
+        }
+        ownerView.getOrElse(false)
+      }
+      case _ => {
+        logger.error("OBPUser instance not found, could not get the privilege")
+        false
+      }
+    }
   }
 }

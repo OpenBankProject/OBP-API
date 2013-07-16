@@ -186,6 +186,8 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, Token)
     Schemifier.schemify(true, Schemifier.infoF _, Consumer)
     Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
+    Schemifier.schemify(true, Schemifier.infoF _, ViewPrivileges)
+    Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
@@ -238,45 +240,6 @@ class Boot extends Loggable{
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
-
-    /**
-     * A temporary measure to make sure there is an owner for the account, so that someone can set permissions
-     */
-    Account.find("holder", "MUSIC PICTURES LIMITED") match{
-      case Full(a) =>
-        HostedAccount.find(By(HostedAccount.accountID,a.id.toString)) match {
-          case Empty => {
-            val hostedAccount = HostedAccount.create.accountID(a.id.toString).saveMe
-            logger.debug("Creating tesobe account user and granting it owner permissions")
-            //create one
-            // val randomPassword = StringHelpers.randomString(12)
-            // println ("The admin password is :"+randomPassword )
-            val userEmail = "tesobe@tesobe.com"
-            val firstName = "tesobe first name"
-            val lastName = "tesobe last name"
-            val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
-            Privilege.create.account(hostedAccount).ownerPermission(true).user(theUserOwner).saveMe
-          }
-          case Full(hostedAccount) =>
-            Privilege.find(By(Privilege.account,hostedAccount), By(Privilege.ownerPermission, true)) match{
-              case Empty => {
-                //create one
-                // val randomPassword = StringHelpers.randomString(12)
-                // println ("The admin password is :"+randomPassword )
-                val userEmail = "tesobe@tesobe.com"
-                val firstName = "tesobe first name"
-                val lastName = "tesobe last name"
-                val theUserOwner = OBPUser.find(By(OBPUser.email, userEmail)).getOrElse(OBPUser.create.email(userEmail).password("123tesobe456").validated(true).firstName(firstName).lastName(lastName).saveMe)
-                Privilege.create.account(hostedAccount).ownerPermission(true)
-                  .mangementPermission(true).authoritiesPermission(true).boardPermission(true)
-                  .teamPermission(true).ourNetworkPermission(true).user(theUserOwner).saveMe
-              }
-              case _ => logger.debug("Owner privilege already exists")
-            }
-          case _ => None
-        }
-      case _ => logger.debug("No account found")
-    }
 
   }
 }

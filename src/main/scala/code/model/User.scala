@@ -43,9 +43,14 @@ trait User {
   def emailAddress : String
   def theFirstName : String
   def theLastName : String
-  def permittedViews(bankAccount: BankAccount) : Set[View]
-  def hasMangementAccess(bankAccount: BankAccount)  : Boolean
-  override def toString = emailAddress
+  def permittedViews(bankAccount: BankAccount) : List[View] =
+    LocalStorage.permittedViews(this, bankAccount)
+
+  def permittedView(v: View, b: BankAccount): Boolean =
+    LocalStorage.permittedView(this, v, b)
+
+  def ownerAccess(bankAccount: BankAccount) : Boolean =
+    LocalStorage.ownerAccess(this, bankAccount)
 
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
