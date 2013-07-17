@@ -254,7 +254,6 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountOwners_(true).
     canSeeBankAccountType_(true).
     canSeeBankAccountBalance_(true).
-    canSeeBankAccountBalancePositiveOrNegative_(true).
     canSeeBankAccountCurrency_(true).
     canSeeBankAccountLabel_(true).
     canSeeBankAccountNationalIdentifier_(true).
@@ -327,7 +326,6 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountOwners_(true).
     canSeeBankAccountType_(true).
     canSeeBankAccountBalance_(true).
-    canSeeBankAccountBalancePositiveOrNegative_(true).
     canSeeBankAccountCurrency_(true).
     canSeeBankAccountLabel_(true).
     canSeeBankAccountNationalIdentifier_(true).
@@ -400,7 +398,6 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountOwners_(true).
     canSeeBankAccountType_(true).
     canSeeBankAccountBalance_(true).
-    canSeeBankAccountBalancePositiveOrNegative_(true).
     canSeeBankAccountCurrency_(true).
     canSeeBankAccountLabel_(true).
     canSeeBankAccountNationalIdentifier_(true).

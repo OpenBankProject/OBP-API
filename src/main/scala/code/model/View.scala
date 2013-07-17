@@ -90,7 +90,6 @@ trait View {
   def canSeeBankAccountOwners : Boolean
   def canSeeBankAccountType : Boolean
   def canSeeBankAccountBalance : Boolean
-  def canSeeBankAccountBalancePositiveOrNegative : Boolean
   def canSeeBankAccountCurrency : Boolean
   def canSeeBankAccountLabel : Boolean
   def canSeeBankAccountNationalIdentifier : Boolean
@@ -281,12 +280,7 @@ trait View {
     if(canSeeTransactionThisBankAccount)
     {
       val owners : Set[AccountOwner] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
-      val balance =
-        if(canSeeBankAccountBalance){
-          bankAccount.balance.toString
-        } else if(canSeeBankAccountBalancePositiveOrNegative) {
-          if(bankAccount.balance.toString.startsWith("-")) "-" else "+"
-        } else ""
+      val balance = if(canSeeBankAccountBalance) bankAccount.balance.toString else ""
       val accountType = if(canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(canSeeBankAccountLabel) Some(bankAccount.label) else None
@@ -505,8 +499,6 @@ trait View {
 object View {
   def fromUrl(viewPermalink: String): Box[View] =
     LocalStorage.view(viewPermalink)
-  def createView(v: ViewCreationJSON): Box[View] =
-    LocalStorage.createView(v)
 
   def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
     val viewsJson = views.map(view => {

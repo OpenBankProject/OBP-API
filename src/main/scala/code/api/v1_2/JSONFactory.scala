@@ -257,6 +257,7 @@ case class ViewCreationJSON(
   description: String,
   isPublic: Boolean,
   alias: String,
+  hideMetadataIfAlias: Boolean,
   allowedFields : List[String]
 )
 

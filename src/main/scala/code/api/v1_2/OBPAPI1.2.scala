@@ -81,7 +81,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     Extraction.decompose(accounts)
   }
 
-  private booleanToBox(statement: Boolean, msg: String): Box[Unit] = {
+  private def booleanToBox(statement: Boolean, msg: String): Box[Unit] = {
     if(statement)
       Full()
     else
@@ -216,10 +216,10 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          canAddViews <- booleanToBox(u.ownerAccess(account), "user: " u.id_+ " does not have owner access")
-          view <- View createView json
+          canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.id_ + " does not have owner access"})
+          view <- account createView json
         } yield {
-            val viewsSON = JSONFactory.createViewJSON(view)
+            val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
           }
     }

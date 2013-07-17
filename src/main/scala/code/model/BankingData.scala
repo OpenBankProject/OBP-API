@@ -41,6 +41,7 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
 import code.model.dataAccess.{LocalStorage, Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.api.v1_2.ViewCreationJSON
 
 
 class Bank(
@@ -258,6 +259,9 @@ class BankAccount(
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
   }
+
+  def createView(v: ViewCreationJSON): Box[View] =
+    LocalStorage.createView(this, v)
 
   def publicViews : List[View] =
     LocalStorage.publicViews(id).getOrElse(Nil)
