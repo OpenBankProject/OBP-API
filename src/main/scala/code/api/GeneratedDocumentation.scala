@@ -3,11 +3,13 @@ package code.api
 import scala.collection.mutable.SynchronizedMap
 import scala.collection.mutable.HashMap
 import net.liftweb.http.RequestType
+import scala.collection.mutable.ConcurrentMap
+import scala.collection.mutable.Queue
 
 trait ApiVersionDocumentation {
   val version : String
   
-  val apiCalls : scala.collection.mutable.Queue[ApiCall]
+  val apiCalls = Queue[ApiCall]()
   
   def addCall(call : ApiCall) = apiCalls += call
 }
@@ -23,10 +25,22 @@ trait ApiCall {
 object GeneratedDocumentation {
 
   type Version = String
-  //TODO: Scala 2.10 concurrentMap
-  val docs : scala.collection.mutable.Map[Version, ApiVersionDocumentation] = 
-    new HashMap[Version, ApiVersionDocumentation]() with SynchronizedMap[Version, ApiVersionDocumentation]
+  val docs : scala.collection.concurrent.Map[Version, ApiVersionDocumentation] = 
+    new scala.collection.concurrent.TrieMap[Version, ApiVersionDocumentation]()
   
   def apiVersion(version : String) : Option[ApiVersionDocumentation] = docs.get(version)
+  
+  def addCall(version_ : String, call : ApiCall) = {
+    docs.get(version_) match {
+      case Some(d) => d.addCall(call)
+      case None => {
+        val newVersion = new ApiVersionDocumentation{
+          val version = version_
+        }
+        newVersion.addCall(call)
+        docs.put(version_, newVersion)
+      }
+    }
+  }
   
 }

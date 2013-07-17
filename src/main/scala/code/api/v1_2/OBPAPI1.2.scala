@@ -122,10 +122,17 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   })
   
 
-  val testApiPath : ApiPath = List(StaticElement("obp"), StaticElement("v1.2"), StaticElement("banks"), VariableElement("BANK_ID"))
-  val reqType = GetRequest
-  //get bank by id
-  val handler = ("obp" / "v1.2").oPrefix2[Nothing, BankJSON] {
+  registerApiCall[Nothing, BankJSON] (
+    
+    apiPath = List(StaticElement("obp"), StaticElement("v1.2"), StaticElement("banks"), VariableElement("BANK_ID")),
+    
+    reqType = GetRequest,
+    
+    documentationString = """
+      This is some documentation
+    """,
+    
+    handler = ("obp" / "v1.2").oPrefix2[Nothing, BankJSON] {
       case "banks" :: bankId :: Nil JsonGet json => {
       (user, input) =>
         def bankToJson(bank : Bank) = {
@@ -133,15 +140,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         }
         for(bank <- Bank(bankId))
           yield bankToJson(bank)
+      }
     }
-  }
-    
-  val docString = """
-    This is some documentation
-  """
-  
-  //TODO: is Nothing a good way to specify no input expected?
-  registerApiCall[Nothing, BankJSON](testApiPath, reqType, docString, handler)
+  )
   
   oauthServe(apiPrefix{
   //get bank by id
@@ -907,6 +908,32 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           }
     }
   })
+  
+  registerApiCall[Nothing, TransactionJSON] (
+    
+    apiPath = List(StaticElement("obp"), StaticElement("v1.2"), StaticElement("banks"), VariableElement("BANK_ID"), StaticElement("accounts"),
+        VariableElement("ACCOUNT_ID"), VariableElement("VIEW_ID"), StaticElement("transactions"), VariableElement("TRANSACTION_ID"), StaticElement("transaction")),
+    
+    reqType = GetRequest,
+    
+    documentationString = """
+      This is some documentation
+    """,
+
+    handler = ("obp" / "v1.2").oPrefix2[Nothing, TransactionJSON] {
+      //get transaction by id
+      case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
+        (user, input) =>
+          for {
+            account <- BankAccount(bankId, accountId)
+            view <- View.fromUrl(viewId)
+            moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
+          } yield {
+            JSONFactory.createTransactionJSON(moderatedTransaction)
+          }
+      }
+    }
+  )
 
   oauthServe(apiPrefix {
   //get narrative

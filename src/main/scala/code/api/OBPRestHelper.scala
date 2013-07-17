@@ -18,6 +18,14 @@ import net.liftweb.http.provider.servlet.HTTPRequestServlet
 import net.liftweb.http.LiftServlet
 import javax.servlet.http.HttpServletRequest
 import net.liftweb.json.Extraction
+import net.liftweb.util.Helpers.tryo
+import scala.reflect.runtime.universe._
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.JsonAST.JField
+import java.util.Date
+import scala.math.BigInt
+import net.liftweb.json.JsonAST.JArray
 
 trait PathElement {
     def name : String
@@ -86,8 +94,8 @@ class OBPRestHelper extends RestHelper with Loggable {
   }
   
   //TODO: input and output should be optional
-  def registerApiCall[INPUT, OUTPUT](apiPath : ApiPath, reqType : RequestType, documentationString: String, handler : PartialFunction[Req, (Box[User], Box[INPUT]) => Box[OUTPUT]])
-  (implicit m: ClassManifest[OUTPUT], m2 : Manifest[INPUT]) = {
+  def registerApiCall[INPUT : TypeTag, OUTPUT](apiPath : ApiPath, reqType : RequestType, documentationString: String, handler : PartialFunction[Req, (Box[User], Box[INPUT]) => Box[OUTPUT]])
+  (implicit m: TypeTag[OUTPUT], m2 : Manifest[INPUT]) = {
     
     val testPath : List[String] = apiPath.map{
       case StaticElement(name) => name
@@ -107,12 +115,6 @@ class OBPRestHelper extends RestHelper with Loggable {
         Full("application/json"), httpRequest, 5, 6, () => ParamCalcInfo(Nil, Map(), Nil, Empty), Map())
     
 
-    import net.liftweb.util.Helpers.tryo
-    val aaa = m.erasure.getCanonicalName()
-    println("AAA: " + aaa)
-    val bbb = m2.erasure.getCanonicalName()
-    println("BBB: " + bbb)
-    
     //Convert the handler into the more general Box[User] => Box[JsonResponse] that oauthServe expects
     val oauthHandler = new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
       def isDefinedAt(req: Req) : Boolean = handler.isDefinedAt(req)
@@ -128,24 +130,97 @@ class OBPRestHelper extends RestHelper with Loggable {
         (user: Box[User]) => caseClassBoxToJsonResponse(handler.apply(req).apply(user, input))
       }
     }
+
+    //TODO: Large amounts of refactoring
+    def foo(bar: reflect.runtime.universe.Type): Option[JValue] = {
+      val caseAccessors = bar.members.collect {
+        case m: MethodSymbol if m.isCaseAccessor => m
+      }.map(acc => {
+        val returnType = acc.returnType
+        
+        JField(acc.name.toString, typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString(""))))
+      }).toList
+      
+      caseAccessors.size match {
+        case 0 => None
+        case _ => Some(JObject(caseAccessors))
+      }
+    }
+
+    def typeDescription(t : reflect.runtime.universe.Type): Option[JValue] = {
+      
+      t.typeSymbol match {
+        case c : ClassSymbol => {
+          c.fullName match {
+            case "java.lang.String" => Some(JString("string"))
+            case "scala.Boolean" => Some(JString("boolean"))
+            case "java.util.Date" => Some(JString("date"))
+            case "scala.Byte" | "scala.Short" | "scala.Int" | "scala.Double" | "scala.Float" | "scala.Long" | "scala.math.BigDecimal" | "java.math.BigDecimal" |
+              "scala.math.BigInt" | "java.math.BigInt" => Some(JString("number"))
+            case "scala.collection.immutable.List" => {
+              t match {
+                case TypeRef(_, _, args) => {
+                  if(args.size == 1) {
+                    val listType = args(0)
+                    Some(JArray(List(foo(listType)).flatten))
+                  } else {
+                    logger.warn("unexpected number of type arguments for a list!")
+                    None
+                  }
+                }
+                case _ => {
+                  logger.warn("list was somehow not a typeref")
+                  None
+                }
+              }
+            }
+            case _ => None
+          }
+        }
+      }
+    }
+
+    def getCaseClassAccessorsAsJson[t: TypeTag]: Option[String] = {
+      val caseAccessors = typeOf[t].members.collect {
+        case m: MethodSymbol if m.isCaseAccessor => m
+      }.map(acc => {
+        val returnType = acc.returnType
+        JField(acc.name.toString, typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString(""))))
+      }).toList
+      
+      
+      import net.liftweb.json.Printer._
+      import net.liftweb.json.JsonAST.render
+      
+      caseAccessors.size match {
+        case 0 => None
+        case _ => Some(pretty(render(JObject(caseAccessors))))
+      }
+
+    }
     
     if(handler.isDefinedAt(testRequest)) {
       
       val apiCallDocumentation = new ApiCall {
-        //TODO: should the api version be extracted from the path? should the path be assumed to be the bit after /obp/vX.X ?
         val path = apiPath
         val requestType = reqType
         val docString = documentationString
-        //TODO assuming INPUT and OUTPUT are case classes, use 2.10 reflection to generate some sample json
-        val inputJson = Some("TODO: This is autogenerated json")
-        val outputJson = Some("TODO: This is autogenerated json")
+
+        val inputJson = getCaseClassAccessorsAsJson[INPUT]
+        val outputJson = getCaseClassAccessorsAsJson[OUTPUT]
       }
       
-      GeneratedDocumentation.apiVersion("?? TODO ??").foreach(_.addCall(apiCallDocumentation))
+      val apiVersion = if(apiPath.size >= 2) Some(apiPath(1)) else None
       
-      oauthServe(oauthHandler)
-      //TODO add to docs
-      logger.info("added api call!!!")
+      apiVersion match {
+        case Some(v) => {
+          GeneratedDocumentation.addCall(v.name, apiCallDocumentation)
+          oauthServe(oauthHandler)
+          GeneratedDocumentation.apiVersion(v.name).foreach(_.apiCalls.foreach(x => println("in: " + x.inputJson + " out: " + x.outputJson)))
+        }
+        case None => logger.error("Bad api path could not be added: " + apiPath)
+      }
+      
     }
     else {
       logger.error("Api call did not fulfill documented behaviour! Path " + 
