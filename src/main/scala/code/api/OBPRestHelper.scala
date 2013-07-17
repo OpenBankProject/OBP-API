@@ -202,7 +202,7 @@ class OBPRestHelper extends RestHelper with Loggable {
     if(handler.isDefinedAt(testRequest)) {
       
       val apiCallDocumentation = new ApiCall {
-        val path = apiPath
+        val path = ApiPath(apiPath)
         val requestType = reqType
         val docString = documentationString
 

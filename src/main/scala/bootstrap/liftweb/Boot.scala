@@ -196,6 +196,13 @@ class Boot extends Loggable{
         Full(PlainTextResponse("unauthorized"))
       }
     }
+    
+    def getApiVersion(args : List[String]) : Box[ApiVersionDocumentation] = {
+      args match {
+        case version :: Nil => GeneratedDocumentation.apiVersion(version)
+        case _ =>Empty
+      }
+    }
 
     // Build SiteMap
     val sitemap = List(
@@ -205,7 +212,8 @@ class Boot extends Loggable{
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           Menu.i("Metrics") / "metrics",
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Connect") / "connect"
+          Menu.i("Connect") / "connect",
+          Menu.params[ApiVersionDocumentation]("API Documentation", "API Documentation", getApiVersion _ , doc => List(doc.version)) / "docs" / *
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
