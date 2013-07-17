@@ -60,7 +60,28 @@ import code.util.APIUtil.OAuth._
 class API1_2Test extends ServerSetup{
 
   def v1_2Request = baseRequest / "obp" / "v1.2"
+
   implicit val dateFormats = net.liftweb.json.DefaultFormats
+
+  val viewFileds = List(
+      "canSeeTransactionThisBankAccount", "canSeeTransactionOtherBankAccount", "canSeeTransactionMetadata",
+      "canSeeTransactionLabel", "canSeeTransactionAmount", "canSeeTransactionType", "canSeeTransactionCurrency",
+      "canSeeTransactionStartDate", "canSeeTransactionFinishDate", "canSeeTransactionBalance", "canSeeComments",
+      "canSeeOwnerComment", "canSeeTags", "canSeeImages", "canSeeBankAccountOwners", "canSeeBankAccountType",
+      "canSeeBankAccountBalance", "canSeeBankAccountCurrency", "canSeeBankAccountLabel",
+      "canSeeBankAccountNationalIdentifier", "canSeeBankAccountSwift_bic", "canSeeBankAccountIban",
+      "canSeeBankAccountNumber", "canSeeBankAccountBankName", "canSeeBankAccountBankPermalink",
+      "canSeeOtherAccountNationalIdentifier", "canSeeSWIFT_BIC", "canSeeOtherAccountIBAN",
+      "canSeeOtherAccountBankName", "canSeeOtherAccountNumber", "canSeeOtherAccountMetadata", "canSeeOtherAccountKind",
+      "canSeeMoreInfo", "canSeeUrl", "canSeeImageUrl", "canSeeOpenCorporatesUrl", "canSeeCorporateLocation",
+      "canSeePhysicalLocation", "canSeePublicAlias", "canSeePrivateAlias", "canAddMoreInfo", "canAddURL", "canAddImageURL",
+      "canAddOpenCorporatesUrl", "canAddCorporateLocation", "canAddPhysicalLocation", "canAddPublicAlias",
+      "canAddPrivateAlias", "canDeleteCorporateLocation", "canDeletePhysicalLocation", "canEditOwnerComment",
+      "canAddComment", "canDeleteComment", "canAddTag", "canDeleteTag", "canAddImage", "canDeleteImage", "canAddWhereTag",
+      "canSeeWhereTag", "canDeleteWhereTag"
+    )
+
+
   //create the application
   lazy val testConsumer =
     OBPConsumer.create.
@@ -180,6 +201,7 @@ class API1_2Test extends ServerSetup{
   object GetPrivateBankAccounts extends Tag("getPrivateBankAccounts")
   object GetBankAccount extends Tag("getBankAccount")
   object GetViews extends Tag("getViews")
+  object PostView extends Tag("postView")
   object GetPermissions extends Tag("getPermissions")
   object GetPermission extends Tag("getPermission")
   object PostPermission extends Tag("postPermission")
@@ -304,6 +326,16 @@ class API1_2Test extends ServerSetup{
     viewsIdsToGrant
   }
 
+  def randomView(isPublic: Boolean, alias: String) : ViewCreationJSON = {
+    ViewCreationJSON(
+      name = randomString(3),
+      description = randomString(3),
+      isPublic = isPublic,
+      alias=alias,
+      hideMetadataIfAlias=false,
+      allowedFields = viewFileds
+    )
+  }
   def getAPIInfo : APIResponse = {
     val request = v1_2Request
     makeGetRequest(request)
@@ -367,6 +399,21 @@ class API1_2Test extends ServerSetup{
   def getAccountViewsWithoutOwnerAccess(bankId : String, accountId : String): APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumer,token3)
     makeGetRequest(request)
+  }
+
+  def postView(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumer,token)
+    makePostRequest(request, write(view))
+  }
+
+  def postViewWithoutToken(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST
+    makePostRequest(request, write(view))
+  }
+
+  def postViewWithoutOwnerAccess(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumer,token3)
+    makePostRequest(request, write(view))
   }
 
   def getAccountPermissions(bankId : String, accountId : String): APIResponse = {
@@ -1441,6 +1488,61 @@ class API1_2Test extends ServerSetup{
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getAccountViewsWithoutOwnerAccess(bankId, bankAccount.id)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
+  feature("Create a view on a bank account"){
+    scenario("we will create a view on a bank account", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewsBefore = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, view)
+      Then("we should get a 201 code")
+      reply.code should equal (201)
+      reply.body.extract[ViewJSON]
+      And("we should get a new view")
+      val viewsAfter = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      viewsBefore.size should equal (viewsAfter.size -1)
+    }
+
+    scenario("We will not create a view on a bank account due to missing token", API1_2, PostView) {
+      Given("We will not use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutToken(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not create a view on a bank account due to insufficient privileges", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutOwnerAccess(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not create a view because the bank account does not exist", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutOwnerAccess(bankId, randomString(3), view)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
