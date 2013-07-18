@@ -51,7 +51,7 @@ import java.util.Date
 
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount}
+import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, ViewImpl, ViewPrivileges }
 import code.api.test.{ServerSetup, APIResponse}
 import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, Account}
 import code.util.APIUtil.OAuth._
@@ -60,7 +60,28 @@ import code.util.APIUtil.OAuth._
 class API1_2Test extends ServerSetup{
 
   def v1_2Request = baseRequest / "obp" / "v1.2"
+
   implicit val dateFormats = net.liftweb.json.DefaultFormats
+
+  val viewFileds = List(
+      "canSeeTransactionThisBankAccount", "canSeeTransactionOtherBankAccount", "canSeeTransactionMetadata",
+      "canSeeTransactionLabel", "canSeeTransactionAmount", "canSeeTransactionType", "canSeeTransactionCurrency",
+      "canSeeTransactionStartDate", "canSeeTransactionFinishDate", "canSeeTransactionBalance", "canSeeComments",
+      "canSeeOwnerComment", "canSeeTags", "canSeeImages", "canSeeBankAccountOwners", "canSeeBankAccountType",
+      "canSeeBankAccountBalance", "canSeeBankAccountCurrency", "canSeeBankAccountLabel",
+      "canSeeBankAccountNationalIdentifier", "canSeeBankAccountSwift_bic", "canSeeBankAccountIban",
+      "canSeeBankAccountNumber", "canSeeBankAccountBankName", "canSeeBankAccountBankPermalink",
+      "canSeeOtherAccountNationalIdentifier", "canSeeSWIFT_BIC", "canSeeOtherAccountIBAN",
+      "canSeeOtherAccountBankName", "canSeeOtherAccountNumber", "canSeeOtherAccountMetadata", "canSeeOtherAccountKind",
+      "canSeeMoreInfo", "canSeeUrl", "canSeeImageUrl", "canSeeOpenCorporatesUrl", "canSeeCorporateLocation",
+      "canSeePhysicalLocation", "canSeePublicAlias", "canSeePrivateAlias", "canAddMoreInfo", "canAddURL", "canAddImageURL",
+      "canAddOpenCorporatesUrl", "canAddCorporateLocation", "canAddPhysicalLocation", "canAddPublicAlias",
+      "canAddPrivateAlias", "canDeleteCorporateLocation", "canDeletePhysicalLocation", "canEditOwnerComment",
+      "canAddComment", "canDeleteComment", "canAddTag", "canDeleteTag", "canAddImage", "canDeleteImage", "canAddWhereTag",
+      "canSeeWhereTag", "canDeleteWhereTag"
+    )
+
+
   //create the application
   lazy val testConsumer =
     OBPConsumer.create.
@@ -85,18 +106,22 @@ class API1_2Test extends ServerSetup{
 
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
-    HostedAccount.findAll.foreach(bankAccount => {
-      Privilege.create.
-      account(bankAccount).
-      ownerPermission(true).
-      mangementPermission(true).
-      authoritiesPermission(true).
-      boardPermission(true).
-      teamPermission(true).
-      ourNetworkPermission(true).
-      user(user1).
-      save
-    })
+    val privileges =
+      HostedAccount.findAll.map(bankAccount => {
+        Privilege.create.
+        account(bankAccount).
+        user(user1).
+        saveMe
+      })
+    for{
+      p <- privileges
+      v <- ViewImpl.findAll()
+    }{
+      ViewPrivileges.create.
+        view(v).
+        privilege(p).
+        save
+    }
   }
 
   lazy val testToken =
@@ -163,9 +188,6 @@ class API1_2Test extends ServerSetup{
 
   lazy val token3 = new Token(testToken3.key, testToken3.secret)
 
-  //Note: for the moment we have a limited number of views, so the following list contains permalinks of all the views except Full, Base and Public.
-  val possibleViewsPermalinks = List("team", "board", "authorities", "our-network", "owner")
-  val possibleViewsPermalinksAllowingViewPrivilige = List("team", "board", "authorities", "owner")
 
   /************************* test tags ************************/
 
@@ -179,6 +201,8 @@ class API1_2Test extends ServerSetup{
   object GetPrivateBankAccounts extends Tag("getPrivateBankAccounts")
   object GetBankAccount extends Tag("getBankAccount")
   object GetViews extends Tag("getViews")
+  object PostView extends Tag("postView")
+  object DeleteView extends Tag("deleteView")
   object GetPermissions extends Tag("getPermissions")
   object GetPermission extends Tag("getPermission")
   object PostPermission extends Tag("postPermission")
@@ -240,14 +264,12 @@ class API1_2Test extends ServerSetup{
     ("error" -> "empty List")
   val errorAPIResponse = new APIResponse(400,emptyJSON)
 
-  def randomViewPermalink : String = {
+  def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
+    val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token)
+    val reply = makeGetRequest(request)
+    val possibleViewsPermalinks = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true)
     val randomPosition = nextInt(possibleViewsPermalinks.size)
-    possibleViewsPermalinks(randomPosition)
-  }
-
-  def randomViewPermalinkAllowingViewPrivilige : String = {
-    val randomPosition = nextInt(possibleViewsPermalinksAllowingViewPrivilige.size)
-    possibleViewsPermalinksAllowingViewPrivilige(randomPosition)
+    possibleViewsPermalinks(randomPosition).id
   }
 
   def randomBank : String = {
@@ -305,6 +327,16 @@ class API1_2Test extends ServerSetup{
     viewsIdsToGrant
   }
 
+  def randomView(isPublic: Boolean, alias: String) : ViewCreationJSON = {
+    ViewCreationJSON(
+      name = randomString(3),
+      description = randomString(3),
+      isPublic = isPublic,
+      alias=alias,
+      hideMetadataIfAlias=false,
+      allowedFields = viewFileds
+    )
+  }
   def getAPIInfo : APIResponse = {
     val request = v1_2Request
     makeGetRequest(request)
@@ -368,6 +400,36 @@ class API1_2Test extends ServerSetup{
   def getAccountViewsWithoutOwnerAccess(bankId : String, accountId : String): APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "views" <@(consumer,token3)
     makeGetRequest(request)
+  }
+
+  def postView(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumer,token)
+    makePostRequest(request, write(view))
+  }
+
+  def postViewWithoutToken(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST
+    makePostRequest(request, write(view))
+  }
+
+  def postViewWithoutOwnerAccess(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumer,token3)
+    makePostRequest(request, write(view))
+  }
+
+  def deleteView(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumer,token)
+    makeDeleteRequest(request)
+  }
+
+  def deleteViewWithoutToken(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE
+    makeDeleteRequest(request)
+  }
+
+  def deleteViewWithoutOwnerAccess(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumer,token3)
+    makeDeleteRequest(request)
   }
 
   def getAccountPermissions(bankId : String, accountId : String): APIResponse = {
@@ -1448,6 +1510,115 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
   }
+  feature("Create a view on a bank account"){
+    scenario("we will create a view on a bank account", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewsBefore = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, view)
+      Then("we should get a 201 code")
+      reply.code should equal (201)
+      reply.body.extract[ViewJSON]
+      And("we should get a new view")
+      val viewsAfter = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      viewsBefore.size should equal (viewsAfter.size -1)
+    }
+
+    scenario("We will not create a view on a bank account due to missing token", API1_2, PostView) {
+      Given("We will not use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutToken(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not create a view on a bank account due to insufficient privileges", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutOwnerAccess(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not create a view because the bank account does not exist", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val view = randomView(true, "")
+      When("the request is sent")
+      val reply = postViewWithoutOwnerAccess(bankId, randomString(3), view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
+  feature("Delete a view on a bank account"){
+    scenario("we will delete a view on a bank account", API1_2, DeleteView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = postView(bankId, bankAccount.id, randomView(true, "")).body.extract[ViewJSON]
+      val viewsBefore = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      When("the request is sent")
+      val reply = deleteView(bankId, bankAccount.id, view.id)
+      Then("we should get a 204 code")
+      reply.code should equal (204)
+      And("the views should be updated")
+      val viewsAfter = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      viewsBefore.size should equal (viewsAfter.size +1)
+    }
+
+    scenario("We will not delete a view on a bank account due to missing token", API1_2, DeleteView) {
+      Given("We will not use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent")
+      val reply = deleteViewWithoutToken(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not delete a view on a bank account due to insufficient privileges", API1_2, DeleteView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent")
+      val reply = deleteViewWithoutOwnerAccess(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not delete a view on a bank account it does not exist", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      When("the request is sent")
+      val reply = deleteView(bankId, bankAccount.id, randomString(3))
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
 
   feature("Information about the permissions of a specific bank account"){
     scenario("we will get one bank account permissions by using an access token", API1_2, GetPermissions) {
@@ -1536,7 +1707,7 @@ class API1_2Test extends ServerSetup{
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val userId = user2.email
-      val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink)
+      val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 201 ok code")
       reply.code should equal (201)
       val viewInfo = reply.body.extract[ViewJSON]
@@ -1549,7 +1720,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = grantUserAccessToView(bankId, bankAccount.id, randomString(5), randomViewPermalink)
+      val reply = grantUserAccessToView(bankId, bankAccount.id, randomString(5), randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1575,7 +1746,7 @@ class API1_2Test extends ServerSetup{
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = user2.email
       When("the request is sent")
-      val reply = grantUserAccessToViewWithWrongUser(bankId, bankAccount.id, userId, randomViewPermalink)
+      val reply = grantUserAccessToViewWithWrongUser(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1617,7 +1788,7 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermission, CurrentTest) {
+    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermission) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -1666,8 +1837,11 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = user2.email
+      val viewId = randomViewPermalink(bankId, bankAccount)
+      val viewsIdsToGrant = viewId :: Nil
+      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant)
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
     }
@@ -1677,7 +1851,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, randomString(5), randomViewPermalink)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, randomString(5), randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 ok code")
       reply.code should equal (400)
     }
@@ -1699,7 +1873,7 @@ class API1_2Test extends ServerSetup{
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = user2.email
       When("the request is sent")
-      val reply = revokeUserAccessToViewWithoutOwnerAccess(bankId, bankAccount.id, userId, randomViewPermalink)
+      val reply = revokeUserAccessToViewWithoutOwnerAccess(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 ok code")
       reply.code should equal (400)
     }
@@ -1710,6 +1884,9 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = user2.email
+      val viewId = randomViewPermalink(bankId, bankAccount)
+      val viewsIdsToGrant = viewId :: Nil
+      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant)
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId)
       Then("we should get a 204 no content code")
@@ -1731,6 +1908,9 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = user2.email
+      val viewId = randomViewPermalink(bankId, bankAccount)
+      val viewsIdsToGrant = viewId :: Nil
+      grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant)
       When("the request is sent")
       val reply = revokeUserAccessToAllViewsWithoutOwnerAccess(bankId, bankAccount.id, userId)
       Then("we should get a 400 ok code")
@@ -1744,7 +1924,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = getTheOtherBankAccounts(bankId, bankAccount.id, randomViewPermalink)
+      val reply = getTheOtherBankAccounts(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 200 code")
       reply.code should equal (200)
       val accountsJson = reply.body.extract[OtherAccountsJSON]
@@ -1759,7 +1939,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = getTheOtherBankAccountsWithoutToken(bankId, bankAccount.id, randomViewPermalink)
+      val reply = getTheOtherBankAccountsWithoutToken(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1771,7 +1951,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
-      val reply = getTheOtherBankAccountsWithWrongUser(bankId, bankAccount.id, randomViewPermalink)
+      val reply = getTheOtherBankAccountsWithWrongUser(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -1796,7 +1976,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1811,7 +1991,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountWithoutToken(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1825,7 +2005,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountWithWrongUser(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1839,7 +2019,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, randomViewPermalink)
+      val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       When("the request is sent")
       val reply = getTheOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id)
       Then("we should get a 400 code")
@@ -1852,7 +2032,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getTheOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -1867,7 +2047,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1881,7 +2061,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccountWithoutToken(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1895,7 +2075,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccountWithWrongUser(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1909,7 +2089,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id)
@@ -1923,7 +2103,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -1938,7 +2118,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1951,7 +2131,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccountWithoutToken(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1965,7 +2145,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccountWithWrongUser(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -1979,7 +2159,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id)
@@ -1993,7 +2173,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2009,7 +2189,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomAlias = randomString(5)
@@ -2027,7 +2207,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2046,7 +2226,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2065,7 +2245,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2084,7 +2264,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomAlias)
@@ -2100,7 +2280,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomAlias = randomString(5)
@@ -2118,7 +2298,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2137,7 +2317,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2152,7 +2332,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the request is sent")
       val putReply = updateThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomAlias)
@@ -2168,7 +2348,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2185,7 +2365,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2202,7 +2382,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2219,7 +2399,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the delete request is sent")
       val deleteReply = deleteThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2233,7 +2413,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -2246,7 +2426,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccountWithoutToken(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -2260,7 +2440,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccountWithWrongUser(bankId, bankAccount.id, view, otherBankAccount.id)
@@ -2274,7 +2454,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id)
@@ -2288,7 +2468,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
 
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2304,7 +2484,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomAlias = randomString(5)
@@ -2322,7 +2502,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2341,7 +2521,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2360,7 +2540,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2379,7 +2559,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomAlias)
@@ -2395,7 +2575,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomAlias = randomString(5)
@@ -2413,7 +2593,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2432,7 +2612,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       When("the request is sent")
@@ -2447,7 +2627,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the request is sent")
       val putReply = updateThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomAlias)
@@ -2463,7 +2643,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2480,7 +2660,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2497,7 +2677,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an alias first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomAlias = randomString(5)
       postAPrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomAlias)
@@ -2514,7 +2694,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomAlias = randomString(5)
       When("the delete request is sent")
       val deleteReply = deleteThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2528,7 +2708,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomInfo = randomString(20)
@@ -2545,7 +2725,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       When("the request is sent")
@@ -2563,7 +2743,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       When("the request is sent")
@@ -2581,7 +2761,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       When("the request is sent")
@@ -2599,7 +2779,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomInfo = randomString(20)
       When("the request is sent")
       val postReply = postMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomInfo)
@@ -2615,7 +2795,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomInfo = randomString(20)
@@ -2632,7 +2812,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       When("the request is sent")
@@ -2650,7 +2830,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       When("the request is sent")
@@ -2665,7 +2845,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomInfo = randomString(20)
       When("the request is sent")
       val putReply = updateMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomInfo)
@@ -2681,7 +2861,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an info first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       postMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomInfo)
@@ -2698,7 +2878,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an info first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       postMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomInfo)
@@ -2715,7 +2895,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an info first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomInfo = randomString(20)
       postMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomInfo)
@@ -2732,7 +2912,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomInfo = randomString(20)
       When("the delete request is sent")
       val deleteReply = deleteMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2746,7 +2926,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomURL = randomString(20)
@@ -2763,7 +2943,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -2781,7 +2961,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -2799,7 +2979,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -2817,7 +2997,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomURL)
@@ -2833,7 +3013,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomURL = randomString(20)
@@ -2850,7 +3030,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -2868,7 +3048,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -2883,7 +3063,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the request is sent")
       val putReply = updateUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomURL)
@@ -2899,7 +3079,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -2916,7 +3096,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -2933,7 +3113,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -2950,7 +3130,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the delete request is sent")
       val deleteReply = deleteUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -2964,7 +3144,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomImageURL = randomString(20)
@@ -2981,7 +3161,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       When("the request is sent")
@@ -2999,7 +3179,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       When("the request is sent")
@@ -3017,7 +3197,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       When("the request is sent")
@@ -3035,7 +3215,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomImageURL = randomString(20)
       When("the request is sent")
       val postReply = postImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomImageURL)
@@ -3051,7 +3231,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomImageURL = randomString(20)
@@ -3068,7 +3248,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       When("the request is sent")
@@ -3086,7 +3266,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       When("the request is sent")
@@ -3101,7 +3281,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomImageURL = randomString(20)
       When("the request is sent")
       val putReply = updateImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomImageURL)
@@ -3117,7 +3297,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       postImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomImageURL)
@@ -3134,7 +3314,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       postImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomImageURL)
@@ -3151,7 +3331,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomImageURL = randomString(20)
       postImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomImageURL)
@@ -3168,7 +3348,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomImageURL = randomString(20)
       When("the delete request is sent")
       val deleteReply = deleteImageUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -3182,7 +3362,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomURL = randomString(20)
@@ -3199,7 +3379,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -3217,7 +3397,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -3235,7 +3415,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -3253,7 +3433,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomURL)
@@ -3269,7 +3449,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomURL = randomString(20)
@@ -3286,7 +3466,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -3304,7 +3484,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       When("the request is sent")
@@ -3319,7 +3499,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the request is sent")
       val putReply = updateOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomURL)
@@ -3335,7 +3515,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -3352,7 +3532,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -3369,7 +3549,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an open corporates url first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomURL = randomString(20)
       postOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomURL)
@@ -3386,7 +3566,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomURL = randomString(20)
       When("the delete request is sent")
       val deleteReply = deleteOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -3400,7 +3580,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3418,7 +3598,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3433,7 +3613,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -3448,7 +3628,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3463,7 +3643,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3478,7 +3658,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -3494,7 +3674,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomLoc = randomLocation
@@ -3512,7 +3692,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -3527,7 +3707,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3542,7 +3722,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3557,7 +3737,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val putReply = updateCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -3573,7 +3753,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a corporate location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3590,7 +3770,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a corporate location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3607,7 +3787,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a corporate location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3624,7 +3804,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the delete request is sent")
       val deleteReply = deleteCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -3638,7 +3818,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3656,7 +3836,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -3671,7 +3851,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3686,7 +3866,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3701,7 +3881,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3716,7 +3896,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postPhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -3732,7 +3912,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomLoc = randomLocation
@@ -3750,7 +3930,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -3765,7 +3945,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3780,7 +3960,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -3795,7 +3975,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val putReply = updatePhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -3811,7 +3991,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a physical location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postPhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3828,7 +4008,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a physical location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postPhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3845,7 +4025,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a physical location first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postPhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, otherBankAccount.id, randomLoc)
@@ -3862,7 +4042,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the delete request is sent")
       val deleteReply = deletePhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
@@ -3876,7 +4056,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getTransactions(bankId,bankAccount.id,view)
       Then("we should get a 200 ok code")
@@ -3888,8 +4068,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       When("the request is sent")
       val bankId = randomBank
-      val view = randomViewPermalink
-      val reply = getTransactions(bankId,randomString(5),view)
+      val reply = getTransactions(bankId,randomString(5),randomString(5))
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
@@ -3910,7 +4089,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -3923,7 +4102,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -3935,7 +4114,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -3947,7 +4126,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransactionWithoutToken(bankId, randomString(5), view, transaction.id)
@@ -3959,7 +4138,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransactionWithoutToken(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -3971,7 +4150,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getTransactionWithoutToken(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -3985,7 +4164,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -3998,7 +4177,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -4012,7 +4191,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -4026,7 +4205,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -4040,7 +4219,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getNarrativeForOneTransaction(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -4287,7 +4466,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -4300,7 +4479,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -4314,7 +4493,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -4328,7 +4507,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -4342,7 +4521,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getCommentsForOneTransaction(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -4357,7 +4536,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomComment = PostTransactionCommentJSON(randomString(20))
@@ -4378,7 +4557,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
@@ -4402,7 +4581,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
@@ -4425,7 +4604,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
@@ -4448,7 +4627,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
       val postReply = postCommentForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomComment)
@@ -4464,7 +4643,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment)
@@ -4479,7 +4658,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment)
@@ -4494,7 +4673,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a comment first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment)
@@ -4524,7 +4703,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the delete request is sent")
       val deleteReply = deleteCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomString(5))
@@ -4536,7 +4715,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment)
@@ -4551,7 +4730,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomComment = PostTransactionCommentJSON(randomString(20))
       val postedReply = postCommentForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomComment)
@@ -4568,7 +4747,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -4581,7 +4760,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -4595,7 +4774,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -4609,7 +4788,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -4623,7 +4802,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getTagsForOneTransaction(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -4638,7 +4817,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomTag = PostTransactionTagJSON(randomString(5))
@@ -4658,7 +4837,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
@@ -4681,7 +4860,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
@@ -4704,7 +4883,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
@@ -4727,7 +4906,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
       val postReply = postTagForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomTag)
@@ -4743,7 +4922,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag)
@@ -4758,7 +4937,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag)
@@ -4773,7 +4952,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag)
@@ -4803,7 +4982,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the delete request is sent")
       val deleteReply = deleteTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomString(5))
@@ -4815,7 +4994,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag)
@@ -4830,7 +5009,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomTag = PostTransactionTagJSON(randomString(5))
       val postedReply = postTagForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomTag)
@@ -4847,7 +5026,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -4860,7 +5039,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -4874,7 +5053,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -4888,7 +5067,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -4902,7 +5081,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getImagesForOneTransaction(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -4917,7 +5096,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
@@ -4937,7 +5116,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
@@ -4960,7 +5139,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
@@ -4983,7 +5162,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-       val view = randomViewPermalink
+       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
@@ -5006,7 +5185,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
       val postReply = postImageForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomImage)
@@ -5022,7 +5201,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage)
@@ -5037,7 +5216,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage)
@@ -5052,7 +5231,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set an image first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage)
@@ -5082,7 +5261,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the delete request is sent")
       val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomString(5))
@@ -5094,7 +5273,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage)
@@ -5109,7 +5288,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       val postedReply = postImageForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomImage)
@@ -5126,7 +5305,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalinkAllowingViewPrivilige
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5140,7 +5319,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5156,7 +5335,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5172,7 +5351,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5188,7 +5367,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")
@@ -5203,7 +5382,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -5222,7 +5401,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -5237,7 +5416,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -5252,7 +5431,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -5267,7 +5446,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -5282,7 +5461,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postWhereForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -5298,7 +5477,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val randomLoc = randomLocation
@@ -5316,7 +5495,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       var randomLoc = JSONFactory.createLocationPlainJSON(400,200)
       When("the request is sent")
@@ -5331,7 +5510,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       var randomLoc = randomLocation
       When("the request is sent")
@@ -5346,7 +5525,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       When("the request is sent")
@@ -5361,7 +5540,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the request is sent")
       val putReply = updateWhereForOneTransaction(bankId, bankAccount.id, view, randomString(5), randomLoc)
@@ -5377,7 +5556,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5395,7 +5574,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5410,7 +5589,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token and will set a where tag first")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc)
@@ -5439,7 +5618,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val randomLoc = randomLocation
       When("the delete request is sent")
       val deleteReply = deleteWhereForOneTransaction(bankId, bankAccount.id, view, randomString(5))
@@ -5453,7 +5632,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountOfOneTransaction(bankId, bankAccount.id, view, transaction.id)
@@ -5468,7 +5647,7 @@ class API1_2Test extends ServerSetup{
       Given("We will not use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountOfOneTransactionWithoutToken(bankId, bankAccount.id, view, transaction.id)
@@ -5482,7 +5661,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountOfOneTransactionWithWrongUser(bankId, bankAccount.id, view, transaction.id)
@@ -5496,7 +5675,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountOfOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id)
@@ -5510,7 +5689,7 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val view = randomViewPermalink
+      val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent")
       val reply = getTheOtherBankAccount(bankId, bankAccount.id, view, randomString(5))
       Then("we should get a 400 code")

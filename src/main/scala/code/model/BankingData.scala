@@ -41,6 +41,7 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
 import code.model.dataAccess.{LocalStorage, Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.api.v1_2.ViewCreationJSON
 
 
 class Bank(
@@ -120,12 +121,12 @@ class BankAccount(
 
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
 
-  def permittedViews(user: Box[User]) : Set[View] = {
+  def permittedViews(user: Box[User]) : List[View] = {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
         logger.info("no user was found in the permittedViews")
-        if(this.allowPublicAccess) Set(Public) else Set()
+        publicViews
       }
     }
   }
@@ -138,15 +139,13 @@ class BankAccount(
   * @return true if the user is allowed to access this view, false otherwise
   */
   def authorizedAccess(view: View, user: Option[User]) : Boolean = {
-    view match {
-      case Public => allowPublicAccess
-      case _ => user match {
-        case Some(u) => {
-          u.permittedViews(this).contains(view)
-        }
-        case None => false
+    if(view.isPublic)
+      true
+    else
+      user match {
+        case Some(u) => u.permittedView(view, this)
+        case _ => false
       }
-    }
   }
 
   /**
@@ -155,7 +154,7 @@ class BankAccount(
   */
   def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       LocalStorage.permissions(this)
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -169,7 +168,7 @@ class BankAccount(
   */
   def addPermission(user : User, viewId : String, otherUserId : String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       for{
         view <- View.fromUrl(viewId) //check if the viewId corresponds to a view
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
@@ -191,6 +190,7 @@ class BankAccount(
     //we see if the the is Failures
     lazy val failureList = viewBoxes.collect(v => {
       v match {
+        case Empty => Empty
         case x : Failure => x
       }
     })
@@ -204,7 +204,7 @@ class BankAccount(
         failureList.head
 
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       for{
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
         views <- viewsFormIds
@@ -222,7 +222,7 @@ class BankAccount(
   */
   def revokePermission(user : User, viewId : String, otherUserId : String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       for{
         view <- View.fromUrl(viewId) //check if the viewId corresponds to a view
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
@@ -241,10 +241,10 @@ class BankAccount(
 
   def revokeAllPermission(user : User, otherUserId : String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       for{
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
-        isRevoked <- LocalStorage.revokeAllPermission(id, otherUser) ?~ "could not revoke the privileges"
+        isRevoked <- LocalStorage.revokeAllPermission(id, otherUser)
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -252,13 +252,22 @@ class BankAccount(
 
   def views(user : User) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
-    if(authorizedAccess(Owner,Full(user)))
+    if(user.ownerAccess(this))
       for{
         isRevoked <- LocalStorage.views(id) ?~ "could not get the views"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
   }
+
+  def createView(v: ViewCreationJSON): Box[View] =
+    LocalStorage.createView(this, v)
+
+  def removeView(viewId: String) : Box[Unit] =
+    LocalStorage.removeView(viewId, this)
+
+  def publicViews : List[View] =
+    LocalStorage.publicViews(id).getOrElse(Nil)
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
