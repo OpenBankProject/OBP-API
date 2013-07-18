@@ -5,6 +5,7 @@ import scala.collection.mutable.HashMap
 import net.liftweb.http.RequestType
 import scala.collection.mutable.ConcurrentMap
 import scala.collection.mutable.Queue
+import scala.annotation.target.getter
 
 trait ApiVersionDocumentation {
   val version : String
@@ -15,6 +16,9 @@ trait ApiVersionDocumentation {
 }
 
 case class ApiPath(pathElements: List[PathElement])
+
+@getter
+case class ExampleValue[T](example: T) extends scala.annotation.StaticAnnotation
 
 trait ApiCall {
   val path : ApiPath

@@ -26,6 +26,11 @@ import net.liftweb.json.JsonAST.JField
 import java.util.Date
 import scala.math.BigInt
 import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JDouble
+import net.liftweb.json.JsonAST.JInt
+import net.liftweb.json.JsonAST.JBool
+import code.model.ModeratedTransaction
+import net.liftweb.json.DefaultFormats
 
 trait PathElement {
     def name : String
@@ -93,6 +98,8 @@ class OBPRestHelper extends RestHelper with Loggable {
     output.map(x => successJsonResponse(Extraction.decompose(x)))
   }
   
+  val exampleValueFullName = typeOf[ExampleValue[String]].typeSymbol.fullName
+  
   //TODO: input and output should be optional
   def registerApiCall[INPUT : TypeTag, OUTPUT](apiPath : ApiPath, reqType : RequestType, documentationString: String, handler : PartialFunction[Req, (Box[User], Box[INPUT]) => Box[OUTPUT]])
   (implicit m: TypeTag[OUTPUT], m2 : Manifest[INPUT]) = {
@@ -137,8 +144,31 @@ class OBPRestHelper extends RestHelper with Loggable {
         case m: MethodSymbol if m.isCaseAccessor => m
       }.map(acc => {
         val returnType = acc.returnType
+        val exampleValueAnnotation = acc.annotations.find(ann => {
+          ann.tpe.typeSymbol.fullName == exampleValueFullName
+        })
         
-        JField(acc.name.toString, typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString(""))))
+        val exampleValue : Option[JValue] = exampleValueAnnotation.flatMap(exAnn => {
+          //Check that for ExampleValue[T], T is the same type as returnType
+          val args = exAnn.scalaArgs
+          if(args.size == 1) {
+            val arg = args(0)
+            if(arg.tpe =:= returnType) {
+              val exampleValueArg = tryo{arg.productElement(0)}
+              exampleValueArg.flatMap(x => x match {
+                case Constant(s : String) => Some(JString(s))
+                case Constant(d : Double) => Some(JDouble(d))
+                case Constant(i : Int) => Some(JInt(i))
+                case Constant(b : Boolean) => Some(JBool(b))
+                case Constant(d : Date) => Some(JString(DefaultFormats.dateFormat.format(d))) //TODO: Need a better way to make sure we're using the right format
+                case _ => None
+              })
+            }
+            else None
+          } else None
+        })
+        
+        JField(acc.name.toString, exampleValue.getOrElse(typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString("")))))
       }).toList
       
       caseAccessors.size match {
@@ -179,15 +209,38 @@ class OBPRestHelper extends RestHelper with Loggable {
         }
       }
     }
-
+    
     def getCaseClassAccessorsAsJson[t: TypeTag]: Option[String] = {
       val caseAccessors = typeOf[t].members.collect {
         case m: MethodSymbol if m.isCaseAccessor => m
       }.map(acc => {
         val returnType = acc.returnType
-        JField(acc.name.toString, typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString(""))))
+        val exampleValueAnnotation = acc.annotations.find(ann => {
+          ann.tpe.typeSymbol.fullName == exampleValueFullName
+        })
+        
+        val exampleValue : Option[JValue] = exampleValueAnnotation.flatMap(exAnn => {
+          //Check that for ExampleValue[T], T is the same type as returnType
+          val args = exAnn.scalaArgs
+          if(args.size == 1) {
+            val arg = args(0)
+            if(arg.tpe =:= returnType) {
+              val exampleValueArg = tryo{arg.productElement(0)}
+              exampleValueArg.flatMap(x => x match {
+                case Constant(s : String) => Some(JString(s))
+                case Constant(d : Double) => Some(JDouble(d))
+                case Constant(i : Int) => Some(JInt(i))
+                case Constant(b : Boolean) => Some(JBool(b))
+                case Constant(d : Date) => Some(JString(ModeratedTransaction.dateFormat.format(d))) //TODO: Need a better way to make sure we're using the right format
+                case _ => None
+              })
+            }
+            else None
+          } else None
+        })
+        
+        JField(acc.name.toString, exampleValue.getOrElse(typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString("")))))
       }).toList
-      
       
       import net.liftweb.json.Printer._
       import net.liftweb.json.JsonAST.render

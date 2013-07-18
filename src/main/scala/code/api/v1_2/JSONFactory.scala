@@ -34,6 +34,10 @@ package code.api.v1_2
 import java.util.Date
 import net.liftweb.common.{Box, Full}
 import code.model._
+import code.api.ExampleValue
+
+import scala.annotation.target._
+import java.text.SimpleDateFormat
 
 case class APIInfoJSON(
   version : String,
@@ -55,15 +59,16 @@ case class BanksJSON(
   banks : List[BankJSON]
 )
 case class MinimalBankJSON(
-  national_identifier : String,
-  name : String
+  @ExampleValue("DHK-4545") national_identifier : String,
+  @ExampleValue("Example Bank of Flibbernshire") name : String
 )
+
 case class BankJSON(
-  id : String,
-  short_name : String,
-  full_name : String,
-  logo : String,
-  website : String
+  @ExampleValue("exbank") id : String,
+  @ExampleValue("ExBank") short_name : String,
+  @ExampleValue("Example Bank of Flibbernshire") full_name : String,
+  @ExampleValue("http://example.com/bank_logo.png") logo : String,
+  @ExampleValue("http://example.com") website : String
 )
 case class ViewsJSON(
   views : List[ViewJSON]
@@ -95,9 +100,9 @@ case class ModeratedAccountJSON(
   bank_id : String
 )
 case class UserJSON(
-  id : String,
-  provider : String,
-  display_name : String
+  @ExampleValue("pspsDSnDsznzwinhfCaawGbLLcwaDucwIWWabhcw") id : String,
+  @ExampleValue("exbank") provider : String,
+  @ExampleValue("bob.shelforth@example.com") display_name : String
 )
 case class PermissionsJSON(
   permissions : List[PermissionJSON]
@@ -107,59 +112,65 @@ case class PermissionJSON(
   views : List[ViewJSON]
 )
 case class AmountOfMoneyJSON(
-  currency : String,
-  amount : String
+  @ExampleValue("GBP") currency : String,
+  @ExampleValue("325.22") amount : String
 )
 case class AccountHolderJSON(
-  name : String,
-  is_alias : Boolean
+  @ExampleValue("Max Mustermann") name : String,
+  @ExampleValue(false) is_alias : Boolean
 )
 case class ThisAccountJSON(
-  id : String,
+  @ExampleValue("89398d98dh8dh983h983h98") id : String,
   holders : List[AccountHolderJSON],
-  number : String,
-  kind : String,
-  IBAN : String,
+  @ExampleValue("3243244") number : String,
+  @ExampleValue("savings") kind : String,
+  @ExampleValue("GB32 0923 4898 4992 0023 23") IBAN : String,
   bank : MinimalBankJSON
 )
 case class OtherAccountsJSON(
   other_accounts : List[OtherAccountJSON]
 )
 case class OtherAccountJSON(
-  id : String,
+  @ExampleValue("994940-ff-484893444444453") id : String,
   holder : AccountHolderJSON,
-  number : String,
-  kind : String,
-  IBAN : String,
+  @ExampleValue("390029-b") number : String,
+  @ExampleValue("current") kind : String,
+  @ExampleValue("AU33 6124 3343 0023 55") IBAN : String,
   bank : MinimalBankJSON,
   metadata : OtherAccountMetadataJSON
 )
 case class OtherAccountMetadataJSON(
-  public_alias : String,
-  private_alias : String,
-  more_info : String,
-  URL : String,
-  image_URL : String,
-  open_corporates_URL : String,
+  @ExampleValue("Office Supplies Vendor") public_alias : String,
+  @ExampleValue("Alfredson Donnington Beringsford Supplies (Montchester Av.) ")private_alias : String,
+  @ExampleValue("Our local office supplies provider") more_info : String,
+  @ExampleValue("http://example.net") URL : String,
+  @ExampleValue("http://example.net/adb_logo.png") image_URL : String,
+  @ExampleValue("http://opencorporates.com/companies/gb/04351490") open_corporates_URL : String,
   corporate_location : LocationJSON,
   physical_location : LocationJSON
 )
 case class LocationJSON(
-  latitude : Double,
-  longitude : Double,
-  date : Date,
+  @ExampleValue(52.525) latitude : Double,
+  @ExampleValue(13.372) longitude : Double,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2011/12/14") : Date
+  }) date : Date,
   user : UserJSON
 )
 case class TransactionDetailsJSON(
-  `type` : String,
-  label : String,
-  posted : Date,
-  completed : Date,
+  @ExampleValue("wire transfer") `type` : String,
+  @ExampleValue("ORDER #993 (STAPLERS)")label : String,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2012/08/24") : Date
+  }) posted : Date,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2012/08/25") : Date
+  }) completed : Date,
   new_balance : AmountOfMoneyJSON,
   value : AmountOfMoneyJSON
 )
 case class TransactionMetadataJSON(
-  narrative : String,
+  @ExampleValue("Staplers for the internal auditing department") narrative : String,
   comments : List[TransactionCommentJSON],
   tags :  List[TransactionTagJSON],
   images :  List[TransactionImageJSON],
@@ -169,7 +180,7 @@ case class TransactionsJSON(
   transactions: List[TransactionJSON]
 )
 case class TransactionJSON(
-  id : String,
+  @ExampleValue("hh-398383977929017278729")id : String,
   this_account : ThisAccountJSON,
   other_account : OtherAccountJSON,
   details : TransactionDetailsJSON,
@@ -179,10 +190,12 @@ case class TransactionImagesJSON(
   images : List[TransactionImageJSON]
 )
 case class TransactionImageJSON(
-  id : String,
-  label : String,
-  URL : String,
-  date : Date,
+  @ExampleValue("djx-eie-xf332323") id : String,
+  @ExampleValue("One of the staplers") label : String,
+  @ExampleValue("http://example.com/uploads/stapler1.jpg") URL : String,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2012/08/24") : Date
+  }) date : Date,
   user : UserJSON
 )
 case class PostTransactionImageJSON(
@@ -196,18 +209,22 @@ case class PostTransactionTagJSON(
   value : String
 )
 case class TransactionTagJSON(
-  id : String,
-  value : String,
-  date : Date,
+  @ExampleValue("30928300010101991001001090101") id : String,
+  @ExampleValue("supplies") value : String,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2012/08/27") : Date
+  }) date : Date,
   user : UserJSON
 )
 case class TransactionTagsJSON(
   tags: List[TransactionTagJSON]
 )
 case class TransactionCommentJSON(
-  id : String,
-  value : String,
-  date: Date,
+  @ExampleValue("390980398--ndsiisums-921849111") id : String,
+  @ExampleValue("We got 14 staplers in this batch.") value : String,
+  @ExampleValue({
+    new SimpleDateFormat("yyyy/MM/dd").parse("2012/08/28") : Date
+  }) date: Date,
   user : UserJSON
 )
 case class TransactionCommentsJSON(
