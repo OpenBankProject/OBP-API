@@ -597,7 +597,7 @@ class MongoDBLocalStorage extends LocalStorage {
       name.replaceAllLiterally(" ","").toLowerCase
     }
 
-    if(ViewCreationJSON.name=="Owner")
+    if(view.name=="Owner")
       Failure("There is already an Owner view on this bank account")
     else
       for{
