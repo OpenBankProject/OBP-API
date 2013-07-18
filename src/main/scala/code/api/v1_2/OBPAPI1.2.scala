@@ -209,7 +209,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
-  //get the available views on an bank account
+  //creates a view on an bank account
     case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
@@ -222,6 +222,19 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
           }
+    }
+  })
+
+  oauthServe(apiPrefix {
+    //deletes a view on an bank account
+    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonDelete json => {
+      user =>
+        for {
+          u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
+          canRemoveViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.id_ + " does not have owner access"})
+          view <- account removeView viewId
+        } yield noContentJsonResponse
     }
   })
 
@@ -247,6 +260,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          //TODO: re-implement this, it load to much data
           permissions <- account permissions u
           userPermission <- Box(permissions.find(p => { p.user.id_ == userId})) ?~ {"None permission found for user "+userId}
         } yield {

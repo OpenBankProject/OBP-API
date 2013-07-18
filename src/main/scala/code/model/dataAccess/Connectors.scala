@@ -54,54 +54,36 @@ object LocalStorage extends MongoDBLocalStorage
 trait LocalStorage extends Loggable {
 
   def getBank(name: String): Box[Bank]
-
   def allBanks : List[Bank]
 
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount]
-
   def getAllPublicAccounts() : List[BankAccount]
-
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]]
-
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
-
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
-
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
-
   def getModeratedOtherBankAccounts(accountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
-
   def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
     (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
 
   def getUser(id : String) : Box[User]
-
   def getCurrentUser : Box[User]
 
   def permissions(account : BankAccount) : Box[List[Permission]]
-
   def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
-
   def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean]
-
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
-
   def revokeAllPermission(bankAccountId : String, user : User) : Box[Boolean]
 
   def view(viewPermalink : String) : Box[View]
-
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
-
+  def removeView(viewId: String, bankAccount: BankAccount): Box[Unit]
   def views(bankAccountID : String) : Box[List[View]]
-
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
-
   def permittedView(user: User, v: View, bankAccount: BankAccount): Boolean
-
   def publicViews(bankAccountID : String) : Box[List[View]]
-
   def ownerAccess(user: User, bankAccount: BankAccount) : Boolean
 
 }
@@ -290,10 +272,6 @@ class MongoDBLocalStorage extends LocalStorage {
       metadata = metadata,
       kind = ""
     )
-  }
-
-  private def setPrivilegeFromView(privilege : Privilege, view : View, value : Boolean ) = {
-    //TODO: Implement
   }
 
   private def createBank(bank : HostedBank) : Bank = {
@@ -498,7 +476,7 @@ class MongoDBLocalStorage extends LocalStorage {
     }
   }
 
-  def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean] = {
+  def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
     user match {
       case u: OBPUser =>
         for{
@@ -507,17 +485,22 @@ class MongoDBLocalStorage extends LocalStorage {
             Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
               //update the existing privilege
               case Full(privilege) => {
-                setPrivilegeFromView(privilege, view, true)
-                privilege.save
+                ViewPrivileges.create.
+                  privilege(privilege).
+                  view(view.id).
+                  save
               }
               //there is no privilege to this user, so we create one
               case _ => {
                 val privilege =
-                Privilege.create.
-                  user(u.id).
-                  account(bankAccount)
-                setPrivilegeFromView(privilege, view, true)
-                privilege.save
+                  Privilege.create.
+                    user(u.id).
+                    account(bankAccount).
+                    saveMe
+                ViewPrivileges.create.
+                  privilege(privilege).
+                  view(view.id).
+                  save
               }
             }
           }
@@ -538,18 +521,25 @@ class MongoDBLocalStorage extends LocalStorage {
               //update the existing privilege
               case Full(privilege) => {
                 views.map(v => {
-                    setPrivilegeFromView(privilege, v, true)
+                  ViewPrivileges.create.
+                    privilege(privilege).
+                    view(v.id).
+                    save
                 })
                 privilege.save
               }
               //there is no privilege to this user, so we create one
               case _ => {
                 val privilege =
-                Privilege.create.
-                  user(u.id).
-                  account(bankAccount)
+                  Privilege.create.
+                    user(u.id).
+                    account(bankAccount).
+                    saveMe
                 views.map(v => {
-                    setPrivilegeFromView(privilege, v, true)
+                  ViewPrivileges.create.
+                    privilege(privilege).
+                    view(v.id).
+                    save
                 })
                 privilege.save
               }
@@ -565,18 +555,13 @@ class MongoDBLocalStorage extends LocalStorage {
   }
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean] = {
     user match {
-      case user:OBPUser =>
+      case u:OBPUser =>
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
+          p <- Privilege.find(By(Privilege.user, u), By(Privilege.account, bankAccount))
+          vp <- ViewPrivileges.find(By(ViewPrivileges.privilege, p), By(ViewPrivileges.view, view.id))
         } yield {
-            Privilege.find(By(Privilege.user, user.id), By(Privilege.account, bankAccount)) match {
-              case Full(privilege) => {
-                setPrivilegeFromView(privilege, view, false)
-                privilege.save
-              }
-              //there is no privilege to this user, so there is nothing to revoke
-              case _ => true
-            }
+              vp.delete_!
           }
       case u: User => {
         logger.error("OBPUser instance not found, could not revoke access ")
@@ -607,152 +592,165 @@ class MongoDBLocalStorage extends LocalStorage {
     ViewImpl.find(By(ViewImpl.permalink_, viewPermalink))
   }
 
-  def createView(bankAccount: BankAccount, view: ViewCreationJSON) : Box[View] = {
+  def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
     def generatePermalink(name: String): String = {
       name.replaceAllLiterally(" ","").toLowerCase
     }
 
-    for{
-        account <- HostedAccount.find(By(HostedAccount.accountID,bankAccount.id))
-      } yield{
-          val createdView = ViewImpl.create.
-            name_(view.name).
-            description_(view.description).
-            permalink_(generatePermalink(view.name)).
-            isPublic_(view.isPublic).
-            account(account)
+    if(ViewCreationJSON.name=="Owner")
+      Failure("There is already an Owner view on this bank account")
+    else
+      for{
+          account <- HostedAccount.find(By(HostedAccount.accountID,bankAccount.id))
+        } yield{
+            val createdView = ViewImpl.create.
+              name_(view.name).
+              description_(view.description).
+              permalink_(generatePermalink(view.name)).
+              isPublic_(view.isPublic).
+              account(account)
 
-          if(view.alias == "public"){
-            createdView.usePrivateAliasIfOneExists_(true)
-            createdView.hideOtherAccountMetadataIfAlias_(view.hideMetadataIfAlias)
-          }
-          else if(view.alias == "private"){
-            createdView.usePublicAliasIfOneExists_(true)
-            createdView.hideOtherAccountMetadataIfAlias_(view.hideMetadataIfAlias)
-          }
+            if(view.alias == "public"){
+              createdView.usePrivateAliasIfOneExists_(true)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hideMetadataIfAlias)
+            }
+            else if(view.alias == "private"){
+              createdView.usePublicAliasIfOneExists_(true)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hideMetadataIfAlias)
+            }
 
-          if(view.allowedFields.exists(a => a=="canSeeTransactionThisBankAccount"))
-            createdView.canSeeTransactionThisBankAccount_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionOtherBankAccount"))
-            createdView.canSeeTransactionOtherBankAccount_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionMetadata"))
-            createdView.canSeeTransactionMetadata_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionLabel"))
-            createdView.canSeeTransactionLabel_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionAmount"))
-            createdView.canSeeTransactionAmount_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionType"))
-            createdView.canSeeTransactionType_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionCurrency"))
-            createdView.canSeeTransactionCurrency_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionStartDate"))
-            createdView.canSeeTransactionStartDate_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionFinishDate"))
-            createdView.canSeeTransactionFinishDate_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTransactionBalance"))
-            createdView.canSeeTransactionBalance_(true)
-          if(view.allowedFields.exists(a => a=="canSeeComments"))
-            createdView.canSeeComments_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOwnerComment"))
-            createdView.canSeeOwnerComment_(true)
-          if(view.allowedFields.exists(a => a=="canSeeTags"))
-            createdView.canSeeTags_(true)
-          if(view.allowedFields.exists(a => a=="canSeeImages"))
-            createdView.canSeeImages_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountOwners"))
-            createdView.canSeeBankAccountOwners_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountType"))
-            createdView.canSeeBankAccountType_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountBalance"))
-            createdView.canSeeBankAccountBalance_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountCurrency"))
-            createdView.canSeeBankAccountCurrency_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountLabel"))
-            createdView.canSeeBankAccountLabel_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountNationalIdentifier"))
-            createdView.canSeeBankAccountNationalIdentifier_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountSwift_bic"))
-            createdView.canSeeBankAccountSwift_bic_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountIban"))
-            createdView.canSeeBankAccountIban_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountNumber"))
-            createdView.canSeeBankAccountNumber_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountBankName"))
-            createdView.canSeeBankAccountBankName_(true)
-          if(view.allowedFields.exists(a => a=="canSeeBankAccountBankPermalink"))
-            createdView.canSeeBankAccountBankPermalink_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountNationalIdentifier"))
-            createdView.canSeeOtherAccountNationalIdentifier_(true)
-          if(view.allowedFields.exists(a => a=="canSeeSWIFT_BIC"))
-            createdView.canSeeSWIFT_BIC_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountIBAN"))
-            createdView.canSeeOtherAccountIBAN_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountBankName"))
-            createdView.canSeeOtherAccountBankName_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountNumber"))
-            createdView.canSeeOtherAccountNumber_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountMetadata"))
-            createdView.canSeeOtherAccountMetadata_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOtherAccountKind"))
-            createdView.canSeeOtherAccountKind_(true)
-          if(view.allowedFields.exists(a => a=="canSeeMoreInfo"))
-            createdView.canSeeMoreInfo_(true)
-          if(view.allowedFields.exists(a => a=="canSeeUrl"))
-            createdView.canSeeUrl_(true)
-          if(view.allowedFields.exists(a => a=="canSeeImageUrl"))
-            createdView.canSeeImageUrl_(true)
-          if(view.allowedFields.exists(a => a=="canSeeOpenCorporatesUrl"))
-            createdView.canSeeOpenCorporatesUrl_(true)
-          if(view.allowedFields.exists(a => a=="canSeeCorporateLocation"))
-            createdView.canSeeCorporateLocation_(true)
-          if(view.allowedFields.exists(a => a=="canSeePhysicalLocation"))
-            createdView.canSeePhysicalLocation_(true)
-          if(view.allowedFields.exists(a => a=="canSeePublicAlias"))
-            createdView.canSeePublicAlias_(true)
-          if(view.allowedFields.exists(a => a=="canSeePrivateAlias"))
-            createdView.canSeePrivateAlias_(true)
-          if(view.allowedFields.exists(a => a=="canAddMoreInfo"))
-            createdView.canAddMoreInfo_(true)
-          if(view.allowedFields.exists(a => a=="canAddURL"))
-            createdView.canAddURL_(true)
-          if(view.allowedFields.exists(a => a=="canAddImageURL"))
-            createdView.canAddImageURL_(true)
-          if(view.allowedFields.exists(a => a=="canAddOpenCorporatesUrl"))
-            createdView.canAddOpenCorporatesUrl_(true)
-          if(view.allowedFields.exists(a => a=="canAddCorporateLocation"))
-            createdView.canAddCorporateLocation_(true)
-          if(view.allowedFields.exists(a => a=="canAddPhysicalLocation"))
-            createdView.canAddPhysicalLocation_(true)
-          if(view.allowedFields.exists(a => a=="canAddPublicAlias"))
-            createdView.canAddPublicAlias_(true)
-          if(view.allowedFields.exists(a => a=="canAddPrivateAlias"))
-            createdView.canAddPrivateAlias_(true)
-          if(view.allowedFields.exists(a => a=="canDeleteCorporateLocation"))
-            createdView.canDeleteCorporateLocation_(true)
-          if(view.allowedFields.exists(a => a=="canDeletePhysicalLocation"))
-            createdView.canDeletePhysicalLocation_(true)
-          if(view.allowedFields.exists(a => a=="canEditOwnerComment"))
-            createdView.canEditOwnerComment_(true)
-          if(view.allowedFields.exists(a => a=="canAddComment"))
-            createdView.canAddComment_(true)
-          if(view.allowedFields.exists(a => a=="canDeleteComment"))
-            createdView.canDeleteComment_(true)
-          if(view.allowedFields.exists(a => a=="canAddTag"))
-            createdView.canAddTag_(true)
-          if(view.allowedFields.exists(a => a=="canDeleteTag"))
-            createdView.canDeleteTag_(true)
-          if(view.allowedFields.exists(a => a=="canAddImage"))
-            createdView.canAddImage_(true)
-          if(view.allowedFields.exists(a => a=="canDeleteImage"))
-            createdView.canDeleteImage_(true)
-          if(view.allowedFields.exists(a => a=="canAddWhereTag"))
-            createdView.canAddWhereTag_(true)
-          if(view.allowedFields.exists(a => a=="canSeeWhereTag"))
-            createdView.canSeeWhereTag_(true)
-          if(view.allowedFields.exists(a => a=="canDeleteWhereTag"))
-            createdView.canDeleteWhereTag_(true)
-          createdView.saveMe
-      }
+            if(view.allowedFields.exists(a => a=="canSeeTransactionThisBankAccount"))
+              createdView.canSeeTransactionThisBankAccount_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionOtherBankAccount"))
+              createdView.canSeeTransactionOtherBankAccount_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionMetadata"))
+              createdView.canSeeTransactionMetadata_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionLabel"))
+              createdView.canSeeTransactionLabel_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionAmount"))
+              createdView.canSeeTransactionAmount_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionType"))
+              createdView.canSeeTransactionType_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionCurrency"))
+              createdView.canSeeTransactionCurrency_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionStartDate"))
+              createdView.canSeeTransactionStartDate_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionFinishDate"))
+              createdView.canSeeTransactionFinishDate_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTransactionBalance"))
+              createdView.canSeeTransactionBalance_(true)
+            if(view.allowedFields.exists(a => a=="canSeeComments"))
+              createdView.canSeeComments_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOwnerComment"))
+              createdView.canSeeOwnerComment_(true)
+            if(view.allowedFields.exists(a => a=="canSeeTags"))
+              createdView.canSeeTags_(true)
+            if(view.allowedFields.exists(a => a=="canSeeImages"))
+              createdView.canSeeImages_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountOwners"))
+              createdView.canSeeBankAccountOwners_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountType"))
+              createdView.canSeeBankAccountType_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountBalance"))
+              createdView.canSeeBankAccountBalance_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountCurrency"))
+              createdView.canSeeBankAccountCurrency_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountLabel"))
+              createdView.canSeeBankAccountLabel_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountNationalIdentifier"))
+              createdView.canSeeBankAccountNationalIdentifier_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountSwift_bic"))
+              createdView.canSeeBankAccountSwift_bic_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountIban"))
+              createdView.canSeeBankAccountIban_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountNumber"))
+              createdView.canSeeBankAccountNumber_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountBankName"))
+              createdView.canSeeBankAccountBankName_(true)
+            if(view.allowedFields.exists(a => a=="canSeeBankAccountBankPermalink"))
+              createdView.canSeeBankAccountBankPermalink_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountNationalIdentifier"))
+              createdView.canSeeOtherAccountNationalIdentifier_(true)
+            if(view.allowedFields.exists(a => a=="canSeeSWIFT_BIC"))
+              createdView.canSeeSWIFT_BIC_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountIBAN"))
+              createdView.canSeeOtherAccountIBAN_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountBankName"))
+              createdView.canSeeOtherAccountBankName_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountNumber"))
+              createdView.canSeeOtherAccountNumber_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountMetadata"))
+              createdView.canSeeOtherAccountMetadata_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOtherAccountKind"))
+              createdView.canSeeOtherAccountKind_(true)
+            if(view.allowedFields.exists(a => a=="canSeeMoreInfo"))
+              createdView.canSeeMoreInfo_(true)
+            if(view.allowedFields.exists(a => a=="canSeeUrl"))
+              createdView.canSeeUrl_(true)
+            if(view.allowedFields.exists(a => a=="canSeeImageUrl"))
+              createdView.canSeeImageUrl_(true)
+            if(view.allowedFields.exists(a => a=="canSeeOpenCorporatesUrl"))
+              createdView.canSeeOpenCorporatesUrl_(true)
+            if(view.allowedFields.exists(a => a=="canSeeCorporateLocation"))
+              createdView.canSeeCorporateLocation_(true)
+            if(view.allowedFields.exists(a => a=="canSeePhysicalLocation"))
+              createdView.canSeePhysicalLocation_(true)
+            if(view.allowedFields.exists(a => a=="canSeePublicAlias"))
+              createdView.canSeePublicAlias_(true)
+            if(view.allowedFields.exists(a => a=="canSeePrivateAlias"))
+              createdView.canSeePrivateAlias_(true)
+            if(view.allowedFields.exists(a => a=="canAddMoreInfo"))
+              createdView.canAddMoreInfo_(true)
+            if(view.allowedFields.exists(a => a=="canAddURL"))
+              createdView.canAddURL_(true)
+            if(view.allowedFields.exists(a => a=="canAddImageURL"))
+              createdView.canAddImageURL_(true)
+            if(view.allowedFields.exists(a => a=="canAddOpenCorporatesUrl"))
+              createdView.canAddOpenCorporatesUrl_(true)
+            if(view.allowedFields.exists(a => a=="canAddCorporateLocation"))
+              createdView.canAddCorporateLocation_(true)
+            if(view.allowedFields.exists(a => a=="canAddPhysicalLocation"))
+              createdView.canAddPhysicalLocation_(true)
+            if(view.allowedFields.exists(a => a=="canAddPublicAlias"))
+              createdView.canAddPublicAlias_(true)
+            if(view.allowedFields.exists(a => a=="canAddPrivateAlias"))
+              createdView.canAddPrivateAlias_(true)
+            if(view.allowedFields.exists(a => a=="canDeleteCorporateLocation"))
+              createdView.canDeleteCorporateLocation_(true)
+            if(view.allowedFields.exists(a => a=="canDeletePhysicalLocation"))
+              createdView.canDeletePhysicalLocation_(true)
+            if(view.allowedFields.exists(a => a=="canEditOwnerComment"))
+              createdView.canEditOwnerComment_(true)
+            if(view.allowedFields.exists(a => a=="canAddComment"))
+              createdView.canAddComment_(true)
+            if(view.allowedFields.exists(a => a=="canDeleteComment"))
+              createdView.canDeleteComment_(true)
+            if(view.allowedFields.exists(a => a=="canAddTag"))
+              createdView.canAddTag_(true)
+            if(view.allowedFields.exists(a => a=="canDeleteTag"))
+              createdView.canDeleteTag_(true)
+            if(view.allowedFields.exists(a => a=="canAddImage"))
+              createdView.canAddImage_(true)
+            if(view.allowedFields.exists(a => a=="canDeleteImage"))
+              createdView.canDeleteImage_(true)
+            if(view.allowedFields.exists(a => a=="canAddWhereTag"))
+              createdView.canAddWhereTag_(true)
+            if(view.allowedFields.exists(a => a=="canSeeWhereTag"))
+              createdView.canSeeWhereTag_(true)
+            if(view.allowedFields.exists(a => a=="canDeleteWhereTag"))
+              createdView.canDeleteWhereTag_(true)
+            createdView.saveMe
+        }
+  }
+
+  def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
+    if(viewId=="Owner")
+      Failure("you cannot delete the Owner view")
+    else
+      for{
+        v <- ViewImpl.find(By(ViewImpl.permalink_,viewId)) ?~ "view not found"
+        if(v.delete_!)
+      } yield {}
   }
 
   def views(bankAccountID : String) : Box[List[View]] = {

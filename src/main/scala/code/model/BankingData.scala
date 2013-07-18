@@ -263,6 +263,9 @@ class BankAccount(
   def createView(v: ViewCreationJSON): Box[View] =
     LocalStorage.createView(this, v)
 
+  def removeView(viewId: String) : Box[Unit] =
+    LocalStorage.removeView(viewId, this)
+
   def publicViews : List[View] =
     LocalStorage.publicViews(id).getOrElse(Nil)
 
