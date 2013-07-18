@@ -430,7 +430,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
       val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
 
-      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: Set[View])
+      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: List[View])
 
       val moderatedAccountAndViews = for {
         bank <- Bank(bankId) ?~ { "bank " + bankId + " not found" } ~> 404
@@ -444,16 +444,10 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
       def viewJson(view: View): JObject = {
 
-        val isPublic: Boolean =
-          view match {
-            case Public => true
-            case _ => false
-          }
-
         ("id" -> view.id) ~
         ("short_name" -> view.name) ~
         ("description" -> view.description) ~
-        ("is_public" -> isPublic)
+        ("is_public" -> view.isPublic)
       }
 
       def ownerJson(accountOwner: AccountOwner): JObject = {
@@ -467,7 +461,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("amount" -> account.balance)
       }
 
-      def json(account: ModeratedBankAccount, views: Set[View]): JObject = {
+      def json(account: ModeratedBankAccount, views: List[View]): JObject = {
         ("account" ->
           ("number" -> account.number.getOrElse("")) ~
           ("owners" -> account.owners.getOrElse(Set()).map(ownerJson)) ~

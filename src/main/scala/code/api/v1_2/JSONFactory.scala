@@ -80,7 +80,7 @@ case class AccountsJSON(
 case class AccountJSON(
   id : String,
   label : String,
-  views_available : Set[ViewJSON],
+  views_available : List[ViewJSON],
   bank_id : String
 )
 case class ModeratedAccountJSON(
@@ -91,7 +91,7 @@ case class ModeratedAccountJSON(
   `type` : String,
   balance : AmountOfMoneyJSON,
   IBAN : String,
-  views_available : Set[ViewJSON],
+  views_available : List[ViewJSON],
   bank_id : String
 )
 case class UserJSON(
@@ -252,6 +252,15 @@ case class ViewIdsJson(
   views : List[String]
 )
 
+case class ViewCreationJSON(
+  name: String,
+  description: String,
+  isPublic: Boolean,
+  alias: String,
+  hideMetadataIfAlias: Boolean,
+  allowedFields : List[String]
+)
+
 object JSONFactory{
   def stringOrNull(text : String) =
     if(text.isEmpty)
@@ -289,7 +298,7 @@ object JSONFactory{
     )
   }
 
-  def createAccountJSON(account : BankAccount, viewsAvailable : Set[ViewJSON] ) : AccountJSON = {
+  def createAccountJSON(account : BankAccount, viewsAvailable : List[ViewJSON] ) : AccountJSON = {
     new AccountJSON(
       account.permalink,
       stringOrNull(account.label),
@@ -298,7 +307,7 @@ object JSONFactory{
     )
   }
 
-  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : Set[ViewJSON]) : ModeratedAccountJSON =  {
+  def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON]) : ModeratedAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON(
       account.id,

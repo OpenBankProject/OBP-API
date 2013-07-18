@@ -53,13 +53,6 @@ import java.util.Date
 import OBPEnvelope._
 
 
-/**
- * There should be only one of these for every real life "this" account. TODO: Enforce this
- *
- * As a result, this can provide a single point from which to retrieve the aliases associated with
- * this account, rather than needing to duplicate the aliases into every single transaction.
- */
-
 class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   def meta = Account
 
