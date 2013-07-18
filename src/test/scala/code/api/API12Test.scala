@@ -202,6 +202,7 @@ class API1_2Test extends ServerSetup{
   object GetBankAccount extends Tag("getBankAccount")
   object GetViews extends Tag("getViews")
   object PostView extends Tag("postView")
+  object DeleteView extends Tag("deleteView")
   object GetPermissions extends Tag("getPermissions")
   object GetPermission extends Tag("getPermission")
   object PostPermission extends Tag("postPermission")
@@ -414,6 +415,21 @@ class API1_2Test extends ServerSetup{
   def postViewWithoutOwnerAccess(bankId: String, accountId: String, view: ViewCreationJSON): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumer,token3)
     makePostRequest(request, write(view))
+  }
+
+  def deleteView(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumer,token)
+    makeDeleteRequest(request)
+  }
+
+  def deleteViewWithoutToken(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE
+    makeDeleteRequest(request)
+  }
+
+  def deleteViewWithoutOwnerAccess(bankId: String, accountId: String, viewId: String): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).DELETE <@(consumer,token3)
+    makeDeleteRequest(request)
   }
 
   def getAccountPermissions(bankId : String, accountId : String): APIResponse = {
@@ -1543,6 +1559,60 @@ class API1_2Test extends ServerSetup{
       val view = randomView(true, "")
       When("the request is sent")
       val reply = postViewWithoutOwnerAccess(bankId, randomString(3), view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
+  feature("Delete a view on a bank account"){
+    scenario("we will delete a view on a bank account", API1_2, DeleteView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = postView(bankId, bankAccount.id, randomView(true, "")).body.extract[ViewJSON]
+      val viewsBefore = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      When("the request is sent")
+      val reply = deleteView(bankId, bankAccount.id, view.id)
+      Then("we should get a 204 code")
+      reply.code should equal (204)
+      And("the views should be updated")
+      val viewsAfter = getAccountViews(bankId, bankAccount.id).body.extract[ViewsJSON].views
+      viewsBefore.size should equal (viewsAfter.size +1)
+    }
+
+    scenario("We will not delete a view on a bank account due to missing token", API1_2, DeleteView) {
+      Given("We will not use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent")
+      val reply = deleteViewWithoutToken(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not delete a view on a bank account due to insufficient privileges", API1_2, DeleteView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent")
+      val reply = deleteViewWithoutOwnerAccess(bankId, bankAccount.id, view)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("We will not delete a view on a bank account it does not exist", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      When("the request is sent")
+      val reply = deleteView(bankId, bankAccount.id, randomString(3))
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
