@@ -100,8 +100,18 @@ trait ServerSetup extends FeatureSpec
         }
       })
 
+
+
     val hostedAccounts = accounts.map(account => {
-      HostedAccount.create.accountID(account.id.get.toString).saveMe
+      val hostedaccount =
+        HostedAccount.
+          create.
+          accountID(account.id.get.toString).
+          saveMe
+      ownerView(hostedaccount)
+      publicView(hostedaccount)
+      randomView(hostedaccount)
+      hostedaccount
     })
 
     //fake transactions
@@ -181,7 +191,7 @@ trait ServerSetup extends FeatureSpec
         val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
         APIResponse(response.getStatusCode, parse(body))
       }
-    , Duration(1, SECONDS))
+    , Duration(5, SECONDS))
   }
 
   /**
@@ -216,6 +226,223 @@ trait ServerSetup extends FeatureSpec
     val jsonReq = req.DELETE
     getAPIResponse(jsonReq)
   }
+
+  def ownerView(account: HostedAccount) =
+    ViewImpl.create.
+    name_("Owner").
+    description_(randomString(3)).
+    permalink_("owner").
+    isPublic_(false).
+    account(account).
+    usePrivateAliasIfOneExists_(false).
+    usePublicAliasIfOneExists_(false).
+    hideOtherAccountMetadataIfAlias_(false).
+    canSeeTransactionThisBankAccount_(true).
+    canSeeTransactionOtherBankAccount_(true).
+    canSeeTransactionMetadata_(true).
+    canSeeTransactionLabel_(true).
+    canSeeTransactionAmount_(true).
+    canSeeTransactionType_(true).
+    canSeeTransactionCurrency_(true).
+    canSeeTransactionStartDate_(true).
+    canSeeTransactionFinishDate_(true).
+    canSeeTransactionBalance_(true).
+    canSeeComments_(true).
+    canSeeOwnerComment_(true).
+    canSeeTags_(true).
+    canSeeImages_(true).
+    canSeeBankAccountOwners_(true).
+    canSeeBankAccountType_(true).
+    canSeeBankAccountBalance_(true).
+    canSeeBankAccountCurrency_(true).
+    canSeeBankAccountLabel_(true).
+    canSeeBankAccountNationalIdentifier_(true).
+    canSeeBankAccountSwift_bic_(true).
+    canSeeBankAccountIban_(true).
+    canSeeBankAccountNumber_(true).
+    canSeeBankAccountBankName_(true).
+    canSeeBankAccountBankPermalink_(true).
+    canSeeOtherAccountNationalIdentifier_(true).
+    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountIBAN_ (true).
+    canSeeOtherAccountBankName_(true).
+    canSeeOtherAccountNumber_(true).
+    canSeeOtherAccountMetadata_(true).
+    canSeeOtherAccountKind_(true).
+    canSeeMoreInfo_(true).
+    canSeeUrl_(true).
+    canSeeImageUrl_(true).
+    canSeeOpenCorporatesUrl_(true).
+    canSeeCorporateLocation_(true).
+    canSeePhysicalLocation_(true).
+    canSeePublicAlias_(true).
+    canSeePrivateAlias_(true).
+    canAddMoreInfo_(true).
+    canAddURL_(true).
+    canAddImageURL_(true).
+    canAddOpenCorporatesUrl_(true).
+    canAddCorporateLocation_(true).
+    canAddPhysicalLocation_(true).
+    canAddPublicAlias_(true).
+    canAddPrivateAlias_(true).
+    canDeleteCorporateLocation_(true).
+    canDeletePhysicalLocation_(true).
+    canEditOwnerComment_(true).
+    canAddComment_(true).
+    canDeleteComment_(true).
+    canAddTag_(true).
+    canDeleteTag_(true).
+    canAddImage_(true).
+    canDeleteImage_(true).
+    canAddWhereTag_(true).
+    canSeeWhereTag_(true).
+    canDeleteWhereTag_(true).
+    save
+
+  def publicView(account: HostedAccount) =
+    ViewImpl.create.
+    name_("Public").
+    description_(randomString(3)).
+    permalink_("public").
+    isPublic_(true).
+    account(account).
+    usePrivateAliasIfOneExists_(false).
+    usePublicAliasIfOneExists_(true).
+    hideOtherAccountMetadataIfAlias_(true).
+    canSeeTransactionThisBankAccount_(true).
+    canSeeTransactionOtherBankAccount_(true).
+    canSeeTransactionMetadata_(true).
+    canSeeTransactionLabel_(true).
+    canSeeTransactionAmount_(true).
+    canSeeTransactionType_(true).
+    canSeeTransactionCurrency_(true).
+    canSeeTransactionStartDate_(true).
+    canSeeTransactionFinishDate_(true).
+    canSeeTransactionBalance_(true).
+    canSeeComments_(true).
+    canSeeOwnerComment_(true).
+    canSeeTags_(true).
+    canSeeImages_(true).
+    canSeeBankAccountOwners_(true).
+    canSeeBankAccountType_(true).
+    canSeeBankAccountBalance_(true).
+    canSeeBankAccountCurrency_(true).
+    canSeeBankAccountLabel_(true).
+    canSeeBankAccountNationalIdentifier_(true).
+    canSeeBankAccountSwift_bic_(true).
+    canSeeBankAccountIban_(true).
+    canSeeBankAccountNumber_(true).
+    canSeeBankAccountBankName_(true).
+    canSeeBankAccountBankPermalink_(true).
+    canSeeOtherAccountNationalIdentifier_(true).
+    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountIBAN_ (true).
+    canSeeOtherAccountBankName_(true).
+    canSeeOtherAccountNumber_(true).
+    canSeeOtherAccountMetadata_(true).
+    canSeeOtherAccountKind_(true).
+    canSeeMoreInfo_(true).
+    canSeeUrl_(true).
+    canSeeImageUrl_(true).
+    canSeeOpenCorporatesUrl_(true).
+    canSeeCorporateLocation_(true).
+    canSeePhysicalLocation_(true).
+    canSeePublicAlias_(true).
+    canSeePrivateAlias_(true).
+    canAddMoreInfo_(true).
+    canAddURL_(true).
+    canAddImageURL_(true).
+    canAddOpenCorporatesUrl_(true).
+    canAddCorporateLocation_(true).
+    canAddPhysicalLocation_(true).
+    canAddPublicAlias_(true).
+    canAddPrivateAlias_(true).
+    canDeleteCorporateLocation_(true).
+    canDeletePhysicalLocation_(true).
+    canEditOwnerComment_(true).
+    canAddComment_(true).
+    canDeleteComment_(true).
+    canAddTag_(true).
+    canDeleteTag_(true).
+    canAddImage_(true).
+    canDeleteImage_(true).
+    canAddWhereTag_(true).
+    canSeeWhereTag_(true).
+    canDeleteWhereTag_(true).
+    save
+
+  def randomView(account: HostedAccount) =
+    ViewImpl.create.
+    name_(randomString(5)).
+    description_(randomString(3)).
+    permalink_(randomString(3)).
+    isPublic_(false).
+    account(account).
+    usePrivateAliasIfOneExists_(false).
+    usePublicAliasIfOneExists_(false).
+    hideOtherAccountMetadataIfAlias_(false).
+    canSeeTransactionThisBankAccount_(true).
+    canSeeTransactionOtherBankAccount_(true).
+    canSeeTransactionMetadata_(true).
+    canSeeTransactionLabel_(true).
+    canSeeTransactionAmount_(true).
+    canSeeTransactionType_(true).
+    canSeeTransactionCurrency_(true).
+    canSeeTransactionStartDate_(true).
+    canSeeTransactionFinishDate_(true).
+    canSeeTransactionBalance_(true).
+    canSeeComments_(true).
+    canSeeOwnerComment_(true).
+    canSeeTags_(true).
+    canSeeImages_(true).
+    canSeeBankAccountOwners_(true).
+    canSeeBankAccountType_(true).
+    canSeeBankAccountBalance_(true).
+    canSeeBankAccountCurrency_(true).
+    canSeeBankAccountLabel_(true).
+    canSeeBankAccountNationalIdentifier_(true).
+    canSeeBankAccountSwift_bic_(true).
+    canSeeBankAccountIban_(true).
+    canSeeBankAccountNumber_(true).
+    canSeeBankAccountBankName_(true).
+    canSeeBankAccountBankPermalink_(true).
+    canSeeOtherAccountNationalIdentifier_(true).
+    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountIBAN_ (true).
+    canSeeOtherAccountBankName_(true).
+    canSeeOtherAccountNumber_(true).
+    canSeeOtherAccountMetadata_(true).
+    canSeeOtherAccountKind_(true).
+    canSeeMoreInfo_(true).
+    canSeeUrl_(true).
+    canSeeImageUrl_(true).
+    canSeeOpenCorporatesUrl_(true).
+    canSeeCorporateLocation_(true).
+    canSeePhysicalLocation_(true).
+    canSeePublicAlias_(true).
+    canSeePrivateAlias_(true).
+    canAddMoreInfo_(true).
+    canAddURL_(true).
+    canAddImageURL_(true).
+    canAddOpenCorporatesUrl_(true).
+    canAddCorporateLocation_(true).
+    canAddPhysicalLocation_(true).
+    canAddPublicAlias_(true).
+    canAddPrivateAlias_(true).
+    canDeleteCorporateLocation_(true).
+    canDeletePhysicalLocation_(true).
+    canEditOwnerComment_(true).
+    canAddComment_(true).
+    canDeleteComment_(true).
+    canAddTag_(true).
+    canDeleteTag_(true).
+    canAddImage_(true).
+    canDeleteImage_(true).
+    canAddWhereTag_(true).
+    canSeeWhereTag_(true).
+    canDeleteWhereTag_(true).
+    save
+
 }
 
 object ServerSetup {
