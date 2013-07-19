@@ -100,6 +100,9 @@ class OBPRestHelper extends RestHelper with Loggable {
   
   val exampleValueFullName = typeOf[ExampleValue[String]].typeSymbol.fullName
   
+  /**
+   * Large parts of this should probably be moved outside of this class. Refactoring required!
+   */
   def registerApiCall[INPUT : TypeTag, OUTPUT](apiPath : ApiPath, reqType : RequestType, documentationString: String, handler : PartialFunction[Req, (Box[User], Box[INPUT]) => Box[OUTPUT]])
   (implicit m: TypeTag[OUTPUT], m2 : Manifest[INPUT]) = {
     
@@ -117,6 +120,10 @@ class OBPRestHelper extends RestHelper with Loggable {
     when(httpRequest.contentType).thenReturn(Full("application/json"))
     when(httpRequest.headers).thenReturn(Nil)
     
+    /**
+     * We accept the ApiPath as a parameter as it's not easy to get from the handler partial function (maybe with reflection?). We need to check that it's in fact
+     * the same path as the one matched in the handler, and we can do this by mocking a request for apiPath and seeing if the handler partial function is defined for it.
+     */
     val testRequest : Req = new Req(reqPath, LiftRules.context.path, reqType,
         Full("application/json"), httpRequest, 5, 6, () => ParamCalcInfo(Nil, Map(), Nil, Empty), Map())
     
@@ -137,6 +144,11 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
 
+    /**
+     * Note: TODO: exampleAnnotation should actually be ExampleValue (not very type safe at the moment)
+     * 
+     * Gets an example value from an ExampleValue, ensuring that the type of the value is that of requiredType
+     */
     def getExampleValue(exampleAnnotation: Annotation, requiredType: Type): Option[JValue] = {
       //Check that for ExampleValue[T], T is the same type as returnType
       val args = exampleAnnotation.scalaArgs
@@ -162,6 +174,11 @@ class OBPRestHelper extends RestHelper with Loggable {
     }
 
     //TODO: Large amounts of refactoring
+    /**
+     * Try to get a description of a type, first be checking for an ExampleValue annotation, and falling back on a less useful
+     * description. The less useful description could actually be made more useful with some fake value. Anyhow, it copies a bunch
+     * of code from getCaseClassAccessorsAsJsonString and needs (has it been mentioned enough?) refactoring.
+     */
     def primaryDescription(bar: reflect.runtime.universe.Type): Option[JValue] = {
       val caseAccessors = bar.members.collect {
         case m: MethodSymbol if m.isCaseAccessor => m
@@ -182,6 +199,14 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
 
+    /**
+     * This method should be used if a case class accessor isn't annotated with an ExampleValue.
+     * 
+     * Provides a JValue with a string description of the type
+     * 
+     * TODO: Probably this should actually return some fake data rather than a type description
+     * e.g. Booleans should return JBool(false) rather than JString("boolean")
+     */
     def fallbackDescription(t : reflect.runtime.universe.Type): Option[JValue] = {
       
       t.typeSymbol match {
@@ -192,10 +217,10 @@ class OBPRestHelper extends RestHelper with Loggable {
             case "java.util.Date" => Some(JString("date"))
             case "scala.Byte" | "scala.Short" | "scala.Int" | "scala.Double" | "scala.Float" | "scala.Long" | "scala.math.BigDecimal" | "java.math.BigDecimal" |
               "scala.math.BigInt" | "java.math.BigInt" => Some(JString("number"))
-            case "scala.collection.immutable.List" => {
+            case "scala.collection.immutable.List" => { //If it's a list, we should actually describe the type of the list
               t match {
                 case TypeRef(_, _, args) => {
-                  if(args.size == 1) {
+                  if(args.size == 1) { //Only do something if the list is parameterized with a single type
                     val listType = args(0)
                     Some(JArray(List(primaryDescription(listType)).flatten))
                   } else {
@@ -215,17 +240,33 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
     
+    /**
+     * The idea here is to get back a json string with some sample data for a case class.
+     * The implementation details are a bit messy/incomplete and need more work.
+     * 
+     * E.g. case class Bank(name: String, isOpenNow: Boolean)
+     * 
+     * could result in Some({"name" : "Example Name", "isOpenNow" : false })
+     */
     def getCaseClassAccessorsAsJsonString[t: TypeTag]: Option[String] = {
+      /**
+       * caseAccessors is a list of json reprentations for each of the case fields of t
+       * 
+       * e.g. case class Bank(name: String, isOpenNow: Boolean, corpInfo : CorporateInfo)
+       *      case class CorporateInfo(numEmployees : Int)
+       *      
+       * could result in something like List(("name" -> "Example Name"), ("isOpenNow" -> false), ("corpInfo" -> List(("numEmployees" -> 40000))))
+       */
       val caseAccessors = typeOf[t].members.collect {
         case m: MethodSymbol if m.isCaseAccessor => m
       }.map(acc => {
         val returnType = acc.returnType
         val exampleValueAnnotation = acc.annotations.find(ann => {
-          ann.tpe.typeSymbol.fullName == exampleValueFullName
+          ann.tpe.typeSymbol.fullName == exampleValueFullName //picks out an annotation that is an ExampleValue
         })
         
         val exampleValue = exampleValueAnnotation.flatMap(getExampleValue(_, returnType))
-        
+        																					//primaryDescription isn't a very good name in this case...
         JField(acc.name.toString, exampleValue.getOrElse(fallbackDescription(returnType).getOrElse(primaryDescription(returnType).getOrElse(JString("")))))
       }).toList
       
@@ -234,11 +275,14 @@ class OBPRestHelper extends RestHelper with Loggable {
       
       caseAccessors.size match {
         case 0 => None
-        case _ => Some(pretty(render(JObject(caseAccessors))))
+        case _ => Some(pretty(render(JObject(caseAccessors)))) //convert a JObject with fields caseAccessors into a string
       }
 
     }
     
+    /**
+     * Here we make sure apiPath (which was used to create testRequest) matches that of the handler partial function to register with lift
+     */
     if(handler.isDefinedAt(testRequest)) {
       
       val apiCallDocumentation = new ApiCall {
@@ -246,19 +290,25 @@ class OBPRestHelper extends RestHelper with Loggable {
         val requestType = reqType
         val docString = documentationString
 
+        //Generate some sample json from the INPUT type (which should be the case class used to create json in the api)
         val inputJson = getCaseClassAccessorsAsJsonString[INPUT]
+        //Generate some sample json from the INPUT type (which should be the case class used to create json in the api)
         val outputJson = getCaseClassAccessorsAsJsonString[OUTPUT]
       }
       
+      //Assumes apiPath is of the format obp/API_VERSION/something
       val apiVersion = if(apiPath.size >= 2) Some(apiPath(1)) else None
       
       apiVersion match {
         case Some(v) => {
+          //Register the documentation
           GeneratedDocumentation.addCall(v.name, apiCallDocumentation)
+          //Actually allow the call to be accessed
           oauthServe(oauthHandler)
+          //Below is just for debugging
           GeneratedDocumentation.apiVersion(v.name).foreach(_.apiCalls.foreach(x => println("in: " + x.inputJson + " out: " + x.outputJson)))
         }
-        case None => logger.error("Bad api path could not be added: " + apiPath)
+        case None => logger.error("Bad api path could not be added: " + apiPath) //apiPath didn't match the expected format, so the version couldn't be extracted
       }
       
     }
