@@ -100,7 +100,6 @@ class OBPRestHelper extends RestHelper with Loggable {
   
   val exampleValueFullName = typeOf[ExampleValue[String]].typeSymbol.fullName
   
-  //TODO: input and output should be optional
   def registerApiCall[INPUT : TypeTag, OUTPUT](apiPath : ApiPath, reqType : RequestType, documentationString: String, handler : PartialFunction[Req, (Box[User], Box[INPUT]) => Box[OUTPUT]])
   (implicit m: TypeTag[OUTPUT], m2 : Manifest[INPUT]) = {
     
@@ -138,8 +137,32 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
 
+    def getExampleValue(exampleAnnotation: Annotation, requiredType: Type): Option[JValue] = {
+      //Check that for ExampleValue[T], T is the same type as returnType
+      val args = exampleAnnotation.scalaArgs
+      if (args.size == 1) {
+        val arg = args(0)
+        if (arg.tpe =:= requiredType) {
+          val exampleValueArg = tryo { arg.productElement(0) }
+          exampleValueArg.flatMap(x => x match {
+            case Constant(s: String) => Some(JString(s))
+            case Constant(d: Double) => Some(JDouble(d))
+            case Constant(i: Int) => Some(JInt(i))
+            case Constant(b: Boolean) => Some(JBool(b))
+            //TODO: Doesn't work for Date (it's not a constant/primitive)
+            case Constant(d: Date) => Some(JString(DefaultFormats.dateFormat.format(d))) //TODO: Need a better way to make sure we're using the right format
+            case other => {
+              //TODO: Extract ExampleValue.example here and check if it's a Date, and if so, do something like Some(JString(DefaultFormats.dateFormat.format(d)))
+              
+              None : Option[JValue]
+            }
+          })
+        } else None
+      } else None
+    }
+
     //TODO: Large amounts of refactoring
-    def foo(bar: reflect.runtime.universe.Type): Option[JValue] = {
+    def primaryDescription(bar: reflect.runtime.universe.Type): Option[JValue] = {
       val caseAccessors = bar.members.collect {
         case m: MethodSymbol if m.isCaseAccessor => m
       }.map(acc => {
@@ -148,27 +171,9 @@ class OBPRestHelper extends RestHelper with Loggable {
           ann.tpe.typeSymbol.fullName == exampleValueFullName
         })
         
-        val exampleValue : Option[JValue] = exampleValueAnnotation.flatMap(exAnn => {
-          //Check that for ExampleValue[T], T is the same type as returnType
-          val args = exAnn.scalaArgs
-          if(args.size == 1) {
-            val arg = args(0)
-            if(arg.tpe =:= returnType) {
-              val exampleValueArg = tryo{arg.productElement(0)}
-              exampleValueArg.flatMap(x => x match {
-                case Constant(s : String) => Some(JString(s))
-                case Constant(d : Double) => Some(JDouble(d))
-                case Constant(i : Int) => Some(JInt(i))
-                case Constant(b : Boolean) => Some(JBool(b))
-                case Constant(d : Date) => Some(JString(DefaultFormats.dateFormat.format(d))) //TODO: Need a better way to make sure we're using the right format
-                case _ => None
-              })
-            }
-            else None
-          } else None
-        })
+        val exampleValue = exampleValueAnnotation.flatMap(getExampleValue(_, returnType))
         
-        JField(acc.name.toString, exampleValue.getOrElse(typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString("")))))
+        JField(acc.name.toString, exampleValue.getOrElse(fallbackDescription(returnType).getOrElse(primaryDescription(returnType).getOrElse(JString("")))))
       }).toList
       
       caseAccessors.size match {
@@ -177,7 +182,7 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
 
-    def typeDescription(t : reflect.runtime.universe.Type): Option[JValue] = {
+    def fallbackDescription(t : reflect.runtime.universe.Type): Option[JValue] = {
       
       t.typeSymbol match {
         case c : ClassSymbol => {
@@ -192,7 +197,7 @@ class OBPRestHelper extends RestHelper with Loggable {
                 case TypeRef(_, _, args) => {
                   if(args.size == 1) {
                     val listType = args(0)
-                    Some(JArray(List(foo(listType)).flatten))
+                    Some(JArray(List(primaryDescription(listType)).flatten))
                   } else {
                     logger.warn("unexpected number of type arguments for a list!")
                     None
@@ -210,7 +215,7 @@ class OBPRestHelper extends RestHelper with Loggable {
       }
     }
     
-    def getCaseClassAccessorsAsJson[t: TypeTag]: Option[String] = {
+    def getCaseClassAccessorsAsJsonString[t: TypeTag]: Option[String] = {
       val caseAccessors = typeOf[t].members.collect {
         case m: MethodSymbol if m.isCaseAccessor => m
       }.map(acc => {
@@ -219,27 +224,9 @@ class OBPRestHelper extends RestHelper with Loggable {
           ann.tpe.typeSymbol.fullName == exampleValueFullName
         })
         
-        val exampleValue : Option[JValue] = exampleValueAnnotation.flatMap(exAnn => {
-          //Check that for ExampleValue[T], T is the same type as returnType
-          val args = exAnn.scalaArgs
-          if(args.size == 1) {
-            val arg = args(0)
-            if(arg.tpe =:= returnType) {
-              val exampleValueArg = tryo{arg.productElement(0)}
-              exampleValueArg.flatMap(x => x match {
-                case Constant(s : String) => Some(JString(s))
-                case Constant(d : Double) => Some(JDouble(d))
-                case Constant(i : Int) => Some(JInt(i))
-                case Constant(b : Boolean) => Some(JBool(b))
-                case Constant(d : Date) => Some(JString(ModeratedTransaction.dateFormat.format(d))) //TODO: Need a better way to make sure we're using the right format
-                case _ => None
-              })
-            }
-            else None
-          } else None
-        })
+        val exampleValue = exampleValueAnnotation.flatMap(getExampleValue(_, returnType))
         
-        JField(acc.name.toString, exampleValue.getOrElse(typeDescription(returnType).getOrElse(foo(returnType).getOrElse(JString("")))))
+        JField(acc.name.toString, exampleValue.getOrElse(fallbackDescription(returnType).getOrElse(primaryDescription(returnType).getOrElse(JString("")))))
       }).toList
       
       import net.liftweb.json.Printer._
@@ -259,8 +246,8 @@ class OBPRestHelper extends RestHelper with Loggable {
         val requestType = reqType
         val docString = documentationString
 
-        val inputJson = getCaseClassAccessorsAsJson[INPUT]
-        val outputJson = getCaseClassAccessorsAsJson[OUTPUT]
+        val inputJson = getCaseClassAccessorsAsJsonString[INPUT]
+        val outputJson = getCaseClassAccessorsAsJsonString[OUTPUT]
       }
       
       val apiVersion = if(apiPath.size >= 2) Some(apiPath(1)) else None
