@@ -148,6 +148,12 @@ object APIUtil {
         sign(consumer, Some(token), Some(verifier), None)
       /** sign a request with a consumer and a token, e.g. an OAuth-signed API request */
       def <@ (consumer: Consumer, token: Token): Request = sign(consumer, Some(token), None, None)
+      def <@ (consumerAndToken: Option[(Consumer,Token)]): Request = {
+        consumerAndToken match {
+          case Some(cAndt) => sign(cAndt._1, Some(cAndt._2), None, None)
+          case _ => rb
+        }
+      }
 
       /** Sign request by reading Post (<<) and query string parameters */
       private def sign(consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
