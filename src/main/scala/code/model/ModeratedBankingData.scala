@@ -98,27 +98,25 @@ class ModeratedTransactionMetadata(
   private val deleteComment: Option[(String) => Box[Unit]],
   val tags : Option[List[Tag]],
   val addTag : Option[(String, Long, String, Date) => Tag],
-  private val deleteTagFunc : Option[(String) => Box[Unit]],
+  private val deleteTag : Option[(String) => Box[Unit]],
   val images : Option[List[TransactionImage]],
   val addImage : Option[(String, Long, String, Date, URL) => TransactionImage],
-  private val deleteImageFunc  : Option[String => Unit],
+  private val deleteImage : Option[String => Unit],
   val whereTag : Option[GeoTag],
   val addWhereTag : Option[(String, Long, Date, Double, Double) => Boolean],
   private val deleteWhereTag : Option[(Long) => Boolean]
 ){
-
-  @deprecated //TODO:This should be removed once SoFi is split from the API
-  def deleteTag = deleteTagFunc
 
   /**
   * @return Full if deleting the tag worked, or a failure message if it didn't
   */
   def deleteTag(tagId : String, user: Option[User], bankAccount : BankAccount) : Box[Unit] = {
     for {
+      u <- Box(user) ?~ { "User must be logged in"}
       tagList <- Box(tags) ?~ { "You must be able to see tags in order to delete them"}
       tag <- Box(tagList.find(tag => tag.id_ == tagId)) ?~ {"Tag with id " + tagId + "not found for this transaction"}
-      deleteFunc <- if(tag.postedBy == user || bankAccount.authorizedAccess(Owner, user))
-    	               Box(deleteTagFunc) ?~ "Deleting tags not permitted for this view"
+      deleteFunc <- if(tag.postedBy == user || u.ownerAccess(bankAccount))
+    	               Box(deleteTag) ?~ "Deleting tags not permitted for this view"
                     else
                       Failure("deleting tags not permitted for the current user")
       tagIsDeleted <- deleteFunc(tagId)
@@ -126,19 +124,16 @@ class ModeratedTransactionMetadata(
     }
   }
 
-
-  @deprecated //This should be removed once SoFi is split from the API
-  def deleteImage = deleteImageFunc
-
   /**
   * @return Full if deleting the image worked, or a failure message if it didn't
   */
   def deleteImage(imageId : String, user: Option[User], bankAccount : BankAccount) : Box[Unit] = {
     for {
+      u <- Box(user) ?~ { "User must be logged in"}
       imageList <- Box(images) ?~ { "You must be able to see images in order to delete them"}
       image <- Box(imageList.find(image => image.id_ == imageId)) ?~ {"Image with id " + imageId + "not found for this transaction"}
-      deleteFunc <- if(image.postedBy == user || bankAccount.authorizedAccess(Owner, user))
-    	                Box(deleteImageFunc) ?~ "Deleting images not permitted for this view"
+      deleteFunc <- if(image.postedBy == user || u.ownerAccess(bankAccount))
+    	                Box(deleteImage) ?~ "Deleting images not permitted for this view"
                     else
                       Failure("Deleting images not permitted for the current user")
     } yield {
@@ -148,9 +143,10 @@ class ModeratedTransactionMetadata(
 
   def deleteComment(commentId: String, user: Option[User],bankAccount: BankAccount) : Box[Unit] = {
     for {
+      u <- Box(user) ?~ { "User must be logged in"}
       commentList <- Box(comments) ?~ {"You must be able to see comments in order to delete them"}
       comment <- Box(commentList.find(comment => comment.id_ == commentId)) ?~ {"Comment with id "+commentId+" not found for this transaction"}
-      deleteFunc <- if(comment.postedBy == user || bankAccount.authorizedAccess(Owner, user))
+      deleteFunc <- if(comment.postedBy == user || u.ownerAccess(bankAccount))
                     Box(deleteComment) ?~ "Deleting comments not permitted for this view"
                   else
                     Failure("Deleting comments not permitted for the current user")
@@ -161,8 +157,9 @@ class ModeratedTransactionMetadata(
 
   def deleteWhereTag(viewId: Long, user: Option[User],bankAccount: BankAccount) : Box[Boolean] = {
     for {
+      u <- Box(user) ?~ { "User must be logged in"}
       whereTag <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
-      deleteFunc <- if(whereTag.postedBy == user || bankAccount.authorizedAccess(Owner, user))
+      deleteFunc <- if(whereTag.postedBy == user || u.ownerAccess(bankAccount))
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"
                     else
                       Failure("Deleting tags not permitted for the current user")
@@ -200,9 +197,6 @@ class ModeratedBankAccount(
       ("id" ->owner.id) ~
       ("name" -> owner.name))
 
-    //TODO: Decide if unauthorized info (I guess that is represented by a 'none' option'? I can't really remember)
-    // should just disappear from the json or if an empty string should be used.
-    //I think we decided to use empty strings. What was the point of all the options again?
     ("number" -> number.getOrElse("")) ~
     ("owners" -> ownersJson(owners.getOrElse(Set()))) ~
     ("type" -> accountType.getOrElse("")) ~

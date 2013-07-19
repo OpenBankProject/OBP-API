@@ -41,14 +41,12 @@ import code.model.dataAccess.Admin
 import net.liftweb.util.Helpers
 import Helpers.now
 
-object AppType extends Enumeration("web", "mobile")
-{
+object AppType extends Enumeration("web", "mobile"){
 	type AppType = Value
 	val Web, Mobile = Value
 }
 
-object TokenType extends Enumeration("request", "access")
-{
+object TokenType extends Enumeration("request", "access"){
 	type TokenType=Value
 	val Request, Access = Value
 }
@@ -59,13 +57,14 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 	object id extends MappedLongIndex(this)
 
 	def minLength3(field: MappedString[Consumer])( s : String) = {
-	  if(s.length() < 3) List(FieldError(field, {field.displayName + " must be at least 3 characters"}))
-	  else Nil
+		if(s.length() < 3) List(FieldError(field, {field.displayName + " must be at least 3 characters"}))
+		else Nil
 	}
 
 	object key extends MappedString(this, 250){
-      override def dbIndexed_? = true
+		override def dbIndexed_? = true
 	}
+
 	object secret extends MappedString(this, 250)
 	object isActive extends MappedBoolean(this)
 	object name extends MappedString(this, 100){

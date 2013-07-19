@@ -64,7 +64,7 @@ import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
 import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser,APIMetric, HostedAccount, LocalStorage}
-import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Public, Bank, User}
+import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Bank, User}
 import code.model.dataAccess.OBPEnvelope._
 import java.util.Date
 import code.api.OAuthHandshake._
@@ -72,6 +72,7 @@ import net.liftweb.util.Helpers.now
 import net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import net.liftweb.json.NoTypeHints
+import code.api.OAuthHandshake.getUser
 
   case class APICallAmount(
       url: String,
@@ -95,23 +96,6 @@ object OBPAPI1_0 extends RestHelper with Loggable {
   implicit val _formats = Serialization.formats(NoTypeHints)
 
   val dateFormat = ModeratedTransaction.dateFormat
-
-  private def getOBPUser(httpCode : Int, tokenID : Box[String]) : Box[OBPUser] =
-  if(httpCode==200)
-  {
-    import code.model.Token
-    Token.find(By(Token.key, tokenID.get)) match {
-      case Full(token) => tryo{
-          token.userId.get.toLong
-        } match {
-          case Full(id) => OBPUser.find(By(OBPUser.id, id))
-          case _ => Empty
-      }
-      case _ => Empty
-    }
-  }
-  else
-    Empty
 
   private def logAPICall =
     APIMetric.createRecord.
@@ -193,7 +177,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       val response = for {
         bankAccount <- BankAccount(bankAlias, accountAlias)
         view <- View.fromUrl(viewName)
-        transactions <- bankAccount.getModeratedTransactions(getOBPUser(httpCode,oAuthParameters.get("oauth_token")), view, params : _*)
+        transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params : _*)
       } yield {
         JsonResponse("transactions" -> transactions.map(t => t.toJson(view)))
       }
@@ -212,7 +196,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       logAPICall
 
       val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
-      val user = getOBPUser(httpCode,oAuthParameters.get("oauth_token"))
+      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
 
       val moderatedTransactionAndView = for {
         bank <- Bank(bankAlias) ?~ { "bank "  + bankAlias + " not found"} ~> 404
@@ -236,7 +220,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       logAPICall
 
       val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
-      val user = getOBPUser(httpCode,oAuthParameters.get("oauth_token"))
+      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
 
       val comments = for {
         bank <- Bank(bankAlias) ?~ { "bank "  + bankAlias + " not found"} ~> 404
@@ -259,7 +243,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-      val user = getOBPUser(httpCode,oAuthParameters.get("oauth_token"))
+      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
 
       def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
         val accJson = bankAccounts.map(bAcc => bAcc.overviewJson(user))
@@ -293,9 +277,9 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       val (httpCode, data, oAuthParameters) = validator("protectedResource", "GET")
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-      val user = getOBPUser(httpCode,oAuthParameters.get("oauth_token"))
+      val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
 
-      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: Set[View])
+      case class ModeratedAccountAndViews(account: ModeratedBankAccount, views: List[View])
 
       val moderatedAccountAndViews = for {
         bank <- Bank(bankAlias) ?~ { "bank "  + bankAlias + " not found"} ~> 404
