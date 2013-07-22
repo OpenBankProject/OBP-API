@@ -62,8 +62,8 @@ trait View {
   def isPublic : Boolean
 
   //the view settings
-  def usePrivateAliasIfOneExists: Boolean
   def usePublicAliasIfOneExists: Boolean
+  def usePrivateAliasIfOneExists: Boolean
   def hideOtherAccountMetadataIfAlias: Boolean
 
   //reading access
