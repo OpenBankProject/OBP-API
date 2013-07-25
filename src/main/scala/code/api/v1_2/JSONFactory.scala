@@ -317,10 +317,10 @@ case class ViewIdsJson(
 case class ViewCreationJSON(
   name: String,
   description: String,
-  isPublic: Boolean,
+  is_public: Boolean,
   alias: String,
-  hideMetadataIfAlias: Boolean,
-  allowedFields : List[String]
+  hide_metadata_if_alias: Boolean,
+  allowed_actions : List[String]
 )
 
 object JSONFactory{
