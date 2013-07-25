@@ -1,7 +1,7 @@
 var draw_bar_graph = function(data) {
     sorted  = data.stats.sort(function(a,b){return a.amount - b.amount;});
     sorted = sorted.reverse();
-    data = $(sorted).slice(0, 20);
+    data = $(sorted).slice(0, 100);
     //maximum of data you want to use
     var content = d3.select("#content"),
         data_max = d3.max(data).amount,
@@ -17,7 +17,7 @@ var draw_bar_graph = function(data) {
     content.insert("h3", ".bar-chart").text("Top 20 API Request");
 
     var w = 1050,                        //width
-        h = 600,                        //height
+        h = 2000,                        //height
         color = function(id) { return '#00b3dc';};
 
     var x = d3.scale.linear()
