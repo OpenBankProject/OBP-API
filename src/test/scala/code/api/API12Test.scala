@@ -334,10 +334,10 @@ class API1_2Test extends ServerSetup{
     ViewCreationJSON(
       name = randomString(3),
       description = randomString(3),
-      isPublic = isPublic,
+      is_public = isPublic,
       alias=alias,
-      hideMetadataIfAlias=false,
-      allowedFields = viewFileds
+      hide_metadata_if_alias=false,
+      allowed_actions = viewFileds
     )
   }
   def getAPIInfo : APIResponse = {
