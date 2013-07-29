@@ -59,7 +59,7 @@ class ModeratedTransaction(
   val startDate: Option[Date],
   val finishDate: Option[Date],
   //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
-  //the view should be able to return a sign (- or +) or the real value. casting signs into bigdecimal is not possible
+  //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
   val balance : String
 ) {
 

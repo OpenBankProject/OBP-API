@@ -296,8 +296,7 @@ class MongoDBLocalStorage extends LocalStorage {
       bank <- getHostedBank(bankPermalink)
       account  <- bank.getAccount(accountPermalink)
       objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
-      ifTransactionsIsInAccount <- Full(account.transactionsForAccount.put("_id").is(objectId).get)
-      envelope <- OBPEnvelope.find(ifTransactionsIsInAccount)
+      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
     } yield createTransaction(envelope,account)
   }
 
@@ -457,9 +456,9 @@ class MongoDBLocalStorage extends LocalStorage {
   def getCurrentUser : Box[User] = OBPUser.currentUser
 
   def permissions(account : BankAccount) : Box[List[Permission]] = {
-
-    HostedAccount.find(By(HostedAccount.accountID,account.id)) match {
-      case Full(acc) => {
+    for{
+      acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
+    } yield {
         val privileges = Privilege.findAll(By(Privilege.account, acc.id.get)).sortWith((p1,p2) => p1.updatedAt.get after p2.updatedAt.get)
         val permissions : List[Box[Permission]] =
           privileges.map( p => {
@@ -470,10 +469,8 @@ class MongoDBLocalStorage extends LocalStorage {
               )
             })
           })
-        Full(permissions.flatten)
+        permissions.flatten
       }
-      case _ => Failure("Could not find the hostedAccount", Empty, Empty)
-    }
   }
 
   def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
@@ -610,13 +607,13 @@ class MongoDBLocalStorage extends LocalStorage {
               isPublic_(view.is_public).
               account(account)
 
-            if(view.alias == "public"){
+            if(view.which_alias_to_use == "public"){
               createdView.usePrivateAliasIfOneExists_(true)
-              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
             }
-            else if(view.alias == "private"){
+            else if(view.which_alias_to_use == "private"){
               createdView.usePublicAliasIfOneExists_(true)
-              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
             }
 
             if(view.allowed_actions.exists(a => a=="can_see_transaction_this_bank_account"))

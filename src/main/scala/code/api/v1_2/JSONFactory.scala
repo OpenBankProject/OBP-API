@@ -318,8 +318,8 @@ case class ViewCreationJSON(
   name: String,
   description: String,
   is_public: Boolean,
-  alias: String,
-  hide_metadata_if_alias: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
   allowed_actions : List[String]
 )
 
