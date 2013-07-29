@@ -335,8 +335,8 @@ class API1_2Test extends ServerSetup{
       name = randomString(3),
       description = randomString(3),
       is_public = isPublic,
-      alias=alias,
-      hide_metadata_if_alias=false,
+      which_alias_to_use=alias,
+      hide_metadata_if_alias_used=false,
       allowed_actions = viewFileds
     )
   }
