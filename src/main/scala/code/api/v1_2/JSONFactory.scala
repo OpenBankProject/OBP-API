@@ -99,7 +99,6 @@ class ViewJSON(
   val can_see_bank_account_iban: Boolean,
   val can_see_bank_account_number: Boolean,
   val can_see_bank_account_bank_name: Boolean,
-  val can_see_bank_account_bank_permalink: Boolean,
   val can_see_other_account_national_identifier: Boolean,
   val can_see_swift_bic: Boolean,
   val can_see_other_account_iban: Boolean,
@@ -391,7 +390,6 @@ object JSONFactory{
       can_see_bank_account_iban = view.canSeeBankAccountIban,
       can_see_bank_account_number = view.canSeeBankAccountNumber,
       can_see_bank_account_bank_name = view.canSeeBankAccountBankName,
-      can_see_bank_account_bank_permalink = view.canSeeBankAccountBankPermalink,
       can_see_other_account_national_identifier = view.canSeeOtherAccountNationalIdentifier,
       can_see_swift_bic = view.canSeeSWIFT_BIC,
       can_see_other_account_iban = view.canSeeOtherAccountIBAN,
@@ -450,7 +448,7 @@ object JSONFactory{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
       viewsAvailable,
-      stringOptionOrNull(account.bankPermalink)
+      stringOrNull(account.bankPermalink)
     )
   }
 

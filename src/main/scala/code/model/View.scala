@@ -97,7 +97,6 @@ trait View {
   def canSeeBankAccountIban : Boolean
   def canSeeBankAccountNumber : Boolean
   def canSeeBankAccountBankName : Boolean
-  def canSeeBankAccountBankPermalink : Boolean
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean
@@ -289,7 +288,7 @@ trait View {
       val iban = if(canSeeBankAccountIban) bankAccount.iban else None
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
-      val bankPermalink = if(canSeeBankAccountBankPermalink) Some(bankAccount.bankPermalink) else None
+      val bankPermalink = bankAccount.bankPermalink
 
       Some(
         new ModeratedBankAccount(
@@ -305,7 +304,8 @@ trait View {
           number = number,
           bankName = bankName,
           bankPermalink = bankPermalink
-        ))
+        )
+      )
     }
     else
       None
