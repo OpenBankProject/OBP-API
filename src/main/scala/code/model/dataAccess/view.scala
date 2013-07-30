@@ -114,7 +114,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeOtherAccountNationalIdentifier_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeeSWIFT_BIC_ extends MappedBoolean(this){
+  object canSeeOtherAccountSWIFT_BIC_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeOtherAccountIBAN_ extends MappedBoolean(this){
@@ -264,7 +264,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean = canSeeOtherAccountNationalIdentifier_.get
-  def canSeeSWIFT_BIC : Boolean = canSeeSWIFT_BIC_.get
+  def canSeeOtherAccountSWIFT_BIC : Boolean = canSeeOtherAccountSWIFT_BIC_.get
   def canSeeOtherAccountIBAN : Boolean = canSeeOtherAccountIBAN_.get
   def canSeeOtherAccountBankName : Boolean = canSeeOtherAccountBankName_.get
   def canSeeOtherAccountNumber : Boolean = canSeeOtherAccountNumber_.get

@@ -46,7 +46,6 @@ import net.liftweb.mapper.BySql
 import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
 import com.mongodb.QueryBuilder
-import code.api.v1_2.ViewCreationJSON
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -668,8 +667,8 @@ class MongoDBLocalStorage extends LocalStorage {
               createdView.canSeeBankAccountBankPermalink_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_national_identifier"))
               createdView.canSeeOtherAccountNationalIdentifier_(true)
-            if(view.allowed_actions.exists(a => a=="can_see_swift_bic"))
-              createdView.canSeeSWIFT_BIC_(true)
+            if(view.allowed_actions.exists(a => a=="can_see_other_account_swift_bic"))
+              createdView.canSeeOtherAccountSWIFT_BIC_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_iban"))
               createdView.canSeeOtherAccountIBAN_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_bank_name"))
