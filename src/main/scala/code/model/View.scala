@@ -52,6 +52,15 @@ case class Permission(
   views : List[View]
 )
 
+case class ViewCreationJSON(
+  name: String,
+  description: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions : List[String]
+)
+
 trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
@@ -100,7 +109,7 @@ trait View {
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean
-  def canSeeSWIFT_BIC : Boolean
+  def canSeeOtherAccountSWIFT_BIC : Boolean
   def canSeeOtherAccountIBAN : Boolean
   def canSeeOtherAccountBankName : Boolean
   def canSeeOtherAccountNumber : Boolean
@@ -352,7 +361,7 @@ trait View {
 
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if(canSeeSWIFT_BIC) otherBankAccount.swift_bic else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.swift_bic else None
       val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.iban else None
       val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.bankName) else None
       val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.number) else None

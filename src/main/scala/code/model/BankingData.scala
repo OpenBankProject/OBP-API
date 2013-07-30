@@ -41,7 +41,6 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
 import code.model.dataAccess.{LocalStorage, Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
-import code.api.v1_2.ViewCreationJSON
 
 
 class Bank(

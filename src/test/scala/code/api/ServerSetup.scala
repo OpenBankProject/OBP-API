@@ -263,7 +263,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).
@@ -335,7 +335,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).
@@ -407,7 +407,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).

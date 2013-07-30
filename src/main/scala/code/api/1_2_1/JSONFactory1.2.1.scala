@@ -29,7 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.api.v1_2
+package code.api.v1_2_1
 
 import java.util.Date
 import net.liftweb.common.{Box, Full}
@@ -100,7 +100,7 @@ class ViewJSON(
   val can_see_bank_account_number: Boolean,
   val can_see_bank_account_bank_name: Boolean,
   val can_see_other_account_national_identifier: Boolean,
-  val can_see_swift_bic: Boolean,
+  val can_see_other_account_swift_bic: Boolean,
   val can_see_other_account_iban: Boolean,
   val can_see_other_account_bank_name: Boolean,
   val can_see_other_account_number: Boolean,
@@ -152,6 +152,7 @@ case class ModeratedAccountJSON(
   `type` : String,
   balance : AmountOfMoneyJSON,
   IBAN : String,
+  swift_bic: String,
   views_available : List[ViewJSON],
   bank_id : String
 )
@@ -181,6 +182,7 @@ case class ThisAccountJSON(
   number : String,
   kind : String,
   IBAN : String,
+  swift_bic: String,
   bank : MinimalBankJSON
 )
 case class OtherAccountsJSON(
@@ -192,6 +194,7 @@ case class OtherAccountJSON(
   number : String,
   kind : String,
   IBAN : String,
+  swift_bic: String,
   bank : MinimalBankJSON,
   metadata : OtherAccountMetadataJSON
 )
@@ -213,7 +216,7 @@ case class LocationJSON(
 )
 case class TransactionDetailsJSON(
   `type` : String,
-  label : String,
+  description : String,
   posted : Date,
   completed : Date,
   new_balance : AmountOfMoneyJSON,
@@ -313,15 +316,6 @@ case class ViewIdsJson(
   views : List[String]
 )
 
-case class ViewCreationJSON(
-  name: String,
-  description: String,
-  is_public: Boolean,
-  which_alias_to_use: String,
-  hide_metadata_if_alias_used: Boolean,
-  allowed_actions : List[String]
-)
-
 object JSONFactory{
   def stringOrNull(text : String) =
     if(text.isEmpty)
@@ -391,7 +385,7 @@ object JSONFactory{
       can_see_bank_account_number = view.canSeeBankAccountNumber,
       can_see_bank_account_bank_name = view.canSeeBankAccountBankName,
       can_see_other_account_national_identifier = view.canSeeOtherAccountNationalIdentifier,
-      can_see_swift_bic = view.canSeeSWIFT_BIC,
+      can_see_other_account_swift_bic = view.canSeeOtherAccountSWIFT_BIC,
       can_see_other_account_iban = view.canSeeOtherAccountIBAN,
       can_see_other_account_bank_name = view.canSeeOtherAccountBankName,
       can_see_other_account_number = view.canSeeOtherAccountNumber,
@@ -447,6 +441,7 @@ object JSONFactory{
       stringOptionOrNull(account.accountType),
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
+      stringOptionOrNull(account.swift_bic),
       viewsAvailable,
       stringOrNull(account.bankPermalink)
     )
@@ -540,7 +535,7 @@ object JSONFactory{
   def createTransactionDetailsJSON(transaction : ModeratedTransaction) : TransactionDetailsJSON = {
     new TransactionDetailsJSON(
       `type` = stringOptionOrNull(transaction.transactionType),
-      label = stringOptionOrNull(transaction.label),
+      description = stringOptionOrNull(transaction.label),
       posted = transaction.startDate.getOrElse(null),
       completed = transaction.finishDate.getOrElse(null),
       new_balance = createAmountOfMoneyJSON(transaction.currency, transaction.balance),
@@ -568,8 +563,9 @@ object JSONFactory{
       number = stringOptionOrNull(bankAccount.number),
       kind = stringOptionOrNull(bankAccount.accountType),
       IBAN = stringOptionOrNull(bankAccount.iban),
+      swift_bic = stringOptionOrNull(bankAccount.swift_bic),
       bank = createMinimalBankJSON(bankAccount),
-      holders = null //TODO //bankAccount.owners.map(x => x.toList.map(h => createAccountHolderJSON(h, ??))).getOrElse(null)
+      holders = null //TODO: //bankAccount.owners.map(x => x.toList.map(h => createAccountHolderJSON(h, ??))).getOrElse(null)
     )
   }
 
@@ -606,6 +602,7 @@ object JSONFactory{
       number = stringOptionOrNull(bankAccount.number),
       kind = stringOptionOrNull(bankAccount.kind),
       IBAN = stringOptionOrNull(bankAccount.iban),
+      swift_bic = stringOptionOrNull(bankAccount.swift_bic),
       bank = createMinimalBankJSON(bankAccount),
       holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias),
       metadata = bankAccount.metadata.map(createOtherAccountMetaDataJSON).getOrElse(null)
