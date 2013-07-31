@@ -78,7 +78,7 @@ class ViewJSON(
   val can_see_transaction_this_bank_account: Boolean,
   val can_see_transaction_other_bank_account: Boolean,
   val can_see_transaction_metadata: Boolean,
-  val can_see_transaction_label: Boolean,
+  val can_see_transaction_description: Boolean,
   val can_see_transaction_amount: Boolean,
   val can_see_transaction_type: Boolean,
   val can_see_transaction_currency: Boolean,
@@ -363,7 +363,7 @@ object JSONFactory{
       can_see_transaction_this_bank_account = view.canSeeTransactionThisBankAccount,
       can_see_transaction_other_bank_account = view.canSeeTransactionOtherBankAccount,
       can_see_transaction_metadata = view.canSeeTransactionMetadata,
-      can_see_transaction_label = view.canSeeTransactionLabel,
+      can_see_transaction_description = view.canSeeTransactionDescription,
       can_see_transaction_amount = view.canSeeTransactionAmount,
       can_see_transaction_type = view.canSeeTransactionType,
       can_see_transaction_currency = view.canSeeTransactionCurrency,
@@ -535,7 +535,7 @@ object JSONFactory{
   def createTransactionDetailsJSON(transaction : ModeratedTransaction) : TransactionDetailsJSON = {
     new TransactionDetailsJSON(
       `type` = stringOptionOrNull(transaction.transactionType),
-      description = stringOptionOrNull(transaction.label),
+      description = stringOptionOrNull(transaction.description),
       posted = transaction.startDate.getOrElse(null),
       completed = transaction.finishDate.getOrElse(null),
       new_balance = createAmountOfMoneyJSON(transaction.currency, transaction.balance),

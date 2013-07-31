@@ -102,7 +102,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
       user =>
         val apiDetails: JValue = {
           val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-          val apiInfoJSON = new APIInfoJSON("1.2", gitCommit, hostedBy)
+          val apiInfoJSON = new APIInfoJSON("1.2.1", gitCommit, hostedBy)
           Extraction.decompose(apiInfoJSON)
         }
 

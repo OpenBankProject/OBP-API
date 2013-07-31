@@ -240,7 +240,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).
@@ -312,7 +312,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).
@@ -384,7 +384,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).

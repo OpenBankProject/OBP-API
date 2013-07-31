@@ -45,7 +45,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canSeeTransactionMetadata_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canSeeTransactionLabel_ extends MappedBoolean(this){
+  object canSeeTransactionDescription_ extends MappedBoolean(this){
     override def defaultValue = false
   }
   object canSeeTransactionAmount_ extends MappedBoolean(this){
@@ -235,7 +235,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeTransactionThisBankAccount : Boolean = canSeeTransactionThisBankAccount_.get
   def canSeeTransactionOtherBankAccount : Boolean = canSeeTransactionOtherBankAccount_.get
   def canSeeTransactionMetadata : Boolean = canSeeTransactionMetadata_.get
-  def canSeeTransactionLabel: Boolean = canSeeTransactionLabel_.get
+  def canSeeTransactionDescription: Boolean = canSeeTransactionDescription_.get
   def canSeeTransactionAmount: Boolean = canSeeTransactionAmount_.get
   def canSeeTransactionType: Boolean = canSeeTransactionType_.get
   def canSeeTransactionCurrency: Boolean = canSeeTransactionCurrency_.get
