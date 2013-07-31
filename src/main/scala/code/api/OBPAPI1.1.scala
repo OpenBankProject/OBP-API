@@ -182,7 +182,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       ("other_account" -> t.otherBankAccount.map(otherAccountToJson)) ~
       ("details" ->
         ("type" -> t.transactionType.getOrElse("")) ~
-        ("label" -> t.label.getOrElse("")) ~
+        ("label" -> t.description.getOrElse("")) ~
         ("posted" -> t.dateOption2JString(t.startDate)) ~
         ("completed" -> t.dateOption2JString(t.finishDate)) ~
         ("new_balance" ->

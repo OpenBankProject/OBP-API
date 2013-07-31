@@ -730,7 +730,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("1.2")
+      apiInfo.version should equal ("1.2.1")
       apiInfo.git_commit.nonEmpty should equal (true)
     }
   }

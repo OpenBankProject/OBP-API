@@ -81,7 +81,7 @@ trait View {
   def canSeeTransactionThisBankAccount : Boolean
   def canSeeTransactionOtherBankAccount : Boolean
   def canSeeTransactionMetadata : Boolean
-  def canSeeTransactionLabel: Boolean
+  def canSeeTransactionDescription: Boolean
   def canSeeTransactionAmount: Boolean
   def canSeeTransactionType: Boolean
   def canSeeTransactionCurrency: Boolean
@@ -252,8 +252,8 @@ trait View {
       if (canSeeTransactionCurrency) Some(transaction.currency)
       else None
 
-    val transactionLabel =
-      if (canSeeTransactionLabel) transaction.label
+    val transactionDescription =
+      if (canSeeTransactionDescription) transaction.description
       else None
 
     val transactionStartDate =
@@ -277,7 +277,7 @@ trait View {
       transactionType = transactionType,
       amount = transactionAmount,
       currency = transactionCurrency,
-      label = transactionLabel,
+      description = transactionDescription,
       startDate = transactionStartDate,
       finishDate = transactionFinishDate,
       balance = transactionBalance

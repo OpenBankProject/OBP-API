@@ -55,7 +55,7 @@ class ModeratedTransaction(
   val transactionType: Option[String],
   val amount: Option[BigDecimal],
   val currency: Option[String],
-  val label: Option[String],
+  val description: Option[String],
   val startDate: Option[Date],
   val finishDate: Option[Date],
   //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.

@@ -362,8 +362,8 @@ class Transaction(
   val amount : BigDecimal,
   //ISO 4217, e.g. EUR, GBP, USD, etc.
   val currency : String,
-  // Bank provided comment
-  val label : Option[String],
+  // Bank provided label
+  val description : Option[String],
   // The date the transaction was initiated
   val startDate : Date,
   // The date when the money finished changing hands
