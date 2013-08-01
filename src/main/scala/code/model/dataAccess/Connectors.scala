@@ -335,16 +335,16 @@ class MongoDBLocalStorage extends LocalStorage {
       }
   }
 
-  private def moreThanAnonHostedAccounts(user : User) : Box[List[HostedAccount]] = {
+  private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {
     user match {
       case u : OBPUser => {
-        Full(Privilege.findAll(By(Privilege.user, u.id)).
+        Privilege.findAll(By(Privilege.user, u.id)).
           filter(_.views.exists(_.isPublic==false)).
-          map(_.account.obj.get))
+          map(_.account.obj.get)
       }
       case _ => {
-        logger.error("OBPUser instance not found, could not execute the SQL query ")
-        Failure("could not find non public bank accounts")
+        logger.error("OBPUser instance not found, could not find the accounts")
+        Nil
       }
     }
   }
@@ -354,22 +354,19 @@ class MongoDBLocalStorage extends LocalStorage {
   */
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
 
-    user match {
-      case u : OBPUser => {
-
-        for {
-          moreThanAnon <- moreThanAnonHostedAccounts(u)
-        } yield {
+    val accountsList = 
+      user match {
+        case u : OBPUser => {
+          val moreThanAnon = moreThanAnonHostedAccounts(u)
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).map(Account.toBankAccount)
         }
-
+        case u: User => {
+          logger.error("OBPUser instance not found, could not find the non public accounts")
+          Nil
+        }
       }
-      case u: User => {
-          logger.error("OBPUser instance not found, could not execute the SQL query ")
-          Failure("could not find non public bank accounts")
-      }
-    }
+    Full(accountsList)
   }
 
   /**
@@ -379,19 +376,19 @@ class MongoDBLocalStorage extends LocalStorage {
     user match {
       case u : OBPUser => {
         for {
-          moreThanAnon <- moreThanAnonHostedAccounts(u)
           bankObjectId <- tryo{new ObjectId(bankID)}
         } yield {
           def sameBank(account : Account) : Boolean =
             account.bankID.get == bankObjectId
 
+          val moreThanAnon = moreThanAnonHostedAccounts(u)
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
         }
       }
       case u : User => {
-        logger.error("OBPUser instance not found, could not execute the SQL query ")
-        Failure("could not find non public bank accounts")
+        logger.error("OBPUser instance not found, could not find the non public account ")
+        Full(Nil)
       }
     }
   }
@@ -751,9 +748,8 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def views(bankAccountID : String) : Box[List[View]] = {
     for(account <- HostedAccount.find(By(HostedAccount.accountID,bankAccountID)))
-       yield account.views.toList
+      yield account.views.toList
   }
-
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
     user match {
@@ -769,7 +765,7 @@ class MongoDBLocalStorage extends LocalStorage {
       }
       case _ => {
         logger.error("OBPUser instance not found, could not get Permitted views")
-        List()
+        Nil
       }
     }
   }
