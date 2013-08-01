@@ -71,6 +71,7 @@ trait LocalStorage extends Loggable {
   def getCurrentUser : Box[User]
 
   def permissions(account : BankAccount) : Box[List[Permission]]
+  def permission(account : BankAccount, user: User) : Box[Permission]
   def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
   def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean]
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
@@ -354,7 +355,7 @@ class MongoDBLocalStorage extends LocalStorage {
   */
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
 
-    val accountsList = 
+    val accountsList =
       user match {
         case u : OBPUser => {
           val moreThanAnon = moreThanAnonHostedAccounts(u)
@@ -467,6 +468,21 @@ class MongoDBLocalStorage extends LocalStorage {
           })
         permissions.flatten
       }
+  }
+
+  def permission(account : BankAccount, user: User) : Box[Permission] = {
+    user match {
+      case u: OBPUser =>{
+        for{
+          acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
+          p <- Privilege.find(By(Privilege.account, acc.id.get), By(Privilege.user, u)) ?~ {"No permission found for user: " + u.id}
+        } yield Permission(u, p.views.toList)
+      }
+      case u: User =>{
+        logger.error("OBPUser instance not found, could not get privilege ")
+        Failure("could not get user: " + user.id_ + " permission" )
+      }
+    }
   }
 
   def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
