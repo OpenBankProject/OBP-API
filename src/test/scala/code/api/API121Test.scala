@@ -118,6 +118,7 @@ class API1_2Test extends ServerSetup{
         user(obpuser1).
         saveMe
       })
+
     for{
       p <- privileges
       v <- ViewImpl.findAll()

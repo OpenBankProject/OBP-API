@@ -323,17 +323,19 @@ class MongoDBLocalStorage extends LocalStorage {
     } yield Account toBankAccount account
   }
 
-  def getAllPublicAccounts() : List[BankAccount] = Account.findAll("anonAccess", true) map Account.toBankAccount
+  def getAllPublicAccounts() : List[BankAccount] = {
+    ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+      map{_.account.obj}.
+      collect{case Full(a) => a.theAccount}.
+      collect{case Full(a) => Account.toBankAccount(a)}
+  }
 
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]] = {
-    for{
-      id <- tryo{new ObjectId(bank.id)} ?~ {"bank " + bank.fullName + " not found"}
-    } yield {
-        val qry = QueryBuilder.start("bankID").is(id)
-          .put("anonAccess").is(true)
-          .get
-        Account.findAll(qry).map(Account.toBankAccount)
-      }
+    val bankAccounts = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+      map{_.account.obj}.
+      collect{case Full(a) if a.bank==bank.fullName => a.theAccount}.
+      collect{case Full(a) => Account.toBankAccount(a)}
+    Full(bankAccounts)
   }
 
   private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {

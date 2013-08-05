@@ -87,7 +87,6 @@ trait ServerSetup extends FeatureSpec
       for { i <- 0 until 2 } yield {
           Account.createRecord.
             balance(0).
-            anonAccess(true).
             holder(randomString(4)).
             number(randomString(4)).
             kind(randomString(4)).
@@ -99,8 +98,6 @@ trait ServerSetup extends FeatureSpec
             save
         }
       })
-
-
 
     val hostedAccounts = accounts.map(account => {
       val hostedaccount =
@@ -181,6 +178,9 @@ trait ServerSetup extends FeatureSpec
   override def afterAll() = {
     //drop the Database after the tests
     MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
+    ViewImpl.findAll.map(_.delete_!)
+    Privilege.findAll.map(_.delete_!)
+    HostedAccount.findAll.map(_.delete_!)
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {

@@ -111,7 +111,6 @@ class BankAccount(
   val nationalIdentifier : String,
   val swift_bic : Option[String],
   val iban : Option[String],
-  val allowAnnoymousAccess : Boolean,
   val number : String,
   val bankName : String,
   val bankPermalink : String,
@@ -129,8 +128,6 @@ class BankAccount(
       }
     }
   }
-
-  def allowPublicAccess = allowAnnoymousAccess
 
   /**
   * @param the view that we want test the access to
