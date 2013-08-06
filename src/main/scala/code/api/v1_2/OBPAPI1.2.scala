@@ -258,13 +258,11 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: Nil JsonGet json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          //TODO: re-implement this, it load to much data
-          permissions <- account permissions u
-          userPermission <- Box(permissions.find(p => { p.user.id_ == userId})) ?~ {"None permission found for user "+userId}
+          account <- BankAccount(bankId, accountId)
+          permission <- account permission(u, userId)
         } yield {
-            val views = JSONFactory.createViewsJSON(userPermission.views)
+            val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))
         }
     }

@@ -238,15 +238,6 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def oneFieldJson(key : String, value : String) : JObject =
     (key -> value)
 
-  private def geoTagToJson(name : String, geoTag : GeoTag) : JValue = {
-    (name ->
-      ("latitude" -> geoTag.latitude) ~
-      ("longitude" -> geoTag.longitude) ~
-      ("date" -> geoTag.datePosted.toString) ~
-      ("user" -> userToJson(geoTag.postedBy))
-    )
-  }
-
   private def geoTagToJson(name : String, geoTag : Option[GeoTag]) : JValue = {
     geoTag match {
       case Some(tag) =>
@@ -1164,8 +1155,8 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("URL" -> metadata.url.getOrElse("")) ~
         ("image_URL" -> metadata.imageURL.getOrElse("")) ~
         ("open_corporates_URL" -> metadata.openCorporatesURL.getOrElse("")) ~
-        ("corporate_location" -> geoTagToJson("corporate_location",metadata.corporateLocation)) ~
-        ("physical_location" -> geoTagToJson("physical_location",metadata.physicalLocation))
+        ("corporate_location" -> metadata.corporateLocation.map(l => geoTagToJson("corporate_location",l))) ~
+        ("physical_location" -> metadata.physicalLocation.map(l => geoTagToJson("physical_location",l)))
       }
 
       def otherAccountMetadataResponce(bankId : String, accountId : String, viewId : String, other_account_ID : String, user : Box[User]) : JsonResponse = {

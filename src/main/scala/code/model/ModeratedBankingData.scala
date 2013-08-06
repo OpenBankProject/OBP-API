@@ -102,7 +102,7 @@ class ModeratedTransactionMetadata(
   val images : Option[List[TransactionImage]],
   val addImage : Option[(String, Long, String, Date, URL) => TransactionImage],
   private val deleteImage : Option[String => Unit],
-  val whereTag : Option[GeoTag],
+  val whereTag : Option[Option[GeoTag]],
   val addWhereTag : Option[(String, Long, Date, Double, Double) => Boolean],
   private val deleteWhereTag : Option[(Long) => Boolean]
 ){
@@ -158,7 +158,8 @@ class ModeratedTransactionMetadata(
   def deleteWhereTag(viewId: Long, user: Option[User],bankAccount: BankAccount) : Box[Boolean] = {
     for {
       u <- Box(user) ?~ { "User must be logged in"}
-      whereTag <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
+      whereTagOption <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
+      whereTag <- Box(whereTagOption) ?~ {"there is no tag to delete"}
       deleteFunc <- if(whereTag.postedBy == user || u.ownerAccess(bankAccount))
                       Box(deleteWhereTag) ?~ "Deleting tag is not permitted for this view"
                     else
@@ -280,8 +281,8 @@ class ModeratedOtherBankAccountMetadata(
   val url : Option[String],
   val imageURL : Option[String],
   val openCorporatesURL : Option[String],
-  val corporateLocation : Option[GeoTag],
-  val physicalLocation :  Option[GeoTag],
+  val corporateLocation : Option[Option[GeoTag]],
+  val physicalLocation :  Option[Option[GeoTag]],
   val publicAlias : Option[String],
   val privateAlias : Option[String],
   val addMoreInfo : Option[(String) => Boolean],

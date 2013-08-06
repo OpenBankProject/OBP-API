@@ -199,9 +199,9 @@ trait View {
           if(canDeleteImage) Some(transaction.metadata.deleteImage)
           else None
 
-          val whereTag =
+        val whereTag =
           if(canSeeWhereTag)
-            transaction.metadata.whereTags.find(tag => tag.viewId == id)
+            Some(transaction.metadata.whereTags.find(tag => tag.viewId == id))
           else
             None
 
@@ -373,8 +373,8 @@ trait View {
           val url = moderateField(canSeeUrl, otherBankAccount.metadata.url)
           val imageUrl = moderateField(canSeeImageUrl, otherBankAccount.metadata.imageURL)
           val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, otherBankAccount.metadata.openCorporatesURL)
-          val corporateLocation : Option[GeoTag] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.corporateLocation)
-          val physicalLocation : Option[GeoTag] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.physicalLocation)
+          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.corporateLocation)
+          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.physicalLocation)
           val addMoreInfo = moderateField(canAddMoreInfo, otherBankAccount.metadata.addMoreInfo)
           val addURL = moderateField(canAddURL, otherBankAccount.metadata.addURL)
           val addImageURL = moderateField(canAddImageURL, otherBankAccount.metadata.addImageURL)

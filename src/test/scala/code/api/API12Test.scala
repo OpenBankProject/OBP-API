@@ -4735,9 +4735,9 @@ class API1_2Test extends ServerSetup{
       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
-      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, None)
+      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
-      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
+      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, None)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -4751,9 +4751,9 @@ class API1_2Test extends ServerSetup{
       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
-      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user3)
+      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
-      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
+      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user3)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -4978,9 +4978,8 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 204 code")
       deleteReply.code should equal (204)
       And("the where should be null")
-      // TODO: (3 scenarios)
-      // val locationAfterDelete = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id).body.extract[TransactionWhereJSON]
-      // locationAfterDelete.where should equal (null)
+      val locationAfterDelete = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1).body.extract[TransactionWhereJSON]
+      locationAfterDelete.where should equal (null)
     }
 
     scenario("we will not delete the where for a random transaction due to a missing token", API1_2, DeleteWhere) {
