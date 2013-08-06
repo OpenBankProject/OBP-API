@@ -406,7 +406,7 @@ class API1_2Test extends ServerSetup{
     makeGetRequest(request)
   }
 
-  def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+  def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId <@(consumerAndToken)
     makeGetRequest(request)
   }
@@ -1119,14 +1119,17 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 201 ok code")
       reply.code should equal (201)
       val viewInfo = reply.body.extract[ViewJSON]
       And("some fields should not be empty")
       viewInfo.id.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore + 1)
     }
 
     scenario("we cannot grant a user access to a view on an bank account because the user does not exist", API1_2, PostPermission) {
@@ -1146,12 +1149,15 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
     scenario("we cannot grant a user access to a view on an bank account because the user does not have owner view access", API1_2, PostPermission) {
@@ -1159,22 +1165,26 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 
   feature("Grant a user access to a list of views on a bank account"){
-    scenario("we will grant a user access to a list of views on an bank account", API1_2, PostPermissions) {
+    scenario("we will grant a user access to a list of views on an bank account", API1_2, PostPermissions, CurrentTest) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 201 ok code")
@@ -1184,6 +1194,8 @@ class API1_2Test extends ServerSetup{
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
       And("the granted views should be the same")
       viewsIdsToGrant.toSet should equal(viewsInfo.views.map(_.id).toSet)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore + viewsIdsToGrant.length)
       //we revoke access to the granted views for the next tests
       revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
     }
@@ -1202,7 +1214,7 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -1216,32 +1228,38 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because the user does not have owner view access", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because the user does not have owner view access", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 
@@ -1254,10 +1272,13 @@ class API1_2Test extends ServerSetup{
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore -1)
     }
 
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermission) {
@@ -1275,10 +1296,13 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId =obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the user does not have owner view access", API1_2, DeletePermission) {
@@ -1286,10 +1310,13 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
   feature("Revoke a user access to all the views on a bank account"){
@@ -1305,6 +1332,8 @@ class API1_2Test extends ServerSetup{
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(0)
     }
 
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermissions) {
@@ -1324,11 +1353,14 @@ class API1_2Test extends ServerSetup{
       val userId = obpuser2.email
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 

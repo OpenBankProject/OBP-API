@@ -493,27 +493,21 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
-            Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
-              //update the existing privilege
-              case Full(privilege) => {
-                ViewPrivileges.create.
-                  privilege(privilege).
-                  view(view.id).
-                  save
-              }
-              //there is no privilege to this user, so we create one
-              case _ => {
-                val privilege =
+            val privilege =
+              Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
+                //update the existing privilege
+                case Full(p) => p
+                //there is no privilege to this user, so we create one
+                case _ =>
                   Privilege.create.
                     user(u.id).
                     account(bankAccount).
                     saveMe
-                ViewPrivileges.create.
-                  privilege(privilege).
-                  view(view.id).
-                  save
               }
-            }
+            ViewPrivileges.create.
+              privilege(privilege).
+              view(view.id).
+              save
           }
       case u: User => {
           logger.error("OBPUser instance not found, could not grant access ")
@@ -528,33 +522,24 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
-            Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
-              //update the existing privilege
-              case Full(privilege) => {
-                views.map(v => {
-                  ViewPrivileges.create.
-                    privilege(privilege).
-                    view(v.id).
-                    save
-                })
-                privilege.save
-              }
-              //there is no privilege to this user, so we create one
-              case _ => {
-                val privilege =
+            val privilege =
+              Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
+                //update the existing privilege
+                case Full(p) => p
+                //there is no privilege to this user, so we create one
+                case _ =>
                   Privilege.create.
                     user(u.id).
                     account(bankAccount).
                     saveMe
-                views.map(v => {
-                  ViewPrivileges.create.
-                    privilege(privilege).
-                    view(v.id).
-                    save
-                })
-                privilege.save
               }
-            }
+            views.foreach(v => {
+              ViewPrivileges.create.
+                privilege(privilege).
+                view(v.id).
+                save
+            })
+            true
           }
       }
       case u: User => {
