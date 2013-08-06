@@ -90,6 +90,12 @@ trait LocalStorage extends Loggable {
 
 class MongoDBLocalStorage extends LocalStorage {
 
+  private def locatationTag(loc: OBPGeoTag): Option[GeoTag]={
+    if(loc.longitude==0 && loc.latitude==0 && loc.userId.get.isEmpty)
+      None
+    else
+      Some(loc)
+  }
   private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
     import net.liftweb.json.JsonDSL._
     val transaction: OBPTransaction = env.obp_transaction.get
@@ -115,8 +121,8 @@ class MongoDBLocalStorage extends LocalStorage {
         url = oAcc.url.get,
         imageURL = oAcc.imageUrl.get,
         openCorporatesURL = oAcc.openCorporatesUrl.get,
-        corporateLocation = oAcc.corporateLocation.get,
-        physicalLocation = oAcc.physicalLocation.get,
+        corporateLocation = locatationTag(oAcc.corporateLocation.get),
+        physicalLocation = locatationTag(oAcc.physicalLocation.get),
         addMoreInfo = (text => {
           oAcc.moreInfo(text).save
           //the save method does not return a Boolean to inform about the saving state,
@@ -217,8 +223,8 @@ class MongoDBLocalStorage extends LocalStorage {
         url = otherAccount.url.get,
         imageURL = otherAccount.imageUrl.get,
         openCorporatesURL = otherAccount.openCorporatesUrl.get,
-        corporateLocation = otherAccount.corporateLocation.get,
-        physicalLocation = otherAccount.physicalLocation.get,
+        corporateLocation = locatationTag(otherAccount.corporateLocation.get),
+        physicalLocation = locatationTag(otherAccount.physicalLocation.get),
         addMoreInfo = (text => {
           otherAccount.moreInfo(text).save
           //the save method does not return a Boolean to inform about the saving state,

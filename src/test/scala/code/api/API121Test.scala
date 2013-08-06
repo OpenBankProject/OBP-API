@@ -58,7 +58,7 @@ import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
 
-class API1_2Test extends ServerSetup{
+class API1_2_1Test extends ServerSetup{
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
@@ -1178,7 +1178,7 @@ class API1_2Test extends ServerSetup{
   }
 
   feature("Grant a user access to a list of views on a bank account"){
-    scenario("we will grant a user access to a list of views on an bank account", API1_2, PostPermissions, CurrentTest) {
+    scenario("we will grant a user access to a list of views on an bank account", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -1353,8 +1353,8 @@ class API1_2Test extends ServerSetup{
       val userId = obpuser2.email
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
-      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
       Then("we should get a 400 ok code")
@@ -4768,9 +4768,9 @@ class API1_2Test extends ServerSetup{
       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
-      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, None)
+      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
-      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
+      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, None)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -4784,9 +4784,9 @@ class API1_2Test extends ServerSetup{
       val view = randomViewPermalink(bankId, bankAccount)
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       val randomLoc = randomLocation
-      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user3)
+      postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
-      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1)
+      val reply = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user3)
       Then("we should get a 400 code")
       reply.code should equal (400)
       And("we should get an error message")
@@ -5011,9 +5011,8 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 204 code")
       deleteReply.code should equal (204)
       And("the where should be null")
-      // TODO: (3 scenarios)
-      // val locationAfterDelete = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id).body.extract[TransactionWhereJSON]
-      // locationAfterDelete.where should equal (null)
+      val locationAfterDelete = getWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, user1).body.extract[TransactionWhereJSON]
+      locationAfterDelete.where should equal (null)
     }
 
     scenario("we will not delete the where for a random transaction due to a missing token", API1_2, DeleteWhere) {

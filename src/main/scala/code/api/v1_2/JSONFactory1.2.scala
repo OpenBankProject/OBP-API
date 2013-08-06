@@ -497,18 +497,23 @@ object JSONFactory{
     )
   }
 
-  def createLocationJSON(location : GeoTag) : LocationJSON = {
-    val user = createUserJSON(location.postedBy)
-    //test if the GeoTag is set to its default value
-    if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
-      null
-    else
-      new LocationJSON(
-        latitude = location.latitude,
-        longitude = location.longitude,
-        date = location.datePosted,
-        user = user
-      )
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJSON = {
+    loc match {
+      case Some(location) => {
+        val user = createUserJSON(location.postedBy)
+        //test if the GeoTag is set to its default value
+        if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
+          null
+        else
+          new LocationJSON(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            date = location.datePosted,
+            user = user
+          )
+      }
+      case _ => null
+    }
   }
 
   def createLocationPlainJSON(lat: Double, lon: Double) : LocationPlainJSON = {
