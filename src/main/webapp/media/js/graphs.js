@@ -145,12 +145,12 @@ var draw_bar_graph = function(data) {
 };
 
 
-d3.json("obp/v1.0/metrics/demo-bar", function (data) {
+d3.json("obp/metrics/demo-bar", function (data) {
     draw_bar_graph(data);
 });
 
 
-d3.json("obp/v1.0/metrics/demo-line",function(data) {
+d3.json("obp/metrics/demo-line",function(data) {
 
   // helper function
   function getDate(d) {
