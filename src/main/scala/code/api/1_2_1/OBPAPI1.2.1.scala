@@ -29,7 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.api.v1_2
+package code.api.v1_2_1
 
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest._
@@ -59,13 +59,13 @@ import code.util.APIUtil._
 import code.api.OBPRestHelper
 
 
-object OBPAPI1_2 extends OBPRestHelper with Loggable {
+object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
   val dateFormat = ModeratedTransaction.dateFormat
-  val apiPrefix = "obp" / "v1.2" oPrefix _
+  val apiPrefix = "obp" / "v1.2.1" oPrefix _
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
@@ -102,7 +102,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         val apiDetails: JValue = {
           val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-          val apiInfoJSON = new APIInfoJSON("1.2", gitCommit, hostedBy)
+          val apiInfoJSON = new APIInfoJSON("1.2.1", gitCommit, hostedBy)
           Extraction.decompose(apiInfoJSON)
         }
 
@@ -198,8 +198,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonGet json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           views <- account views u
         } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
@@ -213,8 +213,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
           u <- user ?~ "user not found"
+          json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
           account <- BankAccount(bankId, accountId)
           canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.id_ + " does not have owner access"})
           view <- account createView json
@@ -243,8 +243,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: Nil JsonGet json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           permissions <- account permissions u
         } yield {
             val permissionsJSON = JSONFactory.createPermissionsJSON(permissions)
@@ -273,8 +273,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
           addedViews <- account addPermissions(u, viewIds.views, userId)
         } yield {
@@ -289,8 +289,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           view <- View.fromUrl(viewId)
           isAdded <- account addPermission(u, viewId, userId)
           if(isAdded)
@@ -306,8 +306,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonDelete json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           isRevoked <- account revokePermission(u, viewId, userId)
           if(isRevoked)
         } yield noContentJsonResponse
@@ -319,8 +319,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonDelete json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId)
           isRevoked <- account revokeAllPermission(u, userId)
           if(isRevoked)
         } yield noContentJsonResponse
@@ -939,8 +939,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           u <- user
+          narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           view <- View.fromUrl(viewId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
@@ -957,8 +957,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
       user =>
         for {
-          narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           u <- user
+          narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           view <- View.fromUrl(viewId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
@@ -1003,8 +1003,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
           u <- user
+          commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
           view <- View.fromUrl(viewId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
@@ -1049,8 +1049,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
       user =>
         for {
-          tagJson <- tryo{json.extract[PostTransactionTagJSON]}
           u <- user
+          tagJson <- tryo{json.extract[PostTransactionTagJSON]}
           view <- View.fromUrl(viewId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
@@ -1095,8 +1095,8 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          imageJson <- tryo{json.extract[PostTransactionImageJSON]}
           u <- user
+          imageJson <- tryo{json.extract[PostTransactionImageJSON]}
           view <- View.fromUrl(viewId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}

@@ -87,7 +87,6 @@ trait ServerSetup extends FeatureSpec
       for { i <- 0 until 2 } yield {
           Account.createRecord.
             balance(0).
-            anonAccess(true).
             holder(randomString(4)).
             number(randomString(4)).
             kind(randomString(4)).
@@ -99,8 +98,6 @@ trait ServerSetup extends FeatureSpec
             save
         }
       })
-
-
 
     val hostedAccounts = accounts.map(account => {
       val hostedaccount =
@@ -181,6 +178,9 @@ trait ServerSetup extends FeatureSpec
   override def afterAll() = {
     //drop the Database after the tests
     MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
+    ViewImpl.findAll.map(_.delete_!)
+    Privilege.findAll.map(_.delete_!)
+    HostedAccount.findAll.map(_.delete_!)
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {
@@ -240,7 +240,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).
@@ -263,7 +263,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).
@@ -312,7 +312,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).
@@ -335,7 +335,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).
@@ -384,7 +384,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionThisBankAccount_(true).
     canSeeTransactionOtherBankAccount_(true).
     canSeeTransactionMetadata_(true).
-    canSeeTransactionLabel_(true).
+    canSeeTransactionDescription_(true).
     canSeeTransactionAmount_(true).
     canSeeTransactionType_(true).
     canSeeTransactionCurrency_(true).
@@ -407,7 +407,7 @@ trait ServerSetup extends FeatureSpec
     canSeeBankAccountBankName_(true).
     canSeeBankAccountBankPermalink_(true).
     canSeeOtherAccountNationalIdentifier_(true).
-    canSeeSWIFT_BIC_(true).
+    canSeeOtherAccountSWIFT_BIC_(true).
     canSeeOtherAccountIBAN_ (true).
     canSeeOtherAccountBankName_(true).
     canSeeOtherAccountNumber_(true).

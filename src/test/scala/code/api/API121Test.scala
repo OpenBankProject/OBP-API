@@ -29,7 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
  */
-package code.api.v1_2
+package code.api.v1_2_1
 
 import org.scalatest._
 import org.junit.runner.RunWith
@@ -58,32 +58,32 @@ import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
 
-class API1_2Test extends ServerSetup{
+class API1_2_1Test extends ServerSetup{
 
-  def v1_2Request = baseRequest / "obp" / "v1.2"
+  def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
   val viewFileds = List(
-    "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
-    "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
-    "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
-    "can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments",
-    "can_see_owner_comment","can_see_tags","can_see_images","can_see_bank_account_owners",
-    "can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency",
-    "can_see_bank_account_label","can_see_bank_account_national_identifier",
-    "can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number",
-    "can_see_bank_account_bank_name","can_see_other_account_national_identifier",
-    "can_see_other_account_swift_bic","can_see_other_account_iban",
-    "can_see_other_account_bank_name","can_see_other_account_number",
-    "can_see_other_account_metadata","can_see_other_account_kind","can_see_more_info",
-    "can_see_url","can_see_image_url","can_see_open_corporates_url","can_see_corporate_location",
-    "can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info",
-    "can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location",
-    "can_add_physical_location","can_add_public_alias","can_add_private_alias",
-    "can_delete_corporate_location","can_delete_physical_location","can_edit_owner_comment",
-    "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
-    "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
+      "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
+      "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
+      "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
+      "can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments",
+      "can_see_owner_comment","can_see_tags","can_see_images","can_see_bank_account_owners",
+      "can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency",
+      "can_see_bank_account_label","can_see_bank_account_national_identifier",
+      "can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number",
+      "can_see_bank_account_bank_name","can_see_other_account_national_identifier",
+      "can_see_other_account_swift_bic","can_see_other_account_iban",
+      "can_see_other_account_bank_name","can_see_other_account_number",
+      "can_see_other_account_metadata","can_see_other_account_kind","can_see_more_info",
+      "can_see_url","can_see_image_url","can_see_open_corporates_url","can_see_corporate_location",
+      "can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info",
+      "can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location",
+      "can_add_physical_location","can_add_public_alias","can_add_private_alias",
+      "can_delete_corporate_location","can_delete_physical_location","can_edit_owner_comment",
+      "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
+      "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
     )
 
 
@@ -118,6 +118,7 @@ class API1_2Test extends ServerSetup{
         user(obpuser1).
         saveMe
       })
+
     for{
       p <- privileges
       v <- ViewImpl.findAll()
@@ -200,7 +201,7 @@ class API1_2Test extends ServerSetup{
   /************************* test tags ************************/
 
   object CurrentTest extends Tag("currentScenario")
-  object API1_2 extends Tag("api1.2")
+  object API1_2 extends Tag("api1.2.1")
   object APIInfo extends Tag("apiInfo")
   object GetHostedBanks extends Tag("hostedBanks")
   object GetHostedBank extends Tag("getHostedBank")
@@ -405,7 +406,7 @@ class API1_2Test extends ServerSetup{
     makeGetRequest(request)
   }
 
-  def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
+  def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId <@(consumerAndToken)
     makeGetRequest(request)
   }
@@ -730,7 +731,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
-      apiInfo.version should equal ("1.2")
+      apiInfo.version should equal ("1.2.1")
       apiInfo.git_commit.nonEmpty should equal (true)
     }
   }
@@ -1118,14 +1119,17 @@ class API1_2Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      When("the request is sent")
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
       Then("we should get a 201 ok code")
       reply.code should equal (201)
       val viewInfo = reply.body.extract[ViewJSON]
       And("some fields should not be empty")
       viewInfo.id.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore + 1)
     }
 
     scenario("we cannot grant a user access to a view on an bank account because the user does not exist", API1_2, PostPermission) {
@@ -1145,12 +1149,15 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
     scenario("we cannot grant a user access to a view on an bank account because the user does not have owner view access", API1_2, PostPermission) {
@@ -1158,12 +1165,15 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 
@@ -1174,6 +1184,7 @@ class API1_2Test extends ServerSetup{
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 201 ok code")
@@ -1183,6 +1194,8 @@ class API1_2Test extends ServerSetup{
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
       And("the granted views should be the same")
       viewsIdsToGrant.toSet should equal(viewsInfo.views.map(_.id).toSet)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore + viewsIdsToGrant.length)
       //we revoke access to the granted views for the next tests
       revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
     }
@@ -1201,7 +1214,7 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because they don't exist", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -1215,32 +1228,38 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because some views don't exist", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
-    scenario("we cannot grant a user access to a list of views on an bank account because the user does not have owner view access", API1_2, PostPermission) {
+    scenario("we cannot grant a user access to a list of views on an bank account because the user does not have owner view access", API1_2, PostPermissions) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser3.email
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 
@@ -1253,10 +1272,13 @@ class API1_2Test extends ServerSetup{
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore -1)
     }
 
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermission) {
@@ -1274,10 +1296,13 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId =obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the user does not have owner view access", API1_2, DeletePermission) {
@@ -1285,10 +1310,13 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.email
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
   feature("Revoke a user access to all the views on a bank account"){
@@ -1304,6 +1332,8 @@ class API1_2Test extends ServerSetup{
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
       Then("we should get a 204 no content code")
       reply.code should equal (204)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(0)
     }
 
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermissions) {
@@ -1324,10 +1354,13 @@ class API1_2Test extends ServerSetup{
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user3)
       Then("we should get a 400 ok code")
       reply.code should equal (400)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore)
     }
   }
 

@@ -46,7 +46,6 @@ import net.liftweb.mapper.BySql
 import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
 import com.mongodb.QueryBuilder
-import code.api.v1_2.ViewCreationJSON
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -72,6 +71,7 @@ trait LocalStorage extends Loggable {
   def getCurrentUser : Box[User]
 
   def permissions(account : BankAccount) : Box[List[Permission]]
+  def permission(account : BankAccount, user: User) : Box[Permission]
   def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
   def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean]
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
@@ -90,6 +90,12 @@ trait LocalStorage extends Loggable {
 
 class MongoDBLocalStorage extends LocalStorage {
 
+  private def locatationTag(loc: OBPGeoTag): Option[GeoTag]={
+    if(loc.longitude==0 && loc.latitude==0 && loc.userId.get.isEmpty)
+      None
+    else
+      Some(loc)
+  }
   private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
     import net.liftweb.json.JsonDSL._
     val transaction: OBPTransaction = env.obp_transaction.get
@@ -115,8 +121,8 @@ class MongoDBLocalStorage extends LocalStorage {
         url = oAcc.url.get,
         imageURL = oAcc.imageUrl.get,
         openCorporatesURL = oAcc.openCorporatesUrl.get,
-        corporateLocation = oAcc.corporateLocation.get,
-        physicalLocation = oAcc.physicalLocation.get,
+        corporateLocation = locatationTag(oAcc.corporateLocation.get),
+        physicalLocation = locatationTag(oAcc.physicalLocation.get),
         addMoreInfo = (text => {
           oAcc.moreInfo(text).save
           //the save method does not return a Boolean to inform about the saving state,
@@ -217,8 +223,8 @@ class MongoDBLocalStorage extends LocalStorage {
         url = otherAccount.url.get,
         imageURL = otherAccount.imageUrl.get,
         openCorporatesURL = otherAccount.openCorporatesUrl.get,
-        corporateLocation = otherAccount.corporateLocation.get,
-        physicalLocation = otherAccount.physicalLocation.get,
+        corporateLocation = locatationTag(otherAccount.corporateLocation.get),
+        physicalLocation = locatationTag(otherAccount.physicalLocation.get),
         addMoreInfo = (text => {
           otherAccount.moreInfo(text).save
           //the save method does not return a Boolean to inform about the saving state,
@@ -296,8 +302,7 @@ class MongoDBLocalStorage extends LocalStorage {
       bank <- getHostedBank(bankPermalink)
       account  <- bank.getAccount(accountPermalink)
       objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
-      ifTransactionsIsInAccount <- Full(account.transactionsForAccount.put("_id").is(objectId).get)
-      envelope <- OBPEnvelope.find(ifTransactionsIsInAccount)
+      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
     } yield createTransaction(envelope,account)
   }
 
@@ -324,29 +329,31 @@ class MongoDBLocalStorage extends LocalStorage {
     } yield Account toBankAccount account
   }
 
-  def getAllPublicAccounts() : List[BankAccount] = Account.findAll("anonAccess", true) map Account.toBankAccount
-
-  def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]] = {
-    for{
-      id <- tryo{new ObjectId(bank.id)} ?~ {"bank " + bank.fullName + " not found"}
-    } yield {
-        val qry = QueryBuilder.start("bankID").is(id)
-          .put("anonAccess").is(true)
-          .get
-        Account.findAll(qry).map(Account.toBankAccount)
-      }
+  def getAllPublicAccounts() : List[BankAccount] = {
+    ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+      map{_.account.obj}.
+      collect{case Full(a) => a.theAccount}.
+      collect{case Full(a) => Account.toBankAccount(a)}
   }
 
-  private def moreThanAnonHostedAccounts(user : User) : Box[List[HostedAccount]] = {
+  def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]] = {
+    val bankAccounts = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+      map{_.account.obj}.
+      collect{case Full(a) if a.bank==bank.fullName => a.theAccount}.
+      collect{case Full(a) => Account.toBankAccount(a)}
+    Full(bankAccounts)
+  }
+
+  private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {
     user match {
       case u : OBPUser => {
-        Full(Privilege.findAll(By(Privilege.user, u.id)).
+        Privilege.findAll(By(Privilege.user, u.id)).
           filter(_.views.exists(_.isPublic==false)).
-          map(_.account.obj.get))
+          map(_.account.obj.get)
       }
       case _ => {
-        logger.error("OBPUser instance not found, could not execute the SQL query ")
-        Failure("could not find non public bank accounts")
+        logger.error("OBPUser instance not found, could not find the accounts")
+        Nil
       }
     }
   }
@@ -356,22 +363,19 @@ class MongoDBLocalStorage extends LocalStorage {
   */
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
 
-    user match {
-      case u : OBPUser => {
-
-        for {
-          moreThanAnon <- moreThanAnonHostedAccounts(u)
-        } yield {
+    val accountsList =
+      user match {
+        case u : OBPUser => {
+          val moreThanAnon = moreThanAnonHostedAccounts(u)
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).map(Account.toBankAccount)
         }
-
+        case u: User => {
+          logger.error("OBPUser instance not found, could not find the non public accounts")
+          Nil
+        }
       }
-      case u: User => {
-          logger.error("OBPUser instance not found, could not execute the SQL query ")
-          Failure("could not find non public bank accounts")
-      }
-    }
+    Full(accountsList)
   }
 
   /**
@@ -381,19 +385,19 @@ class MongoDBLocalStorage extends LocalStorage {
     user match {
       case u : OBPUser => {
         for {
-          moreThanAnon <- moreThanAnonHostedAccounts(u)
           bankObjectId <- tryo{new ObjectId(bankID)}
         } yield {
           def sameBank(account : Account) : Boolean =
             account.bankID.get == bankObjectId
 
+          val moreThanAnon = moreThanAnonHostedAccounts(u)
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
         }
       }
       case u : User => {
-        logger.error("OBPUser instance not found, could not execute the SQL query ")
-        Failure("could not find non public bank accounts")
+        logger.error("OBPUser instance not found, could not find the non public account ")
+        Full(Nil)
       }
     }
   }
@@ -457,9 +461,9 @@ class MongoDBLocalStorage extends LocalStorage {
   def getCurrentUser : Box[User] = OBPUser.currentUser
 
   def permissions(account : BankAccount) : Box[List[Permission]] = {
-
-    HostedAccount.find(By(HostedAccount.accountID,account.id)) match {
-      case Full(acc) => {
+    for{
+      acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
+    } yield {
         val privileges = Privilege.findAll(By(Privilege.account, acc.id.get)).sortWith((p1,p2) => p1.updatedAt.get after p2.updatedAt.get)
         val permissions : List[Box[Permission]] =
           privileges.map( p => {
@@ -470,9 +474,22 @@ class MongoDBLocalStorage extends LocalStorage {
               )
             })
           })
-        Full(permissions.flatten)
+        permissions.flatten
       }
-      case _ => Failure("Could not find the hostedAccount", Empty, Empty)
+  }
+
+  def permission(account : BankAccount, user: User) : Box[Permission] = {
+    user match {
+      case u: OBPUser =>{
+        for{
+          acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
+          p <- Privilege.find(By(Privilege.account, acc.id.get), By(Privilege.user, u)) ?~ {"No permission found for user: " + u.id}
+        } yield Permission(u, p.views.toList)
+      }
+      case u: User =>{
+        logger.error("OBPUser instance not found, could not get privilege ")
+        Failure("could not get user: " + user.id_ + " permission" )
+      }
     }
   }
 
@@ -482,27 +499,21 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
-            Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
-              //update the existing privilege
-              case Full(privilege) => {
-                ViewPrivileges.create.
-                  privilege(privilege).
-                  view(view.id).
-                  save
-              }
-              //there is no privilege to this user, so we create one
-              case _ => {
-                val privilege =
+            val privilege =
+              Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
+                //update the existing privilege
+                case Full(p) => p
+                //there is no privilege to this user, so we create one
+                case _ =>
                   Privilege.create.
                     user(u.id).
                     account(bankAccount).
                     saveMe
-                ViewPrivileges.create.
-                  privilege(privilege).
-                  view(view.id).
-                  save
               }
-            }
+            ViewPrivileges.create.
+              privilege(privilege).
+              view(view.id).
+              save
           }
       case u: User => {
           logger.error("OBPUser instance not found, could not grant access ")
@@ -517,33 +528,24 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
-            Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
-              //update the existing privilege
-              case Full(privilege) => {
-                views.map(v => {
-                  ViewPrivileges.create.
-                    privilege(privilege).
-                    view(v.id).
-                    save
-                })
-                privilege.save
-              }
-              //there is no privilege to this user, so we create one
-              case _ => {
-                val privilege =
+            val privilege =
+              Privilege.find(By(Privilege.user, u.id), By(Privilege.account, bankAccount)) match {
+                //update the existing privilege
+                case Full(p) => p
+                //there is no privilege to this user, so we create one
+                case _ =>
                   Privilege.create.
                     user(u.id).
                     account(bankAccount).
                     saveMe
-                views.map(v => {
-                  ViewPrivileges.create.
-                    privilege(privilege).
-                    view(v.id).
-                    save
-                })
-                privilege.save
               }
-            }
+            views.foreach(v => {
+              ViewPrivileges.create.
+                privilege(privilege).
+                view(v.id).
+                save
+            })
+            true
           }
       }
       case u: User => {
@@ -610,13 +612,13 @@ class MongoDBLocalStorage extends LocalStorage {
               isPublic_(view.is_public).
               account(account)
 
-            if(view.alias == "public"){
+            if(view.which_alias_to_use == "public"){
               createdView.usePrivateAliasIfOneExists_(true)
-              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
             }
-            else if(view.alias == "private"){
+            else if(view.which_alias_to_use == "private"){
               createdView.usePublicAliasIfOneExists_(true)
-              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias)
+              createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
             }
 
             if(view.allowed_actions.exists(a => a=="can_see_transaction_this_bank_account"))
@@ -625,8 +627,8 @@ class MongoDBLocalStorage extends LocalStorage {
               createdView.canSeeTransactionOtherBankAccount_(true)
             if(view.allowed_actions.exists(a => a=="can_see_transaction_metadata"))
               createdView.canSeeTransactionMetadata_(true)
-            if(view.allowed_actions.exists(a => a=="can_see_transaction_label"))
-              createdView.canSeeTransactionLabel_(true)
+            if(view.allowed_actions.exists(a => (a=="can_see_transaction_label" || a=="can_see_transaction_description")))
+              createdView.canSeeTransactionDescription_(true)
             if(view.allowed_actions.exists(a => a=="can_see_transaction_amount"))
               createdView.canSeeTransactionAmount_(true)
             if(view.allowed_actions.exists(a => a=="can_see_transaction_type"))
@@ -671,8 +673,8 @@ class MongoDBLocalStorage extends LocalStorage {
               createdView.canSeeBankAccountBankPermalink_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_national_identifier"))
               createdView.canSeeOtherAccountNationalIdentifier_(true)
-            if(view.allowed_actions.exists(a => a=="can_see_swift_bic"))
-              createdView.canSeeSWIFT_BIC_(true)
+            if(view.allowed_actions.exists(a => a=="can_see_other_account_swift_bic"))
+              createdView.canSeeOtherAccountSWIFT_BIC_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_iban"))
               createdView.canSeeOtherAccountIBAN_(true)
             if(view.allowed_actions.exists(a => a=="can_see_other_account_bank_name"))
@@ -755,9 +757,8 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def views(bankAccountID : String) : Box[List[View]] = {
     for(account <- HostedAccount.find(By(HostedAccount.accountID,bankAccountID)))
-       yield account.views.toList
+      yield account.views.toList
   }
-
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
     user match {
@@ -773,7 +774,7 @@ class MongoDBLocalStorage extends LocalStorage {
       }
       case _ => {
         logger.error("OBPUser instance not found, could not get Permitted views")
-        List()
+        Nil
       }
     }
   }
