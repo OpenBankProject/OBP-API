@@ -52,6 +52,15 @@ case class Permission(
   views : List[View]
 )
 
+case class ViewCreationJSON(
+  name: String,
+  description: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions : List[String]
+)
+
 trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
@@ -72,7 +81,7 @@ trait View {
   def canSeeTransactionThisBankAccount : Boolean
   def canSeeTransactionOtherBankAccount : Boolean
   def canSeeTransactionMetadata : Boolean
-  def canSeeTransactionLabel: Boolean
+  def canSeeTransactionDescription: Boolean
   def canSeeTransactionAmount: Boolean
   def canSeeTransactionType: Boolean
   def canSeeTransactionCurrency: Boolean
@@ -97,11 +106,10 @@ trait View {
   def canSeeBankAccountIban : Boolean
   def canSeeBankAccountNumber : Boolean
   def canSeeBankAccountBankName : Boolean
-  def canSeeBankAccountBankPermalink : Boolean
 
   //other bank account fields
   def canSeeOtherAccountNationalIdentifier : Boolean
-  def canSeeSWIFT_BIC : Boolean
+  def canSeeOtherAccountSWIFT_BIC : Boolean
   def canSeeOtherAccountIBAN : Boolean
   def canSeeOtherAccountBankName : Boolean
   def canSeeOtherAccountNumber : Boolean
@@ -191,9 +199,9 @@ trait View {
           if(canDeleteImage) Some(transaction.metadata.deleteImage)
           else None
 
-          val whereTag =
+        val whereTag =
           if(canSeeWhereTag)
-            transaction.metadata.whereTags.find(tag => tag.viewId == id)
+            Some(transaction.metadata.whereTags.find(tag => tag.viewId == id))
           else
             None
 
@@ -244,8 +252,8 @@ trait View {
       if (canSeeTransactionCurrency) Some(transaction.currency)
       else None
 
-    val transactionLabel =
-      if (canSeeTransactionLabel) transaction.label
+    val transactionDescription =
+      if (canSeeTransactionDescription) transaction.description
       else None
 
     val transactionStartDate =
@@ -269,7 +277,7 @@ trait View {
       transactionType = transactionType,
       amount = transactionAmount,
       currency = transactionCurrency,
-      label = transactionLabel,
+      description = transactionDescription,
       startDate = transactionStartDate,
       finishDate = transactionFinishDate,
       balance = transactionBalance
@@ -289,7 +297,7 @@ trait View {
       val iban = if(canSeeBankAccountIban) bankAccount.iban else None
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
-      val bankPermalink = if(canSeeBankAccountBankPermalink) Some(bankAccount.bankPermalink) else None
+      val bankPermalink = bankAccount.bankPermalink
 
       Some(
         new ModeratedBankAccount(
@@ -305,7 +313,8 @@ trait View {
           number = number,
           bankName = bankName,
           bankPermalink = bankPermalink
-        ))
+        )
+      )
     }
     else
       None
@@ -352,7 +361,7 @@ trait View {
 
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if(canSeeSWIFT_BIC) otherBankAccount.swift_bic else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.swift_bic else None
       val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.iban else None
       val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.bankName) else None
       val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.number) else None
@@ -364,8 +373,8 @@ trait View {
           val url = moderateField(canSeeUrl, otherBankAccount.metadata.url)
           val imageUrl = moderateField(canSeeImageUrl, otherBankAccount.metadata.imageURL)
           val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, otherBankAccount.metadata.openCorporatesURL)
-          val corporateLocation : Option[GeoTag] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.corporateLocation)
-          val physicalLocation : Option[GeoTag] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.physicalLocation)
+          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.corporateLocation)
+          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.physicalLocation)
           val addMoreInfo = moderateField(canAddMoreInfo, otherBankAccount.metadata.addMoreInfo)
           val addURL = moderateField(canAddURL, otherBankAccount.metadata.addURL)
           val addImageURL = moderateField(canAddImageURL, otherBankAccount.metadata.addImageURL)

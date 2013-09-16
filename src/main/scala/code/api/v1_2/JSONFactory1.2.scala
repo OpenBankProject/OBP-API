@@ -99,9 +99,8 @@ class ViewJSON(
   val can_see_bank_account_iban: Boolean,
   val can_see_bank_account_number: Boolean,
   val can_see_bank_account_bank_name: Boolean,
-  val can_see_bank_account_bank_permalink: Boolean,
   val can_see_other_account_national_identifier: Boolean,
-  val can_see_swift_bic: Boolean,
+  val can_see_other_account_swift_bic: Boolean,
   val can_see_other_account_iban: Boolean,
   val can_see_other_account_bank_name: Boolean,
   val can_see_other_account_number: Boolean,
@@ -314,15 +313,6 @@ case class ViewIdsJson(
   views : List[String]
 )
 
-case class ViewCreationJSON(
-  name: String,
-  description: String,
-  is_public: Boolean,
-  alias: String,
-  hide_metadata_if_alias: Boolean,
-  allowed_actions : List[String]
-)
-
 object JSONFactory{
   def stringOrNull(text : String) =
     if(text.isEmpty)
@@ -370,7 +360,7 @@ object JSONFactory{
       can_see_transaction_this_bank_account = view.canSeeTransactionThisBankAccount,
       can_see_transaction_other_bank_account = view.canSeeTransactionOtherBankAccount,
       can_see_transaction_metadata = view.canSeeTransactionMetadata,
-      can_see_transaction_label = view.canSeeTransactionLabel,
+      can_see_transaction_label = view.canSeeTransactionDescription,
       can_see_transaction_amount = view.canSeeTransactionAmount,
       can_see_transaction_type = view.canSeeTransactionType,
       can_see_transaction_currency = view.canSeeTransactionCurrency,
@@ -391,9 +381,8 @@ object JSONFactory{
       can_see_bank_account_iban = view.canSeeBankAccountIban,
       can_see_bank_account_number = view.canSeeBankAccountNumber,
       can_see_bank_account_bank_name = view.canSeeBankAccountBankName,
-      can_see_bank_account_bank_permalink = view.canSeeBankAccountBankPermalink,
       can_see_other_account_national_identifier = view.canSeeOtherAccountNationalIdentifier,
-      can_see_swift_bic = view.canSeeSWIFT_BIC,
+      can_see_other_account_swift_bic = view.canSeeOtherAccountSWIFT_BIC,
       can_see_other_account_iban = view.canSeeOtherAccountIBAN,
       can_see_other_account_bank_name = view.canSeeOtherAccountBankName,
       can_see_other_account_number = view.canSeeOtherAccountNumber,
@@ -450,7 +439,7 @@ object JSONFactory{
       createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
       stringOptionOrNull(account.iban),
       viewsAvailable,
-      stringOptionOrNull(account.bankPermalink)
+      stringOrNull(account.bankPermalink)
     )
   }
 
@@ -508,18 +497,23 @@ object JSONFactory{
     )
   }
 
-  def createLocationJSON(location : GeoTag) : LocationJSON = {
-    val user = createUserJSON(location.postedBy)
-    //test if the GeoTag is set to its default value
-    if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
-      null
-    else
-      new LocationJSON(
-        latitude = location.latitude,
-        longitude = location.longitude,
-        date = location.datePosted,
-        user = user
-      )
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJSON = {
+    loc match {
+      case Some(location) => {
+        val user = createUserJSON(location.postedBy)
+        //test if the GeoTag is set to its default value
+        if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
+          null
+        else
+          new LocationJSON(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            date = location.datePosted,
+            user = user
+          )
+      }
+      case _ => null
+    }
   }
 
   def createLocationPlainJSON(lat: Double, lon: Double) : LocationPlainJSON = {
@@ -542,7 +536,7 @@ object JSONFactory{
   def createTransactionDetailsJSON(transaction : ModeratedTransaction) : TransactionDetailsJSON = {
     new TransactionDetailsJSON(
       `type` = stringOptionOrNull(transaction.transactionType),
-      label = stringOptionOrNull(transaction.label),
+      label = stringOptionOrNull(transaction.description),
       posted = transaction.startDate.getOrElse(null),
       completed = transaction.finishDate.getOrElse(null),
       new_balance = createAmountOfMoneyJSON(transaction.currency, transaction.balance),

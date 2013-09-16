@@ -57,7 +57,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   def meta = Account
 
   object balance extends DecimalField(this, 0)
-  object anonAccess extends BooleanField(this, false)
   object holder extends StringField(this, 255)
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
@@ -100,10 +99,17 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
 
     val mongoParams = {
       val start = transactionsForAccount
-      val start2 = if(fromDate.isDefined) start.put("obp_transaction.details.completed").greaterThanEquals(fromDate.get.value)
-      			   else start
-      val end = if(toDate.isDefined) start2.put("obp_transaction.details.completed").lessThanEquals(toDate.get.value)
-      			else start2
+      val start2 =
+        if(fromDate.isDefined)
+          start.put("obp_transaction.details.completed").greaterThanEquals(fromDate.get.value)
+        else
+        start
+
+      val end =
+        if(toDate.isDefined)
+          start2.put("obp_transaction.details.completed").lessThanEquals(toDate.get.value)
+        else
+        start2
       end.get
     }
 
@@ -128,7 +134,6 @@ object Account extends Account with MongoMetaRecord[Account] {
         "",
         None,
         iban,
-        account.anonAccess.get,
         account.number.get,
         account.bankName,
         account.bankPermalink,
@@ -204,10 +209,9 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   object national_identifier extends StringField(this, 255)
 
   def getAccount(bankAccountPermalink : String) : Box[Account] =
-    Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) match {
-      case Full(account) => Full(account)
-      case _ => Failure("account " + bankAccountPermalink +" not found in bank " + permalink, Empty, Empty)
-    }
+    for{
+      account <- Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountPermalink +" not found at bank " + permalink}
+    } yield account
 
   def isAccount(bankAccountPermalink : String) : Boolean =
     Account.count(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) == 1

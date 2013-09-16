@@ -41,7 +41,6 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
 import code.model.dataAccess.{LocalStorage, Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
-import code.api.v1_2.ViewCreationJSON
 
 
 class Bank(
@@ -112,7 +111,6 @@ class BankAccount(
   val nationalIdentifier : String,
   val swift_bic : Option[String],
   val iban : Option[String],
-  val allowAnnoymousAccess : Boolean,
   val number : String,
   val bankName : String,
   val bankPermalink : String,
@@ -130,8 +128,6 @@ class BankAccount(
       }
     }
   }
-
-  def allowPublicAccess = allowAnnoymousAccess
 
   /**
   * @param the view that we want test the access to
@@ -156,6 +152,22 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       LocalStorage.permissions(this)
+    else
+      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
+  }
+
+  /**
+  * @param a user requesting to see the an other users permission
+  * @param the user that the permission concerns
+  * @return a Box of the user permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
+  */
+  def permission(user : User, otherUserId: String) : Box[Permission] = {
+    //check if the user have access to the owner view in this the account
+    if(user.ownerAccess(this))
+      for{
+        u <- User.findById(otherUserId)
+        p <- LocalStorage.permission(this, u)
+        } yield p
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
   }
@@ -363,8 +375,8 @@ class Transaction(
   val amount : BigDecimal,
   //ISO 4217, e.g. EUR, GBP, USD, etc.
   val currency : String,
-  // Bank provided comment
-  val label : Option[String],
+  // Bank provided label
+  val description : Option[String],
   // The date the transaction was initiated
   val startDate : Date,
   // The date when the money finished changing hands
