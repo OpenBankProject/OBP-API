@@ -763,7 +763,7 @@ class MongoDBLocalStorage extends LocalStorage {
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
     user match {
       case u: OBPUser=> {
-        HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
+        val nonPublic: List[View] = HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
           case Full(account) =>
             Privilege.find(By(Privilege.user, u.id), By(Privilege.account,account)) match {
               case Full(p) => p.views.toList
@@ -771,6 +771,7 @@ class MongoDBLocalStorage extends LocalStorage {
             }
           case _ => Nil
         }
+        nonPublic ::: bankAccount.publicViews
       }
       case _ => {
         logger.error("OBPUser instance not found, could not get Permitted views")
