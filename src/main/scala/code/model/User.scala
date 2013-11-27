@@ -43,14 +43,16 @@ trait User {
   def emailAddress : String
   def theFirstName : String
   def theLastName : String
+
   def permittedViews(bankAccount: BankAccount) : List[View] =
     LocalStorage.permittedViews(this, bankAccount)
 
+  def views: List[View]
   def permittedView(v: View, b: BankAccount): Boolean =
-    LocalStorage.permittedView(this, v, b)
+    views.contains(v)
 
   def ownerAccess(bankAccount: BankAccount) : Boolean =
-    LocalStorage.ownerAccess(this, bankAccount)
+    permittedViews(bankAccount).exists(v => v.permalink=="owner")
 
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
