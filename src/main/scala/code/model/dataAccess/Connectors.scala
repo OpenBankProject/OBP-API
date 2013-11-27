@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import code.model._
 import net.liftweb.common.{ Box, Empty, Full, Failure }
-import net.liftweb.util.Helpers.tryo
+import net.liftweb.util.Helpers.{tryo, now, hours, time}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
@@ -46,6 +46,7 @@ import net.liftweb.mapper.BySql
 import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
 import com.mongodb.QueryBuilder
+import scala.concurrent.ops.spawn
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -89,6 +90,22 @@ trait LocalStorage extends Loggable {
 }
 
 class MongoDBLocalStorage extends LocalStorage {
+
+  /**
+  *  Checks if the last update of the account was made more than one hour ago.
+  *  if it is the case we put a message in the message queue to ask for
+  *  transactions updates
+  *
+  *  It will be used each time we fetch transactions from the DB. But the test
+  *  is performed in a different thread.
+  */
+  private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
+    spawn{
+      if( now after time(account.lastUpdate.get.getTime + hours(1)) ) {
+        UpdatesRequestSender.sendMessage(UpdateBankAccount(account.number.get, HostedBank.national_identifier.get))
+      }
+    }
+  }
 
   private def locatationTag(loc: OBPGeoTag): Option[GeoTag]={
     if(loc.longitude==0 && loc.latitude==0 && loc.userId.get.isEmpty)
@@ -303,7 +320,10 @@ class MongoDBLocalStorage extends LocalStorage {
       account  <- bank.getAccount(accountPermalink)
       objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
-    } yield createTransaction(envelope,account)
+    } yield {
+      updateAccountTransactions(bank, account)
+      createTransaction(envelope,account)
+    }
   }
 
   private def getTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -311,7 +331,10 @@ class MongoDBLocalStorage extends LocalStorage {
       for{
         bank <- getHostedBank(bankPermalink)
         account <- bank.getAccount(permalink)
-      } yield account.envelopes(queryParams: _*).map(createTransaction(_, account))
+      } yield {
+        updateAccountTransactions(bank, account)
+        account.envelopes(queryParams: _*).map(createTransaction(_, account))
+      }
   }
 
   def getBank(permalink: String): Box[Bank] =
