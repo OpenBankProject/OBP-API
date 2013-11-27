@@ -51,9 +51,8 @@ import java.util.Date
 
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, ViewImpl, ViewPrivileges }
+import code.model.dataAccess.{OBPUser, HostedAccount, ViewImpl, ViewPrivileges, Account}
 import code.api.test.{ServerSetup, APIResponse}
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, Account}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
@@ -102,7 +101,7 @@ class API1_2_1Test extends ServerSetup{
 
   lazy val obpuser1 =
     OBPUser.create.
-      email(randomString(3)+"@example.com").
+      email("foo@example.com").
       password(randomString(10)).
       validated(true).
       firstName(randomString(10)).
@@ -111,21 +110,12 @@ class API1_2_1Test extends ServerSetup{
 
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
-    val privileges =
-      HostedAccount.findAll.map(bankAccount => {
-        Privilege.create.
-        account(bankAccount).
-        user(obpuser1).
-        saveMe
-      })
-
     for{
-      p <- privileges
       v <- ViewImpl.findAll()
     }{
       ViewPrivileges.create.
         view(v).
-        privilege(p).
+        user(obpuser1).
         save
     }
   }
@@ -147,7 +137,7 @@ class API1_2_1Test extends ServerSetup{
   // create a user for test purposes
   lazy val obpuser2 =
     OBPUser.create.
-      email(randomString(3)+"@example.com").
+      email("bar@example.com").
       password(randomString(10)).
       validated(true).
       firstName(randomString(10)).
@@ -172,7 +162,7 @@ class API1_2_1Test extends ServerSetup{
   // create a user for test purposes
   lazy val obpuser3 =
     OBPUser.create.
-      email(randomString(3)+"@example.com").
+      email("foobar@example.com").
       password(randomString(10)).
       validated(true).
       firstName(randomString(10)).
@@ -330,7 +320,7 @@ class API1_2_1Test extends ServerSetup{
 
   def randomViewsIdsToGrant(bankId : String, accountId : String) : List[String]= {
     //get the view ids of the available views on the bank accounts
-    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSON].views.map(_.id)
+    val viewsIds = getAccountViews(bankId, accountId, user1).body.extract[ViewsJSON].views.filterNot(_.is_public).map(_.id)
     //choose randomly some view ids to grant
     val (viewsIdsToGrant, _) = viewsIds.splitAt(nextInt(viewsIds.size) + 1)
     viewsIdsToGrant
@@ -1194,8 +1184,8 @@ class API1_2_1Test extends ServerSetup{
       viewsInfo.views.foreach(v => v.id.nonEmpty should equal (true))
       And("the granted views should be the same")
       viewsIdsToGrant.toSet should equal(viewsInfo.views.map(_.id).toSet)
-      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
-      viewsAfter should equal(viewsBefore + viewsIdsToGrant.length)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views
+      viewsAfter.length should equal(viewsBefore + viewsIdsToGrant.length)
       //we revoke access to the granted views for the next tests
       revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
     }

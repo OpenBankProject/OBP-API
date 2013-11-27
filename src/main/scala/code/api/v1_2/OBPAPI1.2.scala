@@ -92,7 +92,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   private def moderatedTransactionMetadata(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
       account <- BankAccount(bankId, accountId)
-      view <- View.fromUrl(viewId)
+      view <- View.fromUrl(viewId, account)
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
     } yield metadata
@@ -183,7 +183,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           availableviews <- Full(account.permittedViews(user))
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           moderatedAccount <- account.moderatedBankAccount(view, user)
         } yield {
             val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
@@ -291,7 +291,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           isAdded <- account addPermission(u, viewId, userId)
           if(isAdded)
         } yield {
@@ -333,7 +333,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
         } yield {
           val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
@@ -348,7 +348,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
         } yield {
           val otherBankAccountJson = JSONFactory.createOtherBankAccount(otherBankAccount)
@@ -363,7 +363,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
         } yield {
@@ -379,7 +379,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           alias <- Box(metadata.publicAlias) ?~ {"the view " + viewId + "does not allow public alias access"}
@@ -396,7 +396,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow adding a public alias"}
@@ -414,7 +414,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow updating the public alias"}
@@ -432,7 +432,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPublicAlias) ?~ {"the view " + viewId + "does not allow deleting the public alias"}
@@ -448,7 +448,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           alias <- Box(metadata.privateAlias) ?~ {"the view " + viewId + "does not allow private alias access"}
@@ -465,7 +465,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow adding a private alias"}
@@ -484,7 +484,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow updating the private alias"}
@@ -503,7 +503,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addAlias <- Box(metadata.addPrivateAlias) ?~ {"the view " + viewId + "does not allow deleting the private alias"}
@@ -518,7 +518,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow adding more info"}
@@ -537,7 +537,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow updating more info"}
@@ -556,7 +556,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"the view " + viewId + "does not allow deleting more info"}
@@ -571,7 +571,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow adding a url"}
@@ -590,7 +590,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow updating a url"}
@@ -609,7 +609,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addUrl <- Box(metadata.addURL) ?~ {"the view " + viewId + "does not allow deleting a url"}
@@ -624,7 +624,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow adding an image url"}
@@ -643,7 +643,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow updating an image url"}
@@ -662,7 +662,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addImageUrl <- Box(metadata.addImageURL) ?~ {"the view " + viewId + "does not allow deleting an image url"}
@@ -677,7 +677,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow adding an open corporate url"}
@@ -696,7 +696,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow updating an open corporate url"}
@@ -715,7 +715,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addOpenCorpUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"the view " + viewId + "does not allow deleting an open corporate url"}
@@ -731,7 +731,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
@@ -752,7 +752,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
@@ -773,7 +773,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           deleted <- Box(metadata.deleteCorporateLocation)
@@ -800,7 +800,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
@@ -821,7 +821,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
@@ -842,7 +842,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           u <- user
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           otherBankAccount <- account.moderatedOtherBankAccount(other_account_id, view, user)
           metadata <- Box(otherBankAccount.metadata) ?~ {"the view " + viewId + "does not allow metadata access"}
           deleted <- Box(metadata.deletePhysicalLocation)
@@ -896,7 +896,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
       for {
         bankAccount <- BankAccount(bankId, accountId)
-        view <- View.fromUrl(viewId)
+        view <- View.fromUrl(viewId, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
       } yield {
         val json = JSONFactory.createTransactionsJSON(transactions)
@@ -911,7 +911,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
         } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)
@@ -941,7 +941,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow adding a narrative"}
         } yield {
@@ -959,7 +959,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addNarrative <- Box(metadata.addOwnerComment) ?~ {"view " + viewId + " does not allow updating a narrative"}
         } yield {
@@ -1005,7 +1005,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
           postedComment <- Full(addCommentFunc(u.id_, view.id, commentJson.value, now))
@@ -1051,7 +1051,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           tagJson <- tryo{json.extract[PostTransactionTagJSON]}
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
           postedTag <- Full(addTagFunc(u.id_, view.id, tagJson.value, now))
@@ -1097,7 +1097,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         for {
           imageJson <- tryo{json.extract[PostTransactionImageJSON]}
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
@@ -1143,7 +1143,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       user =>
         for {
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
@@ -1162,7 +1162,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       user =>
         for {
           u <- user
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
@@ -1181,7 +1181,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       user =>
         for {
           bankAccount <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, bankAccount)
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
           deleted <- metadata.deleteWhereTag(view.id, user, bankAccount)
         } yield {
@@ -1199,7 +1199,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId)
+          view <- View.fromUrl(viewId, account)
           transaction <- account.moderatedTransaction(transactionId, view, user)
           moderatedOtherBankAccount <- transaction.otherBankAccount
         } yield {

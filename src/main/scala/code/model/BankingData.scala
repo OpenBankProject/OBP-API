@@ -182,7 +182,7 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        view <- View.fromUrl(viewId) //check if the viewId corresponds to a view
+        view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
         isSaved <- LocalStorage.addPermission(id, view, otherUser) ?~ "could not save the privilege"
       } yield isSaved
@@ -198,7 +198,7 @@ class BankAccount(
   */
   def addPermissions(user : User, viewIds : List[String], otherUserId : String) : Box[List[View]] = {
     //we try to get all the views that correspond to that list of view ids
-    lazy val viewBoxes = viewIds.map(View.fromUrl)
+    lazy val viewBoxes = viewIds.map(id => View.fromUrl(id, this))
     //we see if the the is Failures
     lazy val failureList = viewBoxes.collect(v => {
       v match {
@@ -236,7 +236,7 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        view <- View.fromUrl(viewId) //check if the viewId corresponds to a view
+        view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
         isRevoked <- LocalStorage.revokePermission(id, view, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
