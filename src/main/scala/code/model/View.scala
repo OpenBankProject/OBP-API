@@ -69,6 +69,7 @@ trait View {
   def description : String
   def permalink : String
   def isPublic : Boolean
+  def users: List[User]
 
   //the view settings
   def usePublicAliasIfOneExists: Boolean
@@ -440,8 +441,10 @@ trait View {
 }
 
 object View {
-  def fromUrl(viewPermalink: String): Box[View] =
-    LocalStorage.view(viewPermalink)
+  def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
+    LocalStorage.view(viewPermalink, account)
+  def fromUrl(viewPermalink: String, accountId: String, bankId: String): Box[View] =
+    LocalStorage.view(viewPermalink, accountId, bankId)
 
   def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
     val viewsJson = views.map(view => {

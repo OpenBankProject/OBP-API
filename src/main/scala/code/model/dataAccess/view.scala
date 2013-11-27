@@ -1,11 +1,11 @@
 package code.model.dataAccess
 
 import net.liftweb.mapper._
-import code.model.{View, BankAccount}
+import code.model.{View, BankAccount, User}
 
-class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK {
+class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
-  object privilege extends MappedLongForeignKey(this, Privilege)
+  object user extends MappedLongForeignKey(this, OBPUser)
   object view extends MappedLongForeignKey(this, ViewImpl)
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
@@ -14,14 +14,16 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
-  object privileges extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.privilege, Privilege)
+  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, OBPUser)
   object account extends MappedLongForeignKey(this, HostedAccount)
+
 
   object id_ extends MappedLongIndex(this)
   object name_ extends MappedString(this, 255)
   object description_ extends MappedString(this, 255)
   object permalink_ extends MappedString(this, 255)
 
+  def users : List[User] =  users_.toList
   object isPublic_ extends MappedBoolean(this){
     override def defaultValue = false
     override def dbIndexed_? = true

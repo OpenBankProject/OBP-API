@@ -53,20 +53,22 @@ import net.liftweb.http.js.JsCmds.FocusOnLoad
 /**
  * An O-R mapped "User" class that includes first name, last name, password
  */
-class OBPUser extends MegaProtoUser[OBPUser] with User with OneToMany[Long, OBPUser]{
+class OBPUser extends MegaProtoUser[OBPUser] with User with ManyToMany with OneToMany[Long, OBPUser]{
   def getSingleton = OBPUser // what's the "meta" server
   def id_ = emailAddress
   def emailAddress = email.get
   def theFirstName : String = firstName.get
   def theLastName : String = lastName.get
   def provider = Props.get("hostname","")
-  object privileges extends MappedOneToMany(Privilege, Privilege.user, OrderBy(Privilege.id, Ascending))
+  def views: List[View] = views_.toList
+
+  object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 }
 
 /**
  * The singleton that has methods for accessing the database
  */
-object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
+object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser] with Loggable{
 
   override def dbTableName = "users" // define the DB table name
 
@@ -114,7 +116,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
         case Full(user) if user.validated_? &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
-            println("login redir: " + loginRedirect.is)
+            logger.info("login redir: " + loginRedirect.is)
             val redir = loginRedirect.is match {
               case Full(url) =>
                 loginRedirect(Empty)
@@ -133,7 +135,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
           }
 
         case _ => {
-          println("failed: " + failedLoginRedirect.get)
+          logger.info("failed: " + failedLoginRedirect.get)
           failedLoginRedirect.get.foreach(S.redirectTo(_))
         }
       }
@@ -146,18 +148,6 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
   }
 
 }
-
-class Privilege extends LongKeyedMapper[Privilege] with CreatedUpdated with ManyToMany{
-  def getSingleton = Privilege
-  def primaryKeyField = id
-  object id extends MappedLongIndex(this)
-  object user extends MappedLongForeignKey(this, OBPUser)
-  object account extends MappedLongForeignKey(this, HostedAccount)
-  object views extends MappedManyToMany(ViewPrivileges, ViewPrivileges.privilege, ViewPrivileges.view, ViewImpl)
-
-}
-
-object Privilege extends Privilege with LongKeyedMetaMapper[Privilege]
 
 class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, HostedAccount]{
   def getSingleton = HostedAccount

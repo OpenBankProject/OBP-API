@@ -47,7 +47,6 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import code.util.APIUtil.OAuth._
 
-
 case class OAuhtResponse(
   code: Int,
   body: String
@@ -82,7 +81,7 @@ class OAuthTest extends ServerSetup{
     Await.result(
       for(response <- Http(req > as.Response(p => p)))
         yield OAuhtResponse(response.getStatusCode, response.getResponseBody)
-    , Duration(1, SECONDS))
+    , Duration.Inf)
   }
 
   def sendPostRequest(req: Req): OAuhtResponse = {

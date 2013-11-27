@@ -99,7 +99,7 @@ trait ServerSetup extends FeatureSpec
         }
       })
 
-    val hostedAccounts = accounts.map(account => {
+    accounts.map(account => {
       val hostedaccount =
         HostedAccount.
           create.
@@ -179,7 +179,7 @@ trait ServerSetup extends FeatureSpec
     //drop the Database after the tests
     MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
     ViewImpl.findAll.map(_.delete_!)
-    Privilege.findAll.map(_.delete_!)
+    ViewPrivileges.findAll.map(_.delete_!)
     HostedAccount.findAll.map(_.delete_!)
   }
 
@@ -191,7 +191,7 @@ trait ServerSetup extends FeatureSpec
         val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
         APIResponse(response.getStatusCode, parse(body))
       }
-    , Duration(5, SECONDS))
+    , Duration.Inf)
   }
 
   /**
