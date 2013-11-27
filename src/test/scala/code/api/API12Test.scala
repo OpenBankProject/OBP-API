@@ -51,9 +51,8 @@ import java.util.Date
 
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, ViewImpl, ViewPrivileges }
+import code.model.dataAccess.{OBPUser, Account, HostedAccount, ViewImpl, ViewPrivileges }
 import code.api.test.{ServerSetup, APIResponse}
-import code.model.dataAccess.{OBPUser, Privilege, HostedAccount, Account}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
@@ -111,20 +110,12 @@ class API1_2Test extends ServerSetup{
 
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
-    val privileges =
-      HostedAccount.findAll.map(bankAccount => {
-        Privilege.create.
-        account(bankAccount).
-        user(obpuser1).
-        saveMe
-      })
     for{
-      p <- privileges
       v <- ViewImpl.findAll()
     }{
       ViewPrivileges.create.
         view(v).
-        privilege(p).
+        user(obpuser1).
         save
     }
   }

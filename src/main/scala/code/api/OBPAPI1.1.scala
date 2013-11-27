@@ -254,7 +254,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def moderatedTransactionMetadata(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-      view <- View.fromUrl(viewId) ?~ { "view "  + viewId + " not found"}
+      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorized"
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
     } yield metadata
@@ -262,7 +262,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def moderatedTransactionOtherAccount(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-      view <- View.fromUrl(viewId) ?~ { "view "  + viewId + " not found"}
+      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
       moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorized"
       otherAccount <- Box(moderatedTransaction.otherBankAccount) ?~ {"view " + viewId + " does not authorize other account access"}
     } yield otherAccount
@@ -270,7 +270,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def moderatedOtherAccount(bankId : String, accountId : String, viewId : String, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-      view <- View.fromUrl(viewId) ?~ { "view "  + viewId + " not found"}
+      view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
       moderatedOtherBankAccount <- account.moderatedOtherBankAccount(other_account_ID, view, user)
     } yield moderatedOtherBankAccount
 
@@ -426,7 +426,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       val moderatedAccountAndViews = for {
         bank <- Bank(bankId) ?~ { "bank " + bankId + " not found" } ~> 404
         account <- BankAccount(bankId, accountId) ?~ { "account " + accountId + " not found for bank" } ~> 404
-        view <- View.fromUrl(viewId) ?~ { "view " + viewId + " not found for account" } ~> 404
+        view <- View.fromUrl(viewId, account) ?~ { "view " + viewId + " not found for account" } ~> 404
         moderatedAccount <- account.moderatedBankAccount(view, user) ?~ { "view/account not authorized" } ~> 401
         availableViews <- Full(account.permittedViews(user))
       } yield ModeratedAccountAndViews(moderatedAccount, availableViews)
@@ -517,7 +517,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       }
       val response : Box[JsonResponse] = for {
         bankAccount <- BankAccount(bankId, accountId)
-        view <- View.fromUrl(viewId)
+        view <- View.fromUrl(viewId, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params: _*)
       } yield {
         JsonResponse(transactionsJson(transactions, view),Nil, Nil, 200)
@@ -534,7 +534,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       def transactionInJson(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val moderatedTransaction = for {
             account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
-            view <- View.fromUrl(viewId) ?~ { "view "  + viewId + " not found"}
+            view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
             moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorized"
           } yield moderatedTransaction
 
@@ -750,7 +750,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val comment = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   postedComment <- addComment(user, view.id, commentJson.value, commentJson.posted_date)
                 } yield postedComment
 
@@ -846,7 +846,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
                 val tag = for{
                     user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                    view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                     postedTagID <- addTag(user, view.id, tagJson.value, tagJson.posted_date)
                   } yield postedTagID
 
@@ -947,7 +947,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val imageId = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
                   postedImageId <- addImage(user, view.id, imageJson.label, url)
                 } yield postedImageId
@@ -1029,7 +1029,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val postedGeoTag = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountID, bankID) ?~ {"view " + viewId +" view not found"}
                   posterWheteTag <- addWhereTag(user, view.id, whereTagJson.where.longitude, whereTagJson.where.latitude)
                 } yield posterWheteTag
 
@@ -1081,7 +1081,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val postedGeoTag = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountID, bankID) ?~ {"view " + viewId +" view not found"}
                   posterWheteTag <- addWhereTag(user, view.id, whereTagJson.where.longitude, whereTagJson.where.latitude)
                 } yield posterWheteTag
 
@@ -1645,7 +1645,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
               }
               val postedGeoTag = for {
                     u <- user ?~ "User not found. Authentication via OAuth is required"
-                    view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                     postedGeoTag <- addCorporateLocation(u, view.id, corporateLocationJSON.corporate_location.longitude, corporateLocationJSON.corporate_location.latitude)
                   } yield postedGeoTag
 
@@ -1704,7 +1704,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
               }
               val postedGeoTag = for {
                     u <- user ?~ "User not found. Authentication via OAuth is required"
-                    view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                     postedGeoTag <- addCorporateLocation(u, view.id, corporateLocationJSON.corporate_location.longitude, corporateLocationJSON.corporate_location.latitude)
                   } yield postedGeoTag
 
@@ -1763,7 +1763,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
               }
               val postedGeoTag = for {
                     u <- user ?~ "User not found. Authentication via OAuth is required"
-                    view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                     postedGeoTag <- addPhysicalLocation(u, view.id, physicalLocationJSON.physical_location.longitude, physicalLocationJSON.physical_location.latitude)
                   } yield postedGeoTag
 
@@ -1822,7 +1822,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
               }
               val postedGeoTag = for {
                     u <- user ?~ "User not found. Authentication via OAuth is required"
-                    view <- View.fromUrl(viewId) ?~ {"view " + viewId +" view not found"}
+                    view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                     postedGeoTag <- addPhysicalLocation(u, view.id, physicalLocationJSON.physical_location.longitude, physicalLocationJSON.physical_location.latitude)
                   } yield postedGeoTag
 
