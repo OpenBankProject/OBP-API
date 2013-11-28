@@ -147,8 +147,7 @@ trait ServerSetup extends FeatureSpec
           amount(transactionAmount)
 
         val details = OBPDetails.createRecord.
-          type_en(randomString(5)).
-          type_de(randomString(5)).
+          kind(randomString(5)).
           posted(now).
           other_data(randomString(5)).
           new_balance(newBalance).
