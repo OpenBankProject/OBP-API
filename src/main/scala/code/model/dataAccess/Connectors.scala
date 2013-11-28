@@ -207,7 +207,7 @@ class MongoDBLocalStorage extends LocalStorage {
       env.addWhereTag,
       env.deleteWhereTag
     )
-    val transactionType = transaction.details.get.type_en.get
+    val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
     val currency = transaction.details.get.value.get.currency.get
     val label = Some(transaction.details.get.label.get)
