@@ -3,6 +3,8 @@ package code.model.dataAccess
 import com.rabbitmq.client.{ConnectionFactory,Channel}
 import net.liftmodules.amqp.{AMQPSender,StringAMQPSender,AMQPMessage}
 import net.liftweb.util._
+import net.liftweb.common.{Loggable, Failure, Full}
+import Helpers.tryo
 
 /**
 * the message to be sent in message queue
@@ -14,7 +16,7 @@ case class UpdateBankAccount(
   val bankNationalIdentifier : String
 )
 
-object UpdatesRequestSender {
+object UpdatesRequestSender extends Loggable {
   private val factory = new ConnectionFactory {
     import ConnectionFactory._
     setHost("localhost")
@@ -24,10 +26,16 @@ object UpdatesRequestSender {
     setVirtualHost(DEFAULT_VHOST)
   }
 
-  private val amqp = new UpdateRequestsAMQPSender(factory, "transactions", "transactions")
+  private val amqp = tryo{
+      new UpdateRequestsAMQPSender(factory, "transactions", "transactions")
+  }
 
   def sendMessage(message: UpdateBankAccount) = {
-     amqp ! AMQPMessage(message)
+    amqp match {
+      case Full(a) => a ! AMQPMessage(message)
+      case Failure(msg, _, _) => logger.warn("could not send the message: " + message + " because the the message sender was not set properly. Error: " + msg)
+      case _ => logger.warn("could not send the message: " + message + " because the the message sender was not set properly.")
+    }
   }
 }
 
