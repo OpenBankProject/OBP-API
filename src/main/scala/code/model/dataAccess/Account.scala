@@ -69,10 +69,11 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   object lastUpdate extends DateField(this)
   object otherAccounts extends ObjectIdRefListField(this, OtherAccount)
 
-  def bankName : String = bankID.obj match  {
+  def bankName : String = bankID.obj match {
     case Full(bank) => bank.name.get
     case _ => ""
   }
+
   def bankPermalink : String  = bankID.obj match  {
     case Full(bank) => bank.permalink.get
     case _ => ""
@@ -82,6 +83,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
     put("obp_transaction.this_account.kind").is(kind.get).
     put("obp_transaction.this_account.holder").is(holder.get).
     put("obp_transaction.this_account.bank.name").is(bankName)
+    //FIX: change that to use the bank identifier
 
   //find all the envelopes related to this account
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(transactionsForAccount.get)

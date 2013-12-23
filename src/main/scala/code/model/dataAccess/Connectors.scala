@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import code.model._
 import net.liftweb.common.{ Box, Empty, Full, Failure }
-import net.liftweb.util.Helpers.{tryo, now, hours, time}
+import net.liftweb.util.Helpers.{tryo, now, hours,minutes, time}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
@@ -46,6 +46,7 @@ import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
 import com.mongodb.QueryBuilder
 import scala.concurrent.ops.spawn
+import com.tesobe.model.UpdateBankAccount
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -101,7 +102,7 @@ class MongoDBLocalStorage extends LocalStorage {
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
     spawn{
       if( now after time(account.lastUpdate.get.getTime + hours(1)) ) {
-        UpdatesRequestSender.sendMessage(UpdateBankAccount(account.number.get, HostedBank.national_identifier.get))
+        UpdatesRequestSender.sendMsg(UpdateBankAccount(account.number.get, bank.national_identifier.get))
       }
     }
   }
