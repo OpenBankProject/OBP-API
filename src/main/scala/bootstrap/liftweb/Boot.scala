@@ -192,14 +192,6 @@ class Boot extends Loggable{
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
-    def check(bool: Boolean) : Box[LiftResponse] = {
-      if(bool){
-        Empty
-      }else{
-        Full(PlainTextResponse("unauthorized"))
-      }
-    }
-
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
