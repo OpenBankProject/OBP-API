@@ -35,6 +35,7 @@ import net.liftweb.util.FieldError
 import net.liftweb.common.{Full,Failure,Box,Empty}
 import net.liftweb.util.Helpers
 import Helpers.now
+import code.model.dataAccess.Admin
 
 object AppType extends Enumeration("web", "mobile"){
   type AppType = Value
