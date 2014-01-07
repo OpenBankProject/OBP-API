@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import code.model._
 import net.liftweb.common.{ Box, Empty, Full, Failure }
-import net.liftweb.util.Helpers.{tryo, now, hours,minutes, time}
+import net.liftweb.util.Helpers.{tryo, now, hours,minutes, time, asLong}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common.Loggable
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
@@ -69,7 +69,6 @@ trait LocalStorage extends Loggable {
     (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
 
   def getUser(id : String) : Box[User]
-  def getCurrentUser : Box[User]
 
   def permissions(account : BankAccount) : Box[List[Permission]]
   def permission(account : BankAccount, user: User) : Box[Permission]
@@ -340,7 +339,9 @@ class MongoDBLocalStorage extends LocalStorage {
   def getBank(permalink: String): Box[Bank] =
     for{
       bank <- getHostedBank(permalink)
-    } yield createBank(bank)
+    } yield {
+      createBank(bank)
+    }
 
   def allBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
@@ -369,13 +370,13 @@ class MongoDBLocalStorage extends LocalStorage {
 
   private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {
     user match {
-      case u : OBPUser => {
+      case u : APIUser => {
         u.views_.toList.
         filterNot(_.isPublic_).
         map(_.account.obj.get)
       }
       case _ => {
-        logger.error("OBPUser instance not found, could not find the accounts")
+        logger.error("APIUser instance not found, could not find the accounts")
         Nil
       }
     }
@@ -388,13 +389,13 @@ class MongoDBLocalStorage extends LocalStorage {
 
     val accountsList =
       user match {
-        case u : OBPUser => {
+        case u : APIUser => {
           val moreThanAnon = moreThanAnonHostedAccounts(u)
           val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
           Account.findAll(mongoIds).map(Account.toBankAccount)
         }
         case u: User => {
-          logger.error("OBPUser instance not found, could not find the non public accounts")
+          logger.error("APIUser instance not found, could not find the non public accounts")
           Nil
         }
       }
@@ -406,7 +407,7 @@ class MongoDBLocalStorage extends LocalStorage {
   */
   def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
-      case u : OBPUser => {
+      case u : APIUser => {
         for {
           bankObjectId <- tryo{new ObjectId(bankID)}
         } yield {
@@ -419,7 +420,7 @@ class MongoDBLocalStorage extends LocalStorage {
         }
       }
       case u : User => {
-        logger.error("OBPUser instance not found, could not find the non public account ")
+        logger.error("APIUser instance not found, could not find the non public account ")
         Full(Nil)
       }
     }
@@ -469,10 +470,9 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   def getUser(id : String) : Box[User] = {
-    OBPUser.find(By(OBPUser.email,id)) match {
-      case Full(u) => Full(u)
-      case _ => Failure("user " + id + " not found")
-    }
+    for{
+      user <- APIUser.find(By(APIUser.providerId,id)) ?~ { s"user $id not found"}
+    } yield user
   }
   def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
   (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
@@ -480,8 +480,6 @@ class MongoDBLocalStorage extends LocalStorage {
       transaction <- getTransaction(id,bankPermalink,accountPermalink)
     } yield moderate(transaction)
   }
-
-  def getCurrentUser : Box[User] = OBPUser.currentUser
 
   def permissions(account : BankAccount) : Box[List[Permission]] = {
     for{
@@ -503,7 +501,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def permission(account : BankAccount, user: User) : Box[Permission] = {
     user match {
-      case u: OBPUser =>{
+      case u: APIUser =>{
         for{
           acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
         } yield {
@@ -514,7 +512,7 @@ class MongoDBLocalStorage extends LocalStorage {
         }
       }
       case u: User =>{
-        logger.error("OBPUser instance not found, could not get privilege ")
+        logger.error("APIUser instance not found, could not get privilege ")
         Failure("could not get user: " + user.id_ + " permission" )
       }
     }
@@ -522,7 +520,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
     user match {
-      case u: OBPUser =>
+      case u: APIUser =>
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
@@ -535,7 +533,7 @@ class MongoDBLocalStorage extends LocalStorage {
               true
           }
       case u: User => {
-          logger.error("OBPUser instance not found, could not grant access ")
+          logger.error("APIUser instance not found, could not grant access ")
           Empty
       }
     }
@@ -543,7 +541,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean] ={
     user match {
-      case u : OBPUser => {
+      case u : APIUser => {
         views.foreach(v => {
           if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,v.id))==0){
             ViewPrivileges.create.
@@ -555,7 +553,7 @@ class MongoDBLocalStorage extends LocalStorage {
         Full(true)
       }
       case u: User => {
-        logger.error("OBPUser instance not found, could not grant access ")
+        logger.error("APIUser instance not found, could not grant access ")
         Empty
       }
     }
@@ -563,7 +561,7 @@ class MongoDBLocalStorage extends LocalStorage {
   }
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean] = {
     user match {
-      case u:OBPUser =>
+      case u:APIUser =>
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
           vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
@@ -571,7 +569,7 @@ class MongoDBLocalStorage extends LocalStorage {
               vp.delete_!
           }
       case u: User => {
-        logger.error("OBPUser instance not found, could not revoke access ")
+        logger.error("APIUser instance not found, could not revoke access ")
         Empty
       }
     }
@@ -579,7 +577,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def revokeAllPermission(bankAccountId : String, user : User) : Box[Boolean] = {
     user match {
-      case u:OBPUser =>{
+      case u:APIUser =>{
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
         } yield {
@@ -589,7 +587,7 @@ class MongoDBLocalStorage extends LocalStorage {
         }
       }
       case u: User => {
-        logger.error("OBPUser instance not found, could not revoke access ")
+        logger.error("APIUser instance not found, could not revoke access ")
         Empty
       }
     }
@@ -780,7 +778,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
     user match {
-      case u: OBPUser=> {
+      case u: APIUser=> {
         val nonPublic: List[View] =
           HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
             case Full(account) =>{
@@ -794,7 +792,7 @@ class MongoDBLocalStorage extends LocalStorage {
         nonPublic ::: bankAccount.publicViews
       }
       case _ => {
-        logger.error("OBPUser instance not found, could not get Permitted views")
+        logger.error("APIUser instance not found, could not get Permitted views")
         Nil
       }
     }

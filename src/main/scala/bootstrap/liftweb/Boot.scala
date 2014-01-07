@@ -189,6 +189,8 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
     Schemifier.schemify(true, Schemifier.infoF _, ViewPrivileges)
     Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
+    Schemifier.schemify(true, Schemifier.infoF _, APIUser)
+
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
@@ -199,8 +201,7 @@ class Boot extends Loggable{
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           Menu.i("Metrics") / "metrics",
-          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Connect") / "connect"
+          Menu.i("OAuth") / "oauth" / "authorize" //OAuth authorization page
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
