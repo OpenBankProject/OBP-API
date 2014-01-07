@@ -61,13 +61,11 @@ trait User {
 
   def toJson : JObject =
     ("id" -> id_) ~
-    ("provider" -> "sofi.openbankproject.com") ~
+    ("provider" -> provider) ~
     ("display_name" -> {theFirstName + " " + theLastName})
 }
 
 object User {
   def findById(id : String) : Box[User] =
     LocalStorage.getUser(id)
-  def currentUser : Box[User] =
-    LocalStorage.getCurrentUser
 }

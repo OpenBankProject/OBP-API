@@ -37,7 +37,7 @@ import code.model.{View, BankAccount, User}
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
-  object user extends MappedLongForeignKey(this, OBPUser)
+  object user extends MappedLongForeignKey(this, APIUser)
   object view extends MappedLongForeignKey(this, ViewImpl)
 }
 object ViewPrivileges extends ViewPrivileges with LongKeyedMetaMapper[ViewPrivileges]
@@ -46,7 +46,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def getSingleton = ViewImpl
 
   def primaryKeyField = id_
-  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, OBPUser)
+  object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, APIUser)
   object account extends MappedLongForeignKey(this, HostedAccount)
 
 

@@ -54,8 +54,12 @@ class Bank(
 {
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
     user match {
-      case Full(u) => nonPublicAccounts(u)
-      case _ => publicAccounts
+      case Full(u) => {
+        nonPublicAccounts(u)
+      }
+      case _ => {
+        publicAccounts
+      }
     }
   }
 
@@ -86,7 +90,9 @@ class Bank(
 }
 
 object Bank {
-  def apply(bankPermalink: String) : Box[Bank] = LocalStorage.getBank(bankPermalink)
+  def apply(bankPermalink: String) : Box[Bank] = {
+    LocalStorage.getBank(bankPermalink)
+  }
 
   def all : List[Bank] = LocalStorage.allBanks
 

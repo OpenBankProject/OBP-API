@@ -36,7 +36,7 @@ import org.scalatest._
 import dispatch._, Defaults._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Loggable}
 import code.api.test.{ServerSetup, APIResponse}
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
@@ -106,7 +106,7 @@ class OAuthTest extends ServerSetup{
     Token(token, secret)
   }
 
-  case class Browser() extends HtmlUnit{
+  case class Browser() extends HtmlUnit with Loggable{
     implicit val driver = webDriver
     def getVerifier(loginPage: String, userName: String, password: String) : Box[String] = {
       tryo{
@@ -120,12 +120,12 @@ class OAuthTest extends ServerSetup{
         val verifier =
           if(newURL.contains("verifier"))
           {
-            //we got redirected
+            logger.info("redirected during oauth")
             val params = newURL.split("&")
             params(1).split("=")(1)
           }
           else{
-            //the verifier is in the page
+            logger.info("the verifier is in the page")
             XPathQuery("""//div[@id='verifier']""").element.text
           }
         close()
@@ -181,7 +181,7 @@ class OAuthTest extends ServerSetup{
       Then("we should get a 401 code")
       reply.code should equal (401)
     }
-    scenario("we don't get a request token since the application is not registered even with a callback URL", RequestToken, Oauth, Current) {
+    scenario("we don't get a request token since the application is not registered even with a callback URL", RequestToken, Oauth) {
       Given("The application not registered")
       When("the request is sent")
       val reply = getRequestToken(notRegisteredConsumer, "localhost:8080/app")
