@@ -87,7 +87,9 @@ object OAuthAuthorisation {
                   //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
                   //link the token with the concrete API User
                   obpUser.user.obj.map{
-                    u  => appToken.userId(u.id_)
+                    u  => {
+                      appToken.userId(u.id_)
+                    }
                   }
                   if (appToken.save())
                     verifier = randomVerifier

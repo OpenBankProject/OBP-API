@@ -53,6 +53,7 @@ import net.liftweb.util.Helpers
 import javax.mail.{ Authenticator, PasswordAuthentication }
 import java.io.FileInputStream
 import java.io.File
+import code.model.dataAccess.BankAccountCreationListener
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -234,6 +235,8 @@ class Boot extends Loggable{
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+
+    BankAccountCreationListener.startListen
 
   }
 }

@@ -117,71 +117,68 @@ class MongoDBLocalStorage extends LocalStorage {
     val transaction: OBPTransaction = env.obp_transaction.get
     val thisAccount = transaction.this_account
     val otherAccount_ = transaction.other_account.get
-    val otherUnmediatedHolder = otherAccount_.holder.get
+    val oaccMetadata = otherAccount_.metadata.obj.getOrElse {
+      Metadata.createRecord
+    }
 
     val thisBankAccount = Account.toBankAccount(theAccount)
 
-    val oAcc = theAccount.otherAccounts.objs.find(o => {
-      otherUnmediatedHolder.equals(o.holder.get)
-    }).getOrElse {
-      OtherAccount.createRecord
-    }
 
     val id = env.id.is.toString()
     val uuid = id
     val otherAccountMetadata =
       new OtherBankAccountMetadata(
-        publicAlias = oAcc.publicAlias.get,
-        privateAlias = oAcc.privateAlias.get,
-        moreInfo = oAcc.moreInfo.get,
-        url = oAcc.url.get,
-        imageURL = oAcc.imageUrl.get,
-        openCorporatesURL = oAcc.openCorporatesUrl.get,
-        corporateLocation = locatationTag(oAcc.corporateLocation.get),
-        physicalLocation = locatationTag(oAcc.physicalLocation.get),
+        publicAlias = oaccMetadata.publicAlias.get,
+        privateAlias = oaccMetadata.privateAlias.get,
+        moreInfo = oaccMetadata.moreInfo.get,
+        url = oaccMetadata.url.get,
+        imageURL = oaccMetadata.imageUrl.get,
+        openCorporatesURL = oaccMetadata.openCorporatesUrl.get,
+        corporateLocation = locatationTag(oaccMetadata.corporateLocation.get),
+        physicalLocation = locatationTag(oaccMetadata.physicalLocation.get),
         addMoreInfo = (text => {
-          oAcc.moreInfo(text).save
+          oaccMetadata.moreInfo(text).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
         addURL = (text => {
-          oAcc.url(text).save
+          oaccMetadata.url(text).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
         addImageURL = (text => {
-          oAcc.imageUrl(text).save
+          oaccMetadata.imageUrl(text).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
         addOpenCorporatesURL = (text => {
-          oAcc.openCorporatesUrl(text).save
+          oaccMetadata.openCorporatesUrl(text).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
-        addCorporateLocation = oAcc.addCorporateLocation,
-        addPhysicalLocation = oAcc.addPhysicalLocation,
+        addCorporateLocation = oaccMetadata.addCorporateLocation,
+        addPhysicalLocation = oaccMetadata.addPhysicalLocation,
         addPublicAlias = (alias => {
-          oAcc.publicAlias(alias).save
+          oaccMetadata.publicAlias(alias).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
         addPrivateAlias = (alias => {
-          oAcc.privateAlias(alias).save
+          oaccMetadata.privateAlias(alias).save
           //the save method does not return a Boolean to inform about the saving state,
           //so we a true
           true
         }),
-        deleteCorporateLocation = oAcc.deleteCorporateLocation _,
-        deletePhysicalLocation = oAcc.deletePhysicalLocation _
+        deleteCorporateLocation = oaccMetadata.deleteCorporateLocation _,
+        deletePhysicalLocation = oaccMetadata.deletePhysicalLocation _
       )
     val otherAccount = new OtherBankAccount(
-        id = oAcc.id.is.toString,
+        id = oaccMetadata.id.is.toString,
         label = otherAccount_.holder.get,
         nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
         swift_bic = None, //TODO: need to add this to the json/model
@@ -230,7 +227,7 @@ class MongoDBLocalStorage extends LocalStorage {
     )
   }
 
-  private def createOtherBankAccount(otherAccount : OtherAccount, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
+  private def createOtherBankAccount(otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     val metadata =
       new OtherBankAccountMetadata(
         publicAlias = otherAccount.publicAlias.get,
@@ -431,13 +428,13 @@ class MongoDBLocalStorage extends LocalStorage {
       for{
         id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
         account <- Account.find("_id",id)
-        otherAccount <- account.otherAccounts.objs.find(_.id.get.equals(otherAccountID))
+        otherAccountmetadata <- account.otherAccountsMetadata.objs.find(_.id.get.equals(otherAccountID))
       } yield{
-          val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
+          val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.metadata",otherAccountmetadata.id.is) match {
             case Full(envelope) => envelope.obp_transaction.get.other_account.get
             case _ => OBPAccount.createRecord
           }
-          moderate(createOtherBankAccount(otherAccount, otherAccountFromTransaction)).get
+          moderate(createOtherBankAccount(otherAccountmetadata, otherAccountFromTransaction)).get
         }
   }
 
@@ -447,7 +444,7 @@ class MongoDBLocalStorage extends LocalStorage {
       id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
       account <- Account.find("_id",id)
     } yield{
-        val otherBankAccounts = account.otherAccounts.objs.map(otherAccount => {
+        val otherBankAccounts = account.otherAccountsMetadata.objs.map(otherAccount => {
           //for legacy reasons some of the data about the "other account" are stored only on the transactions
           //so we need first to get a transaction that match to have the rest of the data
           val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
