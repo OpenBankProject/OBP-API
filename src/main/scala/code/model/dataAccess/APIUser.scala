@@ -53,6 +53,10 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   object provider_ extends MappedString(this, 100){
     override def defaultValue = Props.get("hostname","")
   }
+
+  /**
+  * the id of the user at that provider
+  */
   object providerId extends MappedString(this, 100){
     override def defaultValue = java.util.UUID.randomUUID.toString
   }
@@ -68,4 +72,6 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
 }
 
-object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{}
+object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{
+    override def dbIndexes = UniqueIndex(provider_, providerId) ::super.dbIndexes
+}

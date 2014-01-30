@@ -1393,7 +1393,7 @@ class API1_2_1Test extends ServerSetup{
   }
 
   feature("We get one specific other bank account among the other accounts "){
-    scenario("we will get one random other bank account of a bank account", API1_2, GetOtherBankAccount) {
+    scenario("we will get one random other bank account of a bank account", API1_2, GetOtherBankAccount, CurrentTest) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)

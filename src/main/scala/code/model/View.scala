@@ -293,7 +293,7 @@ trait View {
       val accountType = if(canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(canSeeBankAccountCurrency) Some(bankAccount.currency) else None
       val label = if(canSeeBankAccountLabel) Some(bankAccount.label) else None
-      val nationalIdentifier = if(canSeeBankAccountNationalIdentifier) Some(bankAccount.label) else None
+      val nationalIdentifier = if(canSeeBankAccountNationalIdentifier) Some(bankAccount.nationalIdentifier) else None
       val swiftBic = if(canSeeBankAccountSwift_bic) bankAccount.swift_bic else None
       val iban = if(canSeeBankAccountIban) bankAccount.iban else None
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None

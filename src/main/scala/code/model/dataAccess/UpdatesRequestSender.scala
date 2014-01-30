@@ -68,6 +68,7 @@ package code.model.dataAccess {
 
 
     def sendMsg(message: UpdateBankAccount) = {
+      logger.info(s"""Send message to get updates for the account ${message.accountNumber} at ${message.bankNationalIdentifier}""")
       amqp ! AMQPMessage(message)
     }
   }
