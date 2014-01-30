@@ -65,7 +65,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
       .lastName(lastName.get)
       .email(email)
       .provider_(Props.get("hostname",""))
-      .providerId(id.get.toString)
+      .providerId(java.util.UUID.randomUUID.toString)
       .saveMe
       user(apiUser)
     }
