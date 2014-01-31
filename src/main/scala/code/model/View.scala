@@ -328,6 +328,7 @@ trait View {
       val otherAccountId = otherBankAccount.id
       val otherAccountLabel: AccountName = {
         val realName = otherBankAccount.label
+
         if (usePublicAliasIfOneExists) {
 
           val publicAlias = otherBankAccount.metadata.publicAlias

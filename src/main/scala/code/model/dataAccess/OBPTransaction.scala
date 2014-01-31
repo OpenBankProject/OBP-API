@@ -311,8 +311,19 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       this.theAccount match {
         case Full(a) => {
           val otherAccs = a.otherAccountsMetadata.objs
-          val aliasInQuestion = otherAccs.find(o =>
-            o.holder.get.equals(realValue))
+          val aliasInQuestion: Option[Metadata] =
+            otherAccs.find(o =>{
+                o.holder.get.equals(realValue)
+              }
+            )
+          logger.info("metadata for holder " + realValue +" found? " + aliasInQuestion.isDefined)
+          aliasInQuestion match {
+            case Some(metadata) => {
+                logger.info("setting up the reference to the other account metadata")
+                this.obp_transaction.get.other_account.get.metadata(metadata.id.is)
+              }
+            case _ =>
+          }
           aliasInQuestion.isDefined
         }
         case _ => false

@@ -432,7 +432,10 @@ class MongoDBLocalStorage extends LocalStorage {
       } yield{
           val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.metadata",otherAccountmetadata.id.is) match {
             case Full(envelope) => envelope.obp_transaction.get.other_account.get
-            case _ => OBPAccount.createRecord
+            case _ => {
+              logger.warn("no other account found")
+              OBPAccount.createRecord
+            }
           }
           moderate(createOtherBankAccount(otherAccountmetadata, otherAccountFromTransaction)).get
         }
