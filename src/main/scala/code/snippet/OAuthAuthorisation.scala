@@ -83,9 +83,14 @@ object OAuthAuthorisation {
                 if (appToken.verifier.isEmpty) {
                   val randomVerifier = appToken.gernerateVerifier
                   //the user is logged in so we have the current user
-                  val user = OBPUser.currentUser.get
+                  val obpUser = OBPUser.currentUser.get
                   //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
-                  appToken.userId(user.id_)
+                  //link the token with the concrete API User
+                  obpUser.user.obj.map{
+                    u  => {
+                      appToken.userId(u.id_)
+                    }
+                  }
                   if (appToken.save())
                     verifier = randomVerifier
                 } else

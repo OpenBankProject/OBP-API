@@ -42,9 +42,14 @@ import net.liftweb.util.Helpers
 
 class ConsumerRegistration {
 
+  //TODO: for security reasons this snippet and the template must be re-factored
+  //to use the lift build in form function(SHtml._) so we can hide to what
+  //the input fields are mapped to in the server side !!
+
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
 
   private object nameVar extends RequestVar("")
+  private object redirectionURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[Consumer.appType.enum.AppType](Consumer.appType.enum.values.head)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
@@ -72,6 +77,7 @@ class ConsumerRegistration {
             })
           } &
       	"name=app-name [value]" #> nameVar.get &
+        "name=app-user-authentication-url [value]" #> redirectionURLVar.get &
       	"name=app-description *" #> descriptionVar.get &
       	"name=app-developer [value]" #> devEmailVar.get
       } &
@@ -81,6 +87,7 @@ class ConsumerRegistration {
     def showResults(consumer : Consumer) = {
       //thanks for registering, here's your key, etc.
       ".app-name *" #> consumer.name.get &
+      ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
       ".app-type *" #> consumer.appType.get.toString &
       ".app-description *" #> consumer.description.get &
       ".app-developer *" #> consumer.developerEmail.get &
@@ -116,6 +123,7 @@ class ConsumerRegistration {
         ) getOrElse Consumer.appType.enum.values.head
 
       val appDescription = S.param("app-description") getOrElse ""
+      val appRedirectionUrl = S.param("app-user-authentication-url") getOrElse ""
       val developerEmail = S.param("app-developer") getOrElse ""
 
       val consumer =
@@ -123,13 +131,15 @@ class ConsumerRegistration {
           name(name).
           appType(appType).
           description(appDescription).
-          developerEmail(developerEmail)
+          developerEmail(developerEmail).
+          userAuthenticationURL(appRedirectionUrl)
 
       val errors = consumer.validate
       nameVar.set(name)
       appTypeVar.set(appType)
       descriptionVar.set(appDescription)
       devEmailVar.set(developerEmail)
+      redirectionURLVar.set(appRedirectionUrl)
 
       if(errors.isEmpty)
         saveAndShowResults(consumer)

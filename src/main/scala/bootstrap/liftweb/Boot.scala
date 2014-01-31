@@ -53,6 +53,7 @@ import net.liftweb.util.Helpers
 import javax.mail.{ Authenticator, PasswordAuthentication }
 import java.io.FileInputStream
 import java.io.File
+import code.model.dataAccess.BankAccountCreationListener
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -189,16 +190,10 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
     Schemifier.schemify(true, Schemifier.infoF _, ViewPrivileges)
     Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
+    Schemifier.schemify(true, Schemifier.infoF _, APIUser)
+
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
-
-    def check(bool: Boolean) : Box[LiftResponse] = {
-      if(bool){
-        Empty
-      }else{
-        Full(PlainTextResponse("unauthorized"))
-      }
-    }
 
     // Build SiteMap
     val sitemap = List(
@@ -207,8 +202,7 @@ class Boot extends Loggable{
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           Menu.i("Metrics") / "metrics",
-          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
-          Menu.i("Connect") / "connect"
+          Menu.i("OAuth") / "oauth" / "authorize" //OAuth authorization page
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
@@ -241,6 +235,8 @@ class Boot extends Loggable{
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+
+    BankAccountCreationListener.startListen
 
   }
 }

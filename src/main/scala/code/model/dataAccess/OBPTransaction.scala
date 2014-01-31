@@ -227,7 +227,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 
     //before to save the geo tag we need to be sure there is only one per view
-    //so we look if there is allready a tag with the same view (viewId)
+    //so we look if there is already a tag with the same view (viewId)
     val tags = whereTags.get.find(geoTag => geoTag.viewID equals viewId) match {
       case Some(tag) => {
         //if true remplace it with the new one
@@ -305,22 +305,32 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     val date2 = e2.obp_transaction.get.details.get.completed.get
     date1.after(date2)
   }
-  def createAliases : Box[String] = {
+  def createAliases : Box[Unit] = {
     val realOtherAccHolder = this.obp_transaction.get.other_account.get.holder.get
-
     def publicAliasExists(realValue: String): Boolean = {
       this.theAccount match {
         case Full(a) => {
-          val otherAccs = a.otherAccounts.objs
-          val aliasInQuestion = otherAccs.find(o =>
-            o.holder.get.equals(realValue))
+          val otherAccs = a.otherAccountsMetadata.objs
+          val aliasInQuestion: Option[Metadata] =
+            otherAccs.find(o =>{
+                o.holder.get.equals(realValue)
+              }
+            )
+          logger.info("metadata for holder " + realValue +" found? " + aliasInQuestion.isDefined)
+          aliasInQuestion match {
+            case Some(metadata) => {
+                logger.info("setting up the reference to the other account metadata")
+                this.obp_transaction.get.other_account.get.metadata(metadata.id.is)
+              }
+            case _ =>
+          }
           aliasInQuestion.isDefined
         }
         case _ => false
       }
     }
 
-    def createPublicAlias(realOtherAccHolder : String) : Box[String] = {
+    def createPublicAlias(realOtherAccHolder : String) : Box[Unit] = {
 
       /**
        * Generates a new alias name that is guaranteed not to collide with any existing public alias names
@@ -333,7 +343,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
          * Returns true if @publicAlias is already the name of a public alias within @account
          */
         def isDuplicate(publicAlias: String, account: Account) = {
-          account.otherAccounts.objs.find(oAcc => {
+          account.otherAccountsMetadata.objs.find(oAcc => {
             oAcc.publicAlias.get == publicAlias
           }).isDefined
         }
@@ -355,9 +365,15 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
         case Full(a) => {
           val randomAliasName = newPublicAliasName(a)
           //create a new "otherAccount"
-          val otherAccount = OtherAccount.createRecord.holder(realOtherAccHolder).publicAlias(randomAliasName).save
-          a.otherAccounts(otherAccount.id.is :: a.otherAccounts.get).save
-          Full(randomAliasName)
+          val metadata =
+            Metadata
+            .createRecord
+            .holder(realOtherAccHolder)
+            .publicAlias(randomAliasName)
+            .save
+          this.obp_transaction.get.other_account.get.metadata(metadata.id.is)
+          a.otherAccountsMetadata(metadata.id.is :: a.otherAccountsMetadata.get).save
+          Full({})
         }
         case _ => {
           logger.warn("Account not found to create aliases for")
@@ -366,10 +382,15 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       }
     }
 
-    if (!publicAliasExists(realOtherAccHolder))
+    if(realOtherAccHolder.isEmpty)
+      //no holder name, nothing to hide, so no alias
+      //other wise several transactions where the holder
+      //would automatically share the same alias and metadata
+      Full()
+    else if (!publicAliasExists(realOtherAccHolder))
       createPublicAlias(realOtherAccHolder)
     else
-      Full(realOtherAccHolder)
+      Full()
   }
   /**
    * A JSON representation of the transaction to be returned when successfully added via an API call
@@ -419,13 +440,19 @@ object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Lo
 
   def envlopesFromJvalue(jval: JValue) : Box[OBPEnvelope] = {
     val created = fromJValue(jval)
-    created match {
-      case Full(c) => c.createAliases match {
-          case Full(alias) => Full(c)
-          case Failure(msg, _, _ ) => Failure(msg)
-          case _ => Failure("Alias not created")
-        }
-      case _ => Failure("could not create Envelope form JValue")
+    if(created.get.validate.isEmpty)
+      created match {
+        case Full(c) => c.createAliases match {
+            case Full(_) => Full(c)
+            case Failure(msg, _, _ ) => Failure(msg)
+            case _ => Failure("Alias not created")
+          }
+        case _ => Failure("could not create Envelope form JValue")
+      }
+    else{
+      logger.warn("could not create a obp envelope.errors: ")
+      logger.warn(created.get.validate)
+      Empty
     }
   }
 }
@@ -451,6 +478,7 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
+  object metadata extends ObjectIdRefField(this, Metadata)
   object holder extends StringField(this, 255)
   object number extends StringField(this, 255)
   object kind extends StringField(this, 255)
