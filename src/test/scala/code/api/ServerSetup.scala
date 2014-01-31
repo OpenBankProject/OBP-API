@@ -79,6 +79,7 @@ trait ServerSetup extends FeatureSpec
           name(randomString(5)).
           alias(randomString(5)).
           permalink(randomString(5)).
+          national_identifier(randomString(5)).
           save
       }
 
@@ -113,17 +114,17 @@ trait ServerSetup extends FeatureSpec
 
     //fake transactions
     accounts.foreach(account => {
-      for(i <- 0 until 10){
-        val thisAccountBank = OBPBank.createRecord.
-          IBAN(randomString(5)).
-          national_identifier(randomString(5)).
-          name(account.bankName)
+     val thisAccountBank = OBPBank.createRecord.
+        IBAN(randomString(5)).
+        national_identifier(account.bankId).
+        name(account.bankName)
+      val thisAccount = OBPAccount.createRecord.
+        holder(account.holder.get).
+        number(account.number.get).
+        kind(account.kind.get).
+        bank(thisAccountBank)
 
-        val thisAccount = OBPAccount.createRecord.
-          holder(account.holder.get).
-          number(account.number.get).
-          kind(account.kind.get).
-          bank(thisAccountBank)
+      for(i <- 0 until 10){
 
         val otherAccountBank = OBPBank.createRecord.
           IBAN(randomString(5)).

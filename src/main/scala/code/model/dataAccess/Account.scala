@@ -67,21 +67,26 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   object currency extends StringField(this, 255)
   object iban extends StringField(this, 255)
   object lastUpdate extends DateField(this)
-  object otherAccounts extends ObjectIdRefListField(this, OtherAccount)
+  object otherAccountsMetadata extends ObjectIdRefListField(this, Metadata)
 
-  def bankName : String = bankID.obj match  {
+
+  def bankName : String = bankID.obj match {
     case Full(bank) => bank.name.get
     case _ => ""
   }
+
+  def bankId = bankID.obj match {
+      case Full(bank) => bank.national_identifier.get
+      case _ => ""
+    }
   def bankPermalink : String  = bankID.obj match  {
     case Full(bank) => bank.permalink.get
     case _ => ""
   }
 
   def transactionsForAccount = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
-    put("obp_transaction.this_account.kind").is(kind.get).
-    put("obp_transaction.this_account.holder").is(holder.get).
-    put("obp_transaction.this_account.bank.name").is(bankName)
+    put("obp_transaction.this_account.bank.national_identifier").is(bankId)
+    //FIX: change that to use the bank identifier
 
   //find all the envelopes related to this account
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(transactionsForAccount.get)
@@ -122,31 +127,38 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
 object Account extends Account with MongoMetaRecord[Account] {
   def toBankAccount(account: Account): BankAccount = {
     val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
+    val nationalIdentifier = account.bankID.obj match {
+      case Full(b) => b.national_identifier.get
+      case _ => ""
+    }
+
     val bankAccount =
       new BankAccount(
-        account.id.toString,
-        Set(new AccountOwner("", account.holder.toString)),
-        account.kind.toString,
-        account.balance.get,
-        account.currency.toString,
-        account.name.get,
-        account.label.toString,
-        "",
-        None,
-        iban,
-        account.number.get,
-        account.bankName,
-        account.bankPermalink,
-        account.permalink.get
+        id = account.id.toString,
+        owners= Set(new AccountOwner("", account.holder.toString)),
+        accountType = account.kind.toString,
+        balance = account.balance.get,
+        currency = account.currency.toString,
+        name = account.name.get,
+        label = account.label.toString,
+        //TODO: it is used for the bank national ID when populating Bank json model
+        //either we removed if from here or get it from some where else
+        nationalIdentifier = nationalIdentifier,
+        swift_bic = None,
+        iban = iban,
+        number = account.number.get,
+        bankName = account.bankName,
+        bankPermalink = account.bankPermalink,
+        permalink = account.permalink.get
       )
     bankAccount
   }
 }
 
-class OtherAccount private() extends MongoRecord[OtherAccount] with ObjectIdPk[OtherAccount] {
-  def meta = OtherAccount
+class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata] {
+  def meta = Metadata
 
-  object holder extends StringField(this, 200)
+  object holder extends StringField(this, 255)
   object publicAlias extends StringField(this, 100)
   object privateAlias extends StringField(this, 100)
   object moreInfo extends StringField(this, 100)
@@ -194,7 +206,7 @@ class OtherAccount private() extends MongoRecord[OtherAccount] with ObjectIdPk[O
 
 }
 
-object OtherAccount extends OtherAccount with MongoMetaRecord[OtherAccount]
+object Metadata extends Metadata with MongoMetaRecord[Metadata]
 
 class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   def meta = HostedBank

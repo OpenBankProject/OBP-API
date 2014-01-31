@@ -51,7 +51,7 @@ import java.util.Date
 
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{OBPUser, HostedAccount, ViewImpl, ViewPrivileges, Account}
+import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
@@ -100,12 +100,7 @@ class API1_2_1Test extends ServerSetup{
   lazy val tokenDuration = weeks(4)
 
   lazy val obpuser1 =
-    OBPUser.create.
-      email("foo@example.com").
-      password(randomString(10)).
-      validated(true).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
+    APIUser.create.
       saveMe
 
   override def specificSetup() ={
@@ -124,7 +119,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser1.email).
+    userId(obpuser1.id_).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
@@ -136,12 +131,7 @@ class API1_2_1Test extends ServerSetup{
 
   // create a user for test purposes
   lazy val obpuser2 =
-    OBPUser.create.
-      email("bar@example.com").
-      password(randomString(10)).
-      validated(true).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
+    APIUser.create.
       saveMe
 
   //we create an access token for the other user
@@ -149,7 +139,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser2.email).
+    userId(obpuser2.id_).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
@@ -161,12 +151,7 @@ class API1_2_1Test extends ServerSetup{
 
   // create a user for test purposes
   lazy val obpuser3 =
-    OBPUser.create.
-      email("foobar@example.com").
-      password(randomString(10)).
-      validated(true).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
+    APIUser.create.
       saveMe
 
   //we create an access token for the other user
@@ -174,7 +159,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser3.email).
+    userId(obpuser3.id_).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
@@ -1109,7 +1094,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
@@ -1138,7 +1123,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
@@ -1154,7 +1139,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
@@ -1172,7 +1157,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.email
+      val userId = obpuser3.id_
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1208,7 +1193,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.email
+      val userId = obpuser3.id_
       val viewsIdsToGrant= List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1222,7 +1207,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.email
+      val userId = obpuser3.id_
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1239,7 +1224,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.email
+      val userId = obpuser3.id_
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1258,7 +1243,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1285,7 +1270,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId =obpuser2.email
+      val userId =obpuser2.id_
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
@@ -1299,7 +1284,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
@@ -1314,7 +1299,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1340,7 +1325,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.email
+      val userId = obpuser2.id_
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1408,7 +1393,7 @@ class API1_2_1Test extends ServerSetup{
   }
 
   feature("We get one specific other bank account among the other accounts "){
-    scenario("we will get one random other bank account of a bank account", API1_2, GetOtherBankAccount) {
+    scenario("we will get one random other bank account of a bank account", API1_2, GetOtherBankAccount, CurrentTest) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
