@@ -118,6 +118,7 @@ class MongoDBLocalStorage extends LocalStorage {
     val thisAccount = transaction.this_account
     val otherAccount_ = transaction.other_account.get
     val oaccMetadata = otherAccount_.metadata.obj.getOrElse {
+      logger.warn("no metadata reference found")
       Metadata.createRecord
     }
 
