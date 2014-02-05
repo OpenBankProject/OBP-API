@@ -86,111 +86,176 @@ package code.model.dataAccess {
   object BankAccountCreationListener extends Loggable {
 
     def createBank(message: CreateBankAccount): HostedBank = {
-      HostedBank.find("national_identifier", message.bankIdentifier).getOrElse({
-        //create the bank if necessary
-        //TODO: if name is empty use bank id as name alias
-        HostedBank
-        .createRecord
-        .name(message.bankName)
-        .alias(message.bankName)
-        .permalink(Helper.generatePermalink(message.bankName))
-        .national_identifier(message.bankIdentifier)
-        .save
-      })
+      // TODO: use a more unique id for the long term
+      HostedBank.find("national_identifier", message.bankIdentifier) match {
+        case Full(b)=> {
+          logger.info(s"bank ${b.name} found")
+          b
+        }
+        case _ =>{
+          //TODO: if name is empty use bank id as name alias
+          logger.info(s"creating HostedBank")
+          HostedBank
+          .createRecord
+          .name(message.bankName)
+          .alias(message.bankName)
+          .permalink(Helper.generatePermalink(message.bankName))
+          .national_identifier(message.bankIdentifier)
+          .save
+        }
+      }
     }
 
-    def createAccount(message: CreateBankAccount, bank: HostedBank, u: APIUser): Account = {
+    def createAccount(message: CreateBankAccount, bank: HostedBank, u: APIUser): (Account, HostedAccount) = {
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
         ("number" -> message.accountNumber)~
         ("bankID" -> bank.id.is)
-      ).getOrElse{
-        val accountHolder = s"${u.theFirstName} ${u.theLastName}"
-        Account
-        .createRecord
-        .balance(0)
-        .holder(accountHolder)
-        .number(message.accountNumber)
-        .kind("current")
-        .name("")
-        .permalink(message.accountNumber)
-        .bankID(bank.id.is)
-        .label("")
-        .currency("EUR")
-        .iban("")
-        .lastUpdate(now)
-        .save
+      ) match {
+        case Full(bankAccount) => {
+          logger.info(s"account ${bankAccount.number} found")
+          val hostedAccount =
+            HostedAccount.find(By(HostedAccount.accountID, bankAccount.id.toString)) match {
+              case Full(h) => {
+                logger.info("hosted account found")
+                h
+              }
+              case _ =>{
+                logger.warn("hosted account not found ! ")
+                logger.info("creating hosted account")
+                HostedAccount
+                .create
+                .accountID(bankAccount.id.toString)
+                .saveMe
+              }
+            }
+          (bankAccount, hostedAccount)
+        }
+        case _ => {
+          logger.info("creating account record ")
+          val accountHolder = s"${u.theFirstName} ${u.theLastName}"
+          val bankAccount =
+            Account
+            .createRecord
+            .balance(0)
+            .holder(accountHolder)
+            .number(message.accountNumber)
+            .kind("current")
+            .name("")
+            .permalink(message.accountNumber)
+            .bankID(bank.id.is)
+            .label("")
+            .currency("EUR")
+            .iban("")
+            .lastUpdate(now)
+            .save
+          val hostedAccount =
+            HostedAccount
+            .create
+            .accountID(bankAccount.id.toString)
+            .saveMe
+          (bankAccount, hostedAccount)
+        }
       }
     }
 
-    def createOwnerView(account: HostedAccount): ViewImpl = {
-      ViewImpl
-      .create
-      .account(account)
-      .name_("Owner")
-      .permalink_("owner")
-      .canSeeTransactionThisBankAccount_(true)
-      .canSeeTransactionOtherBankAccount_(true)
-      .canSeeTransactionMetadata_(true)
-      .canSeeTransactionDescription_(true)
-      .canSeeTransactionAmount_(true)
-      .canSeeTransactionType_(true)
-      .canSeeTransactionCurrency_(true)
-      .canSeeTransactionStartDate_(true)
-      .canSeeTransactionFinishDate_(true)
-      .canSeeTransactionBalance_(true)
-      .canSeeComments_(true)
-      .canSeeOwnerComment_(true)
-      .canSeeTags_(true)
-      .canSeeImages_(true)
-      .canSeeBankAccountOwners_(true)
-      .canSeeBankAccountType_(true)
-      .canSeeBankAccountBalance_(true)
-      .canSeeBankAccountCurrency_(true)
-      .canSeeBankAccountLabel_(true)
-      .canSeeBankAccountNationalIdentifier_(true)
-      .canSeeBankAccountSwift_bic_(true)
-      .canSeeBankAccountIban_(true)
-      .canSeeBankAccountNumber_(true)
-      .canSeeBankAccountBankName_(true)
-      .canSeeBankAccountBankPermalink_(true)
-      .canSeeOtherAccountNationalIdentifier_(true)
-      .canSeeOtherAccountSWIFT_BIC_(true)
-      .canSeeOtherAccountIBAN_(true)
-      .canSeeOtherAccountBankName_(true)
-      .canSeeOtherAccountNumber_(true)
-      .canSeeOtherAccountMetadata_(true)
-      .canSeeOtherAccountKind_(true)
-      .canSeeMoreInfo_(true)
-      .canSeeUrl_(true)
-      .canSeeImageUrl_(true)
-      .canSeeOpenCorporatesUrl_(true)
-      .canSeeCorporateLocation_(true)
-      .canSeePhysicalLocation_(true)
-      .canSeePublicAlias_(true)
-      .canSeePrivateAlias_(true)
-      .canAddMoreInfo_(true)
-      .canAddURL_(true)
-      .canAddImageURL_(true)
-      .canAddOpenCorporatesUrl_(true)
-      .canAddCorporateLocation_(true)
-      .canAddPhysicalLocation_(true)
-      .canAddPublicAlias_(true)
-      .canAddPrivateAlias_(true)
-      .canDeleteCorporateLocation_(true)
-      .canDeletePhysicalLocation_(true)
-      .canEditOwnerComment_(true)
-      .canAddComment_(true)
-      .canDeleteComment_(true)
-      .canAddTag_(true)
-      .canDeleteTag_(true)
-      .canAddImage_(true)
-      .canDeleteImage_(true)
-      .canAddWhereTag_(true)
-      .canSeeWhereTag_(true)
-      .canDeleteWhereTag_(true)
-      .saveMe
+    def createOwnerView(account: HostedAccount, user: APIUser): Unit = {
+      account.views.toList.find(v => v.permalink_ == "owner") match {
+        case Some(v) => {
+          logger.info(s"account ${account.id.get} has already an owner view")
+          v.users_.toList.find(_.id == user.id) match {
+            case Some(u) => {
+              logger.info(s"user ${user.email.get} has already an owner view access on the account ${account.id.get}")
+            }
+            case _ =>{
+              logger.info(s"creating owner view access to user ${user.email.get}")
+              ViewPrivileges
+              .create
+              .user(user)
+              .view(v)
+              .save
+            }
+          }
+        }
+        case _ => {
+          logger.info(s"creating owner view on account ${account.id.get}")
+          val view =
+            ViewImpl
+            .create
+            .account(account)
+            .name_("Owner")
+            .permalink_("owner")
+            .canSeeTransactionThisBankAccount_(true)
+            .canSeeTransactionOtherBankAccount_(true)
+            .canSeeTransactionMetadata_(true)
+            .canSeeTransactionDescription_(true)
+            .canSeeTransactionAmount_(true)
+            .canSeeTransactionType_(true)
+            .canSeeTransactionCurrency_(true)
+            .canSeeTransactionStartDate_(true)
+            .canSeeTransactionFinishDate_(true)
+            .canSeeTransactionBalance_(true)
+            .canSeeComments_(true)
+            .canSeeOwnerComment_(true)
+            .canSeeTags_(true)
+            .canSeeImages_(true)
+            .canSeeBankAccountOwners_(true)
+            .canSeeBankAccountType_(true)
+            .canSeeBankAccountBalance_(true)
+            .canSeeBankAccountCurrency_(true)
+            .canSeeBankAccountLabel_(true)
+            .canSeeBankAccountNationalIdentifier_(true)
+            .canSeeBankAccountSwift_bic_(true)
+            .canSeeBankAccountIban_(true)
+            .canSeeBankAccountNumber_(true)
+            .canSeeBankAccountBankName_(true)
+            .canSeeBankAccountBankPermalink_(true)
+            .canSeeOtherAccountNationalIdentifier_(true)
+            .canSeeOtherAccountSWIFT_BIC_(true)
+            .canSeeOtherAccountIBAN_(true)
+            .canSeeOtherAccountBankName_(true)
+            .canSeeOtherAccountNumber_(true)
+            .canSeeOtherAccountMetadata_(true)
+            .canSeeOtherAccountKind_(true)
+            .canSeeMoreInfo_(true)
+            .canSeeUrl_(true)
+            .canSeeImageUrl_(true)
+            .canSeeOpenCorporatesUrl_(true)
+            .canSeeCorporateLocation_(true)
+            .canSeePhysicalLocation_(true)
+            .canSeePublicAlias_(true)
+            .canSeePrivateAlias_(true)
+            .canAddMoreInfo_(true)
+            .canAddURL_(true)
+            .canAddImageURL_(true)
+            .canAddOpenCorporatesUrl_(true)
+            .canAddCorporateLocation_(true)
+            .canAddPhysicalLocation_(true)
+            .canAddPublicAlias_(true)
+            .canAddPrivateAlias_(true)
+            .canDeleteCorporateLocation_(true)
+            .canDeletePhysicalLocation_(true)
+            .canEditOwnerComment_(true)
+            .canAddComment_(true)
+            .canDeleteComment_(true)
+            .canAddTag_(true)
+            .canDeleteTag_(true)
+            .canAddImage_(true)
+            .canDeleteImage_(true)
+            .canAddWhereTag_(true)
+            .canSeeWhereTag_(true)
+            .canDeleteWhereTag_(true)
+            .saveMe
+
+          logger.info(s"creating owner view access to user ${user.email.get}")
+          ViewPrivileges
+          .create
+          .user(user)
+          .view(view)
+          .save
+        }
+      }
     }
 
     lazy val factory = new ConnectionFactory {
@@ -207,48 +272,31 @@ package code.model.dataAccess {
     val createBankAccountListener = new LiftActor {
       protected def messageHandler = {
         case msg@AMQPMessage(message: CreateBankAccount) => {
-          logger.info(s"""got message to create account/bank:
-            ${message.accountNumber} / ${message.bankIdentifier}"""
-          )
+          logger.info(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
           APIUser.find(
             By(APIUser.provider_, message.accountOwnerProvider),
             By(APIUser.providerId, message.accountOwnerId)
           ).map{ user => {
-              logger.info("user found")
+              logger.info("user found for owner view")
 
               val bank: HostedBank = createBank(message)
-              val bankAccount = createAccount(message, bank, user)
-              val hostedAccount =
-                HostedAccount
-                .create
-                .accountID(bankAccount.id.toString)
-                .saveMe
-              val view = createOwnerView(hostedAccount)
-              ViewPrivileges
-              .create
-              .user(user)
-              .view(view)
-              .save
+              val (bankAccount,hostedAccount) = createAccount(message, bank, user)
+              createOwnerView(hostedAccount, user)
 
-              logger.info(s"""created account ${message.accountNumber}
-                at ${message.bankIdentifier}"""
-              )
+              logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 
-              logger.info(s"""Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}""")
+              logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             }
-          }.getOrElse({
-            logger.warn(s"""user ${message.accountOwnerId}
-              at ${message.accountOwnerProvider} not found.
-              Could not create the account with owner view"""
-            )
-          })
+          }.getOrElse(
+            logger.warn(s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view")
+          )
         }
       }
     }
-  def startListen = {
-    amqp ! AMQPAddListener(createBankAccountListener)
-  }
+    def startListen = {
+      amqp ! AMQPAddListener(createBankAccountListener)
+    }
   }
 }
