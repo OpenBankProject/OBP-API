@@ -57,10 +57,10 @@ package code.model.dataAccess {
   object UpdatesRequestSender extends Loggable {
     private val factory = new ConnectionFactory {
       import ConnectionFactory._
-      setHost(Props.get("rabbitmq.host", "localhost"))
+      setHost(Props.get("connection.host", "localhost"))
       setPort(DEFAULT_AMQP_PORT)
-      setUsername(Props.get("rabbitmq.user", DEFAULT_USER))
-      setPassword(Props.get("rabbitmq.password", DEFAULT_PASS))
+      setUsername(Props.get("connection.user", DEFAULT_USER))
+      setPassword(Props.get("connection.password", DEFAULT_PASS))
       setVirtualHost(DEFAULT_VHOST)
     }
 
