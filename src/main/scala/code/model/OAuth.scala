@@ -60,7 +60,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   private def validUrl(field: MappedString[Consumer])(s: String) = {
     import java.net.URL
     import Helpers.tryo
-    if(tryo{new URL(s)}.isEmpty)
+    if(s.isEmpty)
+      Nil
+    else if(tryo{new URL(s)}.isEmpty)
       List(FieldError(field, {field.displayName + " must be a valid URL"}))
     else
       Nil
