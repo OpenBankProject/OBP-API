@@ -487,7 +487,7 @@ class MongoDBLocalStorage extends LocalStorage {
       acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
     } yield {
 
-        val views: List[ViewImpl] = ViewImpl.findAllFields(Seq[SelectableField](ViewImpl.id_), By(ViewImpl.account, acc), By(ViewImpl.isPublic_, false))
+        val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.account, acc), By(ViewImpl.isPublic_, false))
         //all the user that have access to at least to a view
         val users = views.map(_.users.toList).flatten.distinct
         val usersPerView = views.map(v  =>(v, v.users.toList))
