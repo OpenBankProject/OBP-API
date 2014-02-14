@@ -112,84 +112,61 @@ class MongoDBLocalStorage extends LocalStorage {
     else
       Some(loc)
   }
-  private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
-    import net.liftweb.json.JsonDSL._
-    val transaction: OBPTransaction = env.obp_transaction.get
-    val thisAccount = transaction.this_account
-    val otherAccount_ = transaction.other_account.get
-    val oaccMetadata = otherAccount_.metadata.obj.getOrElse {
-      logger.warn("no metadata reference found")
-      Metadata.createRecord
-    }
 
-    val thisBankAccount = Account.toBankAccount(theAccount)
-
-
-    val id = env.id.is.toString()
-    val uuid = id
-    val otherAccountMetadata =
-      new OtherBankAccountMetadata(
-        publicAlias = oaccMetadata.publicAlias.get,
-        privateAlias = oaccMetadata.privateAlias.get,
-        moreInfo = oaccMetadata.moreInfo.get,
-        url = oaccMetadata.url.get,
-        imageURL = oaccMetadata.imageUrl.get,
-        openCorporatesURL = oaccMetadata.openCorporatesUrl.get,
-        corporateLocation = locatationTag(oaccMetadata.corporateLocation.get),
-        physicalLocation = locatationTag(oaccMetadata.physicalLocation.get),
-        addMoreInfo = (text => {
-          oaccMetadata.moreInfo(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addURL = (text => {
-          oaccMetadata.url(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addImageURL = (text => {
-          oaccMetadata.imageUrl(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addOpenCorporatesURL = (text => {
-          oaccMetadata.openCorporatesUrl(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addCorporateLocation = oaccMetadata.addCorporateLocation,
-        addPhysicalLocation = oaccMetadata.addPhysicalLocation,
-        addPublicAlias = (alias => {
-          oaccMetadata.publicAlias(alias).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addPrivateAlias = (alias => {
-          oaccMetadata.privateAlias(alias).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        deleteCorporateLocation = oaccMetadata.deleteCorporateLocation _,
-        deletePhysicalLocation = oaccMetadata.deletePhysicalLocation _
-      )
-    val otherAccount = new OtherBankAccount(
-        id = oaccMetadata.id.is.toString,
-        label = otherAccount_.holder.get,
-        nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-        swift_bic = None, //TODO: need to add this to the json/model
-        iban = Some(otherAccount_.bank.get.IBAN.get),
-        number = otherAccount_.number.get,
-        bankName = otherAccount_.bank.get.name.get,
-        metadata = otherAccountMetadata,
-        kind = ""
-      )
-    val metadata = new TransactionMetadata(
+  private def createOtherBankAccountMetadata(otherAccountMetadata : Metadata): OtherBankAccountMetadata = {
+    new OtherBankAccountMetadata(
+      publicAlias = otherAccountMetadata.publicAlias.get,
+      privateAlias = otherAccountMetadata.privateAlias.get,
+      moreInfo = otherAccountMetadata.moreInfo.get,
+      url = otherAccountMetadata.url.get,
+      imageURL = otherAccountMetadata.imageUrl.get,
+      openCorporatesURL = otherAccountMetadata.openCorporatesUrl.get,
+      corporateLocation = locatationTag(otherAccountMetadata.corporateLocation.get),
+      physicalLocation = locatationTag(otherAccountMetadata.physicalLocation.get),
+      addMoreInfo = (text => {
+        otherAccountMetadata.moreInfo(text).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      addURL = (text => {
+        otherAccountMetadata.url(text).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      addImageURL = (text => {
+        otherAccountMetadata.imageUrl(text).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      addOpenCorporatesURL = (text => {
+        otherAccountMetadata.openCorporatesUrl(text).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      addCorporateLocation = otherAccountMetadata.addCorporateLocation,
+      addPhysicalLocation = otherAccountMetadata.addPhysicalLocation,
+      addPublicAlias = (alias => {
+        otherAccountMetadata.publicAlias(alias).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      addPrivateAlias = (alias => {
+        otherAccountMetadata.privateAlias(alias).save
+        //the save method does not return a Boolean to inform about the saving state,
+        //so we a true
+        true
+      }),
+      deleteCorporateLocation = otherAccountMetadata.deleteCorporateLocation _,
+      deletePhysicalLocation = otherAccountMetadata.deletePhysicalLocation _
+    )
+  }
+  private def createTransactionMetadata(env: OBPEnvelope): TransactionMetadata = {
+    new TransactionMetadata(
       env.narrative.get,
       (text => env.narrative(text).save),
       env.obp_comments.objs,
@@ -205,27 +182,61 @@ class MongoDBLocalStorage extends LocalStorage {
       env.addWhereTag,
       env.deleteWhereTag
     )
-    val transactionType = transaction.details.get.kind.get
-    val amount = transaction.details.get.value.get.amount.get
-    val currency = transaction.details.get.value.get.currency.get
-    val label = Some(transaction.details.get.label.get)
-    val startDate = transaction.details.get.posted.get
-    val finishDate = transaction.details.get.completed.get
-    val balance = transaction.details.get.new_balance.get.amount.get
-    new Transaction(
-      uuid,
-      id,
-      thisBankAccount,
-      otherAccount,
-      metadata,
-      transactionType,
-      amount,
-      currency,
-      label,
-      startDate,
-      finishDate,
-      balance
-    )
+  }
+  private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
+    import net.liftweb.json.JsonDSL._
+    val transaction: OBPTransaction = env.obp_transaction.get
+    val thisAccount = transaction.this_account
+    val otherAccount_ = transaction.other_account.get
+
+    otherAccount_.metadata.obj match {
+      case Full(oaccMetadata) =>{
+        val thisBankAccount = Account.toBankAccount(theAccount)
+        val id = env.id.is.toString()
+        val uuid = id
+        val otherAccountMetadata = createOtherBankAccountMetadata(oaccMetadata)
+
+        val otherAccount = new OtherBankAccount(
+            id = oaccMetadata.id.is.toString,
+            label = otherAccount_.holder.get,
+            nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
+            swift_bic = None, //TODO: need to add this to the json/model
+            iban = Some(otherAccount_.bank.get.IBAN.get),
+            number = otherAccount_.number.get,
+            bankName = otherAccount_.bank.get.name.get,
+            metadata = otherAccountMetadata,
+            kind = ""
+          )
+        val metadata = createTransactionMetadata(env)
+        val transactionType = transaction.details.get.kind.get
+        val amount = transaction.details.get.value.get.amount.get
+        val currency = transaction.details.get.value.get.currency.get
+        val label = Some(transaction.details.get.label.get)
+        val startDate = transaction.details.get.posted.get
+        val finishDate = transaction.details.get.completed.get
+        val balance = transaction.details.get.new_balance.get.amount.get
+        val t =
+          new Transaction(
+            uuid,
+            id,
+            thisBankAccount,
+            otherAccount,
+            metadata,
+            transactionType,
+            amount,
+            currency,
+            label,
+            startDate,
+            finishDate,
+            balance
+          )
+        Some(t)
+      }
+      case _ => {
+        logger.warn(s"no metadata reference found for envelope ${env.id.get}")
+        None
+      }
+    }
   }
 
   private def createOtherBankAccount(otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
@@ -317,9 +328,10 @@ class MongoDBLocalStorage extends LocalStorage {
       account  <- bank.getAccount(accountPermalink)
       objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
+      transaction <- createTransaction(envelope,account)
     } yield {
       updateAccountTransactions(bank, account)
-      createTransaction(envelope,account)
+      transaction
     }
   }
 
@@ -330,7 +342,7 @@ class MongoDBLocalStorage extends LocalStorage {
         account <- bank.getAccount(permalink)
       } yield {
         updateAccountTransactions(bank, account)
-        account.envelopes(queryParams: _*).map(createTransaction(_, account))
+        account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
       }
   }
 
