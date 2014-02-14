@@ -231,6 +231,5 @@ class Boot extends Loggable{
     S.addAround(DB.buildLoanWrapper)
 
     BankAccountCreationListener.startListen
-
   }
 }
