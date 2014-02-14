@@ -42,7 +42,7 @@ import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.ObjectIdRefField
 import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.mongodb.record.field.DateField
-import net.liftweb.common.{ Box, Empty, Full, Failure }
+import net.liftweb.common.{ Box, Empty, Full, Failure, Loggable }
 import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.{ BsonRecord, BsonMetaRecord }
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
@@ -53,7 +53,7 @@ import java.util.Date
 import OBPEnvelope._
 
 
-class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
+class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
   def meta = Account
 
   object balance extends DecimalField(this, 0)
@@ -82,6 +82,12 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] {
   def bankPermalink : String  = bankID.obj match  {
     case Full(bank) => bank.permalink.get
     case _ => ""
+  }
+
+  def appendMetadata(metadata: Metadata): Unit = {
+    logger.info("appending the metadata record to the existing metadata references")
+    this.otherAccountsMetadata(metadata.id.is :: this.otherAccountsMetadata.get)
+    this.save
   }
 
   def transactionsForAccount = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
