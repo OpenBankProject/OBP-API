@@ -172,6 +172,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatchTable.append(v1_2.OBPAPI1_2)
     LiftRules.statelessDispatchTable.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatchTable.append(BankMockAPI)
+    // LiftRules.statelessDispatchTable.append(Metrics) TODO: see metric menu entry bellow
 
     //OAuth API call
     LiftRules.statelessDispatchTable.append(OAuthHandshake)
@@ -194,7 +195,7 @@ class Boot extends Loggable{
           Menu.i("Consumer Admin") / "admin" / "consumers" >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
-          Menu.i("Metrics") / "metrics",
+          // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize" //OAuth authorization page
     )
 
