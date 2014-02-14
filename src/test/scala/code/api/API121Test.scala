@@ -56,6 +56,8 @@ import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
+import scala.reflect.runtime.universe._
+
 
 class API1_2_1Test extends ServerSetup{
 
@@ -174,6 +176,13 @@ class API1_2_1Test extends ServerSetup{
   val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
+  
+  /**
+   * Example: To run tests with tag "getPermissions":
+   * 	mvn test -D tagsToInclude
+   *  
+   *  This is made possible by the scalatest maven plugin
+   */
 
   object CurrentTest extends Tag("currentScenario")
   object API1_2 extends Tag("api1.2.1")
@@ -1018,9 +1027,31 @@ class API1_2_1Test extends ServerSetup{
       val reply = getAccountPermissions(bankId, bankAccount.id, user1)
       Then("we should get a 200 ok code")
       reply.code should equal (200)
-      reply.body.extract[PermissionsJSON]
-    }
+      val permissions = reply.body.extract[PermissionsJSON]
+      
+      def stringNotEmpty(s : String) {
+        s should not equal null
+        s should not equal ""
+      }
+      
+      for {
+        permission <- permissions.permissions
+      } {
+        val user = permission.user
 
+        //TODO: Need to come up with a better way to check that information is not missing
+        // idea: reflection on all the json case classes, marking "required" information with annotations
+        stringNotEmpty(user.id)
+        stringNotEmpty(user.provider)
+        
+        for {
+          view <- permission.views
+        } {
+           stringNotEmpty(view.id)
+        }
+      }
+    }
+      
     scenario("we will not get one bank account permissions", API1_2, GetPermissions) {
       Given("We will not use an access token")
       val bankId = randomBank
