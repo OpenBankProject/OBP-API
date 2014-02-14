@@ -175,11 +175,11 @@ class API1_2Test extends ServerSetup{
   val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
-  
+
   /**
    * Example: To run tests with tag "getPermissions":
    * 	mvn test -D tagsToInclude
-   *  
+   *
    *  This is made possible by the scalatest maven plugin
    */
 
@@ -1027,14 +1027,14 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       reply.body.extract[PermissionsJSON]
-      
+
       val permissions = reply.body.extract[PermissionsJSON]
-      
+
       def stringNotEmpty(s : String) {
         s should not equal null
         s should not equal ""
       }
-      
+
       for {
         permission <- permissions.permissions
       } {
@@ -1044,7 +1044,7 @@ class API1_2Test extends ServerSetup{
         // idea: reflection on all the json case classes, marking "required" information with annotations
         stringNotEmpty(user.id)
         stringNotEmpty(user.provider)
-        
+
         for {
           view <- permission.views
         } {
