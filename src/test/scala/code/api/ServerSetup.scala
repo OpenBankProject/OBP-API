@@ -164,7 +164,7 @@ trait ServerSetup extends FeatureSpec
         val env = OBPEnvelope.createRecord.
           obp_transaction(transaction).save
         account.balance(newBalance.amount.get).lastUpdate(now).save
-        env.createAliases
+        env.createMetadataReference
         env.save
       }
     })
