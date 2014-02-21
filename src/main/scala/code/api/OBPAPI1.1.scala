@@ -126,7 +126,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       case Full(r) => r.request.method
       case _ => "GET"
     }
-
+  
   private def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =
   if(httpCode==200)
   {
@@ -135,7 +135,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     Token.find(By(Token.key, tokenID.get)) match {
       case Full(token) => {
         logger.info("access token: "+ token + " found")
-        val user = User.findById(token.userId.get)
+        val user = User.findByApiId(token.userId.get)
         //just a log
         user match {
           case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")
@@ -226,7 +226,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   private def userToJson(user : Box[User]) : JValue =
     user match {
       case Full(u) =>
-              ("id" -> u.id_) ~
+              ("id" -> u.idGivenByProvider) ~
               ("provider" -> u.provider ) ~
               ("display_name" -> {u.theFirstName + " " + u.theLastName})
 
@@ -742,7 +742,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
                 addComment.map(
                   func =>{
-                    func(user.id_, viewID, text, datePosted)
+                    func(user.apiId, viewID, text, datePosted)
                     Full(text)
                   }
                 )
@@ -839,7 +839,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
                   addTag.map(
                     func =>{
-                      Full(func(user.id_, viewID, tag, datePosted))
+                      Full(func(user.apiId, viewID, tag, datePosted))
                     }
                   )
                 }
@@ -940,7 +940,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addImage.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, label, datePosted, url).id_
+                    func(user.apiId, viewID, label, datePosted, url).id_
                   }
                 )
               }
@@ -1022,7 +1022,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addWhereTag.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1074,7 +1074,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addWhereTag.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1639,7 +1639,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1698,7 +1698,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1757,7 +1757,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1816,7 +1816,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.id_, viewID, datePosted, longitude, latitude)
+                    func(user.apiId, viewID, datePosted, longitude, latitude)
                   }
                 )
               }
