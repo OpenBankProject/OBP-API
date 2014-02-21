@@ -40,13 +40,13 @@ import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.mapper.{By,SelectableField, ByList}
 import net.liftweb.mongodb.MongoDB
 import com.mongodb.BasicDBList
-import java.util.ArrayList
 import org.bson.types.ObjectId
 import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
 import com.mongodb.QueryBuilder
 import scala.concurrent.ops.spawn
 import com.tesobe.model.UpdateBankAccount
+import net.liftweb.util.Props
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -98,9 +98,12 @@ class MongoDBLocalStorage extends LocalStorage {
   *  It will be used each time we fetch transactions from the DB. But the test
   *  is performed in a different thread.
   */
+
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
     spawn{
-      if( now after time(account.lastUpdate.get.getTime + hours(1)) ) {
+      val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+      val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
+      if(outDatedTransactions && useMessageQueue) {
         UpdatesRequestSender.sendMsg(UpdateBankAccount(account.number.get, bank.national_identifier.get))
       }
     }
