@@ -621,7 +621,7 @@ object JSONFactory{
 
   def createUserJSON(user : User) : UserJSON = {
     new UserJSON(
-          user.id_,
+          user.idGivenByProvider,
           stringOrNull(user.provider),
           stringOrNull(user.emailAddress)
         )

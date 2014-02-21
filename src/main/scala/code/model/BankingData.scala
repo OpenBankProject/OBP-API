@@ -163,15 +163,16 @@ class BankAccount(
   }
 
   /**
-  * @param a user requesting to see the an other users permission
-  * @param the user that the permission concerns
+  * @param user the user requesting to see the other users permissions on this account
+  * @param otherUserProvider the authentication provider of the user whose permissions will be retrieved
+  * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) whose permissions will be retrieved
   * @return a Box of the user permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
   */
-  def permission(user : User, otherUserId: String) : Box[Permission] = {
+  def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Permission] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        u <- User.findById(otherUserId)
+        u <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
         p <- LocalStorage.permission(this, u)
         } yield p
     else
@@ -179,17 +180,18 @@ class BankAccount(
   }
 
   /**
-  * @param a user that want to grant an other user access to a view
+  * @param user the user that wants to grant another user access to a view on this account
   * @param the id of the view that we want to grant access
-  * @param the id of the other user that we want grant access
+  * @param otherUserProvider the authentication provider of the user to whom access to the view will be granted
+  * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def addPermission(user : User, viewId : String, otherUserId : String) : Box[Boolean] = {
+  def addPermission(user : User, viewId : String, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
-        otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isSaved <- LocalStorage.addPermission(id, view, otherUser) ?~ "could not save the privilege"
       } yield isSaved
     else
@@ -197,12 +199,13 @@ class BankAccount(
   }
 
   /**
-  * @param a user that want to grant an other user access to a list views
-  * @param the list of views ids that we want to grant access
-  * @param the id of the other user that we want grant access
+  * @param user the user that wants to grant another user access to a several views on this account
+  * @param the list of views ids that we want to grant access to
+  * @param otherUserProvider the authentication provider of the user to whom access to the views will be granted
+  * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
   * @return a the list of the granted views if everything is okay, a Failure otherwise
   */
-  def addPermissions(user : User, viewIds : List[String], otherUserId : String) : Box[List[View]] = {
+  def addPermissions(user : User, viewIds : List[String], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
     //we try to get all the views that correspond to that list of view ids
     lazy val viewBoxes = viewIds.map(id => View.fromUrl(id, this))
     //we see if the the is Failures
@@ -224,7 +227,7 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         views <- viewsFormIds
         grantedViews <- LocalStorage.addPermissions(id, views, otherUser) ?~ "could not save the privilege"
       } yield views
@@ -233,17 +236,18 @@ class BankAccount(
   }
 
   /**
-  * @param a user that want to revoke an other user access to a view
+  * @param user the user that wants to revoke another user's access to a view on this account
   * @param the id of the view that we want to revoke access
-  * @param the id of the other user that we want revoke access
+  * @param otherUserProvider the authentication provider of the user to whom access to the view will be revoked
+  * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def revokePermission(user : User, viewId : String, otherUserId : String) : Box[Boolean] = {
+  def revokePermission(user : User, viewId : String, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
-        otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- LocalStorage.revokePermission(id, view, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
@@ -252,16 +256,17 @@ class BankAccount(
 
   /**
   *
-  * @param a user that want to revoke an other user access to a view
-  * @param the id of the other user that we want revoke access
+  * @param user the user that wants to revoke another user's access to all views on this account
+  * @param otherUserProvider the authentication provider of the user to whom access to all views will be revoked
+  * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to all views will be revoked
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
 
-  def revokeAllPermission(user : User, otherUserId : String) : Box[Boolean] = {
+  def revokeAllPermissions(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        otherUser <- User.findById(otherUserId) //check if the userId corresponds to a user
+        otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         isRevoked <- LocalStorage.revokeAllPermission(id, otherUser)
       } yield isRevoked
     else

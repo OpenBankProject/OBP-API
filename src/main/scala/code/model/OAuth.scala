@@ -148,7 +148,7 @@ class Token extends LongKeyedMapper[Token]{
   object duration extends MappedLong(this)//expressed in milliseconds
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
-  def user = User.findById(userId.get)
+  def user = User.findByApiId(userId.get)
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){

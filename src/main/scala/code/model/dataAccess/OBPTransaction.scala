@@ -649,7 +649,7 @@ class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with 
 
   def id_ = id.is.toString
   def datePosted = date.get
-  def postedBy = User.findById(userId.get)
+  def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def value = tag.get
 }
@@ -668,7 +668,7 @@ class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
 
   def id_ = id.is.toString
   def datePosted = date.get
-  def postedBy = User.findById(userId.get)
+  def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def description = imageComment.get
   def imageUrl = {
@@ -692,7 +692,7 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object geoLatitude extends DoubleField(this,0)
 
   def datePosted = date.get
-  def postedBy = User.findById(userId.get)
+  def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def longitude = geoLongitude.get
   def latitude = geoLatitude.get
@@ -702,7 +702,7 @@ object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
 
 class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
   def meta = OBPComment
-  def postedBy = User.findById(userId.get)
+  def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def text = textField.get
   def datePosted = date.get
