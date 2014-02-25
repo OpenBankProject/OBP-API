@@ -121,7 +121,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser1.apiId).
+    userForeignKey(obpuser1.id.toLong).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
@@ -141,7 +141,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser2.apiId).
+    userForeignKey(obpuser2.id.toLong).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
@@ -161,7 +161,7 @@ class API1_2_1Test extends ServerSetup{
     OBPToken.create.
     tokenType(Access).
     consumerId(testConsumer.id).
-    userId(obpuser3.apiId).
+    userForeignKey(obpuser3.id.toLong).
     key(randomString(40).toLowerCase).
     secret(randomString(40).toLowerCase).
     duration(tokenDuration).
