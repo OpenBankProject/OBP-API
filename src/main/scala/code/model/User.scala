@@ -38,7 +38,10 @@ import code.model.dataAccess.LocalStorage
 import net.liftweb.common.Box
 
 trait User {
-  def id_ : String
+  
+  def apiId : String
+  
+  def idGivenByProvider: String
   def provider : String
   def emailAddress : String
   def theFirstName : String
@@ -60,12 +63,15 @@ trait User {
   def nonPublicAccounts : Box[List[BankAccount]] = LocalStorage.getNonPublicBankAccounts(this)
 
   def toJson : JObject =
-    ("id" -> id_) ~
+    ("id" -> idGivenByProvider) ~
     ("provider" -> provider) ~
     ("display_name" -> {theFirstName + " " + theLastName})
 }
 
 object User {
-  def findById(id : String) : Box[User] =
-    LocalStorage.getUser(id)
+  def findByApiId(id : String) : Box[User] =
+    LocalStorage.getUserByApiId(id)
+    
+  def findByProviderId(provider : String, idGivenByProvider : String) = 
+    LocalStorage.getUserByProviderId(provider, idGivenByProvider)
 }

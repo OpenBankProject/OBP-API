@@ -88,7 +88,9 @@ object OAuthAuthorisation {
                   //link the token with the concrete API User
                   obpUser.user.obj.map{
                     u  => {
-                      appToken.userId(u.id_)
+                      //We want ApiUser.id because it is unique, unlike the id given by a provider
+                      // i.e. two different providers can have a user with id "bob"
+                      appToken.userForeignKey(u.id.get)
                     }
                   }
                   if (appToken.save())

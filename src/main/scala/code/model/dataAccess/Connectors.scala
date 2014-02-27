@@ -68,7 +68,8 @@ trait LocalStorage extends Loggable {
   def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
     (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
 
-  def getUser(id : String) : Box[User]
+  def getUserByApiId(id : String) : Box[User]
+  def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
 
   def permissions(account : BankAccount) : Box[List[Permission]]
   def permission(account : BankAccount, user: User) : Box[Permission]
@@ -485,11 +486,18 @@ class MongoDBLocalStorage extends LocalStorage {
     } yield rawTransactions.map(moderate)
   }
 
-  def getUser(id : String) : Box[User] = {
+  def getUserByApiId(id : String) : Box[User] = {
     for{
-      user <- APIUser.find(By(APIUser.providerId,id)) ?~ { s"user $id not found"}
+      idAsLong <- tryo { id.toLong } ?~ "Invalid id: long required"
+      user <- APIUser.find(By(APIUser.id, idAsLong)) ?~ { s"user $id not found"}
     } yield user
   }
+  
+  def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+    APIUser.find(By(APIUser.provider_, provider), By(APIUser.providerId, idGivenByProvider))
+  }
+  
+  
   def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
   (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
     for{
@@ -516,21 +524,14 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   def permission(account : BankAccount, user: User) : Box[Permission] = {
-    user match {
-      case u: APIUser =>{
-        for{
-          acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
-        } yield {
-          val viewsOfAccount = acc.views.toList
-          val viewsOfUser = u.views_.toList
-          val views = viewsOfAccount.filter(v => viewsOfUser.contains(v))
-          Permission(u, views)
-        }
-      }
-      case u: User =>{
-        logger.error("APIUser instance not found, could not get privilege ")
-        Failure("could not get user: " + user.id_ + " permission" )
-      }
+    
+    for{
+      acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
+    } yield {
+      val viewsOfAccount = acc.views.toList
+      val viewsOfUser = user.views.toList
+      val views = viewsOfAccount.filter(v => viewsOfUser.contains(v))
+      Permission(user, views)
     }
   }
 

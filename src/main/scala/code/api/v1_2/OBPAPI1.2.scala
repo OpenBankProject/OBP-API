@@ -63,6 +63,11 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
+  
+  //we now identify users by a combination of auth provider and the id given to them by their auth provider
+  // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both
+  //provider and id from the provider as arguments, we just use this value here as the provider.
+  val authProvider = Props.get("hostname","")
 
   val dateFormat = ModeratedTransaction.dateFormat
   val apiPrefix = "obp" / "v1.2" oPrefix _
@@ -216,7 +221,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.id_ + " does not have owner access"})
+          canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.idGivenByProvider + " at provider " + u.provider + " does not have owner access"})
           view <- account createView json
         } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
@@ -232,7 +237,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          canRemoveViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.id_ + " does not have owner access"})
+          canRemoveViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.idGivenByProvider + " at provider " + u.provider + " does not have owner access"})
           view <- account removeView viewId
         } yield noContentJsonResponse
     }
@@ -260,7 +265,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          permission <- account permission(u, userId)
+          permission <- account permission(u, authProvider, userId)
         } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))
@@ -276,7 +281,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
           viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-          addedViews <- account addPermissions(u, viewIds.views, userId)
+          addedViews <- account addPermissions(u, viewIds.views, authProvider, userId)
         } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -292,7 +297,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
           view <- View.fromUrl(viewId, account)
-          isAdded <- account addPermission(u, viewId, userId)
+          isAdded <- account addPermission(u, viewId, authProvider, userId)
           if(isAdded)
         } yield {
             val viewJson = JSONFactory.createViewJSON(view)
@@ -308,7 +313,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          isRevoked <- account revokePermission(u, viewId, userId)
+          isRevoked <- account revokePermission(u, viewId, authProvider, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }
@@ -321,7 +326,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          isRevoked <- account revokeAllPermission(u, userId)
+          isRevoked <- account revokeAllPermissions(u, authProvider, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }
@@ -737,7 +742,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.id_, view.id, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          if(addCorpLocation(u.apiId, view.id, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
         } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -758,7 +763,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.id_, view.id, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          if(addCorpLocation(u.apiId, view.id, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
         } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -806,7 +811,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-          if(addPhysicalLocation(u.id_, view.id, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+          if(addPhysicalLocation(u.apiId, view.id, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
         } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -827,7 +832,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-         if(addPhysicalLocation(u.id_, view.id, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+         if(addPhysicalLocation(u.apiId, view.id, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
         } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -1008,7 +1013,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-          postedComment <- Full(addCommentFunc(u.id_, view.id, commentJson.value, now))
+          postedComment <- Full(addCommentFunc(u.apiId, view.id, commentJson.value, now))
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
         }
@@ -1054,7 +1059,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-          postedTag <- Full(addTagFunc(u.id_, view.id, tagJson.value, now))
+          postedTag <- Full(addTagFunc(u.apiId, view.id, tagJson.value, now))
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
         }
@@ -1101,7 +1106,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-          postedImage <- Full(addImageFunc(u.id_, view.id, imageJson.label, now, url))
+          postedImage <- Full(addImageFunc(u.apiId, view.id, imageJson.label, now, url))
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
         }
@@ -1148,7 +1153,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-          if(addWhereTag(u.id_, view.id, now, whereJson.where.longitude, whereJson.where.latitude))
+          if(addWhereTag(u.apiId, view.id, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1167,7 +1172,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-         if(addWhereTag(u.id_, view.id, now, whereJson.where.longitude, whereJson.where.latitude))
+         if(addWhereTag(u.apiId, view.id, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))
