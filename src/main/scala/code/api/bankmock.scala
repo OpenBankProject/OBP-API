@@ -68,7 +68,7 @@ case class Verifier(
 )
 
 case class UserData(
-  id : String
+  id : Long
 )
 
 /**
@@ -152,7 +152,7 @@ object BankMockAPI extends RestHelper with Loggable {
                 requestToken(token) match {
                   case Full(tkn) =>{
                     //associate the token with the user
-                    tkn.userId(userData.id)
+                    tkn.userForeignKey(userData.id)
                     val verifier = tkn.gernerateVerifier
                     tkn.save
                     JsonResponse(Verifier(verifier), Nil, Nil, 200)
