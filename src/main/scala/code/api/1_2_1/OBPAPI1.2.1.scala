@@ -65,8 +65,6 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
   
-  val defaultAuthProvider = Props.get("hostname","")
-  
   val dateFormat = ModeratedTransaction.dateFormat
   val apiPrefix = "obp" / "v1.2.1" oPrefix _
 
@@ -261,12 +259,12 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get access for specific user
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: Nil JsonGet json => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
       user =>
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          permission <- account permission(u, defaultAuthProvider, userId)
+          permission <- account permission(u, providerId, userId)
         } yield {
             val views = JSONFactory.createViewsJSON(permission.views)
             successJsonResponse(Extraction.decompose(views))
@@ -276,13 +274,13 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
     //add access for specific user to a list of views
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonPost json -> _ => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
           viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-          addedViews <- account addPermissions(u, viewIds.views, defaultAuthProvider, userId)
+          addedViews <- account addPermissions(u, viewIds.views, providerId, userId)
         } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -292,13 +290,13 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add access for specific user to a specific view
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
           view <- View.fromUrl(viewId, account)
-          isAdded <- account addPermission(u, viewId, defaultAuthProvider, userId)
+          isAdded <- account addPermission(u, viewId, providerId, userId)
           if(isAdded)
         } yield {
             val viewJson = JSONFactory.createViewJSON(view)
@@ -309,12 +307,12 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete access for specific user to one view
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonDelete json => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonDelete json => {
       user =>
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          isRevoked <- account revokePermission(u, viewId, defaultAuthProvider, userId)
+          isRevoked <- account revokePermission(u, viewId, providerId, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }
@@ -322,12 +320,12 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
     //delete access for specific user to all the views
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonDelete json => {
+    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
       user =>
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          isRevoked <- account revokeAllPermissions(u, defaultAuthProvider, userId)
+          isRevoked <- account revokeAllPermissions(u, providerId, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }
