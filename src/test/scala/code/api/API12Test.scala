@@ -42,7 +42,6 @@ import _root_.net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import _root_.net.liftweb.json.Serialization.write
 import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
-import org.mortbay.jetty.nio.SelectChannelConnector
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonDSL._
 import scala.util.Random._

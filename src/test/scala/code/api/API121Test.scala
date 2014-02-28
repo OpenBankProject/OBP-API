@@ -42,7 +42,6 @@ import _root_.net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import _root_.net.liftweb.json.Serialization.write
 import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
-import org.mortbay.jetty.nio.SelectChannelConnector
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonDSL._
 import scala.util.Random._
@@ -97,12 +96,14 @@ class API1_2_1Test extends ServerSetup{
       secret(randomString(40).toLowerCase).
       saveMe
 
+  val defaultProvider = Props.get("hostname","")
+      
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   // create the access token
   lazy val tokenDuration = weeks(4)
 
-  lazy val obpuser1 =
-    APIUser.create.
+  lazy val obpuser1 = 
+    APIUser.create.provider_(defaultProvider).
       saveMe
 
   override def specificSetup() ={
@@ -133,7 +134,7 @@ class API1_2_1Test extends ServerSetup{
 
   // create a user for test purposes
   lazy val obpuser2 =
-    APIUser.create.
+    APIUser.create.provider_(defaultProvider).
       saveMe
 
   //we create an access token for the other user
@@ -153,7 +154,7 @@ class API1_2_1Test extends ServerSetup{
 
   // create a user for test purposes
   lazy val obpuser3 =
-    APIUser.create.
+    APIUser.create.provider_(defaultProvider).
       saveMe
 
   //we create an access token for the other user
@@ -391,28 +392,28 @@ class API1_2_1Test extends ServerSetup{
   }
 
   def getUserAccountPermission(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId <@(consumerAndToken)
+    val request = v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions" / defaultProvider / userId <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def grantUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId / "views" / viewId).POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).POST <@(consumerAndToken)
     makePostRequest(request)
   }
 
   def grantUserAccessToViews(bankId : String, accountId : String, userId : String, viewIds : List[String], consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId / "views").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").POST <@(consumerAndToken)
     val viewsJson = ViewIdsJson(viewIds)
     makePostRequest(request, write(viewsJson))
   }
 
   def revokeUserAccessToView(bankId : String, accountId : String, userId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId / "views" / viewId).DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views" / viewId).DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def revokeUserAccessToAllViews(bankId : String, accountId : String, userId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse= {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ userId / "views").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "permissions"/ defaultProvider / userId / "views").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 

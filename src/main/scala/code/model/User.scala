@@ -36,6 +36,7 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import code.model.dataAccess.LocalStorage
 import net.liftweb.common.Box
+import code.api.UserNotFound
 
 trait User {
   
@@ -73,5 +74,8 @@ object User {
     LocalStorage.getUserByApiId(id)
     
   def findByProviderId(provider : String, idGivenByProvider : String) = 
-    LocalStorage.getUserByProviderId(provider, idGivenByProvider)
+    //if you change this, think about backwards compatibility! All existing
+    //versions of the API return this failure message, so if you change it, make sure
+    //that all stable versions retain the same behavior
+    LocalStorage.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
 }
