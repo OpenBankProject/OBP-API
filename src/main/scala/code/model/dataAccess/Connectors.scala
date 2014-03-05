@@ -67,6 +67,8 @@ trait LocalStorage extends Loggable {
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
   def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
     (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
+  def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
+    (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
 
   def getUserByApiId(id : String) : Box[User]
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
