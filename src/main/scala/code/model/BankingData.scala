@@ -290,7 +290,7 @@ class BankAccount(
     LocalStorage.removeView(viewId, this)
 
   def publicViews : List[View] =
-    LocalStorage.publicViews(id).getOrElse(Nil)
+    LocalStorage.publicViews(this).getOrElse(Nil)
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
