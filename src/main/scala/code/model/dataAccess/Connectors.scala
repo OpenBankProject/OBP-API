@@ -85,7 +85,7 @@ trait LocalStorage extends Loggable {
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit]
-  def views(bankAccountID : String) : Box[List[View]]
+  def views(bankAccount : BankAccount) : Box[List[View]]
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
   def publicViews(bankAccount : BankAccount) : Box[List[View]]
 
@@ -788,8 +788,8 @@ class MongoDBLocalStorage extends LocalStorage {
       } yield {}
   }
 
-  def views(bankAccountID : String) : Box[List[View]] = {
-    for(account <- HostedAccount.find(By(HostedAccount.accountID,bankAccountID)))
+  def views(bankAccount : BankAccount) : Box[List[View]] = {
+    for(account <- HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)))
       yield {
         account.views.toList
       }
