@@ -277,7 +277,7 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        isRevoked <- LocalStorage.views(id) ?~ "could not get the views"
+        isRevoked <- LocalStorage.views(this) ?~ "could not get the views"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
