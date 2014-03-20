@@ -638,12 +638,17 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
-    def generatePermalink(name: String): String = {
-      name.replaceAllLiterally(" ","").toLowerCase
+    val newViewPermalink = {
+      view.name.replaceAllLiterally(" ","").toLowerCase
     }
 
-    if(view.name=="Owner")
-      Failure("There is already an Owner view on this bank account")
+    val hostedAccount = HostedAccount.find(By(HostedAccount.accountID,bankAccount.id))
+    val existing = ViewImpl.find(
+        By(ViewImpl.permalink_, newViewPermalink),
+        By(ViewImpl.account, hostedAccount))
+
+    if(existing.isDefined)
+      Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
     else
       for{
           account <- HostedAccount.find(By(HostedAccount.accountID,bankAccount.id))
@@ -651,7 +656,7 @@ class MongoDBLocalStorage extends LocalStorage {
             val createdView = ViewImpl.create.
               name_(view.name).
               description_(view.description).
-              permalink_(generatePermalink(view.name)).
+              permalink_(newViewPermalink).
               isPublic_(view.is_public).
               account(account)
 
