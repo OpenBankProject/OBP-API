@@ -44,18 +44,18 @@ import _root_.net.liftweb.json.Serialization.write
 import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonDSL._
-import scala.util.Random._
 import net.liftweb.mapper.By
 import java.util.Date
+import scala.reflect.runtime.universe._
+import scala.util.Random._
 
 import code.model.TokenType._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, View}
+import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 
-import scala.reflect.runtime.universe._
 
 
 class API1_2_1Test extends ServerSetup{
@@ -266,6 +266,14 @@ class API1_2_1Test extends ServerSetup{
     possibleViewsPermalinks(randomPosition).id
   }
 
+  def randomViewPermalinkButNotOwner(bankId: String, account: AccountJSON) : String = {
+    val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token)
+    val reply = makeGetRequest(request)
+    val possibleViewsPermalinksWithoutOwner = reply.body.extract[ViewsJSON].views.filterNot(_.is_public==true).filterNot(_.id == "owner")
+    val randomPosition = nextInt(possibleViewsPermalinksWithoutOwner.size)
+    possibleViewsPermalinksWithoutOwner(randomPosition).id
+  }
+
   def randomBank : String = {
     val banksJson = getBanksInfo.body.extract[BanksJSON]
     val randomPosition = nextInt(banksJson.banks.size)
@@ -327,10 +335,11 @@ class API1_2_1Test extends ServerSetup{
       description = randomString(3),
       is_public = isPublic,
       which_alias_to_use=alias,
-      hide_metadata_if_alias_used=false,
+      hide_metadata_if_alias_used = false,
       allowed_actions = viewFileds
     )
   }
+
   def getAPIInfo : APIResponse = {
     val request = v1_2Request
     makeGetRequest(request)
@@ -1271,12 +1280,12 @@ class API1_2_1Test extends ServerSetup{
   }
 
   feature("Revoke a user access to a view on a bank account"){
-    scenario("we will revoke the access of a user to a view on an bank account", API1_2, DeletePermission) {
+    scenario("we will revoke the access of a user to a view different from owner on an bank account", API1_2, DeletePermission) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val userId = obpuser2.idGivenByProvider
-      val viewId = randomViewPermalink(bankId, bankAccount)
+      val viewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
@@ -1286,6 +1295,46 @@ class API1_2_1Test extends ServerSetup{
       reply.code should equal (204)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore -1)
+    }
+
+    scenario("we will revoke the access of a user to owner view on an bank account if there is more than one user", API1_2, DeletePermission) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewId = "owner"
+      val userId1 = obpuser2.idGivenByProvider
+      val userId2 = obpuser2.idGivenByProvider
+      grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
+      grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
+      val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
+      When("the request is sent")
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
+      Then("we should get a 204 no content code")
+      reply.code should equal (204)
+      val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
+      viewsAfter should equal(viewsBefore -1)
+    }
+
+    scenario("we cannot revoke the access of a user to owner view on an bank account if there is only one user", API1_2, DeletePermission) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewId = "owner"
+      val view = LocalStorage.view(viewId,bankAccount.id, bankId).get
+      if(view.users.length == 0){
+        val userId = obpuser2.idGivenByProvider
+        grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
+      }
+      while(view.users.length > 1){
+        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId, user1)
+      }
+      val viewUsersBefore = view.users
+      When("the request is sent")
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      val viewUsersAfter = view.users
+      viewUsersAfter.length should equal(viewUsersBefore.length)
     }
 
     scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermission) {

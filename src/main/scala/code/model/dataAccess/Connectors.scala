@@ -31,22 +31,22 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
-import code.model._
-import net.liftweb.common.{ Box, Empty, Full, Failure }
-import net.liftweb.util.Helpers.{tryo, now, hours,minutes, time, asLong}
+import com.mongodb.BasicDBList
+import com.mongodb.QueryBuilder
+import com.tesobe.model.UpdateBankAccount
+import net.liftweb.common.{Box, Empty, Full, Failure, Loggable}
+import net.liftweb.db.DB
 import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Loggable
-import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.mapper.{By,SelectableField, ByList}
 import net.liftweb.mongodb.MongoDB
-import com.mongodb.BasicDBList
-import org.bson.types.ObjectId
-import net.liftweb.db.DB
 import net.liftweb.mongodb.JsonObject
-import com.mongodb.QueryBuilder
-import scala.concurrent.ops.spawn
-import com.tesobe.model.UpdateBankAccount
+import net.liftweb.util.Helpers.{tryo, now, hours,minutes, time, asLong}
 import net.liftweb.util.Props
+import org.bson.types.ObjectId
+import scala.concurrent.ops.spawn
+
+import code.model._
+import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -584,13 +584,23 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
           vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
+          deletable <- checkIfOwnerViewAndHasMoreThanOneUser(view) ?~ "only person with owner view permission, access cannot be revoked"
         } yield {
-              vp.delete_!
+            vp.delete_!
           }
       case u: User => {
-        logger.error("APIUser instance not found, could not revoke access ")
+        logger.error("APIUser instance not found, could not revoke access")
         Empty
       }
+    }
+  }
+
+  def checkIfOwnerViewAndHasMoreThanOneUser(view: View): Box[Unit] = {
+    if((view.name=="Owner") && (view.users.length <= 1)){
+      Empty
+    }
+    else{
+      Full(Unit)
     }
   }
 
