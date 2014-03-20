@@ -967,6 +967,20 @@ class API1_2Test extends ServerSetup{
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+
+    scenario("We will not create a view because the view already exists", API1_2, PostView) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      postView(bankId, bankAccount.id, view, user1)
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, view, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Delete a view on a bank account"){
