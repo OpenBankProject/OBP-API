@@ -37,7 +37,8 @@ import org.scalatest.junit.JUnitRunner
 import _root_.net.liftweb.util._
 import Helpers._
 import _root_.net.liftweb.common._
-import dispatch._, Defaults._
+import dispatch._
+import Defaults._
 import _root_.net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import _root_.net.liftweb.json.Serialization.write
@@ -47,15 +48,14 @@ import net.liftweb.json.JsonDSL._
 import scala.util.Random._
 import net.liftweb.mapper.By
 import java.util.Date
-
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
-
 import scala.reflect.runtime.universe._
+import net.liftweb.json.JsonAST.JString
 
 
 class API1_2_1Test extends ServerSetup{
@@ -284,7 +284,12 @@ class API1_2_1Test extends ServerSetup{
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
-
+  
+  def privateAccountThatsNot(bankId: String, accId : String) : AccountJSON = {
+    val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
+    accountsJson.find(acc => acc.id != accId).getOrElse(fail(s"no private account that's not $accId"))
+  }
+  
   def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
     val persmissionsInfo = getAccountPermissions(bankId, accountId, user1).body.extract[PermissionsJSON]
     val randomPermission = nextInt(persmissionsInfo.permissions.size)
@@ -705,8 +710,73 @@ class API1_2_1Test extends ServerSetup{
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "other_account" <@(consumerAndToken)
     makeGetRequest(request)
   }
+  
+  /*** the hacky hackathon test
+   * 
+   */
+  object HackyThings extends Tag("hackyThings")
+  feature("we can make payments") {
+    scenario("we make a payment", HackyThings) {
+      
+      import code.model.BankAccount
+      
+      val bankId = randomBank
+      val acc1 = randomPrivateAccount(bankId)
+      val acc2 = privateAccountThatsNot(bankId, acc1.id)
+      val view = randomViewPermalink(bankId, acc1)
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+      }
+      
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+      }
+      
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+      
+      
+      val beforeBalance = toAccount.balance
+      
+      val amt = 12.50
+      
+      val paymentJson = 
+        ("bank_id" -> toAccount.bankPermalink) ~
+        ("account_id" -> toAccount.permalink) ~
+        ("amount" -> amt.toString)
+
+      def postTransaction(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+        val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@ (consumerAndToken)
+        //makeGetRequest(request)
+        makePostRequest(request, paymentJson.toString)
+      }
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, user1)
+      val transId : String = (postResult.body \ "transaction_id") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      transId should not equal("")
+      
+      val reply = getTransaction(
+          toAccount.bankPermalink, toAccount.permalink, view, transId, user1)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transJson = reply.body.extract[TransactionJSON]
+      
+      val transAmt = transJson.details.value.amount
+      transAmt should equal(amt.toString)
+      
+      getToAccount.balance should equal(beforeBalance + BigDecimal(amt.toString))
+    }
+  }
+  
+  /**
+   * 
+   */
 
 
+  
+  
 /************************ the tests ************************/
   feature("base line URL works"){
     scenario("we get the api information", API1_2, APIInfo) {

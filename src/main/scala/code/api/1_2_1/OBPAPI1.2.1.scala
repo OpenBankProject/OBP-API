@@ -858,7 +858,143 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         }
     }
   })
+  
+  import code.model.dataAccess.OBPEnvelope
+  def createTransaction(account : BankAccount, makeTransJs : MakeTransactionJson) : Box[OBPEnvelope] = {
 
+    val oldBalance = account.balance
+    
+    //TODO: get Account from makeTransJs
+    import code.model.dataAccess.Account
+    import code.model.dataAccess.HostedBank
+    for {
+      otherBank <- HostedBank.find("permalink" -> makeTransJs.bank_id) ?~! "no other bank found"
+      //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
+      val otherAccs = Account.findAll(("permalink" -> makeTransJs.account_id))
+      otherAcc <- Box(otherAccs.filter(_.bankId == otherBank.id.get.toString).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
+      amt <- tryo {BigDecimal(makeTransJs.amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
+      val transTime = now
+      val envjson =
+        ("obp_transaction" ->
+          ("this_account" ->
+            ("holder" -> account.name) ~
+            ("number" -> account.number) ~
+            ("kind" -> "") ~
+            ("bank" ->
+              ("IBAN" -> account.iban.getOrElse("")) ~
+              ("national_identifier" -> account.nationalIdentifier) ~
+              ("name" -> account.name))) ~
+              ("other_account" ->
+                ("holder" -> otherAcc.holder.get) ~
+                ("number" -> otherAcc.number.get) ~
+                ("kind" -> otherAcc.kind.get) ~
+                ("bank" ->
+                  ("IBAN" -> "") ~
+                  ("national_identifier" -> otherBank.national_identifier.get) ~
+                  ("name" -> otherBank.name.get))) ~
+                  ("details" ->
+                    ("type_en" -> "") ~
+                    ("type_de" -> "") ~
+                    ("posted" ->
+                      ("$dt" -> dateFormat.format(transTime))
+                    ) ~
+                    ("completed" ->
+                      ("$dt" -> dateFormat.format(transTime))
+                    ) ~
+                    ("new_balance" ->
+                      ("currency" -> account.currency) ~
+                      ("amount" -> (oldBalance + amt).toString)) ~
+                    ("value" ->
+                      ("currency" -> account.currency) ~
+                      ("amount" -> amt))))   
+      saved <- saveTransaction(envjson)
+    } yield saved
+  }
+
+  def saveTransaction(transactionJS : JValue) : Box[OBPEnvelope] = {
+    import code.model.dataAccess.OBPEnvelope
+    
+    val envelope: Box[OBPEnvelope] = OBPEnvelope.envlopesFromJvalue(transactionJS)
+
+    if(envelope.isDefined) {
+      val e : OBPEnvelope = envelope.get
+      val accountNumber = e.obp_transaction.get.this_account.get.number.get
+      val bankName = e.obp_transaction.get.this_account.get.bank.get.name.get
+      val accountKind = e.obp_transaction.get.this_account.get.kind.get
+      val holder = e.obp_transaction.get.this_account.get.holder.get
+      //Get all accounts with this account number and kind
+      import code.model.dataAccess.Account
+      val accounts = Account.findAll(("number" -> accountNumber) ~ ("kind" -> accountKind) ~ ("holder" -> holder))
+      //Now get the one that actually belongs to the right bank
+      val wantedAccount = accounts.find(_.bankName == bankName)
+      wantedAccount match {
+        case Some(account) => {
+          def updateAccountBalance() = {
+            val newest = OBPEnvelope.findAll(("obp_transaction.this_account.number" -> accountNumber) ~
+              ("obp_transaction.this_account.kind" -> accountKind) ~
+              ("obp_transaction.this_account.bank.name" -> bankName),
+              ("obp_transaction.details.completed" -> -1), Limit(1)).headOption
+            if (newest.isDefined) {
+              logger.debug("Updating current balance for " + bankName + "/" + accountNumber + "/" + accountKind)
+              account.balance(newest.get.obp_transaction.get.details.get.new_balance.get.amount.get).save
+            } else logger.warn("Could not update latest account balance")
+          }
+          account.lastUpdate(new Date).save
+          updateAccountBalance()
+          Full(e)
+        }
+        case _ => Failure("couldn't save transaction: no account balance to update")
+      }
+    } else {
+      Failure("couldn't save transaction")
+    }
+  }
+  
+  case class MakeTransactionJson(bank_id : String, account_id : String, amount : String)
+   oauthServe(apiPrefix {
+    
+    //post transaction TODO: this is a work in progress/hackathon hack! most of this
+    //code needs to be moved into a connector function
+    case "foo" :: Nil JsonPost json -> _ => {
+      user => Full(errorJsonResponse("argh"))
+    }
+   })
+  
+  
+  oauthServe(apiPrefix {
+    
+    //post transaction TODO: this is a work in progress/hackathon hack! most of this
+    //code needs to be moved into a connector function
+    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonPost json -> _ => {
+      user =>
+
+        if (Props.get("is_hackathon_mode", "") != "true") {
+          Full(errorJsonResponse("nothing to see here!"))
+        } else {
+          for {
+            //u <- user ?~ "asdad"
+            account <- BankAccount(bankId, accountId) ?~ "asda2323d"
+            view <- View.fromUrl(viewId, account) ?~ "FFFFZ"//TODO: need to actually check something with this
+            makeTransJson <- tryo{json.extract[MakeTransactionJson]} ?~ {"wrong json format"}
+          } yield {
+            val created = createTransaction(account, makeTransJson)
+            
+            created match {
+              case Full(c) => {
+                val successJson : JValue = ("transaction_id" -> c.id.get.toString)
+                successJsonResponse(successJson)
+              }
+              case Failure(msg, _, _) => errorJsonResponse(msg)
+              case _ => errorJsonResponse(":(")
+            }
+          }
+        }
+
+    } 
+    
+  })
+  
+  
   oauthServe(apiPrefix {
   //get transactions
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
