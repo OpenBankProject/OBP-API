@@ -41,18 +41,25 @@ object AdminDb extends MongoIdentifier {
 }
 
 object MongoConfig {
-  def init: Unit = {
-    val srvr = new ServerAddress(
-       Props.get("mongo.host", "localhost"),
-       Props.getInt("mongo.port", 27017)
-    )
-    val defaultDatabase =
+  
+  lazy val defaultDatabase =
       Props.mode match {
         case Props.RunModes.Test  => "test"
         case _ => "OBP006"
       }
+  
+  lazy val host = Props.get("mongo.host", "localhost")
+  lazy val port = Props.getInt("mongo.port", 27017)
+  lazy val dbName = Props.get("mongo.dbName", defaultDatabase)
+  
+  def init: Unit = {
+    val srvr = new ServerAddress(
+       host,
+       port
+    )
+    
 
-    MongoDB.defineDb(DefaultMongoIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
+    MongoDB.defineDb(DefaultMongoIdentifier, new Mongo(srvr), dbName)
     MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
   }
 }

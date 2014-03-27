@@ -54,6 +54,9 @@ import javax.mail.{ Authenticator, PasswordAuthentication }
 import java.io.FileInputStream
 import java.io.File
 import code.model.dataAccess.BankAccountCreationListener
+import code.metrics.Metrics
+import code.metrics.MongoMetric
+import code.metrics.MongoMetrics
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -233,5 +236,6 @@ class Boot extends Loggable{
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
       BankAccountCreationListener.startListen
+    
   }
 }

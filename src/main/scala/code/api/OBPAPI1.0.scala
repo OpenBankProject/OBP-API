@@ -63,7 +63,7 @@ import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser,APIMetric, HostedAccount, LocalStorage}
+import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser, HostedAccount, LocalStorage}
 import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Bank, User}
 import code.model.dataAccess.OBPEnvelope._
 import java.util.Date
@@ -73,6 +73,7 @@ import net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import net.liftweb.json.NoTypeHints
 import code.api.OAuthHandshake.getUser
+import code.injections.MetricsInjector
 
 object OBPAPI1_0 extends RestHelper with Loggable {
 
@@ -80,12 +81,10 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
   val dateFormat = ModeratedTransaction.dateFormat
 
-  private def logAPICall =
-    APIMetric.createRecord.
-      url(S.uriAndQueryString.getOrElse("")).
-      date((now: TimeSpan)).
-      save
-
+  private def logAPICall = {
+    MetricsInjector.m.vend.logAPICall(S.uriAndQueryString.getOrElse(""), now)
+  }
+  
   serve("obp" / "v1.0" prefix {
 
     case Nil JsonGet json => {

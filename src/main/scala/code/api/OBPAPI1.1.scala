@@ -59,9 +59,9 @@ import com.mongodb._
 import code.model._
 import java.util.Date
 import code.api.OAuthHandshake._
-import code.model.dataAccess.APIMetric
 import code.model.dataAccess.OBPEnvelope.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
+import code.injections.MetricsInjector
 
 case class TagJSON(
   value : String,
@@ -162,11 +162,9 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   }
 
-  private def logAPICall =
-    APIMetric.createRecord.
-      url(S.uriAndQueryString.getOrElse("")).
-      date((now: TimeSpan)).
-      save
+  private def logAPICall = {
+    MetricsInjector.m.vend.logAPICall(S.uriAndQueryString.getOrElse(""), now)
+  }
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)
