@@ -213,6 +213,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     }
   })
 
+  //TODO: update view
+
   oauthServe(apiPrefix {
   //creates a view on an bank account
     case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {

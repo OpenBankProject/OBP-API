@@ -61,6 +61,13 @@ case class ViewCreationJSON(
   allowed_actions : List[String]
 )
 
+case class ViewUpdateJSON(
+  description: String,
+  is_public: Boolean,
+  which_alias_to_use: String,
+  hide_metadata_if_alias_used: Boolean,
+  allowed_actions: List[String])
+
 trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
