@@ -391,7 +391,7 @@ class API1_2_1Test extends ServerSetup{
 
   def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
-    makePostRequest(request, write(view))
+    makePutRequest(request, write(view))
   }
 
   def deleteView(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -1055,7 +1055,7 @@ class API1_2_1Test extends ServerSetup{
       Given("a view does not exist")
       val nonExistantViewId = "asdfasdfasdfasdfasdf"
       val getReply = getAccountViews(bankId, bankAccount.id, user1)
-      getReply.code should equal (201)
+      getReply.code should equal (200)
       val views : ViewsJSON = getReply.body.extract[ViewsJSON]
       views.views.foreach(v => v.id should not equal(nonExistantViewId))
 

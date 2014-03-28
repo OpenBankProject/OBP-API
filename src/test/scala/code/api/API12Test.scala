@@ -388,7 +388,7 @@ class API1_2Test extends ServerSetup{
 
   def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
-    makePostRequest(request, write(view))
+    makePutRequest(request, write(view))
   }
 
   def deleteView(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
