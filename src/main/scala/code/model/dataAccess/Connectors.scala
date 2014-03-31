@@ -494,12 +494,12 @@ class MongoDBLocalStorage extends LocalStorage {
       user <- APIUser.find(By(APIUser.id, idAsLong)) ?~ { s"user $id not found"}
     } yield user
   }
-  
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     APIUser.find(By(APIUser.provider_, provider), By(APIUser.providerId, idGivenByProvider))
   }
-  
-  
+
+
   def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
   (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
     for{
@@ -526,7 +526,7 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   def permission(account : BankAccount, user: User) : Box[Permission] = {
-    
+
     for{
       acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
     } yield {
@@ -584,7 +584,7 @@ class MongoDBLocalStorage extends LocalStorage {
         for{
           bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
           vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
-          deletable <- checkIfOwnerViewAndHasMoreThanOneUser(view) ?~ "only person with owner view permission, access cannot be revoked"
+          deletable <- checkIfOwnerViewAndHasMoreThanOneUser(view)
         } yield {
             vp.delete_!
           }
@@ -597,7 +597,7 @@ class MongoDBLocalStorage extends LocalStorage {
 
   def checkIfOwnerViewAndHasMoreThanOneUser(view: View): Box[Unit] = {
     if((view.name=="Owner") && (view.users.length <= 1)){
-      Empty
+      Failure("only person with owner view permission, access cannot be revoked")
     }
     else{
       Full(Unit)
@@ -794,7 +794,7 @@ class MongoDBLocalStorage extends LocalStorage {
       case _ => Failure(s"Account ${bankAccount.id} not found")
     }
 
-    
+
   }
 
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
