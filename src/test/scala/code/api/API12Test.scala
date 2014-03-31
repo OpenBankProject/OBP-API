@@ -49,10 +49,9 @@ import net.liftweb.mapper.By
 import scala.util.Random._
 
 import code.api.test.{ServerSetup, APIResponse}
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, ViewCreationJSON}
 import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges, LocalStorage }
 import code.model.TokenType._
-import code.model.ViewCreationJSON
 import code.util.APIUtil.OAuth._
 
 
@@ -67,7 +66,7 @@ class API1_2Test extends ServerSetup{
     "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
     "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
     "can_see_transaction_finish_date","can_see_transaction_balance","can_see_comments",
-    "can_see_owner_comment","can_see_tags","can_see_images","can_see_bank_account_owners",
+    "can_see_narrative","can_see_tags","can_see_images","can_see_bank_account_owners",
     "can_see_bank_account_type","can_see_bank_account_balance","can_see_bank_account_currency",
     "can_see_bank_account_label","can_see_bank_account_national_identifier",
     "can_see_bank_account_swift_bic","can_see_bank_account_iban","can_see_bank_account_number",
@@ -79,7 +78,7 @@ class API1_2Test extends ServerSetup{
     "can_see_physical_location","can_see_public_alias","can_see_private_alias","can_add_more_info",
     "can_add_url","can_add_image_url","can_add_open_corporates_url","can_add_corporate_location",
     "can_add_physical_location","can_add_public_alias","can_add_private_alias",
-    "can_delete_corporate_location","can_delete_physical_location","can_edit_owner_comment",
+    "can_delete_corporate_location","can_delete_physical_location","can_edit_narrative",
     "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
     )
@@ -193,6 +192,7 @@ class API1_2Test extends ServerSetup{
   object GetBankAccount extends Tag("getBankAccount")
   object GetViews extends Tag("getViews")
   object PostView extends Tag("postView")
+  object PutView extends Tag("putView")
   object DeleteView extends Tag("deleteView")
   object GetPermissions extends Tag("getPermissions")
   object GetPermission extends Tag("getPermission")
@@ -384,6 +384,11 @@ class API1_2Test extends ServerSetup{
   def postView(bankId: String, accountId: String, view: ViewCreationJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
+  }
+
+  def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateData, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
+    makePutRequest(request, write(view))
   }
 
   def deleteView(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -982,6 +987,119 @@ class API1_2Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
   }
+
+  feature("Update a view on a bank account") {
+
+    val updatedViewDescription = "aloha"
+    val updatedAliasToUse = "public"
+    val allowedActions = List("can_see_images", "can_delete_comment")
+
+    def viewUpdateJson(originalView : ViewJSON) = {
+      //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
+      new ViewUpdateData(
+        description = updatedViewDescription,
+        is_public = !originalView.is_public,
+        which_alias_to_use = updatedAliasToUse,
+        hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias,
+        allowed_actions = allowedActions
+      )
+    }
+
+    def someViewUpdateJson() = {
+      new ViewUpdateData(
+        description = updatedViewDescription,
+        is_public = true,
+        which_alias_to_use = updatedAliasToUse,
+        hide_metadata_if_alias_used = true,
+        allowed_actions = allowedActions
+      )
+    }
+
+    scenario("we will update a view on a bank account", API1_2, PutView) {
+      Given("A view exists")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      val creationReply = postView(bankId, bankAccount.id, view, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+      createdView.can_see_images should equal(true)
+      createdView.can_delete_comment should equal(true)
+      createdView.can_delete_physical_location should equal(true)
+      createdView.can_edit_owner_comment should equal(true)
+      createdView.description should not equal(updatedViewDescription)
+      createdView.is_public should equal(true)
+      createdView.hide_metadata_if_alias should equal(false)
+
+      When("We use a valid access token and valid put json")
+      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
+      Then("We should get back the updated view")
+      reply.code should equal (200)
+      val updatedView = reply.body.extract[ViewJSON]
+      updatedView.can_see_images should equal(true)
+      updatedView.can_delete_comment should equal(true)
+      updatedView.can_delete_physical_location should equal(false)
+      updatedView.can_edit_owner_comment should equal(false)
+      updatedView.description should equal(updatedViewDescription)
+      updatedView.is_public should equal(false)
+      updatedView.hide_metadata_if_alias should equal(true)
+    }
+
+    scenario("we will not update a view that doesn't exist", API1_2, PutView) {
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+
+      Given("a view does not exist")
+      val nonExistantViewId = "asdfasdfasdfasdfasdf"
+      val getReply = getAccountViews(bankId, bankAccount.id, user1)
+      getReply.code should equal (200)
+      val views : ViewsJSON = getReply.body.extract[ViewsJSON]
+      views.views.foreach(v => v.id should not equal(nonExistantViewId))
+
+      When("we try to update that view")
+      val reply = putView(bankId, bankAccount.id, nonExistantViewId, someViewUpdateJson(), user1)
+      Then("We should get a 404")
+      reply.code should equal(404)
+    }
+
+    scenario("We will not update a view on a bank account due to missing token", API1_2, PutView) {
+      Given("A view exists")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      val creationReply = postView(bankId, bankAccount.id, view, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+
+      When("we don't use an access token")
+      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), None)
+      Then("we should get a 400")
+      reply.code should equal(400)
+
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+
+    scenario("we will not update a view on a bank account due to insufficient privileges", API1_2, PutView) {
+      Given("A view exists")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomView(true, "")
+      val creationReply = postView(bankId, bankAccount.id, view, user1)
+      creationReply.code should equal (201)
+      val createdView : ViewJSON = creationReply.body.extract[ViewJSON]
+
+      When("we try to update a view without having sufficient privileges to do so")
+      val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user3)
+      Then("we should get a 400")
+      reply.code should equal(400)
+
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
+  }
+
+  //TODO: no get view call? just get views?
 
   feature("Delete a view on a bank account"){
     scenario("we will delete a view on a bank account", API1_2, DeleteView) {
