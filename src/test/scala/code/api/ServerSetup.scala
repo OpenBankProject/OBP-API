@@ -61,7 +61,7 @@ import scala.concurrent.Await
 case class APIResponse(code: Int, body: JValue)
 
 trait ServerSetup extends FeatureSpec
-  with BeforeAndAfterAll with GivenWhenThen
+  with BeforeAndAfterEach with GivenWhenThen
   with ShouldMatchers with Loggable{
 
   val server = ServerSetup
@@ -69,7 +69,7 @@ trait ServerSetup extends FeatureSpec
   val h = Http
   def baseRequest = host(server.host, server.port)
 
-  override def beforeAll() = {
+  override def beforeEach() = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
     //create fake data for the tests
 
@@ -175,7 +175,7 @@ trait ServerSetup extends FeatureSpec
   def specificSetup() = {
   }
 
-  override def afterAll() = {
+  override def afterEach() = {
     //drop the Database after the tests
     MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
     ViewImpl.findAll.map(_.delete_!)

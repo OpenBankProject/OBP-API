@@ -277,20 +277,61 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        isRevoked <- LocalStorage.views(id) ?~ "could not get the views"
+        isRevoked <- LocalStorage.views(this) ?~ "could not get the views"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
   }
 
-  def createView(v: ViewCreationJSON): Box[View] =
-    LocalStorage.createView(this, v)
+  def createView(userDoingTheCreate : User,v: ViewCreationJSON): Box[View] = {
+    if(!userDoingTheCreate.ownerAccess(this)) {
+      Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
+    } else {
+      val view = LocalStorage.createView(this, v)
+      
+      if(view.isDefined) {
+        logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
+            " for account " + permalink + "at bank " + bankPermalink)
+      }
+      
+      view
+    }
+  }
 
-  def removeView(viewId: String) : Box[Unit] =
-    LocalStorage.removeView(viewId, this)
+  def updateView(userDoingTheUpdate : User, viewId : String, v: ViewUpdateData) : Box[View] = {
+    if(!userDoingTheUpdate.ownerAccess(this)) {
+      Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
+    } else {
+      val view = LocalStorage.updateView(this, viewId, v)
+      
+      if(view.isDefined) {
+        logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
+            " for account " + permalink + "at bank " + bankPermalink)
+      }
+      
+      view
+    }
+  }
+    
+
+  def removeView(userDoingTheRemove : User,viewId: String) : Box[Unit] = {
+    if(!userDoingTheRemove.ownerAccess(this)) {
+      Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
+    } else {
+      val deleted = LocalStorage.removeView(viewId, this)
+      
+      if(deleted.isDefined) {
+        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+            " for account " + permalink + "at bank " + bankPermalink)
+      }
+      
+      deleted
+    }
+  }
+   
 
   def publicViews : List[View] =
-    LocalStorage.publicViews(id).getOrElse(Nil)
+    LocalStorage.publicViews(this).getOrElse(Nil)
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
