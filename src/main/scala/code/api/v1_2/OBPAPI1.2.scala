@@ -213,8 +213,6 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     }
   })
 
-  //TODO: update view
-
   oauthServe(apiPrefix {
   //creates a view on an bank account
     case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
@@ -229,6 +227,23 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
           }
+    }
+  })
+
+  oauthServe(apiPrefix {
+    //updates a view on a bank account
+    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonPut json -> _ => {
+      user =>
+        for {
+          account <- BankAccount(bankId, accountId)
+          u <- user ?~ "user not found"
+          canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.idGivenByProvider + " at provider " + u.provider + " does not have owner access"})
+          updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
+          updatedView <- account.updateView(viewId, updateJson)
+        } yield {
+          val viewJSON = JSONFactory.createViewJSON(updatedView)
+          successJsonResponse(Extraction.decompose(viewJSON), 200)
+        }
     }
   })
 

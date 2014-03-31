@@ -50,7 +50,7 @@ import scala.reflect.runtime.universe._
 import scala.util.Random._
 
 import code.model.TokenType._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateJSON, View, ViewCreationJSON}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON}
 import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
@@ -389,7 +389,7 @@ class API1_2_1Test extends ServerSetup{
     makePostRequest(request, write(view))
   }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateData, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
     makePutRequest(request, write(view))
   }
@@ -999,7 +999,7 @@ class API1_2_1Test extends ServerSetup{
 
     def viewUpdateJson(originalView : ViewJSON) = {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
-      new ViewUpdateJSON(
+      new ViewUpdateData(
         description = updatedViewDescription,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
@@ -1009,7 +1009,7 @@ class API1_2_1Test extends ServerSetup{
     }
 
     def someViewUpdateJson() = {
-      new ViewUpdateJSON(
+      new ViewUpdateData(
         description = updatedViewDescription,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,
