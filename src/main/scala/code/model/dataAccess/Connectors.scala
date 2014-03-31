@@ -47,6 +47,7 @@ import scala.concurrent.ops.spawn
 
 import code.model._
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.api.APIFailure
 
 
 object LocalStorage extends MongoDBLocalStorage
@@ -653,140 +654,10 @@ class MongoDBLocalStorage extends LocalStorage {
         else{
           val createdView = ViewImpl.create.
             name_(view.name).
-            description_(view.description).
             permalink_(newViewPermalink).
-            isPublic_(view.is_public).
             account(account)
 
-          if(view.which_alias_to_use == "public"){
-            createdView.usePrivateAliasIfOneExists_(true)
-            createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
-          }
-          else if(view.which_alias_to_use == "private"){
-            createdView.usePublicAliasIfOneExists_(true)
-            createdView.hideOtherAccountMetadataIfAlias_(view.hide_metadata_if_alias_used)
-          }
-
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_this_bank_account"))
-            createdView.canSeeTransactionThisBankAccount_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_other_bank_account"))
-            createdView.canSeeTransactionOtherBankAccount_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_metadata"))
-            createdView.canSeeTransactionMetadata_(true)
-          if(view.allowed_actions.exists(a => (a=="can_see_transaction_label" || a=="can_see_transaction_description")))
-            createdView.canSeeTransactionDescription_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_amount"))
-            createdView.canSeeTransactionAmount_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_type"))
-            createdView.canSeeTransactionType_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_currency"))
-            createdView.canSeeTransactionCurrency_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_start_date"))
-            createdView.canSeeTransactionStartDate_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_finish_date"))
-            createdView.canSeeTransactionFinishDate_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_transaction_balance"))
-            createdView.canSeeTransactionBalance_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_comments"))
-            createdView.canSeeComments_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_narrative"))
-            createdView.canSeeOwnerComment_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_tags"))
-            createdView.canSeeTags_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_images"))
-            createdView.canSeeImages_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_owners"))
-            createdView.canSeeBankAccountOwners_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_type"))
-            createdView.canSeeBankAccountType_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_balance"))
-            createdView.canSeeBankAccountBalance_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_currency"))
-            createdView.canSeeBankAccountCurrency_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_label"))
-            createdView.canSeeBankAccountLabel_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_national_identifier"))
-            createdView.canSeeBankAccountNationalIdentifier_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_swift_bic"))
-            createdView.canSeeBankAccountSwift_bic_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_iban"))
-            createdView.canSeeBankAccountIban_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_number"))
-            createdView.canSeeBankAccountNumber_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_bank_name"))
-            createdView.canSeeBankAccountBankName_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_bank_account_bank_permalink"))
-            createdView.canSeeBankAccountBankPermalink_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_national_identifier"))
-            createdView.canSeeOtherAccountNationalIdentifier_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_swift_bic"))
-            createdView.canSeeOtherAccountSWIFT_BIC_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_iban"))
-            createdView.canSeeOtherAccountIBAN_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_bank_name"))
-            createdView.canSeeOtherAccountBankName_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_number"))
-            createdView.canSeeOtherAccountNumber_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_metadata"))
-            createdView.canSeeOtherAccountMetadata_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_other_account_kind"))
-            createdView.canSeeOtherAccountKind_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_more_info"))
-            createdView.canSeeMoreInfo_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_url"))
-            createdView.canSeeUrl_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_image_url"))
-            createdView.canSeeImageUrl_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_open_corporates_url"))
-            createdView.canSeeOpenCorporatesUrl_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_corporate_location"))
-            createdView.canSeeCorporateLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_physical_location"))
-            createdView.canSeePhysicalLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_public_alias"))
-            createdView.canSeePublicAlias_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_private_alias"))
-            createdView.canSeePrivateAlias_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_more_info"))
-            createdView.canAddMoreInfo_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_url"))
-            createdView.canAddURL_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_image_url"))
-            createdView.canAddImageURL_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_open_corporates_url"))
-            createdView.canAddOpenCorporatesUrl_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_corporate_location"))
-            createdView.canAddCorporateLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_physical_location"))
-            createdView.canAddPhysicalLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_public_alias"))
-            createdView.canAddPublicAlias_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_private_alias"))
-            createdView.canAddPrivateAlias_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_corporate_location"))
-            createdView.canDeleteCorporateLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_physical_location"))
-            createdView.canDeletePhysicalLocation_(true)
-          if(view.allowed_actions.exists(a => a=="can_edit_narrative"))
-            createdView.canEditOwnerComment_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_comment"))
-            createdView.canAddComment_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_comment"))
-            createdView.canDeleteComment_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_tag"))
-            createdView.canAddTag_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_tag"))
-            createdView.canDeleteTag_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_image"))
-            createdView.canAddImage_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_image"))
-            createdView.canDeleteImage_(true)
-          if(view.allowed_actions.exists(a => a=="can_add_where_tag"))
-            createdView.canAddWhereTag_(true)
-          if(view.allowed_actions.exists(a => a=="can_see_where_tag"))
-            createdView.canSeeWhereTag_(true)
-          if(view.allowed_actions.exists(a => a=="can_delete_where_tag"))
-            createdView.canDeleteWhereTag_(true)
+          createdView.setFromViewData(view)
           Full(createdView.saveMe)
         }
 
@@ -794,7 +665,26 @@ class MongoDBLocalStorage extends LocalStorage {
       case _ => Failure(s"Account ${bankAccount.id} not found")
     }
 
-    
+
+  }
+
+  def updateView(bankAccount : BankAccount, viewId: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
+
+    for {
+      account <- HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) ~> new APIFailure {
+        override val responseCode: Int = 404
+        override val msg: String = s"Account ${bankAccount.id} not found"
+      }
+      view <- ViewImpl.find(
+        By(ViewImpl.permalink_, viewId),
+        By(ViewImpl.account, account)) ~> new APIFailure {
+          override val responseCode: Int = 404
+          override val msg: String = s"View $viewId not found"
+        }
+    } yield {
+      view.setFromViewData(viewUpdateJson)
+      view.saveMe
+    }
   }
 
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
