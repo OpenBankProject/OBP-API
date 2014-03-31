@@ -220,12 +220,27 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
           u <- user ?~ "user not found"
           json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
           account <- BankAccount(bankId, accountId)
-          canAddViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.idGivenByProvider + " at provider " + u.provider + " does not have owner access"})
-          view <- account createView json
+          view <- account createView (u, json)
         } yield {
             val viewJSON = JSONFactory.createViewJSON(view)
             successJsonResponse(Extraction.decompose(viewJSON), 201)
           }
+    }
+  })
+
+  oauthServe(apiPrefix {
+    //updates a view on a bank account
+    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonPut json -> _ => {
+      user =>
+        for {
+          account <- BankAccount(bankId, accountId)
+          u <- user ?~ "user not found"
+          updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
+          updatedView <- account.updateView(u, viewId, updateJson)
+        } yield {
+          val viewJSON = JSONFactory.createViewJSON(updatedView)
+          successJsonResponse(Extraction.decompose(viewJSON), 200)
+        }
     }
   })
 
@@ -236,8 +251,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
         for {
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
-          canRemoveViews <- booleanToBox(u.ownerAccess(account), {"user: " + u.idGivenByProvider + " at provider " + u.provider + " does not have owner access"})
-          view <- account removeView viewId
+          view <- account removeView (u, viewId)
         } yield noContentJsonResponse
     }
   })
