@@ -1003,7 +1003,7 @@ class API1_2_1Test extends ServerSetup{
         description = updatedViewDescription,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
-        hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias,
+        hide_metadata_if_alias_used = !originalView.hide_metadata_if_alias_used,
         allowed_actions = allowedActions
       )
     }
@@ -1032,7 +1032,7 @@ class API1_2_1Test extends ServerSetup{
       createdView.can_edit_owner_comment should equal(true)
       createdView.description should not equal(updatedViewDescription)
       createdView.is_public should equal(true)
-      createdView.hide_metadata_if_alias should equal(false)
+      createdView.hide_metadata_if_alias_used should equal(false)
 
       When("We use a valid access token and valid put json")
       val reply = putView(bankId, bankAccount.id, createdView.id, viewUpdateJson(createdView), user1)
@@ -1045,7 +1045,7 @@ class API1_2_1Test extends ServerSetup{
       updatedView.can_edit_owner_comment should equal(false)
       updatedView.description should equal(updatedViewDescription)
       updatedView.is_public should equal(false)
-      updatedView.hide_metadata_if_alias should equal(true)
+      updatedView.hide_metadata_if_alias_used should equal(true)
     }
 
     scenario("we will not update a view that doesn't exist", API1_2, PutView) {
