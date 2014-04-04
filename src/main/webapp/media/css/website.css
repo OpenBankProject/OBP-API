@@ -610,3 +610,7 @@ span#accountsMsg
 	margin: 20px;
 	padding: 15px;
 }
+
+#oauth-done-thanks {
+	margin: 30px;
+}
