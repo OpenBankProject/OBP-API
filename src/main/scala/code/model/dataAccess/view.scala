@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import net.liftweb.mapper._
-import code.model.{View, BankAccount, User}
+import code.model.{ViewData, View, BankAccount, User}
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
@@ -56,6 +56,90 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object permalink_ extends MappedString(this, 255)
 
   def users : List[User] =  users_.toList
+  
+  //Important! If you add a field, be sure to handle it here in this function
+  def setFromViewData(viewData : ViewData) = {
+
+    if(viewData.which_alias_to_use == "public"){
+      usePublicAliasIfOneExists_(true)
+      usePrivateAliasIfOneExists_(false)
+    } else if(viewData.which_alias_to_use == "private"){
+      usePublicAliasIfOneExists_(false)
+      usePrivateAliasIfOneExists_(true)
+    } else {
+      usePublicAliasIfOneExists_(false)
+      usePrivateAliasIfOneExists_(false)
+    }
+
+    hideOtherAccountMetadataIfAlias_(viewData.hide_metadata_if_alias_used)
+    description_(viewData.description)
+    isPublic_(viewData.is_public)
+
+    val actions = viewData.allowed_actions
+
+    canSeeTransactionThisBankAccount_(actions.exists(_ =="can_see_transaction_this_bank_account"))
+    canSeeTransactionOtherBankAccount_(actions.exists(_ =="can_see_transaction_other_bank_account"))
+    canSeeTransactionMetadata_(actions.exists(_ == "can_see_transaction_metadata"))
+    canSeeTransactionDescription_(actions.exists(a => a == "can_see_transaction_label" || a == "can_see_transaction_description"))
+    canSeeTransactionAmount_(actions.exists(_ == "can_see_transaction_amount"))
+    canSeeTransactionType_(actions.exists(_ == "can_see_transaction_type"))
+    canSeeTransactionCurrency_(actions.exists(_ == "can_see_transaction_currency"))
+    canSeeTransactionStartDate_(actions.exists(_ == "can_see_transaction_start_date"))
+    canSeeTransactionFinishDate_(actions.exists(_ == "can_see_transaction_finish_date"))
+    canSeeTransactionBalance_(actions.exists(_ == "can_see_transaction_balance"))
+    canSeeComments_(actions.exists(_ == "can_see_comments"))
+    canSeeOwnerComment_(actions.exists(_ == "can_see_narrative"))
+    canSeeTags_(actions.exists(_ == "can_see_tags"))
+    canSeeImages_(actions.exists(_ == "can_see_images"))
+    canSeeBankAccountOwners_(actions.exists(_ == "can_see_bank_account_owners"))
+    canSeeBankAccountType_(actions.exists(_ == "can_see_bank_account_type"))
+    canSeeBankAccountBalance_(actions.exists(_ == "can_see_bank_account_balance"))
+    canSeeBankAccountCurrency_(actions.exists(_ == "can_see_bank_account_currency"))
+    canSeeBankAccountLabel_(actions.exists(_ == "can_see_bank_account_label"))
+    canSeeBankAccountNationalIdentifier_(actions.exists(_ == "can_see_bank_account_national_identifier"))
+    canSeeBankAccountSwift_bic_(actions.exists(_ == "can_see_bank_account_swift_bic"))
+    canSeeBankAccountIban_(actions.exists(_ == "can_see_bank_account_iban"))
+    canSeeBankAccountNumber_(actions.exists(_ == "can_see_bank_account_number"))
+    canSeeBankAccountBankName_(actions.exists(_ == "can_see_bank_account_bank_name"))
+    canSeeBankAccountBankPermalink_(actions.exists(_ == "can_see_bank_account_bank_permalink"))
+    canSeeOtherAccountNationalIdentifier_(actions.exists(_ == "can_see_other_account_national_identifier"))
+    canSeeOtherAccountSWIFT_BIC_(actions.exists(_ == "can_see_other_account_swift_bic"))
+    canSeeOtherAccountIBAN_(actions.exists(_ == "can_see_other_account_iban"))
+    canSeeOtherAccountBankName_(actions.exists(_ == "can_see_other_account_bank_name"))
+    canSeeOtherAccountNumber_(actions.exists(_ == "can_see_other_account_number"))
+    canSeeOtherAccountMetadata_(actions.exists(_ == "can_see_other_account_metadata"))
+    canSeeOtherAccountKind_(actions.exists(_ == "can_see_other_account_kind"))
+    canSeeMoreInfo_(actions.exists(_ == "can_see_more_info"))
+    canSeeUrl_(actions.exists(_ == "can_see_url"))
+    canSeeImageUrl_(actions.exists(_ == "can_see_image_url"))
+    canSeeOpenCorporatesUrl_(actions.exists(_ == "can_see_open_corporates_url"))
+    canSeeCorporateLocation_(actions.exists(_ == "can_see_corporate_location"))
+    canSeePhysicalLocation_(actions.exists(_ == "can_see_physical_location"))
+    canSeePublicAlias_(actions.exists(_ == "can_see_public_alias"))
+    canSeePrivateAlias_(actions.exists(_ == "can_see_private_alias"))
+    canAddMoreInfo_(actions.exists(_ == "can_add_more_info"))
+    canAddURL_(actions.exists(_ == "can_add_url"))
+    canAddImageURL_(actions.exists(_ == "can_add_image_url"))
+    canAddOpenCorporatesUrl_(actions.exists(_ == "can_add_open_corporates_url"))
+    canAddCorporateLocation_(actions.exists(_ == "can_add_corporate_location"))
+    canAddPhysicalLocation_(actions.exists(_ == "can_add_physical_location"))
+    canAddPublicAlias_(actions.exists(_ == "can_add_public_alias"))
+    canAddPrivateAlias_(actions.exists(_ == "can_add_private_alias"))
+    canDeleteCorporateLocation_(actions.exists(_ == "can_delete_corporate_location"))
+    canDeletePhysicalLocation_(actions.exists(_ == "can_delete_physical_location"))
+    canEditOwnerComment_(actions.exists(_ == "can_edit_narrative"))
+    canAddComment_(actions.exists(_ == "can_add_comment"))
+    canDeleteComment_(actions.exists(_ == "can_delete_comment"))
+    canAddTag_(actions.exists(_ == "can_add_tag"))
+    canDeleteTag_(actions.exists(_ == "can_delete_tag"))
+    canAddImage_(actions.exists(_ == "can_add_image"))
+    canDeleteImage_(actions.exists(_ == "can_delete_image"))
+    canAddWhereTag_(actions.exists(_ == "can_add_where_tag"))
+    canSeeWhereTag_(actions.exists(_ == "can_see_where_tag"))
+    canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
+  }
+  
+  
   object isPublic_ extends MappedBoolean(this){
     override def defaultValue = false
     override def dbIndexed_? = true
