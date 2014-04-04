@@ -49,6 +49,7 @@ import scala.compat.Platform
 import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
 object OAuthAuthorisation {
 
@@ -104,11 +105,11 @@ object OAuthAuthorisation {
                   "#verifier *" #> verifier &
                     "#errorMessage" #> "" &
                     "#account" #> ""
-                else {
-                  //redirect the user to the application with the verifier
-                  S.redirectTo(appToken.callbackURL + "?oauth_token=" + token +
-                    "&oauth_verifier=" + verifier)
-                  "#verifier" #> "you should be redirected"
+                else {                
+                  //send the user to another obp page that handles the redirect
+                  val redirectUrl = urlEncode(appToken.callbackURL + "?oauth_token=" + token +
+                    "&oauth_verifier=" + verifier)               
+                  S.redirectTo(Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref + "?redirectUrl=" + redirectUrl)
                 }
               } else {
                 val currentUrl = S.uriAndQueryString.getOrElse("/")
