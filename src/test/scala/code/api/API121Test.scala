@@ -805,6 +805,7 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment of zero units of currency", Payments) {
+      fail("Test not implemented")
       When("we try to make a payment with amount = 0")
       
       Then("we should get a 400")
@@ -815,6 +816,7 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment with a negative amount of money", Payments) {
+      fail("Test not implemented")
       When("we try to make a payment with amount < 0")
       
       Then("we should get a 400")
@@ -825,6 +827,7 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
+      fail("Test not implemented")
       When("we try to make a payment to an account that doesn't exist")
       
       Then("we should get a 400")
@@ -835,6 +838,7 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment between accounts with different currencies", Payments) {
+      fail("Test not implemented")
       When("we try to make a payment to an account that has a different currency")
       
       Then("we should get a 400")
