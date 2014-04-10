@@ -874,54 +874,59 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
   })
   
   import code.model.dataAccess.OBPEnvelope
-  def createTransaction(account : BankAccount, makeTransJs : MakeTransactionJson) : Box[OBPEnvelope] = {
+  def createTransaction(account : BankAccount, otherBankId : String,
+      otherAccountId : String, amount : String) : Box[OBPEnvelope] = {
 
-    val oldBalance = account.balance
+    val oldFromBalance = account.balance
     
-    //TODO: get Account from makeTransJs
     import code.model.dataAccess.Account
     import code.model.dataAccess.HostedBank
+    import java.text.SimpleDateFormat
     for {
-      otherBank <- HostedBank.find("permalink" -> makeTransJs.bank_id) ?~! "no other bank found"
+      otherBank <- HostedBank.find("permalink" -> otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
-      val otherAccs = Account.findAll(("permalink" -> makeTransJs.account_id))
-      otherAcc <- Box(otherAccs.filter(_.bankId == otherBank.id.get.toString).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
-      amt <- tryo {BigDecimal(makeTransJs.amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
+      val otherAccs = Account.findAll(("permalink" -> otherAccountId))
+      otherAcc <- Box(otherAccs.filter(_.bankPermalink == otherBank.permalink.get).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
+      amt <- tryo {BigDecimal(amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
       val transTime = now
-      val envjson =
+      val thisAccs = Account.findAll(("permalink" -> account.permalink))
+      thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankPermalink).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankPermalink}?"
+      //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
+      val envJsonDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+      val envJson =
         ("obp_transaction" ->
           ("this_account" ->
-            ("holder" -> account.name) ~
+            ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
             ("number" -> account.number) ~
-            ("kind" -> "") ~
+            ("kind" -> thisAcc.kind.get) ~
             ("bank" ->
               ("IBAN" -> account.iban.getOrElse("")) ~
               ("national_identifier" -> account.nationalIdentifier) ~
-              ("name" -> account.name))) ~
-              ("other_account" ->
-                ("holder" -> otherAcc.holder.get) ~
-                ("number" -> otherAcc.number.get) ~
-                ("kind" -> otherAcc.kind.get) ~
-                ("bank" ->
-                  ("IBAN" -> "") ~
-                  ("national_identifier" -> otherBank.national_identifier.get) ~
-                  ("name" -> otherBank.name.get))) ~
-                  ("details" ->
-                    ("type_en" -> "") ~
-                    ("type_de" -> "") ~
-                    ("posted" ->
-                      ("$dt" -> dateFormat.format(transTime))
-                    ) ~
-                    ("completed" ->
-                      ("$dt" -> dateFormat.format(transTime))
-                    ) ~
-                    ("new_balance" ->
-                      ("currency" -> account.currency) ~
-                      ("amount" -> (oldBalance + amt).toString)) ~
-                    ("value" ->
-                      ("currency" -> account.currency) ~
-                      ("amount" -> amt))))   
-      saved <- saveTransaction(envjson)
+              ("name" -> account.bankPermalink))) ~
+          ("other_account" ->
+            ("holder" -> otherAcc.holder.get) ~
+            ("number" -> otherAcc.number.get) ~
+            ("kind" -> otherAcc.kind.get) ~
+            ("bank" ->
+              ("IBAN" -> "") ~
+              ("national_identifier" -> otherBank.national_identifier.get) ~
+              ("name" -> otherBank.name.get))) ~
+          ("details" ->
+            ("type_en" -> "") ~
+            ("type_de" -> "") ~
+            ("posted" ->
+              ("$dt" -> envJsonDateFormat.format(transTime))
+            ) ~
+            ("completed" ->
+              ("$dt" -> envJsonDateFormat.format(transTime))
+            ) ~
+            ("new_balance" ->
+              ("currency" -> account.currency) ~
+              ("amount" -> (oldFromBalance + amt).toString)) ~
+            ("value" ->
+              ("currency" -> account.currency) ~
+              ("amount" -> amt.toString))))   
+      saved <- saveTransaction(envJson)
     } yield saved
   }
 
@@ -940,20 +945,21 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
       import code.model.dataAccess.Account
       val accounts = Account.findAll(("number" -> accountNumber) ~ ("kind" -> accountKind) ~ ("holder" -> holder))
       //Now get the one that actually belongs to the right bank
-      val wantedAccount = accounts.find(_.bankName == bankName)
+      val findFunc = (x : Account) => {
+        x.bankPermalink == bankName
+      }
+      val wantedAccount = accounts.find(findFunc)
       wantedAccount match {
         case Some(account) => {
           def updateAccountBalance() = {
-            val newest = OBPEnvelope.findAll(("obp_transaction.this_account.number" -> accountNumber) ~
-              ("obp_transaction.this_account.kind" -> accountKind) ~
-              ("obp_transaction.this_account.bank.name" -> bankName),
-              ("obp_transaction.details.completed" -> -1), Limit(1)).headOption
-            if (newest.isDefined) {
-              logger.debug("Updating current balance for " + bankName + "/" + accountNumber + "/" + accountKind)
-              account.balance(newest.get.obp_transaction.get.details.get.new_balance.get.amount.get).save
-            } else logger.warn("Could not update latest account balance")
+            logger.debug("Updating current balance for " + bankName + "/" + accountNumber + "/" + accountKind)
+            account.balance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
+            logger.debug("Saving new transaction")
+            val metadataCreated = e.createMetadataReference
+            if(metadataCreated.isDefined) e.save
+            else Failure("Server error, problem creating transaction metadata")
           }
-          account.lastUpdate(new Date).save
+          account.lastUpdate(new Date)
           updateAccountBalance()
           Full(e)
         }
@@ -965,15 +971,6 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
   }
   
   case class MakeTransactionJson(bank_id : String, account_id : String, amount : String)
-   oauthServe(apiPrefix {
-    
-    //post transaction TODO: this is a work in progress/hackathon hack! most of this
-    //code needs to be moved into a connector function
-    case "foo" :: Nil JsonPost json -> _ => {
-      user => Full(errorJsonResponse("argh"))
-    }
-   })
-  
   
   oauthServe(apiPrefix {
     
@@ -986,14 +983,36 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           Full(errorJsonResponse("nothing to see here!"))
         } else {
           for {
-            //u <- user ?~ "asdad"
-            account <- BankAccount(bankId, accountId) ?~ "asda2323d"
-            view <- View.fromUrl(viewId, account) ?~ "FFFFZ"//TODO: need to actually check something with this
+            u <- user ?~ "asdad"
+            fromAccount <- BankAccount(bankId, accountId) ?~ s"account $accountId not found at bank $bankId"
+            owner <- booleanToBox(u.ownerAccess(fromAccount), "user does not have access to owner view")
+            view <- View.fromUrl(viewId, fromAccount) ?~ s"view $viewId not found"//TODO: this isn't actually used, unlike for GET transactions
             makeTransJson <- tryo{json.extract[MakeTransactionJson]} ?~ {"wrong json format"}
+            toAccount <- {
+              BankAccount(makeTransJson.bank_id, makeTransJson.account_id) ?~! {"Transaction 'to' party with " +
+                s" account id ${makeTransJson.account_id} at bank ${makeTransJson.bank_id}" +
+                " not found on the open bank project"}
+            }
+            rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
+            isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), "Can't send a payment with a value of 0 or less") 
           } yield {
-            val created = createTransaction(account, makeTransJson)
+            val fromTransAmt = -rawAmt //from account balance should decrease
+            val toTransAmt = rawAmt //to account balance should increase
+            val createdFromTrans = createTransaction(fromAccount, makeTransJson.bank_id, 
+                                     makeTransJson.account_id, fromTransAmt.toString)
+            // other party in the transaction for the "to" account is the "from" account
+            val createToTrans = createTransaction(toAccount, bankId, accountId, toTransAmt.toString)
             
-            created match {
+            /**
+             * WARNING!!! There is no check currently being done that the new transaction + update balance 
+             *  of the account receiving the money were properly saved. This payment implementation is for
+             *  demo/sandbox/test purposes ONLY!
+             *  
+             *  I have not bothered to spend time doing anything about this. I see no point in trying to
+             *  implement ACID transactions in mongodb when a real payment system will not use mongodb.
+             */
+            
+            createdFromTrans match {
               case Full(c) => {
                 val successJson : JValue = ("transaction_id" -> c.id.get.toString)
                 successJsonResponse(successJson)
@@ -1060,17 +1079,17 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
   })
 
   oauthServe(apiPrefix {
-  //get transaction by id
+    //get transaction by id
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId, account)
+          account <- BankAccount(bankId, accountId) ?~! s"Bank account $accountId not found at bank $bankId"
+          view <- View.fromUrl(viewId, account) ?~! s"View $viewId not found for account"
           moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
         } yield {
-            val json = JSONFactory.createTransactionJSON(moderatedTransaction)
-            successJsonResponse(Extraction.decompose(json))
-          }
+          val json = JSONFactory.createTransactionJSON(moderatedTransaction)
+          successJsonResponse(Extraction.decompose(json))
+        }
     }
   })
 
