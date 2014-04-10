@@ -302,7 +302,7 @@ trait ServerSetup extends FeatureSpec
     canAddWhereTag_(true).
     canSeeWhereTag_(true).
     canDeleteWhereTag_(true).
-    save
+    saveMe
 
   def publicView(account: HostedAccount) =
     ViewImpl.create.
