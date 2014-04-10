@@ -331,8 +331,8 @@ class MongoDBLocalStorage extends LocalStorage {
 
   private def getTransaction(id : String, bankPermalink : String, accountPermalink : String) : Box[Transaction] = {
     for{
-      bank <- getHostedBank(bankPermalink)
-      account  <- bank.getAccount(accountPermalink)
+      bank <- getHostedBank(bankPermalink) ?~! s"Transaction not found: bank $bankPermalink not found"
+      account  <- bank.getAccount(accountPermalink) ?~! s"Transaction not found: account $accountPermalink not found"
       objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
       transaction <- createTransaction(envelope,account)

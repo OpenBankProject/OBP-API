@@ -45,9 +45,11 @@ import _root_.net.liftweb.json.Serialization.write
 import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
 import net.liftweb.mapper.By
 import java.util.Date
 import code.model.TokenType._
+import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON}
 import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage}
 import code.api.test.{ServerSetup, APIResponse}
@@ -736,7 +738,8 @@ class API1_2_1Test extends ServerSetup{
       val bankId = randomBank
       val acc1 = randomPrivateAccount(bankId)
       val acc2 = privateAccountThatsNot(bankId, acc1.id)
-      val view = randomViewPermalink(bankId, acc1)
+      
+      val view = "owner"
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
       }
@@ -749,37 +752,59 @@ class API1_2_1Test extends ServerSetup{
       val toAccount = getToAccount
       
       
-      val beforeBalance = toAccount.balance
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
       
-      val amt = 12.50
+      val amt = BigDecimal("12.50")
       
       val paymentJson = 
         ("bank_id" -> toAccount.bankPermalink) ~
         ("account_id" -> toAccount.permalink) ~
         ("amount" -> amt.toString)
 
+       
       def postTransaction(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-        val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@ (consumerAndToken)
-        //makeGetRequest(request)
-        makePostRequest(request, paymentJson.toString)
+        val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
+        makePostRequest(request, compact(render(paymentJson)))
       }
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, user1)
+
       val transId : String = (postResult.body \ "transaction_id") match {
         case JString(i) => i
         case _ => ""
       }
       transId should not equal("")
-      
+     
       val reply = getTransaction(
-          toAccount.bankPermalink, toAccount.permalink, view, transId, user1)
+          fromAccount.bankPermalink, fromAccount.permalink, view, transId, user1)
+          
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val transJson = reply.body.extract[TransactionJSON]
       
-      val transAmt = transJson.details.value.amount
-      transAmt should equal(amt.toString)
+      val fromAccountTransAmt = transJson.details.value.amount
+      //the from account transaction should have a negative value
+      //since money left the account
+      fromAccountTransAmt should equal((-amt).toString)
+       
+      val expectedNewFromBalance = beforeFromBalance - amt
       
-      getToAccount.balance should equal(beforeBalance + BigDecimal(amt.toString))
+      transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
+      
+      
+      getFromAccount.balance should equal(expectedNewFromBalance)
+      
+      val toAccountTransactionsReq = getTransactions(toAccount.bankPermalink, toAccount.permalink, view, user1)
+      toAccountTransactionsReq.code should equal(200)
+      val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
+      val newestToAccountTransaction = toAccountTransactions.transactions(0)
+    
+      //here amt should be positive (unlike in the transaction in the "from" account")
+      newestToAccountTransaction.details.value.amount should equal(amt.toString)
+      
+      val expectedNewToBalance = beforeToBalance + amt
+      newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
+      getToAccount.balance should equal(expectedNewToBalance)
     }
   }
   

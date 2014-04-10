@@ -203,6 +203,7 @@ trait ServerSetup extends FeatureSpec
   */
   def makePostRequest(req: Req, json: String = ""): APIResponse = {
     req.addHeader("Content-Type", "application/json")
+    req.addHeader("Accept", "application/json")
     req.setBody(json)
     val jsonReq = (req).POST
     getAPIResponse(jsonReq)
