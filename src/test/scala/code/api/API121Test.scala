@@ -253,6 +253,7 @@ class API1_2_1Test extends ServerSetup{
   object PutWhere extends Tag("putWhere")
   object DeleteWhere extends Tag("deleteWhere")
   object GetTransactionAccount extends Tag("getTransactionAccount")
+  object Payments extends Tag("payments")
 
   /********************* API test methods ********************/
   val emptyJSON : JObject =
@@ -726,12 +727,8 @@ class API1_2_1Test extends ServerSetup{
     makeGetRequest(request)
   }
   
-  /*** the hacky hackathon test
-   * 
-   */
-  object HackyThings extends Tag("hackyThings")
   feature("we can make payments") {
-    scenario("we make a payment", HackyThings) {
+    scenario("we make a payment", Payments) {
       
       import code.model.BankAccount
       
@@ -805,6 +802,46 @@ class API1_2_1Test extends ServerSetup{
       val expectedNewToBalance = beforeToBalance + amt
       newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
       getToAccount.balance should equal(expectedNewToBalance)
+    }
+    
+    scenario("we can't make a payment of zero units of currency", Payments) {
+      When("we try to make a payment with amount = 0")
+      
+      Then("we should get a 400")
+      
+      And("the number of transactions for each account should remain unchanged")
+      
+      And("the balances of each account should remain unchanged")
+    }
+    
+    scenario("we can't make a payment with a negative amount of money", Payments) {
+      When("we try to make a payment with amount < 0")
+      
+      Then("we should get a 400")
+      
+      And("the number of transactions for each account should remain unchanged")
+      
+      And("the balances of each account should remain unchanged")
+    }
+    
+    scenario("we can't make a payment to an account that doesn't exist", Payments) {
+      When("we try to make a payment to an account that doesn't exist")
+      
+      Then("we should get a 400")
+      
+      And("the number of transactions for the sender's account should remain unchanged")
+      
+      And("the balance of the sender's account should remain unchanged")
+    }
+    
+    scenario("we can't make a payment between accounts with different currencies", Payments) {
+      When("we try to make a payment to an account that has a different currency")
+      
+      Then("we should get a 400")
+      
+      And("the number of transactions for each account should remain unchanged")
+      
+      And("the balances of each account should remain unchanged")
     }
   }
   
