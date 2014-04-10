@@ -51,12 +51,13 @@ import java.util.Date
 import code.model.TokenType._
 import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON, BankAccount}
-import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage, OBPEnvelope}
+import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage, OBPEnvelope, HostedBank}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
 import code.api.v1_2_1.OBPAPI1_2_1.MakeTransactionJson
+import org.bson.types.ObjectId
 
 
 class API1_2_1Test extends ServerSetup{
@@ -734,19 +735,60 @@ class API1_2_1Test extends ServerSetup{
   }
   
   feature("we can make payments") {
+
+    def paymentTestBank = HostedBank.createRecord.
+      name(randomString(5)).
+      alias(randomString(5)).
+      permalink("payments-test-bank").
+      national_identifier(randomString(5)).
+      save
+
+    def createAccount(bankMongoId : String, accountPermalink : String, currency : String) = {
+
+      val created = Account.createRecord.
+        balance(1000).
+        holder(randomString(4)).
+        number(randomString(4)).
+        kind(randomString(4)).
+        name(randomString(4)).
+        permalink(accountPermalink).
+        bankID(new ObjectId(bankMongoId)).
+        label(randomString(4)).
+        currency(currency).
+        save
+
+      val hostedAccount = HostedAccount.
+        create.
+        accountID(created.id.get.toString).
+        saveMe
+
+      val owner = ownerView(hostedAccount)
+
+      //give to user1 owner view
+      ViewPrivileges.create.
+        view(owner).
+        user(obpuser1).
+        save
+
+      created
+    }
+
+    val view = "owner"
+
     scenario("we make a payment", Payments) {
 
-      val bankId = randomBank
-      val acc1 = randomPrivateAccount(bankId)
-      val acc2 = privateAccountThatsNot(bankId, acc1.id)
-      
-      val view = "owner"
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
       
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
       }
       
       val fromAccount = getFromAccount
@@ -807,17 +849,19 @@ class API1_2_1Test extends ServerSetup{
     
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
-      val bankId = randomBank
-      val acc1 = randomPrivateAccount(bankId)
-      val acc2 = privateAccountThatsNot(bankId, acc1.id)
 
-      val view = "owner"
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -845,19 +889,21 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment with a negative amount of money", Payments) {
+
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+
       When("we try to make a payment with amount < 0")
 
-      val bankId = randomBank
-      val acc1 = randomPrivateAccount(bankId)
-      val acc2 = privateAccountThatsNot(bankId, acc1.id)
-
-      val view = "owner"
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -885,14 +931,16 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
-      When("we try to make a payment to an account that doesn't exist")
-      val bankId = randomBank
-      val acc1 = randomPrivateAccount(bankId)
-      val acc2 = "SOMETHINGTHATDOESNOTEXIST123245453545"
 
-      val view = "owner"
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+
+      When("we try to make a payment to an account that doesn't exist")
+
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
 
       val fromAccount = getFromAccount
@@ -903,7 +951,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("17.30")
 
-      val payJson = MakeTransactionJson(bankId, acc2, amt.toString)
+      val payJson = MakeTransactionJson(bankId, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
@@ -917,14 +965,43 @@ class API1_2_1Test extends ServerSetup{
     }
     
     scenario("we can't make a payment between accounts with different currencies", Payments) {
-      fail("Test not implemented")
       When("we try to make a payment to an account that has a different currency")
-      
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "GBP")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("4.95")
+
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
+
       Then("we should get a 400")
+      postResult.code should equal(400)
       
       And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
       
       And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
+      beforeToBalance should equal(toAccount.balance)
     }
   }
   
