@@ -50,12 +50,13 @@ import net.liftweb.mapper.By
 import java.util.Date
 import code.model.TokenType._
 import scala.util.Random._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON}
-import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON, BankAccount}
+import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage, OBPEnvelope}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
+import code.api.v1_2_1.OBPAPI1_2_1.MakeTransactionJson
 
 
 class API1_2_1Test extends ServerSetup{
@@ -633,6 +634,11 @@ class API1_2_1Test extends ServerSetup{
     makeGetRequest(request)
   }
 
+  def postTransaction(bankId: String, accountId: String, viewId: String, paymentJson: MakeTransactionJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
+    makePostRequest(request, compact(render(Extraction.decompose(paymentJson))))
+  }
+
   def getNarrativeForOneTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "metadata" / "narrative" <@(consumerAndToken)
     makeGetRequest(request)
@@ -729,9 +735,7 @@ class API1_2_1Test extends ServerSetup{
   
   feature("we can make payments") {
     scenario("we make a payment", Payments) {
-      
-      import code.model.BankAccount
-      
+
       val bankId = randomBank
       val acc1 = randomPrivateAccount(bankId)
       val acc2 = privateAccountThatsNot(bankId, acc1.id)
@@ -747,24 +751,17 @@ class API1_2_1Test extends ServerSetup{
       
       val fromAccount = getFromAccount
       val toAccount = getToAccount
-      
+
+      val totalTransactionsBefore = OBPEnvelope.count
       
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
       
       val amt = BigDecimal("12.50")
       
-      val paymentJson = 
-        ("bank_id" -> toAccount.bankPermalink) ~
-        ("account_id" -> toAccount.permalink) ~
-        ("amount" -> amt.toString)
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
 
-       
-      def postTransaction(bankId: String, accountId: String, viewId: String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
-        val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
-        makePostRequest(request, compact(render(paymentJson)))
-      }
-      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, user1)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
 
       val transId : String = (postResult.body \ "transaction_id") match {
         case JString(i) => i
@@ -782,13 +779,12 @@ class API1_2_1Test extends ServerSetup{
       val fromAccountTransAmt = transJson.details.value.amount
       //the from account transaction should have a negative value
       //since money left the account
+      And("the json we receive back should have a transaction amount equal to the amount specified to pay")
       fromAccountTransAmt should equal((-amt).toString)
        
       val expectedNewFromBalance = beforeFromBalance - amt
-      
+      And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
       transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
-      
-      
       getFromAccount.balance should equal(expectedNewFromBalance)
       
       val toAccountTransactionsReq = getTransactions(toAccount.bankPermalink, toAccount.permalink, view, user1)
@@ -797,44 +793,127 @@ class API1_2_1Test extends ServerSetup{
       val newestToAccountTransaction = toAccountTransactions.transactions(0)
     
       //here amt should be positive (unlike in the transaction in the "from" account")
+      And("the newest transaction for the account receiving the payment should have the proper amount")
       newestToAccountTransaction.details.value.amount should equal(amt.toString)
-      
+
+      And("the account receiving the payment should have the proper balance")
       val expectedNewToBalance = beforeToBalance + amt
       newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
       getToAccount.balance should equal(expectedNewToBalance)
+
+      And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+      OBPEnvelope.count should equal(totalTransactionsBefore + 2)
     }
     
     scenario("we can't make a payment of zero units of currency", Payments) {
-      fail("Test not implemented")
       When("we try to make a payment with amount = 0")
+      val bankId = randomBank
+      val acc1 = randomPrivateAccount(bankId)
+      val acc2 = privateAccountThatsNot(bankId, acc1.id)
+
+      val view = "owner"
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("0")
+
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
+      postResult.code should equal(400)
       
       And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
       
       And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
+      beforeToBalance should equal(toAccount.balance)
     }
     
     scenario("we can't make a payment with a negative amount of money", Payments) {
-      fail("Test not implemented")
       When("we try to make a payment with amount < 0")
+
+      val bankId = randomBank
+      val acc1 = randomPrivateAccount(bankId)
+      val acc2 = privateAccountThatsNot(bankId, acc1.id)
+
+      val view = "owner"
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.id).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("-20.30")
+
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
+      postResult.code should equal(400)
       
       And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
       
       And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
+      beforeToBalance should equal(toAccount.balance)
     }
     
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
-      fail("Test not implemented")
       When("we try to make a payment to an account that doesn't exist")
+      val bankId = randomBank
+      val acc1 = randomPrivateAccount(bankId)
+      val acc2 = "SOMETHINGTHATDOESNOTEXIST123245453545"
+
+      val view = "owner"
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.id).getOrElse(fail("couldn't get from account"))
+      }
+
+      val fromAccount = getFromAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+
+      val amt = BigDecimal("17.30")
+
+      val payJson = MakeTransactionJson(bankId, acc2, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
+      postResult.code should equal(400)
       
       And("the number of transactions for the sender's account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
       
       And("the balance of the sender's account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
     }
     
     scenario("we can't make a payment between accounts with different currencies", Payments) {
