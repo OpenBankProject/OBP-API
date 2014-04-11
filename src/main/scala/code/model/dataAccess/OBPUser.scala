@@ -199,4 +199,6 @@ class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, 
     case _ => ""
   }
 }
-object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{}
+object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{
+  override def dbIndexes = UniqueIndex(accountID):: super.dbIndexes
+}
