@@ -470,7 +470,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       case _ => None
     }
     Token.find(By(Token.key, oAuthParameters.get("oauth_token").get)) match {
-      case Full(requestToken) => token.userId(requestToken.userId)
+      case Full(requestToken) => token.userForeignKey(requestToken.userForeignKey)
       case _ => None
     }
     token.key(tokenKey)
@@ -505,7 +505,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       Token.find(By(Token.key, tokenID.get)) match {
         case Full(token) => {
           logger.info("access token: "+ token + " found")
-          val user = User.findById(token.userId.get)
+          val user = token.user
           //just a log
           user match {
             case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")

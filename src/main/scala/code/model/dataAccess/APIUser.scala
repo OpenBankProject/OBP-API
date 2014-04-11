@@ -64,7 +64,10 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
   def emailAddress = email.get
-  def id_ = providerId.get
+  
+  def idGivenByProvider = providerId.get 
+  def apiId = id.get.toString
+  
   def theFirstName : String = firstName.get
   def theLastName : String = lastName.get
   def provider = provider_.get
