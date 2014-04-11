@@ -994,7 +994,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
                 " not found"}
             }
             sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
-              s"Cannot send payment to account with differency currency (From ${fromAccount.currency} to ${toAccount.currency}"
+              s"Cannot send payment to account with differenct currency (From ${fromAccount.currency} to ${toAccount.currency}"
             })
             rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
             isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), "Can't send a payment with a value of 0 or less") 
