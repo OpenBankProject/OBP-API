@@ -41,11 +41,36 @@ import code.util.APIUtil._
 import code.model.User
 import code.api.OAuthHandshake._
 
+trait APIFailure{
+  val responseCode : Int
+  val msg : String
+}
+
+//if you change this, think about backwards compatibility! All existing
+//versions of the API return this failure message, so if you change it, make sure
+//that all stable versions retain the same behavior
+case class UserNotFound(providerId : String, userId: String) extends APIFailure {
+  val responseCode = 400 //TODO: better as 404? -> would break some backwards compatibility (or at least the tests!)
+  
+  //to reiterate the comment about preserving backwards compatibility:
+  //consider the case that an app may be parsing this string to decide what message to show their users
+  //e.g. when granting view permissions, an app may not give their users a choice of provider and only
+  //allow them to grant permissions to users from a certain hardcoded provider. In this case, showing this error
+  //message is undesired and confusing. So in fact that app may be doing some regex stuff to try to match the string below
+  //so that they can provide a useful message to their users. Obviously in the future this should be redesigned in a better
+  //way, perhaps by using error codes.
+  val msg = s"user $userId not found at provider $providerId"
+}
+
 class OBPRestHelper extends RestHelper with Loggable {
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
       case Full(r) => r
+      case ParamFailure(_, _, _, apiFailure : APIFailure) => {
+        logger.info("API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
+      }
       case Failure(msg, _, _) => {
         logger.info("API Failure: " + msg)
         errorJsonResponse(msg)

@@ -65,7 +65,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
       .lastName(lastName.get)
       .email(email)
       .provider_(Props.get("hostname",""))
-      .providerId(java.util.UUID.randomUUID.toString)
+      .providerId(email)
       .saveMe
       user(apiUser)
     }
@@ -199,4 +199,6 @@ class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, 
     case _ => ""
   }
 }
-object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{}
+object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{
+  override def dbIndexes = UniqueIndex(accountID):: super.dbIndexes
+}

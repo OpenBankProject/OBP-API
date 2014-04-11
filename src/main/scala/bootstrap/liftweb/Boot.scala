@@ -54,6 +54,7 @@ import javax.mail.{ Authenticator, PasswordAuthentication }
 import java.io.FileInputStream
 import java.io.File
 import code.model.dataAccess.BankAccountCreationListener
+import code.snippet.OAuthWorkedThanks
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -196,7 +197,8 @@ class Boot extends Loggable{
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
-          Menu.i("OAuth") / "oauth" / "authorize" //OAuth authorization page
+          Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
+          OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
     )
 
     def sitemapMutators = OBPUser.sitemapMutator
