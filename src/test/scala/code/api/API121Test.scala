@@ -56,7 +56,7 @@ import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
-import code.api.v1_2_1.OBPAPI1_2_1.MakeTransactionJson
+import code.api.v1_2_1.OBPAPI1_2_1.MakePaymentJson
 import org.bson.types.ObjectId
 
 
@@ -635,7 +635,7 @@ class API1_2_1Test extends ServerSetup{
     makeGetRequest(request)
   }
 
-  def postTransaction(bankId: String, accountId: String, viewId: String, paymentJson: MakeTransactionJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postTransaction(bankId: String, accountId: String, viewId: String, paymentJson: MakePaymentJson, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions").POST <@(consumerAndToken)
     makePostRequest(request, compact(render(Extraction.decompose(paymentJson))))
   }
@@ -801,7 +801,7 @@ class API1_2_1Test extends ServerSetup{
       
       val amt = BigDecimal("12.50")
       
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
 
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
 
@@ -872,7 +872,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("12.33")
 
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user2)
 
       Then("we should get a 400")
@@ -911,7 +911,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("12.33")
 
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, None)
 
       Then("we should get a 400")
@@ -952,7 +952,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("0")
 
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
@@ -994,7 +994,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("-20.30")
 
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
@@ -1029,7 +1029,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("17.30")
 
-      val payJson = MakeTransactionJson(bankId, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
+      val payJson = MakePaymentJson(bankId, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
       
       Then("we should get a 400")
@@ -1068,7 +1068,7 @@ class API1_2_1Test extends ServerSetup{
 
       val amt = BigDecimal("4.95")
 
-      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
 
       Then("we should get a 400")
