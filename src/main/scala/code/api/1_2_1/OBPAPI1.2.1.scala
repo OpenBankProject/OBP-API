@@ -983,7 +983,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           Full(errorJsonResponse("nothing to see here!"))
         } else {
           for {
-            u <- user ?~ "asdad"
+            u <- user ?~ "User not found"
             fromAccount <- BankAccount(bankId, accountId) ?~ s"account $accountId not found at bank $bankId"
             owner <- booleanToBox(u.ownerAccess(fromAccount), "user does not have access to owner view")
             view <- View.fromUrl(viewId, fromAccount) ?~ s"view $viewId not found"//TODO: this isn't actually used, unlike for GET transactions
