@@ -989,10 +989,13 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
             view <- View.fromUrl(viewId, fromAccount) ?~ s"view $viewId not found"//TODO: this isn't actually used, unlike for GET transactions
             makeTransJson <- tryo{json.extract[MakeTransactionJson]} ?~ {"wrong json format"}
             toAccount <- {
-              BankAccount(makeTransJson.bank_id, makeTransJson.account_id) ?~! {"Transaction 'to' party with " +
+              BankAccount(makeTransJson.bank_id, makeTransJson.account_id) ?~! {"Intended recipient with " +
                 s" account id ${makeTransJson.account_id} at bank ${makeTransJson.bank_id}" +
-                " not found on the open bank project"}
+                " not found"}
             }
+            sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+              s"Cannot send payment to account with differency currency (From ${fromAccount.currency} to ${toAccount.currency}"
+            })
             rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! "amount not convertable to number"//TODO: this completely ignores currency
             isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), "Can't send a payment with a value of 0 or less") 
           } yield {
