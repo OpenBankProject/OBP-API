@@ -51,14 +51,14 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     for {
       otherBank <- HostedBank.find("permalink" -> otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
-      val otherAccs = Account.findAll(("permalink" -> otherAccountId))
+      otherAccs = Account.findAll(("permalink" -> otherAccountId))
       otherAcc <- Box(otherAccs.filter(_.bankPermalink == otherBank.permalink.get).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
-      val transTime = now
-      val thisAccs = Account.findAll(("permalink" -> account.permalink))
+      transTime = now
+      thisAccs = Account.findAll(("permalink" -> account.permalink))
       thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankPermalink).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankPermalink}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-      val envJson =
+      envJson =
       ("obp_transaction" ->
         ("this_account" ->
           ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
