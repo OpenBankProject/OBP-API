@@ -846,6 +846,84 @@ class API1_2_1Test extends ServerSetup{
       And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
       OBPEnvelope.count should equal(totalTransactionsBefore + 2)
     }
+
+    scenario("we can't make a payment without access to the owner view", Payments) {
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("12.33")
+
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user2)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
+      beforeToBalance should equal(toAccount.balance)
+    }
+
+    scenario("we can't make a payment without an oauth user", Payments) {
+      val testBank = paymentTestBank
+      val bankMongoId = testBank.id.get.toString
+      val bankId = testBank.permalink.get
+      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = OBPEnvelope.count
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("12.33")
+
+      val payJson = MakeTransactionJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
+      val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, None)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(OBPEnvelope.count)
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(fromAccount.balance)
+      beforeToBalance should equal(toAccount.balance)
+    }
     
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
