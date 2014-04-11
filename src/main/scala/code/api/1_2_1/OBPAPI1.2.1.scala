@@ -49,7 +49,6 @@ import _root_.scala.xml._
 import _root_.net.liftweb.http.S._
 import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.mapper.view._
-import com.mongodb._
 import java.util.Date
 import code.api.OAuthHandshake._
 import code.model.dataAccess.OBPEnvelope.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
@@ -57,6 +56,7 @@ import code.model._
 import java.net.URL
 import code.util.APIUtil._
 import code.api.OBPRestHelper
+import code.payments.PaymentsInjector
 
 
 object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
@@ -872,7 +872,54 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         }
     }
   })
+  
+  case class MakePaymentJson(bank_id : String, account_id : String, amount : String)
+  
+  oauthServe(apiPrefix {
 
+    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonPost json -> _ => {
+      user =>
+
+        if (Props.get("payments_enabled", "") != "true") {
+          Full(errorJsonResponse("Sorry, payments are not enabled in this API instance."))
+        } else {
+          for {
+            u <- user ?~ "User not found"
+            fromAccount <- BankAccount(bankId, accountId) ?~ s"account $accountId not found at bank $bankId"
+            owner <- booleanToBox(u.ownerAccess(fromAccount), "user does not have access to owner view")
+            view <- View.fromUrl(viewId, fromAccount) ?~ s"view $viewId not found"//TODO: this isn't actually used, unlike for GET transactions
+            makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {"wrong json format"}
+            toAccount <- {
+              BankAccount(makeTransJson.bank_id, makeTransJson.account_id) ?~! {"Intended recipient with " +
+                s" account id ${makeTransJson.account_id} at bank ${makeTransJson.bank_id}" +
+                " not found"}
+            }
+            sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+              s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+            })
+            rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
+            isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${makeTransJson.amount})")
+          } yield {
+
+            val idofCompletedTransactionOfSender : Box[String] =
+              PaymentsInjector.processor.vend.makePayment(fromAccount, toAccount, rawAmt)
+
+            idofCompletedTransactionOfSender match {
+              case Full(s) => {
+                val successJson : JValue = ("transaction_id" -> s)
+                successJsonResponse(successJson)
+              }
+              case Failure(msg, _, _) => errorJsonResponse(msg)
+              case _ => errorJsonResponse("Error")
+            }
+          }
+        }
+
+    } 
+    
+  })
+  
+  
   oauthServe(apiPrefix {
   //get transactions
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
@@ -924,17 +971,17 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
   })
 
   oauthServe(apiPrefix {
-  //get transaction by id
+    //get transaction by id
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
       user =>
         for {
-          account <- BankAccount(bankId, accountId)
-          view <- View.fromUrl(viewId, account)
+          account <- BankAccount(bankId, accountId) ?~! s"Bank account $accountId not found at bank $bankId"
+          view <- View.fromUrl(viewId, account) ?~! s"View $viewId not found for account"
           moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
         } yield {
-            val json = JSONFactory.createTransactionJSON(moderatedTransaction)
-            successJsonResponse(Extraction.decompose(json))
-          }
+          val json = JSONFactory.createTransactionJSON(moderatedTransaction)
+          successJsonResponse(Extraction.decompose(json))
+        }
     }
   })
 

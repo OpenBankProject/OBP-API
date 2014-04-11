@@ -189,7 +189,11 @@ trait ServerSetup extends FeatureSpec
       yield
       {
         val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
-        APIResponse(response.getStatusCode, parse(body))
+        val parsedBody = tryo {parse(body)}
+        parsedBody match {
+          case Full(b) => APIResponse(response.getStatusCode, b)
+          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
+        }
       }
     , Duration.Inf)
   }
@@ -199,6 +203,7 @@ trait ServerSetup extends FeatureSpec
   */
   def makePostRequest(req: Req, json: String = ""): APIResponse = {
     req.addHeader("Content-Type", "application/json")
+    req.addHeader("Accept", "application/json")
     req.setBody(json)
     val jsonReq = (req).POST
     getAPIResponse(jsonReq)
@@ -297,7 +302,7 @@ trait ServerSetup extends FeatureSpec
     canAddWhereTag_(true).
     canSeeWhereTag_(true).
     canDeleteWhereTag_(true).
-    save
+    saveMe
 
   def publicView(account: HostedAccount) =
     ViewImpl.create.
