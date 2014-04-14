@@ -31,7 +31,14 @@ object CreateTestAccountForm{
       }
     }
 
-    "@bank-id" #> SHtml.select(List(("bank1", "Bank1"), ("bank2", "Bank2")), Full("bank1"), bankId = _) &
+    //TODO: would be nice to avoid tying this to the mongodb class
+    val banks = HostedBank.findAll
+    val bankOptions = banks.map{b =>
+      val permalink = b.permalink.get
+      (permalink, permalink)
+    }
+
+    "@bank-id" #> SHtml.select(bankOptions, Empty, bankId = _) &
     "@account-id" #> SHtml.text(accountId, accountId = _) &
     "@currency" #> SHtml.text("EUR", currency = _) & //Would be nice to be able to set initial value in template
     "@initial-balance" #> SHtml.text("1000.00", initialBalance = _) & //Would be nice to be able to set initial value in template
