@@ -89,6 +89,10 @@ object CreateTestAccountForm{
         val (bankAccount,hostedAccount) = BankAccountCreationListener.createAccount(new BankAccountNumber {
           override val accountNumber: String = accountId
         }, bank, user)
+
+        //set currency and initial balance
+        bankAccount.currency(currency).balance(initialBalanceAsNumber).save
+
         BankAccountCreationListener.createOwnerView(hostedAccount, user)
         bankAccount
       }
