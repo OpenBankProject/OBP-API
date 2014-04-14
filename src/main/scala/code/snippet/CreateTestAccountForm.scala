@@ -11,6 +11,7 @@ import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
 import code.model.dataAccess.{OBPUser, HostedBank, Account, BankAccountCreationListener}
 import com.tesobe.model.BankAccountNumber
+import net.liftweb.mongodb.BsonDSL._
 
 object CreateTestAccountForm{
 
@@ -73,7 +74,7 @@ object CreateTestAccountForm{
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentObpUser <- OBPUser.currentUser ?~! "You need to be logged in to create an account"
         user <- currentObpUser.user.obj ?~ "Server error: could not identify user"
-        bank <- HostedBank.find(bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
+        bank <- HostedBank.find("permalink" -> bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
       } yield {
