@@ -43,7 +43,12 @@ package com.tesobe.model{
     accountNumber: String,
     bankIdentifier: String,
     bankName: String
-  )
+  ) extends BankAccountNumber
+
+  trait BankAccountNumber {
+    val accountNumber : String
+  }
+
 }
 
 package code.model.dataAccess {
@@ -60,16 +65,13 @@ package code.model.dataAccess {
   import net.liftweb.common.{Loggable, Failure, Full, Empty, Box}
   import net.liftweb.actor.LiftActor
   import Helpers.tryo
-  import com.tesobe.model.CreateBankAccount
+  import com.tesobe.model.{BankAccountNumber, CreateBankAccount, UpdateBankAccount}
   import code.util.Helper
   import net.liftweb.mapper.By
   import net.liftweb.util.Helpers._
-  import com.tesobe.model.UpdateBankAccount
 
 
-
-
-  /**
+/**
   *  an AMQP dispatcher that waits for message coming from a specif queue
   *  and dispatching them to the subscribed actors
   */
@@ -106,11 +108,11 @@ package code.model.dataAccess {
       }
     }
 
-    def createAccount(message: CreateBankAccount, bank: HostedBank, u: APIUser): (Account, HostedAccount) = {
+    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): (Account, HostedAccount) = {
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
-        ("number" -> message.accountNumber)~
+        ("number" -> bankAccountNumber.accountNumber)~
         ("bankID" -> bank.id.is)
       ) match {
         case Full(bankAccount) => {
@@ -140,10 +142,10 @@ package code.model.dataAccess {
             .createRecord
             .balance(0)
             .holder(accountHolder)
-            .number(message.accountNumber)
+            .number(bankAccountNumber.accountNumber)
             .kind("current")
             .name("")
-            .permalink(message.accountNumber)
+            .permalink(bankAccountNumber.accountNumber)
             .bankID(bank.id.is)
             .label("")
             .currency("EUR")
