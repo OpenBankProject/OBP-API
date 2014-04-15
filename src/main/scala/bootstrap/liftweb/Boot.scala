@@ -190,9 +190,14 @@ class Boot extends Loggable{
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
-    val accountCreation =
-      if(Props.getBool("allow_sandbox_account_creation", false)) List(Menu("Test account creation") / "create-sandbox-account")
-      else Nil
+    val accountCreation = {
+      if(Props.getBool("allow_sandbox_account_creation", false)){
+        //user must be logged in, as a created account needs an owner
+        List(Menu("Test account creation") / "create-sandbox-account" >> OBPUser.loginFirst)
+      } else {
+        Nil
+      }
+    }
 
     // Build SiteMap
     val sitemap = List(
