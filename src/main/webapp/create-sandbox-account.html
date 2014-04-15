@@ -30,7 +30,7 @@ Berlin 13359, Germany
 -->
 
 <div id="main" class="lift:surround?with=default;at=content">
-    <div>
+    <div id="create-account-instructions">
         Create a new test bank account:
     </div>
     <div id="create-account-error-message"></div>
@@ -40,19 +40,29 @@ Berlin 13359, Germany
         an initial balance of <span id="created-account-initial-balance">INITIAL_BALANCE</span>
         <span id="created-account-currency">CURRENCY</span>.
     </div>
-    <form id="create-account-form" data-lift="form.ajax">
-        <div data-lift="CreateTestAccountForm">
-            <label for="bank-id">Bank</label>
-            <select id="create-account-bank-selector" name="bank-id">
-                <option class="bank-option" value="bankid">Bank id</option>
-            </select>
-            <label for="account-id">Desired Account Id</label>
-            <input type="text" name="account-id" placeholder="Account Id">
-            <label for="currency">Desired Account Currency</label>
-            <input type="text" name="currency">
-            <label for="account-id">Desired Initial Balance</label>
-            <input type="text" name="initial-balance">
-            <input type="submit">
-        </div>
-    </form>
+    <div id="create-account-form-container">
+        <form data-lift="form.ajax">
+            <div data-lift="CreateTestAccountForm">
+                <div>
+                    <label for="bank-id">Bank</label>
+                    <select id="create-account-bank-selector" name="bank-id">
+                        <option class="bank-option" value="bankid">Bank id</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="account-id">Desired Account Id</label>
+                    <input type="text" name="account-id" placeholder="Account Id">
+                </div>
+                <div>
+                    <label for="currency">Desired Account Currency</label>
+                    <input type="text" name="currency">
+                </div>
+                <div>
+                    <label for="account-id">Desired Initial Balance</label>
+                    <input type="text" name="initial-balance">
+                </div>
+                <input type="submit">
+            </div>
+        </form>
+    </div>
 </div>
