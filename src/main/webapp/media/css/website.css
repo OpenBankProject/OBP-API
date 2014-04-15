@@ -629,11 +629,13 @@ span#accountsMsg
 }
 
 #create-account-error-message {
-    margin: 10px;
-}
-
-#create-account-error-message {
     margin-left: 50px;
     margin-top: 10px;
     color: red;
+}
+
+#account-created-successfully {
+    margin-left: 50px;
+    margin-top: 10px;
+    color: green;
 }
