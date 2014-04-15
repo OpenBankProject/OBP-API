@@ -172,6 +172,43 @@ import net.liftweb.util.Helpers._
          "submit" -> loginSubmitButton(S.??("log.in")))
   }
 
+  //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
+  // loginFirst menu items to work if the user doesn't have an account. Without this,
+  // if a user tries to access a logged-in only page, and then signs up, they don't get redirected
+  // back to the proper page.
+  override def signup = {
+    val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
+    val theName = signUpPath.mkString("")
+
+    //save the intented login redirect here, as it gets wiped (along with the session) on login
+    val loginRedirectSave = loginRedirect.is
+
+    def testSignup() {
+      validateSignup(theUser) match {
+        case Nil =>
+          actionsAfterSignup(theUser, () => {
+            //here we check loginRedirectSave (different from implementation in super class)
+            val redir = loginRedirectSave match {
+              case Full(url) =>
+                loginRedirect(Empty)
+                url
+              case _ =>
+                homePage
+            }
+            S.redirectTo(redir)
+          })
+
+        case xs => S.error(xs) ; signupFunc(Full(innerSignup _))
+      }
+    }
+
+    def innerSignup = bind("user",
+      signupXhtml(theUser),
+      "submit" -> signupSubmitButton(S.?("sign.up"), testSignup _))
+
+    innerSignup
+  }
+
 
 }
 
