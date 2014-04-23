@@ -65,7 +65,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
-  
+
   val dateFormat = ModeratedTransaction.dateFormat
   val apiPrefix = "obp" / "v1.2.1" oPrefix _
 
@@ -865,17 +865,15 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
         }
     }
   })
-  
+
   case class MakePaymentJson(bank_id : String, account_id : String, amount : String)
-  
+
   oauthServe(apiPrefix {
 
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonPost json -> _ => {
       user =>
 
-        if (Props.get("payments_enabled", "") != "true") {
-          Full(errorJsonResponse("Sorry, payments are not enabled in this API instance."))
-        } else {
+        if (Props.getBool("payments_enabled", false)) {
           for {
             u <- user ?~ "User not found"
             fromAccount <- BankAccount(bankId, accountId) ?~ s"account $accountId not found at bank $bankId"
@@ -907,12 +905,15 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
             }
           }
         }
+        else{
+          Failure("Sorry, payments are not enabled in this API instance.")
+        }
 
-    } 
-    
+    }
+
   })
-  
-  
+
+
   oauthServe(apiPrefix {
   //get transactions
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
