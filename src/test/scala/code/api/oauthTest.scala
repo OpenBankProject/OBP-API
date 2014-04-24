@@ -111,7 +111,7 @@ class OAuthTest extends ServerSetup{
     def getVerifier(loginPage: String, userName: String, password: String) : Box[String] = {
       tryo{
         go.to(loginPage)
-        textField("username").value = userName
+        emailField("username").value = userName
         val pwField = NameQuery("password").webElement
         pwField.clear()
         pwField.sendKeys(password)

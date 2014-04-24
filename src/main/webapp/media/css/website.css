@@ -614,3 +614,28 @@ span#accountsMsg
 #oauth-done-thanks {
 	margin: 30px;
 }
+
+#create-account-form-container {
+    margin-left: 50px;
+    margin-top: 30px;
+}
+
+#create-account-form-container input {
+    margin-top: 5px;
+}
+
+#create-account-instructions {
+    margin-left: 10px;
+}
+
+#create-account-error-message {
+    margin-left: 50px;
+    margin-top: 10px;
+    color: red;
+}
+
+#account-created-successfully {
+    margin-left: 50px;
+    margin-top: 10px;
+    color: green;
+}

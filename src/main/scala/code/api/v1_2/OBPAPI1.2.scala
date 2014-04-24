@@ -57,6 +57,7 @@ import code.model._
 import java.net.URL
 import code.util.APIUtil._
 import code.api.OBPRestHelper
+import code.util.Helper._
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {
@@ -85,14 +86,6 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     val accounts = new AccountsJSON(accJson)
     Extraction.decompose(accounts)
   }
-
-  private def booleanToBox(statement: Boolean, msg: String): Box[Unit] = {
-    if(statement)
-      Full()
-    else
-      Failure(msg)
-  }
-
 
   private def moderatedTransactionMetadata(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
