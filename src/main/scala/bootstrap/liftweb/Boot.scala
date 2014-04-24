@@ -190,6 +190,15 @@ class Boot extends Loggable{
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
 
+    val accountCreation = {
+      if(Props.getBool("allow_sandbox_account_creation", false)){
+        //user must be logged in, as a created account needs an owner
+        List(Menu("Sandbox Account Creation", "Create Sandbox Test Account") / "create-sandbox-account" >> OBPUser.loginFirst)
+      } else {
+        Nil
+      }
+    }
+
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
@@ -199,7 +208,7 @@ class Boot extends Loggable{
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
-    )
+    ) ++ accountCreation
 
     def sitemapMutators = OBPUser.sitemapMutator
 

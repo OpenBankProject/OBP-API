@@ -53,10 +53,22 @@ class Nav {
   def item = {
     val attrs = S.prefixedAttrsToMetaData("a")
     val name = S.attr("name").getOrElse("")
+    //useful to show links that require login, that we still want to show to non-logged in users
+    val showEvenIfRestricted : Boolean = {
+      tryo {
+        val attr = S.attr("showEvenIfRestricted").getOrElse("")
+        attr.toBoolean
+      }
+    }.getOrElse(false)
+
     val loc =
       for{
         sitemap <- LiftRules.siteMap
-        l <- new SiteMapSingleton().findAndTestLoc(name)
+        l <- {
+          val sitemapSingleton = new SiteMapSingleton()
+          if(showEvenIfRestricted) sitemapSingleton.findLoc(name)
+          else sitemapSingleton.findAndTestLoc(name)
+        }
       } yield l
 
     ".navitem *" #>{

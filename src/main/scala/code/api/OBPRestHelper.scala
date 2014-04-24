@@ -42,8 +42,15 @@ import code.model.User
 import code.api.OAuthHandshake._
 
 trait APIFailure{
-  val responseCode : Int
   val msg : String
+  val responseCode : Int
+}
+
+object APIFailure {
+  def apply(message : String, httpResponseCode : Int) : APIFailure = new APIFailure{
+    val msg = message
+    val responseCode = httpResponseCode
+  }
 }
 
 //if you change this, think about backwards compatibility! All existing
@@ -83,6 +90,7 @@ class OBPRestHelper extends RestHelper with Loggable {
     if (isThereAnOAuthHeader) {
       getUser match {
         case Full(u) => fn(Full(u))
+        case ParamFailure(_, _, _, apiFailure : APIFailure) => errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
