@@ -55,6 +55,10 @@ class Admin extends MegaProtoUser[Admin] {
 object Admin extends Admin with MetaMegaProtoUser[Admin]{
 
   override def dbTableName = "admins" // define the DB table name
+    
+  //override some MetaMegaProtoUser fields to avoid conflicting urls/menus with OBPUser 
+  override def basePath = "admin_mgt" :: Nil
+  override def menuNameSuffix = "Admin"
 
   override def screenWrap = Full(<lift:surround with="default" at="content">
              <lift:bind /></lift:surround>)
@@ -74,21 +78,15 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
     loginReferer.remove()
     ret
   }
-
+  
   override def loginXhtml = {
-    import net.liftweb.http.TemplateFinder
-    import net.liftweb.http.js.JsCmds.Noop
-    val loginXml = Templates(List("templates-hidden","_Adminlogin")).map({
-        "form [action]" #> {S.uri} &
-        "#loginText * " #> {S.??("log.in")} &
-        "#emailAddressText * " #> {S.??("email.address")} &
-        "#passwordText * " #> {S.??("password")} &
-        "#recoverPasswordLink * " #> {
-          "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
-          "a *" #> {S.??("recover.password")}
-        }
-      })
-      SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
+    (<form method="post" action={S.uri}><table><tr><td
+              colspan="2">Admin Log In</td></tr>
+          <tr><td>{userNameFieldString}</td><td><user:email /></td></tr>
+          <tr><td>{S.?("password")}</td><td><user:password /></td></tr>
+          <tr><td><a href={lostPasswordPath.mkString("/", "/", "")}
+                >{S.?("recover.password")}</a></td><td><user:submit /></td></tr></table>
+     </form>)
   }
 
   //disable the sign up page

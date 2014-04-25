@@ -103,13 +103,23 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
+  
+  //obscure primary key to avoid revealing information about, e.g. how many consumers are registered
+  // (by incrementing ids until receiving a "log in first" page instead of 404)
+  val obfuscator = new KeyObfuscator()
+  override def obscurePrimaryKey(in: TheCrudType): String = obfuscator(Consumer, in.id)
+  //I've disabled this method as it only looked to be called by the original implementation of obscurePrimaryKey(in: TheCrudType)
+  //and I don't want it affecting anything else
+  override def obscurePrimaryKey(in: String): String = ""
+  //Since we override obscurePrimaryKey, we also need to override findForParam to be able to get a Consumer from its obfuscated id
+  override def findForParam(in: String): Box[TheCrudType] = Consumer.find(obfuscator.recover(Consumer, in))
 
-  override def editMenuLocParams = List(Admin.testLogginIn)
-  override def showAllMenuLocParams = List(Admin.testLogginIn)
-  override def deleteMenuLocParams = List(Admin.testLogginIn)
-  override def createMenuLocParams = List(Admin.testLogginIn)
-  override def viewMenuLocParams = List(Admin.testLogginIn)
-
+  //override it to list the newest ones first
+  override def findForListParams: List[QueryParam[Consumer]] = List(OrderBy(primaryKeyField, Descending))
+  
+  //We won't display all the fields when we are listing Consumers (to save screen space)
+  override def fieldsForList: List[FieldPointerType] = List(name, appType, description, developerEmail, createdAt)
+  
   override def fieldOrder = List(name, appType, description, developerEmail)
 }
 
