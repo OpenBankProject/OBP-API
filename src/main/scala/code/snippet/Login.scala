@@ -33,12 +33,13 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.model.dataAccess.{OBPUser,Account}
-
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 import net.liftweb.util.CssSel
 import net.liftweb.http.S
+import code.model.dataAccess.Admin
+import net.liftweb.http.SHtml
 
 class Login {
 
@@ -68,6 +69,19 @@ class Login {
          OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
         }
       }
+    }
+  }
+  
+  def adminLogout : CssSel = {
+    if(Admin.loggedIn_?) {
+      val current = Admin.currentUser
+      "#admin-username" #> current.map(_.email.get) &
+      "#admin-logout-clickme [onclick+]" #> SHtml.onEvent(s => {
+        Admin.logoutCurrentUser
+        S.redirectTo("/")
+      })
+    } else {
+      "#admin-logout" #> ""
     }
   }
 
