@@ -202,16 +202,16 @@ class Boot extends Loggable{
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
-          Menu.i("Consumer Admin") / "admin" / "consumers" >> LocGroup("admin")
+          Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
           Menu("Consumer Registration", "Developers") / "consumer-registration",
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
-    ) ++ accountCreation
+    ) ++ accountCreation ++ Admin.menus
 
     def sitemapMutators = OBPUser.sitemapMutator
-
+    
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
     LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
