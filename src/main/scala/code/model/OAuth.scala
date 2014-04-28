@@ -100,6 +100,11 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 
 }
 
+/**
+ * Note: CRUDify is using a KeyObfuscator to generate edit/delete/view links, which means that
+ * their urls are not persistent. So if you copy paste a url and email it to someone, don't count on it
+ * working for long.
+ */
 object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
