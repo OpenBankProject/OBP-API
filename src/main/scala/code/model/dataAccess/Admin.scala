@@ -94,6 +94,9 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
 
   // the admin edit page
   override def editUserMenuLoc = Empty
+  
+  //can only be done with manual intervention
+  override def resetPasswordMenuLoc = Empty
 
   //Set the login referer
   override def login = {
