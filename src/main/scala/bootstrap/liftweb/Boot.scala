@@ -55,6 +55,7 @@ import java.io.FileInputStream
 import java.io.File
 import code.model.dataAccess.BankAccountCreationListener
 import code.snippet.OAuthWorkedThanks
+import javax.mail.internet.MimeMessage
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -244,5 +245,10 @@ class Boot extends Loggable{
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
       BankAccountCreationListener.startListen
+      
+    Mailer.devModeSend.default.set( (m : MimeMessage) => {
+      logger.info("Would have sent email if not in dev mode: " + m.getContent)
+    })
+    
   }
 }
