@@ -70,8 +70,10 @@ input.submit {
 
 #wrapper {
 	/*width: 940px;*/
-	width: 1050px;
+	/*width: 1050px;*/
+	max-width: 1050px;
 	margin: 0 auto;
+	padding: 0 10px;
 }
 
 #header {
@@ -142,10 +144,15 @@ input.submit {
 	cursor: pointer;
 }
 
-#account {
-	float: right;
+.account-upper{
 	height: 100%;
 	padding: 2px 0 0;
+	float: right;
+}
+
+.account-in-content{
+	height: 100%;
+	padding: 2px 20px 0;
 }
 
 #account .profile-info {
@@ -167,31 +174,55 @@ input.submit {
 	font-size: 12px;
 }
 
-#account form.login {
+
+.account-upper form.login{
 	float: right;
 }
 
-#account form.login .field,
-#account form.login .button {
+.account-in-content form.login{
+	width: 555px;
+	margin:0 auto
+}
+
+
+
+.account-upper form.login .field,
+.account-upper form.login .button {
 	float: left;
+}
+
+.account-in-content form.login .field{
+	margin-top: 10px;
 }
 
 #account form.login .field {
 	width: 164px;
 }
 
-#account form.login .field label {
+
+.account-upper form.login .field label {
 	font-size: 11px;
 }
 
-#account form.login .field input {
+.account-in-content form.login .field label {
+	font-size: 12px;
+}
+
+.account-upper form.login .field input {
 	float: left;
+	font-size: 12px;
+}
+
+.account-in-content form.login .field input {
+	font-size: 14px;
+}
+
+#account form.login .field input {
 	clear: left;
 	width: 150px;
 	background: #ffffff;
 	border: 1px solid #999999;
 	border-radius: 3px;
-	font-size: 12px;
 	padding: 2px;
 }
 
@@ -214,12 +245,20 @@ input.submit {
 	background: #c1e7e1;
 	border: 1px solid #22a890;
 	border-radius: 3px;
-	margin: 18px 0 0;
 	padding: 2px 5px;
 	color: #58988e;
 	font-size: 12px;
 	cursor: pointer;
+	margin: 14px 0 0;
 }
+
+/*.account-upper form.login .button .submit {
+	margin: 18px 0 0;
+}
+
+.account-in-content form.login .button .submit {
+	margin: 14px 0 0;
+}*/
 
 #content {
 	padding: 20px 0 40px;
@@ -480,9 +519,10 @@ span.alias_indicator_private {
 	color: #999999;
 	font-size: 11px;
 	text-align: center;
+	line-height: 1.5
 }
 #authorizeSection{
-	margin-bottom: 80px;
+    margin-bottom: 80px;
 }
 
 .login-error {
@@ -491,7 +531,6 @@ span.alias_indicator_private {
 }
 
 #authorizeSection form.login {
-	float : left;
 	margin-top: 20px;
 }
 span.edit_error_class {
