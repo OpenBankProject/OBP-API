@@ -37,6 +37,8 @@ import net.liftweb.util.Helpers
 import Helpers.now
 import code.model.dataAccess.Admin
 import code.model.dataAccess.APIUser
+import net.liftweb.http.S
+import net.liftweb.util.Helpers._
 
 object AppType extends Enumeration("web", "mobile"){
   type AppType = Value
@@ -123,9 +125,60 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   override def findForListParams: List[QueryParam[Consumer]] = List(OrderBy(primaryKeyField, Descending))
   
   //We won't display all the fields when we are listing Consumers (to save screen space)
-  override def fieldsForList: List[FieldPointerType] = List(name, appType, description, developerEmail, createdAt)
+  override def fieldsForList: List[FieldPointerType] = List(id, name, appType, description, developerEmail, createdAt)
   
   override def fieldOrder = List(name, appType, description, developerEmail)
+  
+  //show more than the default of 20
+  override def rowsPerPage = 100
+  
+  //counts the number of different unique email addresses
+  val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
+  
+  val numUniqueAppNames = s"SELECT COUNT(DISTINCT ${Consumer.name.dbColumnName}) FROM ${Consumer.dbName};"
+  
+  private val recordsWithUniqueEmails = tryo {Consumer.countByInsecureSql(numUniqueEmailsQuery, IHaveValidatedThisSQL("everett", "2014-04-29")) }
+  private val recordsWithUniqueAppNames = tryo {Consumer.countByInsecureSql(numUniqueAppNames, IHaveValidatedThisSQL("everett", "2014-04-29"))}
+  
+  //overridden to display extra stats above the table
+  override def _showAllTemplate =
+  <lift:crud.all>
+    <div>
+      <p>
+         Total of {Consumer.count} applications from {recordsWithUniqueEmails.getOrElse("ERROR")} unique email addresses. 
+         {recordsWithUniqueAppNames.getOrElse("ERROR")} unique app names.
+      </p>
+      <br/>
+      <br/>
+      <br/>
+    </div>
+    <table id={showAllId} class={showAllClass}>
+      <thead>
+        <tr>
+          <crud:header_item><th><crud:name/></th></crud:header_item>
+          <th>&nbsp;</th>
+          <th>&nbsp;</th>
+          <th>&nbsp;</th>
+        </tr>
+      </thead>
+      <tbody>
+        <crud:row>
+          <tr>
+            <crud:row_item><td><crud:value/></td></crud:row_item>
+            <td><a crud:view_href="">{S.?("View")}</a></td>
+            <td><a crud:edit_href="">{S.?("Edit")}</a></td>
+            <td><a crud:delete_href="">{S.?("Delete")}</a></td>
+          </tr>
+        </crud:row>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3"><crud:prev>{previousWord}</crud:prev></td>
+          <td colspan="3"><crud:next>{nextWord}</crud:next></td>
+        </tr>
+      </tfoot>
+    </table>
+  </lift:crud.all>
 }
 
 
