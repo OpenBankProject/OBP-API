@@ -84,9 +84,8 @@ package code.model.dataAccess {
       channel.basicConsume("createBankAccount", false, new SerializedConsumer(channel, this))
     }
   }
-
-  object BankAccountCreationListener extends Loggable {
-
+  
+  object BankAccountCreation extends Loggable {
     def createBank(message: CreateBankAccount): HostedBank = {
       // TODO: use a more unique id for the long term
       HostedBank.find("national_identifier", message.bankIdentifier) match {
@@ -259,6 +258,9 @@ package code.model.dataAccess {
         }
       }
     }
+  }
+
+  object BankAccountCreationListener extends Loggable {
 
     lazy val factory = new ConnectionFactory {
       import ConnectionFactory._
@@ -282,9 +284,9 @@ package code.model.dataAccess {
           ).map{ user => {
               logger.info("user found for owner view")
 
-              val bank: HostedBank = createBank(message)
-              val (bankAccount,hostedAccount) = createAccount(message, bank, user)
-              createOwnerView(hostedAccount, user)
+              val bank: HostedBank = BankAccountCreation.createBank(message)
+              val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(message, bank, user)
+              BankAccountCreation.createOwnerView(hostedAccount, user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 

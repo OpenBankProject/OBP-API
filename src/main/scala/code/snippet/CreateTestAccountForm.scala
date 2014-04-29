@@ -9,7 +9,7 @@ import net.liftweb.http.js.JsCmds.{SetHtml, Alert}
 import net.liftweb.http.js.JsCmd
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
-import code.model.dataAccess.{OBPUser, HostedBank, Account, BankAccountCreationListener}
+import code.model.dataAccess.{OBPUser, HostedBank, Account, BankAccountCreation}
 import com.tesobe.model.BankAccountNumber
 import net.liftweb.mongodb.BsonDSL._
 
@@ -86,14 +86,14 @@ object CreateTestAccountForm{
           s"Account with id $accountId already exists at bank $bankId")
       } yield {
         //TODO: refactor into a single private api call, and have this return Box[BankAccount] instead of Account?
-        val (bankAccount,hostedAccount) = BankAccountCreationListener.createAccount(new BankAccountNumber {
+        val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(new BankAccountNumber {
           override val accountNumber: String = accountId
         }, bank, user)
 
         //set currency and initial balance
         bankAccount.currency(currency).balance(initialBalanceAsNumber).save
 
-        BankAccountCreationListener.createOwnerView(hostedAccount, user)
+        BankAccountCreation.createOwnerView(hostedAccount, user)
         bankAccount
       }
     }
