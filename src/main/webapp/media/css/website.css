@@ -705,3 +705,10 @@ span#accountsMsg
     margin-top: 10px;
     color: green;
 }
+
+#admin-logout {
+	margin: 20px;
+	padding: 10px;
+	border: 2px solid;
+	border-color: #FF0000;
+}
