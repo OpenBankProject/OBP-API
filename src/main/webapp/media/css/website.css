@@ -69,8 +69,6 @@ input.submit {
 }
 
 #wrapper {
-	/*width: 940px;*/
-	/*width: 1050px;*/
 	max-width: 1050px;
 	margin: 0 auto;
 	padding: 0 10px;
@@ -252,14 +250,6 @@ input.submit {
 	margin: 14px 0 0;
 }
 
-/*.account-upper form.login .button .submit {
-	margin: 18px 0 0;
-}
-
-.account-in-content form.login .button .submit {
-	margin: 14px 0 0;
-}*/
-
 #content {
 	padding: 20px 0 40px;
 }
@@ -274,6 +264,13 @@ table {
 /* don't add spacing after last table in a transaction list */
 #content div div:last-of-type table {
     margin-bottom: 0px;
+}
+
+#verifier {
+	margin-top: 30px;
+	font-weight: bold;
+	font-size: 18px;
+	text-align: center;
 }
 
 table th,
