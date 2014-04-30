@@ -1,5 +1,16 @@
 @import url('reset.css');
 
+@media all and (max-width: 320px) {
+    #signupForm td input{
+        width: 150px;
+    }
+}
+@media all and (min-width: 321px) {
+    #signupForm td input{
+        width: 200px;
+    }
+}
+
 body {
 	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 	font-weight: 300;
@@ -271,6 +282,25 @@ table {
 	font-weight: bold;
 	font-size: 18px;
 	text-align: center;
+}
+
+#signupForm tr td:first-child {
+    width: 170px;
+}
+
+#signupForm td span input{
+    display:block;
+    clear:both;
+}
+#signupForm td span input:first-child {
+    margin-bottom:10px;
+}
+#signupForm td span input:last-child {
+    margin-top:5px;
+}
+
+#signupForm td input[type=submit]{
+    width:85px;
 }
 
 table th,
