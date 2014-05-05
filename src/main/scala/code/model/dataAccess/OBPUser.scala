@@ -133,6 +133,21 @@ import net.liftweb.util.Helpers._
     override lazy val __nameSalt = Helpers.nextFuncName
   }
 
+  override def signupXhtml (user:OBPUser) =  {
+    <form id="signupForm" method="post" action={S.uri}>
+      <table>
+        <tr>
+          <td colspan="2">{ S.?("sign.up") }</td>
+        </tr>
+          {localForm(user, false, signupFields)}
+        <tr>
+          <td>&nbsp;</td>
+          <td><user:submit/></td>
+        </tr>
+      </table>
+    </form>
+  }
+
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {

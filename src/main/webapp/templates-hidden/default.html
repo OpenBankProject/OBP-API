@@ -32,9 +32,10 @@ Berlin 13359, Germany
 <html lang="en">
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width;  initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
     <title class="lift:Menu.title">Open Bank Project: %*%</title>
 
-    <link href="/media/css/website.css?20140415" rel="stylesheet" type="text/css" />
+    <link href="/media/css/website.css?20140425" rel="stylesheet" type="text/css" />
     <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
 	<script src="/media/js/website.js" type="text/javascript"></script>
 </head>
@@ -42,7 +43,10 @@ Berlin 13359, Germany
     <div id="wrapper">
         <div id="header">
             <h1 id="logo" onclick="javascript:window.location='/';">Open Bank Project</h1>
-            <div id="account">
+            <div id="account" class="account-upper">
+            	<div id="admin-logout"class="lift:Login.adminLogout">
+            			Currently logged in as admin <span id="admin-username">NAME</span>. <a id="admin-logout-clickme" href="#">Logout</a>
+            	</div>
                 <!-- LOGGED OUT -->
 				<div class="lift:Login.loggedOut">
                     <form class="login" action="." method="post">
