@@ -195,6 +195,11 @@ class API1_2_1Test extends ServerSetup{
   object GetBankAccounts extends Tag("getBankAccounts")
   object GetPublicBankAccounts extends Tag("getPublicBankAccounts")
   object GetPrivateBankAccounts extends Tag("getPrivateBankAccounts")
+  //I would have prefered to change, e.g. GetBankAccounts to be GetBankAccountsForOneBank instead of
+  //making a new tag GetBankAccountsForAllBanks, but I didn't as to preserve tag compatibility between api versions
+  object GetBankAccountsForAllBanks extends Tag("getBankAccountsForAllBanks")
+  object GetPublicBankAccountsForAllBanks extends Tag("getPublicBankAccountsForAllBanks")
+  object GetPrivateBankAccountsForAllBanks extends Tag("getPrivateBankAccountsForAllBanks")
   object GetBankAccount extends Tag("getBankAccount")
   object GetViews extends Tag("getViews")
   object PostView extends Tag("postView")
@@ -371,6 +376,21 @@ class API1_2_1Test extends ServerSetup{
 
   def getPrivateAccounts(bankId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / "private" <@(consumerAndToken)
+    makeGetRequest(request)
+  }
+
+  def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v1_2Request / "accounts" <@(consumerAndToken)
+    makeGetRequest(request)
+  }
+  
+  def getPublicAccountsForAllBanks() : APIResponse= {
+    val request = v1_2Request / "accounts" / "public"
+    makeGetRequest(request)
+  }
+
+  def getPrivateAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
+    val request = v1_2Request / "accounts" / "private" <@(consumerAndToken)
     makeGetRequest(request)
   }
 
@@ -1148,6 +1168,93 @@ class API1_2_1Test extends ServerSetup{
   def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
+  }
+  
+    feature("Information about all the bank accounts for all banks"){
+    scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
+      Given("We will not use an access token")
+      When("the request is sent")
+      val reply = getBankAccountsForAllBanks(None)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val publicAccountsInfo = reply.body.extract[AccountsJSON]
+      And("some fields should not be empty")
+      publicAccountsInfo.accounts.foreach(a => {
+        a.id.nonEmpty should equal (true)
+        a.views_available.nonEmpty should equal (true)
+        a.views_available.foreach(
+          //check that all the views are public
+          v => v.is_public should equal (true)
+        )
+      })
+
+    }
+    scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
+      Given("We will use an access token")
+      When("the request is sent")
+      val reply = getBankAccountsForAllBanks(user1)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val accountsInfo = reply.body.extract[AccountsJSON]
+      And("some fields should not be empty")
+      accountsInfo.accounts.foreach(a => {
+        a.id.nonEmpty should equal (true)
+        a.views_available.nonEmpty should equal (true)
+      })
+      
+      And("Some accounts should have public views")
+      assertViewExistsWithCondition(accountsInfo, _.is_public)
+      And("Some accounts should have private views")
+      assertViewExistsWithCondition(accountsInfo, !_.is_public)
+    }
+  }
+  
+  feature("Information about the public bank accounts for all banks"){
+    scenario("we get the public bank accounts", API1_2, GetPublicBankAccountsForAllBanks) {
+      Given("We will not use an access token")
+      When("the request is sent")
+      val reply = getPublicAccountsForAllBanks()
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val publicAccountsInfo = reply.body.extract[AccountsJSON]
+      And("some fields should not be empty")
+      publicAccountsInfo.accounts.foreach(a => {
+        a.id.nonEmpty should equal (true)
+        a.views_available.nonEmpty should equal (true)
+        a.views_available.foreach(
+          //check that all the views are public
+          v => v.is_public should equal (true)
+        )
+      })
+    }
+  }
+
+  feature("Information about the private bank accounts for all banks"){
+    scenario("we get the private bank accounts", API1_2, GetPrivateBankAccountsForAllBanks) {
+      Given("We will use an access token")
+      When("the request is sent")
+      val reply = getPrivateAccountsForAllBanks(user1)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      And("some fields should not be empty")
+      val privateAccountsInfo = reply.body.extract[AccountsJSON]
+      privateAccountsInfo.accounts.foreach(a => {
+        a.id.nonEmpty should equal (true)
+        a.views_available.nonEmpty should equal (true)
+      })
+      
+      And("All accounts should have at least one private view")
+      assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
+    }
+    scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccountsForAllBanks) {
+      Given("We will not use an access token")
+      When("the request is sent")
+      val reply = getPrivateAccountsForAllBanks(None)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
   
   feature("Information about all the bank accounts for a single bank"){
