@@ -784,6 +784,17 @@ class API1_2Test extends ServerSetup{
 
     accJson.accounts.foreach(acc => acc.bank_id should equal (theBankId))
   }
+
+  def assertNoDuplicateAccounts(accJson : AccountsJSON) : Unit = {
+    //bankId : String, accountId: String
+    type AccountIdentifier = (String, String)
+    //unique accounts have unique bankId + accountId
+    val accountIdentifiers : Set[AccountIdentifier] = {
+      accJson.accounts.map(acc => (acc.bank_id, acc.id)).toSet
+    }
+    //if they are all unique, the set will contain the same number of elements as the list
+    accJson.accounts.size should equal(accountIdentifiers.size)
+  }
   
   feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
@@ -806,6 +817,8 @@ class API1_2Test extends ServerSetup{
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(publicAccountsInfo)
 
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccounts) {
       Given("We will use an access token")
@@ -830,6 +843,9 @@ class API1_2Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(accountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(accountsInfo)
     }
   }
 
@@ -853,6 +869,9 @@ class API1_2Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
   }
 
@@ -875,6 +894,9 @@ class API1_2Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(privateAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will not use an access token")

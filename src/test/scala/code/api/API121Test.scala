@@ -1194,6 +1194,17 @@ class API1_2_1Test extends ServerSetup{
     differentBankExists should be (true)
   }
 
+  def assertNoDuplicateAccounts(accJson : AccountsJSON) : Unit = {
+    //bankId : String, accountId: String
+    type AccountIdentifier = (String, String)
+    //unique accounts have unique bankId + accountId
+    val accountIdentifiers : Set[AccountIdentifier] = {
+      accJson.accounts.map(acc => (acc.bank_id, acc.id)).toSet
+    }
+    //if they are all unique, the set will contain the same number of elements as the list
+    accJson.accounts.size should equal(accountIdentifiers.size)
+  }
+
   feature("Information about all the bank accounts for all banks"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
       Given("We will not use an access token")
@@ -1215,6 +1226,8 @@ class API1_2_1Test extends ServerSetup{
       And("There are accounts from more than one bank")
       assertAccountsFromMoreThanOneBank(publicAccountsInfo)
 
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
       Given("We will use an access token")
@@ -1237,6 +1250,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("There are accounts from more than one bank")
       assertAccountsFromMoreThanOneBank(accountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(accountsInfo)
     }
   }
   
@@ -1260,6 +1276,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("There are accounts from more than one bank")
       assertAccountsFromMoreThanOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
   }
 
@@ -1282,6 +1301,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("There are accounts from more than one bank")
       assertAccountsFromMoreThanOneBank(privateAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccountsForAllBanks) {
       Given("We will not use an access token")
@@ -1314,6 +1336,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccounts) {
       Given("We will use an access token")
@@ -1336,6 +1361,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(accountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(accountsInfo)
     }
   }
 
@@ -1359,6 +1387,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
   }
 
@@ -1381,6 +1412,9 @@ class API1_2_1Test extends ServerSetup{
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(privateAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will not use an access token")
