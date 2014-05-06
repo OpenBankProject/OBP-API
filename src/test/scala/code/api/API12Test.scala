@@ -776,6 +776,14 @@ class API1_2Test extends ServerSetup{
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
   }
+
+  def assertAccountsFromOneBank(accJson : AccountsJSON) : Unit = {
+    accJson.accounts.size should be > 0
+    val theBankId = accJson.accounts.head.bank_id
+    theBankId should not be ("")
+
+    accJson.accounts.foreach(acc => acc.bank_id should equal (theBankId))
+  }
   
   feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
@@ -795,6 +803,9 @@ class API1_2Test extends ServerSetup{
         )
       })
 
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(publicAccountsInfo)
+
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccounts) {
       Given("We will use an access token")
@@ -813,6 +824,9 @@ class API1_2Test extends ServerSetup{
       assertViewExistsWithCondition(accountsInfo, _.is_public)
       And("Some accounts should have private views")
       assertViewExistsWithCondition(accountsInfo, !_.is_public)
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(accountsInfo)
     }
   }
 
@@ -833,6 +847,9 @@ class API1_2Test extends ServerSetup{
           v => v.is_public should equal (true)
         )
       })
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(publicAccountsInfo)
     }
   }
 
@@ -852,6 +869,9 @@ class API1_2Test extends ServerSetup{
       
       And("All accounts should have at least one private view")
       assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will not use an access token")
