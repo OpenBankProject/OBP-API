@@ -1205,8 +1205,63 @@ class API1_2_1Test extends ServerSetup{
     accJson.accounts.size should equal(accountIdentifiers.size)
   }
 
+  /**
+   * Adds some private accounts for obpuser2 to the DB so that not all accounts in the DB are public
+   * (which is at the time of writing, the default created in ServerSetup)
+   *
+   * Also adds some public accounts to which user1 does not have owner access
+   */
+  def accountTestsSpecificDBSetup() {
+
+    val banks =  HostedBank.findAll
+
+    def generateAccounts() = banks.flatMap(bank => {
+      for { i <- 0 until 2 } yield {
+        val acc = Account.createRecord.
+          balance(0).
+          holder(randomString(10)).
+          number(randomString(10)).
+          kind(randomString(10)).
+          name(randomString(10)).
+          permalink(randomString(10)).
+          bankID(new ObjectId(bank.id.get.toString)).
+          label(randomString(10)).
+          currency(randomString(10)).
+          save
+        logger.error("ZZZ: " + acc.permalink.get + " at bank " + bank.permalink)
+        acc
+      }
+    })
+
+    //fake bank accounts
+    val privateAccounts = generateAccounts()
+    val publicAccounts = generateAccounts()
+
+    def addViews(accs : List[Account], addPublicView : Boolean) = {
+      accs.foreach(account => {
+        val hostedaccount =
+          HostedAccount.
+            create.
+            accountID(account.id.get.toString).
+            saveMe
+        val owner = ownerView(hostedaccount)
+        ViewPrivileges.create.
+          view(owner).
+          user(obpuser2).
+          save
+
+        if(addPublicView) {
+          publicView(hostedaccount)
+        }
+      })
+    }
+    addViews(privateAccounts, false)
+    addViews(publicAccounts, true)
+  }
+
   feature("Information about all the bank accounts for all banks"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBankAccountsForAllBanks(None)
@@ -1230,6 +1285,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
+      accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
       val reply = getBankAccountsForAllBanks(user1)
@@ -1258,6 +1314,7 @@ class API1_2_1Test extends ServerSetup{
   
   feature("Information about the public bank accounts for all banks"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccountsForAllBanks) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getPublicAccountsForAllBanks()
@@ -1284,6 +1341,7 @@ class API1_2_1Test extends ServerSetup{
 
   feature("Information about the private bank accounts for all banks"){
     scenario("we get the private bank accounts", API1_2, GetPrivateBankAccountsForAllBanks) {
+      accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
       val reply = getPrivateAccountsForAllBanks(user1)
@@ -1306,6 +1364,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccountsForAllBanks) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getPrivateAccountsForAllBanks(None)
@@ -1318,6 +1377,7 @@ class API1_2_1Test extends ServerSetup{
   
   feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getBankAccounts(randomBank, None)
@@ -1341,6 +1401,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccounts) {
+      accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
       val reply = getBankAccounts(randomBank, user1)
@@ -1355,6 +1416,7 @@ class API1_2_1Test extends ServerSetup{
 
       //test that this call is a combination of accounts with more than public access, and accounts with public access
       And("Some accounts should have only public views")
+      logger.error("ZZZ\n\n: " + pretty(render(reply.body)))
       assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
       And("Some accounts should have private views")
       assertViewExistsWithCondition(accountsInfo, !_.is_public)
@@ -1369,6 +1431,7 @@ class API1_2_1Test extends ServerSetup{
 
   feature("Information about the public bank accounts for a single bank"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccounts) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getPublicAccounts(randomBank)
@@ -1395,6 +1458,7 @@ class API1_2_1Test extends ServerSetup{
 
   feature("Information about the private bank accounts for a single bank"){
     scenario("we get the private bank accounts", API1_2, GetPrivateBankAccounts) {
+      accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
       val reply = getPrivateAccounts(randomBank, user1)
@@ -1417,6 +1481,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
+      accountTestsSpecificDBSetup()
       Given("We will not use an access token")
       When("the request is sent")
       val reply = getPrivateAccounts(randomBank, None)
