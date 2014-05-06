@@ -1140,7 +1140,17 @@ class API1_2_1Test extends ServerSetup{
     }
   }
 
-  feature("Information about all the bank accounts"){
+  def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+    val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
+    exists should equal(true)
+  }
+  
+  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+    val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
+    forAll should equal(true)
+  }
+  
+  feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
       Given("We will not use an access token")
       When("the request is sent")
@@ -1171,10 +1181,15 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
+      
+      And("Some accounts should have public views")
+      assertViewExistsWithCondition(accountsInfo, _.is_public)
+      And("Some accounts should have private views")
+      assertViewExistsWithCondition(accountsInfo, !_.is_public)
     }
   }
 
-  feature("Information about the public bank accounts"){
+  feature("Information about the public bank accounts for a single bank"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccounts) {
       Given("We will not use an access token")
       When("the request is sent")
@@ -1194,7 +1209,7 @@ class API1_2_1Test extends ServerSetup{
     }
   }
 
-  feature("Information about the private bank accounts"){
+  feature("Information about the private bank accounts for a single bank"){
     scenario("we get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will use an access token")
       When("the request is sent")
@@ -1207,6 +1222,9 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
+      
+      And("All accounts should have at least one private view")
+      assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will not use an access token")
