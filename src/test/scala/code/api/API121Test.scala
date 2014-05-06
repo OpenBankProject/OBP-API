@@ -1178,6 +1178,14 @@ class API1_2_1Test extends ServerSetup{
     accJson.accounts.foreach(acc => acc.bank_id should equal(theBankId))
   }
 
+  def assertAtLeastOneAccountHasAllViewsWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+    val exists = accJson.accounts.exists(acc => {
+      acc.views_available.forall(cond)
+    })
+
+    exists should equal(true)
+  }
+
   def assertAccountsFromMoreThanOneBank(accJson: AccountsJSON) : Unit = {
     accJson.accounts.size should be > 0
     val firstBankId = accJson.accounts.head.bank_id
@@ -1220,9 +1228,10 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
-      And("Some accounts should have public views")
-      assertViewExistsWithCondition(accountsInfo, _.is_public)
+
+      //test that this call is a combination of accounts with more than public access, and accounts with public access
+      And("Some accounts should have only public views")
+      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
       And("Some accounts should have private views")
       assertViewExistsWithCondition(accountsInfo, !_.is_public)
 
@@ -1318,9 +1327,10 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
-      And("Some accounts should have public views")
-      assertViewExistsWithCondition(accountsInfo, _.is_public)
+
+      //test that this call is a combination of accounts with more than public access, and accounts with public access
+      And("Some accounts should have only public views")
+      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
       And("Some accounts should have private views")
       assertViewExistsWithCondition(accountsInfo, !_.is_public)
 

@@ -819,9 +819,12 @@ class API1_2Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
-      And("Some accounts should have public views")
-      assertViewExistsWithCondition(accountsInfo, _.is_public)
+
+      //Note: this API call is technically wrong, as it was originally intended to have returned
+      // public + private accounts when logged in, but actually returned only the accounts with
+      // more than public access. This test therefore does not test that condition as the v1.2 API
+      // call is being kept that way to avoid breaking any existing applications using it. This API
+      // call is fixed in v1.2.1
       And("Some accounts should have private views")
       assertViewExistsWithCondition(accountsInfo, !_.is_public)
 
