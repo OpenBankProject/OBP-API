@@ -60,6 +60,7 @@ trait LocalStorage extends Loggable {
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount]
   def getAllPublicAccounts() : List[BankAccount]
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]]
+  def getAllAccountsUserCanSee(user : Box[User]) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
@@ -396,6 +397,42 @@ class MongoDBLocalStorage extends LocalStorage {
         logger.error("APIUser instance not found, could not find the accounts")
         Nil
       }
+    }
+  }
+
+  /**
+  * @param user
+  * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
+  */
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
+    user match {
+      case Full(u) => {
+        //TODO: this could be quite a bit more efficient...
+        for {
+          bankObjectId <- tryo{new ObjectId(bank.id)}
+        } yield {
+          def sameBank(account : Account) : Boolean =
+            account.bankID.get == bankObjectId
+
+          val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
+          val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
+          val moreThanAnonAccounts = Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
+
+          val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+            map{_.account.obj}.
+            collect{case Full(a) if a.bank==bank.fullName => a.theAccount}. //throw out with the wrong bank
+            collect{case Full(a) => {
+            //Throw out those that are already counted in moreThanAnonAccounts
+            if(moreThanAnonAccounts.exists(x => {
+              (a.bankPermalink == x.bankPermalink) && (a.permalink.get == x.permalink)
+            })) Empty
+            else Full(Account.toBankAccount(a))
+          }}.flatten
+
+          moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
+        }
+      }
+      case _ => getPublicBankAccounts(bank)
     }
   }
 
