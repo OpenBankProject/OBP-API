@@ -52,7 +52,14 @@ class Bank(
   val website : String
 )
 {
+
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
+    LocalStorage.getAllAccountsUserCanSee(this, user)
+  }
+
+  //This was the behaviour in v1.2 and earlier which has since been changed
+  @deprecated
+  def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
     user match {
       case Full(u) => {
         nonPublicAccounts(u)

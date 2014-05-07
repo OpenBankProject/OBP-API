@@ -1210,6 +1210,8 @@ class API1_2_1Test extends ServerSetup{
    * (which is at the time of writing, the default created in ServerSetup)
    *
    * Also adds some public accounts to which user1 does not have owner access
+   *
+   * Also adds some private accounts for user1 that are not public
    */
   def accountTestsSpecificDBSetup() {
 
@@ -1234,10 +1236,11 @@ class API1_2_1Test extends ServerSetup{
     })
 
     //fake bank accounts
-    val privateAccounts = generateAccounts()
+    val privateAccountsForUser1 = generateAccounts()
+    val privateAccountsForUser2 = generateAccounts()
     val publicAccounts = generateAccounts()
 
-    def addViews(accs : List[Account], addPublicView : Boolean) = {
+    def addViews(accs : List[Account], ownerUser : APIUser, addPublicView : Boolean) = {
       accs.foreach(account => {
         val hostedaccount =
           HostedAccount.
@@ -1247,7 +1250,7 @@ class API1_2_1Test extends ServerSetup{
         val owner = ownerView(hostedaccount)
         ViewPrivileges.create.
           view(owner).
-          user(obpuser2).
+          user(ownerUser).
           save
 
         if(addPublicView) {
@@ -1255,8 +1258,9 @@ class API1_2_1Test extends ServerSetup{
         }
       })
     }
-    addViews(privateAccounts, false)
-    addViews(publicAccounts, true)
+    addViews(privateAccountsForUser1, obpuser1, false)
+    addViews(privateAccountsForUser2, obpuser2, false)
+    addViews(publicAccounts, obpuser2, true)
   }
 
   feature("Information about all the bank accounts for all banks"){
@@ -1301,8 +1305,8 @@ class API1_2_1Test extends ServerSetup{
       //test that this call is a combination of accounts with more than public access, and accounts with public access
       And("Some accounts should have only public views")
       assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
-      And("Some accounts should have private views")
-      assertViewExistsWithCondition(accountsInfo, !_.is_public)
+      And("Some accounts should have only private views")
+      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
 
       And("There are accounts from more than one bank")
       assertAccountsFromMoreThanOneBank(accountsInfo)
@@ -1418,8 +1422,8 @@ class API1_2_1Test extends ServerSetup{
       And("Some accounts should have only public views")
       logger.error("ZZZ\n\n: " + pretty(render(reply.body)))
       assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
-      And("Some accounts should have private views")
-      assertViewExistsWithCondition(accountsInfo, !_.is_public)
+      And("Some accounts should have only private views")
+      assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
 
       And("The accounts are only from one bank")
       assertAccountsFromOneBank(accountsInfo)

@@ -135,7 +135,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
-  //get accounts
+  //get accounts for a single bank (private + public)
     case "banks" :: bankId :: "accounts" :: Nil JsonGet json => {
       user =>
         for{
@@ -146,7 +146,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
-  //get private accounts
+  //get private accounts for a single bank
     case "banks" :: bankId :: "accounts" :: "private" :: Nil JsonGet json => {
       user =>
         for {
@@ -160,7 +160,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
-  //get public accounts
+  //get public accounts for a single bank
     case "banks" :: bankId :: "accounts" :: "public" :: Nil JsonGet json => {
       user =>
         for {

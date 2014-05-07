@@ -238,7 +238,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
         {
           if(httpCode == 200)
           {
-            bank.accounts(user) match {
+            bank.accountv12AndBelow(user) match {
               case Full(a) =>  bankAccountSet2JsonResponse(a.toSet)
               case _ => InMemoryResponse("no account found".getBytes, Nil, Nil, 404)
             }
