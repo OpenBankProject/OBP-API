@@ -60,7 +60,7 @@ trait LocalStorage extends Loggable {
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount]
   def getAllPublicAccounts() : List[BankAccount]
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]]
-  def getAllAccountsUserCanSee(user : Box[User]) : Box[List[BankAccount]]
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
