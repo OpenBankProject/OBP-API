@@ -405,6 +405,14 @@ object BankAccount {
   def publicAccounts : List[BankAccount] = {
     LocalStorage.getAllPublicAccounts()
   }
+
+  def accounts(user : Box[User]) : List[BankAccount] = {
+    LocalStorage.getAllAccountsUserCanSee(user)
+  }
+
+  def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
+    LocalStorage.getNonPublicBankAccounts(user)
+  }
 }
 
 class OtherBankAccount(
