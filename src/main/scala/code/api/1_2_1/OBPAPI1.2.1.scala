@@ -135,6 +135,36 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
+    //get accounts for all banks (private + public)
+    case "accounts" :: Nil JsonGet json => {
+      user =>
+        Full(successJsonResponse(bankAccountsListToJson(BankAccount.accounts(user), user)))
+    }
+  })
+
+  oauthServe(apiPrefix {
+    //get private accounts for all banks
+    case "accounts" :: "private" :: Nil JsonGet json => {
+      user =>
+        for {
+          u <- user ?~ "user not found"
+          availableAccounts <- BankAccount.nonPublicAccounts(u)
+        } yield {
+          successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
+        }
+    }
+  })
+
+  oauthServe(apiPrefix {
+    //get public accounts for all banks
+    case "accounts" :: "public" :: Nil JsonGet json => {
+      user =>
+        val publicAccountsJson = bankAccountsListToJson(BankAccount.publicAccounts, Empty)
+        Full(successJsonResponse(publicAccountsJson))
+    }
+  })
+
+  oauthServe(apiPrefix {
   //get accounts for a single bank (private + public)
     case "banks" :: bankId :: "accounts" :: Nil JsonGet json => {
       user =>

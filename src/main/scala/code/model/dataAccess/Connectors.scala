@@ -401,8 +401,36 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   /**
+   * @param user
+   * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
+   */
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
+    user match {
+      case Full(u) => {
+        val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
+        val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
+        val moreThanAnonAccounts = Account.findAll(mongoIds).map(Account.toBankAccount)
+
+        val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+          map{_.account.obj}.
+          collect{case Full(a) => a.theAccount}.
+          collect{case Full(a) => {
+          //Throw out those that are already counted in moreThanAnonAccounts
+          if(moreThanAnonAccounts.exists(x => {
+            (a.bankPermalink == x.bankPermalink) && (a.permalink.get == x.permalink)
+          })) Empty
+          else Full(Account.toBankAccount(a))
+        }}.flatten
+
+        moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
+      }
+      case _ => getAllPublicAccounts()
+    }
+  }
+
+  /**
   * @param user
-  * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
+  * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
   */
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
     user match {
