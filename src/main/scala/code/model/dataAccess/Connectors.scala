@@ -414,18 +414,25 @@ class MongoDBLocalStorage extends LocalStorage {
         val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
           map{_.account.obj}.
           collect{case Full(a) => a.theAccount}.
-          collect{case Full(a) => {
+          collect{case Full(a)
           //Throw out those that are already counted in moreThanAnonAccounts
-          if(moreThanAnonAccounts.exists(x => {
-            (a.bankPermalink == x.bankPermalink) && (a.permalink.get == x.permalink)
-          })) Empty
-          else Full(Account.toBankAccount(a))
-        }}.flatten
+          if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+        }
 
         moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
       }
       case _ => getAllPublicAccounts()
     }
+  }
+
+  /**
+   * Checks if an Account and BankAccount represent the same thing (to avoid converting between the two if
+   * it's not required)
+   */
+  private def sameAccount(account : Account, bankAccount : BankAccount) : Boolean = {
+    //important: account.permalink.get (if you just use account.permalink it compares a StringField
+    // to a String, which will always be false
+    (account.bankPermalink == bankAccount.bankPermalink) && (account.permalink.get == bankAccount.permalink)
   }
 
   /**
@@ -449,13 +456,10 @@ class MongoDBLocalStorage extends LocalStorage {
           val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
             map{_.account.obj}.
             collect{case Full(a) if a.bank==bank.fullName => a.theAccount}. //throw out with the wrong bank
-            collect{case Full(a) => {
-            //Throw out those that are already counted in moreThanAnonAccounts
-            if(moreThanAnonAccounts.exists(x => {
-              (a.bankPermalink == x.bankPermalink) && (a.permalink.get == x.permalink)
-            })) Empty
-            else Full(Account.toBankAccount(a))
-          }}.flatten
+            collect{case Full(a)
+              //Throw out those that are already counted in moreThanAnonAccounts
+              if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+          }
 
           moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
         }
