@@ -143,8 +143,8 @@ class BankAccount(
   }
 
   /**
-  * @param the view that we want test the access to
-  * @param the user that we want to see if he has access to the view or not
+  * @param view the view that we want test the access to
+  * @param user the user that we want to see if he has access to the view or not
   * @return true if the user is allowed to access this view, false otherwise
   */
   def authorizedAccess(view: View, user: Option[User]) : Boolean = {
