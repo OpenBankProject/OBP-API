@@ -1420,7 +1420,7 @@ class API1_2_1Test extends ServerSetup{
 
       //test that this call is a combination of accounts with more than public access, and accounts with public access
       And("Some accounts should have only public views")
-      logger.error("ZZZ\n\n: " + pretty(render(reply.body)))
+
       assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, _.is_public)
       And("Some accounts should have only private views")
       assertAtLeastOneAccountHasAllViewsWithCondition(accountsInfo, !_.is_public)
