@@ -52,7 +52,14 @@ class Bank(
   val website : String
 )
 {
+
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
+    LocalStorage.getAllAccountsUserCanSee(this, user)
+  }
+
+  //This was the behaviour in v1.2 and earlier which has since been changed
+  @deprecated
+  def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
     user match {
       case Full(u) => {
         nonPublicAccounts(u)
@@ -136,8 +143,8 @@ class BankAccount(
   }
 
   /**
-  * @param the view that we want test the access to
-  * @param the user that we want to see if he has access to the view or not
+  * @param view the view that we want test the access to
+  * @param user the user that we want to see if he has access to the view or not
   * @return true if the user is allowed to access this view, false otherwise
   */
   def authorizedAccess(view: View, user: Option[User]) : Boolean = {
@@ -397,6 +404,14 @@ object BankAccount {
 
   def publicAccounts : List[BankAccount] = {
     LocalStorage.getAllPublicAccounts()
+  }
+
+  def accounts(user : Box[User]) : List[BankAccount] = {
+    LocalStorage.getAllAccountsUserCanSee(user)
+  }
+
+  def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
+    LocalStorage.getNonPublicBankAccounts(user)
   }
 }
 

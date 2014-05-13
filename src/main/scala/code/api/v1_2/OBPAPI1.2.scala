@@ -137,19 +137,24 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     }
   })
 
+  /**
+   * This call is technically incorrect, but being kept this way for backwards compatibility. The original
+   * intent was to return non-public accounts the user has access to AND the public accounts. When a user is logged
+   * in, this in fact only returns the non-public accounts. Fixed in v1.2.1
+   */
   oauthServe(apiPrefix {
-  //get accounts
+  //get accounts for a single bank
     case "banks" :: bankId :: "accounts" :: Nil JsonGet json => {
       user =>
         for{
          bank <- Bank(bankId)
-         availableAccounts <- bank.accounts(user)
+         availableAccounts <- bank.accountv12AndBelow(user)
         } yield successJsonResponse(bankAccountsListToJson(availableAccounts, user))
     }
   })
 
   oauthServe(apiPrefix {
-  //get private accounts
+  //get private accounts for a single bank
     case "banks" :: bankId :: "accounts" :: "private" :: Nil JsonGet json => {
       user =>
         for {
@@ -161,7 +166,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   })
 
   oauthServe(apiPrefix {
-  //get public accounts
+  //get public accounts for a single bank
     case "banks" :: bankId :: "accounts" :: "public" :: Nil JsonGet json => {
       user =>
         for {
