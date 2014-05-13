@@ -767,7 +767,36 @@ class API1_2Test extends ServerSetup{
     }
   }
 
-  feature("Information about all the bank accounts"){
+  def assertViewExistsWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+    val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
+    exists should equal(true)
+  }
+  
+  def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
+    val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
+    forAll should equal(true)
+  }
+
+  def assertAccountsFromOneBank(accJson : AccountsJSON) : Unit = {
+    accJson.accounts.size should be > 0
+    val theBankId = accJson.accounts.head.bank_id
+    theBankId should not be ("")
+
+    accJson.accounts.foreach(acc => acc.bank_id should equal (theBankId))
+  }
+
+  def assertNoDuplicateAccounts(accJson : AccountsJSON) : Unit = {
+    //bankId : String, accountId: String
+    type AccountIdentifier = (String, String)
+    //unique accounts have unique bankId + accountId
+    val accountIdentifiers : Set[AccountIdentifier] = {
+      accJson.accounts.map(acc => (acc.bank_id, acc.id)).toSet
+    }
+    //if they are all unique, the set will contain the same number of elements as the list
+    accJson.accounts.size should equal(accountIdentifiers.size)
+  }
+  
+  feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
       Given("We will not use an access token")
       When("the request is sent")
@@ -785,6 +814,11 @@ class API1_2Test extends ServerSetup{
         )
       })
 
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
     scenario("we get the bank accounts the user have access to", API1_2, GetBankAccounts) {
       Given("We will use an access token")
@@ -798,10 +832,24 @@ class API1_2Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
+
+      //Note: this API call is technically wrong, as it was originally intended to have returned
+      // public + private accounts when logged in, but actually returned only the accounts with
+      // more than public access. This test therefore does not test that condition as the v1.2 API
+      // call is being kept that way to avoid breaking any existing applications using it. This API
+      // call is fixed in v1.2.1
+      And("Some accounts should have private views")
+      assertViewExistsWithCondition(accountsInfo, !_.is_public)
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(accountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(accountsInfo)
     }
   }
 
-  feature("Information about the public bank accounts"){
+  feature("Information about the public bank accounts for a single bank"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccounts) {
       Given("We will not use an access token")
       When("the request is sent")
@@ -818,10 +866,16 @@ class API1_2Test extends ServerSetup{
           v => v.is_public should equal (true)
         )
       })
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(publicAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(publicAccountsInfo)
     }
   }
 
-  feature("Information about the private bank accounts"){
+  feature("Information about the private bank accounts for a single bank"){
     scenario("we get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will use an access token")
       When("the request is sent")
@@ -834,6 +888,15 @@ class API1_2Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
+      
+      And("All accounts should have at least one private view")
+      assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
+
+      And("The accounts are only from one bank")
+      assertAccountsFromOneBank(privateAccountsInfo)
+
+      And("There are no duplicate accounts")
+      assertNoDuplicateAccounts(privateAccountsInfo)
     }
     scenario("we don't get the private bank accounts", API1_2, GetPrivateBankAccounts) {
       Given("We will not use an access token")
