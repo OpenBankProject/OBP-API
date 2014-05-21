@@ -542,7 +542,10 @@ class MongoDBLocalStorage extends LocalStorage {
           val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
               case Full(envelope) =>
                 envelope.obp_transaction.get.other_account.get
-              case _ => OBPAccount.createRecord
+              case _ => {
+                logger.warn(s"envelope not found for other account ${otherAccount.id.get}")
+                OBPAccount.createRecord
+              }
             }
           createOtherBankAccount(otherAccount, otherAccountFromTransaction)
         })
