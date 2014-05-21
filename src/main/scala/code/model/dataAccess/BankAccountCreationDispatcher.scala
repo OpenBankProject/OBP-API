@@ -84,7 +84,7 @@ package code.model.dataAccess {
       channel.basicConsume("createBankAccount", false, new SerializedConsumer(channel, this))
     }
   }
-  
+
   object BankAccountCreation extends Loggable {
     def createBank(message: CreateBankAccount): HostedBank = {
       // TODO: use a more unique id for the long term
@@ -300,6 +300,7 @@ package code.model.dataAccess {
       }
     }
     def startListen = {
+      logger.info("started to listen for bank account creation messages")
       amqp ! AMQPAddListener(createBankAccountListener)
     }
   }

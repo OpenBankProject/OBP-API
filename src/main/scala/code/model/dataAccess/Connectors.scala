@@ -60,6 +60,7 @@ trait LocalStorage extends Loggable {
   def getBankAccount(bankId : String, bankAccountId : String) : Box[BankAccount]
   def getAllPublicAccounts() : List[BankAccount]
   def getPublicBankAccounts(bank : Bank) : Box[List[BankAccount]]
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
@@ -400,6 +401,74 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   /**
+   * @param user
+   * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
+   */
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
+    user match {
+      case Full(u) => {
+        val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
+        val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
+        val moreThanAnonAccounts = Account.findAll(mongoIds).map(Account.toBankAccount)
+
+        val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+          map{_.account.obj}.
+          collect{case Full(a) => a.theAccount}.
+          collect{case Full(a)
+          //Throw out those that are already counted in moreThanAnonAccounts
+          if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+        }
+
+        moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
+      }
+      case _ => getAllPublicAccounts()
+    }
+  }
+
+  /**
+   * Checks if an Account and BankAccount represent the same thing (to avoid converting between the two if
+   * it's not required)
+   */
+  private def sameAccount(account : Account, bankAccount : BankAccount) : Boolean = {
+    //important: account.permalink.get (if you just use account.permalink it compares a StringField
+    // to a String, which will always be false
+    (account.bankPermalink == bankAccount.bankPermalink) && (account.permalink.get == bankAccount.permalink)
+  }
+
+  /**
+  * @param user
+  * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
+  */
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
+    user match {
+      case Full(u) => {
+        //TODO: this could be quite a bit more efficient...
+        for {
+          bankObjectId <- tryo{new ObjectId(bank.id)}
+        } yield {
+          def sameBank(account : Account) : Boolean =
+            account.bankID.get == bankObjectId
+
+          val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
+          val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
+          val moreThanAnonAccounts = Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
+
+          val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
+            map{_.account.obj}.
+            collect{case Full(a) if a.bank==bank.fullName => a.theAccount}. //throw out with the wrong bank
+            collect{case Full(a)
+              //Throw out those that are already counted in moreThanAnonAccounts
+              if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+          }
+
+          moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
+        }
+      }
+      case _ => getPublicBankAccounts(bank)
+    }
+  }
+
+  /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
@@ -473,7 +542,10 @@ class MongoDBLocalStorage extends LocalStorage {
           val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
               case Full(envelope) =>
                 envelope.obp_transaction.get.other_account.get
-              case _ => OBPAccount.createRecord
+              case _ => {
+                logger.warn(s"envelope not found for other account ${otherAccount.id.get}")
+                OBPAccount.createRecord
+              }
             }
           createOtherBankAccount(otherAccount, otherAccountFromTransaction)
         })
