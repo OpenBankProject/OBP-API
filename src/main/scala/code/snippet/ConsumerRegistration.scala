@@ -103,9 +103,9 @@ class ConsumerRegistration extends Loggable {
         key(Helpers.randomString(40).toLowerCase).
         secret(Helpers.randomString(40).toLowerCase).
         save
-        
+
       notifyRegistrationOccurred(consumer)
-        
+
       showResults(consumer)
     }
 
@@ -156,41 +156,43 @@ class ConsumerRegistration extends Loggable {
     else registerWithoutWarnings
 
   }
-  
-  
+
+
   def notifyRegistrationOccurred(registered : Consumer) = {
     import net.liftweb.util.Mailer
     import net.liftweb.util.Mailer._
-    
+
     val mailSent = for {
       // e.g mail.api.consumer.registered.sender.address=no-reply@example.com
       from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
       // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
       toAddressesString <- Props.get("mail.api.consumer.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
     } yield {
-      
+
       val thisApiInstance = Props.get("hostname", "unknown host")
       val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
       		s"Email: ${registered.developerEmail.get} \n" +
       		s"App name: ${registered.name.get} \n" +
       		s"App type: ${registered.appType.get.toString} \n" +
       		s"App description: ${registered.description.get}"
-      		
+
       //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
       val to = toAddressesString.split(",").toList
       val toParams = to.map(To(_))
       val params = PlainMailBodyType(registrationMessage) :: toParams
-      		
+
       //this is an async call
       Mailer.sendMail(
-      From(from),
-      Subject(s"New API user registered on $thisApiInstance"),
-      params :_*)
+        From(from),
+        Subject(s"New API user registered on $thisApiInstance"),
+        params :_*
+      )
     }
-    
+
     //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
-    if(!mailSent.isDefined) this.logger.warn(s"API consumer registration failed: $mailSent")
-    
+    if(mailSent.isEmpty)
+      this.logger.warn(s"API consumer registration failed: $mailSent")
+
   }
 
 }

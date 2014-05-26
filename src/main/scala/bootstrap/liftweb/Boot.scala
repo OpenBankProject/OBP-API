@@ -39,23 +39,23 @@ import http._
 import sitemap._
 import Loc._
 import mapper._
-import code.model.dataAccess._
-import code.model.{Nonce, Consumer, Token}
-import code.api._
 import net.liftweb.util.Helpers._
 import net.liftweb.json.JsonDSL._
-import code.api.OAuthHandshake
 import net.liftweb.util.Schedule
 import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.http.js.jquery.JqJsCmds
-import code.snippet.OAuthAuthorisation
 import net.liftweb.util.Helpers
 import javax.mail.{ Authenticator, PasswordAuthentication }
 import java.io.FileInputStream
 import java.io.File
-import code.model.dataAccess.BankAccountCreationListener
-import code.snippet.OAuthWorkedThanks
 import javax.mail.internet.MimeMessage
+
+import code.model.{Nonce, Consumer, Token, dataAccess}
+import dataAccess._
+import code.api._
+import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.util.MyExceptionLogger
+
 /**
  * A class that's instantiated early and run.  It allows the application
  * to modify lift's environment
@@ -212,7 +212,7 @@ class Boot extends Loggable{
     ) ++ accountCreation ++ Admin.menus
 
     def sitemapMutators = OBPUser.sitemapMutator
-    
+
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
     LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
@@ -245,10 +245,14 @@ class Boot extends Loggable{
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
       BankAccountCreationListener.startListen
-      
+
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
-    
+
+    LiftRules.exceptionHandler.prepend{
+      case MyExceptionLogger(_, _, t) => throw t // this will never happen
+    }
+
   }
 }
