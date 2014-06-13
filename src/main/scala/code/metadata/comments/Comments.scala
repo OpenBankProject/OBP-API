@@ -18,6 +18,6 @@ trait Comments {
   
   def getComments(bankId : String, accountId : String, transactionId : String) : Iterable[Comment]
   def addComment(bankId : String, accountId : String, transactionId: String)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment]
-  def deleteComment(commentId : String) : Box[Unit]
+  def deleteComment(bankId : String, accountId : String, transactionId: String)(commentId : String) : Box[Unit]
   
 }
