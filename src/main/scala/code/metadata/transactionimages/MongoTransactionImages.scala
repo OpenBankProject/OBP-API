@@ -5,7 +5,7 @@ import net.liftweb.common.Box
 import java.net.URL
 import java.util.Date
 
-class MongoTransactionImages extends TransactionImages {
+object MongoTransactionImages extends TransactionImages {
 
   def getImagesForTransaction(bankId : String, accountId : String, transactionIdGivenByBank: String) : Iterable[TransactionImage] = {
     //TODO
