@@ -15,8 +15,8 @@ object Tags  extends SimpleInjector {
 
 trait Tags {
   
-  def getTags(bankId : String, accountId : String, transactionIdGivenByBank: String) : List[Tag]
-  def addTag(bankId : String, accountId : String, transactionIdGivenByBank: String)(userId: String, viewId : Long, tag : String, datePosted : Date) : Box[Tag]
-  def deleteTag(tagId : String) : Box[Unit]
+  def getTags(bankId : String, accountId : String, transactionId: String) : List[Tag]
+  def addTag(bankId : String, accountId : String, transactionId: String)(userId: String, viewId : Long, tagText : String, datePosted : Date) : Box[Tag]
+  def deleteTag(bankId : String, accountId : String, transactionId: String)(tagId : String) : Box[Unit]
   
 }
