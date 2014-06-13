@@ -3,6 +3,8 @@ package code.metadata.wheretags
 import net.liftweb.util.SimpleInjector
 import java.util.Date
 import code.model.GeoTag
+import code.model.dataAccess.OBPEnvelope
+import org.bson.types.ObjectId
 
 object WhereTags  extends SimpleInjector {
 
@@ -15,13 +17,13 @@ object WhereTags  extends SimpleInjector {
 trait WhereTags {
 
   //TODO: it probably makes more sense for this to return Box[GeoTag]. Leaving it as a Boolean for now...
-  def addWhereTag(bankId : String, accountId : String, transactionIdGivenByBank: String)
+  def addWhereTag(bankId : String, accountId : String, transactionId: String)
                  (userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean
 
   //TODO: would be nicer to change this to return Box[Unit] like in e.g. comments. Or perhaps change the way the other ones work
   //instead, with the end effect of keeping them consistent. Leaving it as a Boolean for now...
-  def deleteWhereTag(bankId : String, accountId : String, transactionIdGivenByBank: String)(viewId : Long) : Boolean
+  def deleteWhereTag(bankId : String, accountId : String, transactionId: String)(viewId : Long) : Boolean
 
-  def getWhereTagsForTransaction(bankId : String, accountId : String, transactionIdGivenByBank: String) : Iterable[GeoTag]
+  def getWhereTagsForTransaction(bankId : String, accountId : String, transactionId: String) : Iterable[GeoTag]
 
 }
