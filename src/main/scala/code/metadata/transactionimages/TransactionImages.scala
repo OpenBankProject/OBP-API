@@ -16,12 +16,12 @@ object TransactionImages  extends SimpleInjector {
 
 trait TransactionImages {
 
-  def getImagesForTransaction(bankId : String, accountId : String, transactionIdGivenByBank: String) : Iterable[TransactionImage]
+  def getImagesForTransaction(bankId : String, accountId : String, transactionId: String) : Iterable[TransactionImage]
   
   def addTransactionImage(bankId : String, accountId : String, transactionId: String)
-  (userId: String, viewId : Long, description : String, datePosted : Date, url: URL) : Box[TransactionImage]
+  (userId: String, viewId : Long, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage]
   
-  def deleteTransactionImage(transactionId : String) : Box[Unit]
+  def deleteTransactionImage(bankId : String, accountId : String, transactionId: String)(imageId : String) : Box[Unit]
   
 }
   
