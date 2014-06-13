@@ -1,5 +1,9 @@
 package code.metadata.tags
 
+import code.model.Tag
+import java.util.Date
+import net.liftweb.common.Box
+
 object MongoTransactionTags extends Tags {
   
   def getTags(bankId : String, accountId : String, transactionIdGivenByBank: String) : List[Tag] = {

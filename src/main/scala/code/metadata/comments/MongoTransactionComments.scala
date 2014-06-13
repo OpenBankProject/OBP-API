@@ -1,5 +1,9 @@
 package code.metadata.comments
 
+import code.model.Comment
+import java.util.Date
+import net.liftweb.common.Box
+
 object MongoTransactionComments extends Comments {
 
   
