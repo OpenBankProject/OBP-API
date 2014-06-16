@@ -459,6 +459,17 @@ class Transaction(
   val bankPermalink = thisAccount.bankPermalink
   val accountPermalink = thisAccount.permalink
 
+  /**
+   * The metadata is set up using dependency injection. If you want to, e.g. override the Comments implementation
+   * for a particular scope, use Comments.comments.doWith(NewCommentsImplementation extends Comments{}){
+   *   //code in here will use NewCommentsImplementation (e.g. val t = new Transaction(...) will result in Comments.comments.vend
+   *   // return NewCommentsImplementation here below)
+   * }
+   *
+   * If you want to change the current default implementation, you would change the buildOne function in Comments to
+   * return a different value
+   *
+   */
   val metadata : TransactionMetadata = new TransactionMetadata(
       Narrative.narrative.vend.getNarrative(bankPermalink, accountPermalink, id) _,
       Narrative.narrative.vend.setNarrative(bankPermalink, accountPermalink, id) _,
