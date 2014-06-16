@@ -937,10 +937,10 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                   addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding comment"}
                 } yield addImageFunc
 
-                addImage.map(
+                addImage.flatMap(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewID, label, datePosted, url).id_
+                    func(user.apiId, viewID, label, datePosted, url).map(_.id_)
                   }
                 )
               }

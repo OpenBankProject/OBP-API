@@ -9,7 +9,7 @@ import org.bson.types.ObjectId
 
 object MongoTransactionImages extends TransactionImages with Loggable {
 
-  def getImagesForTransaction(bankId : String, accountId : String, transactionId: String) : Iterable[TransactionImage] = {
+  def getImagesForTransaction(bankId : String, accountId : String, transactionId: String)() : List[TransactionImage] = {
     //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
     val env = OBPEnvelope.find(new ObjectId(transactionId))
     val images = env.map(e => {

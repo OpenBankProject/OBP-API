@@ -1025,7 +1025,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-          postedComment <- Full(addCommentFunc(u.apiId, view.id, commentJson.value, now))
+          postedComment <- addCommentFunc(u.apiId, view.id, commentJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
         }
@@ -1071,7 +1071,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           view <- View.fromUrl(viewId, accountId, bankId)
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-          postedTag <- Full(addTagFunc(u.apiId, view.id, tagJson.value, now))
+          postedTag <- addTagFunc(u.apiId, view.id, tagJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
         }
@@ -1118,7 +1118,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-          postedImage <- Full(addImageFunc(u.apiId, view.id, imageJson.label, now, url))
+          postedImage <- addImageFunc(u.apiId, view.id, imageJson.label, now, url)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
         }

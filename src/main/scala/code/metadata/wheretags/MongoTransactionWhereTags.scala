@@ -54,7 +54,7 @@ object MongoTransactionWhereTags extends WhereTags {
     }).getOrElse(false)
   }
 
-  def getWhereTagsForTransaction(bankId : String, accountId : String, transactionId: String) : Iterable[GeoTag] = {
+  def getWhereTagsForTransaction(bankId : String, accountId : String, transactionId: String)() : List[GeoTag] = {
       //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
       val env = OBPEnvelope.find(new ObjectId(transactionId))
       env.map(_.whereTags.get).getOrElse(Nil)

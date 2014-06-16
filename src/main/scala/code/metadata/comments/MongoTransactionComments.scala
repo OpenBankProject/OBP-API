@@ -9,7 +9,7 @@ import org.bson.types.ObjectId
 object MongoTransactionComments extends Comments {
 
   
-  def getComments(bankId : String, accountId : String, transactionId : String) : Iterable[Comment] = {
+  def getComments(bankId : String, accountId : String, transactionId : String)() : List[Comment] = {
     //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
     val env = OBPEnvelope.find(new ObjectId(transactionId))
     val comments = env.map(e => {

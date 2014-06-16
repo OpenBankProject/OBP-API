@@ -173,24 +173,7 @@ class MongoDBLocalStorage extends LocalStorage {
       deletePhysicalLocation = otherAccountMetadata.deletePhysicalLocation _
     )
   }
-  private def createTransactionMetadata(env: OBPEnvelope): TransactionMetadata = {
-    new TransactionMetadata(
-      env.narrative.get,
-      (text => env.narrative(text).save),
-      env.obp_comments.objs,
-      env.addComment,
-      env.deleteComment,
-      env.tags.objs,
-      env.addTag,
-      env.deleteTag,
-      env.images.objs,
-      env.addImage,
-      env.deleteImage,
-      env.whereTags.get,
-      env.addWhereTag,
-      env.deleteWhereTag
-    )
-  }
+
   private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
     import net.liftweb.json.JsonDSL._
     val transaction: OBPTransaction = env.obp_transaction.get
@@ -215,7 +198,6 @@ class MongoDBLocalStorage extends LocalStorage {
             metadata = otherAccountMetadata,
             kind = ""
           )
-        val metadata = createTransactionMetadata(env)
         val transactionType = transaction.details.get.kind.get
         val amount = transaction.details.get.value.get.amount.get
         val currency = transaction.details.get.value.get.currency.get
@@ -229,7 +211,6 @@ class MongoDBLocalStorage extends LocalStorage {
             id,
             thisBankAccount,
             otherAccount,
-            metadata,
             transactionType,
             amount,
             currency,

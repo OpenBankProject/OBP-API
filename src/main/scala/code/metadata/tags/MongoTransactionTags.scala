@@ -8,7 +8,7 @@ import org.bson.types.ObjectId
 
 object MongoTransactionTags extends Tags {
   
-  def getTags(bankId : String, accountId : String, transactionId: String) : List[Tag] = {
+  def getTags(bankId : String, accountId : String, transactionId: String)() : List[Tag] = {
     //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
     val env = OBPEnvelope.find(new ObjectId(transactionId))
     val tags = env.map(e => {

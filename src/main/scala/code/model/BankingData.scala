@@ -41,6 +41,11 @@ import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
 import code.model.dataAccess.{LocalStorage, Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.metadata.narrative.Narrative
+import code.metadata.comments.Comments
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 
 
 class Bank(
@@ -436,7 +441,6 @@ class Transaction(
   val id : String,
   val thisAccount : BankAccount,
   val otherAccount : OtherBankAccount,
-  val metadata : TransactionMetadata,
   //E.g. cash withdrawal, electronic payment, etc.
   val transactionType : String,
   val amount : BigDecimal,
@@ -450,4 +454,25 @@ class Transaction(
   val finishDate : Date,
   //the new balance for the bank account
   val balance :  BigDecimal
-)
+) {
+
+  val bankPermalink = thisAccount.bankPermalink
+  val accountPermalink = thisAccount.permalink
+
+  val metadata : TransactionMetadata = new TransactionMetadata(
+      Narrative.narrative.vend.getNarrative(bankPermalink, accountPermalink, id) _,
+      Narrative.narrative.vend.setNarrative(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.getComments(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.addComment(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.deleteComment(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.getTags(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.addTag(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.deleteTag(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.getImagesForTransaction(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.addTransactionImage(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.deleteTransactionImage(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.getWhereTagsForTransaction(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.addWhereTag(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.deleteWhereTag(bankPermalink, accountPermalink, id) _
+    )
+}

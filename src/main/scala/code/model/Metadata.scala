@@ -136,34 +136,34 @@ class OtherBankAccountMetadata(
 )
 
 class TransactionMetadata(
-  val ownerComment : String,
+  val ownerComment : () => String,
   val addOwnerComment : String => Unit,
-  val comments: List[Comment],
+  val comments: () => List[Comment],
   /**
   * @param: userId
   * @param: viewId
   * @param: text
   * @param: datePosted
   */
-  val addComment : (String,Long, String, Date) => Comment,
+  val addComment : (String,Long, String, Date) => Box[Comment],
   /**
   * @param: commentId
   */
   val deleteComment : (String) => Box[Unit],
 
-  val tags: List[Tag],
+  val tags: () => List[Tag],
   /**
   * @param: userId
   * @param: viewId
   * @param: tag
   * @param: datePosted
   */
-  val addTag: (String, Long, String, Date) => Tag,
+  val addTag: (String, Long, String, Date) => Box[Tag],
   /**
   * @param: tagId
   */
   val deleteTag : (String) => Box[Unit],
-  val images : List[TransactionImage],
+  val images : () => List[TransactionImage],
   /**
   * @param: userId
   * @param: viewId
@@ -171,7 +171,7 @@ class TransactionMetadata(
   * @param: datePosted
   * @param: imageURL
   */
-  val addImage : (String, Long, String, Date, URL) => TransactionImage,
+  val addImage : (String, Long, String, Date, URL) => Box[TransactionImage],
   /**
   * @param: imageId
   */
@@ -183,7 +183,7 @@ class TransactionMetadata(
   * @param: longitude
   * @param: latitude
   */
-  val whereTags : List[GeoTag],
+  val whereTags : () => List[GeoTag],
   /**
   * @param: userId
   * @param: viewId
