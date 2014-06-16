@@ -175,9 +175,7 @@ class MongoDBLocalStorage extends LocalStorage {
   }
 
   private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
-    import net.liftweb.json.JsonDSL._
     val transaction: OBPTransaction = env.obp_transaction.get
-    val thisAccount = transaction.this_account
     val otherAccount_ = transaction.other_account.get
 
     otherAccount_.metadata.obj match {
