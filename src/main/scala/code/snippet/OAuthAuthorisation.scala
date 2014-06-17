@@ -105,11 +105,14 @@ object OAuthAuthorisation {
                   "#verifier *" #> verifier &
                     "#errorMessage" #> "" &
                     "#account" #> ""
-                else {                
+                else {
                   //send the user to another obp page that handles the redirect
-                  val redirectUrl = urlEncode(appToken.callbackURL + "?oauth_token=" + token +
-                    "&oauth_verifier=" + verifier)               
-                  S.redirectTo(Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref + "?redirectUrl=" + redirectUrl)
+                  val oauthQueryParams: List[(String, String)] = ("oauth_token", token) :: ("oauth_verifier",verifier) :: Nil
+                  val applicationRedirectionUrl = appendParams(appToken.callbackURL, oauthQueryParams)
+                  val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
+                  val redirectionUrl = Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
+                  val redirectionParam = List(("redirectUrl",encodedApplicationRedirectionUrl))
+                  S.redirectTo(appendParams(redirectionUrl, redirectionParam))
                 }
               } else {
                 val currentUrl = S.uriAndQueryString.getOrElse("/")
