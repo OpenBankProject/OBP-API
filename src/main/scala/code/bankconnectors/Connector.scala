@@ -25,21 +25,21 @@ trait Connector {
   def getBank(permalink : String) : Box[Bank]
   
   //gets banks handled by this connector
-  def getBanks : Iterable[Bank]
+  def getBanks : List[Bank]
   
-  def getAccount(bankPermalink : String, accountId : String) : Box[BankAccount]
+  def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount]
   
-  def getAllPublicAccounts : Iterable[BankAccount]
+  def getAllPublicAccounts : List[BankAccount]
   
-  def getPublicBankAccounts(bank : Bank) : Iterable[BankAccount]
+  def getPublicBankAccounts(bank : Bank) : List[BankAccount]
   
-  def getAllAccountsUserCanSee(user : Box[User]) : Iterable[BankAccount]
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount]
   
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[Iterable[BankAccount]]
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
   
-  def getNonPublicBankAccounts(user : User) : Box[Iterable[BankAccount]]
+  def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
   
-  def getNonPublicBankAccounts(user : User, bankID : String) : Box[Iterable[BankAccount]]
+  def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
   
   def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]

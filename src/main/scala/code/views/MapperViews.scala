@@ -1,7 +1,5 @@
 package code.views
 
-import scala.collection.Iterable
-import net.liftweb.common.Box
 import scala.collection.immutable.List
 import code.model.BankAccount
 import code.model.View
@@ -25,7 +23,7 @@ import code.api.APIFailure
 
 object MapperViews extends Views with Loggable {
   
-  def permissions(account : BankAccount) : Box[Iterable[Permission]] = {
+  def permissions(account : BankAccount) : Box[List[Permission]] = {
     for{
       acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
     } yield {
@@ -155,7 +153,7 @@ object MapperViews extends Views with Loggable {
   def view(viewPermalink : String, accountId: String, bankId: String) : Box[View] = {
     //TODO: Once ViewImpl contains fields for accountId and bankId, we can skip the acount lookup
     for{
-      account <- Connector.connector.vend.getAccount(bankId, accountId)
+      account <- Connector.connector.vend.getBankAccount(bankId, accountId)
       acc <- HostedAccount.find(By(HostedAccount.accountID, account.id))
       v <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink), By(ViewImpl.account, acc))
     } yield v

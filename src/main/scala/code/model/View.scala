@@ -33,10 +33,9 @@ Berlin 13359, Germany
 
 package code.model
 
-import code.model.dataAccess.LocalStorage
 import java.util.Date
 import net.liftweb.common.{Box, Empty, Full, Failure}
-import net.liftweb.http.SHtml
+import code.views.Views
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 
@@ -458,9 +457,9 @@ trait View {
 
 object View {
   def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
-    LocalStorage.view(viewPermalink, account)
+    Views.views.vend.view(viewPermalink, account)
   def fromUrl(viewPermalink: String, accountId: String, bankId: String): Box[View] =
-    LocalStorage.view(viewPermalink, accountId, bankId)
+    Views.views.vend.view(viewPermalink, accountId, bankId)
 
   def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
     val viewsJson = views.map(view => {

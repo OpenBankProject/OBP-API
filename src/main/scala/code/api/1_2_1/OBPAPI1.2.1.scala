@@ -195,9 +195,8 @@ object OBPAPI1_2_1 extends OBPRestHelper with Loggable {
       user =>
         for {
           bank <- Bank(bankId)
-          availableAccounts <- bank.publicAccounts
         } yield {
-          val publicAccountsJson = bankAccountsListToJson(availableAccounts, Empty)
+          val publicAccountsJson = bankAccountsListToJson(bank.publicAccounts, Empty)
           successJsonResponse(publicAccountsJson)
         }
     }

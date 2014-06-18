@@ -1,16 +1,14 @@
 package code.views
 
 import net.liftweb.common.Box
-import code.model.BankAccount
-import code.model.User
-import code.model.ViewCreationJSON
-import code.model.View
-import code.model.Permission
+import code.model._
 import net.liftweb.util.SimpleInjector
+import code.model.Permission
+import code.model.ViewCreationJSON
 
 object Views  extends SimpleInjector {
 
-  val users = new Inject(buildOne _) {}
+  val views = new Inject(buildOne _) {}
   
   def buildOne: Views = MapperViews
   
@@ -18,7 +16,7 @@ object Views  extends SimpleInjector {
 
 trait Views {
   
-  def permissions(account : BankAccount) : Box[Iterable[Permission]]
+  def permissions(account : BankAccount) : Box[List[Permission]]
   def permission(account : BankAccount, user: User) : Box[Permission]
   def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
   def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean]
@@ -30,7 +28,8 @@ trait Views {
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit]
+  def updateView(bankAccount : BankAccount, viewId: String, viewUpdateJson : ViewUpdateData) : Box[View]
   def views(bankAccount : BankAccount) : Box[List[View]]
-  def permittedViews(user: User, bankAccount: BankAccount): Iterable[View]
-  def publicViews(bankAccount : BankAccount) : Box[Iterable[View]]
+  def permittedViews(user: User, bankAccount: BankAccount): List[View]
+  def publicViews(bankAccount : BankAccount) : Box[List[View]]
 }

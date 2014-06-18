@@ -43,17 +43,17 @@ object LocalConnector extends Connector with Loggable {
     }
   
   //gets banks handled by this connector
-  def getBanks : Iterable[Bank] =
+  def getBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
   
-  def getAccount(bankPermalink : String, accountId : String) : Box[BankAccount] = {
+  def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankPermalink)
       account <- bank.getAccount(accountId)
     } yield Account toBankAccount account
   }
   
-  def getAllPublicAccounts() : Iterable[BankAccount] = {
+  def getAllPublicAccounts() : List[BankAccount] = {
     
     //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
     ViewImpl.findAll(By(ViewImpl.isPublic_, true)). 
@@ -62,7 +62,7 @@ object LocalConnector extends Connector with Loggable {
       collect{case Full(a) => Account.toBankAccount(a)}
   }
 
-  def getPublicBankAccounts(bank : Bank) : Iterable[BankAccount] = {
+  def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
     
     //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
     ViewImpl.findAll(By(ViewImpl.isPublic_, true)). //TODO: this should be a Metadata.vend() type thing to remove the hardcoded ViewImpl reference
@@ -75,7 +75,7 @@ object LocalConnector extends Connector with Loggable {
    * @param user
    * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
    */
-  def getAllAccountsUserCanSee(user : Box[User]) : Iterable[BankAccount] = {
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
     user match {
       case Full(u) => {
         val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
@@ -100,7 +100,7 @@ object LocalConnector extends Connector with Loggable {
   * @param user
   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
   */
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[Iterable[BankAccount]] = {
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
     user match {
       case Full(u) => {
         //TODO: this could be quite a bit more efficient...
@@ -132,7 +132,7 @@ object LocalConnector extends Connector with Loggable {
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
-  def getNonPublicBankAccounts(user : User) :  Box[Iterable[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
 
     val accountsList =
       user match {
@@ -152,7 +152,7 @@ object LocalConnector extends Connector with Loggable {
     /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
   */
-  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[Iterable[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
       case u : APIUser => {
         for {
