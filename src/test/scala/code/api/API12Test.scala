@@ -50,9 +50,10 @@ import scala.util.Random._
 
 import code.api.test.{ServerSetup, APIResponse}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, ViewCreationJSON}
-import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges, LocalStorage }
+import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges}
 import code.model.TokenType._
 import code.util.APIUtil.OAuth._
+import code.views.Views
 
 
 class API1_2Test extends ServerSetup{
@@ -1495,7 +1496,7 @@ class API1_2Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val view = LocalStorage.view(viewId,bankAccount.id, bankId).get
+      val view = Views.views.vend.view(viewId,bankAccount.id, bankId).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)

@@ -63,7 +63,7 @@ import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser,APIMetric, HostedAccount, LocalStorage}
+import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser,APIMetric, HostedAccount}
 import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Bank, User}
 import code.model.dataAccess.OBPEnvelope._
 import java.util.Date
