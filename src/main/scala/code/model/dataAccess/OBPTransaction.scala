@@ -642,6 +642,12 @@ object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
 
 class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
   def meta = OBPTag
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
   object tag extends StringField(this, 255)
@@ -659,6 +665,11 @@ object OBPTag extends OBPTag with MongoMetaRecord[OBPTag]
 class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
     with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   def meta = OBPTransactionImage
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
@@ -684,6 +695,11 @@ object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPT
 class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   def meta = OBPGeoTag
 
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
   object date extends DateField(this)
@@ -702,6 +718,12 @@ object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
 
 class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
   def meta = OBPComment
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
   def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def text = textField.get
