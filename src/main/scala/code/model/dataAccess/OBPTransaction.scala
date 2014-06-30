@@ -47,7 +47,7 @@ import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField
 import scala.util.Random
 import com.mongodb.QueryBuilder
 import com.mongodb.BasicDBObject
-import code.model.{Comment,Tag,GeoTag,TransactionImage, User}
+import code.model._
 import net.liftweb.common.Loggable
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
@@ -56,6 +56,12 @@ import java.net.URL
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
 import scala.xml.{NodeSeq, Unparsed}
+import net.liftweb.json.JsonAST.JObject
+import scala.Some
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.common.Full
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JField
 
 /**
  * "Current Account View"
@@ -738,3 +744,18 @@ class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPCo
 }
 
 object OBPComment extends OBPComment with MongoMetaRecord[OBPComment]
+
+
+class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
+
+  def meta = OBPNarrative
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
+  object narrative extends StringField(this, 255)
+}
+
+object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative]

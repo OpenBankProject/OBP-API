@@ -2,7 +2,7 @@ package code.metadata.wheretags
 
 import java.util.Date
 import code.model.GeoTag
-import code.model.dataAccess.{OBPGeoTag, OBPEnvelope}
+import code.model.dataAccess.{OBPEnvelope}
 import org.bson.types.ObjectId
 
 object MongoTransactionWhereTags extends WhereTags {
@@ -13,7 +13,7 @@ object MongoTransactionWhereTags extends WhereTags {
     (for {
       env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
     } yield {
-      val newTag = OBPGeoTag.createRecord.
+      val newTag = code.model.dataAccess.OBPGeoTag.createRecord.
         userId(userId).
         viewID(viewId).
         date(datePosted).
@@ -42,7 +42,7 @@ object MongoTransactionWhereTags extends WhereTags {
     (for {
       env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
     } yield {
-      val where :Option[OBPGeoTag] = env.whereTags.get.find(loc=>{loc.viewId ==viewId})
+      val where :Option[code.model.dataAccess.OBPGeoTag] = env.whereTags.get.find(loc=>{loc.viewId ==viewId})
       where match {
         case Some(w) => {
           val newWhereTags = env.whereTags.get.diff(Seq(w))
