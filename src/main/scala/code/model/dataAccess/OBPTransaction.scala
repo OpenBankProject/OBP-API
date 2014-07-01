@@ -666,7 +666,19 @@ class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with 
   def value = tag.get
 }
 
-object OBPTag extends OBPTag with MongoMetaRecord[OBPTag]
+object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTag] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  //in theory commentId should be enough as we're just using the mongoId
+  def find(bankId : String, accountId : String, transactionId : String, commentId : String) : Box[OBPTag] = {
+    val query = QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+    find(query)
+  }
+}
 
 class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
     with ObjectIdPk[OBPTransactionImage] with TransactionImage {
