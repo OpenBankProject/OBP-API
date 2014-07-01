@@ -743,7 +743,19 @@ class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPCo
   object replyTo extends StringField(this,255)
 }
 
-object OBPComment extends OBPComment with MongoMetaRecord[OBPComment]
+object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPComment] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  //in theory commentId should be enough as we're just using the mongoId
+  def find(bankId : String, accountId : String, transactionId : String, commentId : String) : Box[OBPComment] = {
+    val query = QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+    OBPComment.find(query)
+  }
+}
 
 
 class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {

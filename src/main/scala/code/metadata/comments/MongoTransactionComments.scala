@@ -5,48 +5,32 @@ import java.util.Date
 import net.liftweb.common.{Failure, Full, Box}
 import code.model.dataAccess.{OBPComment, OBPEnvelope}
 import org.bson.types.ObjectId
+import net.liftweb.mongodb.BsonDSL._
+import com.mongodb.QueryBuilder
 
 object MongoTransactionComments extends Comments {
 
   
   def getComments(bankId : String, accountId : String, transactionId : String)() : List[Comment] = {
-    //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
-    val env = OBPEnvelope.find(new ObjectId(transactionId))
-    val comments = env.map(e => {
-      e.obp_comments.objs
-    })
-
-    comments.getOrElse(Nil)
+     OBPComment.findAll(bankId, accountId, transactionId)
   }
   def addComment(bankId : String, accountId : String, transactionId: String)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment] = {
-    //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
-    for {
-      env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
-    } yield {
-      val comment = OBPComment.createRecord.userId(userId).
+    OBPComment.createRecord.userId(userId).
+        transactionId(transactionId).
+        accountId(accountId).
+        bankId(bankId).
         textField(text).
         date(datePosted).
-        viewID(viewId).save
-      env.obp_comments(comment.id.is :: env.obp_comments.get ).save
-      comment
-    }
+        viewID(viewId).saveTheRecord()
   }
 
   def deleteComment(bankId : String, accountId : String, transactionId: String)(commentId : String) : Box[Unit] = {
-    //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
-    for {
-      env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
-    } yield {
-      OBPComment.find(commentId) match {
-        case Full(comment) => {
-          if(comment.delete_!){
-            env.obp_comments(env.obp_comments.get.diff(Seq(new ObjectId(commentId)))).save
-            Full()
-          }
-          else Failure("Delete not completed")
-        }
-        case _ => Failure("Comment "+commentId+" not found")
+    OBPComment.find(bankId, accountId, transactionId, commentId) match {
+      case Full(comment) => {
+        if(comment.delete_!) Full()
+        else Failure("Delete not completed")
       }
+      case _ => Failure("Comment "+commentId+" not found")
     }
   }
   
