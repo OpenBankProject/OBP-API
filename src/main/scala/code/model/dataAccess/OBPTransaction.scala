@@ -753,7 +753,7 @@ object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Logga
   def find(bankId : String, accountId : String, transactionId : String, commentId : String) : Box[OBPComment] = {
     val query = QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
-    OBPComment.find(query)
+    find(query)
   }
 }
 
@@ -770,4 +770,9 @@ class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[O
   object narrative extends StringField(this, 255)
 }
 
-object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative]
+object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
+  def find(bankId : String, accountId : String, transactionId : String) : Box[OBPNarrative] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    find(query)
+  }
+}

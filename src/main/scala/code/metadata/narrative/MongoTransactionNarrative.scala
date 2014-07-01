@@ -1,25 +1,33 @@
 package code.metadata.narrative
 
-import code.model.dataAccess.OBPEnvelope
+import code.model.dataAccess.{OBPNarrative, OBPEnvelope}
 import org.bson.types.ObjectId
+import net.liftweb.common.Full
 
 object MongoTransactionNarrative extends Narrative {
 
   def getNarrative(bankId: String, accountId: String, transactionId: String)() : String = {
-    //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
-    (for {
-      env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
-    } yield {
-      env.narrative.get
-    }).getOrElse("")
+    OBPNarrative.find(bankId, accountId, transactionId) match {
+      case Full(n) => n.narrative.get
+      case _ => ""
+    }
   }
 
   def setNarrative(bankId: String, accountId: String, transactionId: String)(narrative: String) : Unit = {
-    //current implementation has transactionId = mongoId (we don't need to use bankId or accountId
-    for {
-      env <- OBPEnvelope.find(new ObjectId(transactionId)) ?~! "Transaction not found"
-    } yield {
-      env.narrative(narrative).save
+
+    OBPNarrative.find(bankId, accountId, transactionId) match {
+      case Full(n) => {
+        if(narrative.isEmpty) n.delete_! //if we're setting the value of the narrative to "" then we can just delete it
+        else n.narrative(narrative).save //otherwise we set it and save it
+      }
+      case _ => {
+        //none exists, we need to create one and save it
+        OBPNarrative.createRecord.
+          transactionId(transactionId).
+          accountId(accountId).
+          bankId(bankId).
+          narrative(narrative).save
+      }
     }
   }
 
