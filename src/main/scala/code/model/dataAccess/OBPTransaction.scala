@@ -673,8 +673,8 @@ object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def find(bankId : String, accountId : String, transactionId : String, commentId : String) : Box[OBPTag] = {
-    val query = QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
+  def find(bankId : String, accountId : String, transactionId : String, tagId : String) : Box[OBPTag] = {
+    val query = QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
     find(query)
   }
@@ -707,6 +707,18 @@ class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
 
 object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
   val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
+
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTransactionImage] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  //in theory commentId should be enough as we're just using the mongoId
+  def find(bankId : String, accountId : String, transactionId : String, imageId : String) : Box[OBPTransactionImage] = {
+    val query = QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+    find(query)
+  }
 }
 
 
