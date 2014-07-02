@@ -27,13 +27,11 @@ object MongoTransactionImages extends TransactionImages with Loggable {
   }
   
   def deleteTransactionImage(bankId : String, accountId : String, transactionId: String)(imageId : String) : Box[Unit] = {
-    OBPTransactionImage.find(bankId, accountId, transactionId, imageId) match {
-      case Full(image) => {
-        if(image.delete_!) Full()
-        else Failure("Delete not completed")
-      }
-      case _ => Failure("Image "+imageId+" not found")
-    }
+    //use delete with find query to avoid concurrency issues
+    OBPTransactionImage.delete(OBPTransactionImage.getFindQuery(bankId, accountId, transactionId, imageId))
+
+    //we don't have any useful information here so just assume it worked
+    Full()
   }
   
 }

@@ -7,7 +7,7 @@ import net.liftweb.common.Full
 object MongoTransactionNarrative extends Narrative {
 
   def getNarrative(bankId: String, accountId: String, transactionId: String)() : String = {
-    OBPNarrative.find(bankId, accountId, transactionId) match {
+    OBPNarrative.find(OBPNarrative.getFindQuery(bankId, accountId, transactionId)) match {
       case Full(n) => n.narrative.get
       case _ => ""
     }
@@ -15,20 +15,27 @@ object MongoTransactionNarrative extends Narrative {
 
   def setNarrative(bankId: String, accountId: String, transactionId: String)(narrative: String) : Unit = {
 
-    OBPNarrative.find(bankId, accountId, transactionId) match {
-      case Full(n) => {
-        if(narrative.isEmpty) n.delete_! //if we're setting the value of the narrative to "" then we can just delete it
-        else n.narrative(narrative).save //otherwise we set it and save it
-      }
-      case _ => {
-        //none exists, we need to create one and save it
-        OBPNarrative.createRecord.
-          transactionId(transactionId).
-          accountId(accountId).
-          bankId(bankId).
-          narrative(narrative).save
-      }
+    val findQuery = OBPNarrative.getFindQuery(bankId, accountId, transactionId)
+
+    if(narrative.isEmpty) {
+      //if we're setting the value of the narrative to "" then we can just delete it
+
+      //use delete with find query to avoid concurrency issues
+      OBPNarrative.delete(findQuery)
+    } else {
+
+      val newNarrative = OBPNarrative.createRecord.
+        transactionId(transactionId).
+        accountId(accountId).
+        bankId(bankId).
+        narrative(narrative)
+
+      //use an upsert to avoid concurrency issues
+      OBPNarrative.upsert(findQuery, newNarrative.asDBObject)
     }
+
+    //we don't have any useful information here so just assume it worked
+    Full()
   }
 
 }

@@ -25,13 +25,10 @@ object MongoTransactionComments extends Comments {
   }
 
   def deleteComment(bankId : String, accountId : String, transactionId: String)(commentId : String) : Box[Unit] = {
-    OBPComment.find(bankId, accountId, transactionId, commentId) match {
-      case Full(comment) => {
-        if(comment.delete_!) Full()
-        else Failure("Delete not completed")
-      }
-      case _ => Failure("Comment "+commentId+" not found")
-    }
+    //use delete with find query to avoid concurrency issues
+    OBPComment.delete(OBPComment.getFindQuery(bankId, accountId, transactionId, commentId))
+
+    //we don't have any useful information here so just assume it worked
+    Full()
   }
-  
 }

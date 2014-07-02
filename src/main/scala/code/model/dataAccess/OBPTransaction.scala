@@ -45,8 +45,7 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.mongodb.record.{MongoId}
 import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
 import scala.util.Random
-import com.mongodb.QueryBuilder
-import com.mongodb.BasicDBObject
+import com.mongodb.{DBObject, QueryBuilder, BasicDBObject}
 import code.model._
 import net.liftweb.common.Loggable
 import org.bson.types.ObjectId
@@ -673,10 +672,9 @@ object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def find(bankId : String, accountId : String, transactionId : String, tagId : String) : Box[OBPTag] = {
-    val query = QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, tagId : String) : DBObject = {
+    QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
-    find(query)
   }
 }
 
@@ -714,10 +712,9 @@ object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPT
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def find(bankId : String, accountId : String, transactionId : String, imageId : String) : Box[OBPTransactionImage] = {
-    val query = QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, imageId : String) : DBObject = {
+    QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
-    find(query)
   }
 }
 
@@ -773,11 +770,10 @@ object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Logga
     findAll(query)
   }
 
-  //in theory commentId should be enough as we're just using the mongoId
-  def find(bankId : String, accountId : String, transactionId : String, commentId : String) : Box[OBPComment] = {
-    val query = QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, commentId : String) : DBObject = {
+    //in theory commentId should be enough as we're just using the mongoId
+    QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
-    find(query)
   }
 }
 
@@ -795,8 +791,7 @@ class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[O
 }
 
 object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
-  def find(bankId : String, accountId : String, transactionId : String) : Box[OBPNarrative] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
-    find(query)
+  def getFindQuery(bankId : String, accountId : String, transactionId : String) : DBObject = {
+    QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
   }
 }

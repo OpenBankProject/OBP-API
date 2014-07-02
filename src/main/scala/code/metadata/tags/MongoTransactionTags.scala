@@ -22,13 +22,11 @@ object MongoTransactionTags extends Tags {
       date(datePosted).saveTheRecord()
   }
   def deleteTag(bankId : String, accountId : String, transactionId: String)(tagId : String) : Box[Unit] = {
-    OBPTag.find(bankId, accountId, transactionId, tagId) match {
-      case Full(tag) => {
-        if(tag.delete_!) Full()
-        else Failure("Delete not completed")
-      }
-      case _ => Failure("Tag "+tagId+" not found")
-    }
+    //use delete with find query to avoid concurrency issues
+    OBPTag.delete(OBPTag.getFindQuery(bankId, accountId, transactionId, tagId))
+
+    //we don't have any useful information here so just assume it worked
+    Full()
   }
   
 }
