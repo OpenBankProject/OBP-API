@@ -23,27 +23,20 @@ object MongoTransactionWhereTags extends WhereTags with Loggable {
       geoLongitude(longitude).
       geoLatitude(latitude)
 
-    //before to save the geo tag we need to be sure there is only one per view
-    //so we look if there is already a tag with the same view (viewId)
+    //use an upsert to avoid concurrency issues
+    // find query takes into account viewId as we only allow one geotag per view
+    OBPGeoTag.upsert(OBPGeoTag.getFindQuery(bankId, accountId, transactionId, viewId), newTag.asDBObject)
 
-      val existing = OBPGeoTag.find(bankId, accountId, transactionId, viewId)
-      if (existing.isDefined) {
-        //remove the old one and replace it with the new one
-        existing.get.delete_!
-      }
-      newTag.saveTheRecord().isDefined
-
+    //we don't have any useful information here so just return true
+    true
   }
 
   def deleteWhereTag(bankId: String, accountId: String, transactionId: String)(viewId: Long): Boolean = {
-    val existing = OBPGeoTag.find(bankId, accountId, transactionId, viewId)
-    existing match {
-      case Full(tag) => tag.delete_!
-      case _ => {
-        logger.info("Could not delete tag: not found")
-        false
-      }
-    }
+    //use delete with find query to avoid concurrency issues
+    OBPGeoTag.delete(OBPGeoTag.getFindQuery(bankId, accountId, transactionId, viewId))
+
+    //we don't have any useful information here so just return true
+    true
   }
 
   def getWhereTagsForTransaction(bankId : String, accountId : String, transactionId: String)() : List[GeoTag] = {

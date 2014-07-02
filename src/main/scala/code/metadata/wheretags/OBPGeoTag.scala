@@ -5,7 +5,7 @@ import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
 import code.model.{GeoTag, User}
 import net.liftweb.common.Box
-import com.mongodb.QueryBuilder
+import com.mongodb.{DBObject, QueryBuilder}
 
 class OBPGeoTag private() extends MongoRecord[OBPGeoTag] with ObjectIdPk[OBPGeoTag] with GeoTag {
   def meta = OBPGeoTag
@@ -36,9 +36,8 @@ object OBPGeoTag extends OBPGeoTag with MongoMetaRecord[OBPGeoTag] {
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def find(bankId : String, accountId : String, transactionId : String, viewId : Long) : Box[OBPGeoTag] = {
-    val query = QueryBuilder.start("viewID").is(viewId).put("transactionId").is(transactionId).
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, viewId : Long) : DBObject = {
+    QueryBuilder.start("viewID").is(viewId).put("transactionId").is(transactionId).
       put("accountId").is(accountId).put("bankId").is(bankId).get()
-    find(query)
   }
 }
