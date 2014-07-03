@@ -317,8 +317,8 @@ class Boot extends Loggable{
 
             geotags.foreach(g => {
               logger.info(s"Creating new OBPGeoTag with transaction id $transactionId, bank id $bankPerma, and account id $accountPerma")
-              //create a new OBPGeoTag (the new kind: code.metadata.wheretags.OBPGeoTag)
-              code.metadata.wheretags.OBPGeoTag.createRecord.
+              //create a new OBPWhereTag (the new kind: code.metadata.wheretags.OBPWhereTag)
+              code.metadata.wheretags.OBPWhereTag.createRecord.
                 transactionId(transactionId).
                 bankId(bankPerma).
                 accountId(accountPerma).
