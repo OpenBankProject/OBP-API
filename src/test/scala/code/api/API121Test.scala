@@ -51,13 +51,14 @@ import java.util.Date
 import code.model.TokenType._
 import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON, BankAccount}
-import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, LocalStorage, OBPEnvelope, HostedBank}
+import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, OBPEnvelope, HostedBank}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
 import code.api.v1_2_1.OBPAPI1_2_1.MakePaymentJson
 import org.bson.types.ObjectId
+import code.views.Views
 
 
 class API1_2_1Test extends ServerSetup{
@@ -2096,7 +2097,7 @@ class API1_2_1Test extends ServerSetup{
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val view = LocalStorage.view(viewId,bankAccount.id, bankId).get
+      val view = Views.views.vend.view(viewId,bankAccount.id, bankId).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)

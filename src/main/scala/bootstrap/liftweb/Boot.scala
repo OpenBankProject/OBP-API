@@ -55,6 +55,10 @@ import dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.util.MyExceptionLogger
+import net.liftweb.mongodb.{Limit, Skip}
+import org.bson.types.ObjectId
+import com.mongodb.QueryBuilder
+import code.metadata.wheretags.OBPWhereTag
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -252,6 +256,131 @@ class Boot extends Loggable{
 
     LiftRules.exceptionHandler.prepend{
       case MyExceptionLogger(_, _, t) => throw t // this will never happen
+    }
+
+    //adds transactionId, accountId, and bankId to OBPComment, OBPTag, OBPTransactionImage
+    // creates OBPNarrative OBPGeoTag
+    def updateMongo() = {
+      val batchSize = 20
+
+      // returns true if the batch had < batchSize transactions (i.e. we don't need to process any more)
+      def processBatch(number : Integer) : Boolean = {
+
+        logger.info(s"processing batch $number")
+
+        val skip = number * batchSize
+        val envelopes : List[OBPEnvelope] = OBPEnvelope.findAll(QueryBuilder.start.get(), Skip(skip), Limit(batchSize))
+
+        logger.info(s"${envelopes.size} envelopes found")
+
+        def updateMetadata(e : OBPEnvelope) : Unit = {
+          val comments : List[OBPComment] = e.obp_comments.objs
+          val tags : List[OBPTag] = e.tags.objs
+          val geotags : List[OBPGeoTag] = e.whereTags.get
+          val images : List[OBPTransactionImage] = e.images.objs
+          val narrative : String = e.narrative.get
+
+          val bankNationalIdentifier = e.obp_transaction.get.this_account.get.bank.get.national_identifier.get
+
+          //TODO: what if something isn't found here?
+
+          val hostedBank = HostedBank.find("national_identifier", bankNationalIdentifier)
+          val bankPermalink = hostedBank.map(_.permalink.get)
+          val bankId : Box[ObjectId] = hostedBank.map(b => b.id.get)
+          val accountPermalink = for {
+            bId <- bankId
+            accQuery = QueryBuilder.start("bankID").is(bId).put("number").is(e.obp_transaction.get.this_account.get.number.get).get()
+            //TODO: match on acc name too? just use the reverse of whatever is used to find transactions for an acc permalink
+            acc <- Account.find(accQuery)
+          } yield {
+            acc.permalink.get
+          }
+
+          val transactionId = e.id.get.toString
+          logger.info("Updating metadata for transaction: " + transactionId)
+
+          for {
+            bankPerma <- bankPermalink
+            accountPerma <- accountPermalink
+          } {
+            comments.foreach(c => {
+              logger.info(s"Adding transaction id $transactionId, bank id $bankPerma, and account id $accountPerma to comment ${c.id.get}")
+              c.transactionId(transactionId).bankId(bankPerma).accountId(accountPerma).save
+            })
+            tags.foreach(t => {
+              logger.info(s"Adding transaction id $transactionId, bank id $bankPerma, and account id $accountPerma to tag ${t.id.get}")
+              t.transactionId(transactionId).bankId(bankPerma).accountId(accountPerma).save
+            })
+            images.foreach(i => {
+              logger.info(s"Adding transaction id $transactionId, bank id $bankPerma, and account id $accountPerma to image ${i.id.get}")
+              i.transactionId(transactionId).bankId(bankPerma).accountId(accountPerma).save
+            })
+
+            geotags.foreach(g => {
+              logger.info(s"Creating new OBPGeoTag with transaction id $transactionId, bank id $bankPerma, and account id $accountPerma")
+              //create a new OBPWhereTag (the new kind: code.metadata.wheretags.OBPWhereTag)
+              code.metadata.wheretags.OBPWhereTag.createRecord.
+                transactionId(transactionId).
+                bankId(bankPerma).
+                accountId(accountPerma).
+                userId(g.userId.get).
+                viewID(g.viewID.get).
+                date(g.date.get).
+                geoLongitude(g.geoLongitude.get).
+                geoLatitude(g.geoLatitude.get).save
+
+            })
+
+            if(!narrative.isEmpty) {
+              logger.info(s"Creating new OBPNarrative with transaction id $transactionId, bank id $bankPerma, and account id $accountPerma")
+              OBPNarrative.createRecord.
+                transactionId(transactionId).
+                bankId(bankPerma).
+                accountId(accountPerma).
+                narrative(narrative).save
+            }
+
+          }
+        }
+
+        envelopes.foreach(updateMetadata)
+        envelopes.size < batchSize
+      }
+
+      var i = 0
+      while(!processBatch(i)) {
+        i = i + 1
+      }
+    }
+
+    def commentsOldStyle() = {
+      OBPComment.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no comments, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPComment.transactionId was not set before upgrade
+      }
+    }
+
+    def tagsOldStyle() = {
+      OBPTag.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no tags, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPTag.transactionId was not set before upgrade
+      }
+    }
+
+    def imagesOldStyle() = {
+      OBPTransactionImage.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no images, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPTransactionImage.transactionId was not set before upgrade
+      }
+    }
+
+    if(Props.get("do_mongodb_transaction_metadata_upgrade").isDefined &&
+      OBPNarrative.count == 0 && //sanity check: OBPNarrative didn't exist before upgrade
+      OBPWhereTag.count == 0 && //sanity check: OBPWhereTag didn't exist before upgrade
+      commentsOldStyle() && tagsOldStyle() && imagesOldStyle()
+      ) {
+      logger.info("Upgrading mongodb transaction metadata")
+      updateMongo()
     }
 
   }
