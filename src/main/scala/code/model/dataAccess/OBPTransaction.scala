@@ -223,42 +223,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     }
   }
 
-  def addWhereTag(userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    val newTag = OBPGeoTag.createRecord.
-                userId(userId).
-                viewID(viewId).
-                date(datePosted).
-                geoLongitude(longitude).
-                geoLatitude(latitude)
-
-
-    //before to save the geo tag we need to be sure there is only one per view
-    //so we look if there is already a tag with the same view (viewId)
-    val tags = whereTags.get.find(geoTag => geoTag.viewID equals viewId) match {
-      case Some(tag) => {
-        //if true remplace it with the new one
-        newTag :: whereTags.get.diff(Seq(tag))
-      }
-      case _ =>
-        //else just add this one
-        newTag :: whereTags.get
-    }
-    whereTags(tags).save
-    true
-  }
-
-  def deleteWhereTag(viewId : Long):Boolean = {
-    val where :Option[OBPGeoTag] = whereTags.get.find(loc=>{loc.viewId ==viewId})
-    where match {
-      case Some(w) => {
-        val newWhereTags = whereTags.get.diff(Seq(w))
-        whereTags(newWhereTags).save
-      true
-      }
-      case None => false
-    }
-  }
-
   def addTag(userId: String, viewId : Long, value: String, datePosted : Date) : Tag = {
     val tag = OBPTag.createRecord.
       userId(userId).
