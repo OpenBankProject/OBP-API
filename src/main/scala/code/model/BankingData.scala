@@ -39,8 +39,15 @@ import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
-import code.model.dataAccess.{LocalStorage, Account, HostedBank}
+import code.model.dataAccess.{Account, HostedBank}
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
+import code.metadata.comments.Comments
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
+import code.bankconnectors.Connector
+import code.views.Views
+import code.metadata.narrative.Narrative
 
 
 class Bank(
@@ -54,7 +61,7 @@ class Bank(
 {
 
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
-    LocalStorage.getAllAccountsUserCanSee(this, user)
+    Connector.connector.vend.getAllAccountsUserCanSee(this, user)
   }
 
   //This was the behaviour in v1.2 and earlier which has since been changed
@@ -65,14 +72,14 @@ class Bank(
         nonPublicAccounts(u)
       }
       case _ => {
-        publicAccounts
+        Full(publicAccounts)
       }
     }
   }
 
-  def publicAccounts : Box[List[BankAccount]] = LocalStorage.getPublicBankAccounts(this)
+  def publicAccounts : List[BankAccount] = Connector.connector.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    LocalStorage.getNonPublicBankAccounts(user, id)
+    Connector.connector.vend.getNonPublicBankAccounts(user, id)
   }
 
   def detailedJson : JObject = {
@@ -98,10 +105,10 @@ class Bank(
 
 object Bank {
   def apply(bankPermalink: String) : Box[Bank] = {
-    LocalStorage.getBank(bankPermalink)
+    Connector.connector.vend.getBank(bankPermalink)
   }
 
-  def all : List[Bank] = LocalStorage.allBanks
+  def all : List[Bank] = Connector.connector.vend.getBanks
 
   def toJson(banks: Seq[Bank]) : JArray =
     banks.map(bank => bank.toJson)
@@ -158,13 +165,13 @@ class BankAccount(
   }
 
   /**
-  * @param a user requesting to see the other users' permissions
+  * @param user a user requesting to see the other users' permissions
   * @return a Box of all the users' permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
   */
   def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
-      LocalStorage.permissions(this)
+      Views.views.vend.permissions(this)
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
   }
@@ -180,7 +187,7 @@ class BankAccount(
     if(user.ownerAccess(this))
       for{
         u <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
-        p <- LocalStorage.permission(this, u)
+        p <- Views.views.vend.permission(this, u)
         } yield p
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -199,7 +206,7 @@ class BankAccount(
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isSaved <- LocalStorage.addPermission(id, view, otherUser) ?~ "could not save the privilege"
+        isSaved <- Views.views.vend.addPermission(id, view, otherUser) ?~ "could not save the privilege"
       } yield isSaved
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -236,7 +243,7 @@ class BankAccount(
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         views <- viewsFormIds
-        grantedViews <- LocalStorage.addPermissions(id, views, otherUser) ?~ "could not save the privilege"
+        grantedViews <- Views.views.vend.addPermissions(id, views, otherUser) ?~ "could not save the privilege"
       } yield views
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -255,7 +262,7 @@ class BankAccount(
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- LocalStorage.revokePermission(id, view, otherUser) ?~ "could not revoke the privilege"
+        isRevoked <- Views.views.vend.revokePermission(id, view, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -274,7 +281,7 @@ class BankAccount(
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- LocalStorage.revokeAllPermission(id, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermission(id, otherUser)
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -284,7 +291,7 @@ class BankAccount(
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        isRevoked <- LocalStorage.views(this) ?~ "could not get the views"
+        isRevoked <- Views.views.vend.views(this) ?~ "could not get the views"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -294,7 +301,7 @@ class BankAccount(
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
-      val view = LocalStorage.createView(this, v)
+      val view = Views.views.vend.createView(this, v)
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
@@ -309,7 +316,7 @@ class BankAccount(
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = LocalStorage.updateView(this, viewId, v)
+      val view = Views.views.vend.updateView(this, viewId, v)
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
@@ -325,7 +332,7 @@ class BankAccount(
     if(!userDoingTheRemove.ownerAccess(this)) {
       Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = LocalStorage.removeView(viewId, this)
+      val deleted = Views.views.vend.removeView(viewId, this)
       
       if(deleted.isDefined) {
         logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
@@ -338,18 +345,18 @@ class BankAccount(
    
 
   def publicViews : List[View] =
-    LocalStorage.publicViews(this).getOrElse(Nil)
+    Views.views.vend.publicViews(this).getOrElse(Nil)
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
-      LocalStorage.getModeratedTransaction(id, bankPermalink, permalink)(view.moderate)
+      Connector.connector.vend.getModeratedTransaction(id, bankPermalink, permalink)(view.moderate)
     else
       viewNotAllowed(view)
   }
 
   def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user))
-      LocalStorage.getModeratedTransactions(permalink, bankPermalink, queryParams: _*)(view.moderate)
+      Connector.connector.vend.getModeratedTransactions(permalink, bankPermalink, queryParams: _*)(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -370,7 +377,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
     if(authorizedAccess(view, user))
-      LocalStorage.getModeratedOtherBankAccounts(id)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccounts(id)(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -383,7 +390,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      LocalStorage.getModeratedOtherBankAccount(id, otherAccountID)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccount(id, otherAccountID)(view.moderate)
     else
       viewNotAllowed(view)
 
@@ -399,19 +406,19 @@ class BankAccount(
 
 object BankAccount {
   def apply(bankpermalink: String, bankAccountPermalink: String) : Box[BankAccount] = {
-    LocalStorage.getBankAccount(bankpermalink, bankAccountPermalink)
+    Connector.connector.vend.getBankAccount(bankpermalink, bankAccountPermalink)
   }
 
   def publicAccounts : List[BankAccount] = {
-    LocalStorage.getAllPublicAccounts()
+    Connector.connector.vend.getAllPublicAccounts
   }
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    LocalStorage.getAllAccountsUserCanSee(user)
+    Connector.connector.vend.getAllAccountsUserCanSee(user)
   }
 
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    LocalStorage.getNonPublicBankAccounts(user)
+    Connector.connector.vend.getNonPublicBankAccounts(user)
   }
 }
 
@@ -436,7 +443,6 @@ class Transaction(
   val id : String,
   val thisAccount : BankAccount,
   val otherAccount : OtherBankAccount,
-  val metadata : TransactionMetadata,
   //E.g. cash withdrawal, electronic payment, etc.
   val transactionType : String,
   val amount : BigDecimal,
@@ -450,4 +456,36 @@ class Transaction(
   val finishDate : Date,
   //the new balance for the bank account
   val balance :  BigDecimal
-)
+) {
+
+  val bankPermalink = thisAccount.bankPermalink
+  val accountPermalink = thisAccount.permalink
+
+  /**
+   * The metadata is set up using dependency injection. If you want to, e.g. override the Comments implementation
+   * for a particular scope, use Comments.comments.doWith(NewCommentsImplementation extends Comments{}){
+   *   //code in here will use NewCommentsImplementation (e.g. val t = new Transaction(...) will result in Comments.comments.vend
+   *   // return NewCommentsImplementation here below)
+   * }
+   *
+   * If you want to change the current default implementation, you would change the buildOne function in Comments to
+   * return a different value
+   *
+   */
+  val metadata : TransactionMetadata = new TransactionMetadata(
+      Narrative.narrative.vend.getNarrative(bankPermalink, accountPermalink, id) _,
+      Narrative.narrative.vend.setNarrative(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.getComments(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.addComment(bankPermalink, accountPermalink, id) _,
+      Comments.comments.vend.deleteComment(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.getTags(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.addTag(bankPermalink, accountPermalink, id) _,
+      Tags.tags.vend.deleteTag(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.getImagesForTransaction(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.addTransactionImage(bankPermalink, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.deleteTransactionImage(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.getWhereTagsForTransaction(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.addWhereTag(bankPermalink, accountPermalink, id) _,
+      WhereTags.whereTags.vend.deleteWhereTag(bankPermalink, accountPermalink, id) _
+    )
+}

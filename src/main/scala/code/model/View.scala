@@ -33,10 +33,9 @@ Berlin 13359, Germany
 
 package code.model
 
-import code.model.dataAccess.LocalStorage
 import java.util.Date
 import net.liftweb.common.{Box, Empty, Full, Failure}
-import net.liftweb.http.SHtml
+import code.views.Views
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 
@@ -177,10 +176,10 @@ trait View {
     val transactionMetadata =
       if(canSeeTransactionMetadata)
       {
-        val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment) else None
+        val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
         val comments =
           if (canSeeComments)
-            Some(transaction.metadata.comments.filter(comment => comment.viewId==id))
+            Some(transaction.metadata.comments().filter(comment => comment.viewId==id))
           else None
         val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
         val deleteCommentFunc =
@@ -191,7 +190,7 @@ trait View {
         val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
         val tags =
           if(canSeeTags)
-            Some(transaction.metadata.tags.filter(_.viewId==id))
+            Some(transaction.metadata.tags().filter(_.viewId==id))
           else None
         val addTagFunc =
           if(canAddTag)
@@ -204,7 +203,7 @@ trait View {
             else
               None
         val images =
-          if(canSeeImages) Some(transaction.metadata.images.filter(_.viewId == id))
+          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == id))
           else None
 
         val addImageFunc =
@@ -217,7 +216,7 @@ trait View {
 
         val whereTag =
           if(canSeeWhereTag)
-            Some(transaction.metadata.whereTags.find(tag => tag.viewId == id))
+            Some(transaction.metadata.whereTags().find(tag => tag.viewId == id))
           else
             None
 
@@ -458,9 +457,9 @@ trait View {
 
 object View {
   def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
-    LocalStorage.view(viewPermalink, account)
+    Views.views.vend.view(viewPermalink, account)
   def fromUrl(viewPermalink: String, accountId: String, bankId: String): Box[View] =
-    LocalStorage.view(viewPermalink, accountId, bankId)
+    Views.views.vend.view(viewPermalink, accountId, bankId)
 
   def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
     val viewsJson = views.map(view => {

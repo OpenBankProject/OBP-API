@@ -45,9 +45,8 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.mongodb.record.{MongoId}
 import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
 import scala.util.Random
-import com.mongodb.QueryBuilder
-import com.mongodb.BasicDBObject
-import code.model.{Comment,Tag,GeoTag,TransactionImage, User}
+import com.mongodb.{DBObject, QueryBuilder, BasicDBObject}
+import code.model._
 import net.liftweb.common.Loggable
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
@@ -56,6 +55,12 @@ import java.net.URL
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
 import scala.xml.{NodeSeq, Unparsed}
+import net.liftweb.json.JsonAST.JObject
+import scala.Some
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.common.Full
+import net.liftweb.json.JsonAST.JArray
+import net.liftweb.json.JsonAST.JField
 
 /**
  * "Current Account View"
@@ -642,6 +647,12 @@ object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
 
 class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
   def meta = OBPTag
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
   object tag extends StringField(this, 255)
@@ -654,11 +665,27 @@ class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with 
   def value = tag.get
 }
 
-object OBPTag extends OBPTag with MongoMetaRecord[OBPTag]
+object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTag] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  //in theory commentId should be enough as we're just using the mongoId
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, tagId : String) : DBObject = {
+    QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+  }
+}
 
 class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
     with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   def meta = OBPTransactionImage
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
@@ -678,11 +705,27 @@ class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
 
 object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
   val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
+
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTransactionImage] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  //in theory commentId should be enough as we're just using the mongoId
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, imageId : String) : DBObject = {
+    QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+  }
 }
 
 
 class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   def meta = OBPGeoTag
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
   object viewID extends LongField(this)
@@ -702,6 +745,12 @@ object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
 
 class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
   def meta = OBPComment
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
   def postedBy = User.findByApiId(userId.get)
   def viewId = viewID.get
   def text = textField.get
@@ -715,4 +764,34 @@ class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPCo
   object replyTo extends StringField(this,255)
 }
 
-object OBPComment extends OBPComment with MongoMetaRecord[OBPComment]
+object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
+  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPComment] = {
+    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+    findAll(query)
+  }
+
+  def getFindQuery(bankId : String, accountId : String, transactionId : String, commentId : String) : DBObject = {
+    //in theory commentId should be enough as we're just using the mongoId
+    QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
+      put("accountId").is(accountId).put("bankId").is(bankId).get()
+  }
+}
+
+
+class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
+
+  def meta = OBPNarrative
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
+  object narrative extends StringField(this, 255)
+}
+
+object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
+  def getFindQuery(bankId : String, accountId : String, transactionId : String) : DBObject = {
+    QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+  }
+}

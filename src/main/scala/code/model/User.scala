@@ -34,9 +34,11 @@ package code.model
 
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
-import code.model.dataAccess.LocalStorage
 import net.liftweb.common.Box
 import code.api.UserNotFound
+import code.views.Views
+import code.bankconnectors.Connector
+import code.users.Users
 
 trait User {
   
@@ -49,7 +51,7 @@ trait User {
   def theLastName : String
 
   def permittedViews(bankAccount: BankAccount) : List[View] =
-    LocalStorage.permittedViews(this, bankAccount)
+    Views.views.vend.permittedViews(this, bankAccount)
 
   def views: List[View]
   def permittedView(v: View, b: BankAccount): Boolean =
@@ -61,7 +63,7 @@ trait User {
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
-  def nonPublicAccounts : Box[List[BankAccount]] = LocalStorage.getNonPublicBankAccounts(this)
+  def nonPublicAccounts : Box[List[BankAccount]] = Connector.connector.vend.getNonPublicBankAccounts(this)
 
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~
@@ -71,11 +73,11 @@ trait User {
 
 object User {
   def findByApiId(id : String) : Box[User] =
-    LocalStorage.getUserByApiId(id)
+    Users.users.vend.getUserByApiId(id)
     
   def findByProviderId(provider : String, idGivenByProvider : String) = 
     //if you change this, think about backwards compatibility! All existing
     //versions of the API return this failure message, so if you change it, make sure
     //that all stable versions retain the same behavior
-    LocalStorage.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
+    Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
 }
