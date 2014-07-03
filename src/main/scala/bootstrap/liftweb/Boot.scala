@@ -58,6 +58,7 @@ import code.util.MyExceptionLogger
 import net.liftweb.mongodb.{Limit, Skip}
 import org.bson.types.ObjectId
 import com.mongodb.QueryBuilder
+import code.metadata.wheretags.OBPWhereTag
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -352,7 +353,35 @@ class Boot extends Loggable{
       }
     }
 
-    //updateMongo()
+    def commentsOldStyle() = {
+      OBPComment.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no comments, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPComment.transactionId was not set before upgrade
+      }
+    }
+
+    def tagsOldStyle() = {
+      OBPTag.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no tags, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPTag.transactionId was not set before upgrade
+      }
+    }
+
+    def imagesOldStyle() = {
+      OBPTransactionImage.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no images, so we can consider them to be in the old format
+        case x :: xs => x.transactionId.get.isEmpty //OBPTransactionImage.transactionId was not set before upgrade
+      }
+    }
+
+    if(Props.get("do_mongodb_transaction_metadata_upgrade").isDefined &&
+      OBPNarrative.count == 0 && //sanity check: OBPNarrative didn't exist before upgrade
+      OBPWhereTag.count == 0 && //sanity check: OBPWhereTag didn't exist before upgrade
+      commentsOldStyle() && tagsOldStyle() && imagesOldStyle()
+      ) {
+      logger.info("Upgrading mongodb transaction metadata")
+      updateMongo()
+    }
 
   }
 }
