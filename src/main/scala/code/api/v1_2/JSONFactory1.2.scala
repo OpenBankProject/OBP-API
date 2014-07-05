@@ -565,7 +565,7 @@ object JSONFactory{
       kind = stringOptionOrNull(bankAccount.accountType),
       IBAN = stringOptionOrNull(bankAccount.iban),
       bank = createMinimalBankJSON(bankAccount),
-      holders = null //TODO //bankAccount.owners.map(x => x.toList.map(h => createAccountHolderJSON(h, ??))).getOrElse(null)
+      holders = bankAccount.owners.map(x => x.toList.map(h => createAccountHolderJSON(h, false))).getOrElse(null)
     )
   }
 
