@@ -168,8 +168,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   //not named comments as "comments" was used in an older mongo document version
   object obp_comments extends ObjectIdRefListField[OBPEnvelope, OBPComment](this, OBPComment)
 
-  object tags extends ObjectIdRefListField(this, OBPTag)
-
   object images extends ObjectIdRefListField(this, OBPTransactionImage)
 
   //we store a list of geo tags, one per view
@@ -220,29 +218,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
         else Failure("Delete not completed")
       }
       case _ => Failure("Comment "+id+" not found")
-    }
-  }
-
-  def addTag(userId: String, viewId : Long, value: String, datePosted : Date) : Tag = {
-    val tag = OBPTag.createRecord.
-      userId(userId).
-      tag(value).
-      date(datePosted).
-      viewID(viewId).save
-    tags(tag.id.is :: tags.get ).save
-    tag
-  }
-
-  def deleteTag(id : String) : Box[Unit] = {
-    OBPTag.find(id) match {
-      case Full(tag) => {
-        if(tag.delete_!){
-          tags(tags.get.diff(Seq(new ObjectId(id)))).save
-          Full()
-        }
-        else Failure("Delete not completed")
-      }
-      case _ => Failure("Tag "+id+" not found")
     }
   }
 
@@ -608,39 +583,6 @@ class OBPValue private() extends BsonRecord[OBPValue]{
 }
 
 object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
-
-class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
-  def meta = OBPTag
-
-  //These fields are used to link this to its transaction
-  object transactionId extends StringField(this, 255)
-  object accountId extends StringField(this, 255)
-  object bankId extends StringField(this, 255)
-
-  object userId extends StringField(this,255)
-  object viewID extends LongField(this)
-  object tag extends StringField(this, 255)
-  object date extends DateField(this)
-
-  def id_ = id.is.toString
-  def datePosted = date.get
-  def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
-  def value = tag.get
-}
-
-object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
-  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTag] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
-    findAll(query)
-  }
-
-  //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : String, accountId : String, transactionId : String, tagId : String) : DBObject = {
-    QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId).get()
-  }
-}
 
 class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
     with ObjectIdPk[OBPTransactionImage] with TransactionImage {
