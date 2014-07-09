@@ -163,8 +163,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     obp_transaction.get.validate ++
     super.validate
 
-  object narrative extends StringField(this, 255)
-
   //we store a list of geo tags, one per view
   object whereTags extends BsonRecordListField(this, OBPGeoTag)
 
@@ -541,21 +539,3 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
 }
 object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
-
-class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
-
-  def meta = OBPNarrative
-
-  //These fields are used to link this to its transaction
-  object transactionId extends StringField(this, 255)
-  object accountId extends StringField(this, 255)
-  object bankId extends StringField(this, 255)
-
-  object narrative extends StringField(this, 255)
-}
-
-object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
-  def getFindQuery(bankId : String, accountId : String, transactionId : String) : DBObject = {
-    QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
-  }
-}

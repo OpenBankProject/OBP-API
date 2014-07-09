@@ -1,8 +1,10 @@
 package code.metadata.narrative
 
-import code.model.dataAccess.{OBPNarrative, OBPEnvelope}
-import org.bson.types.ObjectId
 import net.liftweb.common.Full
+import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
+import net.liftweb.mongodb.record.field.ObjectIdPk
+import net.liftweb.record.field.StringField
+import com.mongodb.{QueryBuilder, DBObject}
 
 object MongoTransactionNarrative extends Narrative {
 
@@ -38,4 +40,22 @@ object MongoTransactionNarrative extends Narrative {
     Full()
   }
 
+}
+
+class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
+
+  def meta = OBPNarrative
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
+  object narrative extends StringField(this, 255)
+}
+
+object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
+  def getFindQuery(bankId : String, accountId : String, transactionId : String) : DBObject = {
+    QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+  }
 }
