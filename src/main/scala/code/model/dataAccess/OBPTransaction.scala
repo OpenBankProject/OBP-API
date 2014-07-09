@@ -165,9 +165,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
   object narrative extends StringField(this, 255)
 
-  //not named comments as "comments" was used in an older mongo document version
-  object obp_comments extends ObjectIdRefListField[OBPEnvelope, OBPComment](this, OBPComment)
-
   object images extends ObjectIdRefListField(this, OBPTransactionImage)
 
   //we store a list of geo tags, one per view
@@ -191,34 +188,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       bank <- HostedBank.find("national_identifier", bankId)
       if(bank.id.get == account.bankID.get)
     } yield account
-  }
-
-  /**
-   * Add a user generated comment to the transaction. Saves the db model when called.
-   *
-   * @param email The email address of the person posting the comment
-   * @param text The text of the comment
-   */
-  def addComment(userId: String, viewId : Long, text: String, datePosted : Date) : Comment = {
-    val comment = OBPComment.createRecord.userId(userId).
-      textField(text).
-      date(datePosted).
-      viewID(viewId).save
-    obp_comments(comment.id.is :: obp_comments.get ).save
-    comment
-  }
-
-  def deleteComment(id : String) : Box[Unit]= {
-    OBPComment.find(id) match {
-      case Full(comment) => {
-        if(comment.delete_!){
-          obp_comments(obp_comments.get.diff(Seq(new ObjectId(id)))).save
-          Full()
-        }
-        else Failure("Delete not completed")
-      }
-      case _ => Failure("Comment "+id+" not found")
-    }
   }
 
   /**
@@ -343,15 +312,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     }
   }
 
-  /**
-   * A JSON representation of the transaction to be returned when successfully added via an API call
-   */
-  def whenAddedJson : JObject = {
-    JObject(List(JField("obp_transaction", obp_transaction.get.whenAddedJson(id.toString)),
-             JField("obp_comments", JArray(obp_comments.objs.map(comment => {
-               JObject(List(JField("text", JString(comment.textField.is))))
-             })))))
-  }
 }
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {
@@ -648,41 +608,6 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
 }
 object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]
-
-class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
-  def meta = OBPComment
-
-  //These fields are used to link this to its transaction
-  object transactionId extends StringField(this, 255)
-  object accountId extends StringField(this, 255)
-  object bankId extends StringField(this, 255)
-
-  def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
-  def text = textField.get
-  def datePosted = date.get
-  def id_ = id.is.toString
-  def replyToID = replyTo.get
-  object userId extends StringField(this,255)
-  object viewID extends LongField(this)
-  object textField extends StringField(this, 255)
-  object date extends DateField(this)
-  object replyTo extends StringField(this,255)
-}
-
-object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
-  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPComment] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
-    findAll(query)
-  }
-
-  def getFindQuery(bankId : String, accountId : String, transactionId : String, commentId : String) : DBObject = {
-    //in theory commentId should be enough as we're just using the mongoId
-    QueryBuilder.start("_id").is(new ObjectId(commentId)).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId).get()
-  }
-}
-
 
 class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
 
