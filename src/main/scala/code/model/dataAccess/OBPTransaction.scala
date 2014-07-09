@@ -165,8 +165,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
   object narrative extends StringField(this, 255)
 
-  object images extends ObjectIdRefListField(this, OBPTransactionImage)
-
   //we store a list of geo tags, one per view
   object whereTags extends BsonRecordListField(this, OBPGeoTag)
 
@@ -188,30 +186,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
       bank <- HostedBank.find("national_identifier", bankId)
       if(bank.id.get == account.bankID.get)
     } yield account
-  }
-
-  /**
-   * @return the id of the newly added image
-   */
-  def addImage(userId: String, viewId : Long, description: String, datePosted : Date, imageURL : URL) : TransactionImage = {
-    val image = OBPTransactionImage.createRecord.
-        userId(userId).imageComment(description).date(datePosted).viewID(viewId).url(imageURL.toString).save
-    images(image.id.is :: images.get).save
-    image
-  }
-
-  def deleteImage(id : String){
-    OBPTransactionImage.find(id) match {
-      case Full(image) => {
-        //if(image.postedBy.isDefined && image.postedBy.get.id.get == userId) {
-          if (image.delete_!) {
-            logger.info("==> deleted image id : " + id)
-            images(images.get.diff(Seq(new ObjectId(id)))).save
-            //TODO: Delete the actual image file? We don't always control the url of the image so we can't always delete it
-          }
-      }
-      case _ => logger.warn("Could not find image with id " + id + " to delete.")
-    }
   }
 
   def orderByDateDescending = (e1: OBPEnvelope, e2: OBPEnvelope) => {
@@ -543,47 +517,6 @@ class OBPValue private() extends BsonRecord[OBPValue]{
 }
 
 object OBPValue extends OBPValue with BsonMetaRecord[OBPValue]
-
-class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
-    with ObjectIdPk[OBPTransactionImage] with TransactionImage {
-  def meta = OBPTransactionImage
-
-  //These fields are used to link this to its transaction
-  object transactionId extends StringField(this, 255)
-  object accountId extends StringField(this, 255)
-  object bankId extends StringField(this, 255)
-
-  object userId extends StringField(this,255)
-  object viewID extends LongField(this)
-  object imageComment extends StringField(this, 1000)
-  object date extends DateField(this)
-  object url extends StringField(this, 500)
-
-  def id_ = id.is.toString
-  def datePosted = date.get
-  def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
-  def description = imageComment.get
-  def imageUrl = {
-    tryo {new URL(url.get)} getOrElse OBPTransactionImage.notFoundUrl
-  }
-}
-
-object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
-  val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
-
-  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTransactionImage] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
-    findAll(query)
-  }
-
-  //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : String, accountId : String, transactionId : String, imageId : String) : DBObject = {
-    QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId).get()
-  }
-}
-
 
 class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   def meta = OBPGeoTag
