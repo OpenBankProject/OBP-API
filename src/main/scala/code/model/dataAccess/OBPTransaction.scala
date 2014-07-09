@@ -163,10 +163,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     obp_transaction.get.validate ++
     super.validate
 
-  //we store a list of geo tags, one per view
-  object whereTags extends BsonRecordListField(this, OBPGeoTag)
-
-
   object DateDescending extends Ordering[OBPEnvelope] {
     def compare(e1: OBPEnvelope, e2: OBPEnvelope) = {
       val date1 = e1.obp_transaction.get.details.get.completed.get
