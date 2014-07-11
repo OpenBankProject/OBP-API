@@ -31,36 +31,25 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
-import net.liftweb.mongodb._
-import net.liftweb.record.MandatoryTypedField
 import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
-import net.liftweb.common.{Box, Full, Empty, Failure}
-import java.util.Calendar
-import java.text.SimpleDateFormat
-import net.liftweb.json.DefaultFormats
+import net.liftweb.common.{Box, Empty, Failure}
 import java.util.Date
 import net.liftweb.record.field.{StringField,LongField}
 import net.liftweb.json.JsonAST._
-import net.liftweb.mongodb.record.{MongoId}
-import net.liftweb.mongodb.record.field.{MongoJsonObjectListField, MongoRefField, ObjectIdRefField}
+import net.liftweb.mongodb.record.field.{ObjectIdRefField}
 import scala.util.Random
-import com.mongodb.{DBObject, QueryBuilder, BasicDBObject}
 import code.model._
 import net.liftweb.common.Loggable
-import org.bson.types.ObjectId
-import net.liftweb.util.Helpers._
-import net.liftweb.http.S
-import java.net.URL
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
-import scala.xml.{NodeSeq, Unparsed}
+import scala.xml.{Unparsed}
 import net.liftweb.json.JsonAST.JObject
 import scala.Some
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.common.Full
-import net.liftweb.json.JsonAST.JArray
 import net.liftweb.json.JsonAST.JField
+import code.metadata.counterparties.Metadata
 
 /**
  * "Current Account View"
@@ -222,7 +211,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     otherAccsMetadata.find{ _.holder.get == otherAccountHolder}
   }
 
-  def createMetadataReference: Box[Unit] = {
+  def createMetadataReference(originalPartyBankId: String, originalPartyAccountId: String): Box[Unit] = {
     this.theAccount match {
       case Full(a) => {
 
@@ -256,6 +245,8 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
                 val metadata =
                   Metadata
                   .createRecord
+                  .originalPartyBankId(originalPartyBankId)
+                  .originalPartyAccountId(originalPartyAccountId)
                   .holder(realOtherAccHolder)
                   .publicAlias(randomAliasName)
                   .save

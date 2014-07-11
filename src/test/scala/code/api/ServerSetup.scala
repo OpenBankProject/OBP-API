@@ -100,7 +100,7 @@ trait ServerSetup extends FeatureSpec
         }
       })
 
-    accounts.map(account => {
+    accounts.foreach(account => {
       val hostedaccount =
         HostedAccount.
           create.
@@ -164,7 +164,7 @@ trait ServerSetup extends FeatureSpec
         val env = OBPEnvelope.createRecord.
           obp_transaction(transaction).save
         account.balance(newBalance.amount.get).lastUpdate(now).save
-        env.createMetadataReference
+        env.createMetadataReference(account.bankPermalink, account.permalink.get)
         env.save
       }
     })

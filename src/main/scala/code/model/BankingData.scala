@@ -48,6 +48,7 @@ import code.metadata.wheretags.WhereTags
 import code.bankconnectors.Connector
 import code.views.Views
 import code.metadata.narrative.Narrative
+import code.metadata.counterparties.Counterparties
 
 
 class Bank(
@@ -377,7 +378,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccounts(id)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccounts(bankPermalink, permalink)(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -390,7 +391,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccount(id, otherAccountID)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccount(bankPermalink, permalink, otherAccountID)(view.moderate)
     else
       viewNotAllowed(view)
 
@@ -432,9 +433,15 @@ class OtherBankAccount(
   val iban : Option[String],
   val number : String,
   val bankName : String,
-  val metadata : OtherBankAccountMetadata,
-  val kind : String
-)
+  val kind : String,
+  val originalPartyBankId: String, //bank id of the party for which this OtherBankAccount is the counterparty
+  val originalPartyAccountId: String //account id of the party for which this OtherBankAccount is the counterparty
+) {
+
+  val metadata : OtherBankAccountMetadata = {
+    Counterparties.counterparties.vend.getOrCreateMetadata(originalPartyBankId, originalPartyAccountId, this)
+  }
+}
 
 class Transaction(
   //A universally unique id

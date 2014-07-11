@@ -51,6 +51,7 @@ import code.model.{ModeratedTransaction, AccountOwner, BankAccount}
 import net.liftweb.mongodb.BsonDSL._
 import java.util.Date
 import OBPEnvelope._
+import code.metadata.counterparties.Metadata
 
 
 class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
@@ -160,59 +161,6 @@ object Account extends Account with MongoMetaRecord[Account] {
     bankAccount
   }
 }
-
-class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata] {
-  def meta = Metadata
-
-  object holder extends StringField(this, 255)
-  object publicAlias extends StringField(this, 100)
-  object privateAlias extends StringField(this, 100)
-  object moreInfo extends StringField(this, 100)
-  object url extends StringField(this, 100)
-  object imageUrl extends StringField(this, 100)
-  object openCorporatesUrl extends StringField(this, 100) {
-    override def optional_? = true
-  }
-  object corporateLocation extends BsonRecordField(this, OBPGeoTag)
-  object physicalLocation extends BsonRecordField(this, OBPGeoTag)
-
-  def addCorporateLocation(userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    val newTag = OBPGeoTag.createRecord.
-                userId(userId).
-                viewID(viewId).
-                date(datePosted).
-                geoLongitude(longitude).
-                geoLatitude(latitude)
-    corporateLocation(newTag).save
-    true
-  }
-
-  def deleteCorporateLocation : Boolean = {
-    corporateLocation.clear
-    this.save
-    true
-  }
-
-  def addPhysicalLocation(userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    val newTag = OBPGeoTag.createRecord.
-                userId(userId).
-                viewID(viewId).
-                date(datePosted).
-                geoLongitude(longitude).
-                geoLatitude(latitude)
-    physicalLocation(newTag).save
-    true
-  }
-
-  def deletePhysicalLocation : Boolean = {
-    physicalLocation.clear
-    this.save
-    true
-  }
-
-}
-
-object Metadata extends Metadata with MongoMetaRecord[Metadata]
 
 class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   def meta = HostedBank

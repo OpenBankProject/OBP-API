@@ -18,20 +18,16 @@ import net.liftweb.util.Helpers._
 import code.model.OtherBankAccount
 import code.model.ModeratedOtherBankAccount
 import code.model.dataAccess.OBPEnvelope
-import code.model.dataAccess.OBPEnvelope
 import code.model.dataAccess.OBPAccount
-import code.model.OtherBankAccountMetadata
-import code.model.dataAccess.Metadata
-import code.model.GeoTag
-import code.model.dataAccess.OBPGeoTag
 import code.model.ModeratedTransaction
 import code.model.Transaction
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.util.Props
 import com.tesobe.model.UpdateBankAccount
-import code.model.TransactionMetadata
 import code.model.dataAccess.OBPTransaction
 import code.model.dataAccess.UpdatesRequestSender
+import com.mongodb.QueryBuilder
+import code.metadata.counterparties.Metadata
 
 object LocalConnector extends Connector with Loggable {
 
@@ -172,13 +168,22 @@ object LocalConnector extends Connector with Loggable {
       }
     }
   }
-  
-  def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
+
+  def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
+
+    /**
+     * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
+     * "other account metadata" object.
+     */
+
       for{
-        id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
-        account <- Account.find("_id",id)
-        otherAccountmetadata <- account.otherAccountsMetadata.objs.find(_.id.get.equals(otherAccountID))
+        objId <- tryo{ new ObjectId(otherAccountID) }
+        otherAccountmetadata <- {
+          //"otherAccountID" is actually the mongodb id of the other account metadata" object.
+          val query = QueryBuilder.start("_id").is(objId).get()
+          Metadata.find(query)
+        }
       } yield{
           val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.metadata",otherAccountmetadata.id.is) match {
             case Full(envelope) => envelope.obp_transaction.get.other_account.get
@@ -187,32 +192,39 @@ object LocalConnector extends Connector with Loggable {
               OBPAccount.createRecord
             }
           }
-          moderate(createOtherBankAccount(otherAccountmetadata, otherAccountFromTransaction)).get
+          moderate(createOtherBankAccount(bankID, accountID, otherAccountmetadata, otherAccountFromTransaction)).get
         }
   }
 
-  def getModeratedOtherBankAccounts(accountID : String)
+  def getModeratedOtherBankAccounts(bankID: String, accountID : String)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
-    for{
-      id <- tryo{new ObjectId(accountID)} ?~ {"account " + accountID + " not found"}
-      account <- Account.find("_id",id)
-    } yield{
-        val otherBankAccounts = account.otherAccountsMetadata.objs.map(otherAccount => {
-          //for legacy reasons some of the data about the "other account" are stored only on the transactions
-          //so we need first to get a transaction that match to have the rest of the data
-          val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",otherAccount.holder.get) match {
-              case Full(envelope) =>
-                envelope.obp_transaction.get.other_account.get
-              case _ => {
-                logger.warn(s"envelope not found for other account ${otherAccount.id.get}")
-                OBPAccount.createRecord
-              }
-            }
-          createOtherBankAccount(otherAccount, otherAccountFromTransaction)
-        })
 
-        (otherBankAccounts.map(moderate)).collect{case Some(t) => t}
+    /**
+     * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
+     * "other account metadata" object.
+     */
+
+    val query = QueryBuilder.start("originalPartyBankId").is(bankID).put("originalPartyAccountId").is(accountID).get
+
+    val moderatedCounterparties = Metadata.findAll(query).map(meta => {
+      //for legacy reasons some of the data about the "other account" are stored only on the transactions
+      //so we need first to get a transaction that match to have the rest of the data
+      val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",meta.holder.get) match {
+        case Full(envelope) => {
+          logger.info("QQQQ: found " + envelope.obp_transaction.get.other_account.get)
+          envelope.obp_transaction.get.other_account.get
+        }
+        case _ => {
+          logger.warn(s"envelope not found for other account ${meta.id.get}")
+          OBPAccount.createRecord
+        }
       }
+      moderate(createOtherBankAccount(bankID, accountID, meta, otherAccountFromTransaction))
+    })
+
+    logger.info("QQQQ: total " + moderatedCounterparties.size)
+
+    Full(moderatedCounterparties.flatten)
   }
   
   def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
@@ -262,7 +274,6 @@ object LocalConnector extends Connector with Loggable {
         val thisBankAccount = Account.toBankAccount(theAccount)
         val id = env.id.is.toString()
         val uuid = id
-        val otherAccountMetadata = createOtherBankAccountMetadata(oaccMetadata)
 
         val otherAccount = new OtherBankAccount(
             id = oaccMetadata.id.is.toString,
@@ -272,8 +283,9 @@ object LocalConnector extends Connector with Loggable {
             iban = Some(otherAccount_.bank.get.IBAN.get),
             number = otherAccount_.number.get,
             bankName = otherAccount_.bank.get.name.get,
-            metadata = otherAccountMetadata,
-            kind = ""
+            kind = "",
+            originalPartyBankId = theAccount.bankPermalink,
+            originalPartyAccountId = theAccount.permalink.get
           )
         val transactionType = transaction.details.get.kind.get
         val amount = transaction.details.get.value.get.amount.get
@@ -304,59 +316,6 @@ object LocalConnector extends Connector with Loggable {
       }
     }
   }
-    
-    private def createOtherBankAccountMetadata(otherAccountMetadata : Metadata): OtherBankAccountMetadata = {
-    new OtherBankAccountMetadata(
-      publicAlias = otherAccountMetadata.publicAlias.get,
-      privateAlias = otherAccountMetadata.privateAlias.get,
-      moreInfo = otherAccountMetadata.moreInfo.get,
-      url = otherAccountMetadata.url.get,
-      imageURL = otherAccountMetadata.imageUrl.get,
-      openCorporatesURL = otherAccountMetadata.openCorporatesUrl.get,
-      corporateLocation = locatationTag(otherAccountMetadata.corporateLocation.get),
-      physicalLocation = locatationTag(otherAccountMetadata.physicalLocation.get),
-      addMoreInfo = (text => {
-        otherAccountMetadata.moreInfo(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addURL = (text => {
-        otherAccountMetadata.url(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addImageURL = (text => {
-        otherAccountMetadata.imageUrl(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addOpenCorporatesURL = (text => {
-        otherAccountMetadata.openCorporatesUrl(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addCorporateLocation = otherAccountMetadata.addCorporateLocation,
-      addPhysicalLocation = otherAccountMetadata.addPhysicalLocation,
-      addPublicAlias = (alias => {
-        otherAccountMetadata.publicAlias(alias).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addPrivateAlias = (alias => {
-        otherAccountMetadata.privateAlias(alias).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      deleteCorporateLocation = otherAccountMetadata.deleteCorporateLocation _,
-      deletePhysicalLocation = otherAccountMetadata.deletePhysicalLocation _
-    )
-  }
   
   /**
   *  Checks if the last update of the account was made more than one hour ago.
@@ -378,59 +337,8 @@ object LocalConnector extends Connector with Loggable {
   }
 
   
-  private def createOtherBankAccount(otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
-    val metadata =
-      new OtherBankAccountMetadata(
-        publicAlias = otherAccount.publicAlias.get,
-        privateAlias = otherAccount.privateAlias.get,
-        moreInfo = otherAccount.moreInfo.get,
-        url = otherAccount.url.get,
-        imageURL = otherAccount.imageUrl.get,
-        openCorporatesURL = otherAccount.openCorporatesUrl.get,
-        corporateLocation = locatationTag(otherAccount.corporateLocation.get),
-        physicalLocation = locatationTag(otherAccount.physicalLocation.get),
-        addMoreInfo = (text => {
-          otherAccount.moreInfo(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addURL = (text => {
-          otherAccount.url(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addImageURL = (text => {
-          otherAccount.imageUrl(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addOpenCorporatesURL = (text => {
-          otherAccount.openCorporatesUrl(text).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addCorporateLocation = otherAccount.addCorporateLocation,
-        addPhysicalLocation = otherAccount.addPhysicalLocation,
-        addPublicAlias = (alias => {
-          otherAccount.publicAlias(alias).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        addPrivateAlias = (alias => {
-          otherAccount.privateAlias(alias).save
-          //the save method does not return a Boolean to inform about the saving state,
-          //so we a true
-          true
-        }),
-        deleteCorporateLocation = otherAccount.deleteCorporateLocation _,
-        deletePhysicalLocation = otherAccount.deletePhysicalLocation _
-      )
-
+  private def createOtherBankAccount(originalPartyBankId: String, originalPartyAccountId: String,
+    otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
       id = otherAccount.id.is.toString,
       label = otherAccount.holder.get,
@@ -439,16 +347,10 @@ object LocalConnector extends Connector with Loggable {
       iban = Some(otherAccountFromTransaction.bank.get.IBAN.get),
       number = otherAccountFromTransaction.number.get,
       bankName = otherAccountFromTransaction.bank.get.name.get,
-      metadata = metadata,
-      kind = ""
+      kind = "",
+      originalPartyBankId = originalPartyBankId,
+      originalPartyAccountId = originalPartyAccountId
     )
-  }
-  
-  private def locatationTag(loc: OBPGeoTag): Option[GeoTag]={
-    if(loc.longitude==0 && loc.latitude==0 && loc.userId.get.isEmpty)
-      None
-    else
-      Some(loc)
   }
   
   private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {

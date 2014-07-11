@@ -121,7 +121,7 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
             logger.debug("Updating current balance for " + bankName + "/" + accountNumber + "/" + accountKind)
             account.balance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
             logger.debug("Saving new transaction")
-            val metadataCreated = e.createMetadataReference
+            val metadataCreated = e.createMetadataReference(account.bankPermalink, account.permalink.get)
             if(metadataCreated.isDefined) e.save
             else Failure("Server error, problem creating transaction metadata")
           }

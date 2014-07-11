@@ -41,10 +41,10 @@ trait Connector {
   
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
   
-  def getModeratedOtherBankAccount(accountID : String, otherAccountID : String)
+  def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
   
-  def getModeratedOtherBankAccounts(accountID : String)
+  def getModeratedOtherBankAccounts(bankID: String, accountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
   
   //TODO: Move OBPQueryParam out of com.dataAccess.OBPEnvelope into a more general package

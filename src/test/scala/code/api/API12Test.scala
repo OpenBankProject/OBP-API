@@ -5363,5 +5363,9 @@ class API1_2Test extends ServerSetup{
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+
+    scenario("I will remember to write an upgrade script to add originalPartyBankId and originalPartyAccountId to Metadata", API1_2) {
+      "oh no " should equal("I forgot to")
+    }
   }
 }
