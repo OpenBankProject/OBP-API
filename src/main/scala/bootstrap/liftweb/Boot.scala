@@ -59,6 +59,7 @@ import net.liftweb.mongodb.{Limit, Skip}
 import org.bson.types.ObjectId
 import com.mongodb.QueryBuilder
 import code.metadata.wheretags.OBPWhereTag
+import code.metadata.counterparties.Metadata
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -258,7 +259,57 @@ class Boot extends Loggable{
       case MyExceptionLogger(_, _, t) => throw t // this will never happen
     }
 
-    //TODO: add originalPartyBankId and originalPartyAccountId
+    def originalPartySetAlready() = {
+      //finds one, returns true if the originalPartyBankId and originalPartyAccountId are already set
+      // for it
+      Metadata.findAll(QueryBuilder.start().get(), Limit(1)) match {
+        case Nil => true //no metadatas, no need to upgrade anything
+        case x :: xs => {
+          //original party is already set if both originalPartyAccountId and originalPartyBankId
+          // are not empty
+          !x.originalPartyAccountId.get.isEmpty && !x.originalPartyBankId.get.isEmpty
+        }
+      }
+    }
+
+    if(Props.get("do_mongodb_counterparty_metadata_upgrade").isDefined &&
+      !originalPartySetAlready()) {
+
+      val batchSize = 10
+
+      // returns true if the batch had < batchSize accounts (i.e. we don't need to process any more)
+      def processBatch(number : Integer) : Boolean = {
+        val skip = number * batchSize
+        //accounts currently have references to all their counterparty metadatas, and it makes more sense
+        //to iterate through them as we then have the account permalink and bank permalink and all the metadatas
+        //that should receive those values
+        val accounts : List[Account] = Account.findAll(QueryBuilder.start.get(), Skip(skip), Limit(batchSize))
+
+        accounts.foreach(account => {
+          account.otherAccountsMetadata.objs.foreach(meta => {
+
+            if(meta.id.get == "52ef9cd1ca8aa4fe2d46e01f") {
+              val a = 5
+              val b = a + 1
+            }
+
+            logger.info(s"Updating counterparty metadata ${meta.id.get} to add party bank ${account.bankPermalink} and account ${account.permalink.get}")
+            meta.originalPartyBankId(account.bankPermalink).originalPartyAccountId(account.permalink.get)
+            meta.save
+          })
+        })
+
+
+        accounts.size < batchSize
+      }
+
+      var i = 0
+      while(!processBatch(i)) {
+        i = i + 1
+      }
+    } else {
+      logger.info("not attempting upgrade of mongodb counterparty metadata")
+    }
 
   }
 }
