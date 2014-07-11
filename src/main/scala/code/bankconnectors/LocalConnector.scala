@@ -211,7 +211,6 @@ object LocalConnector extends Connector with Loggable {
       //so we need first to get a transaction that match to have the rest of the data
       val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find("obp_transaction.other_account.holder",meta.holder.get) match {
         case Full(envelope) => {
-          logger.info("QQQQ: found " + envelope.obp_transaction.get.other_account.get)
           envelope.obp_transaction.get.other_account.get
         }
         case _ => {
@@ -221,8 +220,6 @@ object LocalConnector extends Connector with Loggable {
       }
       moderate(createOtherBankAccount(bankID, accountID, meta, otherAccountFromTransaction))
     })
-
-    logger.info("QQQQ: total " + moderatedCounterparties.size)
 
     Full(moderatedCounterparties.flatten)
   }
