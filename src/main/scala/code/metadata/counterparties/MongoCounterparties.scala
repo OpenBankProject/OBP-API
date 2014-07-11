@@ -4,19 +4,26 @@ import code.model.{GeoTag, OtherBankAccountMetadata, OtherBankAccount}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
 import net.liftweb.record.field.StringField
-import code.model.dataAccess.{Account, OBPGeoTag}
+import code.model.dataAccess.{OBPGeoTag}
 import java.util.Date
 import com.mongodb.QueryBuilder
 import net.liftweb.common.Full
 import scala.util.Random
+import org.bson.types.ObjectId
+import net.liftweb.util.Helpers._
 
 object MongoCounterparties extends Counterparties {
 
-  def metadataQuery(originalPartyBankId: String, originalPartyAccountId: String) =
-    QueryBuilder.start("originalPartyBankId").is(originalPartyBankId).put("originalPartyAccountId").is(originalPartyAccountId).get()
-
   def getOrCreateMetadata(originalPartyBankId: String, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
-    val metadata : Metadata = Metadata.find(metadataQuery(originalPartyBankId, originalPartyAccountId)) match {
+
+    val existing = for {
+      objId <- tryo { new ObjectId(otherParty.id) }
+      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId).put("originalPartyAccountId").is(originalPartyAccountId).
+        put("_id").is(objId).get()
+      m <- Metadata.find(query)
+    } yield m
+
+    val metadata = existing match {
       case Full(m) => m
       case _ => {
         //create it
