@@ -48,7 +48,10 @@ object MongoCounterparties extends Counterparties {
      * Returns true if @publicAlias is already the name of a public alias within @account
      */
     def isDuplicate(publicAlias: String) = {
-      Metadata.find(metadataQuery(originalPartyBankId, originalPartyAccountId)).isDefined
+      val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId).put("originalPartyAccountId").is(originalPartyAccountId).get()
+      Metadata.findAll(query).exists(m => {
+        m.publicAlias.get == publicAlias
+      })
     }
 
     /**
