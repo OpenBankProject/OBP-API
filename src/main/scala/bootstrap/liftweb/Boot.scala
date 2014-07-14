@@ -287,12 +287,6 @@ class Boot extends Loggable{
 
         accounts.foreach(account => {
           account.otherAccountsMetadata.objs.foreach(meta => {
-
-            if(meta.id.get == "52ef9cd1ca8aa4fe2d46e01f") {
-              val a = 5
-              val b = a + 1
-            }
-
             logger.info(s"Updating counterparty metadata ${meta.id.get} to add party bank ${account.bankPermalink} and account ${account.permalink.get}")
             meta.originalPartyBankId(account.bankPermalink).originalPartyAccountId(account.permalink.get)
             meta.save

@@ -211,7 +211,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     otherAccsMetadata.find{ _.holder.get == otherAccountHolder}
   }
 
-  def createMetadataReference(originalPartyBankId: String, originalPartyAccountId: String): Box[Unit] = {
+  def createMetadataReference: Box[Unit] = {
     this.theAccount match {
       case Full(a) => {
 
@@ -225,6 +225,8 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
             val metadata =
               Metadata
               .createRecord
+              .originalPartyBankId(a.bankPermalink)
+              .originalPartyAccountId(a.permalink.get)
               .holder("")
               .save
             a.appendMetadata(metadata)
@@ -245,8 +247,8 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
                 val metadata =
                   Metadata
                   .createRecord
-                  .originalPartyBankId(originalPartyBankId)
-                  .originalPartyAccountId(originalPartyAccountId)
+                  .originalPartyBankId(a.bankPermalink)
+                  .originalPartyAccountId(a.permalink.get)
                   .holder(realOtherAccHolder)
                   .publicAlias(randomAliasName)
                   .save
