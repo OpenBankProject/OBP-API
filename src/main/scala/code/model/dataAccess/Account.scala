@@ -68,10 +68,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
   object currency extends StringField(this, 255)
   object iban extends StringField(this, 255)
   object lastUpdate extends DateField(this)
-  @deprecated //TODO: remove this once mongodb has been upgrade to give Metadata
-  // originalPartyBankId and originalPartyAccountId
-  object otherAccountsMetadata extends ObjectIdRefListField(this, Metadata)
-
 
   def bankName : String = bankID.obj match {
     case Full(bank) => bank.name.get
