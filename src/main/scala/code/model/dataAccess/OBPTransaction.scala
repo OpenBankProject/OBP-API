@@ -49,7 +49,8 @@ import scala.Some
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JField
-import code.metadata.counterparties.Metadata
+import code.metadata.counterparties.{MongoCounterparties, Metadata}
+import com.mongodb.QueryBuilder
 
 /**
  * "Current Account View"
@@ -178,88 +179,13 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   }
 
   /**
-  * Generates a new alias name that is guaranteed not to collide with any existing public alias names
-  * for the account in question
-  */
-  private def newPublicAliasName(account: Account): String = {
-    val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
-
-    /**
-     * Returns true if @publicAlias is already the name of a public alias within @account
-     */
-    def isDuplicate(publicAlias: String, account: Account) = {
-      account.otherAccountsMetadata.objs.find(oAcc => {
-        oAcc.publicAlias.get == publicAlias
-      }).isDefined
-    }
-
-    /**
-     * Appends things to @publicAlias until it a unique public alias name within @account
-     */
-    def appendUntilUnique(publicAlias: String, account: Account): String = {
-      val newAlias = publicAlias + Random.nextLong().toString.take(1)
-      if (isDuplicate(newAlias, account)) appendUntilUnique(newAlias, account)
-      else newAlias
-    }
-
-    if (isDuplicate(firstAliasAttempt, account)) appendUntilUnique(firstAliasAttempt, account)
-    else firstAliasAttempt
-  }
-
-  private def findSameHolder(account: Account, otherAccountHolder: String): Option[Metadata] = {
-    val otherAccsMetadata = account.otherAccountsMetadata.objs
-    otherAccsMetadata.find{ _.holder.get == otherAccountHolder}
-  }
-
+   * This only exists for payments and testing. Avoid using it otherwise.
+   */
   def createMetadataReference: Box[Unit] = {
     this.theAccount match {
       case Full(a) => {
-
         val realOtherAccHolder = this.obp_transaction.get.other_account.get.holder.get
-        val metadata = {
-          if(realOtherAccHolder.isEmpty){
-            logger.info("other account holder is Empty. creating a metadata record with no public alias")
-            //no holder name, nothing to hide, so we don't need to create a public alias
-            //otherwise several transactions where the holder is empty (like here)
-            //would automatically share the metadata and then the alias
-            val metadata =
-              Metadata
-              .createRecord
-              .originalPartyBankId(a.bankPermalink)
-              .originalPartyAccountId(a.permalink.get)
-              .holder("")
-              .save
-            a.appendMetadata(metadata)
-            metadata
-          }
-          else{
-            val existingMetadata = findSameHolder(a, realOtherAccHolder)
-            logger.info("metadata for holder " + realOtherAccHolder +" found? " + existingMetadata.isDefined)
-            existingMetadata match {
-              case Some(metadata) => {
-                logger.info("returning the existing metadata")
-                metadata
-              }
-              case _ =>{
-                logger.info("creating metadata record for for " + realOtherAccHolder + " with a public alias")
-                val randomAliasName = newPublicAliasName(a)
-                //create a new meta data record for the other account
-                val metadata =
-                  Metadata
-                  .createRecord
-                  .originalPartyBankId(a.bankPermalink)
-                  .originalPartyAccountId(a.permalink.get)
-                  .holder(realOtherAccHolder)
-                  .publicAlias(randomAliasName)
-                  .save
-                a.appendMetadata(metadata)
-                metadata
-              }
-            }
-          }
-        }
-        logger.info("setting up the reference to the other account metadata")
-        this.obp_transaction.get.other_account.get.metadata(metadata.id.is)
+        val m = MongoCounterparties.createMetadata(a.bankPermalink, a.permalink.get, realOtherAccHolder)
         Full({})
       }
       case _ => {
@@ -353,7 +279,6 @@ object OBPTransaction extends OBPTransaction with BsonMetaRecord[OBPTransaction]
 class OBPAccount private() extends BsonRecord[OBPAccount]{
   def meta = OBPAccount
 
-  object metadata extends ObjectIdRefField(this, Metadata)
   object holder extends StringField(this, 255){
     override def required_? = false
     override def optional_? = true

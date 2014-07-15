@@ -87,12 +87,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     case _ => ""
   }
 
-  def appendMetadata(metadata: Metadata): Unit = {
-    logger.info("appending the metadata record to the existing metadata references")
-    this.otherAccountsMetadata(metadata.id.is :: this.otherAccountsMetadata.get)
-    this.save
-  }
-
   def transactionsForAccount = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
     put("obp_transaction.this_account.bank.national_identifier").is(bankId)
     //FIX: change that to use the bank identifier

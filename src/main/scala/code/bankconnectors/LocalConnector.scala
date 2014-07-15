@@ -2,32 +2,29 @@ package code.bankconnectors
 
 import net.liftweb.common.Box
 import scala.concurrent.ops.spawn
-import code.model.Bank
-import code.model.BankAccount
+import code.model._
 import code.model.dataAccess.HostedBank
 import code.model.dataAccess.Account
 import code.model.dataAccess.ViewImpl
 import net.liftweb.mapper.By
 import net.liftweb.common.Full
-import code.model.User
 import code.model.dataAccess.HostedAccount
 import code.model.dataAccess.APIUser
 import net.liftweb.common.Loggable
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
-import code.model.OtherBankAccount
-import code.model.ModeratedOtherBankAccount
 import code.model.dataAccess.OBPEnvelope
 import code.model.dataAccess.OBPAccount
-import code.model.ModeratedTransaction
-import code.model.Transaction
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.util.Props
 import com.tesobe.model.UpdateBankAccount
 import code.model.dataAccess.OBPTransaction
 import code.model.dataAccess.UpdatesRequestSender
 import com.mongodb.QueryBuilder
-import code.metadata.counterparties.Metadata
+import code.metadata.counterparties.{Counterparties, Metadata}
+import scala.Some
+import net.liftweb.common.Full
+import com.tesobe.model.UpdateBankAccount
 
 object LocalConnector extends Connector with Loggable {
 
@@ -266,24 +263,30 @@ object LocalConnector extends Connector with Loggable {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
 
-    otherAccount_.metadata.obj match {
-      case Full(oaccMetadata) =>{
-        val thisBankAccount = Account.toBankAccount(theAccount)
-        val id = env.id.is.toString()
-        val uuid = id
+    val thisBankAccount = Account.toBankAccount(theAccount)
+    val id = env.id.is.toString()
+    val uuid = id
 
+    //slight hack required: otherAccount id is, for legacy reasons, the mongodb id of its metadata object
+    //so we have to find that
+    val query = QueryBuilder.start("originalPartyBankId").is(theAccount.bankPermalink).
+      put("originalPartyAccountId").is(theAccount.permalink.get).
+      put("holder").is(otherAccount_.holder.get).get
+
+    Metadata.find(query) match {
+      case Full(m) => {
         val otherAccount = new OtherBankAccount(
-            id = oaccMetadata.id.is.toString,
-            label = otherAccount_.holder.get,
-            nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-            swift_bic = None, //TODO: need to add this to the json/model
-            iban = Some(otherAccount_.bank.get.IBAN.get),
-            number = otherAccount_.number.get,
-            bankName = otherAccount_.bank.get.name.get,
-            kind = "",
-            originalPartyBankId = theAccount.bankPermalink,
-            originalPartyAccountId = theAccount.permalink.get
-          )
+          id = m.id.get.toString,
+          label = otherAccount_.holder.get,
+          nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
+          swift_bic = None, //TODO: need to add this to the json/model
+          iban = Some(otherAccount_.bank.get.IBAN.get),
+          number = otherAccount_.number.get,
+          bankName = otherAccount_.bank.get.name.get,
+          kind = "",
+          originalPartyBankId = theAccount.bankPermalink,
+          originalPartyAccountId = theAccount.permalink.get
+        )
         val transactionType = transaction.details.get.kind.get
         val amount = transaction.details.get.value.get.amount.get
         val currency = transaction.details.get.value.get.currency.get
@@ -312,6 +315,7 @@ object LocalConnector extends Connector with Loggable {
         None
       }
     }
+
   }
   
   /**

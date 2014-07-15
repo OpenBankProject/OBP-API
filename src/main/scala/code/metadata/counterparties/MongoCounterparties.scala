@@ -7,14 +7,18 @@ import net.liftweb.record.field.StringField
 import code.model.dataAccess.{OBPGeoTag}
 import java.util.Date
 import com.mongodb.QueryBuilder
-import net.liftweb.common.Full
+import net.liftweb.common.{Loggable, Full}
 import scala.util.Random
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 
-object MongoCounterparties extends Counterparties {
+object MongoCounterparties extends Counterparties with Loggable {
 
   def getOrCreateMetadata(originalPartyBankId: String, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
+
+    /**
+     * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
+     */
 
     val existing = for {
       objId <- tryo { new ObjectId(otherParty.id) }
@@ -25,23 +29,43 @@ object MongoCounterparties extends Counterparties {
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => {
-        //create it
-        Metadata.createRecord.
-          originalPartyBankId(originalPartyBankId).
-          originalPartyAccountId(originalPartyAccountId).
-          holder(otherParty.label).
-          publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
-      }
+      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label)
     }
 
     createOtherBankAccountMetadata(metadata)
   }
+
+  /**
+   * This only exists for OBPEnvelope. Avoid using it for any other reason outside of this class
+   */
+  def createMetadata(originalPartyBankId: String, originalPartyAccountId : String, otherAccountHolder : String) : Metadata = {
+    //create it
+    if(otherAccountHolder.isEmpty){
+      logger.info("other account holder is Empty. creating a metadata record with no public alias")
+      //no holder name, nothing to hide, so we don't need to create a public alias
+      //otherwise several transactions where the holder is empty (like here)
+      //would automatically share the metadata and then the alias
+      Metadata
+        .createRecord
+        .originalPartyBankId(originalPartyBankId)
+        .originalPartyAccountId(originalPartyAccountId)
+        .holder("")
+        .save
+
+    } else {
+      Metadata.createRecord.
+        originalPartyBankId(originalPartyBankId).
+        originalPartyAccountId(originalPartyAccountId).
+        holder(otherAccountHolder).
+        publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
+    }
+  }
+
   /**
    * Generates a new alias name that is guaranteed not to collide with any existing public alias names
    * for the account in question
    */
-  private def newPublicAliasName(originalPartyBankId : String, originalPartyAccountId : String): String = {
+  def newPublicAliasName(originalPartyBankId : String, originalPartyAccountId : String): String = {
     val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
 
     /**
