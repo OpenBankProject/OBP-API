@@ -29,7 +29,7 @@ package code.snippet
 
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
-import net.liftweb.common.{Full}
+import net.liftweb.common.Full
 import net.liftweb.sitemap.Menu
 
 /**

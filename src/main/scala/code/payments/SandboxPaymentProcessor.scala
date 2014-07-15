@@ -1,12 +1,11 @@
 package code.payments
 
-import code.model.{ModeratedTransaction, BankAccount}
+import code.model.BankAccount
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.Account
 import code.model.dataAccess.HostedBank
 import java.text.SimpleDateFormat
-import code.model.dataAccess.OBPEnvelope
 import net.liftweb.json.JsonAST.JValue
 import java.util.Date
 import code.model.dataAccess.OBPEnvelope

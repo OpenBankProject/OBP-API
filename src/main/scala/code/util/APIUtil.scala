@@ -100,7 +100,6 @@ object APIUtil {
     import collection.immutable.{TreeMap, Map=>IMap}
     import collection.mutable.Set
     import javax.crypto
-    import java.net.URI
 
     import org.apache.http.protocol.HTTP.UTF_8
     import net.liftweb.util.Helpers

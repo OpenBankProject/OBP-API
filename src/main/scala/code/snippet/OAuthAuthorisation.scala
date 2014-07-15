@@ -26,26 +26,17 @@ limitations under the License.
 		Ayoub Benali : ayoub AT tesobe Dot com
 */
 package code.snippet
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.Req
-import net.liftweb.http.GetRequest
-import net.liftweb.http.PostRequest
-import net.liftweb.http.LiftResponse
-import net.liftweb.common.Box
 import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.{Full,Empty}
+import net.liftweb.common.Full
 import net.liftweb.http.S
 import code.model.{Nonce, Consumer, Token}
 import net.liftweb.mapper.By
 import java.util.Date
-import java.net.{URLEncoder, URLDecoder}
+import java.net.URLEncoder
 import javax.crypto.spec.SecretKeySpec
-import javax.crypto.Mac
 import net.liftweb.util.Helpers
-import code.model.AppType._
 import code.model.TokenType
 import TokenType._
-import scala.compat.Platform
 import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._

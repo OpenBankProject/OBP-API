@@ -62,9 +62,8 @@ package code.model.dataAccess {
   }
 
   import net.liftweb.util._
-  import net.liftweb.common.{Loggable, Failure, Full, Empty, Box}
+  import net.liftweb.common.{Loggable, Full}
   import net.liftweb.actor.LiftActor
-  import Helpers.tryo
   import com.tesobe.model.{BankAccountNumber, CreateBankAccount, UpdateBankAccount}
   import code.util.Helper
   import net.liftweb.mapper.By

@@ -43,8 +43,6 @@ import net.liftweb.json.JsonAST.JValue
 import code.model.Token
 import code.model.TokenType
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.json.Serialization
-import net.liftweb.json.NoTypeHints
 
 case class ErrorMessage(
   error : String

@@ -1,7 +1,7 @@
 package code.payments
 
 import net.liftweb.util.SimpleInjector
-import code.model.{ModeratedTransaction, BankAccount}
+import code.model.BankAccount
 import net.liftweb.common.Box
 
 object PaymentsInjector extends SimpleInjector {

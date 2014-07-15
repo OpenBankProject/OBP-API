@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import net.liftweb.mapper._
-import code.model.{ViewData, View, BankAccount, User}
+import code.model.{ViewData, View, User}
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges

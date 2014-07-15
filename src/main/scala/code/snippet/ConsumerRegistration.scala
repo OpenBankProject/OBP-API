@@ -34,8 +34,6 @@ package code.snippet
 import net.liftweb.util.Helpers._
 import code.model.Consumer
 import net.liftweb.http.S
-import net.liftweb.common.Full
-import net.liftweb.http.SHtml
 import net.liftweb.http.RequestVar
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers

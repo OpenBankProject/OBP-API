@@ -32,17 +32,9 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import net.liftweb.mapper._
-import net.liftweb.util._
 import net.liftweb.common._
-import scala.xml.NodeSeq
-import net.liftweb.sitemap.Loc.LocGroup
-import net.liftweb.http.{S,SessionVar,Templates}
-import net.liftweb.json.JsonDSL._
-import net.liftweb.http.{SHtml,S}
-import net.liftweb.util.Helpers._
-import org.bson.types.ObjectId
-import com.mongodb.DBObject
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.http.SessionVar
+import net.liftweb.http.S
 
 
 /**

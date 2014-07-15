@@ -34,12 +34,11 @@ package code.model
 import scala.math.BigDecimal
 import java.util.Date
 import scala.collection.immutable.Set
-import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
-import code.model.dataAccess.{Account, HostedBank}
+import code.model.dataAccess.Account
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import code.metadata.comments.Comments
 import code.metadata.tags.Tags

@@ -36,8 +36,6 @@ package code.api
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST._
-import _root_.net.liftweb.util.Helpers._
 import code.model.dataAccess.APIMetric
 import java.util.Date
 import java.util.Calendar

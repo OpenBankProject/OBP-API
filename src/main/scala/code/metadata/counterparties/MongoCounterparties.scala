@@ -4,7 +4,7 @@ import code.model.{GeoTag, OtherBankAccountMetadata, OtherBankAccount}
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
 import net.liftweb.record.field.StringField
-import code.model.dataAccess.{OBPGeoTag}
+import code.model.dataAccess.OBPGeoTag
 import java.util.Date
 import com.mongodb.QueryBuilder
 import net.liftweb.common.{Loggable, Full}

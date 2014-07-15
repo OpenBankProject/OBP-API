@@ -31,26 +31,14 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
 import net.liftweb.common.{Failure,Full,Empty, Box, Loggable}
-import net.liftweb.mongodb._
-import com.mongodb.casbah.Imports._
 import _root_.java.math.MathContext
-import org.bson.types._
 import _root_.net.liftweb.util._
-import _root_.net.liftweb.mapper._
 import _root_.net.liftweb.util.Helpers._
-import _root_.scala.xml._
-import _root_.net.liftweb.http.S._
-import net.liftweb.mongodb.{ Skip, Limit }
-import _root_.net.liftweb.mapper.view._
-import java.util.Date
-import code.api.OAuthHandshake._
+import net.liftweb.mongodb.Skip
 import code.model.dataAccess.OBPEnvelope.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import code.model._
 import java.net.URL

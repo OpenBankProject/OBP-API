@@ -3,8 +3,6 @@ package code.metadata.wheretags
 import net.liftweb.util.SimpleInjector
 import java.util.Date
 import code.model.GeoTag
-import code.model.dataAccess.OBPEnvelope
-import org.bson.types.ObjectId
 
 object WhereTags  extends SimpleInjector {
 

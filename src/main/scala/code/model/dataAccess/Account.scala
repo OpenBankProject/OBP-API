@@ -33,25 +33,20 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import com.mongodb.QueryBuilder
-import net.liftweb.mongodb.JsonObjectMeta
-import net.liftweb.mongodb.JsonObject
 import net.liftweb.mongodb.record.MongoMetaRecord
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.mongodb.record.field.ObjectIdRefListField
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.ObjectIdRefField
-import net.liftweb.mongodb.record.field.MongoJsonObjectListField
 import net.liftweb.mongodb.record.field.DateField
-import net.liftweb.common.{ Box, Empty, Full, Failure, Loggable }
+import net.liftweb.common.{ Box, Full, Loggable }
 import net.liftweb.mongodb.record.field.BsonRecordField
-import net.liftweb.mongodb.record.{ BsonRecord, BsonMetaRecord }
+import net.liftweb.mongodb.record.BsonRecord
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
 import net.liftweb.mongodb.{Limit, Skip}
-import code.model.{ModeratedTransaction, AccountOwner, BankAccount}
+import code.model.{AccountOwner, BankAccount}
 import net.liftweb.mongodb.BsonDSL._
-import java.util.Date
 import OBPEnvelope._
-import code.metadata.counterparties.Metadata
 
 
 class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{

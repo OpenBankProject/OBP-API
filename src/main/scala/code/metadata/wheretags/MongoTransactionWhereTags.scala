@@ -2,10 +2,7 @@ package code.metadata.wheretags
 
 import java.util.Date
 import code.model.GeoTag
-import code.model.dataAccess.{OBPEnvelope}
-import org.bson.types.ObjectId
-import net.liftweb.common.{Loggable, Full}
-import scala.collection.mutable
+import net.liftweb.common.Loggable
 
 object MongoTransactionWhereTags extends WhereTags with Loggable {
 

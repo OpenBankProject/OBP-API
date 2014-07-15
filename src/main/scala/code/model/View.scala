@@ -34,7 +34,7 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
-import net.liftweb.common.{Box, Empty, Full, Failure}
+import net.liftweb.common.{Box, Empty}
 import code.views.Views
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject

@@ -33,7 +33,7 @@ Berlin 13359, Germany
  package code.model.dataAccess
 
  import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
- import net.liftweb.record.field.{StringField}
+ import net.liftweb.record.field.StringField
  import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
 
 class APIMetric extends MongoRecord[APIMetric] with ObjectIdPk[APIMetric] {

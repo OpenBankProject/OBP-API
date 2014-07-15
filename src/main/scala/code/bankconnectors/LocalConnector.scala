@@ -7,7 +7,6 @@ import code.model.dataAccess.HostedBank
 import code.model.dataAccess.Account
 import code.model.dataAccess.ViewImpl
 import net.liftweb.mapper.By
-import net.liftweb.common.Full
 import code.model.dataAccess.HostedAccount
 import code.model.dataAccess.APIUser
 import net.liftweb.common.Loggable
@@ -17,11 +16,10 @@ import code.model.dataAccess.OBPEnvelope
 import code.model.dataAccess.OBPAccount
 import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.util.Props
-import com.tesobe.model.UpdateBankAccount
 import code.model.dataAccess.OBPTransaction
 import code.model.dataAccess.UpdatesRequestSender
 import com.mongodb.QueryBuilder
-import code.metadata.counterparties.{Counterparties, Metadata}
+import code.metadata.counterparties.Metadata
 import scala.Some
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount

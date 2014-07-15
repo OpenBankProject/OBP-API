@@ -34,18 +34,13 @@ package code.model.dataAccess
 import net.liftweb.mapper._
 import net.liftweb.util._
 import net.liftweb.common._
-import net.liftweb.record.field.StringField
 import scala.xml.NodeSeq
-import net.liftweb.sitemap.Loc.LocGroup
-import net.liftweb.http.{S,SessionVar,Templates}
-import com.mongodb.QueryBuilder
-import code.model.{View,User, BankAccount}
+import net.liftweb.http.{SessionVar,Templates}
+import code.model.User
 import net.liftweb.json.JsonDSL._
 import net.liftweb.http.SHtml
 import net.liftweb.http.S
-import org.bson.types.ObjectId
 import com.mongodb.DBObject
-import net.liftweb.json.JsonAST.JObject
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 
 
@@ -107,7 +102,6 @@ import net.liftweb.util.Helpers._
   override def skipEmailValidation = true
 
   override def loginXhtml = {
-    import net.liftweb.http.TemplateFinder
     import net.liftweb.http.js.JsCmds.Noop
     val loginXml = Templates(List("templates-hidden","_login")).map({
         "form [action]" #> {S.uri} &

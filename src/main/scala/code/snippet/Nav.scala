@@ -31,20 +31,14 @@ Berlin 13359, Germany
  */
 
 package code.snippet
-import scala.xml.NodeSeq
 import net.liftweb.http.S
 import net.liftweb.http.LiftRules
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-import scala.xml.Group
 import net.liftweb.sitemap.Loc
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Empty
 import net.liftweb.sitemap.SiteMapSingleton
-import net.liftweb.http.SHtml
-import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds._Noop
 
 class Nav {
 

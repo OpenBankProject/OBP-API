@@ -1,11 +1,11 @@
 package code.snippet
 
 import net.liftweb.util.Helpers._
-import net.liftweb.http.{RequestVar, S, SHtml}
-import code.model.{BankAccount, Bank}
+import net.liftweb.http.SHtml
+import code.model.BankAccount
 import code.util.Helper._
 import net.liftweb.common.{Empty, Full, Failure, Box}
-import net.liftweb.http.js.JsCmds.{SetHtml, Alert}
+import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}

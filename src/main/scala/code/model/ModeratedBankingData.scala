@@ -37,12 +37,9 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.http.JsonResponse
-import net.liftweb.http.LiftResponse
 import java.text.SimpleDateFormat
 import java.net.URL
 import net.liftweb.common.Box
-import net.liftweb.common.Full
 import net.liftweb.common.Failure
 
 

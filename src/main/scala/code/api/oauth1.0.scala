@@ -28,9 +28,7 @@ limitations under the License.
 package code.api
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.Req
-import net.liftweb.http.GetRequest
 import net.liftweb.http.PostRequest
-import net.liftweb.http.LiftResponse
 import net.liftweb.common.Box
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.common.{Full,Empty,Loggable}
@@ -42,15 +40,11 @@ import java.net.{URLEncoder, URLDecoder}
 import javax.crypto.spec.SecretKeySpec
 import javax.crypto.Mac
 import net.liftweb.util.Helpers
-import code.model.AppType._
-import code.model.TokenType._
 import scala.compat.Platform
-import scala.xml.NodeSeq
 import Helpers._
 import net.liftweb.util.Props
 import code.model.TokenType
 import code.model.User
-import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.ParamFailure
 

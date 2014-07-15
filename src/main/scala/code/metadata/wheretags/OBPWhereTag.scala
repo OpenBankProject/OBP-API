@@ -4,7 +4,6 @@ import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
 import code.model.{GeoTag, User}
-import net.liftweb.common.Box
 import com.mongodb.{DBObject, QueryBuilder}
 
 class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBPWhereTag] with GeoTag {

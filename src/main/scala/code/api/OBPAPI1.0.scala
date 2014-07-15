@@ -31,29 +31,18 @@ Berlin 13359, Germany
  */
 package code.api.v1_0
 
-import net.liftweb.http._
 import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.Printer._
-import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST._
-import java.util.Calendar
-import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import net.liftweb.common.Empty
 import net.liftweb.mongodb._
-import net.liftweb.json.JsonAST.JString
-import com.mongodb.casbah.Imports._
 import _root_.java.math.MathContext
-import org.bson.types._
-import org.joda.time.{ DateTime, DateTimeZone }
-import java.util.regex.Pattern
+import org.joda.time.DateTime
 import _root_.net.liftweb.common._
-import _root_.net.liftweb.util._
 import _root_.net.liftweb.http._
 import _root_.net.liftweb.mapper._
 import _root_.net.liftweb.util.Helpers._
-import _root_.net.liftweb.sitemap._
 import _root_.scala.xml._
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.http.RequestVar
@@ -63,13 +52,11 @@ import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ Account, OBPEnvelope, OBPUser,APIMetric, HostedAccount}
+import code.model.dataAccess.{ APIMetric, HostedAccount}
 import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Bank, User}
 import code.model.dataAccess.OBPEnvelope._
-import java.util.Date
 import code.api.OAuthHandshake._
 import net.liftweb.util.Helpers.now
-import net.liftweb.json.Extraction
 import _root_.net.liftweb.json.Serialization
 import net.liftweb.json.NoTypeHints
 import code.api.OAuthHandshake.getUser

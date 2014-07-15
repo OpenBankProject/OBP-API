@@ -35,7 +35,6 @@ import net.liftweb.util.FieldError
 import net.liftweb.common.{Full,Failure,Box,Empty}
 import net.liftweb.util.Helpers
 import Helpers.now
-import code.model.dataAccess.Admin
 import code.model.dataAccess.APIUser
 import net.liftweb.http.S
 import net.liftweb.util.Helpers._

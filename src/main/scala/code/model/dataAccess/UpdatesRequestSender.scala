@@ -48,8 +48,7 @@ package code.model.dataAccess {
   import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftmodules.amqp.{AMQPSender,AMQPMessage}
   import net.liftweb.util._
-  import net.liftweb.common.{Loggable, Failure, Full, Empty, Box}
-  import Helpers.tryo
+  import net.liftweb.common.Loggable
   import com.tesobe.model.UpdateBankAccount
 
 

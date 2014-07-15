@@ -40,12 +40,10 @@ import sitemap._
 import Loc._
 import mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Schedule
 import net.liftweb.mongodb.BsonDSL._
-import net.liftweb.http.js.jquery.JqJsCmds
 import net.liftweb.util.Helpers
-import javax.mail.{ Authenticator, PasswordAuthentication }
+import javax.mail.PasswordAuthentication
 import java.io.FileInputStream
 import java.io.File
 import javax.mail.internet.MimeMessage
@@ -55,11 +53,8 @@ import dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.util.MyExceptionLogger
-import net.liftweb.mongodb.{Limit, Skip}
-import org.bson.types.ObjectId
-import com.mongodb.QueryBuilder
+import net.liftweb.mongodb.Skip
 import code.metadata.wheretags.OBPWhereTag
-import code.metadata.counterparties.Metadata
 
 /**
  * A class that's instantiated early and run.  It allows the application

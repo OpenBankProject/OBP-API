@@ -37,20 +37,17 @@ import net.liftweb.common.{Box, Empty, Failure}
 import java.util.Date
 import net.liftweb.record.field.{StringField,LongField}
 import net.liftweb.json.JsonAST._
-import net.liftweb.mongodb.record.field.{ObjectIdRefField}
-import scala.util.Random
 import code.model._
 import net.liftweb.common.Loggable
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
-import scala.xml.{Unparsed}
+import scala.xml.Unparsed
 import net.liftweb.json.JsonAST.JObject
 import scala.Some
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.common.Full
 import net.liftweb.json.JsonAST.JField
-import code.metadata.counterparties.{MongoCounterparties, Metadata}
-import com.mongodb.QueryBuilder
+import code.metadata.counterparties.MongoCounterparties
 
 /**
  * "Current Account View"

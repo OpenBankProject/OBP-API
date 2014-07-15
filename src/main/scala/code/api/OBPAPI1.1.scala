@@ -42,7 +42,7 @@ import net.liftweb.mongodb._
 import com.mongodb.casbah.Imports._
 import _root_.java.math.MathContext
 import org.bson.types._
-import org.joda.time.{ DateTime, DateTimeZone }
+import org.joda.time.DateTimeZone
 import java.util.regex.Pattern
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.mapper._
@@ -50,12 +50,10 @@ import _root_.net.liftweb.util.Helpers._
 import _root_.net.liftweb.sitemap._
 import _root_.scala.xml._
 import _root_.net.liftweb.http.S._
-import _root_.net.liftweb.http.RequestVar
 import _root_.net.liftweb.util.Helpers._
-import net.liftweb.mongodb.{ Skip, Limit }
+import net.liftweb.mongodb.Limit
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
-import com.mongodb._
 import code.model._
 import java.util.Date
 import code.api.OAuthHandshake._
