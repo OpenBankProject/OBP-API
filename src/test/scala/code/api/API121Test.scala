@@ -32,25 +32,15 @@ Berlin 13359, Germany
 package code.api.v1_2_1
 
 import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import _root_.net.liftweb.util._
 import Helpers._
-import _root_.net.liftweb.common._
 import dispatch._
-import Defaults._
-import _root_.net.liftweb.json.Extraction
-import _root_.net.liftweb.json.Serialization
 import _root_.net.liftweb.json.Serialization.write
-import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
-import net.liftweb.json.NoTypeHints
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-import net.liftweb.mapper.By
-import java.util.Date
 import code.model.TokenType._
 import scala.util.Random._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, View, ViewCreationJSON, BankAccount}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, BankAccount}
 import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, OBPEnvelope, HostedBank}
 import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
@@ -58,8 +48,6 @@ import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
 import org.bson.types.ObjectId
 import code.views.Views
-import code.api.v1_2_1.OBPAPI1_2_1.MakePaymentJson
-
 
 class API1_2_1Test extends ServerSetup{
 
