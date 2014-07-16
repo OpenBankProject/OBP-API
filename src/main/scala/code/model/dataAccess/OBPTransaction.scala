@@ -200,22 +200,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {
 
-  class OBPQueryParam
-  trait OBPOrder { def orderValue : Int }
-  object OBPOrder {
-    def apply(s: Option[String]): OBPOrder = s match {
-      case Some("asc") => OBPAscending
-      case _ => OBPDescending
-    }
-  }
-  object OBPAscending extends OBPOrder { def orderValue = 1 }
-  object OBPDescending extends OBPOrder { def orderValue = -1}
-  case class OBPLimit(value: Int) extends OBPQueryParam
-  case class OBPOffset(value: Int) extends OBPQueryParam
-  case class OBPFromDate(value: Date) extends OBPQueryParam
-  case class OBPToDate(value: Date) extends OBPQueryParam
-  case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
-
   def envlopesFromJvalue(jval: JValue) : Box[OBPEnvelope] = {
     val created = fromJValue(jval)
     val errors = created.get.validate

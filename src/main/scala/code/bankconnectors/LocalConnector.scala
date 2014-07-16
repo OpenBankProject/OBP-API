@@ -14,7 +14,6 @@ import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.OBPEnvelope
 import code.model.dataAccess.OBPAccount
-import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import net.liftweb.util.Props
 import code.model.dataAccess.OBPTransaction
 import code.model.dataAccess.UpdatesRequestSender

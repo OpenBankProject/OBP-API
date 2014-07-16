@@ -38,13 +38,11 @@ import net.liftweb.json.JObject
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JArray
 import net.liftweb.common._
-import code.model.dataAccess.Account
-import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import code.metadata.comments.Comments
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
-import code.bankconnectors.Connector
+import code.bankconnectors.{OBPQueryParam, Connector}
 import code.views.Views
 import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties

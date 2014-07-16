@@ -39,7 +39,7 @@ import _root_.java.math.MathContext
 import _root_.net.liftweb.util._
 import _root_.net.liftweb.util.Helpers._
 import net.liftweb.mongodb.Skip
-import code.model.dataAccess.OBPEnvelope.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
+import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import code.model._
 import java.net.URL
 import code.util.APIUtil._

@@ -58,7 +58,7 @@ import code.model._
 import java.util.Date
 import code.api.OAuthHandshake._
 import code.model.dataAccess.APIMetric
-import code.model.dataAccess.OBPEnvelope.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
+import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
 
 case class TagJSON(

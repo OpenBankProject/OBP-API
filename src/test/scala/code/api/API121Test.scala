@@ -56,9 +56,9 @@ import code.api.test.{ServerSetup, APIResponse}
 import code.util.APIUtil.OAuth._
 import code.model.ViewCreationJSON
 import net.liftweb.json.JsonAST.JString
-import code.api.v1_2_1.OBPAPI1_2_1.MakePaymentJson
 import org.bson.types.ObjectId
 import code.views.Views
+import code.api.v1_2_1.OBPAPI1_2_1.MakePaymentJson
 
 
 class API1_2_1Test extends ServerSetup{

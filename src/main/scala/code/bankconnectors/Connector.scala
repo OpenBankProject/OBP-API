@@ -7,9 +7,9 @@ import net.liftweb.util.SimpleInjector
 import code.model.User
 import code.model.ModeratedOtherBankAccount
 import code.model.OtherBankAccount
-import code.model.dataAccess.OBPEnvelope.OBPQueryParam
 import code.model.ModeratedTransaction
 import code.model.Transaction
+import java.util.Date
 
 object Connector  extends SimpleInjector {
 
@@ -18,6 +18,22 @@ object Connector  extends SimpleInjector {
   def buildOne: Connector = LocalConnector
   
 }
+
+class OBPQueryParam
+trait OBPOrder { def orderValue : Int }
+object OBPOrder {
+  def apply(s: Option[String]): OBPOrder = s match {
+    case Some("asc") => OBPAscending
+    case _ => OBPDescending
+  }
+}
+object OBPAscending extends OBPOrder { def orderValue = 1 }
+object OBPDescending extends OBPOrder { def orderValue = -1}
+case class OBPLimit(value: Int) extends OBPQueryParam
+case class OBPOffset(value: Int) extends OBPQueryParam
+case class OBPFromDate(value: Date) extends OBPQueryParam
+case class OBPToDate(value: Date) extends OBPQueryParam
+case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
 
 trait Connector {
   

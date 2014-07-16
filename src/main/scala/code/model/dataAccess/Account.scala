@@ -47,6 +47,14 @@ import net.liftweb.mongodb.{Limit, Skip}
 import code.model.{AccountOwner, BankAccount}
 import net.liftweb.mongodb.BsonDSL._
 import OBPEnvelope._
+import code.bankconnectors._
+import code.bankconnectors.OBPOffset
+import net.liftweb.common.Full
+import scala.Some
+import code.bankconnectors.OBPLimit
+import code.bankconnectors.OBPOrdering
+import net.liftweb.mongodb.Limit
+import net.liftweb.mongodb.Skip
 
 
 class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
