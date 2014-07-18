@@ -38,9 +38,6 @@ import code.api.OBPRestHelper
 
 object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
 
-  implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
-  implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
-
 
   val VERSION = "1.2.1"
   val vPlusVersion = "v" + VERSION

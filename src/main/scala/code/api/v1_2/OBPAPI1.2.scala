@@ -51,9 +51,6 @@ import code.api.OBPRestHelper
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {
-
-  implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
-  implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
   
   //we now identify users by a combination of auth provider and the id given to them by their auth provider
   // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both
