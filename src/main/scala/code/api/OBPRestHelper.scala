@@ -71,10 +71,14 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   val msg = s"user $userId not found at provider $providerId"
 }
 
-class OBPRestHelper extends RestHelper with Loggable {
+trait OBPRestHelper extends RestHelper with Loggable {
 
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
+
+  val VERSION : String
+  val vPlusVersion = "v" + VERSION
+  val apiPrefix = "obp" / vPlusVersion oPrefix _
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {

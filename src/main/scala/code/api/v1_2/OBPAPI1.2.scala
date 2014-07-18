@@ -57,8 +57,8 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
   //provider and id from the provider as arguments, we just use this value here as the provider.
   val authProvider = Props.get("hostname","")
 
+  val VERSION = "1.2"
   val dateFormat = ModeratedTransaction.dateFormat
-  val apiPrefix = "obp" / "v1.2" oPrefix _
 
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
