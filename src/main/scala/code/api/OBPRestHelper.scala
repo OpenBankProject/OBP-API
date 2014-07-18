@@ -40,7 +40,6 @@ import net.liftweb.http.JsonResponse
 import code.util.APIUtil._
 import code.model.User
 import code.api.OAuthHandshake._
-import code.api.v1_2_1.{SuccessMessage, ErrorMessage}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 
