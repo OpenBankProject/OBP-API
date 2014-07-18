@@ -77,8 +77,8 @@ trait OBPRestHelper extends RestHelper with Loggable {
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
   val VERSION : String
-  val vPlusVersion = "v" + VERSION
-  val apiPrefix = "obp" / vPlusVersion oPrefix _
+  def vPlusVersion = "v" + VERSION
+  def apiPrefix = "obp" / vPlusVersion oPrefix _
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
