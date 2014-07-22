@@ -431,7 +431,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink):: super.dbIndexes
+  override def dbIndexes = Index(permalink_, account) :: Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
   def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
     By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
