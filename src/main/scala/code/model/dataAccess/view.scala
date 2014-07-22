@@ -34,6 +34,7 @@ package code.model.dataAccess
 
 import net.liftweb.mapper._
 import code.model.{ViewData, View, User}
+import scala.collection.immutable.List
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
@@ -424,8 +425,15 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddWhereTag : Boolean = canAddWhereTag_.get
   def canSeeWhereTag : Boolean = canSeeWhereTag_.get
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
+
+  //TODO: if you add new permissions here, remember to set them wherever views are create
+  // (e.g. BankAccountCreationDispatcher)
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = Index(permalink_, account) :: Index(permalink_, bankPermalink, accountPermalink):: super.dbIndexes
+  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink):: super.dbIndexes
+
+  def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
+    By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
+  }
 }

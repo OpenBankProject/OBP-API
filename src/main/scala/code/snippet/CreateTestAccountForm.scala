@@ -93,7 +93,7 @@ object CreateTestAccountForm{
         //set currency and initial balance
         bankAccount.currency(currency).balance(initialBalanceAsNumber).save
 
-        BankAccountCreation.createOwnerView(hostedAccount, user)
+        BankAccountCreation.createOwnerView(bankId, accountId, hostedAccount, user)
         bankAccount
       }
     }

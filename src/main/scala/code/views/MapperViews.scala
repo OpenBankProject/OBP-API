@@ -22,14 +22,10 @@ import code.api.APIFailure
 
 object MapperViews extends Views with Loggable {
 
-  def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
-    By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
-  }
-
   def permissions(account : BankAccount) : Box[List[Permission]] = {
 
     val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
-      accountFilter(account.bankPermalink, account.permalink): _*)
+      ViewImpl.accountFilter(account.bankPermalink, account.permalink): _*)
     //all the user that have access to at least to a view
     val users = views.map(_.users.toList).flatten.distinct
     val usersPerView = views.map(v  =>(v, v.users.toList))
@@ -158,7 +154,7 @@ object MapperViews extends Views with Loggable {
 
   def view(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[View] = {
     ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
-      accountFilter(bankPermalink, accountPermalink): _*)
+      ViewImpl.accountFilter(bankPermalink, accountPermalink): _*)
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
@@ -167,7 +163,7 @@ object MapperViews extends Views with Loggable {
     }
 
     val existing = ViewImpl.find(By(ViewImpl.permalink_, newViewPermalink) ::
-      accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)
+      ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)
 
     if(existing.isDefined)
       Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
@@ -188,7 +184,7 @@ object MapperViews extends Views with Loggable {
 
     for {
       view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
-        accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
+        ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
         override val responseCode: Int = 404
         override val msg: String = s"View $viewId not found"
       }
@@ -205,7 +201,7 @@ object MapperViews extends Views with Loggable {
     else {
       for {
         view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
-          accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
+          ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
           override val responseCode: Int = 404
           override val msg: String = s"View $viewId not found"
         }
@@ -216,7 +212,7 @@ object MapperViews extends Views with Loggable {
   }
 
   def views(bankAccount : BankAccount) : Box[List[View]] = {
-    Full(ViewImpl.findAll(accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*))
+    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*))
   }
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
@@ -247,7 +243,7 @@ object MapperViews extends Views with Loggable {
   def publicViews(bankAccount : BankAccount) : Box[List[View]] = {
     //TODO: do this more efficiently?
     //TODO: get rid of box
-    Full(ViewImpl.findAll(accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*).filter(v => {
+    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*).filter(v => {
       v.isPublic == true
     }))
   }
