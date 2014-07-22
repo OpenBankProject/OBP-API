@@ -44,23 +44,31 @@ object LocalConnector extends Connector with Loggable {
   }
   
   def getAllPublicAccounts() : List[BankAccount] = {
-    //TODO: reimplement
+    //TODO: do this more efficiently
 
-    //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
-    ViewImpl.findAll(By(ViewImpl.isPublic_, true)). 
-      map{_.account.obj}.
-      collect{case Full(a) => a.theAccount}.
-      collect{case Full(a) => Account.toBankAccount(a)}
+    val bankAndAccountPermalinks : List[(String, String)] =
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
+        (v.bankPermalink.get, v.accountPermalink.get)
+      ).distinct //we remove duplicates here
+
+    bankAndAccountPermalinks.map {
+      case (bankPermalink, accountPermalink) => {
+        getBankAccount(bankPermalink, accountPermalink)
+      }
+    }.flatten
   }
 
   def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
-    //TODO: reimplement
+    //TODO: do this more efficiently
 
-    //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
-    ViewImpl.findAll(By(ViewImpl.isPublic_, true)). //TODO: this should be a Metadata.vend() type thing to remove the hardcoded ViewImpl reference
-      map{_.account.obj}.
-      collect{case Full(a) if a.bank==bank.fullName => a.theAccount}.
-      collect{case Full(a) => Account.toBankAccount(a)}
+    val accountPermalinks : List[String] =
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+        v.accountPermalink.get
+      }).distinct //we remove duplicates here
+
+    accountPermalinks.map(accPerma => {
+      getBankAccount(bank.permalink, accPerma)
+    }).flatten
   }
   
   /**
