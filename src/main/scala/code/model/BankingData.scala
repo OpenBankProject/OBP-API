@@ -279,7 +279,7 @@ class BankAccount(
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAllPermission(id, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermission(bankPermalink, permalink, otherUser)
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)

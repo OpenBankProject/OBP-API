@@ -44,7 +44,8 @@ object LocalConnector extends Connector with Loggable {
   }
   
   def getAllPublicAccounts() : List[BankAccount] = {
-    
+    //TODO: reimplement
+
     //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
     ViewImpl.findAll(By(ViewImpl.isPublic_, true)). 
       map{_.account.obj}.
@@ -53,7 +54,8 @@ object LocalConnector extends Connector with Loggable {
   }
 
   def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
-    
+    //TODO: reimplement
+
     //TODO: remove ViewImpl and replace it with it's interface: view interface needs attributes for bankPermalink + accountPermalink
     ViewImpl.findAll(By(ViewImpl.isPublic_, true)). //TODO: this should be a Metadata.vend() type thing to remove the hardcoded ViewImpl reference
       map{_.account.obj}.

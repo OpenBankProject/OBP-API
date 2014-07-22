@@ -7,11 +7,9 @@ import code.model.Permission
 import code.model.User
 import code.model.dataAccess.APIUser
 import code.model.dataAccess.ViewImpl
-import code.model.dataAccess.HostedAccount
 import code.model.dataAccess.ViewPrivileges
-import code.bankconnectors.Connector
 import net.liftweb.common.Loggable
-import net.liftweb.mapper.{ByList, By}
+import net.liftweb.mapper.{QueryParam, By}
 import net.liftweb.common.{Box, Full, Empty, Failure}
 import code.model.ViewCreationJSON
 import code.model.ViewUpdateData
@@ -19,58 +17,70 @@ import code.api.APIFailure
 
 
 //TODO: get rid of references to APIUser
+//TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
 object MapperViews extends Views with Loggable {
-  
-  def permissions(account : BankAccount) : Box[List[Permission]] = {
-    for{
-      acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
-    } yield {
 
-        val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.account, acc), By(ViewImpl.isPublic_, false))
-        //all the user that have access to at least to a view
-        val users = views.map(_.users.toList).flatten.distinct
-        val usersPerView = views.map(v  =>(v, v.users.toList))
-        users.map(u => {
-          new Permission(
-            u,
-            usersPerView.filter(_._2.contains(u)).map(_._1)
-          )
-        })
-      }
+  def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
+    By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
+  }
+
+  def permissions(account : BankAccount) : Box[List[Permission]] = {
+
+    val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
+      accountFilter(account.bankPermalink, account.permalink): _*)
+    //all the user that have access to at least to a view
+    val users = views.map(_.users.toList).flatten.distinct
+    val usersPerView = views.map(v  =>(v, v.users.toList))
+    val permissions = users.map(u => {
+      new Permission(
+        u,
+        usersPerView.filter(_._2.contains(u)).map(_._1)
+      )
+    })
+
+    //TODO: get rid of the Box
+    Full(permissions)
   }
 
   def permission(account : BankAccount, user: User) : Box[Permission] = {
 
-    for{
-      acc <- HostedAccount.find(By(HostedAccount.accountID,account.id))
-    } yield {
-      val viewsOfAccount = acc.views.toList
-      val viewsOfUser = user.views.toList
-      val views = viewsOfAccount.filter(v => viewsOfUser.contains(v))
-      Permission(user, views)
+    user match {
+      case u: APIUser => {
+        //search ViewPrivileges to get all views for user and then filter the views
+        // by bankPermalink and accountPermalink
+        //TODO: do it in a single query with a join
+        val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+        val views = privileges.flatMap(_.view.obj).filter(v => {
+          v.accountPermalink.get == account.permalink &&
+          v.bankPermalink.get == account.bankPermalink
+        })
+        Full(Permission(user, views))
+      }
+      case u: User => {
+        logger.error("APIUser instance not found, could not grant access ")
+        Empty
+      }
     }
   }
 
+  //TODO: remove bankAccountId
   def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
     user match {
-      //TODO: fix this match stuff
-      case u: APIUser =>
-        for{
-          bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
-        } yield {
-            if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,view.id))==0)
-              ViewPrivileges.create.
-                user(u).
-                view(view.id).
-                save
-            else
-              true
-          }
+      case u: APIUser => {
+        //check if it exists
+        if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,view.id))==0)
+          Full(ViewPrivileges.create.
+            user(u).
+            view(view.id).
+            save)
+        else
+          Full(true)
+      }
       case u: User => {
-          logger.error("APIUser instance not found, could not grant access ")
-          Empty
+        logger.error("APIUser instance not found, could not grant access ")
+        Empty
       }
     }
   }
@@ -94,14 +104,13 @@ object MapperViews extends Views with Loggable {
         Empty
       }
     }
-
   }
+
   def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean] = {
     user match {
       //TODO: fix this match stuff
       case u:APIUser =>
         for{
-          bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
           vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
           deletable <- checkIfOwnerViewAndHasMoreThanOneUser(view)
         } yield {
@@ -123,17 +132,18 @@ object MapperViews extends Views with Loggable {
     }
   }
 
-  def revokeAllPermission(bankAccountId : String, user : User) : Box[Boolean] = {
+  def revokeAllPermission(bankPermalink : String, accountPermalink: String, user : User) : Box[Boolean] = {
     user match {
       //TODO: fix this match stuff
       case u:APIUser =>{
-        for{
-          bankAccount <- HostedAccount.find(By(HostedAccount.accountID, bankAccountId))
-        } yield {
-          val views = ViewImpl.findAll(By(ViewImpl.account, bankAccount)).map(_.id_.get)
-          ViewPrivileges.findAll(By(ViewPrivileges.user, u), ByList(ViewPrivileges.view, views)).map(_.delete_!)
-          true
-        }
+        //TODO: make this more efficient by using one query (with a join)
+        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+        val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
+          case Full(v) => v.bankPermalink.get == bankPermalink && v.accountPermalink.get == accountPermalink
+          case _ => false
+        })
+        relevantAccountPrivs.foreach(_.delete_!)
+        Full(true)
       }
       case u: User => {
         logger.error("APIUser instance not found, could not revoke access ")
@@ -143,20 +153,12 @@ object MapperViews extends Views with Loggable {
   }
   
   def view(viewPermalink : String, account: BankAccount) : Box[View] = {
-    //TODO: Once ViewImpl contains fields for accountId and bankId, we can skip the acount lookup
-    for{
-      acc <- HostedAccount.find(By(HostedAccount.accountID, account.id))
-      v <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink), By(ViewImpl.account, acc))
-    } yield v
+    view(viewPermalink, account.bankPermalink, account.permalink)
   }
 
-  def view(viewPermalink : String, accountId: String, bankId: String) : Box[View] = {
-    //TODO: Once ViewImpl contains fields for accountId and bankId, we can skip the acount lookup
-    for{
-      account <- Connector.connector.vend.getBankAccount(bankId, accountId)
-      acc <- HostedAccount.find(By(HostedAccount.accountID, account.id))
-      v <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink), By(ViewImpl.account, acc))
-    } yield v
+  def view(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[View] = {
+    ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
+      accountFilter(bankPermalink, accountPermalink): _*)
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
@@ -164,44 +166,32 @@ object MapperViews extends Views with Loggable {
       view.name.replaceAllLiterally(" ","").toLowerCase
     }
 
-    HostedAccount.find(By(HostedAccount.accountID,bankAccount.id)) match {
-      case Full(account) => {
-        val existing = ViewImpl.find(
-        By(ViewImpl.permalink_, newViewPermalink),
-        By(ViewImpl.account, account))
+    val existing = ViewImpl.find(By(ViewImpl.permalink_, newViewPermalink) ::
+      accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)
 
-        if(existing.isDefined)
-          Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
-        else{
-          val createdView = ViewImpl.create.
-            name_(view.name).
-            permalink_(newViewPermalink).
-            account(account)
+    if(existing.isDefined)
+      Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
+    else {
+      val createdView = ViewImpl.create.
+        name_(view.name).
+        permalink_(newViewPermalink).
+        bankPermalink(bankAccount.bankPermalink).
+        accountPermalink(bankAccount.permalink)
 
-          createdView.setFromViewData(view)
-          Full(createdView.saveMe)
-        }
-
-      }
-      case _ => Failure(s"Account ${bankAccount.id} not found")
+      createdView.setFromViewData(view)
+      Full(createdView.saveMe)
     }
-
 
   }
 
   def updateView(bankAccount : BankAccount, viewId: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {
-      account <- HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) ~> new APIFailure {
+      view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
+        accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
         override val responseCode: Int = 404
-        override val msg: String = s"Account ${bankAccount.id} not found"
+        override val msg: String = s"View $viewId not found"
       }
-      view <- ViewImpl.find(
-        By(ViewImpl.permalink_, viewId),
-        By(ViewImpl.account, account)) ~> new APIFailure {
-          override val responseCode: Int = 404
-          override val msg: String = s"View $viewId not found"
-        }
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -209,37 +199,43 @@ object MapperViews extends Views with Loggable {
   }
 
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
+
     if(viewId=="Owner")
       Failure("you cannot delete the Owner view")
-    else
-      for{
-        v <- ViewImpl.find(By(ViewImpl.permalink_,viewId)) ?~ "view not found"
-        if(v.delete_!)
-      } yield {}
+    else {
+      for {
+        view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
+          accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
+          override val responseCode: Int = 404
+          override val msg: String = s"View $viewId not found"
+        }
+        if(view.delete_!)
+      } yield {
+      }
+    }
   }
 
   def views(bankAccount : BankAccount) : Box[List[View]] = {
-    for(account <- HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)))
-      yield {
-        account.views.toList
-      }
+    Full(ViewImpl.findAll(accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*))
   }
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
+
     user match {
       //TODO: fix this match stuff
       case u: APIUser=> {
-        val nonPublic: List[View] =
-          HostedAccount.find(By(HostedAccount.accountID, bankAccount.id)) match {
-            case Full(account) =>{
-              val accountViews = account.views.toList
-              val userViews = u.views
-              accountViews.filter(v => userViews.contains(v))
-            }
-            case _ => Nil
+        //TODO: do this more efficiently?
+        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+        val userViewsForAccount = allUserPrivs.flatMap(p => {
+          p.view.obj match {
+            case Full(v) => if(v.bankPermalink.get == bankAccount.bankPermalink &&
+              v.accountPermalink.get == bankAccount.permalink){
+              Some(v)
+            } else None
+            case _ => None
           }
-
-        nonPublic ::: bankAccount.publicViews
+        })
+        userViewsForAccount
       }
       case _ => {
         logger.error("APIUser instance not found, could not get Permitted views")
@@ -249,10 +245,11 @@ object MapperViews extends Views with Loggable {
   }
 
   def publicViews(bankAccount : BankAccount) : Box[List[View]] = {
-    for{account <- HostedAccount.find(By(HostedAccount.accountID, bankAccount.id))}
-      yield{
-        account.views.toList.filter(v => v.isPublic==true)
-      }
+    //TODO: do this more efficiently?
+    //TODO: get rid of box
+    Full(ViewImpl.findAll(accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*).filter(v => {
+      v.isPublic == true
+    }))
   }
   
 }
