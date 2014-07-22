@@ -3,22 +3,17 @@ package code.bankconnectors
 import net.liftweb.common.Box
 import scala.concurrent.ops.spawn
 import code.model._
-import code.model.dataAccess.HostedBank
-import code.model.dataAccess.Account
-import code.model.dataAccess.ViewImpl
+import code.model.dataAccess._
 import net.liftweb.mapper.By
-import code.model.dataAccess.HostedAccount
-import code.model.dataAccess.APIUser
 import net.liftweb.common.Loggable
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
-import code.model.dataAccess.OBPEnvelope
-import code.model.dataAccess.OBPAccount
 import net.liftweb.util.Props
-import code.model.dataAccess.OBPTransaction
-import code.model.dataAccess.UpdatesRequestSender
 import com.mongodb.QueryBuilder
 import code.metadata.counterparties.Metadata
+import scala.Some
+import net.liftweb.common.Full
+import com.tesobe.model.UpdateBankAccount
 import scala.Some
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
@@ -135,18 +130,30 @@ object LocalConnector extends Connector with Loggable {
   def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
 
     val accountsList =
+      //TODO: get rid of this match statement
       user match {
         case u : APIUser => {
-          val moreThanAnon = moreThanAnonHostedAccounts(u)
-          val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
-          Account.findAll(mongoIds).map(Account.toBankAccount)
+          //TODO: get rid of dependency on ViewPrivileges, ViewImpl
+          //TODO: make this more efficient
+          val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+          val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+
+          val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+            (v.bankPermalink.get, v.accountPermalink.get)
+          }).distinct //we remove duplicates here
+
+          nonPublicViewBankAndAccountPermalinks.map {
+            case(bankPermalink, accountPermalink) => {
+              getBankAccount(bankPermalink, accountPermalink)
+            }
+          }
         }
         case u: User => {
           logger.error("APIUser instance not found, could not find the non public accounts")
           Nil
         }
       }
-    Full(accountsList)
+    Full(accountsList.flatten)
   }
   
     /**
