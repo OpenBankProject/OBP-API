@@ -72,20 +72,38 @@ object LocalConnector extends Connector with Loggable {
    */
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
     user match {
-      case Full(u) => {
-        val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
-        val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
-        val moreThanAnonAccounts = Account.findAll(mongoIds).map(Account.toBankAccount)
+      case Full(theuser) => {
+        //TODO: get rid of this match
+        theuser match {
+          case u : APIUser => {
+            //TODO: this could be quite a bit more efficient...
 
-        val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
-          map{_.account.obj}.
-          collect{case Full(a) => a.theAccount}.
-          collect{case Full(a)
-          //Throw out those that are already counted in moreThanAnonAccounts
-          if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct
+
+            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+
+            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct //we remove duplicates here
+
+            val visibleBankAndAccountPermalinks =
+              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+
+            visibleBankAndAccountPermalinks.map {
+              case(bankPermalink, accountPermalink) => {
+                getBankAccount(bankPermalink, accountPermalink)
+              }
+            }.flatten
+          }
+          case _ => {
+            logger.error("APIUser instance not found, could not get all accounts user can see")
+            Nil
+          }
         }
 
-        moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
       }
       case _ => getAllPublicAccounts()
     }
@@ -95,29 +113,43 @@ object LocalConnector extends Connector with Loggable {
   * @param user
   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
   */
+  //TODO: remove Box in result
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
     user match {
-      case Full(u) => {
-        //TODO: this could be quite a bit more efficient...
-        for {
-          bankObjectId <- tryo{new ObjectId(bank.id)}
-        } yield {
-          def sameBank(account : Account) : Boolean =
-            account.bankID.get == bankObjectId
+      case Full(theuser) => {
 
-          val moreThanAnonHosted = moreThanAnonHostedAccounts(u)
-          val mongoIds = moreThanAnonHosted.map(hAcc => new ObjectId(hAcc.accountID.get))
-          val moreThanAnonAccounts = Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
+        //TODO: get rid of this match
+        theuser match {
+          case u : APIUser => {
+            //TODO: this could be quite a bit more efficient...
 
-          val publicAccountsThatUserDoesNotHaveMoreThanAnon = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).
-            map{_.account.obj}.
-            collect{case Full(a) if a.bank==bank.fullName => a.theAccount}. //throw out with the wrong bank
-            collect{case Full(a)
-              //Throw out those that are already counted in moreThanAnonAccounts
-              if(!moreThanAnonAccounts.exists(x => sameAccount(a, x))) => Account.toBankAccount(a)
+            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
+              By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct
+
+            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
+              !v.isPublic && v.bankPermalink.get == bank.permalink
+            })
+
+            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct //we remove duplicates here
+
+            val visibleBankAndAccountPermalinks =
+              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+
+            Full(visibleBankAndAccountPermalinks.map {
+              case(bankPermalink, accountPermalink) => {
+                getBankAccount(bankPermalink, accountPermalink)
+              }
+            }.flatten)
           }
-
-          moreThanAnonAccounts ++ publicAccountsThatUserDoesNotHaveMoreThanAnon
+          case _ => {
+            logger.error("APIUser instance not found, could not get all accounts user can see")
+            Full(Nil)
+          }
         }
       }
       case _ => Full(getPublicBankAccounts(bank))
