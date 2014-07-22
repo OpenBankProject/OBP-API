@@ -106,9 +106,9 @@ trait ServerSetup extends FeatureSpec
           create.
           accountID(account.id.get.toString).
           saveMe
-      ownerView(hostedaccount)
-      publicView(hostedaccount)
-      randomView(hostedaccount)
+      ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
+      publicView(account.bankPermalink, account.permalink.get, hostedaccount)
+      randomView(account.bankPermalink, account.permalink.get, hostedaccount)
       hostedaccount
     })
 
@@ -232,13 +232,15 @@ trait ServerSetup extends FeatureSpec
     getAPIResponse(jsonReq)
   }
 
-  def ownerView(account: HostedAccount) =
+  def ownerView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
     ViewImpl.create.
     name_("Owner").
     description_(randomString(3)).
     permalink_("owner").
     isPublic_(false).
     account(account).
+    bankPermalink(bankPermalink).
+    accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(false).
     hideOtherAccountMetadataIfAlias_(false).
@@ -304,13 +306,15 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     saveMe
 
-  def publicView(account: HostedAccount) =
+  def publicView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
     ViewImpl.create.
     name_("Public").
     description_(randomString(3)).
     permalink_("public").
     isPublic_(true).
     account(account).
+    bankPermalink(bankPermalink).
+    accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(true).
     hideOtherAccountMetadataIfAlias_(true).
@@ -376,13 +380,15 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-  def randomView(account: HostedAccount) =
+  def randomView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).
     permalink_(randomString(3)).
     isPublic_(false).
     account(account).
+    bankPermalink(bankPermalink).
+    accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(false).
     hideOtherAccountMetadataIfAlias_(false).

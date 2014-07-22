@@ -752,7 +752,7 @@ class API1_2_1Test extends ServerSetup{
       national_identifier(randomString(5)).
       save
 
-    def createAccount(bankMongoId : String, accountPermalink : String, currency : String) = {
+    def createAccount(bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
 
       val created = Account.createRecord.
         balance(1000).
@@ -771,7 +771,7 @@ class API1_2_1Test extends ServerSetup{
         accountID(created.id.get.toString).
         saveMe
 
-      val owner = ownerView(hostedAccount)
+      val owner = ownerView(bankPermalink, accountPermalink, hostedAccount)
 
       //give to user1 owner view
       ViewPrivileges.create.
@@ -789,8 +789,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -860,8 +860,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -899,8 +899,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -940,8 +940,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -980,8 +980,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -1022,7 +1022,7 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -1056,8 +1056,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "GBP")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -1236,14 +1236,14 @@ class API1_2_1Test extends ServerSetup{
             create.
             accountID(account.id.get.toString).
             saveMe
-        val owner = ownerView(hostedaccount)
+        val owner = ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
         ViewPrivileges.create.
           view(owner).
           user(ownerUser).
           save
 
         if(addPublicView) {
-          publicView(hostedaccount)
+          publicView(account.bankPermalink, account.permalink.get, hostedaccount)
         }
       })
     }
