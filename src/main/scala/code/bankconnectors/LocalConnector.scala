@@ -401,31 +401,6 @@ object LocalConnector extends Connector with Loggable {
     )
   }
   
-  private def moreThanAnonHostedAccounts(user : User) : List[HostedAccount] = {
-    user match {
-      //TODO: what's up with this?
-      case u : APIUser => {
-        u.views_.toList.
-        filterNot(_.isPublic_).
-        map(_.account.obj.get)
-      }
-      case _ => {
-        logger.error("APIUser instance not found, could not find the accounts")
-        Nil
-      }
-    }
-  }
-  
-  /**
-   * Checks if an Account and BankAccount represent the same thing (to avoid converting between the two if
-   * it's not required)
-   */
-  private def sameAccount(account : Account, bankAccount : BankAccount) : Boolean = {
-    //important: account.permalink.get (if you just use account.permalink it compares a StringField
-    // to a String, which will always be false
-    (account.bankPermalink == bankAccount.bankPermalink) && (account.permalink.get == bankAccount.permalink)
-  }
-  
   private def getHostedBank(permalink : String) : Box[HostedBank] = {
     for{
       bank <- HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
