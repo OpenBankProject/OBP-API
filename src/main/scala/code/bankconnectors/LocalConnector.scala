@@ -162,16 +162,17 @@ object LocalConnector extends Connector with Loggable {
   def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
       case u : APIUser => {
-        for {
-          bankObjectId <- tryo{new ObjectId(bankID)}
-        } yield {
-          def sameBank(account : Account) : Boolean =
-            account.bankID.get == bankObjectId
 
-          val moreThanAnon = moreThanAnonHostedAccounts(u)
-          val mongoIds = moreThanAnon.map(hAcc => new ObjectId(hAcc.accountID.get))
-          Account.findAll(mongoIds).filter(sameBank).map(Account.toBankAccount)
-        }
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+        val userNonPublicViewsForBank : List[ViewImpl] =
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankID)
+
+        val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
+          map(_.accountPermalink.get).distinct //we remove duplicates here
+
+        Full(nonPublicViewAccountPermalinks.map {
+          getBankAccount(bankID, _)
+        }.flatten)
       }
       case u : User => {
         logger.error("APIUser instance not found, could not find the non public account ")
