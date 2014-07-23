@@ -191,19 +191,19 @@ object LocalConnector extends Connector with Loggable {
     /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
   */
-  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User, bankPermalink : String) :  Box[List[BankAccount]] = {
     user match {
       case u : APIUser => {
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val userNonPublicViewsForBank : List[ViewImpl] =
-          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankID)
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankPermalink)
 
         val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
           map(_.accountPermalink.get).distinct //we remove duplicates here
 
         Full(nonPublicViewAccountPermalinks.map {
-          getBankAccount(bankID, _)
+          getBankAccount(bankPermalink, _)
         }.flatten)
       }
       case u : User => {

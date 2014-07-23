@@ -77,7 +77,7 @@ class Bank(
 
   def publicAccounts : List[BankAccount] = Connector.connector.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getNonPublicBankAccounts(user, id)
+    Connector.connector.vend.getNonPublicBankAccounts(user, permalink)
   }
 
   def detailedJson : JObject = {
