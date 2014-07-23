@@ -149,7 +149,7 @@ object MapperViews extends Views with Loggable {
   }
   
   def view(viewPermalink : String, account: BankAccount) : Box[View] = {
-    view(viewPermalink, account.bankPermalink, account.permalink)
+    view(viewPermalink, account.permalink, account.bankPermalink)
   }
 
   def view(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[View] = {
