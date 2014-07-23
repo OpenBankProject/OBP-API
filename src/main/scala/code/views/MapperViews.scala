@@ -219,16 +219,18 @@ object MapperViews extends Views with Loggable {
       case u: APIUser=> {
         //TODO: do this more efficiently?
         val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-        val userViewsForAccount = allUserPrivs.flatMap(p => {
+        val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
           p.view.obj match {
-            case Full(v) => if(v.bankPermalink.get == bankAccount.bankPermalink &&
+            case Full(v) => if(
+              !v.isPublic &&
+              v.bankPermalink.get == bankAccount.bankPermalink &&
               v.accountPermalink.get == bankAccount.permalink){
               Some(v)
             } else None
             case _ => None
           }
         })
-        userViewsForAccount
+        userNonPublicViewsForAccount ++ bankAccount.publicViews
       }
       case _ => {
         logger.error("APIUser instance not found, could not get Permitted views")
