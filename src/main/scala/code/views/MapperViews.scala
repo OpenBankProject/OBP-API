@@ -201,10 +201,7 @@ object MapperViews extends Views with Loggable {
     else {
       for {
         view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
-          ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
-          override val responseCode: Int = 404
-          override val msg: String = s"View $viewId not found"
-        }
+          ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)  ?~ "view not found"
         if(view.delete_!)
       } yield {
       }
