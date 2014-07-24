@@ -254,51 +254,5 @@ class Boot extends Loggable{
       case MyExceptionLogger(_, _, t) => throw t // this will never happen
     }
 
-    def viewBankAndAccountPermalinksAlreadySet : Boolean = {
-      ViewImpl.find(StartAt(0)) match {
-        case Full(v) => {
-          //if both account and bank permalinks are set already, assume this is the case
-          //for all views
-          !(v.accountPermalink.get == null) &&
-          !(v.bankPermalink.get == null)
-        }
-        case _ => {
-          logger.warn("no views found, so no need to upgrade anything.")
-          true
-        }
-      }
-    }
-
-    if (Props.get("do_add_bank_and_account_permalink_upgrade").isDefined &&
-      !viewBankAndAccountPermalinksAlreadySet) {
-
-      val views = ViewImpl.findAll
-
-      views.foreach(view => {
-
-        val acc = view.account.obj
-
-        val result = for {
-          hostedAcc <- acc ?~! s"no hosted account found for view $view. Cannot add bank and account permalinks"
-          mongoAccount <- hostedAcc.theAccount ?~! s"no mongo account found for view $view. Cannot add bank and account permalinks"
-        } yield {
-          val bankPermalink = mongoAccount.bankPermalink
-          val accountPermalink = mongoAccount.permalink.get
-          logger.info(s"Adding bankPermalink $bankPermalink and accountPermalink $accountPermalink " +
-            s"to view ${view.id}")
-          view.bankPermalink(bankPermalink).accountPermalink(accountPermalink).save
-        }
-
-        result match {
-          case Failure(msg, _, _) => logger.warn(msg)
-          case _ => logger.info("added permalinks")
-        }
-
-      })
-
-    } else {
-      logger.info("not attempting to add bank and account permalinks to views")
-    }
-
   }
 }
