@@ -120,7 +120,7 @@ object MapperViews extends Views with Loggable {
   }
   
   def checkIfOwnerViewAndHasMoreThanOneUser(view: View): Box[Unit] = {
-    if((view.name=="Owner") && (view.users.length <= 1)){
+    if((view.permalink=="owner") && (view.users.length <= 1)){
       Failure("only person with owner view permission, access cannot be revoked")
     }
     else{
@@ -196,8 +196,8 @@ object MapperViews extends Views with Loggable {
 
   def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
 
-    if(viewId=="Owner")
-      Failure("you cannot delete the Owner view")
+    if(viewId=="owner")
+      Failure("you cannot delete the owner view")
     else {
       for {
         view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
