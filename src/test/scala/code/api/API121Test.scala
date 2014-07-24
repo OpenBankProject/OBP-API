@@ -1754,6 +1754,29 @@ class API1_2_1Test extends ServerSetup{
       viewsBefore.size should equal (viewsAfter.size +1)
     }
 
+    scenario("We can't delete the owner view", API1_2, DeleteView) {
+
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      def getOwnerView() = {
+        val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+        views.find(v => v.id == "owner")
+      }
+
+      Given("The owner view exists")
+      val ownerView = getOwnerView()
+      ownerView.isDefined should equal(true)
+
+      When("We attempt to delete the view")
+      val reply = deleteView(bankId, bankAccount.id, ownerView.get.id, user1)
+
+      Then("We should get a 400 code")
+      reply.code should equal(400)
+
+      And("the owner view should still exist")
+      getOwnerView().isDefined should equal(true)
+    }
+
     scenario("We will not delete a view on a bank account due to missing token", API1_2, DeleteView) {
       Given("We will not use an access token")
       val bankId = randomBank
