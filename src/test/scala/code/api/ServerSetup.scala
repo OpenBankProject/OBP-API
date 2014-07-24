@@ -238,7 +238,6 @@ trait ServerSetup extends FeatureSpec
     description_(randomString(3)).
     permalink_("owner").
     isPublic_(false).
-    account(account).
     bankPermalink(bankPermalink).
     accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
@@ -312,7 +311,6 @@ trait ServerSetup extends FeatureSpec
     description_(randomString(3)).
     permalink_("public").
     isPublic_(true).
-    account(account).
     bankPermalink(bankPermalink).
     accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
@@ -386,7 +384,6 @@ trait ServerSetup extends FeatureSpec
     description_(randomString(3)).
     permalink_(randomString(3)).
     isPublic_(false).
-    account(account).
     bankPermalink(bankPermalink).
     accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).

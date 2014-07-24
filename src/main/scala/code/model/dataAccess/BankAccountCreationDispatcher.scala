@@ -192,7 +192,6 @@ package code.model.dataAccess {
             val view =
               ViewImpl
                 .create
-                .account(account)
                 .bankPermalink(bankPermalink)
                 .accountPermalink(accountPermalink)
                 .name_("Owner")

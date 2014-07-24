@@ -48,9 +48,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
   def primaryKeyField = id_
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, APIUser)
-  object account extends MappedLongForeignKey(this, HostedAccount)
 
-  //TODO: have these replace account (foreign key to HostedAccount)
   object bankPermalink extends MappedString(this, 255)
   object accountPermalink extends MappedString(this, 255)
 
@@ -431,7 +429,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = Index(permalink_, account) :: Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
   def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
     By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil

@@ -221,12 +221,13 @@ import net.liftweb.util.Helpers._
 
 }
 
+//TODO: remove this
+@deprecated
 class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, HostedAccount]{
   def getSingleton = HostedAccount
   def primaryKeyField = id
 
   object id extends MappedLongIndex(this)
-  object views extends MappedOneToMany(ViewImpl, ViewImpl.account, OrderBy(ViewImpl.id_, Ascending))
   //the object id of the mongoDB Account
   object accountID extends MappedString(this, 255)
 
@@ -245,6 +246,9 @@ class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, 
     case _ => ""
   }
 }
+
+//TODO: remove this
+@deprecated
 object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{
   override def dbIndexes = UniqueIndex(accountID):: super.dbIndexes
 }
