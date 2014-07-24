@@ -14,9 +14,9 @@ import java.util.Date
 object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
-  
+
   def buildOne: Connector = LocalConnector
-  
+
 }
 
 class OBPQueryParam
@@ -36,40 +36,39 @@ case class OBPToDate(value: Date) extends OBPQueryParam
 case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryParam
 
 trait Connector {
-  
+
   //gets a particular bank handled by this connector
   def getBank(permalink : String) : Box[Bank]
-  
+
   //gets banks handled by this connector
   def getBanks : List[Bank]
-  
+
   def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount]
-  
+
   def getAllPublicAccounts : List[BankAccount]
-  
+
   def getPublicBankAccounts(bank : Bank) : List[BankAccount]
-  
+
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount]
-  
+
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
-  
+
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
-  
+
   def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
-  
+
   def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
-  
+
   def getModeratedOtherBankAccounts(bankID: String, accountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
-  
-  //TODO: Move OBPQueryParam out of com.dataAccess.OBPEnvelope into a more general package
-  def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
+
+  def getModeratedTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*)
     (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
-  
-  def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
+
+  def getModeratedTransaction(id : String, bankID : String, accountID : String)
     (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
 
-  
+
   //...
 }

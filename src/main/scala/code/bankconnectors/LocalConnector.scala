@@ -26,18 +26,18 @@ object LocalConnector extends Connector with Loggable {
     } yield {
       createBank(bank)
     }
-  
+
   //gets banks handled by this connector
   def getBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
-  
+
   def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankPermalink)
       account <- bank.getAccount(accountId)
     } yield Account toBankAccount account
   }
-  
+
   def getAllPublicAccounts() : List[BankAccount] = {
     //TODO: do this more efficiently
 
@@ -108,7 +108,7 @@ object LocalConnector extends Connector with Loggable {
       case _ => getAllPublicAccounts()
     }
   }
-  
+
   /**
   * @param user
   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
@@ -155,7 +155,7 @@ object LocalConnector extends Connector with Loggable {
       case _ => Full(getPublicBankAccounts(bank))
     }
   }
-  
+
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
@@ -187,23 +187,23 @@ object LocalConnector extends Connector with Loggable {
       }
     Full(accountsList.flatten)
   }
-  
+
     /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
   */
-  def getNonPublicBankAccounts(user : User, bankPermalink : String) :  Box[List[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
     user match {
       case u : APIUser => {
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val userNonPublicViewsForBank : List[ViewImpl] =
-          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankPermalink)
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankID)
 
         val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
           map(_.accountPermalink.get).distinct //we remove duplicates here
 
         Full(nonPublicViewAccountPermalinks.map {
-          getBankAccount(bankPermalink, _)
+          getBankAccount(bankID, _)
         }.flatten)
       }
       case u : User => {
@@ -267,33 +267,33 @@ object LocalConnector extends Connector with Loggable {
 
     Full(moderatedCounterparties.flatten)
   }
-  
-  def getModeratedTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*)
+
+  def getModeratedTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*)
   (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]] = {
     for{
-      rawTransactions <- getTransactions(permalink, bankPermalink, queryParams: _*)
+      rawTransactions <- getTransactions(accountId, bankId, queryParams: _*)
     } yield rawTransactions.map(moderate)
   }
-  
-  def getModeratedTransaction(id : String, bankPermalink : String, accountPermalink : String)
+
+  def getModeratedTransaction(id : String, bankId : String, accountId : String)
   (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
     for{
-      transaction <- getTransaction(id,bankPermalink,accountPermalink)
+      transaction <- getTransaction(id,bankId,accountId)
     } yield moderate(transaction)
   }
-  
-  
-  private def getTransactions(permalink: String, bankPermalink: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-      logger.debug("getTransactions for " + bankPermalink + "/" + permalink)
+
+
+  private def getTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+      logger.debug("getTransactions for " + bankId + "/" + accountId)
       for{
-        bank <- getHostedBank(bankPermalink)
-        account <- bank.getAccount(permalink)
+        bank <- getHostedBank(bankId)
+        account <- bank.getAccount(accountId)
       } yield {
         updateAccountTransactions(bank, account)
         account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
       }
   }
-  
+
   private def getTransaction(id : String, bankPermalink : String, accountPermalink : String) : Box[Transaction] = {
     for{
       bank <- getHostedBank(bankPermalink) ?~! s"Transaction not found: bank $bankPermalink not found"
@@ -364,7 +364,7 @@ object LocalConnector extends Connector with Loggable {
     }
 
   }
-  
+
   /**
   *  Checks if the last update of the account was made more than one hour ago.
   *  if it is the case we put a message in the message queue to ask for
@@ -384,7 +384,7 @@ object LocalConnector extends Connector with Loggable {
     }
   }
 
-  
+
   private def createOtherBankAccount(originalPartyBankId: String, originalPartyAccountId: String,
     otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
@@ -400,13 +400,13 @@ object LocalConnector extends Connector with Loggable {
       originalPartyAccountId = originalPartyAccountId
     )
   }
-  
+
   private def getHostedBank(permalink : String) : Box[HostedBank] = {
     for{
       bank <- HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
     } yield bank
   }
-  
+
   private def createBank(bank : HostedBank) : Bank = {
     new Bank(
       bank.id.is.toString,
