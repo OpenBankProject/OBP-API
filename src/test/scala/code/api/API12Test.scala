@@ -5363,10 +5363,5 @@ class API1_2Test extends ServerSetup{
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
-
-    scenario("I will remember to write an upgrade script for the Views + Accounts(?) changes", API1_2) {
-      Given("I haven't")
-      1 should equal(2)
-    }
   }
 }
