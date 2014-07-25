@@ -189,7 +189,7 @@ package code.model.dataAccess {
           {
             //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
             logger.info(s"creating owner view on account account $accountPermalink at bank $bankPermalink")
-            val view = ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink)
+            val view = ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, "")
 
             logger.info(s"creating owner view access to user ${user.email.get}")
             ViewPrivileges

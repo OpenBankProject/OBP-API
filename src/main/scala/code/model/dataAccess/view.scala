@@ -435,7 +435,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
     By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
   }
 
-  def createAndSaveOwnerView(bankPermalink : String, accountPermalink: String, description: String = "") : ViewImpl = {
+  def createAndSaveOwnerView(bankPermalink : String, accountPermalink: String, description: String) : ViewImpl = {
     ViewImpl
       .create
       .bankPermalink(bankPermalink)
