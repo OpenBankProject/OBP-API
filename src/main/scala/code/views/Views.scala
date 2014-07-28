@@ -32,4 +32,11 @@ trait Views {
   def views(bankAccount : BankAccount) : Box[List[View]]
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
   def publicViews(bankAccount : BankAccount) : Box[List[View]]
+
+  def getAllPublicAccounts : List[BankAccount]
+  def getPublicBankAccounts(bank : Bank) : List[BankAccount]
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount]
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
+  def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
+  def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
 }
