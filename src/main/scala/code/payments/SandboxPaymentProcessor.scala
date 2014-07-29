@@ -96,7 +96,6 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
                   ("amount" -> amount.toString))))
       saved <- saveTransaction(envJson)
     } yield {
-      println(s"###created transaction completed ${saved.obp_transaction.get.details.get.completed.get}")
       saved
     }
   }

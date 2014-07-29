@@ -140,7 +140,6 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
 
     val ordering =  QueryBuilder.start(orderingParams.field.getOrElse(DefaultSortField)).is(orderingParams.order.orderValue).get
 
-    println(s"#query: $query")
     OBPEnvelope.findAll(query, ordering, Limit(limit), Skip(offset))
 
   }

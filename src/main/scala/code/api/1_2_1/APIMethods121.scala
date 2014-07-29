@@ -1335,7 +1335,6 @@ object APIMethods121 {
       //val sortBy = json.header("obp_sort_by")
       val sortBy = None
       val basicParams = OBPLimit(limit) :: OBPOffset(offset) :: OBPOrdering(sortBy, sortDirection) :: Nil
-      println(s"##current NOW to get transactions: $toDate")
       fromDate :: toDate :: basicParams
     }
   }

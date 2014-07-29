@@ -784,7 +784,7 @@ class API1_2_1Test extends ServerSetup{
 
     val view = "owner"
 
-    scenario("we make a payment", Payments, CurrentTest) {
+    scenario("we make a payment", Payments) {
 
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
@@ -837,7 +837,6 @@ class API1_2_1Test extends ServerSetup{
       And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
       transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
       getFromAccount.balance should equal(expectedNewFromBalance)
-      Thread.sleep(4000)
       val toAccountTransactionsReq = getTransactions(toAccount.bankPermalink, toAccount.permalink, view, user1)
       toAccountTransactionsReq.code should equal(200)
       val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
