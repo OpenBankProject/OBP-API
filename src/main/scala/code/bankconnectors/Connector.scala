@@ -45,18 +45,6 @@ trait Connector {
 
   def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount]
 
-  def getAllPublicAccounts : List[BankAccount]
-
-  def getPublicBankAccounts(bank : Bank) : List[BankAccount]
-
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount]
-
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
-
-  def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
-
-  def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
-
   def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
 
@@ -68,7 +56,6 @@ trait Connector {
 
   def getModeratedTransaction(id : String, bankID : String, accountID : String)
     (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
-
 
   //...
 }
