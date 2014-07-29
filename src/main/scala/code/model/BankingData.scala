@@ -59,7 +59,7 @@ class Bank(
 {
 
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getAllAccountsUserCanSee(this, user)
+    Views.views.vend.getAllAccountsUserCanSee(this, user)
   }
 
   //This was the behaviour in v1.2 and earlier which has since been changed
@@ -75,9 +75,9 @@ class Bank(
     }
   }
 
-  def publicAccounts : List[BankAccount] = Connector.connector.vend.getPublicBankAccounts(this)
+  def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getNonPublicBankAccounts(user, permalink)
+    Views.views.vend.getNonPublicBankAccounts(user, permalink)
   }
 
   def detailedJson : JObject = {
@@ -408,15 +408,15 @@ object BankAccount {
   }
 
   def publicAccounts : List[BankAccount] = {
-    Connector.connector.vend.getAllPublicAccounts
+    Views.views.vend.getAllPublicAccounts
   }
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Connector.connector.vend.getAllAccountsUserCanSee(user)
+    Views.views.vend.getAllAccountsUserCanSee(user)
   }
 
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getNonPublicBankAccounts(user)
+    Views.views.vend.getNonPublicBankAccounts(user)
   }
 }
 

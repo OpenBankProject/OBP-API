@@ -1,19 +1,20 @@
 package code.views
 
 import scala.collection.immutable.List
-import code.model.BankAccount
-import code.model.View
-import code.model.Permission
-import code.model.User
+import code.model._
 import code.model.dataAccess.APIUser
 import code.model.dataAccess.ViewImpl
 import code.model.dataAccess.ViewPrivileges
 import net.liftweb.common.Loggable
 import net.liftweb.mapper.{QueryParam, By}
 import net.liftweb.common.{Box, Full, Empty, Failure}
-import code.model.ViewCreationJSON
-import code.model.ViewUpdateData
 import code.api.APIFailure
+import code.model.ViewCreationJSON
+import net.liftweb.common.Full
+import code.model.Permission
+import code.model.ViewUpdateData
+import scala.Some
+import code.bankconnectors.Connector
 
 
 //TODO: get rid of references to APIUser
@@ -245,6 +246,181 @@ object MapperViews extends Views with Loggable {
     Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*).filter(v => {
       v.isPublic == true
     }))
+  }
+
+  def getAllPublicAccounts() : List[BankAccount] = {
+    //TODO: do this more efficiently
+
+    val bankAndAccountPermalinks : List[(String, String)] =
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
+        (v.bankPermalink.get, v.accountPermalink.get)
+      ).distinct //we remove duplicates here
+
+    bankAndAccountPermalinks.map {
+      case (bankPermalink, accountPermalink) => {
+        Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+      }
+    }.flatten
+  }
+
+  def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
+    //TODO: do this more efficiently
+
+    val accountPermalinks : List[String] =
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+        v.accountPermalink.get
+      }).distinct //we remove duplicates here
+
+    accountPermalinks.map(accPerma => {
+      Connector.connector.vend.getBankAccount(bank.permalink, accPerma)
+    }).flatten
+  }
+
+  /**
+   * @param user
+   * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
+   */
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
+    user match {
+      case Full(theuser) => {
+        //TODO: get rid of this match
+        theuser match {
+          case u : APIUser => {
+            //TODO: this could be quite a bit more efficient...
+
+            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct
+
+            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+
+            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct //we remove duplicates here
+
+            val visibleBankAndAccountPermalinks =
+              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+
+            visibleBankAndAccountPermalinks.map {
+              case(bankPermalink, accountPermalink) => {
+                Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+              }
+            }.flatten
+          }
+          case _ => {
+            logger.error("APIUser instance not found, could not get all accounts user can see")
+            Nil
+          }
+        }
+
+      }
+      case _ => getAllPublicAccounts()
+    }
+  }
+
+  /**
+   * @param user
+   * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
+   */
+  //TODO: remove Box in result
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
+    user match {
+      case Full(theuser) => {
+
+        //TODO: get rid of this match
+        theuser match {
+          case u : APIUser => {
+            //TODO: this could be quite a bit more efficient...
+
+            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
+              By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct
+
+            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
+              !v.isPublic && v.bankPermalink.get == bank.permalink
+            })
+
+            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+              (v.bankPermalink.get, v.accountPermalink.get)
+            }).distinct //we remove duplicates here
+
+            val visibleBankAndAccountPermalinks =
+              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+
+            Full(visibleBankAndAccountPermalinks.map {
+              case(bankPermalink, accountPermalink) => {
+                Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+              }
+            }.flatten)
+          }
+          case _ => {
+            logger.error("APIUser instance not found, could not get all accounts user can see")
+            Full(Nil)
+          }
+        }
+      }
+      case _ => Full(getPublicBankAccounts(bank))
+    }
+  }
+
+  /**
+   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
+   */
+  def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
+
+    val accountsList =
+    //TODO: get rid of this match statement
+      user match {
+        case u : APIUser => {
+          //TODO: get rid of dependency on ViewPrivileges, ViewImpl
+          //TODO: make this more efficient
+          val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+          val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+
+          val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
+            (v.bankPermalink.get, v.accountPermalink.get)
+          }).distinct //we remove duplicates here
+
+          nonPublicViewBankAndAccountPermalinks.map {
+            case(bankPermalink, accountPermalink) => {
+              Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+            }
+          }
+        }
+        case u: User => {
+          logger.error("APIUser instance not found, could not find the non public accounts")
+          Nil
+        }
+      }
+    Full(accountsList.flatten)
+  }
+
+  /**
+   * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
+   */
+  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
+    user match {
+      case u : APIUser => {
+
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+        val userNonPublicViewsForBank : List[ViewImpl] =
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankID)
+
+        val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
+          map(_.accountPermalink.get).distinct //we remove duplicates here
+
+        Full(nonPublicViewAccountPermalinks.map {
+          Connector.connector.vend.getBankAccount(bankID, _)
+        }.flatten)
+      }
+      case u : User => {
+        logger.error("APIUser instance not found, could not find the non public account ")
+        Full(Nil)
+      }
+    }
   }
   
 }
