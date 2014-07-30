@@ -51,7 +51,7 @@ import code.api.OBPRestHelper
 
 
 object OBPAPI1_2 extends OBPRestHelper with Loggable {
-  
+
   //we now identify users by a combination of auth provider and the id given to them by their auth provider
   // in v1.2 only one auth provider (the api itself) was possible. Because many functions now require both
   //provider and id from the provider as arguments, we just use this value here as the provider.
@@ -862,42 +862,10 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
   //get transactions
     case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
       user =>
+      import code.api.v1_2_1.APIMethods121.getTransactionParams
 
-      def asInt(s: Box[String], default: Int): Int = {
-        s match {
-          case Full(str) => tryo { str.toInt } getOrElse default
-          case _ => default
-        }
-      }
-
-      val limit = asInt(json.header("obp_limit"), 50)
-      val offset = asInt(json.header("obp_offset"), 0)
-
-       /**
-       * sortBy is currently disabled as it would open up a security hole:
-       *
-       * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
-       * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
-       * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
-       * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
-       *
-       * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
-       *
-       */
-      //val sortBy = json.header("obp_sort_by")
-      val sortBy = None
-      val sortDirection = OBPOrder(json.header("obp_sort_by"))
-      val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
-      val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
-
-      val basicParams =
-        List(
-          OBPLimit(limit),
-          OBPOffset(offset),
-          OBPOrdering(sortBy, sortDirection)
-        )
-      val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
       for {
+        params <- getTransactionParams(json)
         bankAccount <- BankAccount(bankId, accountId)
         view <- View.fromUrl(viewId, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
