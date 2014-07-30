@@ -7,7 +7,7 @@ import code.model.dataAccess.Account
 import code.model.dataAccess.HostedBank
 import java.text.SimpleDateFormat
 import net.liftweb.json.JsonAST.JValue
-import java.util.Date
+import java.util.{TimeZone, Date}
 import code.model.dataAccess.OBPEnvelope
 import net.liftweb.mongodb.BsonDSL._
 
@@ -56,7 +56,11 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
       thisAccs = Account.findAll(("permalink" -> account.permalink))
       thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankPermalink).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankPermalink}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
-      envJsonDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+      envJsonDateFormat = {
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+        simpleDateFormat
+      }
       envJson =
       ("obp_transaction" ->
         ("this_account" ->
@@ -91,7 +95,9 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
                 ("currency" -> account.currency) ~
                   ("amount" -> amount.toString))))
       saved <- saveTransaction(envJson)
-    } yield saved
+    } yield {
+      saved
+    }
   }
 
   def saveTransaction(transactionJS : JValue) : Box[OBPEnvelope] = {

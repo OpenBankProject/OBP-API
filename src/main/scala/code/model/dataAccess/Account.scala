@@ -115,8 +115,8 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     val orderingParams = queryParams.collect { case param: OBPOrdering => param}.headOption
       .getOrElse(OBPOrdering(Some(DefaultSortField), OBPDescending))
 
-    val fromDate = queryParams.collect { case param: OBPFromDate => param }.headOption
-    val toDate = queryParams.collect { case param: OBPToDate => param }.headOption
+    val fromDate: Option[OBPFromDate] = queryParams.collect { case param: OBPFromDate => param }.headOption
+    val toDate: Option[OBPToDate] = queryParams.collect { case param: OBPToDate => param }.headOption
 
     val query: DBObject = {
       val queryWithOptionalFromDate = fromDate.map{

@@ -28,8 +28,6 @@ trait APIMethods121 {
 
   // helper methods begin here
 
-  val dateFormat = ModeratedTransaction.dateFormat
-
   private def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     val accJson : List[AccountJSON] = bankAccounts.map( account => {
       val views = account permittedViews user
@@ -873,41 +871,8 @@ trait APIMethods121 {
       case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
         user =>
 
-          def asInt(s: Box[String], default: Int): Int = {
-            s match {
-              case Full(str) => tryo { str.toInt } getOrElse default
-              case _ => default
-            }
-          }
-
-          val limit = asInt(json.header("obp_limit"), 50)
-          val offset = asInt(json.header("obp_offset"), 0)
-
-          /**
-           * sortBy is currently disabled as it would open up a security hole:
-           *
-           * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
-           * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
-           * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
-           * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
-           *
-           * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
-           *
-           */
-          //val sortBy = json.header("obp_sort_by")
-          val sortBy = None
-          val sortDirection = OBPOrder(json.header("obp_sort_by"))
-          val fromDate = tryo{dateFormat.parse(json.header("obp_from_date") getOrElse "")}.map(OBPFromDate(_))
-          val toDate = tryo{dateFormat.parse(json.header("obp_to_date") getOrElse "")}.map(OBPToDate(_))
-
-          val basicParams =
-            List(
-              OBPLimit(limit),
-              OBPOffset(offset),
-              OBPOrdering(sortBy, sortDirection)
-            )
-          val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
           for {
+            params <- APIMethods121.getTransactionParams(json)
             bankAccount <- BankAccount(bankId, accountId)
             view <- View.fromUrl(viewId, bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
@@ -1264,10 +1229,113 @@ trait APIMethods121 {
           else{
             Failure("Sorry, payments are not enabled in this API instance.")
           }
-
       }
     }
+  }
+}
 
+object APIMethods121 {
+  import java.util.Date
+
+  val dateFormat = ModeratedTransaction.dateFormat
+
+  private def getSortDirection(req: Req): Box[OBPOrder] = {
+    req.header("obp_sort_direction") match {
+      case Full(v) => {
+        if(v.toLowerCase == "desc" || v.toLowerCase == "asc"){
+          Full(OBPOrder(Some(v.toLowerCase)))
+        }
+        else{
+          Failure("obp_sort_direction parameter can only take two values: DESC or ASC")
+        }
+      }
+      case _ => Full(OBPOrder(None))
+    }
   }
 
+  private def getFromDate(req: Req): Box[OBPFromDate] = {
+    req.header("obp_from_date") match {
+      case Full(d) => {
+        tryo{
+          dateFormat.parse(d)
+        } match {
+          case Full(date) => Full(OBPFromDate(date))
+          case _ => Failure(s"wrong date format for obp_from_date parameter. Please use ${dateFormat.toPattern} format")
+        }
+      }
+      case _ => {
+        Full(OBPFromDate(new Date(0)))
+      }
+    }
+  }
+
+  private def getToDate(req: Req): Box[OBPToDate] = {
+    req.header("obp_to_date") match {
+      case Full(d) => {
+        tryo{
+          dateFormat.parse(d)
+        } match {
+          case Full(date) => Full(OBPToDate(date))
+          case _ => Failure(s"wrong date format for obp_to_date parameter. Please use ${dateFormat.toPattern} format")
+        }
+      }
+      case _ => Full(OBPToDate(new Date()))
+    }
+  }
+
+  private def getLimit(req: Req): Box[Int] = {
+    req.header("obp_limit") match {
+      case Full(l) => {
+        lazy val errorMsg = "wrong value for obp_limit parameter. Please send a positive integer (=>1)"
+        tryo{
+          l.toInt
+        } match {
+          case Full(limit) => {
+            if(limit > 0){
+              Full(limit)
+            }
+            else{
+              Failure(errorMsg)
+            }
+          }
+          case _ => Failure(errorMsg)
+        }
+      }
+      case _ => Full(50)
+    }
+  }
+
+  def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
+    for{
+      sortDirection <- getSortDirection(req)
+      fromDate <- getFromDate(req)
+      toDate <- getToDate(req)
+      limit <- getLimit(req)
+    }yield{
+
+      def asInt(s: Box[String], default: Int): Int = {
+        s match {
+          case Full(str) => tryo { str.toInt } getOrElse default
+          case _ => default
+        }
+      }
+
+      val offset = asInt(req.header("obp_offset"), 0)
+      /**
+       * sortBy is currently disabled as it would open up a security hole:
+       *
+       * sortBy as currently implemented will take in a parameter that searches on the mongo field names. The issue here
+       * is that it will sort on the true value, and not the moderated output. So if a view is supposed to return an alias name
+       * rather than the true value, but someone uses sortBy on the other bank account name/holder, not only will the returned data
+       * have the wrong order, but information about the true account holder name will be exposed due to its position in the sorted order
+       *
+       * This applies to all fields that can have their data concealed... which in theory will eventually be most/all
+       *
+       */
+      //val sortBy = json.header("obp_sort_by")
+      val sortBy = None
+      val basicParams = OBPLimit(limit) :: OBPOffset(offset) :: OBPOrdering(sortBy, sortDirection) :: Nil
+      fromDate :: toDate :: basicParams
+    }
+  }
 }
