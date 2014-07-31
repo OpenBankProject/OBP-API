@@ -1329,22 +1329,37 @@ object APIMethods121 {
     }
   }
 
+  private def getOffset(req: Req): Box[Int] = {
+    req.header("obp_offset") match {
+      case Full(l) => {
+        lazy val errorMsg = "wrong value for obp_offset parameter. Please send a positive integer (=>0)"
+        tryo{
+          l.toInt
+        } match {
+          case Full(value) => {
+            if(value >= 0){
+              Full(value)
+            }
+            else{
+              Failure(errorMsg)
+            }
+          }
+          case _ => Failure(errorMsg)
+        }
+      }
+      case _ => Full(0)
+    }
+  }
+
   def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
     for{
       sortDirection <- getSortDirection(req)
       fromDate <- getFromDate(req)
       toDate <- getToDate(req)
       limit <- getLimit(req)
+      offset <- getOffset(req)
     }yield{
 
-      def asInt(s: Box[String], default: Int): Int = {
-        s match {
-          case Full(str) => tryo { str.toInt } getOrElse default
-          case _ => default
-        }
-      }
-
-      val offset = asInt(req.header("obp_offset"), 0)
       /**
        * sortBy is currently disabled as it would open up a security hole:
        *
