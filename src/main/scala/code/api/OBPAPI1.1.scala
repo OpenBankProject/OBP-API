@@ -117,8 +117,6 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
 
-  val dateFormat = ModeratedTransaction.dateFormat
-
   private def httpMethod : String =
     S.request match {
       case Full(r) => r.request.method

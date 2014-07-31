@@ -67,10 +67,11 @@ import net.liftweb.http.InMemoryResponse
 import net.liftweb.common.Full
 
 object OBPAPI1_0 extends RestHelper with Loggable {
+  import java.text.SimpleDateFormat
 
   implicit val _formats = Serialization.formats(NoTypeHints)
 
-  val dateFormat = ModeratedTransaction.dateFormat
+  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
   private def logAPICall =
     APIMetric.createRecord.

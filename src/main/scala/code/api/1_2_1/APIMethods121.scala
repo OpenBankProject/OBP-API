@@ -1237,7 +1237,37 @@ trait APIMethods121 {
 object APIMethods121 {
   import java.util.Date
 
-  val dateFormat = ModeratedTransaction.dateFormat
+  object DateParser {
+
+    /**
+    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-29T06:11:45Z) ==> time zone is UTC
+    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2014-07-29T06:11:45+0000) ==> time zone has to be specified
+    */
+    def parse(date: String): Box[Date] = {
+      import java.text.SimpleDateFormat
+
+      val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+      val fallBackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+
+      val parsedDate = tryo{
+        defaultFormat.parse(date)
+      }
+
+      lazy val fallBackParsedDate = tryo{
+        fallBackFormat.parse(date)
+      }
+
+      if(parsedDate.isDefined){
+        Full(parsedDate.get)
+      }
+      else if(fallBackParsedDate.isDefined){
+        Full(fallBackParsedDate.get)
+      }
+      else{
+        Failure(s"Failed to parse date string. Please use this format ${defaultFormat.toPattern} or that one ${fallBackFormat.toPattern}")
+      }
+    }
+  }
 
   private def getSortDirection(req: Req): Box[OBPOrder] = {
     req.header("obp_sort_direction") match {
@@ -1254,33 +1284,27 @@ object APIMethods121 {
   }
 
   private def getFromDate(req: Req): Box[OBPFromDate] = {
-    req.header("obp_from_date") match {
+    val date: Box[Date] = req.header("obp_from_date") match {
       case Full(d) => {
-        tryo{
-          dateFormat.parse(d)
-        } match {
-          case Full(date) => Full(OBPFromDate(date))
-          case _ => Failure(s"wrong date format for obp_from_date parameter. Please use ${dateFormat.toPattern} format")
-        }
+        DateParser.parse(d)
       }
       case _ => {
-        Full(OBPFromDate(new Date(0)))
+        Full(new Date(0))
       }
     }
+
+    date.map(OBPFromDate(_))
   }
 
   private def getToDate(req: Req): Box[OBPToDate] = {
-    req.header("obp_to_date") match {
+    val date: Box[Date] = req.header("obp_to_date") match {
       case Full(d) => {
-        tryo{
-          dateFormat.parse(d)
-        } match {
-          case Full(date) => Full(OBPToDate(date))
-          case _ => Failure(s"wrong date format for obp_to_date parameter. Please use ${dateFormat.toPattern} format")
-        }
+        DateParser.parse(d)
       }
-      case _ => Full(OBPToDate(new Date()))
+      case _ => Full(new Date())
     }
+
+    date.map(OBPToDate(_))
   }
 
   private def getLimit(req: Req): Box[Int] = {

@@ -37,7 +37,6 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JField
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import java.text.SimpleDateFormat
 import java.net.URL
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -61,7 +60,10 @@ class ModeratedTransaction(
 ) {
 
   def dateOption2JString(date: Option[Date]) : JString = {
-    JString(date.map(d => ModeratedTransaction.dateFormat.format(d)) getOrElse "")
+    import java.text.SimpleDateFormat
+
+    val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
 
   def toJson(view: View): JObject = {
@@ -81,10 +83,6 @@ class ModeratedTransaction(
             ("currency" -> currency.getOrElse("")) ~
             ("amount" -> amount)))
   }
-}
-
-object ModeratedTransaction {
-  val dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 }
 
 class ModeratedTransactionMetadata(
