@@ -1240,8 +1240,8 @@ object APIMethods121 {
   object DateParser {
 
     /**
-    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-29T06:11:45Z) ==> time zone is UTC
-    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2014-07-29T06:11:45+0000) ==> time zone has to be specified
+    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
+    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
     */
     def parse(date: String): Box[Date] = {
       import java.text.SimpleDateFormat
@@ -1329,22 +1329,37 @@ object APIMethods121 {
     }
   }
 
+  private def getOffset(req: Req): Box[Int] = {
+    req.header("obp_offset") match {
+      case Full(l) => {
+        lazy val errorMsg = "wrong value for obp_offset parameter. Please send a positive integer (=>0)"
+        tryo{
+          l.toInt
+        } match {
+          case Full(value) => {
+            if(value >= 0){
+              Full(value)
+            }
+            else{
+              Failure(errorMsg)
+            }
+          }
+          case _ => Failure(errorMsg)
+        }
+      }
+      case _ => Full(0)
+    }
+  }
+
   def getTransactionParams(req: Req): Box[List[OBPQueryParam]] = {
     for{
       sortDirection <- getSortDirection(req)
       fromDate <- getFromDate(req)
       toDate <- getToDate(req)
       limit <- getLimit(req)
+      offset <- getOffset(req)
     }yield{
 
-      def asInt(s: Box[String], default: Int): Int = {
-        s match {
-          case Full(str) => tryo { str.toInt } getOrElse default
-          case _ => default
-        }
-      }
-
-      val offset = asInt(req.header("obp_offset"), 0)
       /**
        * sortBy is currently disabled as it would open up a security hole:
        *

@@ -231,6 +231,7 @@ class API1_2Test extends ServerSetup{
   object PutPhysicalLocation extends Tag("putPhysicalLocation")
   object DeletePhysicalLocation extends Tag("deletePhysicalLocation")
   object GetTransactions extends Tag("getTransactions")
+  object GetTransactionsWithParams extends Tag("getTransactionsWithParams")
   object GetTransaction extends Tag("getTransaction")
   object GetNarrative extends Tag("getNarrative")
   object PostNarrative extends Tag("postNarrative")
@@ -3752,8 +3753,14 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
+  }
 
-    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactions) {
+  feature("transactions with params"){
+    import java.util.Calendar
+    import java.text.SimpleDateFormat
+    val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3764,7 +3771,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get all the transactions sorted by ASC", API1_2, GetTransactions) {
+    scenario("we get all the transactions sorted by ASC", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3779,7 +3786,7 @@ class API1_2Test extends ServerSetup{
       transactions.transactions.size should not equal (0)
       //TODO: check the order in the received transactions
     }
-    scenario("we get all the transactions sorted by asc", API1_2, GetTransactions) {
+    scenario("we get all the transactions sorted by asc", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3794,7 +3801,7 @@ class API1_2Test extends ServerSetup{
       transactions.transactions.size should not equal (0)
       //TODO: check the order in the received transactions
     }
-    scenario("we get all the transactions sorted by DESC", API1_2, GetTransactions) {
+    scenario("we get all the transactions sorted by DESC", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3809,7 +3816,7 @@ class API1_2Test extends ServerSetup{
       transactions.transactions.size should not equal (0)
       //TODO: check the order in the received transactions
     }
-    scenario("we get all the transactions sorted by desc", API1_2, GetTransactions) {
+    scenario("we get all the transactions sorted by desc", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3824,7 +3831,7 @@ class API1_2Test extends ServerSetup{
       transactions.transactions.size should not equal (0)
       //TODO: check the order in the received transactions
     }
-    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactions) {
+    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3835,7 +3842,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2, GetTransactions) {
+    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3846,7 +3853,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2, GetTransactions) {
+    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3857,13 +3864,197 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2, GetTransactions) {
+    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val view = randomViewPermalink(bankId, bankAccount)
       When("the request is sent with the value ASC for parameter obp_limit")
       val params = ("obp_limit", "5") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions size should be equal to 5")
+      transactions.transactions.size should equal (5)
+    }
+    scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_from_date")
+      val params = ("obp_from_date", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get transactions from a previous date with the right format", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = defaultFormat.format(pastDate)
+      val params = ("obp_from_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into an accepted format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = rollbackFormat.format(pastDate)
+      val params = ("obp_from_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we don't get transactions from a date in the future", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, 1)
+      val futureDate = calendar.getTime
+      val formatedFutureDate = defaultFormat.format(futureDate)
+      val params = ("obp_from_date", formatedFutureDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_to_date")
+      val params = ("obp_to_date", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into a proper format")
+      val currentDate = new Date()
+      val formatedCurrentDate = defaultFormat.format(currentDate)
+      val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we get transactions from a previous date with the fallback format", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into an accepted format")
+      val currentDate = new Date()
+      val formatedCurrentDate = defaultFormat.format(currentDate)
+      val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we don't get transactions from a date in the past", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = defaultFormat.format(pastDate)
+      val params = ("obp_to_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactionsWithParams, CurrentTest) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "2000") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "-100") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value ASC for parameter obp_offset")
+      val params = ("obp_offset", "5") :: Nil
       val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
       Then("we should get a 200 ok code")
       reply.code should equal (200)
