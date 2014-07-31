@@ -1240,8 +1240,8 @@ object APIMethods121 {
   object DateParser {
 
     /**
-    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-29T06:11:45Z) ==> time zone is UTC
-    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2014-07-29T06:11:45+0000) ==> time zone has to be specified
+    * first tries to parse dates using this pattern "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2012-07-01T00:00:00.000Z) ==> time zone is UTC
+    * in case of failure (for backward compatibility reason), try "yyyy-MM-dd'T'HH:mm:ss.SSSZ" (2012-07-01T00:00:00.000+0000) ==> time zone has to be specified
     */
     def parse(date: String): Box[Date] = {
       import java.text.SimpleDateFormat
