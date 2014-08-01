@@ -59,7 +59,7 @@ import java.util.Date
 import code.api.OAuthHandshake._
 import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
-import code.metrics.MongoAPIMetric
+import code.metrics.{APIMetrics}
 
 case class TagJSON(
   value : String,
@@ -161,10 +161,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   }
 
   private def logAPICall =
-    MongoAPIMetric.createRecord.
-      url(S.uriAndQueryString.getOrElse("")).
-      date((now: TimeSpan)).
-      save
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
 
   private def isFieldAlreadySet(field : String) : Box[String] =
     if(field.isEmpty)

@@ -42,7 +42,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import scala.collection.JavaConversions.asScalaSet
-import code.metrics.MongoAPIMetric
+import code.metrics.{APIMetrics}
 
 object APIUtil {
 
@@ -67,10 +67,7 @@ object APIUtil {
   }
 
   def logAPICall =
-    MongoAPIMetric.createRecord.
-      url(S.uriAndQueryString.getOrElse("")).
-      date((now: TimeSpan)).
-      save
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
 
   def gitCommit : String = {
     val commit = tryo{

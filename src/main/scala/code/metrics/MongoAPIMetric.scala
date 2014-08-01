@@ -35,11 +35,43 @@ Berlin 13359, Germany
 import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
  import net.liftweb.record.field.StringField
  import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
+ import java.util.{Calendar, Date}
 
-class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] {
+ class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
   def meta = MongoAPIMetric
   object url extends StringField(this,255)
   object date extends DateField(this)
+
+  def getUrl() = url.get
+  def getDate() = date.get
 }
 
-object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric]
+object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
+
+  def saveMetric(url : String, date : Date) : Unit = {
+    MongoAPIMetric.createRecord.
+      url(url).
+      date(date).
+      save
+  }
+
+  def getAllGroupedByUrl() : Map[String, List[APIMetric]] = {
+    MongoAPIMetric.findAll.groupBy[String](_.url.get)
+  }
+
+  def getAllGroupedByDay() : Map[Date, List[APIMetric]] = {
+    def byDay(metric  : MongoAPIMetric) : Date = {
+      val metricDate = metric.date.get
+      val cal = Calendar.getInstance()
+      cal.setTime(metricDate)
+      cal.set(Calendar.HOUR,0)
+      cal.set(Calendar.MINUTE,0)
+      cal.set(Calendar.SECOND,0)
+      cal.set(Calendar.MILLISECOND,0)
+      cal.getTime
+    }
+
+    MongoAPIMetric.findAll.groupBy[Date](byDay)
+  }
+
+}
