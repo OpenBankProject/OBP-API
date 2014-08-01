@@ -310,11 +310,11 @@ class BankAccount(
     }
   }
 
-  def updateView(userDoingTheUpdate : User, viewId : String, v: ViewUpdateData) : Box[View] = {
+  def updateView(userDoingTheUpdate : User, viewPermalink : String, v: ViewUpdateData) : Box[View] = {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(this, viewId, v)
+      val view = Views.views.vend.updateView(this, viewPermalink, v)
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
@@ -326,14 +326,14 @@ class BankAccount(
   }
     
 
-  def removeView(userDoingTheRemove : User,viewId: String) : Box[Unit] = {
+  def removeView(userDoingTheRemove : User, viewPermalink: String) : Box[Unit] = {
     if(!userDoingTheRemove.ownerAccess(this)) {
       Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewId, this)
+      val deleted = Views.views.vend.removeView(viewPermalink, this)
       
       if(deleted.isDefined) {
-        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewPermalink +
             " for account " + permalink + "at bank " + bankPermalink)
       }
       
