@@ -3784,7 +3784,9 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       And("transactions array should not be empty")
       transactions.transactions.size should not equal (0)
-      //TODO: check the order in the received transactions
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
     scenario("we get all the transactions sorted by asc", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -3799,7 +3801,9 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       And("transactions array should not be empty")
       transactions.transactions.size should not equal (0)
-      //TODO: check the order in the received transactions
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
     scenario("we get all the transactions sorted by DESC", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -3814,7 +3818,9 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       And("transactions array should not be empty")
       transactions.transactions.size should not equal (0)
-      //TODO: check the order in the received transactions
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
     }
     scenario("we get all the transactions sorted by desc", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
@@ -3829,7 +3835,10 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       And("transactions array should not be empty")
       transactions.transactions.size should not equal (0)
-      //TODO: check the order in the received transactions
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
+
     }
     scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
