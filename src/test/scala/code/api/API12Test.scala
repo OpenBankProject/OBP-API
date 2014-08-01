@@ -4023,7 +4023,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactionsWithParams, CurrentTest) {
+    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
