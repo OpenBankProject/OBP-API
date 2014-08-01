@@ -1307,37 +1307,26 @@ object APIMethods121 {
     date.map(OBPToDate(_))
   }
 
-  private def getLimit(req: Req): Box[Int] = {
-    req.header("obp_limit") match {
-      case Full(l) => {
-        lazy val errorMsg = "wrong value for obp_limit parameter. Please send a positive integer (=>1)"
-        tryo{
-          l.toInt
-        } match {
-          case Full(limit) => {
-            if(limit > 0){
-              Full(limit)
-            }
-            else{
-              Failure(errorMsg)
-            }
-          }
-          case _ => Failure(errorMsg)
-        }
-      }
-      case _ => Full(50)
-    }
+  private def getOffset(req: Req): Box[OBPOffset] = {
+    val msg = "wrong value for obp_offset parameter. Please send a positive integer (=>0)"
+    getPaginationParam(req, "obp_offset", 0, 0, msg)
+    .map(OBPOffset(_))
   }
 
-  private def getOffset(req: Req): Box[Int] = {
-    req.header("obp_offset") match {
-      case Full(l) => {
-        lazy val errorMsg = "wrong value for obp_offset parameter. Please send a positive integer (=>0)"
+  private def getLimit(req: Req): Box[OBPLimit] = {
+    val msg = "wrong value for obp_limit parameter. Please send a positive integer (=>1)"
+    getPaginationParam(req, "obp_limit", 50, 1, msg)
+    .map(OBPLimit(_))
+  }
+
+  private def getPaginationParam(req: Req, paramName: String, defaultValue: Int, minimumValue: Int, errorMsg: String): Box[Int]= {
+    req.header(paramName) match {
+      case Full(v) => {
         tryo{
-          l.toInt
+          v.toInt
         } match {
           case Full(value) => {
-            if(value >= 0){
+            if(value >= minimumValue){
               Full(value)
             }
             else{
@@ -1347,7 +1336,7 @@ object APIMethods121 {
           case _ => Failure(errorMsg)
         }
       }
-      case _ => Full(0)
+      case _ => Full(defaultValue)
     }
   }
 
@@ -1373,7 +1362,7 @@ object APIMethods121 {
        */
       //val sortBy = json.header("obp_sort_by")
       val sortBy = None
-      val basicParams = OBPLimit(limit) :: OBPOffset(offset) :: OBPOrdering(sortBy, sortDirection) :: Nil
+      val basicParams = limit :: offset :: OBPOrdering(sortBy, sortDirection) :: Nil
       fromDate :: toDate :: basicParams
     }
   }
