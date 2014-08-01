@@ -95,7 +95,9 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
                 ("currency" -> account.currency) ~
                   ("amount" -> amount.toString))))
       saved <- saveTransaction(envJson)
-    } yield saved
+    } yield {
+      saved
+    }
   }
 
   def saveTransaction(transactionJS : JValue) : Box[OBPEnvelope] = {

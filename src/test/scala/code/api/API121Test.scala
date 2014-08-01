@@ -88,12 +88,12 @@ class API1_2_1Test extends ServerSetup{
       saveMe
 
   val defaultProvider = Props.get("hostname","")
-      
+
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   // create the access token
   lazy val tokenDuration = weeks(4)
 
-  lazy val obpuser1 = 
+  lazy val obpuser1 =
     APIUser.create.provider_(defaultProvider).
       saveMe
 
@@ -168,11 +168,11 @@ class API1_2_1Test extends ServerSetup{
   val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
-  
+
   /**
    * Example: To run tests with tag "getPermissions":
    * 	mvn test -D tagsToInclude=getPermissions
-   *  
+   *
    *  This is made possible by the scalatest maven plugin
    */
 
@@ -290,12 +290,12 @@ class API1_2_1Test extends ServerSetup{
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
-  
+
   def privateAccountThatsNot(bankId: String, accId : String) : AccountJSON = {
     val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
     accountsJson.find(acc => acc.id != accId).getOrElse(fail(s"no private account that's not $accId"))
   }
-  
+
   def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
     val persmissionsInfo = getAccountPermissions(bankId, accountId, user1).body.extract[PermissionsJSON]
     val randomPermission = nextInt(persmissionsInfo.permissions.size)
@@ -372,7 +372,7 @@ class API1_2_1Test extends ServerSetup{
     val request = v1_2Request / "accounts" <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
+
   def getPublicAccountsForAllBanks() : APIResponse= {
     val request = v1_2Request / "accounts" / "public"
     makeGetRequest(request)
@@ -634,9 +634,9 @@ class API1_2_1Test extends ServerSetup{
     makeDeleteRequest(request)
   }
 
-  def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
-    makeGetRequest(request)
+    makeGetRequest(request, params)
   }
 
   def getTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -742,7 +742,7 @@ class API1_2_1Test extends ServerSetup{
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "other_account" <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
+
   feature("we can make payments") {
 
     def paymentTestBank = HostedBank.createRecord.
@@ -795,21 +795,21 @@ class API1_2_1Test extends ServerSetup{
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
-      
+
       def getToAccount : BankAccount = {
         BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
       }
-      
+
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
       val totalTransactionsBefore = OBPEnvelope.count
-      
+
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
-      
+
       val amt = BigDecimal("12.50")
-      
+
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
 
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
@@ -819,30 +819,29 @@ class API1_2_1Test extends ServerSetup{
         case _ => ""
       }
       transId should not equal("")
-     
+
       val reply = getTransaction(
           fromAccount.bankPermalink, fromAccount.permalink, view, transId, user1)
-          
+
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val transJson = reply.body.extract[TransactionJSON]
-      
+
       val fromAccountTransAmt = transJson.details.value.amount
       //the from account transaction should have a negative value
       //since money left the account
       And("the json we receive back should have a transaction amount equal to the amount specified to pay")
       fromAccountTransAmt should equal((-amt).toString)
-       
+
       val expectedNewFromBalance = beforeFromBalance - amt
       And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
       transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
       getFromAccount.balance should equal(expectedNewFromBalance)
-      
       val toAccountTransactionsReq = getTransactions(toAccount.bankPermalink, toAccount.permalink, view, user1)
       toAccountTransactionsReq.code should equal(200)
       val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
       val newestToAccountTransaction = toAccountTransactions.transactions(0)
-    
+
       //here amt should be positive (unlike in the transaction in the "from" account")
       And("the newest transaction for the account receiving the payment should have the proper amount")
       newestToAccountTransaction.details.value.amount should equal(amt.toString)
@@ -933,7 +932,7 @@ class API1_2_1Test extends ServerSetup{
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
 
@@ -963,18 +962,18 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
       val testBank = paymentTestBank
@@ -1005,18 +1004,18 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
       val testBank = paymentTestBank
@@ -1040,17 +1039,17 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(bankId, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for the sender's account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balance of the sender's account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
     }
-    
+
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
       val testBank = paymentTestBank
@@ -1082,23 +1081,23 @@ class API1_2_1Test extends ServerSetup{
 
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
   }
-  
+
   /**
-   * 
+   *
    */
 
 
-  
-  
+
+
 /************************ the tests ************************/
   feature("base line URL works"){
     scenario("we get the api information", API1_2, APIInfo) {
@@ -1153,7 +1152,7 @@ class API1_2_1Test extends ServerSetup{
     val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
     exists should equal(true)
   }
-  
+
   def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
@@ -1304,7 +1303,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(accountsInfo)
     }
   }
-  
+
   feature("Information about the public bank accounts for all banks"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
@@ -1346,7 +1345,7 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
+
       And("All accounts should have at least one private view")
       assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
 
@@ -1367,7 +1366,7 @@ class API1_2_1Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
   }
-  
+
   feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
       accountTestsSpecificDBSetup()
@@ -1463,7 +1462,7 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
+
       And("All accounts should have at least one private view")
       assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
 
@@ -1826,12 +1825,12 @@ class API1_2_1Test extends ServerSetup{
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val permissions = reply.body.extract[PermissionsJSON]
-      
+
       def stringNotEmpty(s : String) {
         s should not equal null
         s should not equal ""
       }
-      
+
       for {
         permission <- permissions.permissions
       } {
@@ -1841,7 +1840,7 @@ class API1_2_1Test extends ServerSetup{
         // idea: reflection on all the json case classes, marking "required" information with annotations
         stringNotEmpty(user.id)
         stringNotEmpty(user.provider)
-        
+
         for {
           view <- permission.views
         } {
@@ -1849,7 +1848,7 @@ class API1_2_1Test extends ServerSetup{
         }
       }
     }
-      
+
     scenario("we will not get one bank account permissions", API1_2, GetPermissions) {
       Given("We will not use an access token")
       val bankId = randomBank

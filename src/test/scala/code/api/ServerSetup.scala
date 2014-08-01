@@ -219,8 +219,13 @@ trait ServerSetup extends FeatureSpec
   /**
   * this method do a post request given a URL
   */
-  def makeGetRequest(req: Req) : APIResponse = {
+  def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
     val jsonReq = req.GET
+    params.foreach{
+      headerAndValue => {
+        jsonReq.addHeader(headerAndValue._1, headerAndValue._2)
+      }
+    }
     getAPIResponse(jsonReq)
   }
 

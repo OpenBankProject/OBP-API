@@ -24,6 +24,7 @@ trait OBPOrder { def orderValue : Int }
 object OBPOrder {
   def apply(s: Option[String]): OBPOrder = s match {
     case Some("asc") => OBPAscending
+    case Some("ASC")=> OBPAscending
     case _ => OBPDescending
   }
 }
