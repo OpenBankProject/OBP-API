@@ -42,7 +42,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import scala.collection.JavaConversions.asScalaSet
-import code.metrics.APIMetric
+import code.metrics.MongoAPIMetric
 
 object APIUtil {
 
@@ -67,7 +67,7 @@ object APIUtil {
   }
 
   def logAPICall =
-    APIMetric.createRecord.
+    MongoAPIMetric.createRecord.
       url(S.uriAndQueryString.getOrElse("")).
       date((now: TimeSpan)).
       save

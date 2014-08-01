@@ -36,10 +36,10 @@ import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
  import net.liftweb.record.field.StringField
  import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
 
-class APIMetric extends MongoRecord[APIMetric] with ObjectIdPk[APIMetric] {
-  def meta = APIMetric
+class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] {
+  def meta = MongoAPIMetric
   object url extends StringField(this,255)
   object date extends DateField(this)
 }
 
-object APIMetric extends APIMetric with MongoMetaRecord[APIMetric]
+object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric]

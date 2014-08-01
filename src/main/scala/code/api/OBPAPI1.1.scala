@@ -59,7 +59,7 @@ import java.util.Date
 import code.api.OAuthHandshake._
 import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
-import code.metrics.APIMetric
+import code.metrics.MongoAPIMetric
 
 case class TagJSON(
   value : String,
@@ -161,7 +161,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   }
 
   private def logAPICall =
-    APIMetric.createRecord.
+    MongoAPIMetric.createRecord.
       url(S.uriAndQueryString.getOrElse("")).
       date((now: TimeSpan)).
       save

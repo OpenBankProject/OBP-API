@@ -65,7 +65,7 @@ import net.liftweb.json.JsonAST.JObject
 import code.bankconnectors.OBPToDate
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.common.Full
-import code.metrics.APIMetric
+import code.metrics.MongoAPIMetric
 
 object OBPAPI1_0 extends RestHelper with Loggable {
 
@@ -74,7 +74,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
   val dateFormat = ModeratedTransaction.dateFormat
 
   private def logAPICall =
-    APIMetric.createRecord.
+    MongoAPIMetric.createRecord.
       url(S.uriAndQueryString.getOrElse("")).
       date((now: TimeSpan)).
       save
