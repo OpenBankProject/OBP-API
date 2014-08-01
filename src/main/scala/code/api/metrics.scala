@@ -36,9 +36,9 @@ package code.api
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
-import code.model.dataAccess.APIMetric
 import java.util.Date
 import java.util.Calendar
+import code.metrics.APIMetric
 
 case class APICallAmount(
   url: String,

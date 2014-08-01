@@ -30,9 +30,9 @@ Berlin 13359, Germany
 
  */
 
- package code.model.dataAccess
+ package code.metrics
 
- import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
+import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
  import net.liftweb.record.field.StringField
  import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
 

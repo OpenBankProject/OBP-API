@@ -52,7 +52,7 @@ import net.liftweb.mongodb.{ Skip, Limit }
 import _root_.net.liftweb.http.S._
 import _root_.net.liftweb.mapper.view._
 import com.mongodb._
-import code.model.dataAccess.{ APIMetric, HostedAccount}
+import code.model.dataAccess.HostedAccount
 import code.model.{ModeratedTransaction, ModeratedBankAccount, View, BankAccount, Bank, User}
 import code.model.dataAccess.OBPEnvelope._
 import code.api.OAuthHandshake._
@@ -65,6 +65,7 @@ import net.liftweb.json.JsonAST.JObject
 import code.bankconnectors.OBPToDate
 import net.liftweb.http.InMemoryResponse
 import net.liftweb.common.Full
+import code.metrics.APIMetric
 
 object OBPAPI1_0 extends RestHelper with Loggable {
 

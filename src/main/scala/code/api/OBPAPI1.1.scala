@@ -57,9 +57,9 @@ import _root_.net.liftweb.mapper.view._
 import code.model._
 import java.util.Date
 import code.api.OAuthHandshake._
-import code.model.dataAccess.APIMetric
 import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
+import code.metrics.APIMetric
 
 case class TagJSON(
   value : String,
