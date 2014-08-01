@@ -181,13 +181,13 @@ object MapperViews extends Views with Loggable {
 
   }
 
-  def updateView(bankAccount : BankAccount, viewId: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
+  def updateView(bankAccount : BankAccount, viewPermalink: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {
-      view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
+      view <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
         ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
         override val responseCode: Int = 404
-        override val msg: String = s"View $viewId not found"
+        override val msg: String = s"View with permalink $viewPermalink not found"
       }
     } yield {
       view.setFromViewData(viewUpdateJson)
@@ -195,13 +195,13 @@ object MapperViews extends Views with Loggable {
     }
   }
 
-  def removeView(viewId: String, bankAccount: BankAccount): Box[Unit] = {
+  def removeView(viewPermalink: String, bankAccount: BankAccount): Box[Unit] = {
 
-    if(viewId=="owner")
+    if(viewPermalink=="owner")
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewImpl.find(By(ViewImpl.permalink_, viewId) ::
+        view <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
           ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)  ?~ "view not found"
         if(view.delete_!)
       } yield {
