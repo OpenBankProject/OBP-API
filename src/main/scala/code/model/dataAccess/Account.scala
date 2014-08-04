@@ -107,12 +107,18 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
 
   def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
     import com.mongodb.DBObject
+    import net.liftweb.mongodb.FindOption
 
     val DefaultSortField = "obp_transaction.details.completed"
 
-    val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.headOption.getOrElse(50)
-    val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.headOption.getOrElse(50)
-    val orderingParams = queryParams.collect { case param: OBPOrdering => param}.headOption
+    val limit: Seq[Limit] = queryParams.collect { case OBPLimit(value) => Limit(value) }
+    val offset: Seq[Skip] = queryParams.collect { case OBPOffset(value) => Skip(value) }
+
+    val limitAndOffset: Seq[FindOption] = limit ++ offset
+
+    val orderingParams = queryParams
+      .collect { case param: OBPOrdering => param}
+      .headOption
       .getOrElse(OBPOrdering(Some(DefaultSortField), OBPDescending))
 
     val fromDate: Option[OBPFromDate] = queryParams.collect { case param: OBPFromDate => param }.headOption
@@ -138,9 +144,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
       queryWithOptionalFromDateAndToDate.get
     }
 
-    val ordering =  QueryBuilder.start(orderingParams.field.getOrElse(DefaultSortField)).is(orderingParams.order.orderValue).get
+    val ordering: DBObject =  QueryBuilder.start(orderingParams.field.getOrElse(DefaultSortField)).is(orderingParams.order.orderValue).get
 
-    OBPEnvelope.findAll(query, ordering, Limit(limit), Skip(offset))
+    OBPEnvelope.findAll(query, ordering, limitAndOffset: _*)
 
   }
 }
