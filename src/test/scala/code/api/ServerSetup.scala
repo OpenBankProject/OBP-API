@@ -114,6 +114,8 @@ trait ServerSetup extends FeatureSpec
 
     //fake transactions
     accounts.foreach(account => {
+      import java.util.Calendar
+
      val thisAccountBank = OBPBank.createRecord.
         IBAN(randomString(5)).
         national_identifier(account.bankId).
@@ -123,6 +125,29 @@ trait ServerSetup extends FeatureSpec
         number(account.number.get).
         kind(account.kind.get).
         bank(thisAccountBank)
+
+      def add10Minutes(d: Date): Date = {
+        val calendar = Calendar.getInstance
+        calendar.setTime(d)
+        calendar.add(Calendar.MINUTE, 10)
+        calendar.getTime
+      }
+
+      val initialDate: Date = {
+        val calendar = Calendar.getInstance
+        calendar.setTime(new Date())
+        calendar.add(Calendar.YEAR, -1)
+        calendar.getTime
+      }
+
+      object InitialDateFactory{
+        val calendar = Calendar.getInstance
+        calendar.setTime(initialDate)
+        def date: Date = {
+          calendar.add(Calendar.HOUR, 10)
+          calendar.getTime
+        }
+      }
 
       for(i <- 0 until 10){
 
@@ -147,15 +172,20 @@ trait ServerSetup extends FeatureSpec
           currency(account.currency.get).
           amount(transactionAmount)
 
-        val details = OBPDetails.createRecord.
-          kind(randomString(5)).
-          posted(now).
-          other_data(randomString(5)).
-          new_balance(newBalance).
-          value(newValue).
-          completed(now).
-          label(randomString(5))
+        val details ={
+          val postedDate = InitialDateFactory.date
+          val completedDate = add10Minutes(postedDate)
 
+          OBPDetails
+          .createRecord
+          .kind(randomString(5))
+          .posted(postedDate)
+          .other_data(randomString(5))
+          .new_balance(newBalance)
+          .value(newValue)
+          .completed(completedDate)
+          .label(randomString(5))
+        }
         val transaction = OBPTransaction.createRecord.
           this_account(thisAccount).
           other_account(otherAccount).

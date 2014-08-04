@@ -27,8 +27,8 @@ trait Views {
   def view(viewPermalink : String, accountId: String, bankId: String) : Box[View]
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
-  def removeView(viewId: String, bankAccount: BankAccount): Box[Unit]
-  def updateView(bankAccount : BankAccount, viewId: String, viewUpdateJson : ViewUpdateData) : Box[View]
+  def removeView(viewPermalink: String, bankAccount: BankAccount): Box[Unit]
+  def updateView(bankAccount : BankAccount, viewPermalink: String, viewUpdateJson : ViewUpdateData) : Box[View]
   def views(bankAccount : BankAccount) : Box[List[View]]
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
   def publicViews(bankAccount : BankAccount) : Box[List[View]]

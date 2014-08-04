@@ -32,7 +32,6 @@ Berlin 13359, Germany
 
 package code.util
 
-import code.model.dataAccess.APIMetric
 import code.api.v1_2.ErrorMessage
 import net.liftweb.http.JsonResponse
 import net.liftweb.json.Extraction
@@ -43,6 +42,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.http.js.JE.JsRaw
 import scala.collection.JavaConversions.asScalaSet
+import code.metrics.{APIMetrics}
 
 object APIUtil {
 
@@ -67,10 +67,7 @@ object APIUtil {
   }
 
   def logAPICall =
-    APIMetric.createRecord.
-      url(S.uriAndQueryString.getOrElse("")).
-      date((now: TimeSpan)).
-      save
+    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
 
   def gitCommit : String = {
     val commit = tryo{
