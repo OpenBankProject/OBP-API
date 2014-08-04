@@ -3760,7 +3760,7 @@ class API1_2Test extends ServerSetup{
     import java.text.SimpleDateFormat
     val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3771,7 +3771,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get all the transactions sorted by ASC", API1_2, GetTransactionsWithParams) {
+    scenario("we get all the transactions sorted by ASC", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3788,7 +3788,7 @@ class API1_2Test extends ServerSetup{
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
-    scenario("we get all the transactions sorted by asc", API1_2, GetTransactionsWithParams) {
+    scenario("we get all the transactions sorted by asc", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3805,7 +3805,7 @@ class API1_2Test extends ServerSetup{
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(true)
     }
-    scenario("we get all the transactions sorted by DESC", API1_2, GetTransactionsWithParams) {
+    scenario("we get all the transactions sorted by DESC", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3822,7 +3822,7 @@ class API1_2Test extends ServerSetup{
       val transaction2 = transactions.transactions(1)
       transaction1.details.completed.before(transaction2.details.completed) should equal(false)
     }
-    scenario("we get all the transactions sorted by desc", API1_2, GetTransactionsWithParams) {
+    scenario("we get all the transactions sorted by desc", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3840,7 +3840,7 @@ class API1_2Test extends ServerSetup{
       transaction1.details.completed.before(transaction2.details.completed) should equal(false)
 
     }
-    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3851,7 +3851,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3862,7 +3862,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3873,7 +3873,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2, GetTransactionsWithParams) {
+    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3887,7 +3887,7 @@ class API1_2Test extends ServerSetup{
       And("transactions size should be equal to 5")
       transactions.transactions.size should equal (5)
     }
-    scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3898,7 +3898,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get transactions from a previous date with the right format", API1_2, GetTransactionsWithParams) {
+    scenario("we get transactions from a previous date with the right format", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3918,7 +3918,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2, GetTransactionsWithParams) {
+    scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3938,7 +3938,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we don't get transactions from a date in the future", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions from a date in the future", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3958,7 +3958,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3969,7 +3969,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2, GetTransactionsWithParams) {
+    scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -3985,7 +3985,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we get transactions from a previous date with the fallback format", API1_2, GetTransactionsWithParams) {
+    scenario("we get transactions from a previous date with the fallback format", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -4001,7 +4001,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should not equal (0)
     }
-    scenario("we don't get transactions from a date in the past", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions from a date in the past", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -4021,7 +4021,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -4032,7 +4032,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -4046,7 +4046,7 @@ class API1_2Test extends ServerSetup{
       val transactions = reply.body.extract[TransactionsJSON]
       transactions.transactions.size should equal (0)
     }
-    scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2, GetTransactionsWithParams) {
+    scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -4057,7 +4057,7 @@ class API1_2Test extends ServerSetup{
       Then("we should get a 400 code")
       reply.code should equal (400)
     }
-    scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2, GetTransactionsWithParams) {
+    scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2, GetTransactions, GetTransactionsWithParams) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
