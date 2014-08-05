@@ -2193,7 +2193,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.apiId
+      val userId = obpuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
