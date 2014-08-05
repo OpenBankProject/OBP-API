@@ -88,12 +88,12 @@ class API1_2_1Test extends ServerSetup{
       saveMe
 
   val defaultProvider = Props.get("hostname","")
-      
+
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   // create the access token
   lazy val tokenDuration = weeks(4)
 
-  lazy val obpuser1 = 
+  lazy val obpuser1 =
     APIUser.create.provider_(defaultProvider).
       saveMe
 
@@ -168,11 +168,11 @@ class API1_2_1Test extends ServerSetup{
   val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
-  
+
   /**
    * Example: To run tests with tag "getPermissions":
    * 	mvn test -D tagsToInclude=getPermissions
-   *  
+   *
    *  This is made possible by the scalatest maven plugin
    */
 
@@ -230,6 +230,7 @@ class API1_2_1Test extends ServerSetup{
   object PutPhysicalLocation extends Tag("putPhysicalLocation")
   object DeletePhysicalLocation extends Tag("deletePhysicalLocation")
   object GetTransactions extends Tag("getTransactions")
+  object GetTransactionsWithParams extends Tag("getTransactionsWithParams")
   object GetTransaction extends Tag("getTransaction")
   object GetNarrative extends Tag("getNarrative")
   object PostNarrative extends Tag("postNarrative")
@@ -290,12 +291,12 @@ class API1_2_1Test extends ServerSetup{
     val randomPosition = nextInt(accountsJson.size)
     accountsJson(randomPosition)
   }
-  
+
   def privateAccountThatsNot(bankId: String, accId : String) : AccountJSON = {
     val accountsJson = getPrivateAccounts(bankId, user1).body.extract[AccountsJSON].accounts
     accountsJson.find(acc => acc.id != accId).getOrElse(fail(s"no private account that's not $accId"))
   }
-  
+
   def randomAccountPermission(bankId : String, accountId : String) : PermissionJSON = {
     val persmissionsInfo = getAccountPermissions(bankId, accountId, user1).body.extract[PermissionsJSON]
     val randomPermission = nextInt(persmissionsInfo.permissions.size)
@@ -372,7 +373,7 @@ class API1_2_1Test extends ServerSetup{
     val request = v1_2Request / "accounts" <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
+
   def getPublicAccountsForAllBanks() : APIResponse= {
     val request = v1_2Request / "accounts" / "public"
     makeGetRequest(request)
@@ -634,9 +635,9 @@ class API1_2_1Test extends ServerSetup{
     makeDeleteRequest(request)
   }
 
-  def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def getTransactions(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)], params: List[(String, String)] = Nil): APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" <@(consumerAndToken)
-    makeGetRequest(request)
+    makeGetRequest(request, params)
   }
 
   def getTransaction(bankId : String, accountId : String, viewId : String, transactionId : String, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
@@ -742,7 +743,7 @@ class API1_2_1Test extends ServerSetup{
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "transactions" / transactionId / "other_account" <@(consumerAndToken)
     makeGetRequest(request)
   }
-  
+
   feature("we can make payments") {
 
     def paymentTestBank = HostedBank.createRecord.
@@ -752,7 +753,7 @@ class API1_2_1Test extends ServerSetup{
       national_identifier(randomString(5)).
       save
 
-    def createAccount(bankMongoId : String, accountPermalink : String, currency : String) = {
+    def createAccount(bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
 
       val created = Account.createRecord.
         balance(1000).
@@ -771,7 +772,7 @@ class API1_2_1Test extends ServerSetup{
         accountID(created.id.get.toString).
         saveMe
 
-      val owner = ownerView(hostedAccount)
+      val owner = ownerView(bankPermalink, accountPermalink, hostedAccount)
 
       //give to user1 owner view
       ViewPrivileges.create.
@@ -789,27 +790,27 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
       }
-      
+
       def getToAccount : BankAccount = {
         BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
       }
-      
+
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
       val totalTransactionsBefore = OBPEnvelope.count
-      
+
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
-      
+
       val amt = BigDecimal("12.50")
-      
+
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
 
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
@@ -819,30 +820,29 @@ class API1_2_1Test extends ServerSetup{
         case _ => ""
       }
       transId should not equal("")
-     
+
       val reply = getTransaction(
           fromAccount.bankPermalink, fromAccount.permalink, view, transId, user1)
-          
+
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val transJson = reply.body.extract[TransactionJSON]
-      
+
       val fromAccountTransAmt = transJson.details.value.amount
       //the from account transaction should have a negative value
       //since money left the account
       And("the json we receive back should have a transaction amount equal to the amount specified to pay")
       fromAccountTransAmt should equal((-amt).toString)
-       
+
       val expectedNewFromBalance = beforeFromBalance - amt
       And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
       transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
       getFromAccount.balance should equal(expectedNewFromBalance)
-      
       val toAccountTransactionsReq = getTransactions(toAccount.bankPermalink, toAccount.permalink, view, user1)
       toAccountTransactionsReq.code should equal(200)
       val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
       val newestToAccountTransaction = toAccountTransactions.transactions(0)
-    
+
       //here amt should be positive (unlike in the transaction in the "from" account")
       And("the newest transaction for the account receiving the payment should have the proper amount")
       newestToAccountTransaction.details.value.amount should equal(amt.toString)
@@ -860,8 +860,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -899,8 +899,8 @@ class API1_2_1Test extends ServerSetup{
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -933,15 +933,15 @@ class API1_2_1Test extends ServerSetup{
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
 
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -963,25 +963,25 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -1005,24 +1005,24 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
-    
+
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -1040,24 +1040,24 @@ class API1_2_1Test extends ServerSetup{
 
       val payJson = MakePaymentJson(bankId, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
       val postResult = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, view, payJson, user1)
-      
+
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for the sender's account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balance of the sender's account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
     }
-    
+
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
       val testBank = paymentTestBank
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, "__acc2", "GBP")
+      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -1082,23 +1082,23 @@ class API1_2_1Test extends ServerSetup{
 
       Then("we should get a 400")
       postResult.code should equal(400)
-      
+
       And("the number of transactions for each account should remain unchanged")
       totalTransactionsBefore should equal(OBPEnvelope.count)
-      
+
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
       beforeToBalance should equal(toAccount.balance)
     }
   }
-  
+
   /**
-   * 
+   *
    */
 
 
-  
-  
+
+
 /************************ the tests ************************/
   feature("base line URL works"){
     scenario("we get the api information", API1_2, APIInfo) {
@@ -1153,7 +1153,7 @@ class API1_2_1Test extends ServerSetup{
     val exists = accJson.accounts.exists(acc => acc.views_available.exists(cond))
     exists should equal(true)
   }
-  
+
   def assertAllAccountsHaveAViewWithCondition(accJson: AccountsJSON, cond: ViewJSON => Boolean): Unit = {
     val forAll = accJson.accounts.forall(acc => acc.views_available.exists(cond))
     forAll should equal(true)
@@ -1236,14 +1236,14 @@ class API1_2_1Test extends ServerSetup{
             create.
             accountID(account.id.get.toString).
             saveMe
-        val owner = ownerView(hostedaccount)
+        val owner = ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
         ViewPrivileges.create.
           view(owner).
           user(ownerUser).
           save
 
         if(addPublicView) {
-          publicView(hostedaccount)
+          publicView(account.bankPermalink, account.permalink.get, hostedaccount)
         }
       })
     }
@@ -1304,7 +1304,7 @@ class API1_2_1Test extends ServerSetup{
       assertNoDuplicateAccounts(accountsInfo)
     }
   }
-  
+
   feature("Information about the public bank accounts for all banks"){
     scenario("we get the public bank accounts", API1_2, GetPublicBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
@@ -1346,7 +1346,7 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
+
       And("All accounts should have at least one private view")
       assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
 
@@ -1367,7 +1367,7 @@ class API1_2_1Test extends ServerSetup{
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
   }
-  
+
   feature("Information about all the bank accounts for a single bank"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccounts) {
       accountTestsSpecificDBSetup()
@@ -1463,7 +1463,7 @@ class API1_2_1Test extends ServerSetup{
         a.id.nonEmpty should equal (true)
         a.views_available.nonEmpty should equal (true)
       })
-      
+
       And("All accounts should have at least one private view")
       assertAllAccountsHaveAViewWithCondition(privateAccountsInfo, !_.is_public)
 
@@ -1754,6 +1754,29 @@ class API1_2_1Test extends ServerSetup{
       viewsBefore.size should equal (viewsAfter.size +1)
     }
 
+    scenario("We can't delete the owner view", API1_2, DeleteView) {
+
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      def getOwnerView() = {
+        val views = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+        views.find(v => v.id == "owner")
+      }
+
+      Given("The owner view exists")
+      val ownerView = getOwnerView()
+      ownerView.isDefined should equal(true)
+
+      When("We attempt to delete the view")
+      val reply = deleteView(bankId, bankAccount.id, ownerView.get.id, user1)
+
+      Then("We should get a 400 code")
+      reply.code should equal(400)
+
+      And("the owner view should still exist")
+      getOwnerView().isDefined should equal(true)
+    }
+
     scenario("We will not delete a view on a bank account due to missing token", API1_2, DeleteView) {
       Given("We will not use an access token")
       val bankId = randomBank
@@ -1803,12 +1826,12 @@ class API1_2_1Test extends ServerSetup{
       Then("we should get a 200 ok code")
       reply.code should equal (200)
       val permissions = reply.body.extract[PermissionsJSON]
-      
+
       def stringNotEmpty(s : String) {
         s should not equal null
         s should not equal ""
       }
-      
+
       for {
         permission <- permissions.permissions
       } {
@@ -1818,7 +1841,7 @@ class API1_2_1Test extends ServerSetup{
         // idea: reflection on all the json case classes, marking "required" information with annotations
         stringNotEmpty(user.id)
         stringNotEmpty(user.provider)
-        
+
         for {
           view <- permission.views
         } {
@@ -1826,7 +1849,7 @@ class API1_2_1Test extends ServerSetup{
         }
       }
     }
-      
+
     scenario("we will not get one bank account permissions", API1_2, GetPermissions) {
       Given("We will not use an access token")
       val bankId = randomBank
@@ -2171,7 +2194,7 @@ class API1_2_1Test extends ServerSetup{
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.apiId
+      val userId = obpuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -2182,6 +2205,28 @@ class API1_2_1Test extends ServerSetup{
       reply.code should equal (400)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore)
+    }
+
+    scenario("we cannot revoke the access to the owner view via a revoke all views call if there " +
+      "would then be no one with access to it", API1_2, DeletePermissions) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewId = "owner"
+      val view = Views.views.vend.view(viewId,bankAccount.id, bankId).get
+      val userId = obpuser1.idGivenByProvider
+
+      view.users.length should equal(1)
+      view.users(0).idGivenByProvider should equal(userId)
+
+      When("the request is sent")
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+
+      And("The user should not have had his access revoked")
+      view.users.length should equal(1)
+      view.users(0).idGivenByProvider should equal(userId)
     }
   }
 
@@ -4348,6 +4393,327 @@ class API1_2_1Test extends ServerSetup{
       val reply = getTransactions(bankId,bankAccount.id,randomString(5), user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
+    }
+  }
+
+  feature("transactions with params"){
+    import java.util.Calendar
+    import java.text.SimpleDateFormat
+    import java.util.Date
+
+    val defaultFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+    val rollbackFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+
+    scenario("we don't get transactions due to wrong value for obp_sort_direction parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_sort_direction")
+      val params = ("obp_sort_direction", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get all the transactions sorted by ASC", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value ASC for param obp_sort_by")
+      val params = ("obp_sort_direction", "ASC") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions array should not be empty")
+      transactions.transactions.size should not equal (0)
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
+    }
+    scenario("we get all the transactions sorted by asc", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value asc for param obp_sort_by")
+      val params = ("obp_sort_direction", "asc") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions array should not be empty")
+      transactions.transactions.size should not equal (0)
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(true)
+    }
+    scenario("we get all the transactions sorted by DESC", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value DESC for param obp_sort_by")
+      val params = ("obp_sort_direction", "DESC") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions array should not be empty")
+      transactions.transactions.size should not equal (0)
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
+    }
+    scenario("we get all the transactions sorted by desc", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value desc for param obp_sort_by")
+      val params = ("obp_sort_direction", "desc") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions array should not be empty")
+      transactions.transactions.size should not equal (0)
+      val transaction1 = transactions.transactions(0)
+      val transaction2 = transactions.transactions(1)
+      transaction1.details.completed.before(transaction2.details.completed) should equal(false)
+
+    }
+    scenario("we don't get transactions due to wrong value (not a number) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_limit")
+      val params = ("obp_limit", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we don't get transactions due to wrong value (0) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_limit")
+      val params = ("obp_limit", "0") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we don't get transactions due to wrong value (-100) for obp_limit parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_limit")
+      val params = ("obp_limit", "-100") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get only 5 transactions due to the obp_limit parameter value", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value ASC for parameter obp_limit")
+      val params = ("obp_limit", "5") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions size should be equal to 5")
+      transactions.transactions.size should equal (5)
+    }
+    scenario("we don't get transactions due to wrong value for obp_from_date parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_from_date")
+      val params = ("obp_from_date", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get transactions from a previous date with the right format", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = defaultFormat.format(pastDate)
+      val params = ("obp_from_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we get transactions from a previous date (obp_from_date) with the fallback format", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into an accepted format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = rollbackFormat.format(pastDate)
+      val params = ("obp_from_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we don't get transactions from a date in the future", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_from_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, 1)
+      val futureDate = calendar.getTime
+      val formatedFutureDate = defaultFormat.format(futureDate)
+      val params = ("obp_from_date", formatedFutureDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value for obp_to_date parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_to_date")
+      val params = ("obp_to_date", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get transactions from a previous (obp_to_date) date with the right format", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into a proper format")
+      val currentDate = new Date()
+      val formatedCurrentDate = defaultFormat.format(currentDate)
+      val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we get transactions from a previous date with the fallback format", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into an accepted format")
+      val currentDate = new Date()
+      val formatedCurrentDate = defaultFormat.format(currentDate)
+      val params = ("obp_to_date", formatedCurrentDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should not be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should not equal (0)
+    }
+    scenario("we don't get transactions from a date in the past", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with obp_to_date into a proper format")
+      val currentDate = new Date()
+      val calendar = Calendar.getInstance
+      calendar.setTime(currentDate)
+      calendar.add(Calendar.YEAR, -1)
+      val pastDate = calendar.getTime
+      val formatedPastDate = defaultFormat.format(pastDate)
+      val params = ("obp_to_date", formatedPastDate) :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value (not a number) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "foo") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we don't get transactions due to the (2000) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "2000") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 code")
+      reply.code should equal (200)
+      And("transactions size should be empty")
+      val transactions = reply.body.extract[TransactionsJSON]
+      transactions.transactions.size should equal (0)
+    }
+    scenario("we don't get transactions due to wrong value (-100) for obp_offset parameter", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with a wrong value for param obp_offset")
+      val params = ("obp_offset", "-100") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+    }
+    scenario("we get only 5 transactions due to the obp_offset parameter value", API1_2, GetTransactions, GetTransactionsWithParams) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val view = randomViewPermalink(bankId, bankAccount)
+      When("the request is sent with the value ASC for parameter obp_offset")
+      val params = ("obp_offset", "5") :: Nil
+      val reply = getTransactions(bankId,bankAccount.id,view, user1, params)
+      Then("we should get a 200 ok code")
+      reply.code should equal (200)
+      val transactions = reply.body.extract[TransactionsJSON]
+      And("transactions size should be equal to 5")
+      transactions.transactions.size should equal (5)
     }
   }
 

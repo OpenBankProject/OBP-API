@@ -72,57 +72,93 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
   object iban extends StringField(this, 255)
   object lastUpdate extends DateField(this)
 
-  def bankName : String = bankID.obj match {
-    case Full(bank) => bank.name.get
-    case _ => ""
+  def bankName: String ={
+    bankID.obj match {
+      case Full(bank) => bank.name.get
+      case _ => ""
+    }
   }
 
-  def bankId = bankID.obj match {
+  def bankId: String = {
+    bankID.obj match {
       case Full(bank) => bank.national_identifier.get
       case _ => ""
     }
-  def bankPermalink : String  = bankID.obj match  {
-    case Full(bank) => bank.permalink.get
-    case _ => ""
   }
 
-  def transactionsForAccount = QueryBuilder.start("obp_transaction.this_account.number").is(number.get).
-    put("obp_transaction.this_account.bank.national_identifier").is(bankId)
+  def bankPermalink: String = {
+    bankID.obj match  {
+      case Full(bank) => bank.permalink.get
+      case _ => ""
+    }
+  }
+
+  def transactionsForAccount: QueryBuilder = {
+    QueryBuilder
+    .start("obp_transaction.this_account.number")
+    .is(number.get)
     //FIX: change that to use the bank identifier
+    .put("obp_transaction.this_account.bank.national_identifier")
+    .is(bankId)
+  }
 
   //find all the envelopes related to this account
   def allEnvelopes: List[OBPEnvelope] = OBPEnvelope.findAll(transactionsForAccount.get)
 
   def envelopes(queryParams: OBPQueryParam*): List[OBPEnvelope] = {
-    val DefaultSortField = "obp_transaction.details.completed"
+    import com.mongodb.DBObject
+    import net.liftweb.mongodb.FindOption
 
-    val limit = queryParams.collect { case OBPLimit(value) => value }.headOption.getOrElse(50)
-    val offset = queryParams.collect { case OBPOffset(value) => value }.headOption.getOrElse(0)
-    val orderingParams = queryParams.collect { case param: OBPOrdering => param}.headOption
-      .getOrElse(OBPOrdering(Some(DefaultSortField), OBPDescending))
+    val limit: Seq[Limit] = queryParams.collect { case OBPLimit(value) => Limit(value) }
+    val offset: Seq[Skip] = queryParams.collect { case OBPOffset(value) => Skip(value) }
+    val limitAndOffset: Seq[FindOption] = limit ++ offset
 
-    val fromDate = queryParams.collect { case param: OBPFromDate => param }.headOption
-    val toDate = queryParams.collect { case param: OBPFromDate => param }.headOption
+    val fromDate: Option[OBPFromDate] = queryParams.collect { case param: OBPFromDate => param }.headOption
+    val toDate: Option[OBPToDate] = queryParams.collect { case param: OBPToDate => param }.headOption
 
-    val mongoParams = {
-      val start = transactionsForAccount
-      val start2 =
-        if(fromDate.isDefined)
-          start.put("obp_transaction.details.completed").greaterThanEquals(fromDate.get.value)
-        else
-        start
+    val query: DBObject = {
+      val queryWithOptionalFromDate = fromDate.map{
+          date => {
+            transactionsForAccount
+            .put("obp_transaction.details.completed")
+            .greaterThanEquals(date.value)
+          }
+        }.getOrElse(transactionsForAccount)
 
-      val end =
-        if(toDate.isDefined)
-          start2.put("obp_transaction.details.completed").lessThanEquals(toDate.get.value)
-        else
-        start2
-      end.get
+      val queryWithOptionalFromDateAndToDate = toDate.map{
+          date => {
+            queryWithOptionalFromDate
+            .put("obp_transaction.details.completed")
+            .lessThanEquals(date.value)
+          }
+        }.getOrElse(queryWithOptionalFromDate)
+
+      queryWithOptionalFromDateAndToDate.get
     }
 
-    val ordering =  QueryBuilder.start(orderingParams.field.getOrElse(DefaultSortField)).is(orderingParams.order.orderValue).get
+    val defaultSortField = "obp_transaction.details.completed"
+    val orderingParams = queryParams
+      .collect { case param: OBPOrdering => param}
+      .headOption
 
-    OBPEnvelope.findAll(mongoParams, ordering, Limit(limit), Skip(offset))
+    val ordering: Option[DBObject] =
+      orderingParams.map{
+        o => {
+          QueryBuilder
+          .start(defaultSortField)
+          .is(o.order.orderValue)
+          .get
+        }
+      }
+
+    ordering match {
+      case Some(o) =>{
+        OBPEnvelope.findAll(query, o, limitAndOffset: _*)
+      }
+      case _ =>{
+        OBPEnvelope.findAll(query, limitAndOffset: _*)
+      }
+    }
   }
 }
 

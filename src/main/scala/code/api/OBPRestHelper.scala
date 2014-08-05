@@ -40,6 +40,8 @@ import net.liftweb.http.JsonResponse
 import code.util.APIUtil._
 import code.model.User
 import code.api.OAuthHandshake._
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.Extraction
 
 trait APIFailure{
   val msg : String
@@ -69,7 +71,14 @@ case class UserNotFound(providerId : String, userId: String) extends APIFailure 
   val msg = s"user $userId not found at provider $providerId"
 }
 
-class OBPRestHelper extends RestHelper with Loggable {
+trait OBPRestHelper extends RestHelper with Loggable {
+
+  implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
+  implicit def successToJson(success: SuccessMessage): JValue = Extraction.decompose(success)
+
+  val VERSION : String
+  def vPlusVersion = "v" + VERSION
+  def apiPrefix = "obp" / vPlusVersion oPrefix _
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {

@@ -63,7 +63,7 @@ trait User {
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
-  def nonPublicAccounts : Box[List[BankAccount]] = Connector.connector.vend.getNonPublicBankAccounts(this)
+  def nonPublicAccounts : Box[List[BankAccount]] = Views.views.vend.getNonPublicBankAccounts(this)
 
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~

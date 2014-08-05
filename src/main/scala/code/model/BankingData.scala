@@ -59,7 +59,7 @@ class Bank(
 {
 
   def accounts(user : Box[User]) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getAllAccountsUserCanSee(this, user)
+    Views.views.vend.getAllAccountsUserCanSee(this, user)
   }
 
   //This was the behaviour in v1.2 and earlier which has since been changed
@@ -75,9 +75,9 @@ class Bank(
     }
   }
 
-  def publicAccounts : List[BankAccount] = Connector.connector.vend.getPublicBankAccounts(this)
+  def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getNonPublicBankAccounts(user, id)
+    Views.views.vend.getNonPublicBankAccounts(user, permalink)
   }
 
   def detailedJson : JObject = {
@@ -279,7 +279,7 @@ class BankAccount(
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAllPermission(id, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermission(bankPermalink, permalink, otherUser)
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -310,11 +310,11 @@ class BankAccount(
     }
   }
 
-  def updateView(userDoingTheUpdate : User, viewId : String, v: ViewUpdateData) : Box[View] = {
+  def updateView(userDoingTheUpdate : User, viewPermalink : String, v: ViewUpdateData) : Box[View] = {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(this, viewId, v)
+      val view = Views.views.vend.updateView(this, viewPermalink, v)
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
@@ -326,14 +326,14 @@ class BankAccount(
   }
     
 
-  def removeView(userDoingTheRemove : User,viewId: String) : Box[Unit] = {
+  def removeView(userDoingTheRemove : User, viewPermalink: String) : Box[Unit] = {
     if(!userDoingTheRemove.ownerAccess(this)) {
       Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewId, this)
+      val deleted = Views.views.vend.removeView(viewPermalink, this)
       
       if(deleted.isDefined) {
-        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewPermalink +
             " for account " + permalink + "at bank " + bankPermalink)
       }
       
@@ -408,15 +408,15 @@ object BankAccount {
   }
 
   def publicAccounts : List[BankAccount] = {
-    Connector.connector.vend.getAllPublicAccounts
+    Views.views.vend.getAllPublicAccounts
   }
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Connector.connector.vend.getAllAccountsUserCanSee(user)
+    Views.views.vend.getAllAccountsUserCanSee(user)
   }
 
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Connector.connector.vend.getNonPublicBankAccounts(user)
+    Views.views.vend.getNonPublicBankAccounts(user)
   }
 }
 

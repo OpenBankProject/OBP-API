@@ -34,6 +34,7 @@ package code.model.dataAccess
 
 import net.liftweb.mapper._
 import code.model.{ViewData, View, User}
+import scala.collection.immutable.List
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
@@ -47,7 +48,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
   def primaryKeyField = id_
   object users_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.view, ViewPrivileges.user, APIUser)
-  object account extends MappedLongForeignKey(this, HostedAccount)
+
+  object bankPermalink extends MappedString(this, 255)
+  object accountPermalink extends MappedString(this, 255)
 
 
   object id_ extends MappedLongIndex(this)
@@ -420,8 +423,90 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddWhereTag : Boolean = canAddWhereTag_.get
   def canSeeWhereTag : Boolean = canSeeWhereTag_.get
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
+
+  //TODO: if you add new permissions here, remember to set them wherever views are create
+  // (e.g. BankAccountCreationDispatcher)
 }
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
-  override def dbIndexes = Index(permalink_, account):: super.dbIndexes
+  override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+
+  def accountFilter(bankPermalink : String, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
+    By(ViewImpl.bankPermalink, bankPermalink) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
+  }
+
+  def createAndSaveOwnerView(bankPermalink : String, accountPermalink: String, description: String) : ViewImpl = {
+    ViewImpl
+      .create
+      .bankPermalink(bankPermalink)
+      .accountPermalink(accountPermalink)
+      .name_("Owner")
+      .permalink_("owner")
+      .description_(description)
+      .isPublic_(false) //(default is false anyways)
+      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
+      .usePublicAliasIfOneExists_(false) //(default is false anyways)
+      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
+      .canSeeTransactionThisBankAccount_(true)
+      .canSeeTransactionOtherBankAccount_(true)
+      .canSeeTransactionMetadata_(true)
+      .canSeeTransactionDescription_(true)
+      .canSeeTransactionAmount_(true)
+      .canSeeTransactionType_(true)
+      .canSeeTransactionCurrency_(true)
+      .canSeeTransactionStartDate_(true)
+      .canSeeTransactionFinishDate_(true)
+      .canSeeTransactionBalance_(true)
+      .canSeeComments_(true)
+      .canSeeOwnerComment_(true)
+      .canSeeTags_(true)
+      .canSeeImages_(true)
+      .canSeeBankAccountOwners_(true)
+      .canSeeBankAccountType_(true)
+      .canSeeBankAccountBalance_(true)
+      .canSeeBankAccountCurrency_(true)
+      .canSeeBankAccountLabel_(true)
+      .canSeeBankAccountNationalIdentifier_(true)
+      .canSeeBankAccountSwift_bic_(true)
+      .canSeeBankAccountIban_(true)
+      .canSeeBankAccountNumber_(true)
+      .canSeeBankAccountBankName_(true)
+      .canSeeBankAccountBankPermalink_(true)
+      .canSeeOtherAccountNationalIdentifier_(true)
+      .canSeeOtherAccountSWIFT_BIC_(true)
+      .canSeeOtherAccountIBAN_(true)
+      .canSeeOtherAccountBankName_(true)
+      .canSeeOtherAccountNumber_(true)
+      .canSeeOtherAccountMetadata_(true)
+      .canSeeOtherAccountKind_(true)
+      .canSeeMoreInfo_(true)
+      .canSeeUrl_(true)
+      .canSeeImageUrl_(true)
+      .canSeeOpenCorporatesUrl_(true)
+      .canSeeCorporateLocation_(true)
+      .canSeePhysicalLocation_(true)
+      .canSeePublicAlias_(true)
+      .canSeePrivateAlias_(true)
+      .canAddMoreInfo_(true)
+      .canAddURL_(true)
+      .canAddImageURL_(true)
+      .canAddOpenCorporatesUrl_(true)
+      .canAddCorporateLocation_(true)
+      .canAddPhysicalLocation_(true)
+      .canAddPublicAlias_(true)
+      .canAddPrivateAlias_(true)
+      .canDeleteCorporateLocation_(true)
+      .canDeletePhysicalLocation_(true)
+      .canEditOwnerComment_(true)
+      .canAddComment_(true)
+      .canDeleteComment_(true)
+      .canAddTag_(true)
+      .canDeleteTag_(true)
+      .canAddImage_(true)
+      .canDeleteImage_(true)
+      .canAddWhereTag_(true)
+      .canSeeWhereTag_(true)
+      .canDeleteWhereTag_(true)
+      .saveMe
+  }
 }

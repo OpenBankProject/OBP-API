@@ -1,10 +1,9 @@
 package code.metadata.counterparties
 
-import code.model.{GeoTag, OtherBankAccountMetadata, OtherBankAccount}
-import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
-import net.liftweb.mongodb.record.field.{BsonRecordField, ObjectIdPk}
-import net.liftweb.record.field.StringField
-import code.model.dataAccess.OBPGeoTag
+import code.model.{User, GeoTag, OtherBankAccountMetadata, OtherBankAccount}
+import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
+import net.liftweb.mongodb.record.field.{DateField, BsonRecordField, ObjectIdPk}
+import net.liftweb.record.field.{DoubleField, LongField, StringField}
 import java.util.Date
 import com.mongodb.QueryBuilder
 import net.liftweb.common.{Loggable, Full}
@@ -211,3 +210,28 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
 }
 
 object Metadata extends Metadata with MongoMetaRecord[Metadata]
+
+
+class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
+  def meta = OBPGeoTag
+
+  //These fields are used to link this to its transaction
+  object transactionId extends StringField(this, 255)
+  object accountId extends StringField(this, 255)
+  object bankId extends StringField(this, 255)
+
+  object userId extends StringField(this,255)
+  object viewID extends LongField(this)
+  object date extends DateField(this)
+
+  object geoLongitude extends DoubleField(this,0)
+  object geoLatitude extends DoubleField(this,0)
+
+  def datePosted = date.get
+  def postedBy = User.findByApiId(userId.get)
+  def viewId = viewID.get
+  def longitude = geoLongitude.get
+  def latitude = geoLatitude.get
+
+}
+object OBPGeoTag extends OBPGeoTag with BsonMetaRecord[OBPGeoTag]

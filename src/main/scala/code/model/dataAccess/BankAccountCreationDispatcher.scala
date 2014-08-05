@@ -160,100 +160,44 @@ package code.model.dataAccess {
       }
     }
 
-    def createOwnerView(account: HostedAccount, user: APIUser): Unit = {
-      account.views.toList.find(v => v.permalink_ == "owner") match {
-        case Some(v) => {
-          logger.info(s"account ${account.id.get} has already an owner view")
+    //TODO: get rid of HostedAccount?
+    def createOwnerView(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
+
+      val existingOwnerView = ViewImpl.find(
+        By(ViewImpl.permalink_, "owner") ::
+        ViewImpl.accountFilter(bankPermalink, accountPermalink): _*)
+
+      existingOwnerView match {
+        case Full(v) => {
+          logger.info(s"account $accountPermalink at bank $bankPermalink has already an owner view")
           v.users_.toList.find(_.id == user.id) match {
             case Some(u) => {
               logger.info(s"user ${user.email.get} has already an owner view access on the account ${account.id.get}")
             }
             case _ =>{
+              //TODO: When can this case occur?
               logger.info(s"creating owner view access to user ${user.email.get}")
               ViewPrivileges
-              .create
-              .user(user)
-              .view(v)
-              .save
+                .create
+                .user(user)
+                .view(v)
+                .save
             }
           }
         }
         case _ => {
-          logger.info(s"creating owner view on account ${account.id.get}")
-          val view =
-            ViewImpl
-            .create
-            .account(account)
-            .name_("Owner")
-            .permalink_("owner")
-            .canSeeTransactionThisBankAccount_(true)
-            .canSeeTransactionOtherBankAccount_(true)
-            .canSeeTransactionMetadata_(true)
-            .canSeeTransactionDescription_(true)
-            .canSeeTransactionAmount_(true)
-            .canSeeTransactionType_(true)
-            .canSeeTransactionCurrency_(true)
-            .canSeeTransactionStartDate_(true)
-            .canSeeTransactionFinishDate_(true)
-            .canSeeTransactionBalance_(true)
-            .canSeeComments_(true)
-            .canSeeOwnerComment_(true)
-            .canSeeTags_(true)
-            .canSeeImages_(true)
-            .canSeeBankAccountOwners_(true)
-            .canSeeBankAccountType_(true)
-            .canSeeBankAccountBalance_(true)
-            .canSeeBankAccountCurrency_(true)
-            .canSeeBankAccountLabel_(true)
-            .canSeeBankAccountNationalIdentifier_(true)
-            .canSeeBankAccountSwift_bic_(true)
-            .canSeeBankAccountIban_(true)
-            .canSeeBankAccountNumber_(true)
-            .canSeeBankAccountBankName_(true)
-            .canSeeBankAccountBankPermalink_(true)
-            .canSeeOtherAccountNationalIdentifier_(true)
-            .canSeeOtherAccountSWIFT_BIC_(true)
-            .canSeeOtherAccountIBAN_(true)
-            .canSeeOtherAccountBankName_(true)
-            .canSeeOtherAccountNumber_(true)
-            .canSeeOtherAccountMetadata_(true)
-            .canSeeOtherAccountKind_(true)
-            .canSeeMoreInfo_(true)
-            .canSeeUrl_(true)
-            .canSeeImageUrl_(true)
-            .canSeeOpenCorporatesUrl_(true)
-            .canSeeCorporateLocation_(true)
-            .canSeePhysicalLocation_(true)
-            .canSeePublicAlias_(true)
-            .canSeePrivateAlias_(true)
-            .canAddMoreInfo_(true)
-            .canAddURL_(true)
-            .canAddImageURL_(true)
-            .canAddOpenCorporatesUrl_(true)
-            .canAddCorporateLocation_(true)
-            .canAddPhysicalLocation_(true)
-            .canAddPublicAlias_(true)
-            .canAddPrivateAlias_(true)
-            .canDeleteCorporateLocation_(true)
-            .canDeletePhysicalLocation_(true)
-            .canEditOwnerComment_(true)
-            .canAddComment_(true)
-            .canDeleteComment_(true)
-            .canAddTag_(true)
-            .canDeleteTag_(true)
-            .canAddImage_(true)
-            .canDeleteImage_(true)
-            .canAddWhereTag_(true)
-            .canSeeWhereTag_(true)
-            .canDeleteWhereTag_(true)
-            .saveMe
+          {
+            //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
+            logger.info(s"creating owner view on account account $accountPermalink at bank $bankPermalink")
+            val view = ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, "")
 
-          logger.info(s"creating owner view access to user ${user.email.get}")
-          ViewPrivileges
-          .create
-          .user(user)
-          .view(view)
-          .save
+            logger.info(s"creating owner view access to user ${user.email.get}")
+            ViewPrivileges
+              .create
+              .user(user)
+              .view(view)
+              .save
+          }
         }
       }
     }
@@ -285,7 +229,7 @@ package code.model.dataAccess {
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
               val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.createOwnerView(hostedAccount, user)
+              BankAccountCreation.createOwnerView(bank.permalink.get, message.accountNumber, hostedAccount, user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 

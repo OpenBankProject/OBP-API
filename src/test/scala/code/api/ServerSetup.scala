@@ -106,14 +106,16 @@ trait ServerSetup extends FeatureSpec
           create.
           accountID(account.id.get.toString).
           saveMe
-      ownerView(hostedaccount)
-      publicView(hostedaccount)
-      randomView(hostedaccount)
+      ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
+      publicView(account.bankPermalink, account.permalink.get, hostedaccount)
+      randomView(account.bankPermalink, account.permalink.get, hostedaccount)
       hostedaccount
     })
 
     //fake transactions
     accounts.foreach(account => {
+      import java.util.Calendar
+
      val thisAccountBank = OBPBank.createRecord.
         IBAN(randomString(5)).
         national_identifier(account.bankId).
@@ -123,6 +125,29 @@ trait ServerSetup extends FeatureSpec
         number(account.number.get).
         kind(account.kind.get).
         bank(thisAccountBank)
+
+      def add10Minutes(d: Date): Date = {
+        val calendar = Calendar.getInstance
+        calendar.setTime(d)
+        calendar.add(Calendar.MINUTE, 10)
+        calendar.getTime
+      }
+
+      val initialDate: Date = {
+        val calendar = Calendar.getInstance
+        calendar.setTime(new Date())
+        calendar.add(Calendar.YEAR, -1)
+        calendar.getTime
+      }
+
+      object InitialDateFactory{
+        val calendar = Calendar.getInstance
+        calendar.setTime(initialDate)
+        def date: Date = {
+          calendar.add(Calendar.HOUR, 10)
+          calendar.getTime
+        }
+      }
 
       for(i <- 0 until 10){
 
@@ -147,15 +172,20 @@ trait ServerSetup extends FeatureSpec
           currency(account.currency.get).
           amount(transactionAmount)
 
-        val details = OBPDetails.createRecord.
-          kind(randomString(5)).
-          posted(now).
-          other_data(randomString(5)).
-          new_balance(newBalance).
-          value(newValue).
-          completed(now).
-          label(randomString(5))
+        val details ={
+          val postedDate = InitialDateFactory.date
+          val completedDate = add10Minutes(postedDate)
 
+          OBPDetails
+          .createRecord
+          .kind(randomString(5))
+          .posted(postedDate)
+          .other_data(randomString(5))
+          .new_balance(newBalance)
+          .value(newValue)
+          .completed(completedDate)
+          .label(randomString(5))
+        }
         val transaction = OBPTransaction.createRecord.
           this_account(thisAccount).
           other_account(otherAccount).
@@ -219,8 +249,13 @@ trait ServerSetup extends FeatureSpec
   /**
   * this method do a post request given a URL
   */
-  def makeGetRequest(req: Req) : APIResponse = {
+  def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
     val jsonReq = req.GET
+    params.foreach{
+      headerAndValue => {
+        jsonReq.addHeader(headerAndValue._1, headerAndValue._2)
+      }
+    }
     getAPIResponse(jsonReq)
   }
 
@@ -232,85 +267,17 @@ trait ServerSetup extends FeatureSpec
     getAPIResponse(jsonReq)
   }
 
-  def ownerView(account: HostedAccount) =
-    ViewImpl.create.
-    name_("Owner").
-    description_(randomString(3)).
-    permalink_("owner").
-    isPublic_(false).
-    account(account).
-    usePrivateAliasIfOneExists_(false).
-    usePublicAliasIfOneExists_(false).
-    hideOtherAccountMetadataIfAlias_(false).
-    canSeeTransactionThisBankAccount_(true).
-    canSeeTransactionOtherBankAccount_(true).
-    canSeeTransactionMetadata_(true).
-    canSeeTransactionDescription_(true).
-    canSeeTransactionAmount_(true).
-    canSeeTransactionType_(true).
-    canSeeTransactionCurrency_(true).
-    canSeeTransactionStartDate_(true).
-    canSeeTransactionFinishDate_(true).
-    canSeeTransactionBalance_(true).
-    canSeeComments_(true).
-    canSeeOwnerComment_(true).
-    canSeeTags_(true).
-    canSeeImages_(true).
-    canSeeBankAccountOwners_(true).
-    canSeeBankAccountType_(true).
-    canSeeBankAccountBalance_(true).
-    canSeeBankAccountCurrency_(true).
-    canSeeBankAccountLabel_(true).
-    canSeeBankAccountNationalIdentifier_(true).
-    canSeeBankAccountSwift_bic_(true).
-    canSeeBankAccountIban_(true).
-    canSeeBankAccountNumber_(true).
-    canSeeBankAccountBankName_(true).
-    canSeeBankAccountBankPermalink_(true).
-    canSeeOtherAccountNationalIdentifier_(true).
-    canSeeOtherAccountSWIFT_BIC_(true).
-    canSeeOtherAccountIBAN_ (true).
-    canSeeOtherAccountBankName_(true).
-    canSeeOtherAccountNumber_(true).
-    canSeeOtherAccountMetadata_(true).
-    canSeeOtherAccountKind_(true).
-    canSeeMoreInfo_(true).
-    canSeeUrl_(true).
-    canSeeImageUrl_(true).
-    canSeeOpenCorporatesUrl_(true).
-    canSeeCorporateLocation_(true).
-    canSeePhysicalLocation_(true).
-    canSeePublicAlias_(true).
-    canSeePrivateAlias_(true).
-    canAddMoreInfo_(true).
-    canAddURL_(true).
-    canAddImageURL_(true).
-    canAddOpenCorporatesUrl_(true).
-    canAddCorporateLocation_(true).
-    canAddPhysicalLocation_(true).
-    canAddPublicAlias_(true).
-    canAddPrivateAlias_(true).
-    canDeleteCorporateLocation_(true).
-    canDeletePhysicalLocation_(true).
-    canEditOwnerComment_(true).
-    canAddComment_(true).
-    canDeleteComment_(true).
-    canAddTag_(true).
-    canDeleteTag_(true).
-    canAddImage_(true).
-    canDeleteImage_(true).
-    canAddWhereTag_(true).
-    canSeeWhereTag_(true).
-    canDeleteWhereTag_(true).
-    saveMe
+  def ownerView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
+    ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, randomString(3))
 
-  def publicView(account: HostedAccount) =
+  def publicView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
     ViewImpl.create.
     name_("Public").
     description_(randomString(3)).
     permalink_("public").
     isPublic_(true).
-    account(account).
+    bankPermalink(bankPermalink).
+    accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(true).
     hideOtherAccountMetadataIfAlias_(true).
@@ -376,13 +343,14 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-  def randomView(account: HostedAccount) =
+  def randomView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).
     permalink_(randomString(3)).
     isPublic_(false).
-    account(account).
+    bankPermalink(bankPermalink).
+    accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(false).
     hideOtherAccountMetadataIfAlias_(false).

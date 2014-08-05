@@ -253,6 +253,5 @@ class Boot extends Loggable{
     LiftRules.exceptionHandler.prepend{
       case MyExceptionLogger(_, _, t) => throw t // this will never happen
     }
-
   }
 }
