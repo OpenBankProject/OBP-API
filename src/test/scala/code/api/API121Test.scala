@@ -2205,6 +2205,28 @@ class API1_2_1Test extends ServerSetup{
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore)
     }
+
+    scenario("we cannot revoke the access to the owner view via a revoke all views call if there " +
+      "would then be no one with access to it", API1_2, DeletePermissions) {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewId = "owner"
+      val view = Views.views.vend.view(viewId,bankAccount.id, bankId).get
+      val userId = obpuser1.idGivenByProvider
+
+      view.users.length should equal(1)
+      view.users(0).idGivenByProvider should equal(userId)
+
+      When("the request is sent")
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+
+      And("The user should not have had his access revoked")
+      view.users.length should equal(1)
+      view.users(0).idGivenByProvider should equal(userId)
+    }
   }
 
   feature("We get the list of the other bank accounts linked with a bank account"){
