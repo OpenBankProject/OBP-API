@@ -1362,8 +1362,8 @@ object APIMethods121 {
        */
       //val sortBy = json.header("obp_sort_by")
       val sortBy = None
-      val basicParams = limit :: offset :: OBPOrdering(sortBy, sortDirection) :: Nil
-      fromDate :: toDate :: basicParams
+      val ordering = OBPOrdering(sortBy, sortDirection)
+      limit :: offset :: ordering :: fromDate :: toDate :: Nil
     }
   }
 }
