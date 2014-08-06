@@ -107,6 +107,13 @@ object LocalConnector extends Connector with Loggable {
     } yield moderate(transaction)
   }
 
+  def getPhysicalCards(user : User) : Set[PhysicalCard] = {
+    Set.empty
+  }
+
+  def getPhysicalCardsForBank(bankID : String, user : User) : Set[PhysicalCard] = {
+    Set.empty
+  }
 
   private def getTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
       logger.debug("getTransactions for " + bankId + "/" + accountId)
