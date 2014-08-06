@@ -58,5 +58,7 @@ trait Connector {
   def getModeratedTransaction(id : String, bankID : String, accountID : String)
     (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
 
+  //gets the users who are the legal owners/holders of the account
+  def getAccountHolders(bankID: String, accountID: String) : Set[User]
   //...
 }
