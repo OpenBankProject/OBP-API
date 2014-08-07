@@ -207,10 +207,11 @@ trait ServerSetup extends FeatureSpec
 
   override def afterEach() = {
     //drop the Database after the tests
-    MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
-    ViewImpl.findAll.map(_.delete_!)
-    ViewPrivileges.findAll.map(_.delete_!)
-    HostedAccount.findAll.map(_.delete_!)
+    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    ViewImpl.findAll.foreach(_.delete_!)
+    ViewPrivileges.findAll.foreach(_.delete_!)
+    HostedAccount.findAll.foreach(_.delete_!)
+    MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {
