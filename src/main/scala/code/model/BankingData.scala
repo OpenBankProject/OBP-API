@@ -204,7 +204,7 @@ class BankAccount(
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isSaved <- Views.views.vend.addPermission(id, view, otherUser) ?~ "could not save the privilege"
+        isSaved <- Views.views.vend.addPermission(view, otherUser) ?~ "could not save the privilege"
       } yield isSaved
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -241,7 +241,7 @@ class BankAccount(
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
         views <- viewsFormIds
-        grantedViews <- Views.views.vend.addPermissions(id, views, otherUser) ?~ "could not save the privilege"
+        grantedViews <- Views.views.vend.addPermissions(views, otherUser) ?~ "could not save the privilege"
       } yield views
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + id, Empty, Empty)
@@ -260,7 +260,7 @@ class BankAccount(
       for{
         view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokePermission(id, view, otherUser) ?~ "could not revoke the privilege"
+        isRevoked <- Views.views.vend.revokePermission(view, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)

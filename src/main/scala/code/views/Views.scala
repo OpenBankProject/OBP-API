@@ -18,9 +18,9 @@ trait Views {
   
   def permissions(account : BankAccount) : Box[List[Permission]]
   def permission(account : BankAccount, user: User) : Box[Permission]
-  def addPermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
-  def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean]
-  def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean]
+  def addPermission(view : View, user : User) : Box[Boolean]
+  def addPermissions(views : List[View], user : User) : Box[Boolean]
+  def revokePermission(view : View, user : User) : Box[Boolean]
   def revokeAllPermission(bankPermalink : String, accountPermalink : String, user : User) : Box[Boolean]
 
   def view(viewPermalink : String, bankAccount: BankAccount) : Box[View]
