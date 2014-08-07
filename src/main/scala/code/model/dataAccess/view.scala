@@ -350,6 +350,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
+  //specifies which bank account this view is for
+  def bankAccountBankPermalink : String = bankPermalink.get
+  def bankAccountPermalink : String = accountPermalink.get
+
   //reading access
 
   //transaction fields

@@ -40,14 +40,17 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import code.model.TokenType._
 import scala.util.Random._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, BankAccount}
-import code.model.dataAccess.{APIUser, HostedAccount, ViewImpl, ViewPrivileges, Account, OBPEnvelope, HostedBank}
-import code.api.test.{ServerSetup, APIResponse}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, BankAccount}
+import code.api.test.{ServerSetup}
 import code.util.APIUtil.OAuth._
-import code.model.ViewCreationJSON
-import net.liftweb.json.JsonAST.JString
 import org.bson.types.ObjectId
 import code.views.Views
+import code.model.dataAccess._
+import scala.Some
+import net.liftweb.json.JsonAST.JString
+import code.model.ViewCreationJSON
+import code.model.ViewUpdateData
+import code.api.test.APIResponse
 
 class API1_2_1Test extends ServerSetup{
 
@@ -2135,6 +2138,30 @@ class API1_2_1Test extends ServerSetup{
       reply.code should equal (400)
     }
 
+    scenario("we cannot revoke the access of a user to owner view on a bank account if that user is an account holder of that account", API1_2, DeletePermission) {
+      Given("A user is the account holder of an account (and has access to the owner view)")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val ownerViewId = "owner"
+
+      //set up: make obpuser3 the account holder and make sure they have access to the owner view
+      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
+      MappedAccountHolder.create.
+        user(obpuser3).
+        accountBankPermalink(bankId).
+        accountPermalink(bankAccount.id).save
+
+      When("We try to revoke this user's access to the owner view")
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
+
+      Then("We will get a 400 response code")
+      reply.code should equal (400)
+
+      And("The account holder should still have access to the owner view")
+      val view = Views.views.vend.view(ownerViewId,bankAccount.id, bankId).get
+      view.users should contain (obpuser3)
+    }
+
     scenario("we cannot revoke a user access to a view on an bank account because the view does not exist", API1_2, DeletePermission) {
       Given("We will use an access token")
       val bankId = randomBank
@@ -2180,7 +2207,7 @@ class API1_2_1Test extends ServerSetup{
       viewsAfter should equal(0)
     }
 
-    scenario("we cannot revoke the access to a user that does not exist", API1_2, DeletePermissions) {
+    scenario("we cannot revoke the access to all views for a user that does not exist", API1_2, DeletePermissions) {
       Given("We will use an access token with a random user Id")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -2227,6 +2254,31 @@ class API1_2_1Test extends ServerSetup{
       And("The user should not have had his access revoked")
       view.users.length should equal(1)
       view.users(0).idGivenByProvider should equal(userId)
+    }
+
+    scenario("we cannot revoke the access of a user to owner view on a bank account via a revoke all views call" +
+      " if that user is an account holder of that account", API1_2, DeletePermissions) {
+      Given("A user is the account holder of an account (and has access to the owner view)")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val ownerViewId = "owner"
+
+      //set up: make obpuser3 the account holder and make sure they have access to the owner view
+      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
+      MappedAccountHolder.create.
+        user(obpuser3).
+        accountBankPermalink(bankId).
+        accountPermalink(bankAccount.id).save
+
+      When("We try to revoke this user's access to all views")
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, obpuser3.idGivenByProvider, user1)
+
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+
+      And("The user should not have had his access revoked")
+      val view = Views.views.vend.view("owner",bankAccount.id, bankId).get
+      view.users should contain (obpuser3)
     }
   }
 

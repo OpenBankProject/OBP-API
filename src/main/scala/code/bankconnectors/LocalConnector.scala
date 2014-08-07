@@ -115,6 +115,12 @@ object LocalConnector extends Connector with Loggable {
     Set.empty
   }
 
+  def getAccountHolders(bankID: String, accountID: String) : Set[User] = {
+    MappedAccountHolder.findAll(
+      By(MappedAccountHolder.accountBankPermalink, bankID),
+      By(MappedAccountHolder.accountPermalink, accountID)).map(accHolder => accHolder.user.obj).flatten.toSet
+  }
+
   private def getTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
       logger.debug("getTransactions for " + bankId + "/" + accountId)
       for{

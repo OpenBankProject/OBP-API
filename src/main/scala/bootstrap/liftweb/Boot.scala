@@ -187,6 +187,7 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, ViewPrivileges)
     Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
     Schemifier.schemify(true, Schemifier.infoF _, APIUser)
+    Schemifier.schemify(true, Schemifier.infoF _, MappedAccountHolder)
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
