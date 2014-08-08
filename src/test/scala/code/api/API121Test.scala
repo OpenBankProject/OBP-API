@@ -166,9 +166,9 @@ class API1_2_1Test extends ServerSetup{
 
   lazy val token3 = new Token(testToken3.key, testToken3.secret)
 
-  val user1 = Some((consumer, token))
-  val user2 = Some((consumer, token2))
-  val user3 = Some((consumer, token3))
+  lazy val user1 = Some((consumer, token))
+  lazy val user2 = Some((consumer, token2))
+  lazy val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
 

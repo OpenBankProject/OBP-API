@@ -62,12 +62,25 @@ case class APIResponse(code: Int, body: JValue)
 
 trait ServerSetup extends FeatureSpec
   with BeforeAndAfterEach with GivenWhenThen
+  with BeforeAndAfterAll
   with ShouldMatchers with Loggable{
 
-  val server = ServerSetup
+  var server : OBPTestServer = null
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http
   def baseRequest = host(server.host, server.port)
+
+
+  override def beforeAll() = {
+    server = createTestServer()
+  }
+
+  /**
+   * Override this to.. ??
+   */
+  def createTestServer() = {
+    new OBPTestServer
+  }
 
   override def beforeEach() = {
     implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -212,6 +225,12 @@ trait ServerSetup extends FeatureSpec
     ViewPrivileges.findAll.foreach(_.delete_!)
     HostedAccount.findAll.foreach(_.delete_!)
     MappedAccountHolder.findAll.foreach(_.delete_!)
+  }
+
+  override def afterAll() = {
+    //after all the tests, stop the server, so that we can start another one
+    //on the same port for a different test case
+    server.server.stop()
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {
@@ -419,7 +438,7 @@ trait ServerSetup extends FeatureSpec
 
 }
 
-object ServerSetup {
+class OBPTestServer {
   val host = "localhost"
   val port = 8000
   val server = new Server

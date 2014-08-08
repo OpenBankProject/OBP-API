@@ -1,4 +1,4 @@
-package code.api.v1_3_1
+package code.api.v1_3_0
 
 import code.api.test.ServerSetup
 import code.bankconnectors.{OBPQueryParam, Connector}
@@ -15,7 +15,6 @@ import code.model.PhysicalCard
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
 import code.util.APIUtil.OAuth._
-import code.api.v1_3_0.PhysicalCardsJSON
 
 class PhysicalCardsTest extends ServerSetup {
 
@@ -36,11 +35,11 @@ class PhysicalCardsTest extends ServerSetup {
   // create the access token
   lazy val tokenDuration = weeks(4)
 
-  val obpuser1 =
+  lazy val obpuser1 =
     APIUser.create.provider_(defaultProvider).
       saveMe
 
-  val obpuser2 =
+  lazy val obpuser2 =
     APIUser.create.provider_(defaultProvider).
       saveMe
 
@@ -72,8 +71,8 @@ class PhysicalCardsTest extends ServerSetup {
 
   lazy val token2 = new Token(testToken2.key, testToken2.secret)
 
-  val user1 = Some((consumer, token))
-  val user2 = Some((consumer, token2))
+  lazy val user1 = Some((consumer, token))
+  lazy val user2 = Some((consumer, token2))
 
   def createCard(number : String) = new PhysicalCard(
     bankCardNumber = number,
@@ -84,6 +83,7 @@ class PhysicalCardsTest extends ServerSetup {
     expires = new Date(),
     enabled = true,
     cancelled = false,
+    onHotList = false,
     technology = "",
     networks = Set.empty,
     allows = Set.empty,
