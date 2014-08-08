@@ -18,6 +18,8 @@ import code.util.APIUtil.OAuth._
 
 class PhysicalCardsTest extends ServerSetup {
 
+  implicit val dateFormats = net.liftweb.json.DefaultFormats
+
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
 
   //create the application
@@ -147,10 +149,21 @@ class PhysicalCardsTest extends ServerSetup {
     def getAccountHolders(bankID: String, accountID: String) : Set[User] = Set.empty
   }
 
+  override def beforeAll() {
+    super.beforeAll()
+    //use the mock connector
+    Connector.connector.default.set(MockedCardConnector)
+  }
+
+  override def afterAll() {
+    super.afterAll()
+    //reset the default connector
+    Connector.connector.default.set(Connector.buildOne)
+  }
+
   feature("Getting details of physical cards") {
 
     scenario("A user wants to get details of all their cards across all banks") {
-
       When("A user requests their cards")
 
       val request = (v1_3Request / "cards").GET <@(user1)
@@ -173,7 +186,7 @@ class PhysicalCardsTest extends ServerSetup {
       When("A user requests their cards")
 
       //our dummy connector doesn't care about the value of the bank id, so we can just use "somebank"
-      val request = (v1_3Request / "somebank" / "cards").GET <@(user1)
+      val request = (v1_3Request / "banks" / "somebank" / "cards").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -189,6 +202,7 @@ class PhysicalCardsTest extends ServerSetup {
 
       returnedCardNumbers should equal(expectedCardNumbers)
     }
+
   }
 
 }
