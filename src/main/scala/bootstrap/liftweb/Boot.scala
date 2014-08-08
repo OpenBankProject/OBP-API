@@ -173,6 +173,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatchTable.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatchTable.append(v1_2.OBPAPI1_2)
     LiftRules.statelessDispatchTable.append(v1_2_1.OBPAPI1_2_1)
+    LiftRules.statelessDispatchTable.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatchTable.append(BankMockAPI)
     // LiftRules.statelessDispatchTable.append(Metrics) TODO: see metric menu entry bellow
 
