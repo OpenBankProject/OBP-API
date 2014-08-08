@@ -17,6 +17,7 @@ case class PhysicalCard(
   val expires : Date,
   val enabled : Boolean,
   val cancelled: Boolean,
+  val onHotList : Boolean,
   val technology: String,
   val networks : Set[String],
   val allows : Set[CardAction],
