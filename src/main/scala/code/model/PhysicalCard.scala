@@ -20,7 +20,7 @@ case class PhysicalCard(
   val technology: String,
   val networks : Set[String],
   val allows : Set[CardAction],
-  val account : BankAccount,
+  val account : Option[BankAccount],
   val replacement : Option[CardReplacementInfo],
   val pinResets : List[PinResetInfo],
   val collected : Option[CardCollectionInfo],
