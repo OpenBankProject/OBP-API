@@ -62,8 +62,7 @@ object MapperViews extends Views with Loggable {
     }
   }
 
-  //TODO: remove bankAccountId
-  def addPermission(bankAccountId : String, view: View, user : User) : Box[Boolean] = {
+  def addPermission(view: View, user : User) : Box[Boolean] = {
     user match {
       case u: APIUser => {
         //check if it exists
@@ -82,7 +81,7 @@ object MapperViews extends Views with Loggable {
     }
   }
 
-  def addPermissions(bankAccountId : String, views : List[View], user : User) : Box[Boolean] ={
+  def addPermissions(views : List[View], user : User) : Box[Boolean] ={
     user match {
       //TODO: fix this match stuff
       case u : APIUser => {
@@ -103,13 +102,13 @@ object MapperViews extends Views with Loggable {
     }
   }
 
-  def revokePermission(bankAccountId : String, view : View, user : User) : Box[Boolean] = {
+  def revokePermission(view : View, user : User) : Box[Boolean] = {
     user match {
       //TODO: fix this match stuff
       case u:APIUser =>
         for{
           vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
-          deletable <- checkIfOwnerViewAndHasMoreThanOneUser(view)
+          deletable <- accessRemovableAsBox(view, u)
         } yield {
             vp.delete_!
           }
@@ -119,14 +118,27 @@ object MapperViews extends Views with Loggable {
       }
     }
   }
-  
-  def checkIfOwnerViewAndHasMoreThanOneUser(view: View): Box[Unit] = {
-    if((view.permalink=="owner") && (view.users.length <= 1)){
-      Failure("only person with owner view permission, access cannot be revoked")
-    }
-    else{
-      Full(Unit)
-    }
+
+  //returns Full if deletable, Failure if not
+  def accessRemovableAsBox(view: View, user : User) : Box[Unit] = {
+    if(accessRemovable(view, user)) Full(Unit)
+    else Failure("only person with owner view permission, access cannot be revoked")
+  }
+
+
+  def accessRemovable(view: View, user : User) : Boolean = {
+    if(view.permalink == "owner") {
+
+      //if the user is an account holder, we can't revoke access to the owner view
+      if(Connector.connector.vend.getAccountHolders(view.bankAccountBankPermalink, view.bankAccountPermalink).contains(user)) {
+        false
+      } else {
+        // if it's the owner view, we can only revoke access if there would then still be someone else
+        // with access
+        view.users.length > 1
+      }
+
+    } else true
   }
 
   def revokeAllPermission(bankPermalink : String, accountPermalink: String, user : User) : Box[Boolean] = {
@@ -135,12 +147,28 @@ object MapperViews extends Views with Loggable {
       case u:APIUser =>{
         //TODO: make this more efficient by using one query (with a join)
         val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+
         val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
-          case Full(v) => v.bankPermalink.get == bankPermalink && v.accountPermalink.get == accountPermalink
+          case Full(v) => {
+            v.bankPermalink.get == bankPermalink && v.accountPermalink.get == accountPermalink
+          }
           case _ => false
         })
-        relevantAccountPrivs.foreach(_.delete_!)
-        Full(true)
+
+        val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view.obj match {
+          case Full(v) => accessRemovable(v, u)
+          case _ => false
+        })
+
+
+        if(allRelevantPrivsRevokable) {
+          relevantAccountPrivs.foreach(_.delete_!)
+          Full(true)
+        } else {
+          Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
+            " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
+        }
+
       }
       case u: User => {
         logger.error("APIUser instance not found, could not revoke access ")

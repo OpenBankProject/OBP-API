@@ -62,9 +62,10 @@ case class APIResponse(code: Int, body: JValue)
 
 trait ServerSetup extends FeatureSpec
   with BeforeAndAfterEach with GivenWhenThen
+  with BeforeAndAfterAll
   with ShouldMatchers with Loggable{
 
-  val server = ServerSetup
+  var server = ServerSetup
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http
   def baseRequest = host(server.host, server.port)
@@ -207,10 +208,11 @@ trait ServerSetup extends FeatureSpec
 
   override def afterEach() = {
     //drop the Database after the tests
-    MongoDB.getDb(DefaultMongoIdentifier).map(_.dropDatabase())
-    ViewImpl.findAll.map(_.delete_!)
-    ViewPrivileges.findAll.map(_.delete_!)
-    HostedAccount.findAll.map(_.delete_!)
+    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    ViewImpl.findAll.foreach(_.delete_!)
+    ViewPrivileges.findAll.foreach(_.delete_!)
+    HostedAccount.findAll.foreach(_.delete_!)
+    MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
   private def getAPIResponse(req : Req) : APIResponse = {

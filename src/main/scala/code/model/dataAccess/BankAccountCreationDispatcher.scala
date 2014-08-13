@@ -161,7 +161,21 @@ package code.model.dataAccess {
     }
 
     //TODO: get rid of HostedAccount?
-    def createOwnerView(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
+    def setAsOwner(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
+      createOwnerView(bankPermalink, accountPermalink, account, user)
+      setAsAccountOwner(bankPermalink, accountPermalink, user)
+    }
+
+    private def setAsAccountOwner(bankPermalink : String, accountPermalink : String, user : APIUser) : Unit = {
+      MappedAccountHolder.create
+        .accountBankPermalink(bankPermalink)
+        .accountPermalink(accountPermalink)
+        .user(user)
+        .save
+    }
+
+    //TODO: get rid of HostedAccount?
+    private def createOwnerView(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
 
       val existingOwnerView = ViewImpl.find(
         By(ViewImpl.permalink_, "owner") ::
@@ -229,7 +243,7 @@ package code.model.dataAccess {
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
               val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.createOwnerView(bank.permalink.get, message.accountNumber, hostedAccount, user)
+              BankAccountCreation.setAsOwner(bank.permalink.get, message.accountNumber, hostedAccount, user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 

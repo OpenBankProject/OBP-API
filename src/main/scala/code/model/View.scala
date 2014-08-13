@@ -85,6 +85,10 @@ trait View {
   def isPublic : Boolean
   def users: List[User]
 
+  //specifies which bank account this view is for
+  def bankAccountBankPermalink : String
+  def bankAccountPermalink : String
+
   //the view settings
   def usePublicAliasIfOneExists: Boolean
   def usePrivateAliasIfOneExists: Boolean

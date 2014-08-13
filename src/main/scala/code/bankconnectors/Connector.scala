@@ -1,8 +1,7 @@
 package code.bankconnectors
 
 import net.liftweb.common.Box
-import code.model.Bank
-import code.model.BankAccount
+import code.model._
 import net.liftweb.util.SimpleInjector
 import code.model.User
 import code.model.ModeratedOtherBankAccount
@@ -10,6 +9,7 @@ import code.model.OtherBankAccount
 import code.model.ModeratedTransaction
 import code.model.Transaction
 import java.util.Date
+import scala.Some
 
 object Connector  extends SimpleInjector {
 
@@ -58,5 +58,11 @@ trait Connector {
   def getModeratedTransaction(id : String, bankID : String, accountID : String)
     (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
 
+  def getPhysicalCards(user : User) : Set[PhysicalCard]
+
+  def getPhysicalCardsForBank(bankID : String, user : User) : Set[PhysicalCard]
+  
+  //gets the users who are the legal owners/holders of the account
+  def getAccountHolders(bankID: String, accountID: String) : Set[User]
   //...
 }
