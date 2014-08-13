@@ -76,18 +76,22 @@ trait APIMethods130 {
               isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${makeTransJson.amount})")
             } yield {
 
-/*              val idofCompletedTransactionOfSender : Box[String] =
-                PaymentsInjector.processor.vend.makePayment(fromAccount, toAccount, rawAmt)
+              val paymentOperation = PaymentsInjector.processor.vend.makePayment(fromAccount, toAccount, rawAmt)
 
-              idofCompletedTransactionOfSender match {
-                case Full(s) => {
-                  val successJson : JValue = Extraction.decompose(TransactionId(s))
+              import code.model.operations._
+
+              paymentOperation match {
+                case completed : CompletedPayment => {
+                  val successJson : JValue = Extraction.decompose(TransactionId(completed.transactionId))
                   successJsonResponse(successJson)
                 }
-                case Failure(msg, _, _) => errorJsonResponse(msg)
-                case _ => errorJsonResponse("Error")
-              }*/
-              errorJsonResponse("TODO")
+                case failed : FailedPayment => {
+                  errorJsonResponse(failed.failureMessage)
+                }
+                case challengePending : ChallengePendingPayment => {
+                  errorJsonResponse("TODO")
+                }
+              }
             }
           }
           else{

@@ -1225,6 +1225,10 @@ trait APIMethods121 {
                 case failed : FailedPayment => {
                   errorJsonResponse(failed.failureMessage)
                 }
+                // version 1.2.1 doesn't handle any other cases (e.g. challenges)
+                case _ => {
+                  errorJsonResponse("server error")
+                }
               }
 
             }

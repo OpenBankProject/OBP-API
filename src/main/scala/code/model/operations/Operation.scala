@@ -35,6 +35,17 @@ class FailedPayment(
   override val challenges = Nil
 }
 
+class ChallengePendingPayment(
+  val operationId : String,
+  val startDate : Date,
+  val challenges : List[Challenge]) extends PaymentOperation {
+
+  override val id = operationId
+  override val status = CHALLENGE_PENDING
+  override val endDate = None
+
+}
+
 sealed trait OperationAction
 object PAYMENT extends OperationAction
 
