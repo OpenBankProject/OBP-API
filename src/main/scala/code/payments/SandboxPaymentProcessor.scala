@@ -10,6 +10,7 @@ import net.liftweb.json.JsonAST.JValue
 import java.util.{TimeZone, Date}
 import code.model.dataAccess.OBPEnvelope
 import net.liftweb.mongodb.BsonDSL._
+import code.model.operations._
 
 /**
  * This payment processor only works with the current MongoDB implemented transactions
@@ -26,7 +27,7 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
    *  I have not bothered to spend time doing anything about this. I see no point in trying to
    *  implement ACID transactions in mongodb for a test sandbox.
    */
-  def makePayment(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : Box[String] = {
+  def makePayment(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : PaymentOperation = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -40,6 +41,37 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
     createdFromTrans.map(_.id.toString)
+
+    val operationTime = now
+
+    createdFromTrans match {
+      case Full(t) => {
+        new CompletedPayment(
+          operationId = "",
+          transactionId = t.id.toString,
+          startDate = operationTime,
+          finishDate = operationTime
+        )
+      }
+      case Failure(msg, _ , _) => {
+        new FailedPayment(
+          operationId = "",
+          failureMessage = msg,
+          startDate = operationTime,
+          finishDate = operationTime
+        )
+      }
+      case _ => {
+        new FailedPayment(
+          operationId = "",
+          failureMessage = "error",
+          startDate = operationTime,
+          finishDate = operationTime
+        )
+      }
+    }
+
+
   }
 
   private def createTransaction(account : BankAccount, otherBankId : String,
