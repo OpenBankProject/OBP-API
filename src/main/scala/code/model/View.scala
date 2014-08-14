@@ -107,6 +107,7 @@ trait View {
   def canSeeTransactionStartDate: Boolean
   def canSeeTransactionFinishDate: Boolean
   def canSeeTransactionBalance: Boolean
+  def canSeeTransactionStatus: Boolean
 
   //transaction metadata
   def canSeeComments: Boolean
@@ -287,6 +288,10 @@ trait View {
       if (canSeeTransactionBalance) transaction.balance.toString()
       else ""
 
+    val transactionStatus =
+      if (canSeeTransactionStatus) Some(transaction.status)
+      else None
+
     new ModeratedTransaction(
       UUID = transactionUUID,
       id = transactionId,
@@ -299,7 +304,8 @@ trait View {
       description = transactionDescription,
       startDate = transactionStartDate,
       finishDate = transactionFinishDate,
-      balance = transactionBalance
+      balance = transactionBalance,
+      status = transactionStatus
     )
   }
 

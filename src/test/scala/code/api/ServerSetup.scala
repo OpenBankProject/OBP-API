@@ -293,6 +293,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionStartDate_(true).
     canSeeTransactionFinishDate_(true).
     canSeeTransactionBalance_(true).
+    canSeeTransactionStatus_(true).
     canSeeComments_(true).
     canSeeOwnerComment_(true).
     canSeeTags_(true).
@@ -366,6 +367,7 @@ trait ServerSetup extends FeatureSpec
     canSeeTransactionStartDate_(true).
     canSeeTransactionFinishDate_(true).
     canSeeTransactionBalance_(true).
+    canSeeTransactionStatus_(true).
     canSeeComments_(true).
     canSeeOwnerComment_(true).
     canSeeTags_(true).

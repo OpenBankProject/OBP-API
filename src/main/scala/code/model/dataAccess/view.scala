@@ -90,6 +90,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeTransactionStartDate_(actions.exists(_ == "can_see_transaction_start_date"))
     canSeeTransactionFinishDate_(actions.exists(_ == "can_see_transaction_finish_date"))
     canSeeTransactionBalance_(actions.exists(_ == "can_see_transaction_balance"))
+    canSeeTransactionStatus_(actions.exists(_ == "can_see_transaction_status"))
     canSeeComments_(actions.exists(_ == "can_see_comments"))
     canSeeOwnerComment_(actions.exists(_ == "can_see_narrative"))
     canSeeTags_(actions.exists(_ == "can_see_tags"))
@@ -185,6 +186,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
   object canSeeTransactionBalance_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
+  object canSeeTransactionStatus_ extends MappedBoolean(this) {
     override def defaultValue = false
   }
   object canSeeComments_ extends MappedBoolean(this){
@@ -367,6 +371,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeTransactionStartDate: Boolean = canSeeTransactionStartDate_.get
   def canSeeTransactionFinishDate: Boolean = canSeeTransactionFinishDate_.get
   def canSeeTransactionBalance: Boolean = canSeeTransactionBalance_.get
+  def canSeeTransactionStatus: Boolean = canSeeTransactionStatus_.get
 
   //transaction metadata
   def canSeeComments: Boolean = canSeeComments_.get
@@ -440,8 +445,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   }
 
   def createAndSaveOwnerView(bankPermalink : String, accountPermalink: String, description: String) : ViewImpl = {
-    ViewImpl
-      .create
+    ViewImpl.create
       .bankPermalink(bankPermalink)
       .accountPermalink(accountPermalink)
       .name_("Owner")
@@ -461,6 +465,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
       .canSeeTransactionStartDate_(true)
       .canSeeTransactionFinishDate_(true)
       .canSeeTransactionBalance_(true)
+      .canSeeTransactionStatus_(true)
       .canSeeComments_(true)
       .canSeeOwnerComment_(true)
       .canSeeTags_(true)
