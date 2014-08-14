@@ -15,6 +15,10 @@ class PaymentsTest extends ServerSetup {
       1 should equal (2)
     }
 
+    scenario("TODO: Add can_see_transaction_status permission to appropriate views") {
+      1 should equal (2)
+    }
+
   }
 
 }
