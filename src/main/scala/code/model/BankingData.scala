@@ -440,6 +440,14 @@ class OtherBankAccount(
   }
 }
 
+sealed trait TransactionStatus
+case object DRAFT extends TransactionStatus
+case object CHALLENGE_PENDING extends TransactionStatus
+case object APPROVED extends TransactionStatus
+case object PAUSED extends TransactionStatus
+case object CANCELLED extends TransactionStatus
+case object COMPLETED extends TransactionStatus
+
 class Transaction(
   //A universally unique id
   val uuid : String,
@@ -459,7 +467,9 @@ class Transaction(
   // The date when the money finished changing hands
   val finishDate : Date,
   //the new balance for the bank account
-  val balance :  BigDecimal
+  val balance :  BigDecimal,
+  // transaction status
+  val status : TransactionStatus
 ) {
 
   val bankPermalink = thisAccount.bankPermalink
