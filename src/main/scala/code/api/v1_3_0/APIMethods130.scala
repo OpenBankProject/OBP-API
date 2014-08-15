@@ -1,5 +1,6 @@
 package code.api.v1_3_0
 
+import code.views.Views
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.common.{Full, Failure, Box}
@@ -82,7 +83,17 @@ trait APIMethods130 {
 
               paymentOperation match {
                 case completed : CompletedPayment => {
-                  errorJsonResponse("TODO")
+                  //payments (and operations) are currently only visible to the account owner, so we moderate it
+                  // with the owner view
+                  val ownerView = Views.views.vend.view("owner", accountId, bankId)
+                  ownerView match {
+                    case Full(v) => {
+                      //TODO add location header for the operation
+                      successJsonResponse(JSONFactory1_3_0.createTransactionJSON(v.moderate(completed.transaction)))
+                    }
+                    case _ =>  errorJsonResponse("server error")
+                  }
+
                 }
                 case failed : FailedPayment => {
                   errorJsonResponse(failed.failureMessage)
