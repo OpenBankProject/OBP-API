@@ -179,7 +179,7 @@ object LocalConnector extends Connector with Loggable {
         val startDate = transaction.details.get.posted.get
         val finishDate = transaction.details.get.completed.get
         val balance = transaction.details.get.new_balance.get.amount.get
-        val status = code.model.COMPLETED //all transactions are considered completed for now...
+        val status = code.model.TransactionStatus_COMPLETED//all transactions are considered completed for now...
         val t =
           new Transaction(
             uuid,

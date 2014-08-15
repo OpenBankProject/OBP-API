@@ -14,7 +14,7 @@ sealed trait Operation {
 }
 
 sealed trait PaymentOperation extends Operation {
-  override val action : OperationAction = PAYMENT
+  override val action : OperationAction = OperationAction_PAYMENT
 }
 
 class CompletedPayment(
@@ -22,7 +22,7 @@ class CompletedPayment(
   val startDate : Date, val finishDate : Date) extends PaymentOperation {
 
   override val id = operationId
-  override val status = COMPLETED
+  override val status = OperationStatus_COMPLETED
   override val endDate = Some(finishDate)
   override val challenges = Nil
 }
@@ -32,7 +32,7 @@ class FailedPayment(
   val startDate : Date, val finishDate : Date) extends PaymentOperation {
 
   override val id = operationId
-  override val status = FAILED
+  override val status = OperationStatus_FAILED
   override val endDate = Some(finishDate)
   override val challenges = Nil
 }
@@ -43,16 +43,16 @@ class ChallengePendingPayment(
   val challenges : List[Challenge]) extends PaymentOperation {
 
   override val id = operationId
-  override val status = CHALLENGE_PENDING
+  override val status = OperationStatus_CHALLENGE_PENDING
   override val endDate = None
 
 }
 
 sealed trait OperationAction
-object PAYMENT extends OperationAction
+object OperationAction_PAYMENT extends OperationAction
 
 sealed trait OperationStatus
-object INITIATED extends OperationStatus
-object CHALLENGE_PENDING extends OperationStatus
-object FAILED extends OperationStatus
-object COMPLETED extends OperationStatus
+object OperationStatus_INITIATED extends OperationStatus
+object OperationStatus_CHALLENGE_PENDING extends OperationStatus
+object OperationStatus_FAILED extends OperationStatus
+object OperationStatus_COMPLETED extends OperationStatus

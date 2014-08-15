@@ -441,12 +441,12 @@ class OtherBankAccount(
 }
 
 sealed trait TransactionStatus
-case object DRAFT extends TransactionStatus
-case object CHALLENGE_PENDING extends TransactionStatus
-case object APPROVED extends TransactionStatus
-case object PAUSED extends TransactionStatus
-case object CANCELLED extends TransactionStatus
-case object COMPLETED extends TransactionStatus
+case object TransactionStatus_DRAFT extends TransactionStatus
+case object TransactionStatus_CHALLENGE_PENDING extends TransactionStatus
+case object TransactionStatus_APPROVED extends TransactionStatus
+case object TransactionStatus_PAUSED extends TransactionStatus
+case object TransactionStatus_CANCELLED extends TransactionStatus
+case object TransactionStatus_COMPLETED extends TransactionStatus
 
 class Transaction(
   //A universally unique id

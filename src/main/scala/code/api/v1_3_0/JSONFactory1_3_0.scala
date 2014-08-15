@@ -6,6 +6,7 @@ import code.model.CardReplacementInfo
 import code.model.PhysicalCard
 import code.model.PinResetInfo
 import net.liftweb.json.{Extraction, JValue}
+import code.model.operations._
 
 case class PhysicalCardsJSON(
   cards : List[PhysicalCardJSON])
@@ -57,12 +58,33 @@ case class TransactionDetailsJSON1_3_0(
   new_balance : code.api.v1_2_1.AmountOfMoneyJSON,
   value : code.api.v1_2_1.AmountOfMoneyJSON)
 
+case class OperationJSON1_3_0(
+  id : String,
+  action : String,
+  status : String,
+  start_date : Date,
+  end_date : Date,
+  challenges : List[ChallengeJSON1_3_0])
+
+//TODO: add start_date, expiration_date, allowed_attempts?
+case class ChallengeJSON1_3_0(
+  id : String,
+  question : String,
+  label : String)
+
 object JSONFactory1_3_0 {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
   def stringOrNull = code.api.v1_2_1.JSONFactory.stringOrNull _
   def stringOptionOrNull = code.api.v1_2_1.JSONFactory.stringOptionOrNull _
+
+  def optionOrNull[T >: Null](option : Option[T]) : T = {
+    option match {
+      case Some(t) => t
+      case None => null
+    }
+  }
 
   def createPinResetJson(resetInfo: PinResetInfo) : PinResetJSON = {
     PinResetJSON(
@@ -160,16 +182,58 @@ object JSONFactory1_3_0 {
   }
 
   def transactionStatusToString(status : TransactionStatus): String = {
-    //we avoid using status.toString to avoid accidentally changing API behaviour if a status object is renamed
+    //we avoid using the standard toString to avoid accidentally changing API behaviour if a status object is renamed
     status match {
-      case DRAFT => "DRAFT"
-      case CHALLENGE_PENDING => "CHALLENGE_PENDING"
-      case APPROVED => "APPROVED"
-      case PAUSED => "PAUSED"
-      case CANCELLED => "CANCELLED"
-      case COMPLETED => "COMPLETED"
+      case TransactionStatus_DRAFT => "DRAFT"
+      case TransactionStatus_CHALLENGE_PENDING => "CHALLENGE_PENDING"
+      case TransactionStatus_APPROVED => "APPROVED"
+      case TransactionStatus_PAUSED => "PAUSED"
+      case TransactionStatus_CANCELLED => "CANCELLED"
+      case TransactionStatus_COMPLETED => "COMPLETED"
     }
 
+  }
+
+  def operationActionToString(action : OperationAction) : String = {
+    //we avoid using the standard toString to avoid accidentally changing API behaviour if an action object is renamed
+    action match {
+      case OperationAction_PAYMENT => "PAYMENT"
+    }
+  }
+
+  def operationStatusToString(status : OperationStatus) : String = {
+    //we avoid using the standard toString to avoid accidentally changing API behaviour if a status object is renamed
+    status match {
+      case OperationStatus_INITIATED => "INITIATED"
+      case OperationStatus_CHALLENGE_PENDING => "CHALLENGE_PENDING"
+      case OperationStatus_FAILED => "FAILED"
+      case OperationStatus_COMPLETED => "COMPLETED"
+    }
+  }
+
+  def createOperationJson(operation : Operation) : JValue = {
+    val operationJson = OperationJSON1_3_0(
+      id = operation.id,
+      action = operationActionToString(operation.action),
+      status = operationStatusToString(operation.status),
+      start_date = operation.startDate,
+      end_date = optionOrNull(operation.endDate),
+      challenges = operation.challenges.map(challengeJson)
+    )
+    Extraction.decompose(operationJson)
+  }
+
+  def createChallengeJson(challenge : Challenge) : JValue = {
+    val jsonObj = challengeJson(challenge)
+    Extraction.decompose(jsonObj)
+  }
+
+  private def challengeJson(challenge : Challenge) : ChallengeJSON1_3_0 = {
+    ChallengeJSON1_3_0(
+      id = challenge.id,
+      question = challenge.question,
+      label = challenge.label
+    )
   }
 
 }

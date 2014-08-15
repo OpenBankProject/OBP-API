@@ -1,5 +1,6 @@
 package code.api.v1_3_0
 
+import code.operations.Operations
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -113,8 +114,11 @@ trait APIMethods130 {
     lazy val getOperationById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "operations" :: operationId :: Nil JsonGet _ => {
         user =>
-
-          Full(errorJsonResponse("TODO"))
+          for {
+            operation <- Operations.operations.vend.getOperation(operationId, user) ?~! s"Operation with id $operationId not found"
+          } yield {
+            successJsonResponse(JSONFactory1_3_0.createOperationJson(operation))
+          }
       }
     }
 
