@@ -110,6 +110,14 @@ trait APIMethods130 {
       }
     }
 
+    lazy val getOperationById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "operations" :: operationId :: Nil JsonGet _ => {
+        user =>
+
+          Full(errorJsonResponse("TODO"))
+      }
+    }
+
   }
 
 }
