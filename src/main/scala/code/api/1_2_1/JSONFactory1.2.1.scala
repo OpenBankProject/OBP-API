@@ -34,6 +34,8 @@ package code.api.v1_2_1
 import java.util.Date
 import net.liftweb.common.{Box, Full}
 import code.model._
+import net.liftweb.json.JValue
+import net.liftweb.json.Extraction
 
 case class APIInfoJSON(
   version : String,
@@ -317,6 +319,9 @@ case class ViewIdsJson(
 )
 
 object JSONFactory{
+
+  implicit val dateFormats = net.liftweb.json.DefaultFormats
+
   def stringOrNull(text : String) =
     if(text.isEmpty)
       null
@@ -447,18 +452,23 @@ object JSONFactory{
     )
   }
 
-  def createTransactionsJSON(transactions: List[ModeratedTransaction]) : TransactionsJSON = {
-    new TransactionsJSON(transactions.map(createTransactionJSON))
+  def createTransactionsJSON(transactions: List[ModeratedTransaction]) : JValue = {
+    val transactionsJson = new TransactionsJSON(transactions.map(transactionToJson))
+    Extraction.decompose(transactionsJson)
   }
 
-  def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJSON = {
+  private def transactionToJson(transaction: ModeratedTransaction) : TransactionJSON = {
     new TransactionJSON(
-        id = transaction.id,
-        this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
-        other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
-        details = createTransactionDetailsJSON(transaction),
-        metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
-      )
+      id = transaction.id,
+      this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
+      other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
+      details = createTransactionDetailsJSON(transaction),
+      metadata = transaction.metadata.map(createTransactionMetadataJSON).getOrElse(null)
+    )
+  }
+
+  def createTransactionJSON(transaction : ModeratedTransaction) : JValue = {
+    Extraction.decompose(transactionToJson(transaction))
   }
 
   def createTransactionCommentsJSON(comments : List[Comment]) : TransactionCommentsJSON = {

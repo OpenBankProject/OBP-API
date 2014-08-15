@@ -82,8 +82,7 @@ trait APIMethods130 {
 
               paymentOperation match {
                 case completed : CompletedPayment => {
-                  val successJson : JValue = Extraction.decompose(TransactionId(completed.transactionId))
-                  successJsonResponse(successJson)
+                  errorJsonResponse("TODO")
                 }
                 case failed : FailedPayment => {
                   errorJsonResponse(failed.failureMessage)

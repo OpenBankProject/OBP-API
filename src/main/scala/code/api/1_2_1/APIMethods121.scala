@@ -866,7 +866,9 @@ trait APIMethods121 {
       }
     }
 
-    lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getTransactionsForBankAccount(createTransactionsJson : List[ModeratedTransaction] => JValue) :
+       PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+
       //get transactions
       case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
         user =>
@@ -877,13 +879,15 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, bankAccount)
             transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
           } yield {
-            val json = JSONFactory.createTransactionsJSON(transactions)
-            successJsonResponse(Extraction.decompose(json))
+            val json = createTransactionsJson(transactions)
+            successJsonResponse(json)
           }
       }
+
     }
 
-    lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getTransactionByIdForBankAccount(createTransactionJson : ModeratedTransaction => JValue) :
+      PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transaction by id
       case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
         user =>
@@ -892,8 +896,8 @@ trait APIMethods121 {
             view <- View.fromUrl(viewId, account) ?~! s"View $viewId not found for account"
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
           } yield {
-            val json = JSONFactory.createTransactionJSON(moderatedTransaction)
-            successJsonResponse(Extraction.decompose(json))
+            val json = createTransactionJson(moderatedTransaction)
+            successJsonResponse(json)
           }
       }
     }
@@ -1219,7 +1223,7 @@ trait APIMethods121 {
 
               paymentOperation match {
                 case completed : CompletedPayment => {
-                  val successJson : JValue = Extraction.decompose(TransactionId(completed.transactionId))
+                  val successJson : JValue = Extraction.decompose(TransactionId(completed.transaction.id))
                   successJsonResponse(successJson)
                 }
                 case failed : FailedPayment => {

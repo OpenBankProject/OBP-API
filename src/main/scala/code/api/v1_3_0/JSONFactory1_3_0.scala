@@ -5,6 +5,7 @@ import code.model._
 import code.model.CardReplacementInfo
 import code.model.PhysicalCard
 import code.model.PinResetInfo
+import net.liftweb.json.{Extraction, JValue}
 
 case class PhysicalCardsJSON(
   cards : List[PhysicalCardJSON])
@@ -36,13 +37,32 @@ case class PinResetJSON(
    requested_date : Date,
    reason_requested : String)
 
+case class TransactionsJSON1_3_0(
+  transactions: List[TransactionJSON1_3_0])
+
+case class TransactionJSON1_3_0(
+  id : String,
+  this_account : code.api.v1_2_1.ThisAccountJSON,
+  other_account : code.api.v1_2_1.OtherAccountJSON,
+  details : TransactionDetailsJSON1_3_0,
+  metadata : code.api.v1_2_1.TransactionMetadataJSON
+)
+
+case class TransactionDetailsJSON1_3_0(
+  status : String,
+  `type` : String,
+  description : String,
+  posted : Date,
+  completed : Date,
+  new_balance : code.api.v1_2_1.AmountOfMoneyJSON,
+  value : code.api.v1_2_1.AmountOfMoneyJSON)
+
 object JSONFactory1_3_0 {
 
-  def stringOrNull(text : String) =
-    if(text.isEmpty)
-      null
-    else
-      text
+  implicit val dateFormats = net.liftweb.json.DefaultFormats
+
+  def stringOrNull = code.api.v1_2_1.JSONFactory.stringOrNull _
+  def stringOptionOrNull = code.api.v1_2_1.JSONFactory.stringOptionOrNull _
 
   def createPinResetJson(resetInfo: PinResetInfo) : PinResetJSON = {
     PinResetJSON(
@@ -106,6 +126,50 @@ object JSONFactory1_3_0 {
     })
 
     PhysicalCardsJSON(cardJsons.toList)
+  }
+
+  def createTransactionsJSON(transactions : List[ModeratedTransaction]) : JValue = {
+    val transactionsJson = new TransactionsJSON1_3_0(transactions.map(transactionToJson))
+    Extraction.decompose(transactionsJson)
+  }
+
+  private def transactionToJson(transaction: ModeratedTransaction) : TransactionJSON1_3_0 = {
+    new TransactionJSON1_3_0(
+      id = transaction.id,
+      this_account = transaction.bankAccount.map(code.api.v1_2_1.JSONFactory.createThisAccountJSON).getOrElse(null),
+      other_account = transaction.otherBankAccount.map(code.api.v1_2_1.JSONFactory.createOtherBankAccount).getOrElse(null),
+      details = createTransactionDetailsJSON1_3_0(transaction),
+      metadata = transaction.metadata.map(code.api.v1_2_1.JSONFactory.createTransactionMetadataJSON).getOrElse(null)
+    )
+  }
+
+  def createTransactionJSON(transaction : ModeratedTransaction) : JValue = {
+    Extraction.decompose(transactionToJson(transaction))
+  }
+
+  def createTransactionDetailsJSON1_3_0(transaction : ModeratedTransaction) : TransactionDetailsJSON1_3_0 = {
+    new TransactionDetailsJSON1_3_0(
+      status = stringOptionOrNull(transaction.status.map(transactionStatusToString)),
+      `type` = stringOptionOrNull(transaction.transactionType),
+      description = stringOptionOrNull(transaction.description),
+      posted = transaction.startDate.getOrElse(null),
+      completed = transaction.finishDate.getOrElse(null),
+      new_balance = code.api.v1_2_1.JSONFactory.createAmountOfMoneyJSON(transaction.currency, transaction.balance),
+      value= code.api.v1_2_1.JSONFactory.createAmountOfMoneyJSON(transaction.currency, transaction.amount.map(_.toString))
+    )
+  }
+
+  def transactionStatusToString(status : TransactionStatus): String = {
+    //we avoid using status.toString to avoid accidentally changing API behaviour if a status object is renamed
+    status match {
+      case DRAFT => "DRAFT"
+      case CHALLENGE_PENDING => "CHALLENGE_PENDING"
+      case APPROVED => "APPROVED"
+      case PAUSED => "PAUSED"
+      case CANCELLED => "CANCELLED"
+      case COMPLETED => "COMPLETED"
+    }
+
   }
 
 }

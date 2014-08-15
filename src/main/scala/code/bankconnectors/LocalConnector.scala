@@ -144,7 +144,7 @@ object LocalConnector extends Connector with Loggable {
       transaction
     }
   }
-    private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
+    def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
 

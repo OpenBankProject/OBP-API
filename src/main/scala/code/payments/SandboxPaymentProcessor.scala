@@ -1,5 +1,6 @@
 package code.payments
 
+import code.bankconnectors.LocalConnector
 import code.model.BankAccount
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
@@ -32,26 +33,37 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     val toTransAmt = amt //to account balance should increase
 
     //this is the transaction that gets attached to the account of the person making the payment
-    val createdFromTrans = createTransaction(fromAccount, toAccount.bankPermalink,
+    val transactionResult = createTransaction(fromAccount, toAccount.bankPermalink,
       toAccount.permalink, fromTransAmt)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
     createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
 
-    //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
-    //be updated (the tests should fail if it doesn't)
-    createdFromTrans.map(_.id.toString)
-
     val operationTime = now
 
-    createdFromTrans match {
-      case Full(t) => {
-        new CompletedPayment(
-          operationId = "",
-          transactionId = t.id.toString,
-          startDate = operationTime,
-          finishDate = operationTime
-        )
+    def unspecifiedFailure = new FailedPayment(
+      operationId = "",
+      failureMessage = "server error",
+      startDate = operationTime,
+      finishDate = operationTime
+    )
+
+    transactionResult match {
+      case Full((obpEnv, thisMongoAcc)) => {
+        //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
+        val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
+
+        transaction match {
+          case Some(t) => {
+            new CompletedPayment(
+              operationId = "",
+              transaction = t,
+              startDate = operationTime,
+              finishDate = operationTime
+            )
+          }
+          case _ => unspecifiedFailure
+        }
       }
       case Failure(msg, _ , _) => {
         new FailedPayment(
@@ -62,20 +74,16 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
         )
       }
       case _ => {
-        new FailedPayment(
-          operationId = "",
-          failureMessage = "error",
-          startDate = operationTime,
-          finishDate = operationTime
-        )
+        unspecifiedFailure
       }
     }
 
 
   }
 
+  // also returns the mongodb Account object for the account initiating the payment
   private def createTransaction(account : BankAccount, otherBankId : String,
-                        otherAccountId : String, amount : BigDecimal) : Box[OBPEnvelope] = {
+                        otherAccountId : String, amount : BigDecimal) : Box[(OBPEnvelope, Account)] = {
 
     val oldBalance = account.balance
 
@@ -128,7 +136,7 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
                   ("amount" -> amount.toString))))
       saved <- saveTransaction(envJson)
     } yield {
-      saved
+      (saved, thisAcc)
     }
   }
 

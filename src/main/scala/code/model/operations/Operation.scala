@@ -2,6 +2,8 @@ package code.model.operations
 
 import java.util.Date
 
+import code.model.Transaction
+
 sealed trait Operation {
   val id : String
   val action : OperationAction
@@ -16,7 +18,7 @@ sealed trait PaymentOperation extends Operation {
 }
 
 class CompletedPayment(
-  val operationId : String, val transactionId : String,
+  val operationId : String, val transaction : Transaction,
   val startDate : Date, val finishDate : Date) extends PaymentOperation {
 
   override val id = operationId
