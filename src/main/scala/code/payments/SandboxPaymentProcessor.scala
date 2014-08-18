@@ -2,6 +2,7 @@ package code.payments
 
 import code.bankconnectors.LocalConnector
 import code.model.BankAccount
+import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.Account
@@ -55,12 +56,19 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
 
         transaction match {
           case Some(t) => {
-            new CompletedPayment(
-              operationId = "",
-              transaction = t,
-              startDate = operationTime,
-              finishDate = operationTime
-            )
+            //for now, we moderate with the owner view (as access to it is required to make payments)
+            val ownerView = Views.views.vend.view("owner", fromAccount)
+            ownerView match {
+              case Full(v) => {
+                new CompletedPayment(
+                  operationId = "",
+                  transaction = v.moderate(t),
+                  startDate = operationTime,
+                  finishDate = operationTime
+                )
+              }
+              case _ => unspecifiedFailure
+            }
           }
           case _ => unspecifiedFailure
         }

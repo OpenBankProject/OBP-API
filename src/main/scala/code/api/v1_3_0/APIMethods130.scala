@@ -83,19 +83,8 @@ trait APIMethods130 {
               import code.model.operations._
 
               paymentOperation match {
-                case completed : CompletedPayment => {
-                  //payments (and operations) are currently only visible to the account owner, so we moderate it
-                  // with the owner view
-                  val ownerView = Views.views.vend.view("owner", accountId, bankId)
-                  ownerView match {
-                    case Full(v) => {
-                      //TODO add location header for the operation
-                      successJsonResponse(JSONFactory1_3_0.createTransactionJSON(v.moderate(completed.transaction)))
-                    }
-                    case _ =>  errorJsonResponse("server error")
-                  }
-
-                }
+                case completed : CompletedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(completed.transaction))
+                case initiated : InitiatedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(initiated.transaction))
                 case failed : FailedPayment => {
                   errorJsonResponse(failed.failureMessage)
                 }

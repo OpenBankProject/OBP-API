@@ -2,7 +2,7 @@ package code.model.operations
 
 import java.util.Date
 
-import code.model.Transaction
+import code.model.{ModeratedTransaction, Transaction}
 
 sealed trait Operation {
   val id : String
@@ -18,7 +18,7 @@ sealed trait PaymentOperation extends Operation {
 }
 
 class CompletedPayment(
-  val operationId : String, val transaction : Transaction,
+  val operationId : String, val transaction : ModeratedTransaction,
   val startDate : Date, val finishDate : Date) extends PaymentOperation {
 
   override val id = operationId
@@ -45,6 +45,17 @@ class ChallengePendingPayment(
   override val id = operationId
   override val status = OperationStatus_CHALLENGE_PENDING
   override val endDate = None
+
+}
+
+class InitiatedPayment(
+  val operationId : String, val transaction : ModeratedTransaction,
+  val startDate : Date) extends PaymentOperation {
+
+  override val id = operationId
+  override val status = OperationStatus_INITIATED
+  override val endDate = None
+  override val challenges = Nil
 
 }
 
