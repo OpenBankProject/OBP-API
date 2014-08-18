@@ -48,7 +48,7 @@ object APIUtil {
 
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
-  val headers = ("Access-Control-Allow-Origin","*") :: Nil
+  val defaultHeaders = ("Access-Control-Allow-Origin","*") :: Nil
 
   def httpMethod : String =
     S.request match {
@@ -78,17 +78,29 @@ object APIUtil {
     commit getOrElse ""
   }
 
-  def noContentJsonResponse : JsonResponse =
-    JsonResponse(JsRaw(""), headers, Nil, 204)
+  def acceptedJsonResponse(headers : List[(String, String)]) : JsonResponse = {
+    val allHeaders = headers ::: defaultHeaders
+    JsonResponse(JsRaw(""), allHeaders, Nil, 202)
+  }
 
-  def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
-    JsonResponse(json, headers, Nil, httpCode)
+  def noContentJsonResponse(headers : List[(String, String)]) : JsonResponse = {
+    val allHeaders = headers ::: defaultHeaders
+    JsonResponse(JsRaw(""), allHeaders, Nil, 204)
+  }
+
+  def noContentJsonResponse : JsonResponse =
+    JsonResponse(JsRaw(""), defaultHeaders, Nil, 204)
+
+  def successJsonResponse(json: JsExp, httpCode : Int = 200, headers : List[(String, String)] = Nil) : JsonResponse = {
+    val allHeaders = headers ::: defaultHeaders
+    JsonResponse(json, allHeaders, Nil, httpCode)
+  }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), defaultHeaders, Nil, httpCode)
 
   def oauthHeaderRequiredJsonResponce : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
+    JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), defaultHeaders, Nil, 400)
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {

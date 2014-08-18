@@ -54,6 +54,8 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
         //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
         val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
 
+        //TODO: save operation to db
+
         transaction match {
           case Some(t) => {
             //for now, we moderate with the owner view (as access to it is required to make payments)

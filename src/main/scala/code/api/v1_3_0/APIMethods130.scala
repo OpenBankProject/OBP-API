@@ -82,15 +82,14 @@ trait APIMethods130 {
 
               import code.model.operations._
 
+              val operationLocation = s"/obp/v1.3.0/operations/${paymentOperation.id}"
+              val operationHeaders = List(("location", operationLocation))
+
               paymentOperation match {
-                case completed : CompletedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(completed.transaction))
-                case initiated : InitiatedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(initiated.transaction))
-                case failed : FailedPayment => {
-                  errorJsonResponse(failed.failureMessage)
-                }
-                case challengePending : ChallengePendingPayment => {
-                  errorJsonResponse("TODO")
-                }
+                case completed : CompletedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(completed.transaction), 201, operationHeaders)
+                case initiated : InitiatedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(initiated.transaction), 201, operationHeaders)
+                case failed : FailedPayment => errorJsonResponse(failed.failureMessage)
+                case challengePending : ChallengePendingPayment => acceptedJsonResponse(operationHeaders)
               }
             }
           }
