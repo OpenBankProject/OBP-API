@@ -118,11 +118,9 @@ class PhysicalCardsTest extends ServerSetup {
     def getModeratedOtherBankAccounts(bankID: String, accountID : String)
                                      (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] =
       Empty
-    def getModeratedTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*)
-                                (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]] =
+    def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
-    def getModeratedTransaction(id : String, bankID : String, accountID : String)
-                               (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] =
+    def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction] =
       Empty
 
     //these methods are required

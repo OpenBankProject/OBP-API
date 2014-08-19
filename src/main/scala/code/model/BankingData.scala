@@ -347,16 +347,18 @@ class BankAccount(
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedTransaction(id, bankPermalink, permalink)(view.moderate)
+      Connector.connector.vend.getTransaction(bankPermalink, permalink, id).map(view.moderate)
     else
       viewNotAllowed(view)
   }
 
   def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
-    if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedTransactions(permalink, bankPermalink, queryParams: _*)(view.moderate)
-    else
-      viewNotAllowed(view)
+    if(authorizedAccess(view, user)) {
+      for {
+        transactions <- Connector.connector.vend.getTransactions(bankPermalink, permalink, queryParams: _*)
+      } yield transactions.map(view.moderate)
+    }
+    else viewNotAllowed(view)
   }
 
   def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
