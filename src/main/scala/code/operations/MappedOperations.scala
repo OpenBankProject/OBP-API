@@ -1,7 +1,9 @@
 package code.operations
 
+import java.util.UUID
+import java.util.Date
 import code.bankconnectors.Connector
-import code.model.User
+import code.model.{ModeratedTransaction, Transaction, User}
 import code.model.operations._
 import code.util.Helper
 import code.views.Views
@@ -24,7 +26,7 @@ object MappedOperations extends Operations {
       status <- Box(op.getStatus) ?~! "server error: unknown operation state"
       operation <- status match {
         case OperationStatus_INITIATED => {
-          Connector.connector.vend.getModeratedTransaction(op.transactionId.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
+          Connector.connector.vend.getModeratedTransaction(op.transactionPermalink.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
             case Full(transaction) => Full(new InitiatedPayment(operationId, transaction, op.startDate.get))
             case _ => Failure(s"server error: transaction not found for operation $operationId")
           }
@@ -32,13 +34,27 @@ object MappedOperations extends Operations {
         case OperationStatus_CHALLENGE_PENDING => Full(new ChallengePendingPayment(operationId, op.startDate.get, toChallenges(op.challenges.toList)))
         case OperationStatus_FAILED => Full(new FailedPayment(operationId, op.failMsg, op.startDate.get, op.endDate.get))
         case OperationStatus_COMPLETED => {
-          Connector.connector.vend.getModeratedTransaction(op.transactionId.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
+          Connector.connector.vend.getModeratedTransaction(op.transactionPermalink.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
             case Full(transaction) => Full(new CompletedPayment(operationId, transaction, op.startDate.get, op.endDate.get))
             case _ => Failure(s"server error: transaction not found for operation $operationId")
           }
         }
       }
     } yield operation
+  }
+
+  def saveNewCompletedPayment(transaction : Transaction) : CompletedPayment = {
+    val mappedOp = MappedPaymentOperation.create
+      .bankPermalink(transaction.bankPermalink)
+      .accountPermalink(transaction.accountPermalink)
+      .transactionPermalink(transaction.id)
+      .permalink(UUID.randomUUID.toString)
+      .setStatus(OperationStatus_COMPLETED)
+      .startDate(transaction.startDate)
+      .endDate(transaction.finishDate)
+      .saveMe()
+
+    new CompletedPayment(mappedOp.permalink.get, transaction, mappedOp.startDate.get, mappedOp.endDate.get)
   }
 
   private def toChallenges(mappedChallenges : List[MappedChallenge]) : List[Challenge] = {
@@ -62,8 +78,8 @@ class MappedPaymentOperation extends LongKeyedMapper[MappedPaymentOperation] wit
   object bankPermalink extends MappedString(this, 100)
   object accountPermalink extends MappedString(this, 100)
 
-  //the id of the transaction associated with this payment
-  object transactionId extends MappedString(this, 100)
+  //the permalink of the transaction associated with this payment
+  object transactionPermalink extends MappedString(this, 100)
 
   //the id/permalink of this operation
   object permalink extends MappedString(this, 255)

@@ -1,7 +1,7 @@
 package code.operations
 
-import code.model.User
-import code.model.operations.Operation
+import code.model.{ModeratedTransaction, Transaction, User}
+import code.model.operations.{CompletedPayment, Operation}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
@@ -15,4 +15,6 @@ object Operations extends SimpleInjector {
 
 trait Operations {
   def getOperation(operationId : String, user : Box[User]) : Box[Operation]
+
+  def saveNewCompletedPayment(transaction : Transaction) : CompletedPayment
 }

@@ -18,7 +18,7 @@ sealed trait PaymentOperation extends Operation {
 }
 
 class CompletedPayment(
-  val operationId : String, val transaction : ModeratedTransaction,
+  val operationId : String, val transaction : Transaction,
   val startDate : Date, val finishDate : Date) extends PaymentOperation {
 
   override val id = operationId
