@@ -26,7 +26,7 @@ object MappedOperations extends Operations {
       status <- Box(op.getStatus) ?~! "server error: unknown operation state"
       operation <- status match {
         case OperationStatus_INITIATED => {
-          Connector.connector.vend.getModeratedTransaction(op.transactionPermalink.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
+          Connector.connector.vend.getTransaction(op.bankPermalink.get, op.accountPermalink.get, op.transactionPermalink.get) match {
             case Full(transaction) => Full(new InitiatedPayment(operationId, transaction, op.startDate.get))
             case _ => Failure(s"server error: transaction not found for operation $operationId")
           }
@@ -34,7 +34,7 @@ object MappedOperations extends Operations {
         case OperationStatus_CHALLENGE_PENDING => Full(new ChallengePendingPayment(operationId, op.startDate.get, toChallenges(op.challenges.toList)))
         case OperationStatus_FAILED => Full(new FailedPayment(operationId, op.failMsg, op.startDate.get, op.endDate.get))
         case OperationStatus_COMPLETED => {
-          Connector.connector.vend.getModeratedTransaction(op.transactionPermalink.get, op.bankPermalink.get, op.accountPermalink.get)(ownerView.moderate _) match {
+          Connector.connector.vend.getTransaction(op.bankPermalink.get, op.accountPermalink.get, op.transactionPermalink.get) match {
             case Full(transaction) => Full(new CompletedPayment(operationId, transaction, op.startDate.get, op.endDate.get))
             case _ => Failure(s"server error: transaction not found for operation $operationId")
           }

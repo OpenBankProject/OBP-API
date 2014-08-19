@@ -86,8 +86,8 @@ trait APIMethods130 {
               val operationHeaders = List(("location", operationLocation))
 
               paymentOperation match {
-                case completed : CompletedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(completed.transaction), 201, operationHeaders)
-                case initiated : InitiatedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(initiated.transaction), 201, operationHeaders)
+                case completed : CompletedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(view.moderate(completed.transaction)), 201, operationHeaders)
+                case initiated : InitiatedPayment => successJsonResponse(JSONFactory1_3_0.createTransactionJSON(view.moderate(initiated.transaction)), 201, operationHeaders)
                 case failed : FailedPayment => errorJsonResponse(failed.failureMessage)
                 case challengePending : ChallengePendingPayment => acceptedJsonResponse(operationHeaders)
               }

@@ -49,7 +49,7 @@ class ChallengePendingPayment(
 }
 
 class InitiatedPayment(
-  val operationId : String, val transaction : ModeratedTransaction,
+  val operationId : String, val transaction : Transaction,
   val startDate : Date) extends PaymentOperation {
 
   override val id = operationId
