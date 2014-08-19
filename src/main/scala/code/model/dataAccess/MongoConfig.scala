@@ -31,28 +31,29 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
-import net.liftweb._
-import mongodb._
-import util.Props
-import com.mongodb.{Mongo, ServerAddress}
+import net.liftweb.util.ConnectionIdentifier
 
-object AdminDb extends MongoIdentifier {
+object AdminDb extends ConnectionIdentifier {
   val jndiName = "admin"
 }
 
 object MongoConfig {
   def init: Unit = {
+    import net.liftweb.mongodb.MongoDB
+    import com.mongodb.{Mongo, ServerAddress}
+    import net.liftweb.util.{Props, DefaultConnectionIdentifier}
+
+
     val srvr = new ServerAddress(
        Props.get("mongo.host", "localhost"),
        Props.getInt("mongo.port", 27017)
     )
-    val defaultDatabase =
-      Props.mode match {
+    val defaultDatabase = Props.mode match {
         case Props.RunModes.Test  => "test"
         case _ => "OBP006"
       }
 
-    MongoDB.defineDb(DefaultMongoIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
+    MongoDB.defineDb(DefaultConnectionIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
     MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
   }
 }
