@@ -10,7 +10,7 @@ import net.liftweb.http.rest.RestHelper
 import java.net.URL
 import net.liftweb.util.Props
 import code.util.Helper._
-import code.payments.PaymentsInjector
+import code.payments.{Payments, PaymentsInjector}
 import net.liftweb.json.Extraction
 import code.bankconnectors._
 import code.bankconnectors.OBPOffset
@@ -1215,10 +1215,8 @@ trait APIMethods121 {
               })
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${makeTransJson.amount})")
+              paymentOperation <- Payments.payment(view, fromAccount, toAccount, rawAmt)
             } yield {
-
-              val paymentOperation = PaymentsInjector.processor.vend.makePayment(fromAccount, toAccount, rawAmt)
-
               import code.model.operations._
 
               paymentOperation match {

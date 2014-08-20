@@ -30,7 +30,7 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
    *  I have not bothered to spend time doing anything about this. I see no point in trying to
    *  implement ACID transactions in mongodb for a test sandbox.
    */
-  def makePayment(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : PaymentOperation = {
+  def makePayment(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : Box[PaymentOperation] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -41,54 +41,22 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     // this creates the transaction that gets attached to the account of the person receiving the payment
     createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
 
-    val operationTime = now
-
-    def unspecifiedFailure = new FailedPayment(
-      operationId = "",
-      failureMessage = "server error",
-      startDate = operationTime,
-      finishDate = operationTime
-    )
+    def unspecifiedFailure = {
+      Failure("server error")
+    }
 
     transactionResult match {
       case Full((obpEnv, thisMongoAcc)) => {
         //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
         val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
 
-        //TODO: save operation to db
-
         transaction match {
-          case Some(t) => {
-            Operations.operations.vend.saveNewCompletedPayment(t)
-/*            //for now, we moderate with the owner view (as access to it is required to make payments)
-            val ownerView = Views.views.vend.view("owner", fromAccount)
-            ownerView match {
-              case Full(v) => {
-                Operations.operations.vend.saveNewCompletedPayment(t.id, fromAccount.permalink, fromAccount.bankPermalink)
-                new CompletedPayment(
-                  operationId = "",
-                  transaction = v.moderate(t),
-                  startDate = operationTime,
-                  finishDate = operationTime
-                )
-              }
-              case _ => unspecifiedFailure
-            }*/
-          }
+          case Some(t) => Full(Operations.operations.vend.saveNewCompletedPayment(t))
           case _ => unspecifiedFailure
         }
       }
-      case Failure(msg, _ , _) => {
-        new FailedPayment(
-          operationId = "",
-          failureMessage = msg,
-          startDate = operationTime,
-          finishDate = operationTime
-        )
-      }
-      case _ => {
-        unspecifiedFailure
-      }
+      case f : Failure => f
+      case _ => unspecifiedFailure
     }
 
 
