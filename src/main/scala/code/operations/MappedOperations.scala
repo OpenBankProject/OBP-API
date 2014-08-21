@@ -1,16 +1,15 @@
 package code.operations
 
-import java.util.UUID
-import java.util.Date
+import java.util.{UUID, Date}
 import code.bankconnectors.Connector
-import code.model.{ModeratedTransaction, Transaction, User}
+import code.model.{Transaction, User}
 import code.model.operations._
 import code.util.Helper
 import code.views.Views
-import net.liftweb.common.{Full, Failure, Box}
+import net.liftweb.common.{Loggable, Full, Failure, Box, Empty}
 import net.liftweb.mapper._
 
-object MappedOperations extends Operations {
+object MappedOperations extends Operations with Loggable {
 
   def getOperation(operationId : String, user : Box[User]) : Box[Operation] = {
 
@@ -31,7 +30,7 @@ object MappedOperations extends Operations {
             case _ => Failure(s"server error: transaction not found for operation $operationId")
           }
         }
-        case OperationStatus_CHALLENGE_PENDING => Full(new ChallengePendingPayment(operationId, op.startDate.get, toChallenges(op.challenges.toList)))
+        case OperationStatus_CHALLENGE_PENDING => Full(new ChallengePendingPayment(operationId, op.startDate.get, activeChallenges(op.challenges.toList)))
         case OperationStatus_FAILED => Full(new FailedPayment(operationId, op.failMsg, op.startDate.get, op.endDate.get))
         case OperationStatus_COMPLETED => {
           Connector.connector.vend.getTransaction(op.bankPermalink.get, op.accountPermalink.get, op.transactionPermalink.get) match {
@@ -54,11 +53,82 @@ object MappedOperations extends Operations {
       .endDate(transaction.finishDate)
       .saveMe()
 
-    new CompletedPayment(mappedOp.permalink.get, transaction, mappedOp.startDate.get, mappedOp.endDate.get)
+    completedPayment(mappedOp, transaction)
   }
 
-  private def toChallenges(mappedChallenges : List[MappedChallenge]) : List[Challenge] = {
-    mappedChallenges.map(c => {
+  def completedPayment(payOp : MappedPaymentOperation, transaction : Transaction) : CompletedPayment = {
+    new CompletedPayment(payOp.permalink.get, transaction, payOp.startDate.get, payOp.endDate.get)
+  }
+
+  def completedPayment(payOp : MappedPaymentOperation) : Box[CompletedPayment] = {
+    for {
+      transaction <- Connector.connector.vend.getTransaction(payOp.bankPermalink.get, payOp.accountPermalink.get, payOp.transactionPermalink.get)
+    } yield completedPayment(payOp, transaction)
+  }
+
+  def answerChallenge(challengeId : String, answer : String) : Box[ChallengeResponse] = {
+    MappedChallenge.find(challengeId) match {
+      case Full(challenge) => {
+        //dummy implementation (challenges have no expiration)
+        if(!challenge.active) {
+          Failure(s"challenge $challengeId is no longer active and cannot be answered.")
+        } else if(answer.toLowerCase == "berlin") {
+          challenge.operation.obj match {
+            case Full(op) => {
+              completedPayment(op) match {
+                case Full(comp) => Full(PaymentOperationResolved(comp))
+                case _ => {
+                  logger.warn(s"completed payment not created for operation of challenge $challengeId")
+                  Failure("server error")
+                }
+              }
+            }
+            case _ => {
+              logger.warn(s"operation not found for challenge $challengeId")
+              Failure("server error")
+            }
+          }
+        } else {
+          //dummy implementation: if there has already been one failed attempt, issue a new challenge
+          if(challenge.failedAnswerCount.get >= 1) {
+            challenge.active(false).save
+            challenge.operation.obj match {
+              case Full(op) => {
+                val newChallenge = createDummyChallenge(op)
+                Full(NewChallengeRequired(newChallenge.id))
+              }
+              case _ => {
+                logger.warn(s"operation not found for challenge $challengeId")
+                Failure("server error")
+              }
+            }
+
+          } else {
+            Full(TryChallengeAgain)
+          }
+        }
+      }
+      case _ => Failure(s"challenge $challengeId not found")
+    }
+
+  }
+
+  private def createDummyChallenge(op : MappedPaymentOperation) : Challenge = {
+    //TODO: question vs label?
+    val mappedChallenge = MappedChallenge.create.active(true).startDate(new Date()).
+      label("What is the capital of Germany?").
+      question("").
+      operation(op).saveMe
+
+    new Challenge {
+      val id = mappedChallenge.permalink.get
+      val question = mappedChallenge.question.get
+      val label = mappedChallenge.label.get
+    }
+  }
+
+  private def activeChallenges(mappedChallenges : List[MappedChallenge]) : List[Challenge] = {
+    mappedChallenges.filter(c => c.active).map(c => {
       new Challenge {
         override val question: String = c.question.get
         override val label: String = c.label.get
@@ -136,9 +206,16 @@ class MappedChallenge extends LongKeyedMapper[MappedChallenge] with IdPK {
 
   object operation extends MappedLongForeignKey(this, MappedPaymentOperation)
 
-  object permalink extends MappedString(this, 100)
+  object startDate extends MappedDate(this)
+
+  object permalink extends MappedString(this, 100) {
+    override def defaultValue = UUID.randomUUID().toString
+  }
   object question extends MappedString(this, 100)
   object label extends MappedString(this, 100)
+
+  object active extends MappedBoolean(this)
+  object failedAnswerCount extends MappedInt(this)
 
 }
 

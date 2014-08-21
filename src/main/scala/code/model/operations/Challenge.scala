@@ -7,3 +7,10 @@ trait Challenge {
   val label : String
 
 }
+
+sealed trait ChallengeResponse
+
+case class PaymentOperationResolved(resolvedOperation : CompletedPayment) extends ChallengeResponse
+case object TryChallengeAgain extends ChallengeResponse
+case class NewChallengeRequired(newChallengeId : String) extends ChallengeResponse
+case class ChallengeFailedOperationFailed(operationId : String) extends ChallengeResponse

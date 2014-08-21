@@ -96,8 +96,10 @@ object APIUtil {
     JsonResponse(json, allHeaders, Nil, httpCode)
   }
 
-  def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
-    JsonResponse(Extraction.decompose(ErrorMessage(message)), defaultHeaders, Nil, httpCode)
+  def errorJsonResponse(message : String = "error", httpCode : Int = 400, headers : List[(String, String)] = Nil) : JsonResponse = {
+    val allHeaders = headers ::: defaultHeaders
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), allHeaders, Nil, httpCode)
+  }
 
   def oauthHeaderRequiredJsonResponce : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), defaultHeaders, Nil, 400)

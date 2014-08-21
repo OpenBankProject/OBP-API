@@ -1,5 +1,6 @@
 package code.api.v1_3_0
 
+import code.model.operations._
 import code.operations.Operations
 import code.views.Views
 import net.liftweb.http.rest.RestHelper
@@ -15,6 +16,8 @@ import net.liftweb.json.JValue
 import code.payments.{Payments, PaymentsInjector}
 import code.util.Helper._
 import net.liftweb.util.Helpers._
+
+case class AnswerChallengeJson(answer : String)
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -104,6 +107,40 @@ trait APIMethods130 {
             operation <- Operations.operations.vend.getOperation(operationId, user) ?~! s"Operation with id $operationId not found"
           } yield {
             successJsonResponse(JSONFactory1_3_0.createOperationJson(operation))
+          }
+      }
+    }
+
+    lazy val answerChallenge : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "challenges" :: challengeId :: "answers" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            answerJson <- tryo{json.extract[AnswerChallengeJson]}
+            response <- Operations.operations.vend.answerChallenge(challengeId, answerJson.answer)
+          } yield {
+            response match {
+              case PaymentOperationResolved(resolvedOp) => {
+                val t = resolvedOp.transaction
+                //TODO: make sure this link is the right one for this api version
+                val transactionLocation = s"/obp/v1.3.0/banks/${t.bankPermalink}/accounts/${t.accountPermalink}/owner/transactions/${t.id}/transaction"
+                noContentJsonResponse(List("location" -> transactionLocation))
+              }
+              case TryChallengeAgain => {
+                //TODO: make sure this link is the right one for this api version
+                val headers = List("location" -> s"challenges/$challengeId/}")
+                errorJsonResponse("incorrect answer", 400, headers)
+              }
+              case NewChallengeRequired(newChallengeId) => {
+                //TODO: make sure this link is the right one for this api version
+                val headers = List("location" -> s"challenges/$newChallengeId/}")
+                errorJsonResponse("incorrect answer", 400, headers)
+              }
+              case ChallengeFailedOperationFailed(failedOpId) => {
+                //TODO: make sure this link is the right one for this api version
+                val headers = List("location" -> s"operations/$failedOpId/}")
+                errorJsonResponse("incorrect answer. operation failed.", 400, headers)
+              }
+            }
           }
       }
     }
