@@ -89,13 +89,14 @@ object MappedOperations extends Operations with Loggable {
             }
           }
         } else {
-          //dummy implementation: if there has already been one failed attempt, issue a new challenge
+          //dummy implementation: if there has already been one failed attempt, fail the transaction
           if(challenge.failedAnswerCount.get >= 1) {
             challenge.active(false).save
             challenge.operation.obj match {
               case Full(op) => {
-                val newChallenge = createDummyChallenge(op)
-                Full(NewChallengeRequired(newChallenge.id))
+                //TODO: mark transaction as failed
+                //TODO: should failed transactions show up on a GET transactions request?
+                Full(ChallengeFailedOperationFailed(op.permalink.get))
               }
               case _ => {
                 logger.warn(s"operation not found for challenge $challengeId")
@@ -113,6 +114,7 @@ object MappedOperations extends Operations with Loggable {
 
   }
 
+  //TODO: use this when making transactions?
   private def createDummyChallenge(op : MappedPaymentOperation) : Challenge = {
     //TODO: question vs label?
     val mappedChallenge = MappedChallenge.create.active(true).startDate(new Date()).

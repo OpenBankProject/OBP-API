@@ -130,11 +130,6 @@ trait APIMethods130 {
                 val headers = List("location" -> s"challenges/$challengeId/}")
                 errorJsonResponse("incorrect answer", 400, headers)
               }
-              case NewChallengeRequired(newChallengeId) => {
-                //TODO: make sure this link is the right one for this api version
-                val headers = List("location" -> s"challenges/$newChallengeId/}")
-                errorJsonResponse("incorrect answer", 400, headers)
-              }
               case ChallengeFailedOperationFailed(failedOpId) => {
                 //TODO: make sure this link is the right one for this api version
                 val headers = List("location" -> s"operations/$failedOpId/}")
