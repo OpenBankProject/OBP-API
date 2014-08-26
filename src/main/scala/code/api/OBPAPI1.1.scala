@@ -221,7 +221,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       case Full(u) =>
               ("id" -> u.idGivenByProvider) ~
               ("provider" -> u.provider ) ~
-              ("display_name" -> {u.theFirstName + " " + u.theLastName})
+              ("display_name" -> u.name)
 
       case _ => ("id" -> "") ~
                 ("provider" -> "") ~

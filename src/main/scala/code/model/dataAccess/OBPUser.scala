@@ -56,8 +56,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
       val apiUser = APIUser.create
-      .firstName(firstName.get)
-      .lastName(lastName.get)
+      .name_(lastName.get + " " + firstName.get)
       .email(email)
       .provider_(Props.get("hostname",""))
       .providerId(email)
@@ -68,8 +67,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
       info("user reference is no null. Tying to update the API User")
       user.obj.map{ u =>{
           info("API User found ")
-          u.firstName(firstName.get)
-          .lastName(lastName.get)
+          u.name_(lastName.get + " " + firstName.get)
           .email(email)
           .save
         }

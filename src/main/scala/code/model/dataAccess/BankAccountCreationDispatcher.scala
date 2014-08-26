@@ -134,7 +134,7 @@ package code.model.dataAccess {
         }
         case _ => {
           logger.info("creating account record ")
-          val accountHolder = s"${u.theFirstName} ${u.theLastName}"
+          val accountHolder = s"${u.name}"
           val bankAccount =
             Account
             .createRecord
