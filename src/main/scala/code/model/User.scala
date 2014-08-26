@@ -41,14 +41,13 @@ import code.bankconnectors.Connector
 import code.users.Users
 
 trait User {
-  
+
   def apiId : String
-  
+
   def idGivenByProvider: String
   def provider : String
   def emailAddress : String
-  def theFirstName : String
-  def theLastName : String
+  def name : String
 
   def permittedViews(bankAccount: BankAccount) : List[View] =
     Views.views.vend.permittedViews(this, bankAccount)
@@ -68,14 +67,14 @@ trait User {
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~
     ("provider" -> provider) ~
-    ("display_name" -> {theFirstName + " " + theLastName})
+    ("display_name" -> name)
 }
 
 object User {
   def findByApiId(id : String) : Box[User] =
     Users.users.vend.getUserByApiId(id)
-    
-  def findByProviderId(provider : String, idGivenByProvider : String) = 
+
+  def findByProviderId(provider : String, idGivenByProvider : String) =
     //if you change this, think about backwards compatibility! All existing
     //versions of the API return this failure message, so if you change it, make sure
     //that all stable versions retain the same behavior
