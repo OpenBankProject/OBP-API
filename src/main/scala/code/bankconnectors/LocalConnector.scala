@@ -227,9 +227,7 @@ object LocalConnector extends Connector with Loggable {
   }
 
   private def getHostedBank(permalink : String) : Box[HostedBank] = {
-    for{
-      bank <- HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
-    } yield bank
+    HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
   }
 
   private def createBank(bank : HostedBank) : Bank = {
