@@ -888,8 +888,8 @@ trait APIMethods121 {
       case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
         user =>
           for {
-            account <- BankAccount(bankId, accountId) ?~! s"Bank account $accountId not found at bank $bankId"
-            view <- View.fromUrl(viewId, account) ?~! s"View $viewId not found for account"
+            account <- BankAccount(bankId, accountId)
+            view <- View.fromUrl(viewId, account)
             moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
           } yield {
             val json = JSONFactory.createTransactionJSON(moderatedTransaction)

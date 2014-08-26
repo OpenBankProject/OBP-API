@@ -93,18 +93,28 @@ object LocalConnector extends Connector with Loggable {
     Full(moderatedCounterparties.flatten)
   }
 
-  def getModeratedTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*)
-  (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]] = {
+  def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+    logger.debug("getTransactions for " + bankID + "/" + accountID)
     for{
-      rawTransactions <- getTransactions(accountId, bankId, queryParams: _*)
-    } yield rawTransactions.map(moderate)
+      bank <- getHostedBank(bankID)
+      account <- bank.getAccount(accountID)
+    } yield {
+      updateAccountTransactions(bank, account)
+      account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
+    }
   }
 
-  def getModeratedTransaction(id : String, bankId : String, accountId : String)
-  (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction] = {
+  def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction] = {
     for{
-      transaction <- getTransaction(id,bankId,accountId)
-    } yield moderate(transaction)
+      bank <- getHostedBank(bankID) ?~! s"Transaction not found: bank $bankID not found"
+      account  <- bank.getAccount(accountID) ?~! s"Transaction not found: account $accountID not found"
+      objectId <- tryo{new ObjectId(transactionID)} ?~ {"Transaction "+transactionID+" not found"}
+      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
+      transaction <- createTransaction(envelope,account)
+    } yield {
+      updateAccountTransactions(bank, account)
+      transaction
+    }
   }
 
   def getPhysicalCards(user : User) : Set[PhysicalCard] = {
@@ -121,29 +131,6 @@ object LocalConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-  private def getTransactions(bankId: String, accountId: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-      logger.debug("getTransactions for " + bankId + "/" + accountId)
-      for{
-        bank <- getHostedBank(bankId)
-        account <- bank.getAccount(accountId)
-      } yield {
-        updateAccountTransactions(bank, account)
-        account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
-      }
-  }
-
-  private def getTransaction(id : String, bankPermalink : String, accountPermalink : String) : Box[Transaction] = {
-    for{
-      bank <- getHostedBank(bankPermalink) ?~! s"Transaction not found: bank $bankPermalink not found"
-      account  <- bank.getAccount(accountPermalink) ?~! s"Transaction not found: account $accountPermalink not found"
-      objectId <- tryo{new ObjectId(id)} ?~ {"Transaction "+id+" not found"}
-      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
-      transaction <- createTransaction(envelope,account)
-    } yield {
-      updateAccountTransactions(bank, account)
-      transaction
-    }
-  }
     private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
@@ -240,9 +227,7 @@ object LocalConnector extends Connector with Loggable {
   }
 
   private def getHostedBank(permalink : String) : Box[HostedBank] = {
-    for{
-      bank <- HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
-    } yield bank
+    HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
   }
 
   private def createBank(bank : HostedBank) : Bank = {

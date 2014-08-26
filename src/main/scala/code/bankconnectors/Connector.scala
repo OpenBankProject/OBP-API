@@ -52,11 +52,9 @@ trait Connector {
   def getModeratedOtherBankAccounts(bankID: String, accountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
 
-  def getModeratedTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*)
-    (moderate: Transaction => ModeratedTransaction): Box[List[ModeratedTransaction]]
+  def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
-  def getModeratedTransaction(id : String, bankID : String, accountID : String)
-    (moderate: Transaction => ModeratedTransaction) : Box[ModeratedTransaction]
+  def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction]
 
   def getPhysicalCards(user : User) : Set[PhysicalCard]
 
