@@ -68,11 +68,9 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     }
 
     def makeChallengePendingPayment() = {
-      //TODO: save new operation with payment info, + challenge
-
-
-
-      Failure("TODO")
+      Full(Operations.operations.vend.saveNewChallengePendingPayment(
+        fromAccount.bankPermalink, fromAccount.permalink,
+        toAccount.bankPermalink, toAccount.permalink, amt))
     }
 
     /**
