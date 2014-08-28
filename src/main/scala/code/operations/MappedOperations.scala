@@ -73,6 +73,30 @@ object MappedOperations extends Operations with Loggable {
     new FailedPayment(mappedOp.permalink.get, failureMessage, currentTime, currentTime)
   }
 
+  def saveNewChallengePendingPayment(fromAccountBankPermalink : String, fromAccountPermalink : String, toAccountBankPermalink : String,
+                                     toAccountPermalink : String, amount : BigDecimal, challenges : List[Challenge]) : ChallengePendingPayment = {
+    val currentTime = new Date()
+
+    val mappedChallenges : List[MappedChallenge] = {
+      challenges.flatMap(c => MappedChallenge.find(By(MappedChallenge.permalink, c.id)))
+    }
+
+    val mappedOp = MappedPaymentOperation.create
+      .bankPermalink(fromAccountBankPermalink) //TODO: duplicate of fromAccountBankPermalink?
+      .accountPermalink(fromAccountPermalink) //TODO: duplicate of fromAccountPermalink?
+      .fromAccountBankId(fromAccountBankPermalink) //TODO: duplicate of bankPermalink?
+      .fromAccountId(fromAccountPermalink) //TODO: duplicate of accountPermalink?
+      .transactionAmount(amount.toString)
+      .permalink(UUID.randomUUID.toString)
+      .setStatus(OperationStatus_CHALLENGE_PENDING)
+      .startDate(currentTime)
+
+    mappedOp.challenges.insertAll(0, mappedChallenges)
+    mappedOp.save
+
+    new ChallengePendingPayment(mappedOp.permalink.get, mappedOp.startDate.get, challenges)
+  }
+
   def completedPayment(payOp : MappedPaymentOperation, transaction : Transaction) : CompletedPayment = {
     new CompletedPayment(payOp.permalink.get, transaction, payOp.startDate.get, payOp.endDate.get)
   }
