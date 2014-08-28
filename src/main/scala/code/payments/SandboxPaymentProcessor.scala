@@ -4,7 +4,8 @@ import code.bankconnectors.LocalConnector
 import code.model.BankAccount
 import code.operations.Operations
 import code.views.Views
-import net.liftweb.common.{Loggable, Full, Failure, Box}
+import net.liftweb.common._
+import net.liftweb.http.S
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.Account
 import code.model.dataAccess.HostedBank
@@ -31,39 +32,70 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
    *  implement ACID transactions in mongodb for a test sandbox.
    */
   def makePayment(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : Box[PaymentOperation] = {
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = amt //to account balance should increase
 
-    //this is the transaction that gets attached to the account of the person making the payment
-    val transactionResult = createTransaction(fromAccount, toAccount.bankPermalink,
-      toAccount.permalink, fromTransAmt)
-
-    // this creates the transaction that gets attached to the account of the person receiving the payment
-    createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
-
-    def unspecifiedFailure = {
-      Failure("server error")
+    def makeFailedPayment(failureMessage : String) : Box[FailedPayment] = {
+      Full(Operations.operations.vend.saveNewFailedPayment(fromAccount.bankPermalink, fromAccount.permalink, failureMessage))
     }
 
-    transactionResult match {
-      case Full((obpEnv, thisMongoAcc)) => {
-        //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
-        val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
+    def makeSuccessfulPayment() : Box[CompletedPayment] = {
+      val fromTransAmt = -amt //from account balance should decrease
+      val toTransAmt = amt //to account balance should increase
 
-        transaction match {
-          case Some(t) => Full(Operations.operations.vend.saveNewCompletedPayment(t))
-          case _ => unspecifiedFailure
-        }
+      //this is the transaction that gets attached to the account of the person making the payment
+      val transactionResult = createTransaction(fromAccount, toAccount.bankPermalink,
+        toAccount.permalink, fromTransAmt)
+
+      // this creates the transaction that gets attached to the account of the person receiving the payment
+      createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
+
+      def unspecifiedFailure() = {
+        Failure("server error")
       }
-      case f : Failure => f
-      case _ => unspecifiedFailure
+
+      transactionResult match {
+        case Full((obpEnv, thisMongoAcc)) => {
+          //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
+          val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
+
+          transaction match {
+            case Some(t) => Full(Operations.operations.vend.saveNewCompletedPayment(t))
+            case _ => unspecifiedFailure
+          }
+        }
+        case f : Failure => f
+        case _ => unspecifiedFailure
+      }
     }
 
+    def makeChallengePendingPayment() = {
+      Failure("TODO")
+    }
+
+    /**
+     * url parameter "desired_transaction_status" in make payment api requests control the behaviour here:
+     *
+     * if "desired_transaction_status" is not set, the payment will be successful
+     *
+     * if "desired_transaction_status" is set to "challenge_pending", a ChallengePendingPayment will be returned
+     *
+     * if "desired_transaction_status" is set to "failed", a FailedPayment will be returned
+     *
+     * any other value will raise an error
+     *
+     */
+
+    S.param("desired_transaction_status") match {
+      case Full("challenge_pending") => makeChallengePendingPayment()
+      case Full("failure") => makeFailedPayment("sandbox failure ")
+      case Full(anythingElse) => Failure(s"$anythingElse is an invalid value for desired_transaction_status")
+      case Empty => makeSuccessfulPayment()
+      case _ => Failure("server error")
+    }
 
   }
 
   // also returns the mongodb Account object for the account initiating the payment
-  private def createTransaction(account : BankAccount, otherBankId : String,
+  def createTransaction(account : BankAccount, otherBankId : String,
                         otherAccountId : String, amount : BigDecimal) : Box[(OBPEnvelope, Account)] = {
 
     val oldBalance = account.balance

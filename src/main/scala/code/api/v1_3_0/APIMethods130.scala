@@ -83,6 +83,7 @@ trait APIMethods130 {
             } yield {
               import code.model.operations._
 
+              //TODO: how can we make sure this stays the correct url?
               val operationLocation = s"/obp/v1.3.0/operations/${paymentOperation.id}"
               val operationHeaders = List(("location", operationLocation))
 
@@ -113,6 +114,7 @@ trait APIMethods130 {
 
     lazy val answerChallenge : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "challenges" :: challengeId :: "answers" :: Nil JsonPost json -> _ => {
+        //TODO: check user is allowed to answer challenge?
         user =>
           for {
             answerJson <- tryo{json.extract[AnswerChallengeJson]}
@@ -129,6 +131,11 @@ trait APIMethods130 {
                 //TODO: make sure this link is the right one for this api version
                 val headers = List("location" -> s"challenges/$challengeId/}")
                 errorJsonResponse("incorrect answer", 400, headers)
+              }
+              case AnotherChallengeRequired(nextChallengeId) => {
+                //TODO: make sure this link is the right one for this api version
+                val headers = List("location" -> s"challenges/$nextChallengeId/}")
+                noContentJsonResponse(headers)
               }
               case ChallengeFailedOperationFailed(failedOpId) => {
                 //TODO: make sure this link is the right one for this api version

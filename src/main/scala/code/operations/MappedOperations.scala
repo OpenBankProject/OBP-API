@@ -1,10 +1,12 @@
 package code.operations
 
 import java.util.{UUID, Date}
-import code.bankconnectors.Connector
-import code.model.{Transaction, User}
+import code.bankconnectors.{LocalConnector, Connector}
+import code.model.{BankAccount, Transaction, User}
 import code.model.operations._
+import code.payments.SandboxPaymentProcessor
 import code.util.Helper
+import net.liftweb.util.Helpers._
 import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box, Empty}
 import net.liftweb.mapper._
@@ -56,6 +58,21 @@ object MappedOperations extends Operations with Loggable {
     completedPayment(mappedOp, transaction)
   }
 
+  def saveNewFailedPayment(bankPermalink : String, accountPermalink : String, failureMessage : String) = {
+    val currentTime = new Date()
+    val mappedOp = MappedPaymentOperation.create
+      .bankPermalink(bankPermalink)
+      .accountPermalink(accountPermalink)
+      .permalink(UUID.randomUUID.toString)
+      .setStatus(OperationStatus_FAILED)
+      .startDate(currentTime)
+      .endDate(currentTime)
+      .failMsg(failureMessage)
+      .saveMe()
+
+    new FailedPayment(mappedOp.permalink.get, failureMessage, currentTime, currentTime)
+  }
+
   def completedPayment(payOp : MappedPaymentOperation, transaction : Transaction) : CompletedPayment = {
     new CompletedPayment(payOp.permalink.get, transaction, payOp.startDate.get, payOp.endDate.get)
   }
@@ -75,13 +92,26 @@ object MappedOperations extends Operations with Loggable {
         } else if(answer.toLowerCase == "berlin") {
           challenge.operation.obj match {
             case Full(op) => {
-              completedPayment(op) match {
-                case Full(comp) => Full(PaymentOperationResolved(comp))
-                case _ => {
-                  logger.warn(s"completed payment not created for operation of challenge $challengeId")
-                  Failure("server error")
+
+              //challenge has been answered and is no longer active
+              challenge.active(false).save
+
+              val nextChallenge = op.challenges.find(c => c.active)
+              (nextChallenge match {
+                case Some(ch) => Full(AnotherChallengeRequired(ch.permalink.get))
+                case None => {
+                  op.setStatus(OperationStatus_COMPLETED).endDate(new Date()).save
+                  for {
+                    fromBankAccount <- BankAccount(op.fromAccountBankId.get, op.fromAccountId.get)
+                    amt <- tryo {BigDecimal(op.transactionAmount.get)}
+                    (obpEnv, thisMongoAcc) <- SandboxPaymentProcessor.createTransaction(fromBankAccount, op.toAccountBankId.get, op.toAccountId.get, amt)
+                    transaction <- LocalConnector.createTransaction(obpEnv, thisMongoAcc)
+                  } yield {
+                    op.transactionPermalink(transaction.id).save
+                    PaymentOperationResolved(completedPayment(op, transaction))
+                  }
                 }
-              }
+              }) ?~! "server error"
             }
             case _ => {
               logger.warn(s"operation not found for challenge $challengeId")
@@ -94,8 +124,7 @@ object MappedOperations extends Operations with Loggable {
             challenge.active(false).save
             challenge.operation.obj match {
               case Full(op) => {
-                //TODO: mark transaction as failed
-                //TODO: should failed transactions show up on a GET transactions request?
+                op.failMsg("Too many incorrect answers to challenge").endDate(new Date()).setStatus(OperationStatus_FAILED).save
                 Full(ChallengeFailedOperationFailed(op.permalink.get))
               }
               case _ => {
@@ -160,14 +189,20 @@ class MappedPaymentOperation extends LongKeyedMapper[MappedPaymentOperation] wit
   object endDate extends MappedDate(this)
 
   //the failure message, which should be set if the payment operation failed
-  object failMsg extends MappedString(this, 255) {
-    override def defaultValue = "payment failed"
-  }
+  object failMsg extends MappedString(this, 255)
 
   object challenges extends MappedOneToMany(MappedChallenge, MappedChallenge.operation)
 
   //these get retrieved and set via get/set methods with non-string results/arguments
   private object status extends MappedString(this, 50)
+
+  //these fields are for when we're in the ChallengePending state
+  object fromAccountBankId extends MappedString(this, 100) //TODO: same as bankPermalink?
+  object fromAccountId extends MappedString(this, 100) //TODO: same as accountPermalink?
+  object toAccountBankId extends MappedString(this, 100)
+  object toAccountId extends MappedString(this, 100)
+  object transactionAmount extends MappedString(this, 100)//storing the amount as a a string for now
+
 
   private val OpStatInitiated = "I"
   private val OpStatChallengePending = "P"
