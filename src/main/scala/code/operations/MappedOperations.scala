@@ -127,9 +127,10 @@ object MappedOperations extends Operations with Loggable {
                   op.setStatus(OperationStatus_COMPLETED).endDate(new Date()).save
                   for {
                     fromBankAccount <- BankAccount(op.fromAccountBankId.get, op.fromAccountId.get)
+                    toBankAccount <- BankAccount(op.toAccountBankId.get, op.toAccountId.get)
                     amt <- tryo {BigDecimal(op.transactionAmount.get)}
-                    (obpEnv, thisMongoAcc) <- SandboxPaymentProcessor.createTransaction(fromBankAccount, op.toAccountBankId.get, op.toAccountId.get, amt)
-                    transaction <- LocalConnector.createTransaction(obpEnv, thisMongoAcc)
+                    //saves transactions on both ends, returns the one for the "from" bank account
+                    transaction <- SandboxPaymentProcessor.saveMongoDBPaymentTransaction(fromBankAccount, toBankAccount, amt)
                   } yield {
                     op.transactionPermalink(transaction.id).save
                     PaymentOperationResolved(completedPayment(op, transaction))
@@ -167,13 +168,11 @@ object MappedOperations extends Operations with Loggable {
 
   }
 
-  //TODO: use this when making transactions?
-  private def createDummyChallenge(op : MappedPaymentOperation) : Challenge = {
+  def createDummyChallenge() : Challenge = {
     //TODO: question vs label?
     val mappedChallenge = MappedChallenge.create.active(true).startDate(new Date()).
       label("What is the capital of Germany?").
-      question("").
-      operation(op).saveMe
+      question("").saveMe
 
     new Challenge {
       val id = mappedChallenge.permalink.get

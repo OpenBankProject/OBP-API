@@ -1,8 +1,8 @@
 package code.payments
 
 import code.bankconnectors.LocalConnector
-import code.model.BankAccount
-import code.operations.Operations
+import code.model.{Transaction, BankAccount}
+import code.operations.{MappedOperations, Operations}
 import code.views.Views
 import net.liftweb.common._
 import net.liftweb.http.S
@@ -38,39 +38,17 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     }
 
     def makeSuccessfulPayment() : Box[CompletedPayment] = {
-      val fromTransAmt = -amt //from account balance should decrease
-      val toTransAmt = amt //to account balance should increase
-
-      //this is the transaction that gets attached to the account of the person making the payment
-      val transactionResult = createTransaction(fromAccount, toAccount.bankPermalink,
-        toAccount.permalink, fromTransAmt)
-
-      // this creates the transaction that gets attached to the account of the person receiving the payment
-      createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
-
-      def unspecifiedFailure() = {
-        Failure("server error")
-      }
-
-      transactionResult match {
-        case Full((obpEnv, thisMongoAcc)) => {
-          //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
-          val transaction = LocalConnector.createTransaction(obpEnv, thisMongoAcc)
-
-          transaction match {
-            case Some(t) => Full(Operations.operations.vend.saveNewCompletedPayment(t))
-            case _ => unspecifiedFailure
-          }
-        }
-        case f : Failure => f
-        case _ => unspecifiedFailure
-      }
+      val transaction = saveMongoDBPaymentTransaction(fromAccount, toAccount, amt)
+      transaction.map(Operations.operations.vend.saveNewCompletedPayment)
     }
 
     def makeChallengePendingPayment() = {
-      Full(Operations.operations.vend.saveNewChallengePendingPayment(
+
+      val challenges = List(MappedOperations.createDummyChallenge())
+
+      Full(MappedOperations.saveNewChallengePendingPayment(
         fromAccount.bankPermalink, fromAccount.permalink,
-        toAccount.bankPermalink, toAccount.permalink, amt))
+        toAccount.bankPermalink, toAccount.permalink, amt, challenges))
     }
 
     /**
@@ -96,8 +74,36 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
 
   }
 
+  /**
+   * @return the transaction for @account (i.e. not the transaction for the "other" bank account
+   */
+  def saveMongoDBPaymentTransaction(fromAccount : BankAccount, toAccount : BankAccount, amt : BigDecimal) : Box[Transaction] = {
+    val fromTransAmt = -amt //from account balance should decrease
+    val toTransAmt = amt //to account balance should increase
+
+    //this is the transaction that gets attached to the account of the person making the payment
+    val transactionResult = createTransaction(fromAccount, toAccount.bankPermalink,
+      toAccount.permalink, fromTransAmt)
+
+    // this creates the transaction that gets attached to the account of the person receiving the payment
+    createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
+
+    def unspecifiedFailure() = {
+      Failure("server error")
+    }
+
+    transactionResult match {
+      case Full((obpEnv, thisMongoAcc)) => {
+        //dependency on LocalConnector here, but this whole sandbox processor is dependent on specific implemenations anyways
+        Box(LocalConnector.createTransaction(obpEnv, thisMongoAcc)) ?~! "server error"
+      }
+      case f : Failure => f
+      case _ => unspecifiedFailure
+    }
+  }
+
   // also returns the mongodb Account object for the account initiating the payment
-  def createTransaction(account : BankAccount, otherBankId : String,
+  private def createTransaction(account : BankAccount, otherBankId : String,
                         otherAccountId : String, amount : BigDecimal) : Box[(OBPEnvelope, Account)] = {
 
     val oldBalance = account.balance
