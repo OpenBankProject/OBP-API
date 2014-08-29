@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
+import code.api.{DefaultUsers, SandboxPaymentTestingHelpers}
 import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
@@ -52,7 +53,7 @@ import code.model.ViewCreationJSON
 import code.model.ViewUpdateData
 import code.api.test.APIResponse
 
-class API1_2_1Test extends ServerSetup{
+class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTestingHelpers {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
@@ -81,25 +82,6 @@ class API1_2_1Test extends ServerSetup{
   )
 
 
-  //create the application
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
-
-  val defaultProvider = Props.get("hostname","")
-
-  lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
-  // create the access token
-  lazy val tokenDuration = weeks(4)
-
-  lazy val obpuser1 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
     for{
@@ -111,64 +93,6 @@ class API1_2_1Test extends ServerSetup{
         save
     }
   }
-
-  lazy val testToken =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser1.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token = new Token(testToken.key, testToken.secret)
-
-  // create a user for test purposes
-  lazy val obpuser2 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  //we create an access token for the other user
-  lazy val testToken2 =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser2.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token2 = new Token(testToken2.key, testToken2.secret)
-
-  // create a user for test purposes
-  lazy val obpuser3 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  //we create an access token for the other user
-  lazy val testToken3 =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser3.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token3 = new Token(testToken3.key, testToken3.secret)
-
-  lazy val user1 = Some((consumer, token))
-  lazy val user2 = Some((consumer, token2))
-  lazy val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
 
@@ -749,48 +673,11 @@ class API1_2_1Test extends ServerSetup{
 
   feature("we can make payments") {
 
-    def paymentTestBank = HostedBank.createRecord.
-      name(randomString(5)).
-      alias(randomString(5)).
-      permalink("payments-test-bank").
-      national_identifier(randomString(5)).
-      save
-
-    def createAccount(bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
-
-      val created = Account.createRecord.
-        balance(1000).
-        holder(randomString(4)).
-        number(randomString(4)).
-        kind(randomString(4)).
-        name(randomString(4)).
-        permalink(accountPermalink).
-        bankID(new ObjectId(bankMongoId)).
-        label(randomString(4)).
-        currency(currency).
-        save
-
-      val hostedAccount = HostedAccount.
-        create.
-        accountID(created.id.get.toString).
-        saveMe
-
-      val owner = ownerView(bankPermalink, accountPermalink, hostedAccount)
-
-      //give to user1 owner view
-      ViewPrivileges.create.
-        view(owner).
-        user(obpuser1).
-        save
-
-      created
-    }
-
     val view = "owner"
 
     scenario("we make a payment", Payments) {
 
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -860,7 +747,7 @@ class API1_2_1Test extends ServerSetup{
     }
 
     scenario("we can't make a payment without access to the owner view", Payments) {
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -899,7 +786,7 @@ class API1_2_1Test extends ServerSetup{
     }
 
     scenario("we can't make a payment without an oauth user", Payments) {
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -940,7 +827,7 @@ class API1_2_1Test extends ServerSetup{
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
 
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -980,7 +867,7 @@ class API1_2_1Test extends ServerSetup{
 
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -1022,7 +909,7 @@ class API1_2_1Test extends ServerSetup{
 
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
@@ -1056,7 +943,7 @@ class API1_2_1Test extends ServerSetup{
 
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
-      val testBank = paymentTestBank
+      val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
       val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
