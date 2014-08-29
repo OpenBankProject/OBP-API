@@ -46,7 +46,6 @@ import org.mortbay.jetty.webapp.WebAppContext
 import net.liftweb.json.Serialization
 import org.junit.runner.RunWith
 import net.liftweb.mongodb._
-import net.liftweb.util.Props
 import code.model.dataAccess._
 import java.util.Date
 import _root_.net.liftweb.util._
@@ -423,8 +422,10 @@ trait ServerSetup extends FeatureSpec
 }
 
 object ServerSetup {
+  import net.liftweb.util.Props
+
   val host = "localhost"
-  val port = 8000
+  val port = Props.getInt("tests.port",8000)
   val server = new Server
   val scc = new SelectChannelConnector
   scc.setPort(port)

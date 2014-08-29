@@ -81,7 +81,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
   )
 
-
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
     for{
@@ -1693,14 +1692,14 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("We will not delete a view on a bank account it does not exist", API1_2, PostView) {
+    scenario("We will not delete a view on a bank account because it does not exist", API1_2, PostView) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = deleteView(bankId, bankAccount.id, randomString(3), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -1846,8 +1845,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
@@ -1916,8 +1915,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val viewsIdsToGrant= List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -1931,8 +1930,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
@@ -2057,8 +2056,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
-      Then("we should get a 400 ok code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore)
     }
@@ -2215,8 +2214,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       When("the request is sent")
       val reply = getTheOtherBankAccounts(bankId, bankAccount.id, randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -2273,8 +2272,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, randomViewPermalink(bankId, bankAccount))
       When("the request is sent")
       val reply = getTheOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -2344,8 +2343,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getMetadataOfOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -2414,8 +2413,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePublicAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -2501,8 +2500,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPublicAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomAlias, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the alias should not be changed")
@@ -2709,8 +2708,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val otherBankAccount = randomOtherBankAccount(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getThePrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -2796,8 +2795,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomAlias = randomString(5)
       When("the request is sent")
       val postReply = postAPrivateAliasForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomAlias, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the alias should not be changed")
@@ -3017,8 +3016,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomInfo = randomString(20)
       When("the request is sent")
       val postReply = postMoreInfoForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomInfo, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the information should not be changed")
@@ -3235,8 +3234,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postUrlForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomURL, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the url should not be changed")
@@ -3453,8 +3452,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomImageURL = randomString(20)
       When("the request is sent")
       val postReply = postImageUrlForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomImageURL, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the image url should not be changed")
@@ -3671,8 +3670,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomURL = randomString(20)
       When("the request is sent")
       val postReply = postOpenCorporatesUrlForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomURL, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the open corporates url should not be changed")
@@ -3899,8 +3898,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postCorporateLocationForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomLoc, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -4137,8 +4136,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply = postPhysicalLocationForOneOtherBankAccount(bankId, bankAccount.id, randomString(5), otherBankAccount.id, randomLoc, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -4330,8 +4329,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val reply = getTransactions(bankId,bankAccount.id,randomString(5), user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
     }
   }
 
@@ -4714,8 +4713,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
     }
 
     scenario("we will not get transaction data because the transaction does not exist", API1_2, GetTransaction) {
@@ -4781,8 +4780,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getNarrativeForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -4867,8 +4866,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomNarrative = randomString(20)
       When("the request is sent")
       val postReply = postNarrativeForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomNarrative, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the narrative should not be added")
@@ -5083,8 +5082,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getCommentsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -5181,8 +5180,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomComment = PostTransactionCommentJSON(randomString(20))
       When("the request is sent")
       val postReply = postCommentForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomComment, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the comment should not be added")
@@ -5309,8 +5308,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val postedComment = postedReply.body.extract[TransactionCommentJSON]
       When("the delete request is sent")
       val deleteReply = deleteCommentForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, postedComment.id, user1)
-      Then("we should get a 400 code")
-      deleteReply.code should equal (400)
+      Then("we should get a 404 code")
+      deleteReply.code should equal (404)
     }
   }
 
@@ -5364,8 +5363,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTagsForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -5460,8 +5459,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomTag = PostTransactionTagJSON(randomString(5))
       When("the request is sent")
       val postReply = postTagForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomTag, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the tag should not be added")
@@ -5588,8 +5587,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val postedTag = postedReply.body.extract[TransactionTagJSON]
       When("the delete request is sent")
       val deleteReply = deleteTagForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id,  postedTag.id, user1)
-      Then("we should get a 400 code")
-      deleteReply.code should equal (400)
+      Then("we should get a 404 code")
+      deleteReply.code should equal (404)
     }
   }
 
@@ -5643,8 +5642,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getImagesForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -5739,8 +5738,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomImage = PostTransactionImageJSON(randomString(5),"http://www.mysuperimage.com")
       When("the request is sent")
       val postReply = postImageForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomImage, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
       And("the image should not be added")
@@ -5867,8 +5866,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val postedImage = postedReply.body.extract[TransactionImageJSON]
       When("the delete request is sent")
       val deleteReply = deleteImageForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, postedImage.id, user1)
-      Then("we should get a 400 code")
-      deleteReply.code should equal (400)
+      Then("we should get a 404 code")
+      deleteReply.code should equal (404)
     }
   }
 
@@ -5929,8 +5928,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       postWhereForOneTransaction(bankId, bankAccount.id, view, transaction.id, randomLoc, user1)
       When("the request is sent")
       val reply = getWhereForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -6023,8 +6022,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val randomLoc = randomLocation
       When("the request is sent")
       val postReply =  postWhereForOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, randomLoc, user1)
-      Then("we should get a 400 code")
-      postReply.code should equal (400)
+      Then("we should get a 404 code")
+      postReply.code should equal (404)
       And("we should get an error message")
       postReply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
@@ -6242,7 +6241,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
 
-    scenario("we will not get get the other bank account of a random transaction because the view does not exist", API1_2, GetTransactionAccount) {
+    scenario("we will not get the other bank account of a random transaction because the view does not exist", API1_2, GetTransactionAccount) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
@@ -6250,8 +6249,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val transaction = randomTransaction(bankId, bankAccount.id, view)
       When("the request is sent")
       val reply = getTheOtherBankAccountOfOneTransaction(bankId, bankAccount.id, randomString(5), transaction.id, user1)
-      Then("we should get a 400 code")
-      reply.code should equal (400)
+      Then("we should get a 404 code")
+      reply.code should equal (404)
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }

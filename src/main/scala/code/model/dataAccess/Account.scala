@@ -205,10 +205,9 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   object SWIFT_BIC extends StringField(this, 255)
   object national_identifier extends StringField(this, 255)
 
-  def getAccount(bankAccountPermalink : String) : Box[Account] =
-    for{
-      account <- Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountPermalink +" not found at bank " + permalink}
-    } yield account
+  def getAccount(bankAccountPermalink : String) : Box[Account] = {
+    Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountPermalink +" not found at bank " + permalink}
+  }
 
   def isAccount(bankAccountPermalink : String) : Boolean =
     Account.count(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) == 1

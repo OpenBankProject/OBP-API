@@ -176,14 +176,24 @@ object MapperViews extends Views with Loggable {
       }
     }
   }
-  
+
   def view(viewPermalink : String, account: BankAccount) : Box[View] = {
     view(viewPermalink, account.permalink, account.bankPermalink)
   }
 
   def view(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[View] = {
-    ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
-      ViewImpl.accountFilter(bankPermalink, accountPermalink): _*)
+    viewImpl(viewPermalink, accountPermalink, bankPermalink)
+  }
+
+  def viewImpl(viewPermalink : String, account: BankAccount) : Box[ViewImpl] = {
+    viewImpl(viewPermalink, account.permalink, account.bankPermalink)
+  }
+
+  def viewImpl(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[ViewImpl] = {
+      ViewImpl.find(
+        By(ViewImpl.permalink_, viewPermalink) ::
+        ViewImpl.accountFilter(bankPermalink, accountPermalink): _*
+      ) ~> APIFailure(s"View with permalink $viewPermalink not found", 404)
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
@@ -191,10 +201,12 @@ object MapperViews extends Views with Loggable {
       view.name.replaceAllLiterally(" ","").toLowerCase
     }
 
-    val existing = ViewImpl.find(By(ViewImpl.permalink_, newViewPermalink) ::
-      ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)
+    val existing = ViewImpl.count(
+        By(ViewImpl.permalink_, newViewPermalink) ::
+        ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*
+      ) == 1
 
-    if(existing.isDefined)
+    if(existing)
       Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
     else {
       val createdView = ViewImpl.create.
@@ -212,11 +224,7 @@ object MapperViews extends Views with Loggable {
   def updateView(bankAccount : BankAccount, viewPermalink: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {
-      view <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
-        ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*) ~> new APIFailure {
-        override val responseCode: Int = 404
-        override val msg: String = s"View with permalink $viewPermalink not found"
-      }
+      view <- viewImpl(viewPermalink, bankAccount)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -229,8 +237,7 @@ object MapperViews extends Views with Loggable {
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewImpl.find(By(ViewImpl.permalink_, viewPermalink) ::
-          ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*)  ?~ "view not found"
+        view <- viewImpl(viewPermalink, bankAccount)
         if(view.delete_!)
       } yield {
       }
@@ -450,5 +457,5 @@ object MapperViews extends Views with Loggable {
       }
     }
   }
-  
+
 }
