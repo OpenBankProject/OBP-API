@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 
+import code.operations.{MappedChallenge, MappedPaymentOperation}
 import net.liftweb._
 import util._
 import common._
@@ -189,6 +190,8 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
     Schemifier.schemify(true, Schemifier.infoF _, APIUser)
     Schemifier.schemify(true, Schemifier.infoF _, MappedAccountHolder)
+    Schemifier.schemify(true, Schemifier.infoF _, MappedPaymentOperation)
+    Schemifier.schemify(true, Schemifier.infoF _, MappedChallenge)
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
