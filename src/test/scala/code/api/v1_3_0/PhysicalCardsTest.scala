@@ -1,5 +1,6 @@
 package code.api.v1_3_0
 
+import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.bankconnectors.{OBPQueryParam, Connector}
 import net.liftweb.common.{Empty, Box}
@@ -16,65 +17,11 @@ import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
 import code.util.APIUtil.OAuth._
 
-class PhysicalCardsTest extends ServerSetup {
+class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
   def v1_3Request = baseRequest / "obp" / "v1.3.0"
-
-  //create the application
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
-
-  val defaultProvider = Props.get("hostname","")
-
-  lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
-  // create the access token
-  lazy val tokenDuration = weeks(4)
-
-  lazy val obpuser1 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  lazy val obpuser2 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  lazy val testToken =
-    OBPToken.create.
-      tokenType(Access).
-      consumerId(testConsumer.id).
-      userForeignKey(obpuser1.id.toLong).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      duration(tokenDuration).
-      expirationDate({(now : TimeSpan) + tokenDuration}).
-      insertDate(now).
-      saveMe
-
-  lazy val token = new Token(testToken.key, testToken.secret)
-
-  lazy val testToken2 =
-    OBPToken.create.
-      tokenType(Access).
-      consumerId(testConsumer.id).
-      userForeignKey(obpuser2.id.toLong).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      duration(tokenDuration).
-      expirationDate({(now : TimeSpan) + tokenDuration}).
-      insertDate(now).
-      saveMe
-
-  lazy val token2 = new Token(testToken2.key, testToken2.secret)
-
-  lazy val user1 = Some((consumer, token))
-  lazy val user2 = Some((consumer, token2))
 
   def createCard(number : String) = new PhysicalCard(
     bankCardNumber = number,

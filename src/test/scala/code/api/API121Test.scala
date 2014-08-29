@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
+import code.api.DefaultUsers
 import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
@@ -52,7 +53,7 @@ import code.model.ViewCreationJSON
 import code.model.ViewUpdateData
 import code.api.test.APIResponse
 
-class API1_2_1Test extends ServerSetup{
+class API1_2_1Test extends ServerSetup with DefaultUsers {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
@@ -80,26 +81,6 @@ class API1_2_1Test extends ServerSetup{
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
   )
 
-
-  //create the application
-  lazy val testConsumer =
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(randomString(40).toLowerCase).
-      secret(randomString(40).toLowerCase).
-      saveMe
-
-  val defaultProvider = Props.get("hostname","")
-
-  lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
-  // create the access token
-  lazy val tokenDuration = weeks(4)
-
-  lazy val obpuser1 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
   override def specificSetup() ={
     //give to user1 all the privileges on all the accounts
     for{
@@ -111,64 +92,6 @@ class API1_2_1Test extends ServerSetup{
         save
     }
   }
-
-  lazy val testToken =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser1.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token = new Token(testToken.key, testToken.secret)
-
-  // create a user for test purposes
-  lazy val obpuser2 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  //we create an access token for the other user
-  lazy val testToken2 =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser2.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token2 = new Token(testToken2.key, testToken2.secret)
-
-  // create a user for test purposes
-  lazy val obpuser3 =
-    APIUser.create.provider_(defaultProvider).
-      saveMe
-
-  //we create an access token for the other user
-  lazy val testToken3 =
-    OBPToken.create.
-    tokenType(Access).
-    consumerId(testConsumer.id).
-    userForeignKey(obpuser3.id.toLong).
-    key(randomString(40).toLowerCase).
-    secret(randomString(40).toLowerCase).
-    duration(tokenDuration).
-    expirationDate({(now : TimeSpan) + tokenDuration}).
-    insertDate(now).
-    saveMe
-
-  lazy val token3 = new Token(testToken3.key, testToken3.secret)
-
-  lazy val user1 = Some((consumer, token))
-  lazy val user2 = Some((consumer, token2))
-  lazy val user3 = Some((consumer, token3))
 
   /************************* test tags ************************/
 
