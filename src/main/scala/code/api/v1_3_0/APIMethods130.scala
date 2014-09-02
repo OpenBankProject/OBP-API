@@ -105,7 +105,7 @@ trait APIMethods130 {
       case "operations" :: operationId :: Nil JsonGet _ => {
         user =>
           for {
-            operation <- Operations.operations.vend.getOperation(operationId, user) ?~! s"Operation with id $operationId not found"
+            operation <- Operations.operations.vend.getOperation(operationId, user)
           } yield {
             successJsonResponse(JSONFactory1_3_0.createOperationJson(operation))
           }

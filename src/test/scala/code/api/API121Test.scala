@@ -181,7 +181,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
   /********************* API test methods ********************/
   val emptyJSON : JObject =
     ("error" -> "empty List")
-  val errorAPIResponse = new APIResponse(400,emptyJSON)
 
   def randomViewPermalink(bankId: String, account: AccountJSON) : String = {
     val request = v1_2Request / "banks" / bankId / "accounts" / account.id / "views" <@(consumer, token)

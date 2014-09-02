@@ -197,7 +197,7 @@ object JSONFactory1_3_0 {
   def operationActionToString(action : OperationAction) : String = {
     //we avoid using the standard toString to avoid accidentally changing API behaviour if an action object is renamed
     action match {
-      case OperationAction_PAYMENT => "PAYMENT"
+      case OperationAction_PAYMENT => "POST_TRANSACTION"
     }
   }
 

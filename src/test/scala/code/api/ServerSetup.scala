@@ -57,7 +57,7 @@ import BigDecimal._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 
-case class APIResponse(code: Int, body: JValue)
+case class APIResponse(code: Int, body: JValue, locationHeader: String)
 
 trait ServerSetup extends FeatureSpec
   with BeforeAndAfterEach with GivenWhenThen
@@ -219,10 +219,11 @@ trait ServerSetup extends FeatureSpec
       for(response <- Http(req > as.Response(p => p)))
       yield
       {
+        val locationHeader = response.getHeader("location")
         val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
         val parsedBody = tryo {parse(body)}
         parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b)
+          case Full(b) => APIResponse(response.getStatusCode, b, locationHeader)
           case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
         }
       }

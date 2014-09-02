@@ -22,7 +22,7 @@ object MappedOperations extends Operations with Loggable {
     for {
       op <- MappedPaymentOperation.find(By(MappedPaymentOperation.permalink, operationId)) ?~! s"Operation $operationId not found"
       ownerView <- Views.views.vend.view("owner", op.accountPermalink.get, op.bankPermalink.get)
-      u <- user ?~! "Currently supported operations require a logged in user"
+      u <- user ?~! "You must be logged in to access operations"
       userHasOwnerAccess <- Helper.booleanToBox(ownerView.users.contains(u), "Insufficient privileges")
       status <- Box(op.getStatus) ?~! "server error: unknown operation state"
       operation <- status match {
@@ -219,7 +219,7 @@ class MappedPaymentOperation extends LongKeyedMapper[MappedPaymentOperation] wit
   object challenges extends MappedOneToMany(MappedChallenge, MappedChallenge.operation)
 
   //these get retrieved and set via get/set methods with non-string results/arguments
-  private object status extends MappedString(this, 50)
+  object status extends MappedString(this, 50)
 
   //these fields are for when we're in the ChallengePending state
   object fromAccountBankId extends MappedString(this, 100) //TODO: same as bankPermalink?
