@@ -52,22 +52,22 @@ object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     }
 
     /**
-     * url parameter "desired_transaction_status" in make payment api requests control the behaviour here:
+     * the http header "obp_desired_transaction_status" in make payment api requests control the behaviour here:
      *
-     * if "desired_transaction_status" is not set, the payment will be successful
+     * if "obp_desired_transaction_status" is not set, the payment will be successful
      *
-     * if "desired_transaction_status" is set to "challenge_pending", a ChallengePendingPayment will be returned
+     * if "obp_desired_transaction_status" is set to "challenge_pending", a ChallengePendingPayment will be returned
      *
-     * if "desired_transaction_status" is set to "failed", a FailedPayment will be returned
+     * if "obp_desired_transaction_status" is set to "failed", a FailedPayment will be returned
      *
      * any other value will raise an error
      *
      */
 
-    S.param("desired_transaction_status") match {
+    S.getRequestHeader("obp_desired_transaction_status") match {
       case Full("challenge_pending") => makeChallengePendingPayment()
       case Full("failure") => makeFailedPayment("sandbox failure ")
-      case Full(anythingElse) => Failure(s"$anythingElse is an invalid value for desired_transaction_status")
+      case Full(anythingElse) => Failure(s"$anythingElse is an invalid value for obp_desired_transaction_status")
       case Empty => makeSuccessfulPayment()
       case _ => Failure("server error")
     }
