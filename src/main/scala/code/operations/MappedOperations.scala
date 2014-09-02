@@ -86,6 +86,8 @@ object MappedOperations extends Operations with Loggable {
       .accountPermalink(fromAccountPermalink) //TODO: duplicate of fromAccountPermalink?
       .fromAccountBankId(fromAccountBankPermalink) //TODO: duplicate of bankPermalink?
       .fromAccountId(fromAccountPermalink) //TODO: duplicate of accountPermalink?
+      .toAccountBankId(toAccountBankPermalink)
+      .toAccountId(toAccountPermalink)
       .transactionAmount(amount.toString)
       .permalink(UUID.randomUUID.toString)
       .setStatus(OperationStatus_CHALLENGE_PENDING)
