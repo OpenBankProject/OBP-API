@@ -110,7 +110,7 @@ object MappedOperations extends Operations with Loggable {
   }
 
   def answerChallenge(challengeId : String, answer : String) : Box[ChallengeResponse] = {
-    MappedChallenge.find(challengeId) match {
+    MappedChallenge.find(By(MappedChallenge.permalink, challengeId)) match {
       case Full(challenge) => {
         //dummy implementation (challenges have no expiration)
         if(!challenge.active) {
