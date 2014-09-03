@@ -138,6 +138,7 @@ class SandboxPaymentsTest extends ServerSetup with DefaultUsers with SandboxPaym
       answerChallengeResponse.code should equal(204)
       write(answerChallengeResponse.body) should equal("{}") //TODO: Should the body of the response really be '{}'?
 
+      //check transaction was created
       val createdTransaction = makeGetRequest(baseRequest.setUrl(baseRequest.url + answerChallengeResponse.locationHeader).GET <@(user1))
       createdTransaction.code should equal(200)
       //check that some of the transaction fields are correct
@@ -148,8 +149,52 @@ class SandboxPaymentsTest extends ServerSetup with DefaultUsers with SandboxPaym
     }
 
     scenario("Payment with a single security challenged answered incorrectly, and then correctly on the second attempt") {
-      //TODO
-      1 should equal(2)
+      //TODO: lots of this is duplicate code
+      val (bankAccountDetails, response) = makeGoodPayment(Some("challenge_pending"))
+      response.code should equal(202)
+      response.locationHeader startsWith "/obp/v1.3.0/operations/" should be(true)
+      write(response.body) should equal("{}") //TODO: Should the body of the response really be '{}'?
+
+      //the location header should also point to a valid operation resource
+      val getOperation = baseRequest.setUrl(baseRequest.url + response.locationHeader).GET <@(user1)
+      val operationResponse = makeGetRequest(getOperation)
+
+      operationResponse.code should equal(200)
+
+      val operation = operationResponse.body.extract[OperationJSON1_3_0]
+      operation.id.isEmpty should be(false)
+      operation.action should equal("POST_TRANSACTION")
+      operation.status should equal("CHALLENGE_PENDING")
+      operation.challenges.length should equal(1) //sandbox payment processor currently only emits single challenges
+
+      val challenge = operation.challenges(0)
+      challenge.id.isEmpty should be(false)
+      challenge.label.isEmpty should be(false) //TODO: label vs question, should question really be question_type, e.g. TAN?
+
+      //answer the challenge incorrectly:
+      val incorrectAnswerChallengePost = (baseRequest / "obp" / "v1.3.0" / "challenges" / challenge.id / "answers").POST <@(user1)
+      val challengeIncorrectResponseJsonString = write(AnswerChallengeJson("incorrect answer"))
+      val badAnswerChallengeResponse = makePostRequest(incorrectAnswerChallengePost, challengeIncorrectResponseJsonString)
+
+      badAnswerChallengeResponse.code should equal(400)
+      write(badAnswerChallengeResponse.body) should equal("{}") //TODO: Should the body of the response really be '{}'?
+
+      //answer the challenge correctly:
+      val answerChallengePost = (baseRequest / "obp" / "v1.3.0" / "challenges" / challenge.id / "answers").POST <@(user1)
+      val challengeCorrectResponseJsonString = write(AnswerChallengeJson("Berlin"))
+      val answerChallengeResponse = makePostRequest(answerChallengePost, challengeCorrectResponseJsonString)
+
+      answerChallengeResponse.code should equal(204)
+      write(answerChallengeResponse.body) should equal("{}") //TODO: Should the body of the response really be '{}'?
+
+      //check transaction was created
+      val createdTransaction = makeGetRequest(baseRequest.setUrl(baseRequest.url + answerChallengeResponse.locationHeader).GET <@(user1))
+      createdTransaction.code should equal(200)
+      //check that some of the transaction fields are correct
+      val transaction = createdTransaction.body.extract[TransactionJSON1_3_0]
+      transaction.id.isEmpty should equal(false)
+      //because this is the transaction for the one who sent the payment, the amount should be negative
+      transaction.details.value.amount should equal("-" + testTransactionAmount.toString)
     }
 
     scenario("Payment fails due to too many incorrectly answered challenges") {
