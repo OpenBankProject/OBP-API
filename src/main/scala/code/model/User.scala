@@ -34,7 +34,7 @@ package code.model
 
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
 import code.views.Views
 import code.bankconnectors.Connector
@@ -52,11 +52,21 @@ trait User {
   def permittedViews(bankAccount: BankAccount) : List[View] =
     Views.views.vend.permittedViews(this, bankAccount)
 
+  def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
+    if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){
+      Full()
+    } 
+    else {
+      Failure("user don't have access to any view allowing to initiate transactions")
+    }
+  }
+     
+
   def views: List[View]
   def permittedView(v: View, b: BankAccount): Boolean =
     views.contains(v)
 
-  def ownerAccess(bankAccount: BankAccount) : Boolean =
+  def ownerAccess(bankAccount: BankAccount): Boolean =
     permittedViews(bankAccount).exists(v => v.permalink=="owner")
 
   /**

@@ -167,6 +167,9 @@ trait View {
   def canSeeWhereTag : Boolean
   def canDeleteWhereTag : Boolean
 
+  // transfer methods
+  def canInitiateTransaction: Boolean  
+
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
 
   def moderate(transaction: Transaction): ModeratedTransaction = {
