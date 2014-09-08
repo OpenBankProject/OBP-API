@@ -214,6 +214,46 @@ trait ServerSetup extends FeatureSpec
     MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
+  def createAccount(accountOwner: APIUser, bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
+
+    val created = Account.createRecord.
+      balance(1000).
+      holder(randomString(4)).
+      number(randomString(4)).
+      kind(randomString(4)).
+      name(randomString(4)).
+      permalink(accountPermalink).
+      bankID(new ObjectId(bankMongoId)).
+      label(randomString(4)).
+      currency(currency).
+      save
+
+    val hostedAccount = HostedAccount.
+      create.
+      accountID(created.id.get.toString).
+      saveMe
+
+    val owner = ownerView(bankPermalink, accountPermalink, hostedAccount)
+
+    //give to user1 owner view
+    ViewPrivileges.create.
+      view(owner).
+      user(accountOwner).
+      save
+
+    created
+  }
+
+  def createPaymentTestBank() =
+    createBank("payment-test-bank")
+
+  def createBank(permalink : String) =  HostedBank.createRecord.
+    name(randomString(5)).
+    alias(randomString(5)).
+    permalink(permalink).
+    national_identifier(randomString(5)).
+    save
+
   private def getAPIResponse(req : Req) : APIResponse = {
     Await.result(
       for(response <- Http(req > as.Response(p => p)))
