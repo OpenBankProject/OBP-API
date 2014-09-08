@@ -214,7 +214,7 @@ trait ServerSetup extends FeatureSpec
     MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
-  def createAccount(accountOwner: APIUser, bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
+  def createAccountAndOwnerView(accountOwner: APIUser, bankMongoId : String, bankPermalink: String, accountPermalink : String, currency : String) = {
 
     val created = Account.createRecord.
       balance(1000).
