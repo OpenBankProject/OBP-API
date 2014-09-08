@@ -31,7 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
-import code.api.{DefaultUsers, SandboxPaymentTestingHelpers}
+import code.api.DefaultUsers
 import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
@@ -53,7 +53,7 @@ import code.model.ViewCreationJSON
 import code.model.ViewUpdateData
 import code.api.test.APIResponse
 
-class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTestingHelpers {
+class API1_2_1Test extends ServerSetup with DefaultUsers {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 

@@ -1,12 +1,9 @@
 package code.api.v1_3_0
 
-import java.util
-
-import code.api.{SandboxPaymentTestingHelpers, DefaultUsers}
+import code.api.DefaultUsers
 import code.api.test.{APIResponse, ServerSetup}
 import code.model.BankAccount
 import code.util.APIUtil.OAuth.{Token, Consumer}
-import net.liftweb.common.Full
 import net.liftweb.json._
 import dispatch._
 import code.util.APIUtil.OAuth._
@@ -17,7 +14,7 @@ case class MakePaymentJson(bank_id : String, account_id : String, amount : Strin
 
 case class BankAccountDetails(bankId: String, accountId : String)
 
-class SandboxPaymentsTest extends ServerSetup with DefaultUsers with SandboxPaymentTestingHelpers {
+class SandboxPaymentsTest extends ServerSetup with DefaultUsers {
 
   def v1_3_0_Request = baseRequest / "obp" / "v1.3.0"
 
@@ -46,10 +43,9 @@ class SandboxPaymentsTest extends ServerSetup with DefaultUsers with SandboxPaym
    */
   private def makeGoodPayment(desiredTransactionStatus : Option[String]) : (BankAccountDetails, APIResponse) = {
     val testBank = createPaymentTestBank()
-    val bankMongoId = testBank.id.get.toString
     val bankId = testBank.permalink.get
-    val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-    val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+    val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+    val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
     def getFromAccount : BankAccount = {
       BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
