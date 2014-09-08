@@ -5,7 +5,7 @@ import code.model._
 import code.model.CardReplacementInfo
 import code.model.PhysicalCard
 import code.model.PinResetInfo
-import net.liftweb.json.{Extraction, JValue}
+import net.liftweb.json.{JObject, Extraction, JValue}
 import code.model.operations._
 
 case class PhysicalCardsJSON(
@@ -66,11 +66,27 @@ case class OperationJSON1_3_0(
   end_date : Date,
   challenges : List[ChallengeJSON1_3_0])
 
-//TODO: add start_date, expiration_date, allowed_attempts?
 case class ChallengeJSON1_3_0(
   id : String,
   question : String,
   label : String)
+
+case class TransferMethodsJSON1_3_0(
+  transfer_methods: List[TransferMethodJSON1_3_0])
+
+case class TransferMethodJSON1_3_0(
+  permalink: String,
+  resource_URL : String,
+  description : String,
+  body : JObject)
+
+case class SandboxTransferMethodBodyJSON1_3_0(
+  to : SandboxTransferToJson1_3_0,
+  amount : String)
+
+case class SandboxTransferToJson1_3_0(
+  account_id : String,
+  bank_id : String)
 
 object JSONFactory1_3_0 {
 
