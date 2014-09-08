@@ -341,6 +341,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canDeleteWhereTag_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canInitiateTransaction_ extends MappedBoolean(this){
+    override def defaultValue = false
+  }
 
   //e.g. "Public", "Authorities", "Our Network", etc.
   def id: Long = id_.get
@@ -433,6 +436,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canSeeWhereTag : Boolean = canSeeWhereTag_.get
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
 
+  def canInitiateTransaction: Boolean = canInitiateTransaction_.get
   //TODO: if you add new permissions here, remember to set them wherever views are create
   // (e.g. BankAccountCreationDispatcher)
 }
@@ -516,6 +520,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
       .canAddWhereTag_(true)
       .canSeeWhereTag_(true)
       .canDeleteWhereTag_(true)
+      .canInitiateTransaction_(true)
       .saveMe
   }
 }

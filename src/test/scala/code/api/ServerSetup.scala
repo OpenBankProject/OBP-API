@@ -75,41 +75,20 @@ trait ServerSetup extends FeatureSpec
 
     //fake banks
     val banks = for{i <- 0 until 3} yield {
-        HostedBank.createRecord.
-          name(randomString(5)).
-          alias(randomString(5)).
-          permalink(randomString(5)).
-          national_identifier(randomString(5)).
-          save
-      }
+      createBank(randomString(5))
+    }
 
     //fake bank accounts
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-          Account.createRecord.
-            balance(0).
-            holder(randomString(4)).
-            number(randomString(4)).
-            kind(randomString(4)).
-            name(randomString(4)).
-            permalink(randomString(4)).
-            bankID(new ObjectId(bank.id.get.toString)).
-            label(randomString(4)).
-            currency(randomString(4)).
-            save
+        createAccountAndOwnerView(None, bank, randomString(4), randomString(4))
         }
       })
 
     accounts.foreach(account => {
-      val hostedaccount =
-        HostedAccount.
-          create.
-          accountID(account.id.get.toString).
-          saveMe
-      ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
-      publicView(account.bankPermalink, account.permalink.get, hostedaccount)
-      randomView(account.bankPermalink, account.permalink.get, hostedaccount)
-      hostedaccount
+      //create public view and another random view (owner view has already been created
+      publicView(account.bankPermalink, account.permalink.get)
+      randomView(account.bankPermalink, account.permalink.get)
     })
 
     //fake transactions
@@ -214,6 +193,48 @@ trait ServerSetup extends FeatureSpec
     MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
+  def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountPermalink : String, currency : String) = {
+
+    val created = Account.createRecord.
+      balance(1000).
+      holder(randomString(4)).
+      number(randomString(4)).
+      kind(randomString(4)).
+      name(randomString(4)).
+      permalink(accountPermalink).
+      bankID(bank.id.get).
+      label(randomString(4)).
+      currency(currency).
+      save
+
+    val hostedAccount = HostedAccount.
+      create.
+      accountID(created.id.get.toString).
+      saveMe
+
+    val owner = ownerView(bank.permalink.get, accountPermalink)
+
+    //give to user1 owner view
+    if(accountOwner.isDefined) {
+      ViewPrivileges.create.
+        view(owner).
+        user(accountOwner.get).
+        save
+    }
+
+    created
+  }
+
+  def createPaymentTestBank() =
+    createBank("payment-test-bank")
+
+  def createBank(permalink : String) =  HostedBank.createRecord.
+    name(randomString(5)).
+    alias(randomString(5)).
+    permalink(permalink).
+    national_identifier(randomString(5)).
+    save
+
   private def getAPIResponse(req : Req) : APIResponse = {
     Await.result(
       for(response <- Http(req > as.Response(p => p)))
@@ -269,10 +290,10 @@ trait ServerSetup extends FeatureSpec
     getAPIResponse(jsonReq)
   }
 
-  def ownerView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
+  def ownerView(bankPermalink: String, accountPermalink: String) =
     ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, randomString(3))
 
-  def publicView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
+  def publicView(bankPermalink: String, accountPermalink: String) =
     ViewImpl.create.
     name_("Public").
     description_(randomString(3)).
@@ -346,7 +367,7 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-  def randomView(bankPermalink: String, accountPermalink: String, account: HostedAccount) =
+  def randomView(bankPermalink: String, accountPermalink: String) =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).

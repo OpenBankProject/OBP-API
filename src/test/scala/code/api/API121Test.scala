@@ -678,8 +678,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -748,8 +748,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -787,8 +787,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -828,8 +828,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -868,8 +868,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -910,7 +910,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -944,8 +944,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = testBank.permalink.get
-      val acc1 = createAccount(bankMongoId, testBank.permalink.get, "__acc1", "EUR")
-      val acc2  = createAccount(bankMongoId, testBank.permalink.get, "__acc2", "GBP")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
@@ -1124,14 +1124,14 @@ class API1_2_1Test extends ServerSetup with DefaultUsers with SandboxPaymentTest
             create.
             accountID(account.id.get.toString).
             saveMe
-        val owner = ownerView(account.bankPermalink, account.permalink.get, hostedaccount)
+        val owner = ownerView(account.bankPermalink, account.permalink.get)
         ViewPrivileges.create.
           view(owner).
           user(ownerUser).
           save
 
         if(addPublicView) {
-          publicView(account.bankPermalink, account.permalink.get, hostedaccount)
+          publicView(account.bankPermalink, account.permalink.get)
         }
       })
     }
