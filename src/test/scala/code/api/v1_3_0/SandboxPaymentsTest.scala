@@ -67,6 +67,11 @@ class SandboxPaymentsTest extends ServerSetup with DefaultUsers {
 
   feature("Sandbox payments with challenges/operations") {
 
+    scenario("TODO") {
+      //Need to rewrite all these tests to fit the new transfers/challenges spec
+      1 should equal (2)
+    }
+
     scenario("Payment without a security challenge") {
       val (bankAccountDetails, response) = makeGoodPayment(None)
       response.code should equal(201)
