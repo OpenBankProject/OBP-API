@@ -64,6 +64,8 @@ trait ServerSetup extends FeatureSpec
   with BeforeAndAfterAll
   with ShouldMatchers with Loggable{
 
+  object API1_3_0 extends Tag("api1.3.0")
+
   var server = ServerSetup
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http

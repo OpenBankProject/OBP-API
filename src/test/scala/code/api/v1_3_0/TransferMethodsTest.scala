@@ -7,7 +7,7 @@ import dispatch._
 import org.scalatest.Tag
 
 
-class TransferMethodsTest extends ServerSetup with DefaultUsers with Tags1_3_0 {
+class TransferMethodsTest extends ServerSetup with DefaultUsers {
 
   object GetTransferMethods extends Tag("getTransferMethods")
 
