@@ -4,9 +4,12 @@ import code.api.DefaultUsers
 import code.api.test.{APIResponse, ServerSetup}
 import code.util.APIUtil.OAuth._
 import dispatch._
+import org.scalatest.Tag
 
 
-class TransferMethodsTest extends ServerSetup with DefaultUsers {
+class TransferMethodsTest extends ServerSetup with DefaultUsers with Tags1_3_0 {
+
+  object GetTransferMethods extends Tag("getTransferMethods")
 
   type OAuthCredentials = Option[(Consumer, Token)]
 
@@ -26,7 +29,8 @@ class TransferMethodsTest extends ServerSetup with DefaultUsers {
 
   feature("Methods of making bank transfers") {
 
-    scenario("Retrieval of all transfer methods for an account by a user with access to a view with initiate transaction privileges") {
+    scenario("Retrieval of all transfer methods for an account by a user with access to a view with " +
+      "initiate transaction privileges", API1_3_0, GetTransferMethods) {
       Given("The call is made by an authenticated user with")
       //user1 (obpuser1) has owner view access
       val response = getTransferMethods(testBankId, testAccountId, user1)
@@ -49,14 +53,18 @@ class TransferMethodsTest extends ServerSetup with DefaultUsers {
     }
 
 
-    scenario("Retrieval of all transfer methods for an account that does not exist") {
-      val response = getTransferMethods(testBankId, testAccountId, user1)
-      response.code should equal(404)
+    scenario("Retrieval of all transfer methods for an account that does not exist",
+      API1_3_0, GetTransferMethods) {
+      val response = getTransferMethods(testBankId, "doesnotexist", user1)
+      //400 response code is consistent with how the rest of the api works when no account is found,
+      //but this should probably change to a 404...
+      response.code should equal(400)
     }
 
-    scenario("Retrieval of all transfer methods for an account by a user without access to a view with initiate transaction privileges") {
+    scenario("Retrieval of all transfer methods for an account by a user without access" +
+      " to a view with initiate transaction privileges", API1_3_0, GetTransferMethods) {
       //user2 (obpuser2) has no access
-      val response = getTransferMethods(testBankId, testAccountId, user1)
+      val response = getTransferMethods(testBankId, testAccountId, user2)
       response.code should equal(401)
     }
 
