@@ -3,6 +3,7 @@ package code.api.v1_3_0
 import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.bankconnectors.{OBPQueryParam, Connector}
+import code.payments.TransferMethod
 import net.liftweb.common.{Empty, Box}
 import code.model._
 import dispatch._
@@ -69,6 +70,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       Empty
     def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction] =
       Empty
+
+    def getTransferMethods(bankID : String, accountID : String) : Set[TransferMethod] =
+      Set.empty
 
     //these methods are required
     def getPhysicalCards(user : User) : Set[PhysicalCard] = {

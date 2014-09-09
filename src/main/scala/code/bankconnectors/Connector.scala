@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.payments.TransferMethod
 import net.liftweb.common.Box
 import code.model._
 import net.liftweb.util.SimpleInjector
@@ -62,5 +63,7 @@ trait Connector {
   
   //gets the users who are the legal owners/holders of the account
   def getAccountHolders(bankID: String, accountID: String) : Set[User]
+
+  def getTransferMethods(bankID: String, accountID: String) : Set[TransferMethod]
   //...
 }

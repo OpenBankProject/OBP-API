@@ -85,7 +85,8 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank,
     Implementations1_3_0.getOperationById,
-    Implementations1_3_0.answerChallenge
+    Implementations1_3_0.answerChallenge,
+    Implementations1_3_0.getTransferMethods
   )
 
   routes.foreach(route => {

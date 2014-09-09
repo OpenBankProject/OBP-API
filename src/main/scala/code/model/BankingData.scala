@@ -406,7 +406,8 @@ class BankAccount(
 
 object BankAccount {
   def apply(bankpermalink: String, bankAccountPermalink: String) : Box[BankAccount] = {
-    Connector.connector.vend.getBankAccount(bankpermalink, bankAccountPermalink)
+    Connector.connector.vend.getBankAccount(bankpermalink, bankAccountPermalink) ?~
+      s"account $bankAccountPermalink not found at bank $bankpermalink"
   }
 
   def publicAccounts : List[BankAccount] = {

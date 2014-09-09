@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.payments.TransferMethod
 import net.liftweb.common.Box
 import scala.concurrent.ops.spawn
 import code.model._
@@ -11,10 +12,6 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
 import code.metadata.counterparties.Metadata
-import scala.Some
-import net.liftweb.common.Full
-import com.tesobe.model.UpdateBankAccount
-import scala.Some
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
@@ -114,6 +111,22 @@ object LocalConnector extends Connector with Loggable {
     } yield {
       updateAccountTransactions(bank, account)
       transaction
+    }
+  }
+
+  def getTransferMethods(bankID : String, accountID : String) : Set[TransferMethod] = {
+    if (Props.getBool("payments_enabled", false)) {
+      //the sandbox transfer method is the only supported transfer method, and is valid for all accounts
+      import net.liftweb.json.JsonDSL._
+      val sandboxInputFormat =
+        ("to" ->
+          ("account_id" -> "Id of the account to send the payment to (at bank_id specified below)") ~
+            ("bank_id" -> "Id of the bank of the account to send the payment to")) ~
+          ("amount" -> "The transaction amount as a string, e.g. 12.43")
+      val sandbox = TransferMethod("sandbox", "Transfers for accounts of the Open Bank Project sandbox", sandboxInputFormat)
+      Set(sandbox)
+    } else {
+      Set.empty
     }
   }
 

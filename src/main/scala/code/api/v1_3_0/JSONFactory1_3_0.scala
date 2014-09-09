@@ -5,6 +5,7 @@ import code.model._
 import code.model.CardReplacementInfo
 import code.model.PhysicalCard
 import code.model.PinResetInfo
+import code.payments.TransferMethod
 import net.liftweb.json.{JObject, Extraction, JValue}
 import code.model.operations._
 
@@ -135,6 +136,21 @@ object JSONFactory1_3_0 {
     val views = bankAccount.views(user).getOrElse(Nil)
     val viewsJson = views.map(code.api.v1_2_1.JSONFactory.createViewJSON)
     code.api.v1_2_1.JSONFactory.createAccountJSON(bankAccount, viewsJson)
+  }
+
+  def createTransferMethodsJson(transferMethods : Set[TransferMethod], bankAccount : BankAccount) : TransferMethodsJSON1_3_0 = {
+    TransferMethodsJSON1_3_0(
+      transfer_methods = transferMethods.map(createTransferMethodJson(bankAccount)).toList
+    )
+  }
+
+  def createTransferMethodJson(bankAccount : BankAccount)(transferMethod : TransferMethod) : TransferMethodJSON1_3_0 = {
+    TransferMethodJSON1_3_0(
+      permalink = transferMethod.permalink,
+      resource_URL =  s"/obp/v1.3.0/banks/${bankAccount.bankPermalink}/accounts/${bankAccount.permalink}/transfer-methods/${transferMethod.permalink}",
+      description = transferMethod.description,
+      body = transferMethod.body
+    )
   }
 
   def createPhysicalCardsJSON(cards : Set[PhysicalCard], user : User) : PhysicalCardsJSON = {

@@ -13,7 +13,7 @@ import code.util.APIUtil._
 import net.liftweb.util.Props
 import code.model.{BankAccount, View}
 import net.liftweb.json.JValue
-import code.payments.{Payments, PaymentsInjector}
+import code.payments.{TransferMethods, Payments, PaymentsInjector}
 import code.util.Helper._
 import net.liftweb.util.Helpers._
 
@@ -53,6 +53,22 @@ trait APIMethods130 {
           }
 
           Full(successJsonResponse(Extraction.decompose(cardsJson)))
+        }
+      }
+    }
+
+    lazy val getTransferMethods : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: bankId :: "accounts" :: accountId :: "transfer-methods" :: Nil JsonGet _ => {
+        user => {
+
+          for {
+            u <- user ?~ "Only authenticated users may make this call"
+            bankAccount <- BankAccount(bankId, accountId)
+            transferMethods <- TransferMethods(bankAccount, u)
+          } yield {
+            val json = JSONFactory1_3_0.createTransferMethodsJson(transferMethods, bankAccount)
+            successJsonResponse(Extraction.decompose(json))
+          }
         }
       }
     }
