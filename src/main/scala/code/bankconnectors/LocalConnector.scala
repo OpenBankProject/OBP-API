@@ -120,9 +120,9 @@ object LocalConnector extends Connector with Loggable {
       import net.liftweb.json.JsonDSL._
       val sandboxInputFormat =
         ("to" ->
-          ("account_id" -> "Id of the account to send the payment to (at bank_id specified below)") ~
-            ("bank_id" -> "Id of the bank of the account to send the payment to")) ~
-          ("amount" -> "The transaction amount as a string, e.g. 12.43")
+          ("bank_id" -> "Id of the bank of the account to send the payment to") ~
+          ("account_id" -> "Id of the account to send the payment to (at bank_id specified below)")) ~
+        ("amount" -> "The transaction amount as a string, e.g. 12.43")
       val sandbox = TransferMethod("sandbox", "Transfers for accounts of the Open Bank Project sandbox", sandboxInputFormat)
       Set(sandbox)
     } else {
