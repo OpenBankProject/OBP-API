@@ -2,9 +2,13 @@ package code.api.v1_3_0
 
 import code.api.DefaultUsers
 import code.api.test.{APIResponse, ServerSetup}
+import code.util.APIUtil.OAuth._
 import dispatch._
 
+
 class TransferMethodsTest extends ServerSetup with DefaultUsers {
+
+  type OAuthCredentials = Option[(Consumer, Token)]
 
   val testBankId = "test-bank"
   val testAccountId = "test-account"
@@ -15,15 +19,17 @@ class TransferMethodsTest extends ServerSetup with DefaultUsers {
     createAccountAndOwnerView(Some(obpuser1), testBank, testAccountId, "EUR")
   }
 
-  def getTransferMethods(bankId : String, accountId: String) : APIResponse = {
-    val request = baseRequest / "obp" / "v1.3.0" / "banks" / bankId / "accounts" / accountId / "transfer-methods"
+  def getTransferMethods(bankId : String, accountId: String, credentials : OAuthCredentials) : APIResponse = {
+    val request = baseRequest / "obp" / "v1.3.0" / "banks" / bankId / "accounts" / accountId / "transfer-methods" <@ (credentials)
     makeGetRequest(request)
   }
 
   feature("Methods of making bank transfers") {
 
-    scenario("Retrieval of all transfer methods for an account") {
-      val response = getTransferMethods(testBankId, testAccountId)
+    scenario("Retrieval of all transfer methods for an account by a user with access to a view with initiate transaction privileges") {
+      Given("The call is made by an authenticated user with")
+      //user1 (obpuser1) has owner view access
+      val response = getTransferMethods(testBankId, testAccountId, user1)
       response.code should equal(200)
 
       val transferMethods = response.body.extract[TransferMethodsJSON1_3_0]
@@ -44,8 +50,14 @@ class TransferMethodsTest extends ServerSetup with DefaultUsers {
 
 
     scenario("Retrieval of all transfer methods for an account that does not exist") {
-      val response = getTransferMethods(testBankId, testAccountId)
+      val response = getTransferMethods(testBankId, testAccountId, user1)
       response.code should equal(404)
+    }
+
+    scenario("Retrieval of all transfer methods for an account by a user without access to a view with initiate transaction privileges") {
+      //user2 (obpuser2) has no access
+      val response = getTransferMethods(testBankId, testAccountId, user1)
+      response.code should equal(401)
     }
 
   }
