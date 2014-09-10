@@ -122,9 +122,11 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
+
     // This sets up MongoDB config
     MongoConfig.init
 
+    // set up the way to connect to the relational DB we're using
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
         Props.mode match {
@@ -160,10 +162,9 @@ class Boot extends Loggable{
 
     logger.info("running mode: " + runningMode)
 
-    // Use Lift's Mapper ORM to populate the database
-    // you don't need to use Mapper to use Lift... use
-    // any ORM you want
-    Schemifier.schemify(true, Schemifier.infoF _, OBPUser, Admin)
+
+    // ensure our relational database's tables are created/fit the schema
+    schemifyAll()
 
     // where to search snippet
     LiftRules.addToPackages("code")
@@ -179,16 +180,6 @@ class Boot extends Loggable{
 
     //OAuth API call
     LiftRules.statelessDispatchTable.append(OAuthHandshake)
-
-    //OAuth Mapper
-    Schemifier.schemify(true, Schemifier.infoF _, Nonce)
-    Schemifier.schemify(true, Schemifier.infoF _, Token)
-    Schemifier.schemify(true, Schemifier.infoF _, Consumer)
-    Schemifier.schemify(true, Schemifier.infoF _, HostedAccount)
-    Schemifier.schemify(true, Schemifier.infoF _, ViewPrivileges)
-    Schemifier.schemify(true, Schemifier.infoF _, ViewImpl)
-    Schemifier.schemify(true, Schemifier.infoF _, APIUser)
-    Schemifier.schemify(true, Schemifier.infoF _, MappedAccountHolder)
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
@@ -255,5 +246,11 @@ class Boot extends Loggable{
     LiftRules.exceptionHandler.prepend{
       case MyExceptionLogger(_, _, t) => throw t // this will never happen
     }
+  }
+
+  def schemifyAll() = {
+    Schemifier.schemify(true, Schemifier.infoF _,
+      OBPUser, Admin, Nonce, Token, Consumer, HostedAccount,
+      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
   }
 }
