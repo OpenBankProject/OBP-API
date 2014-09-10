@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2
 
+import code.api.util.APIUtil
 import net.liftweb.http.rest._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
@@ -46,7 +47,7 @@ import com.mongodb._
 import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import code.model._
 import java.net.URL
-import code.util.APIUtil._
+import APIUtil._
 import code.api.OBPRestHelper
 
 

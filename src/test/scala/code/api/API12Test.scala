@@ -33,6 +33,7 @@ package code.api.v1_2
 
 import java.util.Date
 import code.api.DefaultUsers
+import code.api.util.APIUtil
 import org.scalatest._
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -53,7 +54,7 @@ import code.api.test.{ServerSetup, APIResponse}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, ViewCreationJSON}
 import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges}
 import code.model.TokenType._
-import code.util.APIUtil.OAuth._
+import APIUtil.OAuth._
 import code.views.Views
 
 

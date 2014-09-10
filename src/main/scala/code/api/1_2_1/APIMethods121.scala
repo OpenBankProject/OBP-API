@@ -1,10 +1,11 @@
 package code.api.v1_2_1
 
+import code.api.util.APIUtil
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.common._
 import code.model._
 import net.liftweb.json.JsonAST.JValue
-import code.util.APIUtil._
+import APIUtil._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.rest.RestHelper
 import java.net.URL

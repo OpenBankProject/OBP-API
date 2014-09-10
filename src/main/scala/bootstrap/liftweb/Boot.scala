@@ -149,7 +149,7 @@ class Boot extends Loggable{
       logger.debug("Using database driver: " + driver)
       LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
 
-      DB.defineConnectionManager(util.DefaultConnectionIdentifier, vendor)
+      DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
 
     val runningMode = Props.mode match {

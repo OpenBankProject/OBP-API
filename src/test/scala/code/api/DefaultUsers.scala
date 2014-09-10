@@ -1,9 +1,10 @@
 package code.api
 
+import code.api.util.APIUtil
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import code.model.dataAccess.{ViewPrivileges, ViewImpl, APIUser}
-import code.util.APIUtil.OAuth.{Token, Consumer}
+import APIUtil.OAuth.{Token, Consumer}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan

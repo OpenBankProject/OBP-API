@@ -30,19 +30,19 @@ Berlin 13359, Germany
 
  */
 
-package code.util
+package code.api.util
 
 import code.api.v1_2.ErrorMessage
-import net.liftweb.http.JsonResponse
+import code.metrics.APIMetrics
+import net.liftweb.common.Full
+import net.liftweb.http.{JsonResponse, S}
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JsExp
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.http.js.JsExp
-import net.liftweb.common.Full
 import net.liftweb.util.Helpers._
-import net.liftweb.http.S
-import net.liftweb.http.js.JE.JsRaw
+
 import scala.collection.JavaConversions.asScalaSet
-import code.metrics.{APIMetrics}
 
 object APIUtil {
 
@@ -92,14 +92,15 @@ object APIUtil {
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {
-    import dispatch.{Req => Request}
-    import collection.Map
-    import collection.immutable.{TreeMap, Map=>IMap}
-    import collection.mutable.Set
     import javax.crypto
 
-    import org.apache.http.protocol.HTTP.UTF_8
+import dispatch.{Req => Request}
     import net.liftweb.util.Helpers
+    import org.apache.http.protocol.HTTP.UTF_8
+
+import scala.collection.Map
+    import scala.collection.immutable.{TreeMap, Map => IMap}
+    import scala.collection.mutable.Set
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)

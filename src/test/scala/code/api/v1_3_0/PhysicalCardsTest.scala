@@ -2,20 +2,21 @@ package code.api.v1_3_0
 
 import code.api.DefaultUsers
 import code.api.test.ServerSetup
+import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
 import net.liftweb.common.{Empty, Box}
 import code.model._
 import dispatch._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import code.util.APIUtil.OAuth.{Token, Consumer}
+import APIUtil.OAuth.{Token, Consumer}
 import code.model.dataAccess.APIUser
 import code.model.TokenType._
-import code.util.APIUtil.OAuth.Consumer
+import APIUtil.OAuth.Consumer
 import code.model.PhysicalCard
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
-import code.util.APIUtil.OAuth._
+import APIUtil.OAuth._
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 

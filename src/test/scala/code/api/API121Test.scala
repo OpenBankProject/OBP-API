@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package code.api.v1_2_1
 
 import code.api.DefaultUsers
+import code.api.util.APIUtil
 import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
@@ -43,7 +44,7 @@ import code.model.TokenType._
 import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, BankAccount}
 import code.api.test.{ServerSetup}
-import code.util.APIUtil.OAuth._
+import APIUtil.OAuth._
 import org.bson.types.ObjectId
 import code.views.Views
 import code.model.dataAccess._

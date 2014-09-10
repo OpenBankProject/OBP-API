@@ -1,12 +1,13 @@
 package code.api.v1_3_0
 
+import code.api.util.APIUtil
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.common.{Full, Failure, Box}
 import code.model.{PhysicalCard, User}
 import code.bankconnectors.Connector
 import net.liftweb.json.Extraction
-import code.util.APIUtil._
+import APIUtil._
 
 trait APIMethods130 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.

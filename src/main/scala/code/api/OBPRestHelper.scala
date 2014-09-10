@@ -32,12 +32,13 @@ Berlin 13359, Germany
 
 package code.api
 
+import code.api.util.APIUtil
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.Req
 import net.liftweb.common._
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.JsonResponse
-import code.util.APIUtil._
+import APIUtil._
 import code.model.User
 import code.api.OAuthHandshake._
 import net.liftweb.json.JsonAST.JValue

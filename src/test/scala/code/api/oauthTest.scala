@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
+import code.api.util.APIUtil
 import org.scalatest._
 import dispatch._, Defaults._
 import net.liftweb.util.Helpers._
@@ -45,7 +46,7 @@ import org.scalatest.selenium._
 import org.openqa.selenium.WebDriver
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import code.util.APIUtil.OAuth._
+import APIUtil.OAuth._
 
 case class OAuhtResponse(
   code: Int,
