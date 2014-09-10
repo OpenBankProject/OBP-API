@@ -10,7 +10,8 @@ import code.util.APIUtil.OAuth._
 import net.liftweb.util.TimeHelpers._
 import net.liftweb.json.Serialization.{write}
 
-case class MakePaymentJson(bank_id : String, account_id : String, amount : String)
+case class PaymentToJson(bank_id : String, account_id : String)
+case class MakePaymentJson(to : PaymentToJson, amount : String)
 
 case class BankAccountDetails(bankId: String, accountId : String)
 
@@ -58,7 +59,7 @@ class SandboxPaymentsTest extends ServerSetup with DefaultUsers {
     val fromAccount = getFromAccount
     val toAccount = getToAccount
 
-    val payJson = MakePaymentJson(toAccount.bankPermalink, toAccount.permalink, testTransactionAmount.toString)
+    val payJson = MakePaymentJson(PaymentToJson(toAccount.bankPermalink, toAccount.permalink), testTransactionAmount.toString)
 
     val apiResponse = postTransaction(fromAccount.bankPermalink, fromAccount.permalink, "owner", payJson, user1, desiredTransactionStatus)
 
