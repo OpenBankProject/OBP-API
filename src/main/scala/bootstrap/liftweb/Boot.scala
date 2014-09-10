@@ -169,17 +169,18 @@ class Boot extends Loggable{
     // where to search snippet
     LiftRules.addToPackages("code")
 
-    // For some restful stuff
-    LiftRules.statelessDispatchTable.append(v1_0.OBPAPI1_0)
-    LiftRules.statelessDispatchTable.append(v1_1.OBPAPI1_1)
-    LiftRules.statelessDispatchTable.append(v1_2.OBPAPI1_2)
-    LiftRules.statelessDispatchTable.append(v1_2_1.OBPAPI1_2_1)
-    LiftRules.statelessDispatchTable.append(v1_3_0.OBPAPI1_3_0)
-    LiftRules.statelessDispatchTable.append(BankMockAPI)
-    // LiftRules.statelessDispatchTable.append(Metrics) TODO: see metric menu entry bellow
+    // Add the various API versions
+    LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+    LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+    LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
+    LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
 
+    // add other apis
+    LiftRules.statelessDispatch.append(BankMockAPI)
+    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
     //OAuth API call
-    LiftRules.statelessDispatchTable.append(OAuthHandshake)
+    LiftRules.statelessDispatch.append(OAuthHandshake)
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
