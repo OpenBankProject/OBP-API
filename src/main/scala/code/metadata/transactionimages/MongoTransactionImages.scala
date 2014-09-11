@@ -12,7 +12,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.common.Full
 import com.mongodb.{DBObject, QueryBuilder}
 
-object MongoTransactionImages extends TransactionImages with Loggable {
+private object MongoTransactionImages extends TransactionImages with Loggable {
 
   def getImagesForTransaction(bankId : String, accountId : String, transactionId: String)() : List[TransactionImage] = {
     OBPTransactionImage.findAll(bankId, accountId, transactionId)
@@ -41,7 +41,7 @@ object MongoTransactionImages extends TransactionImages with Loggable {
   
 }
 
-class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
+private class OBPTransactionImage private() extends MongoRecord[OBPTransactionImage]
 with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   def meta = OBPTransactionImage
 
@@ -66,7 +66,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   }
 }
 
-object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
+private object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
   val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
 
   def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTransactionImage] = {

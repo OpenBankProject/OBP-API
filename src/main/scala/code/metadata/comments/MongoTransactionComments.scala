@@ -9,7 +9,7 @@ import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{LongField, StringField}
 
-object MongoTransactionComments extends Comments {
+private object MongoTransactionComments extends Comments {
 
   
   def getComments(bankId : String, accountId : String, transactionId : String)() : List[Comment] = {
@@ -34,7 +34,7 @@ object MongoTransactionComments extends Comments {
   }
 }
 
-class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
+private class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPComment] with Comment {
   def meta = OBPComment
 
   //These fields are used to link this to its transaction
@@ -55,7 +55,7 @@ class OBPComment private() extends MongoRecord[OBPComment] with ObjectIdPk[OBPCo
   object replyTo extends StringField(this,255)
 }
 
-object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
+private object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
   def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPComment] = {
     val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
     findAll(query)

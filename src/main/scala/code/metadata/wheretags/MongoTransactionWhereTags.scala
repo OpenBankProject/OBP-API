@@ -4,7 +4,7 @@ import java.util.Date
 import code.model.GeoTag
 import net.liftweb.common.Loggable
 
-object MongoTransactionWhereTags extends WhereTags with Loggable {
+private object MongoTransactionWhereTags extends WhereTags with Loggable {
 
   def addWhereTag(bankId : String, accountId : String, transactionId: String)
                  (userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {

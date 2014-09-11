@@ -6,7 +6,7 @@ import net.liftweb.record.field.{DoubleField, LongField, StringField}
 import code.model.{GeoTag, User}
 import com.mongodb.{DBObject, QueryBuilder}
 
-class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBPWhereTag] with GeoTag {
+private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBPWhereTag] with GeoTag {
   def meta = OBPWhereTag
 
   //These fields are used to link this to its transaction
@@ -28,7 +28,7 @@ class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBP
   def latitude = geoLatitude.get
 }
 
-object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {
+private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {
   def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPWhereTag] = {
     val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
     findAll(query)

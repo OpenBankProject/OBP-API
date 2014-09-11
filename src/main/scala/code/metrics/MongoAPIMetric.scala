@@ -37,7 +37,7 @@ import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
  import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
  import java.util.{Calendar, Date}
 
- class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
+ private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
   def meta = MongoAPIMetric
   object url extends StringField(this,255)
   object date extends DateField(this)
@@ -46,7 +46,7 @@ import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
   def getDate() = date.get
 }
 
-object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
+private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
   def saveMetric(url : String, date : Date) : Unit = {
     MongoAPIMetric.createRecord.

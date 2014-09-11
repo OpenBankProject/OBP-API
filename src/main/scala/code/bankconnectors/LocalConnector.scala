@@ -18,7 +18,7 @@ import scala.Some
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
-object LocalConnector extends Connector with Loggable {
+private object LocalConnector extends Connector with Loggable {
 
   def getBank(permalink: String): Box[Bank] =
     for{

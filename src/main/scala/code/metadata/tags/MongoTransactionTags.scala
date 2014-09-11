@@ -9,7 +9,7 @@ import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{LongField, StringField}
 import com.mongodb.{DBObject, QueryBuilder}
 
-object MongoTransactionTags extends Tags {
+private object MongoTransactionTags extends Tags {
   
   def getTags(bankId : String, accountId : String, transactionId: String)() : List[Tag] = {
     OBPTag.findAll(bankId, accountId, transactionId)
@@ -35,7 +35,7 @@ object MongoTransactionTags extends Tags {
 }
 
 
-class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
+private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
   def meta = OBPTag
 
   //These fields are used to link this to its transaction
@@ -55,7 +55,7 @@ class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with 
   def value = tag.get
 }
 
-object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
+private object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
   def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTag] = {
     val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
     findAll(query)

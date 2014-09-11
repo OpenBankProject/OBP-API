@@ -21,7 +21,7 @@ import code.bankconnectors.Connector
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
-object MapperViews extends Views with Loggable {
+private object MapperViews extends Views with Loggable {
 
   def permissions(account : BankAccount) : Box[List[Permission]] = {
 

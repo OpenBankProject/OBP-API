@@ -6,7 +6,7 @@ import code.model.User
 import code.model.dataAccess.APIUser
 import net.liftweb.mapper.By
 
-object LiftUsers extends Users {
+private object LiftUsers extends Users {
 
   def getUserByApiId(id : String) : Box[User] = {
     for{

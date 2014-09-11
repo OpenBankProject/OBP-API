@@ -16,7 +16,7 @@ import net.liftweb.mongodb.BsonDSL._
  *  (e.g. OBPEnvelope). When that is split out into its own library, this implementation should
  *  go with it as it is fundamentally linked to it.
  */
-object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
+private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
 
   /**
    * WARNING!!! There is no check currently being done that the new transaction + update balance

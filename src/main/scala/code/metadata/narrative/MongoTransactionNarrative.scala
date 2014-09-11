@@ -6,7 +6,7 @@ import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
 import com.mongodb.{QueryBuilder, DBObject}
 
-object MongoTransactionNarrative extends Narrative {
+private object MongoTransactionNarrative extends Narrative {
 
   def getNarrative(bankId: String, accountId: String, transactionId: String)() : String = {
     OBPNarrative.find(OBPNarrative.getFindQuery(bankId, accountId, transactionId)) match {
@@ -42,7 +42,7 @@ object MongoTransactionNarrative extends Narrative {
 
 }
 
-class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
+private class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[OBPNarrative] {
 
   def meta = OBPNarrative
 
@@ -54,7 +54,7 @@ class OBPNarrative private() extends MongoRecord[OBPNarrative] with ObjectIdPk[O
   object narrative extends StringField(this, 255)
 }
 
-object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
+private object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
   def getFindQuery(bankId : String, accountId : String, transactionId : String) : DBObject = {
     QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
   }
