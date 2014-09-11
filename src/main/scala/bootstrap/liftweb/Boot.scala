@@ -31,7 +31,6 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
-
 import net.liftweb._
 import util._
 import common._
@@ -41,20 +40,14 @@ import Loc._
 import mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Schedule
-import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers
-import javax.mail.PasswordAuthentication
 import java.io.FileInputStream
 import java.io.File
 import javax.mail.internet.MimeMessage
-
 import code.model.{Nonce, Consumer, Token, dataAccess}
 import dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.util.MyExceptionLogger
-import net.liftweb.mongodb.Skip
-import code.metadata.wheretags.OBPWhereTag
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -245,7 +238,18 @@ class Boot extends Loggable{
     })
 
     LiftRules.exceptionHandler.prepend{
-      case MyExceptionLogger(_, _, t) => throw t // this will never happen
+      //same as default LiftRules.exceptionHandler
+      case(Props.RunModes.Development, r, e) => {
+        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+        XhtmlResponse((<html> <body>Exception occured while processing {r.uri}<pre>{showException(e)}</pre> </body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
+
+      }
+      //same as default LiftRules.exceptionHandler, except that it also send an email notification
+      case (_, r , e) => {
+        sendExceptionEmail(e)
+        logger.error("Exception being returned to browser when processing " + r.uri.toString, e)
+        XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
+      }
     }
   }
 
@@ -253,5 +257,53 @@ class Boot extends Loggable{
     Schemifier.schemify(true, Schemifier.infoF _,
       OBPUser, Admin, Nonce, Token, Consumer, HostedAccount,
       ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
+  }
+
+  private def showException(le: Throwable): String = {
+    val ret = "Message: " + le.toString + "\n\t" +
+      le.getStackTrace.map(_.toString).mkString("\n\t") + "\n"
+
+    val also = le.getCause match {
+      case null => ""
+      case sub: Throwable => "\nCaught and thrown by:\n" + showException(sub)
+    }
+
+    ret + also
+  }
+
+  private def sendExceptionEmail(exception: Throwable): Unit = {
+    import net.liftweb.util.Helpers.now
+    import Mailer.{From, To, Subject, PlainMailBodyType}
+
+    val outputStream = new java.io.ByteArrayOutputStream
+    val printStream = new java.io.PrintStream(outputStream)
+    exception.printStackTrace(printStream)
+    val currentTime = now.toString
+    val stackTrace = new String(outputStream.toByteArray)
+    val error = currentTime + ": " + stackTrace
+    val host = Props.get("hostname", "unknown host")
+
+    val mailSent = for {
+      from <- Props.get("mail.exception.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+      // no spaces, comma separated e.g. mail.api.consumer.registered.notification.addresses=notify@example.com,notify2@example.com,notify3@example.com
+      toAddressesString <- Props.get("mail.exception.registered.notification.addresses") ?~ "Could not send mail: Missing props param for 'to'"
+    } yield {
+
+      //technically doesn't work for all valid email addresses so this will mess up if someone tries to send emails to "foo,bar"@example.com
+      val to = toAddressesString.split(",").toList
+      val toParams = to.map(To(_))
+      val params = PlainMailBodyType(error) :: toParams
+
+      //this is an async call
+      Mailer.sendMail(
+        From(from),
+        Subject(s"you got an exception on $host"),
+        params :_*
+      )
+    }
+
+    //if Mailer.sendMail wasn't called (note: this actually isn't checking if the mail failed to send as that is being done asynchronously)
+    if(mailSent.isEmpty)
+      logger.warn(s"Exception notification failed: $mailSent")
   }
 }
