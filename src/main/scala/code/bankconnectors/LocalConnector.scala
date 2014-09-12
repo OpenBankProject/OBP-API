@@ -228,7 +228,7 @@ private object LocalConnector extends Connector with Loggable {
 
   private def createBank(bank : HostedBank) : Bank = {
     new Bank(
-      BankId(bank.id.is.toString),
+      BankId(bank.permalink.is.toString),
       bank.alias.is,
       bank.name.is,
       bank.logoURL.is,
