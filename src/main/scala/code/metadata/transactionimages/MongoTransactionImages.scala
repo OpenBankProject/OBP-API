@@ -1,6 +1,6 @@
 package code.metadata.transactionimages
 
-import code.model.{User, TransactionImage}
+import code.model.{BankId, User, TransactionImage}
 import net.liftweb.common.{Loggable, Box}
 import java.net.URL
 import java.util.Date
@@ -14,14 +14,14 @@ import com.mongodb.{DBObject, QueryBuilder}
 
 private object MongoTransactionImages extends TransactionImages with Loggable {
 
-  def getImagesForTransaction(bankId : String, accountId : String, transactionId: String)() : List[TransactionImage] = {
+  def getImagesForTransaction(bankId : BankId, accountId : String, transactionId: String)() : List[TransactionImage] = {
     OBPTransactionImage.findAll(bankId, accountId, transactionId)
   }
   
-  def addTransactionImage(bankId : String, accountId : String, transactionId: String)
+  def addTransactionImage(bankId : BankId, accountId : String, transactionId: String)
   (userId: String, viewId : Long, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
     OBPTransactionImage.createRecord.
-      bankId(bankId).
+      bankId(bankId.value).
       accountId(accountId).
       transactionId(transactionId).
       userId(userId).
@@ -31,7 +31,7 @@ private object MongoTransactionImages extends TransactionImages with Loggable {
       url(imageURL.toString).saveTheRecord()
   }
   
-  def deleteTransactionImage(bankId : String, accountId : String, transactionId: String)(imageId : String) : Box[Unit] = {
+  def deleteTransactionImage(bankId : BankId, accountId : String, transactionId: String)(imageId : String) : Box[Unit] = {
     //use delete with find query to avoid concurrency issues
     OBPTransactionImage.delete(OBPTransactionImage.getFindQuery(bankId, accountId, transactionId, imageId))
 
@@ -69,14 +69,14 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
 private object OBPTransactionImage extends OBPTransactionImage with MongoMetaRecord[OBPTransactionImage] {
   val notFoundUrl = new URL("http://google.com" + "/notfound.png") //TODO: Make this image exist?
 
-  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPTransactionImage] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+  def findAll(bankId : BankId, accountId : String, transactionId : String) : List[OBPTransactionImage] = {
+    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId).put("transactionId").is(transactionId).get
     findAll(query)
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : String, accountId : String, transactionId : String, imageId : String) : DBObject = {
+  def getFindQuery(bankId : BankId, accountId : String, transactionId : String, imageId : String) : DBObject = {
     QueryBuilder.start("_id").is(new ObjectId(imageId)).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId).get()
+      put("accountId").is(accountId).put("bankId").is(bankId.value).get()
   }
 }

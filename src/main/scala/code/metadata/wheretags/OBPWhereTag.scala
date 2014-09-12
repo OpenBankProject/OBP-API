@@ -3,7 +3,7 @@ package code.metadata.wheretags
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
-import code.model.{GeoTag, User}
+import code.model.{BankId, GeoTag, User}
 import com.mongodb.{DBObject, QueryBuilder}
 
 private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with ObjectIdPk[OBPWhereTag] with GeoTag {
@@ -29,14 +29,14 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
 }
 
 private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {
-  def findAll(bankId : String, accountId : String, transactionId : String) : List[OBPWhereTag] = {
-    val query = QueryBuilder.start("bankId").is(bankId).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+  def findAll(bankId : BankId, accountId : String, transactionId : String) : List[OBPWhereTag] = {
+    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId).put("transactionId").is(transactionId).get
     findAll(query)
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : String, accountId : String, transactionId : String, viewId : Long) : DBObject = {
+  def getFindQuery(bankId : BankId, accountId : String, transactionId : String, viewId : Long) : DBObject = {
     QueryBuilder.start("viewID").is(viewId).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId).get()
+      put("accountId").is(accountId).put("bankId").is(bankId.value).get()
   }
 }

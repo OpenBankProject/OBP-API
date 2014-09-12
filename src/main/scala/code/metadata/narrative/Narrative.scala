@@ -1,5 +1,6 @@
 package code.metadata.narrative
 
+import code.model.BankId
 import net.liftweb.util.SimpleInjector
 
 object Narrative extends SimpleInjector {
@@ -17,9 +18,9 @@ trait Narrative {
 
   //TODO: should return an Option
   // Currently: return empty string if there is no narrative
-  def getNarrative(bankId: String, accountId: String, transactionId: String)() : String
+  def getNarrative(bankId: BankId, accountId: String, transactionId: String)() : String
 
   //TODO: should return something that lets us know if it saved or failed
-  def setNarrative(bankId: String, accountId: String, transactionId: String)(narrative: String) : Unit
+  def setNarrative(bankId: BankId, accountId: String, transactionId: String)(narrative: String) : Unit
 
 }

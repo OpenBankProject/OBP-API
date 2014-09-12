@@ -331,7 +331,7 @@ object JSONFactory{
 
   def createBankJSON(bank : Bank) : BankJSON = {
     new BankJSON(
-      stringOrNull(bank.permalink),
+      stringOrNull(bank.id.value),
       stringOrNull(bank.shortName),
       stringOrNull(bank.fullName),
       stringOrNull(bank.logoURL),
@@ -427,7 +427,7 @@ object JSONFactory{
       account.permalink,
       stringOrNull(account.label),
       viewsAvailable,
-      account.bankPermalink
+      account.bankId.value
     )
   }
 
@@ -443,7 +443,7 @@ object JSONFactory{
       stringOptionOrNull(account.iban),
       stringOptionOrNull(account.swift_bic),
       viewsAvailable,
-      stringOrNull(account.bankPermalink)
+      stringOrNull(account.bankId.value)
     )
   }
 

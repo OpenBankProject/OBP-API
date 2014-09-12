@@ -86,7 +86,7 @@ trait View {
   def users: List[User]
 
   //specifies which bank account this view is for
-  def bankAccountBankPermalink : String
+  def bankAccountBankId : BankId
   def bankAccountPermalink : String
 
   //the view settings
@@ -319,7 +319,7 @@ trait View {
       val iban = if(canSeeBankAccountIban) bankAccount.iban else None
       val number = if(canSeeBankAccountNumber) Some(bankAccount.number) else None
       val bankName = if(canSeeBankAccountBankName) Some(bankAccount.bankName) else None
-      val bankPermalink = bankAccount.bankPermalink
+      val bankId = bankAccount.bankId
 
       Some(
         new ModeratedBankAccount(
@@ -334,7 +334,7 @@ trait View {
           iban = iban,
           number = number,
           bankName = bankName,
-          bankPermalink = bankPermalink
+          bankId = bankId
         )
       )
     }
@@ -465,13 +465,13 @@ trait View {
 object View {
   def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
     Views.views.vend.view(viewPermalink, account)
-  def fromUrl(viewPermalink: String, accountId: String, bankId: String): Box[View] =
+  def fromUrl(viewPermalink: String, accountId: String, bankId: BankId): Box[View] =
     Views.views.vend.view(viewPermalink, accountId, bankId)
 
-  def linksJson(views: List[View], accountPermalink: String, bankPermalink: String): JObject = {
+  def linksJson(views: List[View], accountPermalink: String, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~
-        ("href" -> { "/" + bankPermalink + "/account/" + accountPermalink + "/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/account/" + accountPermalink + "/" + view.permalink }) ~
         ("method" -> "GET") ~
         ("title" -> "Get information about one account")
     })

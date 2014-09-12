@@ -39,28 +39,28 @@ case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryP
 trait Connector {
 
   //gets a particular bank handled by this connector
-  def getBank(permalink : String) : Box[Bank]
+  def getBank(bankId : BankId) : Box[Bank]
 
   //gets banks handled by this connector
   def getBanks : List[Bank]
 
-  def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount]
+  def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount]
 
-  def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
+  def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
 
-  def getModeratedOtherBankAccounts(bankID: String, accountID : String)
+  def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
 
-  def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]]
+  def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
-  def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction]
+  def getTransaction(bankId: BankId, accountID : String, transactionID : String): Box[Transaction]
 
   def getPhysicalCards(user : User) : Set[PhysicalCard]
 
-  def getPhysicalCardsForBank(bankID : String, user : User) : Set[PhysicalCard]
+  def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard]
   
   //gets the users who are the legal owners/holders of the account
-  def getAccountHolders(bankID: String, accountID: String) : Set[User]
+  def getAccountHolders(bankId: BankId, accountID: String) : Set[User]
   //...
 }

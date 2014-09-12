@@ -73,7 +73,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     Extraction.decompose(accounts)
   }
 
-  private def moderatedTransactionMetadata(bankId : String, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
+  private def moderatedTransactionMetadata(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
       account <- BankAccount(bankId, accountId)
       view <- View.fromUrl(viewId, account)
@@ -112,7 +112,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get bank by id
-    case "banks" :: bankId :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: Nil JsonGet json => {
       user =>
         def bankToJson(bank : Bank) : JValue = {
           val bankJSON = JSONFactory.createBankJSON(bank)
@@ -130,7 +130,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
    */
   oauthServe(apiPrefix {
   //get accounts for a single bank
-    case "banks" :: bankId :: "accounts" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
       user =>
         for{
          bank <- Bank(bankId)
@@ -141,7 +141,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get private accounts for a single bank
-    case "banks" :: bankId :: "accounts" :: "private" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
       user =>
         for {
           u <- user ?~ "user not found"
@@ -153,7 +153,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get public accounts for a single bank
-    case "banks" :: bankId :: "accounts" :: "public" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
       user =>
         for {
           bank <- Bank(bankId)
@@ -166,7 +166,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get account by id
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "account" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "account" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -183,7 +183,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get the available views on an bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -198,7 +198,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //creates a view on an bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
           json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
@@ -214,7 +214,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
     //updates a view on a bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -230,7 +230,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
     //deletes a view on an bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonDelete json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonDelete json => {
       user =>
         for {
           u <- user ?~ "user not found"
@@ -242,7 +242,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get access
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -257,7 +257,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix {
   //get access for specific user
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: userId :: Nil JsonGet json => {
       user =>
         for {
           u <- user ?~ "user not found"
@@ -272,7 +272,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
     //add access for specific user to a list of views
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -288,7 +288,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add access for specific user to a specific view
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -305,7 +305,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete access for specific user to one view
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonDelete json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: viewId :: Nil JsonDelete json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -318,7 +318,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
     //delete access for specific user to all the views
-    case "banks" :: bankId :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonDelete json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: userId :: "views" :: Nil JsonDelete json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -331,7 +331,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get other accounts for one account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -346,7 +346,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get one other account by id
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -361,7 +361,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get metadata of one other account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -377,7 +377,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get public alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -394,7 +394,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add public alias to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -412,7 +412,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update public alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -430,7 +430,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete public alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -446,7 +446,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //get private alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -463,7 +463,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add private alias to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -482,7 +482,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update private alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -501,7 +501,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete private alias of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -516,7 +516,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add more info to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -535,7 +535,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update more info of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -554,7 +554,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete more info of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -569,7 +569,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add url to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -588,7 +588,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -607,7 +607,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -622,7 +622,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add image url to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -641,7 +641,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update image url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -660,7 +660,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete image url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -675,7 +675,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add open corporate url to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPost json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -694,7 +694,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update open corporate url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPut json -> _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -713,7 +713,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete open corporate url of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -728,7 +728,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //add corporate location to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "corporate_location" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "corporate_location" :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user
@@ -749,7 +749,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //update corporate location of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonPut json -> _ => {
       user =>
         for {
           u <- user
@@ -770,7 +770,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
   //delete corporate location of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonDelete _ => {
       user =>
         for {
           u <- user
@@ -797,7 +797,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //add physical location to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "physical_location" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "physical_location" :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user
@@ -818,7 +818,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //update physical location to other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonPut json -> _ => {
       user =>
         for {
           u <- user
@@ -839,7 +839,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //delete physical location of other bank account
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonDelete _ => {
       user =>
         for {
           u <- user
@@ -859,7 +859,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get transactions
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
       user =>
       import code.api.v1_2_1.APIMethods121.getTransactionParams
 
@@ -877,7 +877,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get transaction by id
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -892,7 +892,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get narrative
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -906,7 +906,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add narrative
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
       user =>
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
@@ -924,7 +924,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //update narrative
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
       user =>
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
@@ -942,7 +942,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete narrative
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -956,7 +956,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get comments
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -970,7 +970,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add comment
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
       user =>
         for {
           commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
@@ -987,7 +987,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete comment
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -1001,7 +1001,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get tags
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1015,7 +1015,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
     //add a tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
 
       user =>
         for {
@@ -1033,7 +1033,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
     //delete a tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
 
       user =>
         for {
@@ -1048,7 +1048,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get images
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1062,7 +1062,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add an image
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
       user =>
         for {
           imageJson <- tryo{json.extract[PostTransactionImageJSON]}
@@ -1080,7 +1080,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete an image
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1094,7 +1094,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get where tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1109,7 +1109,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //add where tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user
@@ -1128,7 +1128,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //update where tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
       user =>
         for {
           u <- user
@@ -1147,7 +1147,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //delete where tag
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonDelete _ => {
       user =>
         for {
           bankAccount <- BankAccount(bankId, accountId)
@@ -1165,7 +1165,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //get other account of a transaction
-    case "banks" :: bankId :: "accounts" :: accountId :: viewId :: "transactions":: transactionId :: "other_account" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions":: transactionId :: "other_account" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)

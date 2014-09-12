@@ -26,7 +26,7 @@ private object MapperViews extends Views with Loggable {
   def permissions(account : BankAccount) : Box[List[Permission]] = {
 
     val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
-      ViewImpl.accountFilter(account.bankPermalink, account.permalink): _*)
+      ViewImpl.accountFilter(account.bankId, account.permalink): _*)
     //all the user that have access to at least to a view
     val users = views.map(_.users.toList).flatten.distinct
     val usersPerView = views.map(v  =>(v, v.users.toList))
@@ -51,7 +51,7 @@ private object MapperViews extends Views with Loggable {
         val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val views = privileges.flatMap(_.view.obj).filter(v => {
           v.accountPermalink.get == account.permalink &&
-          v.bankPermalink.get == account.bankPermalink
+          v.bankPermalink.get == account.bankId.value
         })
         Full(Permission(user, views))
       }
@@ -130,7 +130,7 @@ private object MapperViews extends Views with Loggable {
     if(view.permalink == "owner") {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      if(Connector.connector.vend.getAccountHolders(view.bankAccountBankPermalink, view.bankAccountPermalink).contains(user)) {
+      if(Connector.connector.vend.getAccountHolders(view.bankAccountBankId, view.bankAccountPermalink).contains(user)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
@@ -141,7 +141,7 @@ private object MapperViews extends Views with Loggable {
     } else true
   }
 
-  def revokeAllPermission(bankPermalink : String, accountPermalink: String, user : User) : Box[Boolean] = {
+  def revokeAllPermission(bankId : BankId, accountPermalink: String, user : User) : Box[Boolean] = {
     user match {
       //TODO: fix this match stuff
       case u:APIUser =>{
@@ -150,7 +150,7 @@ private object MapperViews extends Views with Loggable {
 
         val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
           case Full(v) => {
-            v.bankPermalink.get == bankPermalink && v.accountPermalink.get == accountPermalink
+            v.bankPermalink.get == bankId.value && v.accountPermalink.get == accountPermalink
           }
           case _ => false
         })
@@ -178,21 +178,21 @@ private object MapperViews extends Views with Loggable {
   }
 
   def view(viewPermalink : String, account: BankAccount) : Box[View] = {
-    view(viewPermalink, account.permalink, account.bankPermalink)
+    view(viewPermalink, account.permalink, account.bankId)
   }
 
-  def view(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[View] = {
-    viewImpl(viewPermalink, accountPermalink, bankPermalink)
+  def view(viewPermalink : String, accountPermalink: String, bankId: BankId) : Box[View] = {
+    viewImpl(viewPermalink, accountPermalink, bankId)
   }
 
   def viewImpl(viewPermalink : String, account: BankAccount) : Box[ViewImpl] = {
-    viewImpl(viewPermalink, account.permalink, account.bankPermalink)
+    viewImpl(viewPermalink, account.permalink, account.bankId)
   }
 
-  def viewImpl(viewPermalink : String, accountPermalink: String, bankPermalink: String) : Box[ViewImpl] = {
+  def viewImpl(viewPermalink : String, accountPermalink: String, bankId: BankId) : Box[ViewImpl] = {
       ViewImpl.find(
         By(ViewImpl.permalink_, viewPermalink) ::
-        ViewImpl.accountFilter(bankPermalink, accountPermalink): _*
+        ViewImpl.accountFilter(bankId, accountPermalink): _*
       ) ~> APIFailure(s"View with permalink $viewPermalink not found", 404)
   }
 
@@ -203,7 +203,7 @@ private object MapperViews extends Views with Loggable {
 
     val existing = ViewImpl.count(
         By(ViewImpl.permalink_, newViewPermalink) ::
-        ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*
+        ViewImpl.accountFilter(bankAccount.bankId, bankAccount.permalink): _*
       ) == 1
 
     if(existing)
@@ -212,7 +212,7 @@ private object MapperViews extends Views with Loggable {
       val createdView = ViewImpl.create.
         name_(view.name).
         permalink_(newViewPermalink).
-        bankPermalink(bankAccount.bankPermalink).
+        bankPermalink(bankAccount.bankId.value).
         accountPermalink(bankAccount.permalink)
 
       createdView.setFromViewData(view)
@@ -245,7 +245,7 @@ private object MapperViews extends Views with Loggable {
   }
 
   def views(bankAccount : BankAccount) : Box[List[View]] = {
-    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*))
+    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.permalink): _*))
   }
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
@@ -259,7 +259,7 @@ private object MapperViews extends Views with Loggable {
           p.view.obj match {
             case Full(v) => if(
               !v.isPublic &&
-              v.bankPermalink.get == bankAccount.bankPermalink &&
+              v.bankPermalink.get == bankAccount.bankId.value &&
               v.accountPermalink.get == bankAccount.permalink){
               Some(v)
             } else None
@@ -278,7 +278,7 @@ private object MapperViews extends Views with Loggable {
   def publicViews(bankAccount : BankAccount) : Box[List[View]] = {
     //TODO: do this more efficiently?
     //TODO: get rid of box
-    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankPermalink, bankAccount.permalink): _*).filter(v => {
+    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.permalink): _*).filter(v => {
       v.isPublic == true
     }))
   }
@@ -293,7 +293,7 @@ private object MapperViews extends Views with Loggable {
 
     bankAndAccountPermalinks.map {
       case (bankPermalink, accountPermalink) => {
-        Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+        Connector.connector.vend.getBankAccount(BankId(bankPermalink), accountPermalink)
       }
     }.flatten
   }
@@ -302,12 +302,12 @@ private object MapperViews extends Views with Loggable {
     //TODO: do this more efficiently
 
     val accountPermalinks : List[String] =
-      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
         v.accountPermalink.get
       }).distinct //we remove duplicates here
 
     accountPermalinks.map(accPerma => {
-      Connector.connector.vend.getBankAccount(bank.permalink, accPerma)
+      Connector.connector.vend.getBankAccount(bank.id, accPerma)
     }).flatten
   }
 
@@ -339,7 +339,7 @@ private object MapperViews extends Views with Loggable {
 
             visibleBankAndAccountPermalinks.map {
               case(bankPermalink, accountPermalink) => {
-                Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+                Connector.connector.vend.getBankAccount(BankId(bankPermalink), accountPermalink)
               }
             }.flatten
           }
@@ -369,13 +369,13 @@ private object MapperViews extends Views with Loggable {
             //TODO: this could be quite a bit more efficient...
 
             val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
-              By(ViewImpl.bankPermalink, bank.permalink)).map(v => {
+              By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
               (v.bankPermalink.get, v.accountPermalink.get)
             }).distinct
 
             val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
             val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
-              !v.isPublic && v.bankPermalink.get == bank.permalink
+              !v.isPublic && v.bankPermalink.get == bank.id.value
             })
 
             val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
@@ -387,7 +387,7 @@ private object MapperViews extends Views with Loggable {
 
             Full(visibleBankAndAccountPermalinks.map {
               case(bankPermalink, accountPermalink) => {
-                Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+                Connector.connector.vend.getBankAccount(BankId(bankPermalink), accountPermalink)
               }
             }.flatten)
           }
@@ -421,7 +421,7 @@ private object MapperViews extends Views with Loggable {
 
           nonPublicViewBankAndAccountPermalinks.map {
             case(bankPermalink, accountPermalink) => {
-              Connector.connector.vend.getBankAccount(bankPermalink, accountPermalink)
+              Connector.connector.vend.getBankAccount(BankId(bankPermalink), accountPermalink)
             }
           }
         }
@@ -436,19 +436,19 @@ private object MapperViews extends Views with Loggable {
   /**
    * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
    */
-  def getNonPublicBankAccounts(user : User, bankID : String) :  Box[List[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User, bankId : BankId) :  Box[List[BankAccount]] = {
     user match {
       case u : APIUser => {
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val userNonPublicViewsForBank : List[ViewImpl] =
-          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankID)
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankId.value)
 
         val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
           map(_.accountPermalink.get).distinct //we remove duplicates here
 
         Full(nonPublicViewAccountPermalinks.map {
-          Connector.connector.vend.getBankAccount(bankID, _)
+          Connector.connector.vend.getBankAccount(bankId, _)
         }.flatten)
       }
       case u : User => {

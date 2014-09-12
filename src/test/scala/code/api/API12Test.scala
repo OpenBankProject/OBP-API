@@ -51,7 +51,7 @@ import net.liftweb.mapper.By
 import scala.util.Random._
 
 import code.api.test.{ServerSetup, APIResponse}
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, ViewUpdateData, ViewCreationJSON}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, BankId, ViewUpdateData, ViewCreationJSON}
 import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges}
 import code.model.TokenType._
 import APIUtil.OAuth._
@@ -1422,7 +1422,7 @@ class API1_2Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val view = Views.views.vend.view(viewId,bankAccount.id, bankId).get
+      val view = Views.views.vend.view(viewId,bankAccount.id, BankId(bankId)).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)

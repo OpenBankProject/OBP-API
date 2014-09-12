@@ -48,11 +48,18 @@ import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties
 
 
+case class BankId(val value : String) {
+  override def toString = value
+}
+
+object BankId {
+  def unapply(id : String) = Some(BankId(id))
+}
+
 class Bank(
-  val id: String,
+  val id: BankId,
   val shortName : String,
   val fullName : String,
-  val permalink : String,
   val logoURL : String,
   val website : String
 )
@@ -77,7 +84,7 @@ class Bank(
 
   def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
-    Views.views.vend.getNonPublicBankAccounts(user, permalink)
+    Views.views.vend.getNonPublicBankAccounts(user, id)
   }
 
   def detailedJson : JObject = {
@@ -87,7 +94,7 @@ class Bank(
   }
 
   def toJson : JObject = {
-    ("alias" -> permalink) ~
+    ("alias" -> id.value) ~
       ("name" -> shortName) ~
       ("logo" -> "") ~
       ("links" -> linkJson)
@@ -95,15 +102,15 @@ class Bank(
 
   def linkJson : JObject = {
     ("rel" -> "bank") ~
-    ("href" -> {"/" + permalink + "/bank"}) ~
+    ("href" -> {"/" + id + "/bank"}) ~
     ("method" -> "GET") ~
-    ("title" -> {"Get information about the bank identified by " + permalink})
+    ("title" -> {"Get information about the bank identified by " + id})
   }
 }
 
 object Bank {
-  def apply(bankPermalink: String) : Box[Bank] = {
-    Connector.connector.vend.getBank(bankPermalink)
+  def apply(bankId: BankId) : Box[Bank] = {
+    Connector.connector.vend.getBank(bankId)
   }
 
   def all : List[Bank] = Connector.connector.vend.getBanks
@@ -131,7 +138,7 @@ class BankAccount(
   val iban : Option[String],
   val number : String,
   val bankName : String,
-  val bankPermalink : String,
+  val bankId : BankId,
   val permalink : String
 ) extends Loggable{
 
@@ -279,7 +286,7 @@ class BankAccount(
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAllPermission(bankPermalink, permalink, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermission(bankId, permalink, otherUser)
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + id, Empty, Empty)
@@ -303,7 +310,7 @@ class BankAccount(
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
-            " for account " + permalink + "at bank " + bankPermalink)
+            " for account " + permalink + "at bank " + bankId)
       }
       
       view
@@ -318,7 +325,7 @@ class BankAccount(
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
-            " for account " + permalink + "at bank " + bankPermalink)
+            " for account " + permalink + "at bank " + bankId)
       }
       
       view
@@ -334,7 +341,7 @@ class BankAccount(
       
       if(deleted.isDefined) {
         logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewPermalink +
-            " for account " + permalink + "at bank " + bankPermalink)
+            " for account " + permalink + "at bank " + bankId)
       }
       
       deleted
@@ -347,7 +354,7 @@ class BankAccount(
 
   def moderatedTransaction(id: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getTransaction(bankPermalink, permalink, id).map(view.moderate)
+      Connector.connector.vend.getTransaction(bankId, permalink, id).map(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -355,7 +362,7 @@ class BankAccount(
   def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
-        transactions <- Connector.connector.vend.getTransactions(bankPermalink, permalink, queryParams: _*)
+        transactions <- Connector.connector.vend.getTransactions(bankId, permalink, queryParams: _*)
       } yield transactions.map(view.moderate)
     }
     else viewNotAllowed(view)
@@ -377,7 +384,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccounts(bankPermalink, permalink)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccounts(bankId, permalink)(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -390,7 +397,7 @@ class BankAccount(
   */
   def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccount(bankPermalink, permalink, otherAccountID)(view.moderate)
+      Connector.connector.vend.getModeratedOtherBankAccount(bankId, permalink, otherAccountID)(view.moderate)
     else
       viewNotAllowed(view)
 
@@ -400,13 +407,13 @@ class BankAccount(
     ("account_alias" -> label) ~
     ("owner_description" -> "") ~
     ("views_available" -> views.map(view => view.toJson)) ~
-    View.linksJson(views, permalink, bankPermalink)
+    View.linksJson(views, permalink, bankId)
   }
 }
 
 object BankAccount {
-  def apply(bankpermalink: String, bankAccountPermalink: String) : Box[BankAccount] = {
-    Connector.connector.vend.getBankAccount(bankpermalink, bankAccountPermalink)
+  def apply(bankId: BankId, bankAccountPermalink: String) : Box[BankAccount] = {
+    Connector.connector.vend.getBankAccount(bankId, bankAccountPermalink)
   }
 
   def publicAccounts : List[BankAccount] = {
@@ -433,7 +440,7 @@ class OtherBankAccount(
   val number : String,
   val bankName : String,
   val kind : String,
-  val originalPartyBankId: String, //bank id of the party for which this OtherBankAccount is the counterparty
+  val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
   val originalPartyAccountId: String //account id of the party for which this OtherBankAccount is the counterparty
 ) {
 
@@ -464,7 +471,7 @@ class Transaction(
   val balance :  BigDecimal
 ) {
 
-  val bankPermalink = thisAccount.bankPermalink
+  val bankId = thisAccount.bankId
   val accountPermalink = thisAccount.permalink
 
   /**
@@ -479,19 +486,19 @@ class Transaction(
    *
    */
   val metadata : TransactionMetadata = new TransactionMetadata(
-      Narrative.narrative.vend.getNarrative(bankPermalink, accountPermalink, id) _,
-      Narrative.narrative.vend.setNarrative(bankPermalink, accountPermalink, id) _,
-      Comments.comments.vend.getComments(bankPermalink, accountPermalink, id) _,
-      Comments.comments.vend.addComment(bankPermalink, accountPermalink, id) _,
-      Comments.comments.vend.deleteComment(bankPermalink, accountPermalink, id) _,
-      Tags.tags.vend.getTags(bankPermalink, accountPermalink, id) _,
-      Tags.tags.vend.addTag(bankPermalink, accountPermalink, id) _,
-      Tags.tags.vend.deleteTag(bankPermalink, accountPermalink, id) _,
-      TransactionImages.transactionImages.vend.getImagesForTransaction(bankPermalink, accountPermalink, id) _,
-      TransactionImages.transactionImages.vend.addTransactionImage(bankPermalink, accountPermalink, id) _,
-      TransactionImages.transactionImages.vend.deleteTransactionImage(bankPermalink, accountPermalink, id) _,
-      WhereTags.whereTags.vend.getWhereTagsForTransaction(bankPermalink, accountPermalink, id) _,
-      WhereTags.whereTags.vend.addWhereTag(bankPermalink, accountPermalink, id) _,
-      WhereTags.whereTags.vend.deleteWhereTag(bankPermalink, accountPermalink, id) _
+      Narrative.narrative.vend.getNarrative(bankId, accountPermalink, id) _,
+      Narrative.narrative.vend.setNarrative(bankId, accountPermalink, id) _,
+      Comments.comments.vend.getComments(bankId, accountPermalink, id) _,
+      Comments.comments.vend.addComment(bankId, accountPermalink, id) _,
+      Comments.comments.vend.deleteComment(bankId, accountPermalink, id) _,
+      Tags.tags.vend.getTags(bankId, accountPermalink, id) _,
+      Tags.tags.vend.addTag(bankId, accountPermalink, id) _,
+      Tags.tags.vend.deleteTag(bankId, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.getImagesForTransaction(bankId, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.addTransactionImage(bankId, accountPermalink, id) _,
+      TransactionImages.transactionImages.vend.deleteTransactionImage(bankId, accountPermalink, id) _,
+      WhereTags.whereTags.vend.getWhereTagsForTransaction(bankId, accountPermalink, id) _,
+      WhereTags.whereTags.vend.addWhereTag(bankId, accountPermalink, id) _,
+      WhereTags.whereTags.vend.deleteWhereTag(bankId, accountPermalink, id) _
     )
 }

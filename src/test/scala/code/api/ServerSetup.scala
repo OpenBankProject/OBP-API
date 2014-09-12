@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.api.test
 
+import code.model.BankId
 import org.scalatest._
 import dispatch._, Defaults._
 import net.liftweb.json.NoTypeHints
@@ -97,7 +98,7 @@ trait ServerSetup extends FeatureSpec
 
      val thisAccountBank = OBPBank.createRecord.
         IBAN(randomString(5)).
-        national_identifier(account.bankId).
+        national_identifier(account.bankNationalIdentifier).
         name(account.bankName)
       val thisAccount = OBPAccount.createRecord.
         holder(account.holder.get).
@@ -212,7 +213,7 @@ trait ServerSetup extends FeatureSpec
       accountID(created.id.get.toString).
       saveMe
 
-    val owner = ownerView(bank.permalink.get, accountPermalink)
+    val owner = ownerView(BankId(bank.permalink.get), accountPermalink)
 
     //give to user1 owner view
     if(accountOwner.isDefined) {
@@ -289,16 +290,16 @@ trait ServerSetup extends FeatureSpec
     getAPIResponse(jsonReq)
   }
 
-  def ownerView(bankPermalink: String, accountPermalink: String) =
-    ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, randomString(3))
+  def ownerView(bankId: BankId, accountPermalink: String) =
+    ViewImpl.createAndSaveOwnerView(bankId, accountPermalink, randomString(3))
 
-  def publicView(bankPermalink: String, accountPermalink: String) =
+  def publicView(bankId: BankId, accountPermalink: String) =
     ViewImpl.create.
     name_("Public").
     description_(randomString(3)).
     permalink_("public").
     isPublic_(true).
-    bankPermalink(bankPermalink).
+    bankPermalink(bankId.value).
     accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(true).
@@ -365,13 +366,13 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-  def randomView(bankPermalink: String, accountPermalink: String) =
+  def randomView(bankId: BankId, accountPermalink: String) =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).
     permalink_(randomString(3)).
     isPublic_(false).
-    bankPermalink(bankPermalink).
+    bankPermalink(bankId.value).
     accountPermalink(accountPermalink).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(false).

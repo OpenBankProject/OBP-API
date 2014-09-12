@@ -2,7 +2,7 @@ package code.snippet
 
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.BankAccount
+import code.model.{BankId, BankAccount}
 import code.util.Helper._
 import net.liftweb.common.{Empty, Full, Failure, Box}
 import net.liftweb.http.js.JsCmds.SetHtml
@@ -23,7 +23,7 @@ object CreateTestAccountForm{
     var initialBalance = ""
 
     val processForm : () => JsCmd = () => {
-      val createdAccount = createAccount(accountId, bankId, currency, initialBalance)
+      val createdAccount = createAccount(accountId, BankId(bankId), currency, initialBalance)
       createdAccount match {
         case Full(acc) => showSuccess(acc)
         case Failure(msg, _, _) => showError(msg)
@@ -71,9 +71,9 @@ object CreateTestAccountForm{
    * Attempts to create a new account, based on form params
    * @return a box containing the created account or reason for account creation failure
    */
-  def createAccount(accountId : String, bankId : String, currency : String, initialBalance : String) : Box[Account] =  {
+  def createAccount(accountId : String, bankId : BankId, currency : String, initialBalance : String) : Box[Account] =  {
     if(accountId == "") Failure("Account id cannot be empty")
-    else if(bankId == "") Failure("Bank id cannot be empty")
+    else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
     else if(initialBalance == "") Failure("Initial balance cannot be empty")
     else {
@@ -81,7 +81,7 @@ object CreateTestAccountForm{
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentObpUser <- OBPUser.currentUser ?~! "You need to be logged in to create an account"
         user <- currentObpUser.user.obj ?~ "Server error: could not identify user"
-        bank <- HostedBank.find("permalink" -> bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
+        bank <- HostedBank.find(bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
       } yield {

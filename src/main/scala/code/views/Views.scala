@@ -21,10 +21,10 @@ trait Views {
   def addPermission(view : View, user : User) : Box[Boolean]
   def addPermissions(views : List[View], user : User) : Box[Boolean]
   def revokePermission(view : View, user : User) : Box[Boolean]
-  def revokeAllPermission(bankPermalink : String, accountPermalink : String, user : User) : Box[Boolean]
+  def revokeAllPermission(bankId : BankId, accountPermalink : String, user : User) : Box[Boolean]
 
   def view(viewPermalink : String, bankAccount: BankAccount) : Box[View]
-  def view(viewPermalink : String, accountId: String, bankId: String) : Box[View]
+  def view(viewPermalink : String, accountId: String, bankId: BankId) : Box[View]
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
   def removeView(viewPermalink: String, bankAccount: BankAccount): Box[Unit]
@@ -38,5 +38,5 @@ trait Views {
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount]
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]]
   def getNonPublicBankAccounts(user : User) : Box[List[BankAccount]]
-  def getNonPublicBankAccounts(user : User, bankID : String) : Box[List[BankAccount]]
+  def getNonPublicBankAccounts(user : User, bankId : BankId) : Box[List[BankAccount]]
 }

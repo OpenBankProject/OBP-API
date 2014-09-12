@@ -2,7 +2,7 @@ package code.metadata.comments
 
 import net.liftweb.util.SimpleInjector
 import net.liftweb.common.Box
-import code.model.Comment
+import code.model.{BankId, Comment}
 import java.util.Date
 
 object Comments extends SimpleInjector {
@@ -15,8 +15,8 @@ object Comments extends SimpleInjector {
 
 trait Comments {
   
-  def getComments(bankId : String, accountId : String, transactionId : String)() : List[Comment]
-  def addComment(bankId : String, accountId : String, transactionId: String)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment]
-  def deleteComment(bankId : String, accountId : String, transactionId: String)(commentId : String) : Box[Unit]
+  def getComments(bankId : BankId, accountId : String, transactionId : String)() : List[Comment]
+  def addComment(bankId : BankId, accountId : String, transactionId: String)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment]
+  def deleteComment(bankId : BankId, accountId : String, transactionId: String)(commentId : String) : Box[Unit]
   
 }

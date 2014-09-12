@@ -4,7 +4,7 @@ import code.api.util.APIUtil
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.common.{Full, Failure, Box}
-import code.model.{PhysicalCard, User}
+import code.model.{BankId, PhysicalCard, User}
 import code.bankconnectors.Connector
 import net.liftweb.json.Extraction
 import APIUtil._
@@ -32,7 +32,7 @@ trait APIMethods130 {
     }
 
     def getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: bankId :: "cards" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
         user => {
           val cardsJson = user match {
             case Full(u) => {

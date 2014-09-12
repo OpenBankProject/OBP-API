@@ -44,7 +44,7 @@ import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.BsonRecord
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
 import net.liftweb.mongodb.{Limit, Skip}
-import code.model.{AccountOwner, BankAccount}
+import code.model.{BankId, AccountOwner, BankAccount}
 import net.liftweb.mongodb.BsonDSL._
 import OBPEnvelope._
 import code.bankconnectors._
@@ -79,17 +79,18 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     }
   }
 
-  def bankId: String = {
+  def bankNationalIdentifier: String = {
     bankID.obj match {
       case Full(bank) => bank.national_identifier.get
       case _ => ""
     }
   }
 
-  def bankPermalink: String = {
+  //TODO: this is badly named
+  def bankPermalink: BankId = {
     bankID.obj match  {
-      case Full(bank) => bank.permalink.get
-      case _ => ""
+      case Full(bank) => BankId(bank.permalink.get)
+      case _ => BankId("")
     }
   }
 
@@ -99,7 +100,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     .is(number.get)
     //FIX: change that to use the bank identifier
     .put("obp_transaction.this_account.bank.national_identifier")
-    .is(bankId)
+    .is(bankNationalIdentifier)
   }
 
   //find all the envelopes related to this account
@@ -186,7 +187,7 @@ object Account extends Account with MongoMetaRecord[Account] {
         iban = iban,
         number = account.number.get,
         bankName = account.bankName,
-        bankPermalink = account.bankPermalink,
+        bankId = account.bankPermalink,
         permalink = account.permalink.get
       )
     bankAccount
@@ -215,4 +216,8 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
 }
 
 //TODO: enforce unique permalink (easier if we upgrade to Lift 2.6)
-object HostedBank extends HostedBank with MongoMetaRecord[HostedBank]
+object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {
+
+  def find(bankId : BankId) : Box[HostedBank] = find("permalink" -> bankId.value)
+
+}

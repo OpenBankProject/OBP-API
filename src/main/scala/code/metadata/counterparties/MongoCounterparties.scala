@@ -1,6 +1,6 @@
 package code.metadata.counterparties
 
-import code.model.{OtherBankAccountMetadata, OtherBankAccount}
+import code.model.{BankId, OtherBankAccountMetadata, OtherBankAccount}
 import net.liftweb.common.Loggable
 import com.mongodb.QueryBuilder
 
@@ -8,7 +8,7 @@ import com.mongodb.QueryBuilder
 object MongoCounterparties extends Counterparties with Loggable {
   import code.model.GeoTag
 
-  def getOrCreateMetadata(originalPartyBankId: String, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
     import net.liftweb.util.Helpers.tryo
     import net.liftweb.common.Full
     import org.bson.types.ObjectId
@@ -35,7 +35,7 @@ object MongoCounterparties extends Counterparties with Loggable {
   /**
    * This only exists for OBPEnvelope. Avoid using it for any other reason outside of this class
    */
-  def createMetadata(originalPartyBankId: String, originalPartyAccountId : String, otherAccountHolder : String) : Metadata = {
+  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : String, otherAccountHolder : String) : Metadata = {
     //create it
     if(otherAccountHolder.isEmpty){
       logger.info("other account holder is Empty. creating a metadata record with no public alias")
@@ -44,17 +44,17 @@ object MongoCounterparties extends Counterparties with Loggable {
       //would automatically share the metadata and then the alias
       Metadata
         .createRecord
-        .originalPartyBankId(originalPartyBankId)
+        .originalPartyBankId(originalPartyBankId.value)
         .originalPartyAccountId(originalPartyAccountId)
         .holder("")
         .save
 
     } else {
       Metadata.createRecord.
-        originalPartyBankId(originalPartyBankId).
+        originalPartyBankId(originalPartyBankId.value).
         originalPartyAccountId(originalPartyAccountId).
         holder(otherAccountHolder).
-        publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
+        publicAlias(newPublicAliasName(originalPartyBankId.value, originalPartyAccountId)).save
     }
   }
 

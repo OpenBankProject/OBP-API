@@ -11,18 +11,14 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
 import code.metadata.counterparties.Metadata
-import scala.Some
-import net.liftweb.common.Full
-import com.tesobe.model.UpdateBankAccount
-import scala.Some
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
 private object LocalConnector extends Connector with Loggable {
 
-  def getBank(permalink: String): Box[Bank] =
+  def getBank(bankId : BankId): Box[Bank] =
     for{
-      bank <- getHostedBank(permalink)
+      bank <- getHostedBank(bankId)
     } yield {
       createBank(bank)
     }
@@ -31,14 +27,14 @@ private object LocalConnector extends Connector with Loggable {
   def getBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
 
-  def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount] = {
+  def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount] = {
     for{
-      bank <- getHostedBank(bankPermalink)
+      bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
     } yield Account toBankAccount account
   }
 
-  def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
+  def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
 
     /**
@@ -61,11 +57,11 @@ private object LocalConnector extends Connector with Loggable {
               OBPAccount.createRecord
             }
           }
-          moderate(createOtherBankAccount(bankID, accountID, otherAccountmetadata, otherAccountFromTransaction)).get
+          moderate(createOtherBankAccount(bankId, accountID, otherAccountmetadata, otherAccountFromTransaction)).get
         }
   }
 
-  def getModeratedOtherBankAccounts(bankID: String, accountID : String)
+  def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
 
     /**
@@ -73,7 +69,7 @@ private object LocalConnector extends Connector with Loggable {
      * "other account metadata" object.
      */
 
-    val query = QueryBuilder.start("originalPartyBankId").is(bankID).put("originalPartyAccountId").is(accountID).get
+    val query = QueryBuilder.start("originalPartyBankId").is(bankId).put("originalPartyAccountId").is(accountID).get
 
     val moderatedCounterparties = Metadata.findAll(query).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
@@ -87,16 +83,16 @@ private object LocalConnector extends Connector with Loggable {
           OBPAccount.createRecord
         }
       }
-      moderate(createOtherBankAccount(bankID, accountID, meta, otherAccountFromTransaction))
+      moderate(createOtherBankAccount(bankId, accountID, meta, otherAccountFromTransaction))
     })
 
     Full(moderatedCounterparties.flatten)
   }
 
-  def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    logger.debug("getTransactions for " + bankID + "/" + accountID)
+  def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+    logger.debug("getTransactions for " + bankId + "/" + accountID)
     for{
-      bank <- getHostedBank(bankID)
+      bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountID)
     } yield {
       updateAccountTransactions(bank, account)
@@ -104,9 +100,9 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction] = {
+  def getTransaction(bankId: BankId, accountID : String, transactionID : String): Box[Transaction] = {
     for{
-      bank <- getHostedBank(bankID) ?~! s"Transaction not found: bank $bankID not found"
+      bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountID) ?~! s"Transaction not found: account $accountID not found"
       objectId <- tryo{new ObjectId(transactionID)} ?~ {"Transaction "+transactionID+" not found"}
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
@@ -121,13 +117,13 @@ private object LocalConnector extends Connector with Loggable {
     Set.empty
   }
 
-  def getPhysicalCardsForBank(bankID : String, user : User) : Set[PhysicalCard] = {
+  def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
     Set.empty
   }
 
-  def getAccountHolders(bankID: String, accountID: String) : Set[User] = {
+  def getAccountHolders(bankId: BankId, accountID: String) : Set[User] = {
     MappedAccountHolder.findAll(
-      By(MappedAccountHolder.accountBankPermalink, bankID),
+      By(MappedAccountHolder.accountBankPermalink, bankId.value),
       By(MappedAccountHolder.accountPermalink, accountID)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
@@ -210,7 +206,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  private def createOtherBankAccount(originalPartyBankId: String, originalPartyAccountId: String,
+  private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: String,
     otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
       id = otherAccount.id.is.toString,
@@ -226,16 +222,15 @@ private object LocalConnector extends Connector with Loggable {
     )
   }
 
-  private def getHostedBank(permalink : String) : Box[HostedBank] = {
-    HostedBank.find("permalink", permalink) ?~ {"bank " + permalink + " not found"}
+  private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
+    HostedBank.find("permalink", bankId) ?~ {"bank " + bankId + " not found"}
   }
 
   private def createBank(bank : HostedBank) : Bank = {
     new Bank(
-      bank.id.is.toString,
+      BankId(bank.id.is.toString),
       bank.alias.is,
       bank.name.is,
-      bank.permalink.is,
       bank.logoURL.is,
       bank.website.is
     )

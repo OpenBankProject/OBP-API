@@ -1,6 +1,6 @@
 package code.payments
 
-import code.model.BankAccount
+import code.model.{BankId, BankAccount}
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.Account
@@ -31,30 +31,30 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     val toTransAmt = amt //to account balance should increase
 
     //this is the transaction that gets attached to the account of the person making the payment
-    val createdFromTrans = createTransaction(fromAccount, toAccount.bankPermalink,
+    val createdFromTrans = createTransaction(fromAccount, toAccount.bankId,
       toAccount.permalink, fromTransAmt)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
-    createTransaction(toAccount, fromAccount.bankPermalink, fromAccount.permalink, toTransAmt)
+    createTransaction(toAccount, fromAccount.bankId, fromAccount.permalink, toTransAmt)
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
     createdFromTrans.map(_.id.toString)
   }
 
-  private def createTransaction(account : BankAccount, otherBankId : String,
+  private def createTransaction(account : BankAccount, otherBankId : BankId,
                         otherAccountId : String, amount : BigDecimal) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
     for {
-      otherBank <- HostedBank.find("permalink" -> otherBankId) ?~! "no other bank found"
+      otherBank <- HostedBank.find(otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
       otherAccs = Account.findAll(("permalink" -> otherAccountId))
       otherAcc <- Box(otherAccs.filter(_.bankPermalink == otherBank.permalink.get).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
       transTime = now
       thisAccs = Account.findAll(("permalink" -> account.permalink))
-      thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankPermalink).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankPermalink}?"
+      thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankId).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankId}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
@@ -70,7 +70,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
             ("bank" ->
               ("IBAN" -> account.iban.getOrElse("")) ~
                 ("national_identifier" -> account.nationalIdentifier) ~
-                ("name" -> account.bankPermalink))) ~
+                ("name" -> account.bankId.value))) ~
           ("other_account" ->
             ("holder" -> otherAcc.holder.get) ~
               ("number" -> otherAcc.number.get) ~
@@ -117,7 +117,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
       val accounts = Account.findAll(("number" -> accountNumber) ~ ("kind" -> accountKind) ~ ("holder" -> holder))
       //Now get the one that actually belongs to the right bank
       val findFunc = (x : Account) => {
-        x.bankPermalink == bankName
+        x.bankPermalink.value == bankName
       }
       val wantedAccount = accounts.find(findFunc)
       wantedAccount match {

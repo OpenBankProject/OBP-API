@@ -185,7 +185,7 @@ class ModeratedBankAccount(
   val iban : Option[String],
   val number: Option[String],
   val bankName: Option[String],
-  val bankPermalink : String
+  val bankId : BankId
 ){
   def toJson = {
     def ownersJson(x : Set[AccountOwner])=

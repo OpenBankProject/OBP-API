@@ -53,7 +53,8 @@ package com.tesobe.model{
 
 package code.model.dataAccess {
 
-  import com.rabbitmq.client.{ConnectionFactory,Channel}
+import code.model.BankId
+import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftmodules.amqp.{
     AMQPDispatcher,
     AMQPMessage,
@@ -164,29 +165,29 @@ package code.model.dataAccess {
     }
 
     //TODO: get rid of HostedAccount?
-    def setAsOwner(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
-      createOwnerView(bankPermalink, accountPermalink, account, user)
-      setAsAccountOwner(bankPermalink, accountPermalink, user)
+    def setAsOwner(bankId : BankId, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
+      createOwnerView(bankId, accountPermalink, account, user)
+      setAsAccountOwner(bankId, accountPermalink, user)
     }
 
-    private def setAsAccountOwner(bankPermalink : String, accountPermalink : String, user : APIUser) : Unit = {
+    private def setAsAccountOwner(bankId : BankId, accountPermalink : String, user : APIUser) : Unit = {
       MappedAccountHolder.create
-        .accountBankPermalink(bankPermalink)
+        .accountBankPermalink(bankId.value)
         .accountPermalink(accountPermalink)
         .user(user)
         .save
     }
 
     //TODO: get rid of HostedAccount?
-    private def createOwnerView(bankPermalink : String, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
+    private def createOwnerView(bankId : BankId, accountPermalink : String, account: HostedAccount, user: APIUser): Unit = {
 
       val existingOwnerView = ViewImpl.find(
         By(ViewImpl.permalink_, "owner") ::
-        ViewImpl.accountFilter(bankPermalink, accountPermalink): _*)
+        ViewImpl.accountFilter(bankId, accountPermalink): _*)
 
       existingOwnerView match {
         case Full(v) => {
-          logger.info(s"account $accountPermalink at bank $bankPermalink has already an owner view")
+          logger.info(s"account $accountPermalink at bank $bankId has already an owner view")
           v.users_.toList.find(_.id == user.id) match {
             case Some(u) => {
               logger.info(s"user ${user.email.get} has already an owner view access on the account ${account.id.get}")
@@ -205,8 +206,8 @@ package code.model.dataAccess {
         case _ => {
           {
             //TODO: if we add more permissions to ViewImpl we need to remember to set them here...
-            logger.info(s"creating owner view on account account $accountPermalink at bank $bankPermalink")
-            val view = ViewImpl.createAndSaveOwnerView(bankPermalink, accountPermalink, "")
+            logger.info(s"creating owner view on account account $accountPermalink at bank $bankId")
+            val view = ViewImpl.createAndSaveOwnerView(bankId, accountPermalink, "")
 
             logger.info(s"creating owner view access to user ${user.email.get}")
             ViewPrivileges
@@ -246,7 +247,7 @@ package code.model.dataAccess {
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
               val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.setAsOwner(bank.permalink.get, message.accountNumber, hostedAccount, user)
+              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), message.accountNumber, hostedAccount, user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 
