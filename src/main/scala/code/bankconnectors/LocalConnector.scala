@@ -223,7 +223,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
-    HostedBank.find("permalink", bankId) ?~ {"bank " + bankId + " not found"}
+    HostedBank.find("permalink", bankId.value) ?~ {"bank " + bankId + " not found"}
   }
 
   private def createBank(bank : HostedBank) : Bank = {
