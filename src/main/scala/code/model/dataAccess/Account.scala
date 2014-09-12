@@ -214,4 +214,5 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
 
 }
 
+//TODO: enforce unique permalink (easier if we upgrade to Lift 2.6)
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank]
