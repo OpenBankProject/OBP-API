@@ -94,6 +94,9 @@ package code.model.dataAccess {
         }
         case _ =>{
           //TODO: if name is empty use bank id as name alias
+
+          //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
+
           logger.info(s"creating HostedBank")
           HostedBank
           .createRecord
