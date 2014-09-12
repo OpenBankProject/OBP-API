@@ -57,18 +57,18 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
   object MockedCardConnector extends Connector {
     //these methods aren't required by our test
-    def getBank(permalink : String) : Box[Bank] = Empty
+    def getBank(bankId : BankId) : Box[Bank] = Empty
     def getBanks : List[Bank] = Nil
-    def getBankAccount(bankPermalink : String, accountId : String) : Box[BankAccount] = Empty
-    def getModeratedOtherBankAccount(bankID: String, accountID : String, otherAccountID : String)
+    def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount] = Empty
+    def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
                                     (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount] =
       Empty
-    def getModeratedOtherBankAccounts(bankID: String, accountID : String)
+    def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
                                      (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] =
       Empty
-    def getTransactions(bankID: String, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] =
+    def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
-    def getTransaction(bankID : String, accountID : String, transactionID : String): Box[Transaction] =
+    def getTransaction(bankId : BankId, accountID : String, transactionID : String): Box[Transaction] =
       Empty
 
     //these methods are required
@@ -82,7 +82,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       }
     }
 
-    def getPhysicalCardsForBank(bankID : String, user : User) : Set[PhysicalCard] = {
+    def getPhysicalCardsForBank(bankId : BankId, user : User) : Set[PhysicalCard] = {
       if(user == obpuser1) {
         user1CardsForOneBank
       } else if (user == obpuser2) {
@@ -92,7 +92,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       }
     }
 
-    def getAccountHolders(bankID: String, accountID: String) : Set[User] = Set.empty
+    def getAccountHolders(bankId: BankId, accountID: String) : Set[User] = Set.empty
   }
 
   override def beforeAll() {
