@@ -69,7 +69,7 @@ private object LocalConnector extends Connector with Loggable {
      * "other account metadata" object.
      */
 
-    val query = QueryBuilder.start("originalPartyBankId").is(bankId).put("originalPartyAccountId").is(accountID).get
+    val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountID).get
 
     val moderatedCounterparties = Metadata.findAll(query).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
