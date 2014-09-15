@@ -27,14 +27,14 @@ private object LocalConnector extends Connector with Loggable {
   def getBanks : List[Bank] =
     HostedBank.findAll.map(createBank)
 
-  def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount] = {
+  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
     } yield Account toBankAccount account
   }
 
-  def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
+  def getModeratedOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
 
     /**
@@ -57,11 +57,11 @@ private object LocalConnector extends Connector with Loggable {
               OBPAccount.createRecord
             }
           }
-          moderate(createOtherBankAccount(bankId, accountID, otherAccountmetadata, otherAccountFromTransaction)).get
+          moderate(createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)).get
         }
   }
 
-  def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
+  def getModeratedOtherBankAccounts(bankId: BankId, accountId : AccountId)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
 
     /**
@@ -69,7 +69,7 @@ private object LocalConnector extends Connector with Loggable {
      * "other account metadata" object.
      */
 
-    val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountID).get
+    val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountId.value).get
 
     val moderatedCounterparties = Metadata.findAll(query).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
@@ -83,27 +83,27 @@ private object LocalConnector extends Connector with Loggable {
           OBPAccount.createRecord
         }
       }
-      moderate(createOtherBankAccount(bankId, accountID, meta, otherAccountFromTransaction))
+      moderate(createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction))
     })
 
     Full(moderatedCounterparties.flatten)
   }
 
-  def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    logger.debug("getTransactions for " + bankId + "/" + accountID)
+  def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+    logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
       bank <- getHostedBank(bankId)
-      account <- bank.getAccount(accountID)
+      account <- bank.getAccount(accountId)
     } yield {
       updateAccountTransactions(bank, account)
       account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
     }
   }
 
-  def getTransaction(bankId: BankId, accountID : String, transactionID : String): Box[Transaction] = {
+  def getTransaction(bankId: BankId, accountId : AccountId, transactionID : String): Box[Transaction] = {
     for{
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
-      account  <- bank.getAccount(accountID) ?~! s"Transaction not found: account $accountID not found"
+      account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
       objectId <- tryo{new ObjectId(transactionID)} ?~ {"Transaction "+transactionID+" not found"}
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
       transaction <- createTransaction(envelope,account)
@@ -121,10 +121,10 @@ private object LocalConnector extends Connector with Loggable {
     Set.empty
   }
 
-  def getAccountHolders(bankId: BankId, accountID: String) : Set[User] = {
+  def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
     MappedAccountHolder.findAll(
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID)).map(accHolder => accHolder.user.obj).flatten.toSet
+      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
     private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
@@ -153,7 +153,7 @@ private object LocalConnector extends Connector with Loggable {
           bankName = otherAccount_.bank.get.name.get,
           kind = "",
           originalPartyBankId = theAccount.bankId,
-          originalPartyAccountId = theAccount.permalink.get
+          originalPartyAccountId = theAccount.accountId
         )
         val transactionType = transaction.details.get.kind.get
         val amount = transaction.details.get.value.get.amount.get
@@ -206,7 +206,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: String,
+  private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
       id = otherAccount.id.is.toString,

@@ -33,6 +33,7 @@ package code.api.v1_2_1
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil
+import org.scalatest.Tag
 import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
@@ -40,15 +41,13 @@ import dispatch._
 import _root_.net.liftweb.json.Serialization.write
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
-import code.model.TokenType._
 import scala.util.Random._
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, BankId, BankAccount, ViewCreationJSON, ViewUpdateData}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
 import code.api.test.{ServerSetup}
 import APIUtil.OAuth._
 import org.bson.types.ObjectId
 import code.views.Views
 import code.model.dataAccess._
-import scala.Some
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
 
@@ -676,17 +675,18 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     scenario("we make a payment", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -699,9 +699,9 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("12.50")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
 
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user1)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
       val transId : String = (postResult.body \ "transaction_id") match {
         case JString(i) => i
@@ -710,7 +710,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       transId should not equal("")
 
       val reply = getTransaction(
-          fromAccount.bankId.value, fromAccount.permalink, view, transId, user1)
+          fromAccount.bankId.value, fromAccount.accountId.value, view, transId, user1)
 
       Then("we should get a 200 ok code")
       reply.code should equal (200)
@@ -726,7 +726,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
       transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
       getFromAccount.balance should equal(expectedNewFromBalance)
-      val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.permalink, view, user1)
+      val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
       toAccountTransactionsReq.code should equal(200)
       val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
       val newestToAccountTransaction = toAccountTransactions.transactions(0)
@@ -746,17 +746,19 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
     scenario("we can't make a payment without access to the owner view", Payments) {
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
+
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -769,8 +771,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("12.33")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user2)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user2)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -785,17 +787,18 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
     scenario("we can't make a payment without an oauth user", Payments) {
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -808,8 +811,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("12.33")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, None)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, None)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -828,15 +831,17 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val testBank = createPaymentTestBank()
       val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -849,8 +854,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("0")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user1)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -866,19 +871,20 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "EUR")
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -891,8 +897,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("-20.30")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user1)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -908,14 +914,14 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
+      val accountId1 = AccountId("__acc1")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       val fromAccount = getFromAccount
@@ -927,7 +933,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val amt = BigDecimal("17.30")
 
       val payJson = MakePaymentJson(bankId.value, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user1)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -942,17 +948,18 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
       val bankId = BankId(testBank.permalink.get)
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc1", "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, "__acc2", "GBP")
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
-        BankAccount(bankId, acc1.permalink.get).getOrElse(fail("couldn't get from account"))
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
       }
 
       def getToAccount : BankAccount = {
-        BankAccount(bankId, acc2.permalink.get).getOrElse(fail("couldn't get to account"))
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
       }
 
       val fromAccount = getFromAccount
@@ -965,8 +972,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val amt = BigDecimal("4.95")
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.permalink, amt.toString)
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.permalink, view, payJson, user1)
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
       Then("we should get a 400")
       postResult.code should equal(400)
@@ -1124,14 +1131,14 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
             create.
             accountID(account.id.get.toString).
             saveMe
-        val owner = ownerView(account.bankId, account.permalink.get)
+        val owner = ownerView(account.bankId, account.accountId)
         ViewPrivileges.create.
           view(owner).
           user(ownerUser).
           save
 
         if(addPublicView) {
-          publicView(account.bankId, account.permalink.get)
+          publicView(account.bankId, account.accountId)
         }
       })
     }
@@ -1996,7 +2003,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val view = Views.views.vend.view(viewId,bankAccount.id, BankId(bankId)).get
+      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
@@ -2043,7 +2050,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ownerViewId,bankAccount.id, BankId(bankId)).get
+      val view = Views.views.vend.view(ownerViewId, AccountId(bankAccount.id), BankId(bankId)).get
       view.users should contain (obpuser3)
     }
 
@@ -2125,7 +2132,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val view = Views.views.vend.view(viewId,bankAccount.id, BankId(bankId)).get
+      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
       val userId = obpuser1.idGivenByProvider
 
       view.users.length should equal(1)
@@ -2162,7 +2169,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view("owner",bankAccount.id, BankId(bankId)).get
+      val view = Views.views.vend.view("owner", AccountId(bankAccount.id), BankId(bankId)).get
       view.users should contain (obpuser3)
     }
   }

@@ -1,7 +1,7 @@
 package code.metadata.counterparties
 
 import net.liftweb.util.SimpleInjector
-import code.model.{BankId, OtherBankAccountMetadata, OtherBankAccount}
+import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount}
 
 object Counterparties extends SimpleInjector {
 
@@ -13,6 +13,6 @@ object Counterparties extends SimpleInjector {
 
 trait Counterparties {
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata
 
 }

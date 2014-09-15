@@ -1,18 +1,18 @@
 package code.metadata.wheretags
 
 import java.util.Date
-import code.model.{BankId, GeoTag}
+import code.model.{AccountId, BankId, GeoTag}
 import net.liftweb.common.Loggable
 
 private object MongoTransactionWhereTags extends WhereTags with Loggable {
 
-  def addWhereTag(bankId : BankId, accountId : String, transactionId: String)
+  def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: String)
                  (userId: String, viewId : Long, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
 
 
     val newTag = OBPWhereTag.createRecord.
       bankId(bankId.value).
-      accountId(accountId).
+      accountId(accountId.value).
       transactionId(transactionId).
       userId(userId).
       viewID(viewId).
@@ -28,7 +28,7 @@ private object MongoTransactionWhereTags extends WhereTags with Loggable {
     true
   }
 
-  def deleteWhereTag(bankId: BankId, accountId: String, transactionId: String)(viewId: Long): Boolean = {
+  def deleteWhereTag(bankId: BankId, accountId: AccountId, transactionId: String)(viewId: Long): Boolean = {
     //use delete with find query to avoid concurrency issues
     OBPWhereTag.delete(OBPWhereTag.getFindQuery(bankId, accountId, transactionId, viewId))
 
@@ -36,7 +36,7 @@ private object MongoTransactionWhereTags extends WhereTags with Loggable {
     true
   }
 
-  def getWhereTagsForTransaction(bankId : BankId, accountId : String, transactionId: String)() : List[GeoTag] = {
+  def getWhereTagsForTransaction(bankId : BankId, accountId : AccountId, transactionId: String)() : List[GeoTag] = {
     OBPWhereTag.findAll(bankId, accountId, transactionId)
   }
 }

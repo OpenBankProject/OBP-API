@@ -91,8 +91,8 @@ class ModeratedTransactionMetadata(
   val comments : Option[List[Comment]],
   val addComment: Option[(String, Long, String, Date) => Box[Comment]],
   private val deleteComment: Option[(String) => Box[Unit]],
-  val tags : Option[List[Tag]],
-  val addTag : Option[(String, Long, String, Date) => Box[Tag]],
+  val tags : Option[List[TransactionTag]],
+  val addTag : Option[(String, Long, String, Date) => Box[TransactionTag]],
   private val deleteTag : Option[(String) => Box[Unit]],
   val images : Option[List[TransactionImage]],
   val addImage : Option[(String, Long, String, Date, URL) => Box[TransactionImage]],
@@ -174,7 +174,7 @@ object ModeratedTransactionMetadata {
 }
 
 class ModeratedBankAccount(
-  val id : String,
+  val accountId : AccountId,
   val owners : Option[Set[AccountOwner]],
   val accountType : Option[String],
   val balance: String = "",

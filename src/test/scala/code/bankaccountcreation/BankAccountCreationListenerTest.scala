@@ -1,7 +1,7 @@
 package code.bankaccountcreation
 
 import code.api.test.ServerSetup
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, BankId}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, AccountId, BankId}
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
 import code.model.dataAccess.{HostedBank, APIUser, BankAccountCreationListener}
@@ -20,6 +20,7 @@ class BankAccountCreationListenerTest extends ServerSetup {
       val userId = "foo"
       val userProvider = "bar"
       val accountNumber = "123456"
+      val expectedAccountId = AccountId(accountNumber)
       val bankIdentifier = "qux"
       val expectedBankId = "quxbank"
 
@@ -34,7 +35,7 @@ class BankAccountCreationListenerTest extends ServerSetup {
 
 
       //before the bank account is created, it should obviously have no holders
-      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), accountNumber) should equal (Set.empty)
+      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), expectedAccountId) should equal (Set.empty)
 
       BankAccountCreationListener.createBankAccountListener ! AMQPMessage(msgContent)
 
@@ -42,7 +43,7 @@ class BankAccountCreationListenerTest extends ServerSetup {
       Thread.sleep(5000)
 
       Then("The should be considered the account holder")
-      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), accountNumber) should equal(Set(user))
+      Connector.connector.vend.getAccountHolders(BankId(expectedBankId), expectedAccountId) should equal(Set(user))
     }
   }
 

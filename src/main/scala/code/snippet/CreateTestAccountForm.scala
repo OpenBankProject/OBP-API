@@ -2,7 +2,7 @@ package code.snippet
 
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.{BankId, BankAccount}
+import code.model.{AccountId, BankId, BankAccount}
 import code.util.Helper._
 import net.liftweb.common.{Empty, Full, Failure, Box}
 import net.liftweb.http.js.JsCmds.SetHtml
@@ -23,7 +23,7 @@ object CreateTestAccountForm{
     var initialBalance = ""
 
     val processForm : () => JsCmd = () => {
-      val createdAccount = createAccount(accountId, BankId(bankId), currency, initialBalance)
+      val createdAccount = createAccount(AccountId(accountId), BankId(bankId), currency, initialBalance)
       createdAccount match {
         case Full(acc) => showSuccess(acc)
         case Failure(msg, _, _) => showError(msg)
@@ -71,8 +71,8 @@ object CreateTestAccountForm{
    * Attempts to create a new account, based on form params
    * @return a box containing the created account or reason for account creation failure
    */
-  def createAccount(accountId : String, bankId : BankId, currency : String, initialBalance : String) : Box[Account] =  {
-    if(accountId == "") Failure("Account id cannot be empty")
+  def createAccount(accountId : AccountId, bankId : BankId, currency : String, initialBalance : String) : Box[Account] =  {
+    if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
     else if(initialBalance == "") Failure("Initial balance cannot be empty")
@@ -87,7 +87,7 @@ object CreateTestAccountForm{
       } yield {
         //TODO: refactor into a single private api call, and have this return Box[BankAccount] instead of Account?
         val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(new BankAccountNumber {
-          override val accountNumber: String = accountId
+          override val accountNumber: String = accountId.value
         }, bank, user)
 
         //set currency and initial balance

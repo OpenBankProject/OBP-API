@@ -1,6 +1,6 @@
 package code.metadata.counterparties
 
-import code.model.{BankId, OtherBankAccountMetadata, OtherBankAccount}
+import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount}
 import net.liftweb.common.Loggable
 import com.mongodb.QueryBuilder
 
@@ -8,7 +8,7 @@ import com.mongodb.QueryBuilder
 object MongoCounterparties extends Counterparties with Loggable {
   import code.model.GeoTag
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : String, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
     import net.liftweb.util.Helpers.tryo
     import net.liftweb.common.Full
     import org.bson.types.ObjectId
@@ -19,7 +19,7 @@ object MongoCounterparties extends Counterparties with Loggable {
 
     val existing = for {
       objId <- tryo { new ObjectId(otherParty.id) }
-      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId).
+      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).
         put("_id").is(objId).get()
       m <- Metadata.find(query)
     } yield m
@@ -35,7 +35,7 @@ object MongoCounterparties extends Counterparties with Loggable {
   /**
    * This only exists for OBPEnvelope. Avoid using it for any other reason outside of this class
    */
-  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : String, otherAccountHolder : String) : Metadata = {
+  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String) : Metadata = {
     //create it
     if(otherAccountHolder.isEmpty){
       logger.info("other account holder is Empty. creating a metadata record with no public alias")
@@ -45,14 +45,14 @@ object MongoCounterparties extends Counterparties with Loggable {
       Metadata
         .createRecord
         .originalPartyBankId(originalPartyBankId.value)
-        .originalPartyAccountId(originalPartyAccountId)
+        .originalPartyAccountId(originalPartyAccountId.value)
         .holder("")
         .save
 
     } else {
       Metadata.createRecord.
         originalPartyBankId(originalPartyBankId.value).
-        originalPartyAccountId(originalPartyAccountId).
+        originalPartyAccountId(originalPartyAccountId.value).
         holder(otherAccountHolder).
         publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
     }
@@ -62,7 +62,7 @@ object MongoCounterparties extends Counterparties with Loggable {
    * Generates a new alias name that is guaranteed not to collide with any existing public alias names
    * for the account in question
    */
-  def newPublicAliasName(originalPartyBankId : BankId, originalPartyAccountId : String): String = {
+  def newPublicAliasName(originalPartyBankId : BankId, originalPartyAccountId : AccountId): String = {
     import scala.util.Random
 
     val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
@@ -71,7 +71,7 @@ object MongoCounterparties extends Counterparties with Loggable {
      * Returns true if @publicAlias is already the name of a public alias within @account
      */
     def isDuplicate(publicAlias: String) = {
-      val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId).get()
+      val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).get()
       Metadata.findAll(query).exists(m => {
         m.publicAlias.get == publicAlias
       })

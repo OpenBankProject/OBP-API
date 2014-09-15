@@ -1,6 +1,6 @@
 package code.metadata.tags
 
-import code.model.{BankId, User, Tag}
+import code.model.{AccountId, BankId, User, TransactionTag}
 import java.util.Date
 import net.liftweb.common.{Full, Box}
 import org.bson.types.ObjectId
@@ -11,20 +11,20 @@ import com.mongodb.{DBObject, QueryBuilder}
 
 private object MongoTransactionTags extends Tags {
   
-  def getTags(bankId : BankId, accountId : String, transactionId: String)() : List[Tag] = {
+  def getTags(bankId : BankId, accountId : AccountId, transactionId: String)() : List[TransactionTag] = {
     OBPTag.findAll(bankId, accountId, transactionId)
   }
-  def addTag(bankId : BankId, accountId : String, transactionId: String)(userId: String, viewId : Long, tagText : String, datePosted : Date) : Box[Tag] = {
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: String)(userId: String, viewId : Long, tagText : String, datePosted : Date) : Box[TransactionTag] = {
     OBPTag.createRecord.
       bankId(bankId.value).
-      accountId(accountId).
+      accountId(accountId.value).
       transactionId(transactionId).
       userId(userId).
       viewID(viewId).
       tag(tagText).
       date(datePosted).saveTheRecord()
   }
-  def deleteTag(bankId : BankId, accountId : String, transactionId: String)(tagId : String) : Box[Unit] = {
+  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: String)(tagId : String) : Box[Unit] = {
     //use delete with find query to avoid concurrency issues
     OBPTag.delete(OBPTag.getFindQuery(bankId, accountId, transactionId, tagId))
 
@@ -35,7 +35,7 @@ private object MongoTransactionTags extends Tags {
 }
 
 
-private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with Tag {
+private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTag] with TransactionTag {
   def meta = OBPTag
 
   //These fields are used to link this to its transaction
@@ -56,14 +56,14 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
 }
 
 private object OBPTag extends OBPTag with MongoMetaRecord[OBPTag] {
-  def findAll(bankId : BankId, accountId : String, transactionId : String) : List[OBPTag] = {
-    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId).put("transactionId").is(transactionId).get
+  def findAll(bankId : BankId, accountId : AccountId, transactionId : String) : List[OBPTag] = {
+    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId).get
     findAll(query)
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : BankId, accountId : String, transactionId : String, tagId : String) : DBObject = {
+  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : String, tagId : String) : DBObject = {
     QueryBuilder.start("_id").is(new ObjectId(tagId)).put("transactionId").is(transactionId).
-      put("accountId").is(accountId).put("bankId").is(bankId.value).get()
+      put("accountId").is(accountId.value).put("bankId").is(bankId.value).get()
   }
 }

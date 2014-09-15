@@ -44,23 +44,23 @@ trait Connector {
   //gets banks handled by this connector
   def getBanks : List[Bank]
 
-  def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount]
+  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]
 
-  def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
+  def getModeratedOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount]
 
-  def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
+  def getModeratedOtherBankAccounts(bankId: BankId, accountID : AccountId)
   	(moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]]
 
-  def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]]
+  def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
-  def getTransaction(bankId: BankId, accountID : String, transactionID : String): Box[Transaction]
+  def getTransaction(bankId: BankId, accountID : AccountId, transactionID : String): Box[Transaction]
 
   def getPhysicalCards(user : User) : Set[PhysicalCard]
 
   def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard]
   
   //gets the users who are the legal owners/holders of the account
-  def getAccountHolders(bankId: BankId, accountID: String) : Set[User]
+  def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]
   //...
 }

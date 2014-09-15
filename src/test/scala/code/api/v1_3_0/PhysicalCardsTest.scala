@@ -59,16 +59,16 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     //these methods aren't required by our test
     def getBank(bankId : BankId) : Box[Bank] = Empty
     def getBanks : List[Bank] = Nil
-    def getBankAccount(bankId : BankId, accountId : String) : Box[BankAccount] = Empty
-    def getModeratedOtherBankAccount(bankId: BankId, accountID : String, otherAccountID : String)
+    def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
+    def getModeratedOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String)
                                     (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount] =
       Empty
-    def getModeratedOtherBankAccounts(bankId: BankId, accountID : String)
+    def getModeratedOtherBankAccounts(bankId: BankId, accountID : AccountId)
                                      (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] =
       Empty
-    def getTransactions(bankId: BankId, accountID: String, queryParams: OBPQueryParam*): Box[List[Transaction]] =
+    def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
-    def getTransaction(bankId : BankId, accountID : String, transactionID : String): Box[Transaction] =
+    def getTransaction(bankId : BankId, accountID : AccountId, transactionID : String): Box[Transaction] =
       Empty
 
     //these methods are required
@@ -92,7 +92,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       }
     }
 
-    def getAccountHolders(bankId: BankId, accountID: String) : Set[User] = Set.empty
+    def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
   }
 
   override def beforeAll() {

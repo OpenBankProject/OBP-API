@@ -87,7 +87,7 @@ trait View {
 
   //specifies which bank account this view is for
   def bankAccountBankId : BankId
-  def bankAccountPermalink : String
+  def bankAccountId : AccountId
 
   //the view settings
   def usePublicAliasIfOneExists: Boolean
@@ -323,7 +323,7 @@ trait View {
 
       Some(
         new ModeratedBankAccount(
-          id = bankAccount.permalink,
+          accountId = bankAccount.accountId,
           owners = Some(owners),
           accountType = accountType,
           balance = balance,
@@ -465,13 +465,13 @@ trait View {
 object View {
   def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
     Views.views.vend.view(viewPermalink, account)
-  def fromUrl(viewPermalink: String, accountId: String, bankId: BankId): Box[View] =
+  def fromUrl(viewPermalink: String, accountId: AccountId, bankId: BankId): Box[View] =
     Views.views.vend.view(viewPermalink, accountId, bankId)
 
-  def linksJson(views: List[View], accountPermalink: String, bankId: BankId): JObject = {
+  def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~
-        ("href" -> { "/" + bankId + "/account/" + accountPermalink + "/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.permalink }) ~
         ("method" -> "GET") ~
         ("title" -> "Get information about one account")
     })

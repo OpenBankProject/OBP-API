@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api.test
 
-import code.model.BankId
+import code.model.{AccountId, BankId}
 import org.scalatest._
 import dispatch._, Defaults._
 import net.liftweb.json.NoTypeHints
@@ -82,14 +82,14 @@ trait ServerSetup extends FeatureSpec
     //fake bank accounts
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(None, bank, randomString(4), randomString(4))
+        createAccountAndOwnerView(None, bank, AccountId(randomString(4)), randomString(4))
         }
       })
 
     accounts.foreach(account => {
       //create public view and another random view (owner view has already been created
-      publicView(account.bankId, account.permalink.get)
-      randomView(account.bankId, account.permalink.get)
+      publicView(account.bankId, account.accountId)
+      randomView(account.bankId, account.accountId)
     })
 
     //fake transactions
@@ -194,7 +194,7 @@ trait ServerSetup extends FeatureSpec
     MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
-  def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountPermalink : String, currency : String) = {
+  def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountId : AccountId, currency : String) = {
 
     val created = Account.createRecord.
       balance(1000).
@@ -202,7 +202,7 @@ trait ServerSetup extends FeatureSpec
       number(randomString(4)).
       kind(randomString(4)).
       name(randomString(4)).
-      permalink(accountPermalink).
+      permalink(accountId.value).
       bankID(bank.id.get).
       label(randomString(4)).
       currency(currency).
@@ -213,7 +213,7 @@ trait ServerSetup extends FeatureSpec
       accountID(created.id.get.toString).
       saveMe
 
-    val owner = ownerView(BankId(bank.permalink.get), accountPermalink)
+    val owner = ownerView(BankId(bank.permalink.get), accountId)
 
     //give to user1 owner view
     if(accountOwner.isDefined) {
@@ -290,17 +290,17 @@ trait ServerSetup extends FeatureSpec
     getAPIResponse(jsonReq)
   }
 
-  def ownerView(bankId: BankId, accountPermalink: String) =
-    ViewImpl.createAndSaveOwnerView(bankId, accountPermalink, randomString(3))
+  def ownerView(bankId: BankId, accountId: AccountId) =
+    ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
-  def publicView(bankId: BankId, accountPermalink: String) =
+  def publicView(bankId: BankId, accountId: AccountId) =
     ViewImpl.create.
     name_("Public").
     description_(randomString(3)).
     permalink_("public").
     isPublic_(true).
     bankPermalink(bankId.value).
-    accountPermalink(accountPermalink).
+    accountPermalink(accountId.value).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(true).
     hideOtherAccountMetadataIfAlias_(true).
@@ -366,14 +366,14 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-  def randomView(bankId: BankId, accountPermalink: String) =
+  def randomView(bankId: BankId, accountId: AccountId) =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).
     permalink_(randomString(3)).
     isPublic_(false).
     bankPermalink(bankId.value).
-    accountPermalink(accountPermalink).
+    accountPermalink(accountId.value).
     usePrivateAliasIfOneExists_(false).
     usePublicAliasIfOneExists_(false).
     hideOtherAccountMetadataIfAlias_(false).

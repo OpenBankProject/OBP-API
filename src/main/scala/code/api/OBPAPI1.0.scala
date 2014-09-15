@@ -92,7 +92,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       JsonResponse(apiDetails)
     }
 
-    case BankId(bankId) :: "accounts" :: accountAlias :: "transactions" :: viewName :: Nil JsonGet json => {
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: viewName :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -131,7 +131,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
                       OBPOrdering(sortBy, sortDirection))
       val params : List[OBPQueryParam] = fromDate.toList ::: toDate.toList ::: basicParams
       val response = for {
-        bankAccount <- BankAccount(bankId, accountAlias)
+        bankAccount <- BankAccount(bankId, accountId)
         view <- View.fromUrl(viewName, bankAccount)
         transactions <- bankAccount.getModeratedTransactions(getUser(httpCode,oAuthParameters.get("oauth_token")), view, params : _*)
       } yield {
@@ -145,7 +145,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
     }
 
-    case BankId(bankId) :: "accounts" :: accountAlias :: "transactions" ::
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
       transactionID :: "transaction" :: viewName :: Nil JsonGet  json => {
 
       //log the API call
@@ -156,7 +156,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       val moderatedTransactionAndView = for {
         bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
-        account <- BankAccount(bankId, accountAlias) ?~ { "account "  + accountAlias + " not found for bank"} ~> 404
+        account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
         view <- View.fromUrl(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
         moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorised" ~> 401
       } yield {
@@ -169,7 +169,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
                               ("links" -> links)))
     }
 
-    case BankId(bankId) :: "accounts" :: accountAlias :: "transactions" ::
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
       transactionID :: "comments" :: viewName :: Nil JsonGet json => {
 
       //log the API call
@@ -180,7 +180,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       val comments = for {
         bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
-        account <- BankAccount(bankId, accountAlias) ?~ { "account "  + accountAlias + " not found for bank"} ~> 404
+        account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
         view <- View.fromUrl(viewName,account) ?~ { "view "  + viewName + " not found for account"} ~> 404
         moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorised" ~> 401
         comments <- Box(moderatedTransaction.metadata).flatMap(_.comments) ?~ "transaction metadata not authorised" ~> 401
@@ -226,7 +226,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       }
     }
 
-    case BankId(bankId) :: "accounts" :: accountAlias :: "account" :: viewName :: Nil JsonGet json => {
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: viewName :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -239,7 +239,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       val moderatedAccountAndViews = for {
         bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
-      account <- BankAccount(bankId, accountAlias) ?~ { "account "  + accountAlias + " not found for bank"} ~> 404
+      account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
       view <- View.fromUrl(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
       moderatedAccount <- account.moderatedBankAccount(view, user)  ?~ {"view/account not authorised"} ~> 401
       availableViews <- Full(account.permittedViews(user))
@@ -247,7 +247,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       def linkJson(view: View): JObject = {
         ("rel" -> view.name) ~
-        ("href" -> { "/" + bankId + "/accounts/" + accountAlias + "/transactions/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/accounts/" + accountId + "/transactions/" + view.permalink }) ~
         ("method" -> "GET") ~
         ("title" -> view.description)
       }

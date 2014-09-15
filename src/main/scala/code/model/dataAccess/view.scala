@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import net.liftweb.mapper._
-import code.model.{BankId, ViewData, View, User}
+import code.model._
 import scala.collection.immutable.List
 
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
@@ -355,7 +355,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
   //specifies which bank account this view is for
   def bankAccountBankId : BankId = BankId(bankPermalink.get)
-  def bankAccountPermalink : String = accountPermalink.get
+  def bankAccountId : AccountId = AccountId(accountPermalink.get)
 
   //reading access
 
@@ -439,15 +439,15 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
-  def accountFilter(bankId : BankId, accountPermalink : String) : List[QueryParam[ViewImpl]] = {
-    By(ViewImpl.bankPermalink, bankId.value) :: By(ViewImpl.accountPermalink, accountPermalink) :: Nil
+  def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
+    By(ViewImpl.bankPermalink, bankId.value) :: By(ViewImpl.accountPermalink, accountId.value) :: Nil
   }
 
-  def createAndSaveOwnerView(bankId : BankId, accountPermalink: String, description: String) : ViewImpl = {
+  def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     ViewImpl
       .create
       .bankPermalink(bankId.value)
-      .accountPermalink(accountPermalink)
+      .accountPermalink(accountId.value)
       .name_("Owner")
       .permalink_("owner")
       .description_(description)

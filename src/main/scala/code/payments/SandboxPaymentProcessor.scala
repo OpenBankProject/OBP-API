@@ -1,6 +1,6 @@
 package code.payments
 
-import code.model.{BankId, BankAccount}
+import code.model.{AccountId, BankId, BankAccount}
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
 import code.model.dataAccess.Account
@@ -32,10 +32,10 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
 
     //this is the transaction that gets attached to the account of the person making the payment
     val createdFromTrans = createTransaction(fromAccount, toAccount.bankId,
-      toAccount.permalink, fromTransAmt)
+      toAccount.accountId, fromTransAmt)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
-    createTransaction(toAccount, fromAccount.bankId, fromAccount.permalink, toTransAmt)
+    createTransaction(toAccount, fromAccount.bankId, fromAccount.accountId, toTransAmt)
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
@@ -43,17 +43,17 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
   }
 
   private def createTransaction(account : BankAccount, otherBankId : BankId,
-                        otherAccountId : String, amount : BigDecimal) : Box[OBPEnvelope] = {
+                        otherAccountId : AccountId, amount : BigDecimal) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
     for {
       otherBank <- HostedBank.find(otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
-      otherAccs = Account.findAll(("permalink" -> otherAccountId))
+      otherAccs = Account.findAll(("permalink" -> otherAccountId.value))
       otherAcc <- Box(otherAccs.filter(_.bankId == BankId(otherBank.permalink.get)).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
       transTime = now
-      thisAccs = Account.findAll(("permalink" -> account.permalink))
+      thisAccs = Account.findAll(("permalink" -> account.accountId.value))
       thisAcc <- Box(thisAccs.filter(_.bankId == account.bankId).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankId}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {

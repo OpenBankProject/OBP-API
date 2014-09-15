@@ -50,7 +50,7 @@ trait APIMethods121 {
       Failure("Coordinates not possible")
   }
 
-  private def moderatedTransactionMetadata(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] ={
+  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] ={
     for {
       account <- BankAccount(bankId, accountId)
       view <- View.fromUrl(viewId, account)
@@ -174,7 +174,7 @@ trait APIMethods121 {
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "account" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -191,7 +191,7 @@ trait APIMethods121 {
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -206,7 +206,7 @@ trait APIMethods121 {
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -222,7 +222,7 @@ trait APIMethods121 {
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: viewId :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -238,7 +238,7 @@ trait APIMethods121 {
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //deletes a view on an bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "views" :: viewId :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: viewId :: Nil JsonDelete json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -250,7 +250,7 @@ trait APIMethods121 {
 
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -265,7 +265,7 @@ trait APIMethods121 {
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -280,7 +280,7 @@ trait APIMethods121 {
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -296,7 +296,7 @@ trait APIMethods121 {
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -313,7 +313,7 @@ trait APIMethods121 {
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to one view
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: viewId :: Nil JsonDelete json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -326,7 +326,7 @@ trait APIMethods121 {
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to all the views
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -339,7 +339,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -354,7 +354,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -369,7 +369,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -385,7 +385,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -402,7 +402,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add public alias to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -420,7 +420,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update public alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -438,7 +438,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete public alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -453,7 +453,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -470,7 +470,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -489,7 +489,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update private alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -508,7 +508,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete private alias of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -525,7 +525,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -544,7 +544,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -563,7 +563,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -580,7 +580,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -599,7 +599,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -618,7 +618,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -635,7 +635,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -654,7 +654,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -673,7 +673,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete image url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -690,7 +690,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add open corporate url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -709,7 +709,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update open corporate url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -728,7 +728,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete open corporate url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -744,7 +744,7 @@ trait APIMethods121 {
     //TODO: get corporate location of counterparty?
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add corporate location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "corporate_location" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: other_account_id :: "corporate_location" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -765,7 +765,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update corporate location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -786,7 +786,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete corporate location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonDelete _ => {
         user =>
           for {
             u <- user
@@ -807,7 +807,7 @@ trait APIMethods121 {
     //TODO: get physical location of counterparty?
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add physical location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_id :: "physical_location" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: other_account_id :: "physical_location" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -828,7 +828,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update physical location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -849,7 +849,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete physical location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonDelete _ => {
         user =>
           for {
             u <- user
@@ -869,7 +869,7 @@ trait APIMethods121 {
 
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transactions
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: Nil JsonGet json => {
         user =>
 
           for {
@@ -886,7 +886,7 @@ trait APIMethods121 {
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transaction by id
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -901,7 +901,7 @@ trait APIMethods121 {
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get narrative
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonGet json => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -915,7 +915,7 @@ trait APIMethods121 {
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add narrative
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -933,7 +933,7 @@ trait APIMethods121 {
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update narrative
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -951,7 +951,7 @@ trait APIMethods121 {
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete narrative
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -965,7 +965,7 @@ trait APIMethods121 {
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get comments
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonGet json => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -979,7 +979,7 @@ trait APIMethods121 {
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add comment
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -996,7 +996,7 @@ trait APIMethods121 {
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete comment
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1010,7 +1010,7 @@ trait APIMethods121 {
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get tags
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: Nil JsonGet json => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1024,7 +1024,7 @@ trait APIMethods121 {
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add a tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
 
         user =>
           for {
@@ -1042,7 +1042,7 @@ trait APIMethods121 {
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete a tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
 
         user =>
           for {
@@ -1057,7 +1057,7 @@ trait APIMethods121 {
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get images
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: Nil JsonGet json => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1071,7 +1071,7 @@ trait APIMethods121 {
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -1089,7 +1089,7 @@ trait APIMethods121 {
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete an image
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1103,7 +1103,7 @@ trait APIMethods121 {
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get where tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonGet json => {
         user =>
           for {
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1118,7 +1118,7 @@ trait APIMethods121 {
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add where tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -1137,7 +1137,7 @@ trait APIMethods121 {
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update where tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -1156,7 +1156,7 @@ trait APIMethods121 {
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete where tag
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonDelete _ => {
         user =>
           for {
             bankAccount <- BankAccount(bankId, accountId)
@@ -1174,7 +1174,7 @@ trait APIMethods121 {
 
     lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other account of a transaction
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions":: transactionId :: "other_account" :: Nil JsonGet json => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions":: transactionId :: "other_account" :: Nil JsonGet json => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1192,7 +1192,7 @@ trait APIMethods121 {
     case class TransactionId(transaction_id : String)
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: Nil JsonPost json -> _ => {
         user =>
 
           if (Props.getBool("payments_enabled", false)) {
@@ -1203,7 +1203,7 @@ trait APIMethods121 {
               view <- View.fromUrl(viewId, fromAccount) ?~ s"view $viewId not found"//TODO: this isn't actually used, unlike for GET transactions
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {"wrong json format"}
               toAccount <- {
-                BankAccount(BankId(makeTransJson.bank_id), makeTransJson.account_id) ?~! {"Intended recipient with " +
+                BankAccount(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id)) ?~! {"Intended recipient with " +
                   s" account id ${makeTransJson.account_id} at bank ${makeTransJson.bank_id}" +
                   " not found"}
               }

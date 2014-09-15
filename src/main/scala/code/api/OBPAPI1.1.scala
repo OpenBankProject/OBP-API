@@ -244,7 +244,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   }
 
-  private def moderatedTransactionMetadata(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
+  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
       view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
@@ -252,7 +252,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
     } yield metadata
 
-  private def moderatedTransactionOtherAccount(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
+  private def moderatedTransactionOtherAccount(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
       view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
@@ -260,14 +260,14 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       otherAccount <- Box(moderatedTransaction.otherBankAccount) ?~ {"view " + viewId + " does not authorize other account access"}
     } yield otherAccount
 
-  private def moderatedOtherAccount(bankId : BankId, accountId : String, viewId : String, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
+  private def moderatedOtherAccount(bankId : BankId, accountId : AccountId, viewId : String, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     for {
       account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
       view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
       moderatedOtherBankAccount <- account.moderatedOtherBankAccount(other_account_ID, view, user)
     } yield moderatedOtherBankAccount
 
-  private def moderatedOtherAccountMetadata(bankId : BankId, accountId : String, viewId : String, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccountMetadata] =
+  private def moderatedOtherAccountMetadata(bankId : BankId, accountId : AccountId, viewId : String, other_account_ID : String, user : Box[User]) : Box[ModeratedOtherBankAccountMetadata] =
     for {
       moderatedOtherBankAccount <- moderatedOtherAccount(bankId, accountId, viewId, other_account_ID, user)
       metadata <- Box(moderatedOtherBankAccount.metadata) ?~! {"view " + viewId + "does not allow other bank account metadata access"}
@@ -367,7 +367,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
         val views = acc permittedViews user
         ("account" -> (
-          ("id" -> acc.permalink) ~
+          ("id" -> acc.accountId.value) ~
           ("views_available" -> views.map(viewToJson(_)))
         ))
       }
@@ -408,7 +408,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   })
 
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "account" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "account" :: Nil JsonGet json => {
       logAPICall
       val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
@@ -467,7 +467,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: Nil JsonGet json => {
       import code.api.v1_2_1.APIMethods121.getTransactionParams
 
       //log the API call
@@ -492,11 +492,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "transaction" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "transaction" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
-      def transactionInJson(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def transactionInJson(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val moderatedTransaction = for {
             account <- BankAccount(bankId, accountId) ?~ { "bank " + bankId + " and account "  + accountId + " not found for bank"}
             view <- View.fromUrl(viewId, account) ?~ { "view "  + viewId + " not found"}
@@ -526,11 +526,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
-      def narrativeInJson(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def narrativeInJson(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val narrative = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,user)
             narrative <- Box(metadata.ownerComment) ?~ {"view " + viewId + " does not authorize narrative access"}
@@ -559,7 +559,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
@@ -600,7 +600,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
@@ -640,7 +640,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "comments" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "comments" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
@@ -658,7 +658,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("comments" -> comments.map(commentToJson))
       }
 
-      def commentsResponce(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def commentsResponce(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val comments = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,user)
             comments <- Box(metadata.comments) ?~ {"view " + viewId + " does not authorize comments access"}
@@ -687,7 +687,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
@@ -735,11 +735,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
-      def tagToJson(tag : Tag) : JValue = {
+      def tagToJson(tag : TransactionTag) : JValue = {
         ("tag" ->
           ("id" -> tag.id_) ~
           ("date" -> tag.datePosted.toString) ~
@@ -748,11 +748,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         )
       }
 
-      def tagsToJson(tags : List[Tag]) : JValue = {
+      def tagsToJson(tags : List[TransactionTag]) : JValue = {
         ("tags" -> tags.map(tagToJson))
       }
 
-      def tagsResponce(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def tagsResponce(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val tags = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,user)
             tags <- Box(metadata.tags) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -782,7 +782,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   })
   serve("obp" / "v1.1" prefix {
     //post a tag
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
@@ -836,7 +836,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
@@ -854,7 +854,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("images" -> images.map(imageToJson))
       }
 
-      def imagesResponce(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def imagesResponce(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val images = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,user)
             images <- Box(metadata.images) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -884,7 +884,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
   })
   serve("obp" / "v1.1" prefix {
     //post an image
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
@@ -933,11 +933,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
-      def whereTagResponce(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def whereTagResponce(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         val whereTag = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,user)
             whereTag <- Box(metadata.whereTag) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -966,7 +966,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountID :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
@@ -980,7 +980,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
             case Full(whereTagJson) => {
               def addWhereTag(user : User, viewID : Long, longitude: Double, latitude : Double) : Box[Boolean] = {
                 val addWhereTag = for {
-                  metadata <- moderatedTransactionMetadata(bankId,accountID,viewId,transactionID,Full(user))
+                  metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,Full(user))
                   addWhereTagFunc <- Box(metadata.addWhereTag) ?~ {"view " + viewId + " does not authorize adding where tag"}
                 } yield addWhereTagFunc
 
@@ -994,7 +994,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val postedGeoTag = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId, accountID, bankId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   posterWheteTag <- addWhereTag(user, view.id, whereTagJson.where.longitude, whereTagJson.where.latitude)
                 } yield posterWheteTag
 
@@ -1018,7 +1018,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountID :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
@@ -1032,7 +1032,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
             case Full(whereTagJson) => {
               def addWhereTag(user : User, viewID : Long, longitude: Double, latitude : Double) : Box[Boolean] = {
                 val addWhereTag = for {
-                  metadata <- moderatedTransactionMetadata(bankId,accountID,viewId,transactionID,Full(user))
+                  metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionID,Full(user))
                   addWhereTagFunc <- Box(metadata.addWhereTag) ?~ {"view " + viewId + " does not authorize adding where tag"}
                 } yield addWhereTagFunc
 
@@ -1046,7 +1046,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
               val postedGeoTag = for{
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
-                  view <- View.fromUrl(viewId, accountID, bankId) ?~ {"view " + viewId +" view not found"}
+                  view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   posterWheteTag <- addWhereTag(user, view.id, whereTagJson.where.longitude, whereTagJson.where.latitude)
                 } yield posterWheteTag
 
@@ -1070,7 +1070,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "transactions" :: transactionID :: "other_account" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "other_account" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
@@ -1087,7 +1087,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("swift_bic" -> otherAccount.swift_bic.getOrElse(""))
       }
 
-      def otherAccountResponce(bankId : BankId, accountId : String, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
+      def otherAccountResponce(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : JsonResponse = {
         moderatedTransactionOtherAccount(bankId,accountId,viewId,transactionID,user) match {
             case Full(otherAccount) => JsonResponse(otherAccountToJson(otherAccount), Nil, Nil, 200)
             case Failure(msg,_,_) => JsonResponse(Extraction.decompose(ErrorMessage(msg)), Nil, Nil, 400)
@@ -1111,7 +1111,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix {
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: other_account_ID :: "metadata" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: other_account_ID :: "metadata" :: Nil JsonGet json => {
       //log the API call
       logAPICall
 
@@ -1124,7 +1124,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("physical_location" -> metadata.physicalLocation.map(l => geoTagToJson("physical_location",l)))
       }
 
-      def otherAccountMetadataResponce(bankId : BankId, accountId : String, viewId : String, other_account_ID : String, user : Box[User]) : JsonResponse = {
+      def otherAccountMetadataResponce(bankId : BankId, accountId : AccountId, viewId : String, other_account_ID : String, user : Box[User]) : JsonResponse = {
         val otherAccountMetaData = for{
           otherAccount <- moderatedOtherAccount(bankId, accountId, viewId, other_account_ID, user)
           metaData <- Box(otherAccount.metadata) ?~! {"view " + viewId + "does not allow other account metadata access" }
@@ -1153,17 +1153,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postMoreInfoResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postMoreInfoResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[MoreInfoJSON]
           } match {
             case Full(moreInfoJson) => {
 
-              def addMoreInfo(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], moreInfo : String): Box[Boolean] = {
+              def addMoreInfo(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], moreInfo : String): Box[Boolean] = {
                 val addMoreInfo = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   moreInfo <- Box(metadata.moreInfo) ?~! {"view " + viewId + " does not authorize access to more_info"}
@@ -1208,17 +1208,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def updateMoreInfoResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateMoreInfoResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[MoreInfoJSON]
           } match {
             case Full(moreInfoJson) => {
 
-              def addMoreInfo(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], moreInfo : String): Box[Boolean] = {
+              def addMoreInfo(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], moreInfo : String): Box[Boolean] = {
                 val addMoreInfo = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   addMoreInfo <- Box(metadata.addMoreInfo) ?~ {"view " + viewId + " does not authorize adding more_info"}
@@ -1261,17 +1261,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postURLResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postURLResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[UrlJSON]
           } match {
             case Full(urlJson) => {
 
-              def addUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   url <- Box(metadata.url) ?~! {"view " + viewId + " does not authorize access to URL"}
@@ -1316,17 +1316,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def updateURLResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateURLResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[UrlJSON]
           } match {
             case Full(urlJson) => {
 
-              def addUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   addUrl <- Box(metadata.addURL) ?~ {"view " + viewId + " does not authorize adding URL"}
@@ -1369,17 +1369,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postImageUrlResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postImageUrlResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[ImageUrlJSON]
           } match {
             case Full(imageUrlJson) => {
 
-              def addImageUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addImageUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addImageUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   imageUrl <- Box(metadata.imageURL) ?~! {"view " + viewId + " does not authorize access to image URL"}
@@ -1424,17 +1424,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def updateImageUrlResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateImageUrlResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[ImageUrlJSON]
           } match {
             case Full(imageUrlJson) => {
 
-              def addImageUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addImageUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addImageUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   addImageUrl <- Box(metadata.addImageURL) ?~ {"view " + viewId + " does not authorize adding image URL"}
@@ -1477,17 +1477,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postOpenCorporatesUrlResponce(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postOpenCorporatesUrlResponce(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[OpenCorporatesUrlJSON]
           } match {
             case Full(openCorporatesUrlJSON) => {
 
-              def addOpenCorporatesUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addOpenCorporatesUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addOpenCorporatesUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   openCorporatesUrl <- Box(metadata.openCorporatesURL) ?~! {"view " + viewId + " does not authorize access to open_corporates_url"}
@@ -1532,17 +1532,17 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def updateOpenCorporatesURL(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateOpenCorporatesURL(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[OpenCorporatesUrlJSON]
           } match {
             case Full(openCorporatesUrlJSON) => {
 
-              def addOpenCorporatesUrl(bankId : BankId, accountId : String, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
+              def addOpenCorporatesUrl(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId : String, user : Box[User], url : String): Box[Boolean] = {
                 val addOpenCorporatesUrl = for {
                   metadata <- moderatedOtherAccountMetadata(bankId,accountId,viewId,otherAccountId,user)
                   addOpenCorporatesUrl <- Box(metadata.addOpenCorporatesURL) ?~ {"view " + viewId + " does not authorize adding open_corporates_url"}
@@ -1585,11 +1585,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postCorporateLocation(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postCorporateLocation(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[CorporateLocationJSON]
           } match {
@@ -1644,11 +1644,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def postCorporateLocation(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postCorporateLocation(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[CorporateLocationJSON]
           } match {
@@ -1703,11 +1703,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
       //log the API call
       logAPICall
 
-      def postPhysicalLocation(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postPhysicalLocation(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[PhysicalLocationJSON]
           } match {
@@ -1762,11 +1762,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     }
   })
   serve("obp" / "v1.1" prefix{
-    case "banks" :: BankId(bankId) :: "accounts" :: accountId :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "other_accounts" :: otherAccountId :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
       //log the API call
       logAPICall
 
-      def postPhysicalLocation(bankId : BankId, accountId : String, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postPhysicalLocation(bankId : BankId, accountId : AccountId, viewId : String, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[PhysicalLocationJSON]
           } match {

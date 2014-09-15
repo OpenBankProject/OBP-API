@@ -71,7 +71,7 @@ trait Comment {
   }
 }
 
-trait Tag {
+trait TransactionTag {
 
   def id_ : String
   def datePosted : Date
@@ -151,14 +151,14 @@ class TransactionMetadata(
   */
   val deleteComment : (String) => Box[Unit],
 
-  val tags: () => List[Tag],
+  val tags: () => List[TransactionTag],
   /**
   * @param: userId
   * @param: viewId
   * @param: tag
   * @param: datePosted
   */
-  val addTag: (String, Long, String, Date) => Box[Tag],
+  val addTag: (String, Long, String, Date) => Box[TransactionTag],
   /**
   * @param: tagId
   */

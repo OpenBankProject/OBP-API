@@ -44,7 +44,7 @@ import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.BsonRecord
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
 import net.liftweb.mongodb.{Limit, Skip}
-import code.model.{BankId, AccountOwner, BankAccount}
+import code.model.{AccountId, BankId, AccountOwner, BankAccount}
 import net.liftweb.mongodb.BsonDSL._
 import OBPEnvelope._
 import code.bankconnectors._
@@ -77,6 +77,10 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
       case Full(bank) => bank.name.get
       case _ => ""
     }
+  }
+
+  def accountId : AccountId = {
+    AccountId(permalink.get)
   }
 
   def bankNationalIdentifier: String = {
@@ -172,7 +176,7 @@ object Account extends Account with MongoMetaRecord[Account] {
 
     val bankAccount =
       new BankAccount(
-        id = account.id.toString,
+        accountId = account.accountId,
         owners= Set(new AccountOwner("", account.holder.toString)),
         accountType = account.kind.toString,
         balance = account.balance.get,
@@ -186,8 +190,7 @@ object Account extends Account with MongoMetaRecord[Account] {
         iban = iban,
         number = account.number.get,
         bankName = account.bankName,
-        bankId = account.bankId,
-        permalink = account.permalink.get
+        bankId = account.bankId
       )
     bankAccount
   }
@@ -205,12 +208,12 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   object SWIFT_BIC extends StringField(this, 255)
   object national_identifier extends StringField(this, 255)
 
-  def getAccount(bankAccountPermalink : String) : Box[Account] = {
-    Account.find(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountPermalink +" not found at bank " + permalink}
+  def getAccount(bankAccountId: AccountId) : Box[Account] = {
+    Account.find(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
   }
 
-  def isAccount(bankAccountPermalink : String) : Boolean =
-    Account.count(("permalink" -> bankAccountPermalink) ~ ("bankID" -> id.is)) == 1
+  def isAccount(bankAccountId : AccountId) : Boolean =
+    Account.count(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) == 1
 
 }
 

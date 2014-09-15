@@ -424,7 +424,7 @@ object JSONFactory{
 
   def createAccountJSON(account : BankAccount, viewsAvailable : List[ViewJSON] ) : AccountJSON = {
     new AccountJSON(
-      account.permalink,
+      account.accountId.value,
       stringOrNull(account.label),
       viewsAvailable,
       account.bankId.value
@@ -434,7 +434,7 @@ object JSONFactory{
   def createBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON]) : ModeratedAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedAccountJSON(
-      account.id,
+      account.accountId.value,
       stringOptionOrNull(account.label),
       stringOptionOrNull(account.number),
       createOwnersJSON(account.owners.getOrElse(Set()), bankName),
@@ -488,11 +488,11 @@ object JSONFactory{
     )
   }
 
-  def createTransactionTagsJSON(tags : List[Tag]) : TransactionTagsJSON = {
+  def createTransactionTagsJSON(tags : List[TransactionTag]) : TransactionTagsJSON = {
     new TransactionTagsJSON(tags.map(createTransactionTagJSON))
   }
 
-  def createTransactionTagJSON(tag : Tag) : TransactionTagJSON = {
+  def createTransactionTagJSON(tag : TransactionTag) : TransactionTagJSON = {
     new TransactionTagJSON(
       id = tag.id_,
       value = tag.value,
@@ -564,7 +564,7 @@ object JSONFactory{
 
   def createThisAccountJSON(bankAccount : ModeratedBankAccount) : ThisAccountJSON = {
     new ThisAccountJSON(
-      id = bankAccount.id,
+      id = bankAccount.accountId.value,
       number = stringOptionOrNull(bankAccount.number),
       kind = stringOptionOrNull(bankAccount.accountType),
       IBAN = stringOptionOrNull(bankAccount.iban),
