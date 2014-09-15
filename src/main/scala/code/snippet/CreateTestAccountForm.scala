@@ -52,7 +52,7 @@ object CreateTestAccountForm{
     hideErrorMessage &
     showSuccessMessage &
     SetHtml("created-account-id", <span>{createdAccount.permalink.get}</span>) &
-    SetHtml("created-account-bank-id", <span>{createdAccount.bankPermalink}</span>) &
+    SetHtml("created-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
     SetHtml("created-account-initial-balance", <span>{createdAccount.balance.get}</span>) &
     SetHtml("created-account-currency", <span>{createdAccount.currency.get}</span>)
   }

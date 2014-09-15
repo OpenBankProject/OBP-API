@@ -1124,14 +1124,14 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
             create.
             accountID(account.id.get.toString).
             saveMe
-        val owner = ownerView(account.bankPermalink, account.permalink.get)
+        val owner = ownerView(account.bankId, account.permalink.get)
         ViewPrivileges.create.
           view(owner).
           user(ownerUser).
           save
 
         if(addPublicView) {
-          publicView(account.bankPermalink, account.permalink.get)
+          publicView(account.bankId, account.permalink.get)
         }
       })
     }

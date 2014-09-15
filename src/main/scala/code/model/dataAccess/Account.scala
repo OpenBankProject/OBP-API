@@ -86,8 +86,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     }
   }
 
-  //TODO: this is badly named
-  def bankPermalink: BankId = {
+  def bankId: BankId = {
     bankID.obj match  {
       case Full(bank) => BankId(bank.permalink.get)
       case _ => BankId("")
@@ -187,7 +186,7 @@ object Account extends Account with MongoMetaRecord[Account] {
         iban = iban,
         number = account.number.get,
         bankName = account.bankName,
-        bankId = account.bankPermalink,
+        bankId = account.bankId,
         permalink = account.permalink.get
       )
     bankAccount

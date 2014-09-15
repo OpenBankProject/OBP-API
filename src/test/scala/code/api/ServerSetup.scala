@@ -88,8 +88,8 @@ trait ServerSetup extends FeatureSpec
 
     accounts.foreach(account => {
       //create public view and another random view (owner view has already been created
-      publicView(account.bankPermalink, account.permalink.get)
-      randomView(account.bankPermalink, account.permalink.get)
+      publicView(account.bankId, account.permalink.get)
+      randomView(account.bankId, account.permalink.get)
     })
 
     //fake transactions

@@ -182,7 +182,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     this.theAccount match {
       case Full(a) => {
         val realOtherAccHolder = this.obp_transaction.get.other_account.get.holder.get
-        val m = MongoCounterparties.createMetadata(a.bankPermalink, a.permalink.get, realOtherAccHolder)
+        val m = MongoCounterparties.createMetadata(a.bankId, a.permalink.get, realOtherAccHolder)
         Full({})
       }
       case _ => {
