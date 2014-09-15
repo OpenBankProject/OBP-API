@@ -51,7 +51,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
       otherBank <- HostedBank.find(otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
       otherAccs = Account.findAll(("permalink" -> otherAccountId))
-      otherAcc <- Box(otherAccs.filter(_.bankPermalink == otherBank.permalink.get).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
+      otherAcc <- Box(otherAccs.filter(_.bankPermalink == BankId(otherBank.permalink.get)).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
       transTime = now
       thisAccs = Account.findAll(("permalink" -> account.permalink))
       thisAcc <- Box(thisAccs.filter(_.bankPermalink == account.bankId).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankId}?"
