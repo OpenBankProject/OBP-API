@@ -19,7 +19,7 @@ object MongoCounterparties extends Counterparties with Loggable {
 
     val existing = for {
       objId <- tryo { new ObjectId(otherParty.id) }
-      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId).put("originalPartyAccountId").is(originalPartyAccountId).
+      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId).
         put("_id").is(objId).get()
       m <- Metadata.find(query)
     } yield m
@@ -54,7 +54,7 @@ object MongoCounterparties extends Counterparties with Loggable {
         originalPartyBankId(originalPartyBankId.value).
         originalPartyAccountId(originalPartyAccountId).
         holder(otherAccountHolder).
-        publicAlias(newPublicAliasName(originalPartyBankId.value, originalPartyAccountId)).save
+        publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
     }
   }
 
@@ -62,7 +62,7 @@ object MongoCounterparties extends Counterparties with Loggable {
    * Generates a new alias name that is guaranteed not to collide with any existing public alias names
    * for the account in question
    */
-  def newPublicAliasName(originalPartyBankId : String, originalPartyAccountId : String): String = {
+  def newPublicAliasName(originalPartyBankId : BankId, originalPartyAccountId : String): String = {
     import scala.util.Random
 
     val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
@@ -71,7 +71,7 @@ object MongoCounterparties extends Counterparties with Loggable {
      * Returns true if @publicAlias is already the name of a public alias within @account
      */
     def isDuplicate(publicAlias: String) = {
-      val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId).put("originalPartyAccountId").is(originalPartyAccountId).get()
+      val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId).get()
       Metadata.findAll(query).exists(m => {
         m.publicAlias.get == publicAlias
       })

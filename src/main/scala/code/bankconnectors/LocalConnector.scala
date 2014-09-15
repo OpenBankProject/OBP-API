@@ -137,7 +137,7 @@ private object LocalConnector extends Connector with Loggable {
 
     //slight hack required: otherAccount id is, for legacy reasons, the mongodb id of its metadata object
     //so we have to find that
-    val query = QueryBuilder.start("originalPartyBankId").is(theAccount.bankPermalink).
+    val query = QueryBuilder.start("originalPartyBankId").is(theAccount.bankPermalink.value).
       put("originalPartyAccountId").is(theAccount.permalink.get).
       put("holder").is(otherAccount_.holder.get).get
 
