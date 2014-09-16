@@ -103,12 +103,14 @@ class Bank(
     Views.views.vend.getNonPublicBankAccounts(user, id)
   }
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def detailedJson : JObject = {
     ("name" -> shortName) ~
     ("website" -> "") ~
     ("email" -> "")
   }
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson : JObject = {
     ("alias" -> id.value) ~
       ("name" -> shortName) ~
@@ -116,6 +118,7 @@ class Bank(
       ("links" -> linkJson)
   }
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def linkJson : JObject = {
     ("rel" -> "bank") ~
     ("href" -> {"/" + id + "/bank"}) ~
@@ -131,6 +134,7 @@ object Bank {
 
   def all : List[Bank] = Connector.connector.vend.getBanks
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson(banks: Seq[Bank]) : JArray =
     banks.map(bank => bank.toJson)
 
@@ -416,6 +420,7 @@ class BankAccount(
     else
       viewNotAllowed(view)
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def overviewJson(user: Box[User]): JObject = {
     val views = permittedViews(user)
     ("number" -> number) ~

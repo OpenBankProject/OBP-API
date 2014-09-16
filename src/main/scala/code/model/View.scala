@@ -455,6 +455,7 @@ trait View {
       None
   }
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson : JObject = {
     ("name" -> name) ~
     ("description" -> description)
@@ -468,6 +469,7 @@ object View {
   def fromUrl(viewPermalink: String, accountId: AccountId, bankId: BankId): Box[View] =
     Views.views.vend.view(viewPermalink, accountId, bankId)
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~

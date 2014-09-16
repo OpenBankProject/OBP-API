@@ -66,7 +66,7 @@ class ModeratedTransaction(
     JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
 
-  @deprecated
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson(view: View): JObject = {
     ("view" -> view.permalink) ~
     ("uuid" -> id.value) ~ //legacy bug: id is used here (kept this way to keep api behaviour)
@@ -169,6 +169,7 @@ class ModeratedTransactionMetadata(
 
 
 object ModeratedTransactionMetadata {
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   implicit def moderatedTransactionMetadata2Json(mTransactionMeta: ModeratedTransactionMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)
   }
@@ -188,6 +189,7 @@ class ModeratedBankAccount(
   val bankName: Option[String],
   val bankId : BankId
 ){
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson = {
     def ownersJson(x : Set[AccountOwner])=
       x.map(owner =>
@@ -207,6 +209,7 @@ class ModeratedBankAccount(
 
 object ModeratedBankAccount {
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def bankJson(holderName: String, isAlias : String, number: String,
       	kind: String, bankIBAN: String, bankNatIdent: String,
       	bankName: String) : JObject = {
@@ -223,6 +226,7 @@ object ModeratedBankAccount {
     	("name" -> bankName))
   }
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   implicit def moderatedBankAccount2Json(mBankAccount: ModeratedBankAccount) : JObject = {
     val holderName = mBankAccount.owners match{
         case Some(ownersSet) => if(ownersSet.size!=0)
@@ -260,6 +264,7 @@ class ModeratedOtherBankAccount(
 }
 
 object ModeratedOtherBankAccount {
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   implicit def moderatedOtherBankAccount2Json(mOtherBank: ModeratedOtherBankAccount) : JObject = {
     val holderName = mOtherBank.label.display
     val isAlias = if(mOtherBank.isAlias) "yes" else "no"
@@ -294,6 +299,7 @@ class ModeratedOtherBankAccountMetadata(
 )
 
 object ModeratedOtherBankAccountMetadata {
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   implicit def moderatedOtherBankAccountMetadata2Json(mOtherBankMeta: ModeratedOtherBankAccountMetadata) : JObject = {
     JObject(JField("blah", JString("test")) :: Nil)
   }

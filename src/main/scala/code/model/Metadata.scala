@@ -54,6 +54,7 @@ trait Comment {
   //if this is a reply, the id of the original comment
   def replyToID : String
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson : JObject = {
     val userInJson = postedBy match {
       case Full(user) => user.toJson

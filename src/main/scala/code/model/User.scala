@@ -74,6 +74,7 @@ trait User {
   */
   def nonPublicAccounts : Box[List[BankAccount]] = Views.views.vend.getNonPublicBankAccounts(this)
 
+  @deprecated("json generation handled elsewhere as it changes from api version to api version")
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~
     ("provider" -> provider) ~
