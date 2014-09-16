@@ -73,11 +73,11 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     Extraction.decompose(accounts)
   }
 
-  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : String, transactionID : String, user : Box[User]) : Box[ModeratedTransactionMetadata] =
+  private def moderatedTransactionMetadata(bankId : BankId, accountId : AccountId, viewId : String, transactionId : TransactionId, user : Box[User]) : Box[ModeratedTransactionMetadata] =
     for {
       account <- BankAccount(bankId, accountId)
       view <- View.fromUrl(viewId, account)
-      moderatedTransaction <- account.moderatedTransaction(transactionID, view, user)
+      moderatedTransaction <- account.moderatedTransaction(transactionId, view, user)
       metadata <- Box(moderatedTransaction.metadata) ?~ {"view " + viewId + " does not authorize metadata access"}
     } yield metadata
 
@@ -877,7 +877,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get transaction by id
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "transaction" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -892,7 +892,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get narrative
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -906,7 +906,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add narrative
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPost json -> _ => {
       user =>
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
@@ -924,7 +924,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //update narrative
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonPut json -> _ => {
       user =>
         for {
           narrativeJson <- tryo{json.extract[TransactionNarrativeJSON]} ?~ {"wrong json format"}
@@ -942,7 +942,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete narrative
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -956,7 +956,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get comments
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -970,7 +970,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add comment
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonPost json -> _ => {
       user =>
         for {
           commentJson <- tryo{json.extract[PostTransactionCommentJSON]} ?~ {"wrong json format"}
@@ -987,7 +987,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete comment
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)
@@ -1001,7 +1001,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get tags
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1015,14 +1015,14 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
     //add a tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
 
       user =>
         for {
           tagJson <- tryo{json.extract[PostTransactionTagJSON]}
           u <- user
           view <- View.fromUrl(viewId, accountId, bankId)
-          metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
+          metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
           postedTag <- addTagFunc(u.apiId, view.id, tagJson.value, now)
         } yield {
@@ -1033,7 +1033,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
     //delete a tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
 
       user =>
         for {
@@ -1048,7 +1048,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get images
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1062,13 +1062,13 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //add an image
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionID :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonPost json -> _ => {
       user =>
         for {
           imageJson <- tryo{json.extract[PostTransactionImageJSON]}
           u <- user
           view <- View.fromUrl(viewId, accountId, bankId)
-          metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionID, Full(u))
+          metadata <- moderatedTransactionMetadata(bankId, accountId, view.permalink, transactionId, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
           postedImage <- addImageFunc(u.apiId, view.id, imageJson.label, now, url)
@@ -1080,7 +1080,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //delete an image
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1094,7 +1094,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix {
   //get where tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonGet json => {
       user =>
         for {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, user)
@@ -1109,7 +1109,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //add where tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPost json -> _ => {
       user =>
         for {
           u <- user
@@ -1128,7 +1128,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //update where tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
       user =>
         for {
           u <- user
@@ -1147,7 +1147,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //delete where tag
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: transactionId :: "metadata" :: "where" :: Nil JsonDelete _ => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
       user =>
         for {
           bankAccount <- BankAccount(bankId, accountId)
@@ -1165,7 +1165,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
 
   oauthServe(apiPrefix{
   //get other account of a transaction
-    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions":: transactionId :: "other_account" :: Nil JsonGet json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: viewId :: "transactions":: TransactionId(transactionId) :: "other_account" :: Nil JsonGet json => {
       user =>
         for {
           account <- BankAccount(bankId, accountId)

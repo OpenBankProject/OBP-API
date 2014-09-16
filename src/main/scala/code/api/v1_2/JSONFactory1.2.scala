@@ -449,7 +449,7 @@ object JSONFactory{
 
   def createTransactionJSON(transaction : ModeratedTransaction) : TransactionJSON = {
     new TransactionJSON(
-        id = transaction.id,
+        id = transaction.id.value,
         this_account = transaction.bankAccount.map(createThisAccountJSON).getOrElse(null),
         other_account = transaction.otherBankAccount.map(createOtherBankAccount).getOrElse(null),
         details = createTransactionDetailsJSON(transaction),

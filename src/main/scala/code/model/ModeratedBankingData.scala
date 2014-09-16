@@ -44,7 +44,7 @@ import net.liftweb.common.Failure
 
 class ModeratedTransaction(
   val UUID : String,
-  val id: String,
+  val id: TransactionId,
   val bankAccount: Option[ModeratedBankAccount],
   val otherBankAccount: Option[ModeratedOtherBankAccount],
   val metadata : Option[ModeratedTransactionMetadata],
@@ -66,9 +66,10 @@ class ModeratedTransaction(
     JString(date.map(d => dateFormat.format(d)) getOrElse "")
   }
 
+  @deprecated
   def toJson(view: View): JObject = {
     ("view" -> view.permalink) ~
-    ("uuid" -> id) ~
+    ("uuid" -> id.value) ~ //legacy bug: id is used here (kept this way to keep api behaviour)
       ("this_account" -> bankAccount) ~
       ("other_account" -> otherBankAccount) ~
       ("details" ->

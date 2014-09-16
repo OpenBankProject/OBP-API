@@ -48,6 +48,14 @@ import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties
 
 
+case class TransactionId(val value : String) {
+  override def toString = value
+}
+
+object TransactionId {
+  def unapply(id : String) = Some(TransactionId(id))
+}
+
 case class AccountId(val value : String) {
   override def toString = value
 }
@@ -359,7 +367,7 @@ class BankAccount(
   def publicViews : List[View] =
     Views.views.vend.publicViews(this).getOrElse(Nil)
 
-  def moderatedTransaction(transactionId: String, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
+  def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
       Connector.connector.vend.getTransaction(bankId, accountId, transactionId).map(view.moderate)
     else
@@ -459,8 +467,8 @@ class OtherBankAccount(
 class Transaction(
   //A universally unique id
   val uuid : String,
-  //The bank's id for the transaction
-  val id : String,
+  //id is unique for transactions of @thisAccount
+  val id : TransactionId,
   val thisAccount : BankAccount,
   val otherAccount : OtherBankAccount,
   //E.g. cash withdrawal, electronic payment, etc.

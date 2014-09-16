@@ -54,7 +54,7 @@ trait Connector {
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
-  def getTransaction(bankId: BankId, accountID : AccountId, transactionID : String): Box[Transaction]
+  def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction]
 
   def getPhysicalCards(user : User) : Set[PhysicalCard]
 

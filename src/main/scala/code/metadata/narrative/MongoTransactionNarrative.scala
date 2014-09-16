@@ -1,6 +1,6 @@
 package code.metadata.narrative
 
-import code.model.{AccountId, BankId}
+import code.model.{TransactionId, AccountId, BankId}
 import net.liftweb.common.Full
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
@@ -9,14 +9,14 @@ import com.mongodb.{QueryBuilder, DBObject}
 
 private object MongoTransactionNarrative extends Narrative {
 
-  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: String)() : String = {
+  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String = {
     OBPNarrative.find(OBPNarrative.getFindQuery(bankId, accountId, transactionId)) match {
       case Full(n) => n.narrative.get
       case _ => ""
     }
   }
 
-  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: String)(narrative: String) : Unit = {
+  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Unit = {
 
     val findQuery = OBPNarrative.getFindQuery(bankId, accountId, transactionId)
 
@@ -28,7 +28,7 @@ private object MongoTransactionNarrative extends Narrative {
     } else {
 
       val newNarrative = OBPNarrative.createRecord.
-        transactionId(transactionId).
+        transactionId(transactionId.value).
         accountId(accountId.value).
         bankId(bankId.value).
         narrative(narrative)
@@ -56,7 +56,7 @@ private class OBPNarrative private() extends MongoRecord[OBPNarrative] with Obje
 }
 
 private object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
-  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : String) : DBObject = {
-    QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId).get
+  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId) : DBObject = {
+    QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId.value).get
   }
 }

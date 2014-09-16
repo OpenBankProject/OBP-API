@@ -68,7 +68,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       Empty
     def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
-    def getTransaction(bankId : BankId, accountID : AccountId, transactionID : String): Box[Transaction] =
+    def getTransaction(bankId : BankId, accountID : AccountId, transactionID : TransactionId): Box[Transaction] =
       Empty
 
     //these methods are required

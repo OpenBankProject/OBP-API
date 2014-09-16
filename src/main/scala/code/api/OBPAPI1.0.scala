@@ -146,7 +146,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
     }
 
     case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-      transactionID :: "transaction" :: viewName :: Nil JsonGet  json => {
+      TransactionId(transactionId) :: "transaction" :: viewName :: Nil JsonGet  json => {
 
       //log the API call
       logAPICall
@@ -158,7 +158,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
         bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
         account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
         view <- View.fromUrl(viewName, account) ?~ { "view "  + viewName + " not found for account"} ~> 404
-        moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorised" ~> 401
+        moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorised" ~> 401
       } yield {
         (moderatedTransaction, view)
       }
@@ -170,7 +170,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
     }
 
     case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-      transactionID :: "comments" :: viewName :: Nil JsonGet json => {
+      TransactionId(transactionId) :: "comments" :: viewName :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -182,7 +182,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
         bank <- Bank(bankId) ?~ { "bank "  + bankId + " not found"} ~> 404
         account <- BankAccount(bankId, accountId) ?~ { "account "  + accountId + " not found for bank"} ~> 404
         view <- View.fromUrl(viewName,account) ?~ { "view "  + viewName + " not found for account"} ~> 404
-        moderatedTransaction <- account.moderatedTransaction(transactionID, view, user) ?~ "view/transaction not authorised" ~> 401
+        moderatedTransaction <- account.moderatedTransaction(transactionId, view, user) ?~ "view/transaction not authorised" ~> 401
         comments <- Box(moderatedTransaction.metadata).flatMap(_.comments) ?~ "transaction metadata not authorised" ~> 401
       } yield comments
 
