@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.util.Helper
 import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Empty, Failure}
@@ -247,7 +248,7 @@ class OBPTransaction private() extends BsonRecord[OBPTransaction]{
     details.get.validate ++
     super.validate
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def whenAddedJson(envelopeId : String) : JObject  = {
     JObject(List(JField("obp_transaction_uuid", JString(envelopeId)),
            JField("this_account", this_account.get.whenAddedJson),

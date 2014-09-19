@@ -34,6 +34,7 @@ Berlin 13359, Germany
 package code.model
 
 import java.util.Date
+import code.util.Helper
 import net.liftweb.common.{Box, Empty}
 import code.views.Views
 import net.liftweb.json.JsonDSL._
@@ -455,7 +456,7 @@ trait View {
       None
   }
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject = {
     ("name" -> name) ~
     ("description" -> description)
@@ -469,7 +470,7 @@ object View {
   def fromUrl(viewPermalink: String, accountId: AccountId, bankId: BankId): Box[View] =
     Views.views.vend.view(viewPermalink, accountId, bankId)
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~

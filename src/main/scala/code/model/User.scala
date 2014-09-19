@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.model
 
+import code.util.Helper
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
@@ -74,7 +75,7 @@ trait User {
   */
   def nonPublicAccounts : Box[List[BankAccount]] = Views.views.vend.getNonPublicBankAccounts(this)
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject =
     ("id" -> idGivenByProvider) ~
     ("provider" -> provider) ~

@@ -31,6 +31,8 @@ Berlin 13359, Germany
  */
 package code.model
 
+import code.util.Helper
+
 import scala.math.BigDecimal
 import java.util.Date
 import scala.collection.immutable.Set
@@ -103,14 +105,14 @@ class Bank(
     Views.views.vend.getNonPublicBankAccounts(user, id)
   }
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def detailedJson : JObject = {
     ("name" -> shortName) ~
     ("website" -> "") ~
     ("email" -> "")
   }
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject = {
     ("alias" -> id.value) ~
       ("name" -> shortName) ~
@@ -118,7 +120,7 @@ class Bank(
       ("links" -> linkJson)
   }
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linkJson : JObject = {
     ("rel" -> "bank") ~
     ("href" -> {"/" + id + "/bank"}) ~
@@ -134,7 +136,7 @@ object Bank {
 
   def all : List[Bank] = Connector.connector.vend.getBanks
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson(banks: Seq[Bank]) : JArray =
     banks.map(bank => bank.toJson)
 
@@ -420,7 +422,7 @@ class BankAccount(
     else
       viewNotAllowed(view)
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def overviewJson(user: Box[User]): JObject = {
     val views = permittedViews(user)
     ("number" -> number) ~

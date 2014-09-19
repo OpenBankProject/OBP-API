@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.model
 import java.util.Date
 import java.net.URL
+import code.util.Helper
 import net.liftweb.common.{Box,Full}
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonDSL._
@@ -54,7 +55,7 @@ trait Comment {
   //if this is a reply, the id of the original comment
   def replyToID : String
 
-  @deprecated("json generation handled elsewhere as it changes from api version to api version")
+  @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject = {
     val userInJson = postedBy match {
       case Full(user) => user.toJson

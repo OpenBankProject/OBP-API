@@ -41,4 +41,6 @@ object Helper{
     else
       Failure(msg)
   }
+
+  val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 }
