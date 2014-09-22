@@ -1,5 +1,6 @@
 package code.metadata.wheretags
 
+import code.util.Helper
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
@@ -15,7 +16,12 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object date extends DateField(this)
 
   object geoLongitude extends DoubleField(this,0)

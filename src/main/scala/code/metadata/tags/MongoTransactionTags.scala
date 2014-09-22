@@ -2,6 +2,7 @@ package code.metadata.tags
 
 import code.model._
 import java.util.Date
+import code.util.Helper
 import net.liftweb.common.{Full, Box}
 import org.bson.types.ObjectId
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
@@ -44,7 +45,12 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object tag extends StringField(this, 255)
   object date extends DateField(this)
 

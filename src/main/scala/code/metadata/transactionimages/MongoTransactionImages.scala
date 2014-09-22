@@ -1,6 +1,7 @@
 package code.metadata.transactionimages
 
 import code.model._
+import code.util.Helper
 import net.liftweb.common.{Loggable, Box}
 import java.net.URL
 import java.util.Date
@@ -51,7 +52,12 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object imageComment extends StringField(this, 1000)
   object date extends DateField(this)
   object url extends StringField(this, 500)

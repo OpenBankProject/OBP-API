@@ -2,6 +2,7 @@ package code.metadata.comments
 
 import code.model._
 import java.util.Date
+import code.util.Helper
 import net.liftweb.common.{Loggable, Full, Box}
 import org.bson.types.ObjectId
 import com.mongodb.{DBObject, QueryBuilder}
@@ -49,7 +50,12 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   def id_ = id.is.toString
   def replyToID = replyTo.get
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object textField extends StringField(this, 255)
   object date extends DateField(this)
   object replyTo extends StringField(this,255)
