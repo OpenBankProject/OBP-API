@@ -177,23 +177,23 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def view(viewPermalink : String, account: BankAccount) : Box[View] = {
-    view(viewPermalink, account.accountId, account.bankId)
+  def view(viewId : ViewId, account: BankAccount) : Box[View] = {
+    view(viewId, account.accountId, account.bankId)
   }
 
-  def view(viewPermalink : String, accountId: AccountId, bankId: BankId) : Box[View] = {
-    viewImpl(viewPermalink, accountId, bankId)
+  def view(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[View] = {
+    viewImpl(viewId, accountId, bankId)
   }
 
-  def viewImpl(viewPermalink : String, account: BankAccount) : Box[ViewImpl] = {
-    viewImpl(viewPermalink, account.accountId, account.bankId)
+  def viewImpl(viewId : ViewId, account: BankAccount) : Box[ViewImpl] = {
+    viewImpl(viewId, account.accountId, account.bankId)
   }
 
-  def viewImpl(viewPermalink : String, accountId: AccountId, bankId: BankId) : Box[ViewImpl] = {
+  def viewImpl(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[ViewImpl] = {
       ViewImpl.find(
-        By(ViewImpl.permalink_, viewPermalink) ::
+        By(ViewImpl.permalink_, viewId.value) ::
         ViewImpl.accountFilter(bankId, accountId): _*
-      ) ~> APIFailure(s"View with permalink $viewPermalink not found", 404)
+      ) ~> APIFailure(s"View with permalink $viewId not found", 404)
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
@@ -221,23 +221,23 @@ private object MapperViews extends Views with Loggable {
 
   }
 
-  def updateView(bankAccount : BankAccount, viewPermalink: String, viewUpdateJson : ViewUpdateData) : Box[View] = {
+  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {
-      view <- viewImpl(viewPermalink, bankAccount)
+      view <- viewImpl(viewId, bankAccount)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
     }
   }
 
-  def removeView(viewPermalink: String, bankAccount: BankAccount): Box[Unit] = {
+  def removeView(viewId: ViewId, bankAccount: BankAccount): Box[Unit] = {
 
-    if(viewPermalink=="owner")
+    if(viewId.value=="owner")
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- viewImpl(viewPermalink, bankAccount)
+        view <- viewImpl(viewId, bankAccount)
         if(view.delete_!)
       } yield {
       }

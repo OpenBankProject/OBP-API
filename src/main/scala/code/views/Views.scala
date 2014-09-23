@@ -23,12 +23,12 @@ trait Views {
   def revokePermission(view : View, user : User) : Box[Boolean]
   def revokeAllPermission(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
-  def view(viewPermalink : String, bankAccount: BankAccount) : Box[View]
-  def view(viewPermalink : String, accountId: AccountId, bankId: BankId) : Box[View]
+  def view(viewId : ViewId, bankAccount: BankAccount) : Box[View]
+  def view(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[View]
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
-  def removeView(viewPermalink: String, bankAccount: BankAccount): Box[Unit]
-  def updateView(bankAccount : BankAccount, viewPermalink: String, viewUpdateJson : ViewUpdateData) : Box[View]
+  def removeView(viewId : ViewId, bankAccount: BankAccount): Box[Unit]
+  def updateView(bankAccount : BankAccount, viewId : ViewId, viewUpdateJson : ViewUpdateData) : Box[View]
   def views(bankAccount : BankAccount) : Box[List[View]]
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
   def publicViews(bankAccount : BankAccount) : Box[List[View]]

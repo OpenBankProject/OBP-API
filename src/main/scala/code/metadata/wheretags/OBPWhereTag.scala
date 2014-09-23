@@ -41,8 +41,8 @@ private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag]
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : Long) : DBObject = {
-    QueryBuilder.start("viewID").is(viewId).put("transactionId").is(transactionId.value).
+  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : DBObject = {
+    QueryBuilder.start("forView").is(viewId.value).put("transactionId").is(transactionId.value).
       put("accountId").is(accountId.value).put("bankId").is(bankId.value).get()
   }
 }

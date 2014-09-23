@@ -16,14 +16,14 @@ private object MongoTransactionComments extends Comments {
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)() : List[Comment] = {
      OBPComment.findAll(bankId, accountId, transactionId)
   }
-  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment] = {
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
     OBPComment.createRecord.userId(userId).
         transactionId(transactionId.value).
         accountId(accountId.value).
         bankId(bankId.value).
         textField(text).
         date(datePosted).
-        viewID(viewId).saveTheRecord()
+        forView(viewId.value).saveTheRecord()
   }
 
   def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Unit] = {

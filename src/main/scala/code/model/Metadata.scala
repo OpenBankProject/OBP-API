@@ -122,7 +122,7 @@ class OtherBankAccountMetadata(
   * @param: longitude
   * @param: latitude
   */
-  val addCorporateLocation : (String, Long, Date, Double, Double) => Boolean,
+  val addCorporateLocation : (String, ViewId, Date, Double, Double) => Boolean,
   val deleteCorporateLocation : () => Boolean,
   /**
   * @param: userId
@@ -131,7 +131,7 @@ class OtherBankAccountMetadata(
   * @param: longitude
   * @param: latitude
   */
-  val addPhysicalLocation : (String, Long, Date, Double, Double) => Boolean,
+  val addPhysicalLocation : (String, ViewId, Date, Double, Double) => Boolean,
   val deletePhysicalLocation : () => Boolean,
   val addPublicAlias : (String) => Boolean,
   val addPrivateAlias : (String) => Boolean
@@ -147,7 +147,7 @@ class TransactionMetadata(
   * @param: text
   * @param: datePosted
   */
-  val addComment : (String,Long, String, Date) => Box[Comment],
+  val addComment : (String,ViewId, String, Date) => Box[Comment],
   /**
   * @param: commentId
   */
@@ -160,7 +160,7 @@ class TransactionMetadata(
   * @param: tag
   * @param: datePosted
   */
-  val addTag: (String, Long, String, Date) => Box[TransactionTag],
+  val addTag: (String, ViewId, String, Date) => Box[TransactionTag],
   /**
   * @param: tagId
   */
@@ -173,7 +173,7 @@ class TransactionMetadata(
   * @param: datePosted
   * @param: imageURL
   */
-  val addImage : (String, Long, String, Date, URL) => Box[TransactionImage],
+  val addImage : (String, ViewId, String, Date, URL) => Box[TransactionImage],
   /**
   * @param: imageId
   */
@@ -193,9 +193,9 @@ class TransactionMetadata(
   * @param: longitude
   * @param: latitude
   */
-  val addWhereTag : (String, Long, Date, Double, Double) => Boolean,
+  val addWhereTag : (String, ViewId, Date, Double, Double) => Boolean,
   /**
   * @param: viewId
   */
-  val deleteWhereTag : (Long) => Boolean
+  val deleteWhereTag : (ViewId) => Boolean
 )

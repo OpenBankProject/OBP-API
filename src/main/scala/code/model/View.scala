@@ -228,13 +228,13 @@ trait View {
           else
             None
 
-        val addWhereTagFunc : Option[(String, Long, Date, Double, Double) => Boolean] =
+        val addWhereTagFunc : Option[(String, ViewId, Date, Double, Double) => Boolean] =
           if(canAddWhereTag)
             Some(transaction.metadata.addWhereTag)
           else
             Empty
 
-        val deleteWhereTagFunc : Option[(Long) => Boolean] =
+        val deleteWhereTagFunc : Option[(ViewId) => Boolean] =
           if (canDeleteWhereTag)
             Some(transaction.metadata.deleteWhereTag)
           else
@@ -465,10 +465,10 @@ trait View {
 }
 
 object View {
-  def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewPermalink, account)
-  def fromUrl(viewPermalink: String, accountId: AccountId, bankId: BankId): Box[View] =
-    Views.views.vend.view(viewPermalink, accountId, bankId)
+  def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
+    Views.views.vend.view(viewId, account)
+  def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
+    Views.views.vend.view(viewId, accountId, bankId)
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
