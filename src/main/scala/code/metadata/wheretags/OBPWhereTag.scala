@@ -29,7 +29,7 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
 
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def longitude = geoLongitude.get
   def latitude = geoLatitude.get
 }

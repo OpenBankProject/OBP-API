@@ -45,7 +45,7 @@ trait Comment {
   def postedBy : Box[User]
 
   //the id of the view related to the comment
-  def viewId : Long
+  def viewId : ViewId
 
   // The actual text of the comment
   def text : String
@@ -67,7 +67,7 @@ trait Comment {
     ("id" -> id_) ~
     ("date" -> datePosted.toString) ~
     ("comment" -> text) ~
-    ("view" -> viewId) ~
+    ("view" -> viewId.value) ~
     ("user" -> userInJson) ~
     ("reply_to" -> "")
   }
@@ -78,7 +78,7 @@ trait TransactionTag {
   def id_ : String
   def datePosted : Date
   def postedBy : Box[User]
-  def viewId : Long
+  def viewId : ViewId
   def value : String
 }
 
@@ -86,7 +86,7 @@ trait GeoTag {
 
   def datePosted : Date
   def postedBy : Box[User]
-  def viewId : Long
+  def viewId : ViewId
   def longitude : Double
   def latitude : Double
 }
@@ -96,7 +96,7 @@ trait TransactionImage {
   def id_ : String
   def datePosted : Date
   def postedBy : Box[User]
-  def viewId : Long
+  def viewId : ViewId
   def description : String
   def imageUrl : URL
 }

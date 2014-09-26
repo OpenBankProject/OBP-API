@@ -127,7 +127,7 @@ private object MapperViews extends Views with Loggable {
 
 
   def accessRemovable(view: View, user : User) : Boolean = {
-    if(view.permalink == "owner") {
+    if(view.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
       if(Connector.connector.vend.getAccountHolders(view.bankAccountBankId, view.bankAccountId).contains(user)) {

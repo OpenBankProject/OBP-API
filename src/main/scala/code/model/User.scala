@@ -68,7 +68,7 @@ trait User {
     views.contains(v)
 
   def ownerAccess(bankAccount: BankAccount): Boolean =
-    permittedViews(bankAccount).exists(v => v.permalink=="owner")
+    permittedViews(bankAccount).exists(v => v.viewId==ViewId("owner"))
 
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)

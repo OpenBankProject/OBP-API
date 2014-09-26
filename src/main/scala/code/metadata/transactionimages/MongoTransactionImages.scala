@@ -65,7 +65,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   def id_ = id.is.toString
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def description = imageComment.get
   def imageUrl = {
     tryo {new URL(url.get)} getOrElse OBPTransactionImage.notFoundUrl

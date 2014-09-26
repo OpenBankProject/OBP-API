@@ -69,7 +69,7 @@ class ModeratedTransaction(
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson(view: View): JObject = {
-    ("view" -> view.permalink) ~
+    ("view" -> view.viewId.value) ~
     ("uuid" -> id.value) ~ //legacy bug: id is used here (kept this way to keep api behaviour)
       ("this_account" -> bankAccount) ~
       ("other_account" -> otherBankAccount) ~

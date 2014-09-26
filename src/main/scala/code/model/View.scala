@@ -79,10 +79,13 @@ case class ViewUpdateData(
 trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
+
+  @deprecated("Use viewId")
+  //an internal id (in the original view implementation: the database id)
   def id: Long
   def name: String
   def description : String
-  def permalink : String
+  def viewId : ViewId
   def isPublic : Boolean
   def users: List[User]
 
@@ -187,7 +190,8 @@ trait View {
         val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
         val comments =
           if (canSeeComments)
-            Some(transaction.metadata.comments().filter(comment => comment.viewId==id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.comments().filter(comment => comment.viewId==viewId))
           else None
         val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
         val deleteCommentFunc =
@@ -198,7 +202,8 @@ trait View {
         val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
         val tags =
           if(canSeeTags)
-            Some(transaction.metadata.tags().filter(_.viewId==id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.tags().filter(_.viewId==viewId))
           else None
         val addTagFunc =
           if(canAddTag)
@@ -211,7 +216,8 @@ trait View {
             else
               None
         val images =
-          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == id))
+          //TODO: do view filtering at a lower level
+          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == viewId))
           else None
 
         val addImageFunc =
@@ -224,7 +230,8 @@ trait View {
 
         val whereTag =
           if(canSeeWhereTag)
-            Some(transaction.metadata.whereTags().find(tag => tag.viewId == id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.whereTags().find(tag => tag.viewId == viewId))
           else
             None
 
@@ -474,7 +481,7 @@ object View {
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~
-        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.viewId }) ~
         ("method" -> "GET") ~
         ("title" -> "Get information about one account")
     })

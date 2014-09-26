@@ -247,7 +247,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       def linkJson(view: View): JObject = {
         ("rel" -> view.name) ~
-        ("href" -> { "/" + bankId + "/accounts/" + accountId + "/transactions/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/accounts/" + accountId + "/transactions/" + view.viewId.value }) ~
         ("method" -> "GET") ~
         ("title" -> view.description)
       }

@@ -341,11 +341,10 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     override def defaultValue = false
   }
 
-  //e.g. "Public", "Authorities", "Our Network", etc.
   def id: Long = id_.get
   def name: String = name_.get
   def description : String = description_.get
-  def permalink : String = permalink_.get
+  def viewId : ViewId = ViewId(permalink_.get)
   def isPublic : Boolean = isPublic_.get
 
   //the view settings

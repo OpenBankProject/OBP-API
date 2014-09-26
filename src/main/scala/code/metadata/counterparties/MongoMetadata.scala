@@ -1,6 +1,7 @@
 package code.metadata.counterparties
 
 
+import code.util.Helper
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
@@ -32,7 +33,7 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   def addCorporateLocation(userId: String, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId).
-      viewID(viewId).
+      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -46,12 +47,10 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  TODO: add forView for OBPGeoTag
-
   def addPhysicalLocation(userId: String, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId).
-      viewID(viewId).
+      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -70,7 +69,6 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
 //TODO: this should be private
 object Metadata extends Metadata with MongoMetaRecord[Metadata]
 
-//TODO: this should be private
 class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   import code.model.User
   import net.liftweb.record.field.{DoubleField, LongField}
@@ -84,7 +82,12 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object date extends DateField(this)
 
   object geoLongitude extends DoubleField(this,0)
@@ -92,7 +95,7 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def longitude = geoLongitude.get
   def latitude = geoLatitude.get
 

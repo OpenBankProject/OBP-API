@@ -351,7 +351,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
       def viewToJson(v : View) : JObject = {
         ("view" -> (
-            ("id" -> v.permalink) ~
+            ("id" -> v.viewId.value) ~
             ("short_name" -> v.name) ~
             ("description" -> v.description) ~
             ("is_public" -> v.isPublic)
