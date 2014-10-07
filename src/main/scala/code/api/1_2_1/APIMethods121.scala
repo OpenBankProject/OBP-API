@@ -286,7 +286,7 @@ trait APIMethods121 {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
             viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-            addedViews <- account addPermissions(u, viewIds.views.map(ViewId(_)), providerId, userId)
+            addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), providerId, userId)
           } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -301,11 +301,9 @@ trait APIMethods121 {
           for {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
-            view <- View.fromUrl(viewId, account)
-            isAdded <- account addPermission(u, viewId, providerId, userId)
-            if(isAdded)
+            addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
           } yield {
-            val viewJson = JSONFactory.createViewJSON(view)
+            val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
           }
       }
@@ -318,7 +316,7 @@ trait APIMethods121 {
           for {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
-            isRevoked <- account revokePermission(u, viewId, providerId, userId)
+            isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
             if(isRevoked)
           } yield noContentJsonResponse
       }

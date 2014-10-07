@@ -2003,7 +2003,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
@@ -2050,7 +2050,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ownerViewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
       view.users should contain (obpuser3)
     }
 
@@ -2132,7 +2132,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       val userId = obpuser1.idGivenByProvider
 
       view.users.length should equal(1)
@@ -2169,7 +2169,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view(ViewId("owner"), AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
       view.users should contain (obpuser3)
     }
   }

@@ -278,7 +278,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
           viewIds <- tryo{json.extract[ViewIdsJson]} ?~ "wrong format JSON"
-          addedViews <- account addPermissions(u, viewIds.views.map(ViewId(_)), authProvider, userId)
+          addedViews <- account addPermissions(u, viewIds.views.map(viewIdString => ViewUID(ViewId(viewIdString), bankId, accountId)), authProvider, userId)
         } yield {
             val viewJson = JSONFactory.createViewsJSON(addedViews)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -293,11 +293,9 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          view <- View.fromUrl(viewId, account)
-          isAdded <- account addPermission(u, viewId, authProvider, userId)
-          if(isAdded)
+          addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), authProvider, userId)
         } yield {
-            val viewJson = JSONFactory.createViewJSON(view)
+            val viewJson = JSONFactory.createViewJSON(addedView)
             successJsonResponse(Extraction.decompose(viewJson), 201)
           }
     }
@@ -310,7 +308,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          isRevoked <- account revokePermission(u, viewId, authProvider, userId)
+          isRevoked <- account revokePermission(u, ViewUID(viewId, bankId, accountId), authProvider, userId)
           if(isRevoked)
         } yield noContentJsonResponse
     }

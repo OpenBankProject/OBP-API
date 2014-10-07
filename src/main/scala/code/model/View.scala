@@ -94,10 +94,6 @@ trait View {
   def isPublic : Boolean
   def users: List[User]
 
-  //specifies which bank account this view is for
-  def bankAccountBankId : BankId
-  def bankAccountId : AccountId
-
   //the view settings
   def usePublicAliasIfOneExists: Boolean
   def usePrivateAliasIfOneExists: Boolean
@@ -480,7 +476,7 @@ object View {
   def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
     Views.views.vend.view(viewId, account)
   def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
-    Views.views.vend.view(viewId, accountId, bankId)
+    Views.views.vend.view(ViewUID(viewId, bankId, accountId))
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {

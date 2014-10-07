@@ -1422,7 +1422,7 @@ class API1_2Test extends ServerSetup with DefaultUsers {
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)

@@ -62,17 +62,33 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def addPermission(view: View, user : User) : Box[Boolean] = {
+
+  def addPermission(viewUID : ViewUID, user : User) : Box[View] = {
     user match {
       case u: APIUser => {
-        //check if it exists
-        if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,view.id))==0)
-          Full(ViewPrivileges.create.
-            user(u).
-            view(view.id).
-            save)
-        else
-          Full(true)
+
+        val viewImpl = ViewImpl.find(viewUID)
+
+        viewImpl match {
+          case Full(vImpl) => {
+            if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,vImpl.id)) == 0) {
+              val saved = ViewPrivileges.create.
+                user(u).
+                view(vImpl.id).
+                save
+
+              if(saved) Full(vImpl)
+              else {
+                logger.info("failed to save ViewPrivileges")
+                Empty
+              }
+            } else Full(vImpl) //privilege already exists, no need to create one
+          }
+          case _ => {
+            logger.info(s"no viewImpl found for view $viewUID")
+            viewImpl
+          }
+        }
       }
       case u: User => {
         logger.error("APIUser instance not found, could not grant access ")
@@ -81,19 +97,31 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def addPermissions(views : List[View], user : User) : Box[Boolean] ={
+  def addPermissions(views : List[ViewUID], user : User) : Box[List[View]] ={
     user match {
       //TODO: fix this match stuff
       case u : APIUser => {
-        views.foreach(v => {
-          if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,v.id))==0){
-            ViewPrivileges.create.
-              user(u).
-              view(v.id).
-              save
-          }
-        })
-        Full(true)
+
+        val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v }
+
+        if (viewImpls.size != views.size) {
+          val failMsg = s"not all viewimpls could be found for views $viewImpls"
+          logger.info(failMsg)
+          Failure(failMsg) ~>
+            APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
+          //TODO: APIFailures with http response codes belong at a higher level in the code
+        } else {
+          viewImpls.foreach(v => {
+            if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,v.id))==0){
+              ViewPrivileges.create.
+                user(u).
+                view(v.id).
+                save
+            }
+          })
+          //TODO: this doesn't handle the case where one viewImpl fails to be saved
+          Full(viewImpls)
+        }
       }
       case u: User => {
         logger.error("APIUser instance not found, could not grant access ")
@@ -102,13 +130,14 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def revokePermission(view : View, user : User) : Box[Boolean] = {
+  def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] = {
     user match {
       //TODO: fix this match stuff
       case u:APIUser =>
         for{
-          vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, view.id))
-          deletable <- accessRemovableAsBox(view, u)
+          viewImpl <- ViewImpl.find(viewUID)
+          vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, viewImpl.id))
+          deletable <- accessRemovableAsBox(viewImpl, u)
         } yield {
             vp.delete_!
           }
@@ -120,22 +149,22 @@ private object MapperViews extends Views with Loggable {
   }
 
   //returns Full if deletable, Failure if not
-  def accessRemovableAsBox(view: View, user : User) : Box[Unit] = {
-    if(accessRemovable(view, user)) Full(Unit)
-    else Failure("only person with owner view permission, access cannot be revoked")
+  def accessRemovableAsBox(viewImpl : ViewImpl, user : User) : Box[Unit] = {
+    if(accessRemovable(viewImpl, user)) Full(Unit)
+    else Failure("access cannot be revoked")
   }
 
 
-  def accessRemovable(view: View, user : User) : Boolean = {
-    if(view.viewId == ViewId("owner")) {
+  def accessRemovable(viewImpl: ViewImpl, user : User) : Boolean = {
+    if(viewImpl.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      if(Connector.connector.vend.getAccountHolders(view.bankAccountBankId, view.bankAccountId).contains(user)) {
+      if(Connector.connector.vend.getAccountHolders(viewImpl.bankId, viewImpl.accountId).contains(user)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
         // with access
-        view.users.length > 1
+        viewImpl.users.length > 1
       }
 
     } else true
@@ -178,22 +207,11 @@ private object MapperViews extends Views with Loggable {
   }
 
   def view(viewId : ViewId, account: BankAccount) : Box[View] = {
-    view(viewId, account.accountId, account.bankId)
+    view(ViewUID(viewId, account.bankId, account.accountId))
   }
 
-  def view(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[View] = {
-    viewImpl(viewId, accountId, bankId)
-  }
-
-  def viewImpl(viewId : ViewId, account: BankAccount) : Box[ViewImpl] = {
-    viewImpl(viewId, account.accountId, account.bankId)
-  }
-
-  def viewImpl(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[ViewImpl] = {
-      ViewImpl.find(
-        By(ViewImpl.permalink_, viewId.value) ::
-        ViewImpl.accountFilter(bankId, accountId): _*
-      ) ~> APIFailure(s"View with permalink $viewId not found", 404)
+  def view(viewUID : ViewUID) : Box[View] = {
+    ViewImpl.find(viewUID)
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
@@ -224,7 +242,7 @@ private object MapperViews extends Views with Loggable {
   def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {
-      view <- viewImpl(viewId, bankAccount)
+      view <- ViewImpl.find(viewId, bankAccount)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
@@ -237,7 +255,7 @@ private object MapperViews extends Views with Loggable {
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- viewImpl(viewId, bankAccount)
+        view <- ViewImpl.find(viewId, bankAccount)
         if(view.delete_!)
       } yield {
       }

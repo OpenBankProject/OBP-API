@@ -18,13 +18,13 @@ trait Views {
   
   def permissions(account : BankAccount) : Box[List[Permission]]
   def permission(account : BankAccount, user: User) : Box[Permission]
-  def addPermission(view : View, user : User) : Box[Boolean]
-  def addPermissions(views : List[View], user : User) : Box[Boolean]
-  def revokePermission(view : View, user : User) : Box[Boolean]
+  def addPermission(viewUID : ViewUID, user : User) : Box[View]
+  def addPermissions(views : List[ViewUID], user : User) : Box[List[View]]
+  def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean]
   def revokeAllPermission(bankId : BankId, accountId : AccountId, user : User) : Box[Boolean]
 
   def view(viewId : ViewId, bankAccount: BankAccount) : Box[View]
-  def view(viewId : ViewId, accountId: AccountId, bankId: BankId) : Box[View]
+  def view(viewUID : ViewUID) : Box[View]
 
   def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
   def removeView(viewId : ViewId, bankAccount: BankAccount): Box[Unit]

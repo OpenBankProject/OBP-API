@@ -32,6 +32,8 @@ Berlin 13359, Germany
 
 package code.model.dataAccess
 
+import code.api.APIFailure
+import net.liftweb.common.Box
 import net.liftweb.mapper._
 import code.model._
 import scala.collection.immutable.List
@@ -356,10 +358,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def usePublicAliasIfOneExists: Boolean = usePublicAliasIfOneExists_.get
   def hideOtherAccountMetadataIfAlias: Boolean = hideOtherAccountMetadataIfAlias_.get
 
-  //specifies which bank account this view is for
-  def bankAccountBankId : BankId = BankId(bankPermalink.get)
-  def bankAccountId : AccountId = AccountId(accountPermalink.get)
-
   //reading access
 
   //transaction fields
@@ -441,6 +439,16 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
 
 object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
+
+  def find(viewUID : ViewUID) : Box[ViewImpl] = {
+    ViewImpl.find(By(ViewImpl.permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+      APIFailure(s"View with permalink $viewId not found", 404)
+    //TODO: APIFailures with http response codes belong at a higher level in the code
+  }
+
+  def find(viewId : ViewId, bankAccount : BankAccount): Box[ViewImpl] = {
+    find(ViewUID(viewId, bankAccount.bankId, bankAccount.accountId))
+  }
 
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
     By(ViewImpl.bankPermalink, bankId.value) :: By(ViewImpl.accountPermalink, accountId.value) :: Nil
