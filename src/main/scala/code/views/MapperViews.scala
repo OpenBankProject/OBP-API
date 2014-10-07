@@ -50,8 +50,8 @@ private object MapperViews extends Views with Loggable {
         //TODO: do it in a single query with a join
         val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val views = privileges.flatMap(_.view.obj).filter(v => {
-          v.accountPermalink.get == account.accountId.value &&
-          v.bankPermalink.get == account.bankId.value
+          v.accountId== account.accountId &&
+          v.bankId == account.bankId
         })
         Full(Permission(user, views))
       }
@@ -150,7 +150,7 @@ private object MapperViews extends Views with Loggable {
 
         val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
           case Full(v) => {
-            v.bankPermalink.get == bankId.value && v.accountPermalink.get == accountId.value
+            v.bankId == bankId && v.accountId == accountId
           }
           case _ => false
         })
@@ -259,8 +259,8 @@ private object MapperViews extends Views with Loggable {
           p.view.obj match {
             case Full(v) => if(
               !v.isPublic &&
-              v.bankPermalink.get == bankAccount.bankId.value &&
-              v.accountPermalink.get == bankAccount.accountId.value){
+              v.bankId == bankAccount.bankId&&
+              v.accountId == bankAccount.accountId){
               Some(v)
             } else None
             case _ => None
@@ -286,14 +286,14 @@ private object MapperViews extends Views with Loggable {
   def getAllPublicAccounts() : List[BankAccount] = {
     //TODO: do this more efficiently
 
-    val bankAndAccountPermalinks : List[(String, String)] =
+    val bankAndAccountIds : List[(BankId, AccountId)] =
       ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
-        (v.bankPermalink.get, v.accountPermalink.get)
+        (v.bankId, v.accountId)
       ).distinct //we remove duplicates here
 
-    bankAndAccountPermalinks.map {
-      case (bankPermalink, accountPermalink) => {
-        Connector.connector.vend.getBankAccount(BankId(bankPermalink), AccountId(accountPermalink))
+    bankAndAccountIds.map {
+      case (bankId, accountId) => {
+        Connector.connector.vend.getBankAccount(bankId, accountId)
       }
     }.flatten
   }
@@ -301,13 +301,13 @@ private object MapperViews extends Views with Loggable {
   def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
     //TODO: do this more efficiently
 
-    val accountPermalinks : List[String] =
+    val accountIds : List[AccountId] =
       ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
-        v.accountPermalink.get
+        v.accountId
       }).distinct //we remove duplicates here
 
-    accountPermalinks.map(accPerma => {
-      Connector.connector.vend.getBankAccount(bank.id, AccountId(accPerma))
+    accountIds.map(accountId => {
+      Connector.connector.vend.getBankAccount(bank.id, accountId)
     }).flatten
   }
 
@@ -323,23 +323,23 @@ private object MapperViews extends Views with Loggable {
           case u : APIUser => {
             //TODO: this could be quite a bit more efficient...
 
-            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
-              (v.bankPermalink.get, v.accountPermalink.get)
+            val publicViewBankAndAccountIds= ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
+              (v.bankId, v.accountId)
             }).distinct
 
             val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
             val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
-            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
-              (v.bankPermalink.get, v.accountPermalink.get)
+            val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+              (v.bankId, v.accountId)
             }).distinct //we remove duplicates here
 
-            val visibleBankAndAccountPermalinks =
-              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+            val visibleBankAndAccountIds =
+              (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-            visibleBankAndAccountPermalinks.map {
-              case(bankPermalink, accountPermalink) => {
-                Connector.connector.vend.getBankAccount(BankId(bankPermalink), AccountId(accountPermalink))
+            visibleBankAndAccountIds.map {
+              case(bankId, accountId) => {
+                Connector.connector.vend.getBankAccount(bankId, accountId)
               }
             }.flatten
           }
@@ -368,26 +368,26 @@ private object MapperViews extends Views with Loggable {
           case u : APIUser => {
             //TODO: this could be quite a bit more efficient...
 
-            val publicViewBankAndAccountPermalinks = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
+            val publicViewBankAndAccountIds = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
               By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
-              (v.bankPermalink.get, v.accountPermalink.get)
+              (v.bankId, v.accountId)
             }).distinct
 
             val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
             val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
-              !v.isPublic && v.bankPermalink.get == bank.id.value
+              !v.isPublic && v.bankId == bank.id
             })
 
-            val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
-              (v.bankPermalink.get, v.accountPermalink.get)
+            val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+              (v.bankId, v.accountId)
             }).distinct //we remove duplicates here
 
-            val visibleBankAndAccountPermalinks =
-              (publicViewBankAndAccountPermalinks ++ nonPublicViewBankAndAccountPermalinks).distinct
+            val visibleBankAndAccountIds =
+              (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-            Full(visibleBankAndAccountPermalinks.map {
-              case(bankPermalink, accountPermalink) => {
-                Connector.connector.vend.getBankAccount(BankId(bankPermalink), AccountId(accountPermalink))
+            Full(visibleBankAndAccountIds.map {
+              case(bankId, accountId) => {
+                Connector.connector.vend.getBankAccount(bankId, accountId)
               }
             }.flatten)
           }
@@ -415,13 +415,13 @@ private object MapperViews extends Views with Loggable {
           val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
           val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
-          val nonPublicViewBankAndAccountPermalinks = userNonPublicViews.map(v => {
-            (v.bankPermalink.get, v.accountPermalink.get)
+          val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+            (v.bankId, v.accountId)
           }).distinct //we remove duplicates here
 
-          nonPublicViewBankAndAccountPermalinks.map {
-            case(bankPermalink, accountPermalink) => {
-              Connector.connector.vend.getBankAccount(BankId(bankPermalink), AccountId(accountPermalink))
+          nonPublicViewBankAndAccountIds.map {
+            case(bankId, accountId) => {
+              Connector.connector.vend.getBankAccount(bankId, accountId)
             }
           }
         }
@@ -442,13 +442,13 @@ private object MapperViews extends Views with Loggable {
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
         val userNonPublicViewsForBank : List[ViewImpl] =
-          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankPermalink.get == bankId.value)
+          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId)
 
-        val nonPublicViewAccountPermalinks = userNonPublicViewsForBank.
-          map(_.accountPermalink.get).distinct //we remove duplicates here
+        val nonPublicViewAccountIds = userNonPublicViewsForBank.
+          map(_.accountId).distinct //we remove duplicates here
 
-        Full(nonPublicViewAccountPermalinks.map( permalink =>
-          Connector.connector.vend.getBankAccount(bankId, AccountId(permalink))
+        Full(nonPublicViewAccountIds.map( accountId =>
+          Connector.connector.vend.getBankAccount(bankId, accountId)
         ).flatten)
       }
       case u : User => {

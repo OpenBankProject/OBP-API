@@ -342,9 +342,13 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   }
 
   def id: Long = id_.get
+
+  def viewId : ViewId = ViewId(permalink_.get)
+  def accountId : AccountId = AccountId(accountPermalink.get)
+  def bankId : BankId = BankId(bankPermalink.get)
+
   def name: String = name_.get
   def description : String = description_.get
-  def viewId : ViewId = ViewId(permalink_.get)
   def isPublic : Boolean = isPublic_.get
 
   //the view settings

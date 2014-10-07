@@ -83,9 +83,14 @@ trait View {
   @deprecated("Use viewId")
   //an internal id (in the original view implementation: the database id)
   def id: Long
+
+  //these ids are used together to uniquely identify a view
+  def viewId : ViewId
+  def accountId : AccountId
+  def bankId : BankId
+
   def name: String
   def description : String
-  def viewId : ViewId
   def isPublic : Boolean
   def users: List[User]
 
