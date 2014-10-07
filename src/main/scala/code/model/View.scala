@@ -80,10 +80,6 @@ trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
 
-  @deprecated("Use viewId")
-  //an internal id (in the original view implementation: the database id)
-  def id: Long
-
   //these ids are used together to uniquely identify a view
   def viewId : ViewId
   def accountId : AccountId
