@@ -31,7 +31,7 @@ Berlin 13359, Germany
   */
 package code.sandbox
 
-import code.api.test.{SendServerRequests, APIResponse, ServerSetup}
+import code.api.test.{SendServerRequests, APIResponse}
 import code.model.BankId
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
