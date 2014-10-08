@@ -1,60 +1,175 @@
+/**
+Open Bank Project - API
+Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+
+  */
 package code.sandbox
 
-import code.api.test.ServerSetup
+import code.api.test.{SendServerRequests, APIResponse, ServerSetup}
+import code.model.BankId
 import dispatch._
+import net.liftweb.json.JsonAST.JObject
 import net.liftweb.util.Props
+import org.scalatest.FlatSpec
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json.{compact, render}
+import code.bankconnectors.Connector
 
-class SandboxDataLoadingTest extends ServerSetup {
+//TODO: remove ServerSetup extension: we don't want the db set up, we just need some methods extracted out of ServerSetup
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests {
 
-  val validBank1 =
-    """{"id": "example-bank1",
-      |"short_name": "ExBank1",
-      |"full_name": "Example Bank 1 of Examplonia",
-      |"logo": "http://example.com/logo",
-      |"website: "http://example.com"}""".stripMargin
-  val validBank2 =
-    """{"id": "example-bank2",
-      |"short_name": "ExBank2",
-      |"full_name": "Example Bank 2 of Examplonia",
-      |"logo": "http://example.com/logo",
-      |"website: "http://example.com"}""".stripMargin
-  val bankWithSameIdAsValidBank1 =
-    """{"id": "example-bank1",
-      |"short_name": "ExB",
-      |"full_name": "An imposter Example Bank of Examplonia",
-      |"logo": "http://example.com/logo",
-      |"website: "http://example.com"}""".stripMargin
-  val bankWithoutId =
-    """{"short_name": "ExBank1",
-      |"full_name": "Example Bank 1 of Examplonia",
-      |"logo": "http://example.com/logo",
-      |"website: "http://example.com"}""".stripMargin
-  val bankWithEmptyId =
-    """{"id": "",
-      |"short_name": "ExBank1",
-      |"full_name": "Example Bank 1 of Examplonia",
-      |"logo": "http://example.com/logo",
-      |"website: "http://example.com"}""".stripMargin
-
-  val validUser1 = """{"id": "jeff@example.com", "display_name": "Jeff Bloggs"}"""
-  val validUser2 = """{"id": "bob@example.com", "display_name": "Bob Bloggs"}"""
-  val userWithSameIdAsValidUser1 = """{"id": jeff@example.com", "display_name": "Jeff Bloggs Number 2"}"""
-  val userWithoutId = """{"display_name": "Jeff Bloggs"}"""
-  val userWithEmptyId = """{"id": "", "display_name": "Jeff Bloggs"}"""
+  def sandboxApiPrefix = baseRequest / "obp" / "vsandbox"
 
   def toJsonArray(xs : List[String]) : String = {
     xs.mkString("[", ",", "]")
   }
 
-  def createImportJson(banks: List[String], users: List[String], accounts : List[String], transactions : List[String]) : String = {
-    s"""
-       |"banks" : ${toJsonArray(banks)},
-       |"users" : ${toJsonArray(users)},
-       |"accounts" : ${toJsonArray(accounts)},
-       |"transactions" : ${toJsonArray(transactions)}
-     """.stripMargin
+  def createImportJson(banks: List[JObject], users: List[JObject], accounts : List[JObject], transactions : List[JObject]) : String = {
+    val json =
+      ("banks" -> banks) ~
+      ("users" -> users) ~
+      ("accounts" -> accounts) ~
+      ("transactions" -> transactions)
+    compact(render(json))
   }
 
+  // posts the json with the correct secret token
+  def postImportJson(json : String) : APIResponse = {
+    postImportJson(json, Some(Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")))
+  }
+
+  def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
+    val base = sandboxApiPrefix / "data-import"
+    val request = secretToken match {
+      case Some(t) => base << Map("secret_token" -> t)
+      case None => base
+    }
+    makePostRequest(request, json)
+  }
+
+  "Data import" should "require banks to have non-empty ids" in {
+
+    //no banks should exist initially
+    Connector.connector.vend.getBanks.size should equal(0)
+
+    val validId = "example-bank"
+    val shortName = "ExBank1"
+    val fullName = "Example Bank of Examplonia"
+    val logo = "http://example.com/logo"
+    val website = "http://example.com"
+
+    val bankWithoutId =
+      ("short_name" -> shortName) ~
+      ("full_name" -> fullName) ~
+      ("logo" -> logo) ~
+      ("website" -> website)
+
+    def getResponse(bankJson : JObject) = {
+      val json = createImportJson(List(bankJson), Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    getResponse(bankWithoutId).code should equal(400)
+
+    //no banks should have been created
+    Connector.connector.vend.getBanks.size should equal(0)
+
+    val bankWithEmptyId = bankWithoutId ~ ("id" -> "")
+    getResponse(bankWithEmptyId).code should equal(400)
+
+    //no banks should have been created
+    Connector.connector.vend.getBanks.size should equal(0)
+
+    //Check that the same json become valid when a non-empty id is added
+    val bankWithValidId = bankWithoutId ~ ("id" -> validId)
+    val response = getResponse(bankWithValidId)
+    response.code should equal(200)
+
+    //Check the bank was created
+    val banks = Connector.connector.vend.getBanks
+    banks.size should equal(1)
+    val createdBank  = banks(0)
+
+    createdBank.id should equal(BankId(validId))
+    createdBank.shortName should equal(shortName)
+    createdBank.fullName should equal(fullName)
+    createdBank.logoURL should equal(logo)
+    createdBank.website should equal(website)
+  }
+
+  it should "not allow multiple banks with the same id" in {
+    //no banks should exist initially
+    Connector.connector.vend.getBanks.size should equal(0)
+
+    val id = "example-bank"
+    val shortName = "ExBank1"
+    val fullName = "Example Bank of Examplonia"
+    val logo = "http://example.com/logo"
+    val website = "http://example.com"
+
+    val validBank =
+      ("id" -> id) ~
+      ("short_name" -> shortName) ~
+      ("full_name" -> fullName) ~
+      ("logo" -> logo) ~
+      ("website" -> website)
+
+
+    val baseOtherBank =
+      ("short_name" -> {shortName + "2"}) ~
+      ("full_name" -> {fullName + "2"}) ~
+      ("logo" -> {logo + "2"}) ~
+      ("website" -> {website + "2"})
+
+    //same id, but different other attributes
+    val bankWithSameId =
+      ("id" -> id) ~
+      baseOtherBank
+
+    def getResponse(bankJsons : List[JObject]) = {
+      val json = createImportJson(bankJsons, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    getResponse(List(validBank, bankWithSameId)).code should equal(400)
+
+    //now try again but this time with a different id
+    val validOtherBank =
+      ("id" -> {id + "2"}) ~
+      baseOtherBank
+
+    getResponse(List(validBank, bankWithSameId)).code should equal(200)
+
+    //check that two banks were created
+    val banks = Connector.connector.vend.getBanks
+    banks.size should equal(2)
+  }
 
   feature("Adding sandbox test data") {
 
@@ -66,40 +181,94 @@ class SandboxDataLoadingTest extends ServerSetup {
       //TODO: check we get an error and correct http code
     }
 
-    scenario("We define a bank without an id") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a bank with an empty id") {
-      //TODO: it shouldn't work
+    scenario("We try to import valid data with an invalid secret token") {
+      //TODO: check we get an error and correct http code
     }
 
     scenario("We define more than one bank with the same id") {
-      //TODO: it shouldn't work
+      val validBank =
+        """{"id": "example-bank1",
+          |"short_name": "ExBank1",
+          |"full_name": "Example Bank 1 of Examplonia",
+          |"logo": "http://example.com/logo",
+          |"website: "http://example.com"}""".stripMargin
+      val bankWithSameIdAsValidBank =
+        """{"id": "example-bank1",
+          |"short_name": "ExB",
+          |"full_name": "An imposter Example Bank of Examplonia",
+          |"logo": "http://example.com/logo",
+          |"website: "http://example.com"}""".stripMargin
+
+      val importJson = createImportJson(List(validBank, bankWithSameIdAsValidBank), Nil, Nil, Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define a user without an id") {
-      //TODO: it shouldn't work
+      val userWithoutId = """{"display_name": "Jeff Bloggs"}"""
+
+      val importJson = createImportJson(Nil, List(userWithoutId), Nil, Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define a user with an empty id") {
-      //TODO: it shouldn't work
+      val userWithEmptyId = """{"id": "", "display_name": "Jeff Bloggs"}"""
+
+      val importJson = createImportJson(Nil, List(userWithEmptyId), Nil, Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define more than one user with the same id") {
-      //TODO: it shouldn't work
+      val validUser = """{"id": "jeff@example.com", "display_name": "Jeff Bloggs"}"""
+      val userWithSameIdAsValidUser = """{"id": jeff@example.com", "display_name": "Jeff Bloggs Number 2"}"""
+
+      val importJson = createImportJson(Nil, List(validUser, userWithSameIdAsValidUser), Nil, Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define an account without an id") {
-      //TODO: it shouldn't work
+      val bankId = "test"
+      val bank = importBankJson(bankId)
+      val ownerId = "foobar@example.com"
+      val owner = importUserJson(ownerId)
+
+
+      val accountWithoutId =
+        s"""{
+          |"bank" : ${bankId},
+          |"label" : "Foo",
+          |"number" : "23432432",
+          |"type" : "savings",
+          |"balance" : {
+          |  "currency" : "EUR",
+          |  "amount" : "23.54"
+          |},
+          |"IBAN" : "1231321321321",
+          |"owners" : ${toJsonArray(List(ownerId))}
+          |}
+        """.stripMargin
+
+      //TODO: set up users and banks
+      val importJson = createImportJson(Nil, Nil, List(accountWithoutId), Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define an account with an empty id") {
-      //TODO: it shouldn't work
+      //TODO: set up users and banks
+      val importJson = createImportJson(Nil, Nil, List(accountWithEmptyId), Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define more than one account with the same id") {
-      //TODO: it shouldn't work
+      //TODO: set up users and banks
+      val importJson = createImportJson(Nil, Nil, List(validAccount, accountWithSameIdAsValidAccount), Nil)
+      val response = postImportJson(importJson)
+      response.code should equal(400)
     }
 
     scenario("We define an account with a public view") {
