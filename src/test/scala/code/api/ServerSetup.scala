@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.api.test
 
+import code.TestServer
 import code.model.{AccountId, BankId}
 import org.scalatest._
 import dispatch._
@@ -55,7 +56,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterAll
   with ShouldMatchers with Loggable{
 
-  var server = ServerSetup
+  var server = TestServer
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http
   def baseRequest = host(server.host, server.port)
@@ -375,24 +376,4 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     canDeleteWhereTag_(true).
     save
 
-}
-
-object ServerSetup {
-  import net.liftweb.util.Props
-
-  val host = "localhost"
-  val port = Props.getInt("tests.port",8000)
-  val server = new Server
-  val scc = new SelectChannelConnector
-  scc.setPort(port)
-  server.setConnectors(Array(scc))
-
-  val context = new WebAppContext()
-  context.setServer(server)
-  context.setContextPath("/")
-  context.setWar("src/main/webapp")
-
-  server.addHandler(context)
-
-  server.start()
 }
