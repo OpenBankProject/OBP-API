@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import code.api.sandbox.SandboxApiCalls
 import net.liftweb._
 import util._
 import common._
@@ -174,6 +175,14 @@ class Boot extends Loggable{
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
     //OAuth API call
     LiftRules.statelessDispatch.append(OAuthHandshake)
+
+    //add sandbox api calls only if we're running in sandbox mode
+    if(Props.getBool("allows_sandbox_data_import", false)) {
+      logger.info("Adding sandbox api calls")
+      LiftRules.statelessDispatch.append(SandboxApiCalls)
+    } else {
+      logger.info("Not adding sandbox api calls")
+    }
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
