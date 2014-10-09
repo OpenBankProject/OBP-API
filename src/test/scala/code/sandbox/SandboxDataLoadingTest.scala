@@ -31,20 +31,28 @@ Berlin 13359, Germany
   */
 package code.sandbox
 
-import code.api.test.{SendServerRequests, APIResponse, ServerSetup}
+import code.TestServer
+import code.api.test.{SendServerRequests, APIResponse}
 import code.model.BankId
+import code.users.Users
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.util.Props
-import org.scalatest.FlatSpec
+import org.scalatest.{ShouldMatchers, FlatSpec}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.{compact, render}
 import code.bankconnectors.Connector
+import net.liftweb.common.{Empty}
 
-//TODO: remove ServerSetup extension: we don't want the db set up, we just need some methods extracted out of ServerSetup
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests {
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers{
+
+  val server = TestServer
+  def baseRequest = host(server.host, server.port)
 
   def sandboxApiPrefix = baseRequest / "obp" / "vsandbox"
+
+  //users should automatically be assigned the "hostname" as a provider (for now at least)
+  val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
 
   def toJsonArray(xs : List[String]) : String = {
     xs.mkString("[", ",", "]")
@@ -109,7 +117,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests {
     //Check that the same json become valid when a non-empty id is added
     val bankWithValidId = bankWithoutId ~ ("id" -> validId)
     val response = getResponse(bankWithValidId)
-    response.code should equal(200)
+    response.code should equal(201)
 
     //Check the bank was created
     val banks = Connector.connector.vend.getBanks
@@ -164,11 +172,92 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests {
       ("id" -> {id + "2"}) ~
       baseOtherBank
 
-    getResponse(List(validBank, bankWithSameId)).code should equal(200)
+    getResponse(List(validBank, validOtherBank)).code should equal(201)
 
     //check that two banks were created
     val banks = Connector.connector.vend.getBanks
     banks.size should equal(2)
+  }
+
+  it should "require users to have non-empty ids" in {
+
+    def getResponse(userJson : JObject) = {
+      val json = createImportJson(Nil, List(userJson), Nil, Nil)
+      postImportJson(json)
+    }
+
+    val userWithoutId : JObject = ("display_name" -> "Ralph Bloggs")
+
+    getResponse(userWithoutId).code should equal(400)
+
+    val userWithEmptyId = ("id" -> "") ~ userWithoutId
+
+    //there should be no user with a blank id before we try to add one
+    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+
+    getResponse(userWithEmptyId).code should equal(400)
+
+    //there should still be no user with a blank id
+    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+
+    val validId = "some-valid-id"
+    val userWithValidId = ("id" -> validId) ~ userWithoutId
+
+    getResponse(userWithValidId).code should equal(201)
+
+    //a user should now have been created
+    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, validId)
+    createdUser.isDefined should be true
+    createdUser.get.provider should equal(defaultProvider)
+    createdUser.get.idGivenByProvider should equal(validId)
+
+  }
+
+  it should "not allow multiple users with the same id" in {
+
+    def getResponse(userJsons : List[JObject]) = {
+      val json = createImportJson(Nil, userJsons, Nil, Nil)
+      postImportJson(json)
+    }
+
+    //ids of the two users we will eventually create to show multiple users with different ids are possible
+    val firstUserId = "user-one"
+    val secondUserId = "user-two"
+
+    val displayNameKey = "display_name"
+    val displayNameVal = "Jessica Bloggs"
+    val displayNameParam : JObject = (displayNameKey -> displayNameVal)
+
+    //neither of these users should exist initially
+    Users.users.vend.getUserByProviderId(defaultProvider, firstUserId) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, secondUserId) should equal(Empty)
+
+    val firstUserIdParam : JObject = ("id" -> firstUserId)
+    val userWithId1 = firstUserIdParam ~ displayNameParam
+    val anotherUserWithId1 = firstUserIdParam ~ displayNameParam
+
+    getResponse(List(userWithId1, anotherUserWithId1)).code should equal(400)
+
+    //no user with firstUserId should be created
+    Users.users.vend.getUserByProviderId(defaultProvider, firstUserId) should equal(Empty)
+
+    //when we only alter the id (display name stays the same), it should work
+    val userWithId2 = ("id" -> secondUserId) ~ displayNameParam
+
+    getResponse(List(userWithId1, userWithId2)).code should equal(200)
+
+    //and both users should be created
+    val user1 = Users.users.vend.getUserByProviderId(defaultProvider, firstUserId)
+    val user2 = Users.users.vend.getUserByProviderId(defaultProvider, secondUserId)
+
+    user1.isDefined should be true
+    user2.isDefined should be true
+
+    user1.get.idGivenByProvider should equal(firstUserId)
+    user2.get.idGivenByProvider should equal(secondUserId)
+
+    user1.get.name should equal(displayNameVal)
+    user2.get.name should equal(displayNameVal)
   }
 
   feature("Adding sandbox test data") {
