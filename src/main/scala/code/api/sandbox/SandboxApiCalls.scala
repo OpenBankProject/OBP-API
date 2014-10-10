@@ -13,7 +13,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
 
   oauthServe(apiPrefix{
 
-    case "data-import" :: Nil JsonPost json -> _ => {
+    case "v1.0" :: "data-import" :: Nil JsonPost json -> _ => {
       user =>
         Failure("TODO")
     }

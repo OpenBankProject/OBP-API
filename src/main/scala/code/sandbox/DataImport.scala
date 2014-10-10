@@ -11,7 +11,7 @@ case class SandboxBankImport(
   website : String)
 
 case class SandboxUserImport(
-  id : String,
+  email : String,
   display_name : String)
 
 case class SandboxAccountImport(
@@ -22,17 +22,17 @@ case class SandboxAccountImport(
   `type` : String,
   balance : SandboxBalanceImport,
   IBAN : String,
-  owners : List[SandboxUserImport],
+  owners : List[String],
   generate_public_view : Boolean)
 
 case class SandboxBalanceImport(
   currency : String,
-  amount : String)
+  amount : Double)
 
 case class SandboxTransactionImport(
   id : String,
   this_account : SandboxAccountIdImport,
-  counterparty : Option[SandboxAccountImport],
+  counterparty : Option[SandboxAccountIdImport],
   details : SandboxAccountDetailsImport)
 
 case class SandboxAccountIdImport(

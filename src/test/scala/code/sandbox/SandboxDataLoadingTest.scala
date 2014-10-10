@@ -31,20 +31,26 @@ Berlin 13359, Germany
   */
 package code.sandbox
 
+import java.util.Date
+
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
-import code.model.BankId
+import code.api.v1_2_1.APIMethods121
+import code.model.{TransactionId, AccountId, BankId}
 import code.users.Users
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.util.Props
 import org.scalatest.{ShouldMatchers, FlatSpec}
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.{compact, render}
+import net.liftweb.json._
+import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
 import net.liftweb.common.{Empty}
 
 class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers{
+
+  implicit val formats = Serialization.formats(NoTypeHints)
 
   val server = TestServer
   def baseRequest = host(server.host, server.port)
@@ -58,7 +64,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     xs.mkString("[", ",", "]")
   }
 
-  def createImportJson(banks: List[JObject], users: List[JObject], accounts : List[JObject], transactions : List[JObject]) : String = {
+  def createImportJson(banks: List[JValue], users: List[JValue], accounts : List[JValue], transactions : List[JValue]) : String = {
     val json =
       ("banks" -> banks) ~
       ("users" -> users) ~
@@ -73,7 +79,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
-    val base = sandboxApiPrefix / "data-import"
+    val base = sandboxApiPrefix / "v1.0" / "data-import"
     val request = secretToken match {
       case Some(t) => base << Map("secret_token" -> t)
       case None => base
@@ -81,24 +87,237 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     makePostRequest(request, json)
   }
 
-  "Data import" should "require banks to have non-empty ids" in {
+  def verifyBankCreated(bank : SandboxBankImport) = {
+    val bankId = BankId(bank.id)
+    val foundBankBox = Connector.connector.vend.getBank(bankId)
+
+    foundBankBox.isDefined should equal(true)
+
+    val foundBank = foundBankBox.get
+
+    foundBank.id should equal(bankId)
+    foundBank.shortName should equal(bank.short_name)
+    foundBank.fullName should equal(bank.full_name)
+    foundBank.logoURL should equal(bank.logo)
+    foundBank.website should equal(bank.website)
+  }
+
+  def verifyUserCreated(user : SandboxUserImport) = {
+    val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.email)
+    foundUserBox.isDefined should equal(true)
+
+    val foundUser = foundUserBox.get
+
+    foundUser.provider should equal(defaultProvider)
+    foundUser.idGivenByProvider should equal(user.email)
+    foundUser.emailAddress should equal(user.email)
+    foundUser.name should equal(user.display_name)
+  }
+
+  def verifyAccountCreated(account : SandboxAccountImport) = {
+    val accId = AccountId(account.id)
+    val bankId = BankId(account.bank)
+    val foundAccountBox = Connector.connector.vend.getBankAccount(bankId, accId)
+    foundAccountBox.isDefined should equal(true)
+
+    val foundAccount = foundAccountBox.get
+
+    foundAccount.bankId should equal(bankId)
+    foundAccount.accountId should equal(accId)
+    foundAccount.label should equal(account.label)
+    foundAccount.number should equal(account.number)
+    foundAccount.accountType should equal(account.`type`)
+    foundAccount.iban should equal(Some(account.IBAN))
+    foundAccount.balance.toString should equal(account.balance.amount)
+    foundAccount.currency should equal(account.balance.currency)
+
+    foundAccount.owners.map(_.id) should equal(account.owners.toSet)
+
+    if(account.generate_public_view) {
+      foundAccount.publicViews.size should equal(1)
+    } else {
+      foundAccount.publicViews.size should equal(0)
+    }
+
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.id).get
+
+    //there should be an owner view
+    val views = foundAccount.views(owner).get
+    views.exists(v => v.permalink == "owner") should equal(true)
+  }
+
+  def verifyTransactionCreated(transaction : SandboxTransactionImport, accountsUsed : List[SandboxAccountImport]) = {
+    val bankId = BankId(transaction.this_account.bank)
+    val accountId = AccountId(transaction.this_account.id)
+    val transactionId = TransactionId(transaction.id)
+    val foundTransactionBox = Connector.connector.vend.getTransaction(bankId, accountId, transactionId)
+
+    foundTransactionBox.isDefined should equal(true)
+
+    val foundTransaction = foundTransactionBox.get
+
+    foundTransaction.id should equal(transactionId)
+    foundTransaction.bankId should equal(bankId)
+    foundTransaction.accountId should equal(accountId)
+    foundTransaction.description should equal(transaction.details.description)
+    foundTransaction.balance.toString should equal(transaction.details.new_balance)
+    foundTransaction.amount.toString should equal(transaction.details.value)
+
+    def toDate(dateString : String) : Date = {
+      APIMethods121.DateParser.parse(dateString).get
+    }
+
+    foundTransaction.startDate should equal(toDate(transaction.details.posted))
+    foundTransaction.finishDate should equal(toDate(transaction.details.completed))
+
+    //a counterparty should exist
+    val otherAcc = foundTransaction.otherAccount
+    otherAcc.id should not be empty
+    otherAcc.originalPartyAccountId should equal(accountId)
+    otherAcc.originalPartyBankId should equal(bankId)
+    val otherAccMeta = otherAcc.metadata
+    otherAccMeta.publicAlias should not be empty
+
+    //if a counterparty was originally specified in the import data, it should correspond to that
+    //counterparty
+    if(transaction.counterparty.isDefined) {
+      val counterParty = transaction.counterparty.get
+      val accountUsedOpt = accountsUsed.find(a => a.id == counterParty.id && a.bank == counterParty.bank)
+      accountUsedOpt.isDefined should equal(true)
+
+      val accountUsed = accountUsedOpt.get
+      otherAcc.label should equal(accountUsed.label)
+      otherAcc.number should equal(accountUsed.number)
+      otherAcc.kind should equal(accountUsed.`type`)
+      otherAcc.iban should equal(Some(accountUsed.IBAN))
+    }
+
+  }
+
+  val bank1 = SandboxBankImport(id = "bank1", short_name = "bank 1", full_name = "Bank 1 Inc.",
+    logo = "http://example.com/logo", website = "http://example.com")
+  val bank2 = SandboxBankImport(id = "bank2", short_name = "bank 2", full_name = "Bank 2 Inc.",
+    logo = "http://example.com/logo2", website = "http://example.com/2")
+
+  val standardBanks = bank1 :: bank2 :: Nil
+
+  val user1 = SandboxUserImport(email = "user1@example.com", display_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", display_name = "User 2")
+
+  val standardUsers = user1 :: user2 :: Nil
+
+  val account1AtBank1 = SandboxAccountImport(id = "account1", bank = "bank1", label = "Account 1 at Bank 1",
+    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.email),
+    balance = SandboxBalanceImport(currency = "EUR", amount = 1000.00))
+
+  val account2AtBank1 = SandboxAccountImport(id = "account2", bank = "bank1", label = "Account 2 at Bank 1",
+    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.email),
+    balance = SandboxBalanceImport(currency = "EUR", amount = 2000.00))
+
+  val account1AtBank2 = SandboxAccountImport(id = "account1", bank = "bank2", label = "Account 1 at Bank 2",
+    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.email, user2.email),
+    balance = SandboxBalanceImport(currency = "EUR", amount = 1500.00))
+
+  val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
+
+  val transactionWithCounterparty = SandboxTransactionImport(id = "transaction-with-counterparty",
+    this_account = SandboxAccountIdImport(id = account1AtBank1.id, bank=account1AtBank1.bank),
+    counterparty = Some(SandboxAccountIdImport(id = account2AtBank1.id, bank=account2AtBank1.bank)),
+    details = SandboxAccountDetailsImport(
+      `type` = "SEPA",
+      description = "some description",
+      posted = "2012-03-07T00:00:00.001Z",
+      completed = "2012-04-07T00:00:00.001Z",
+      new_balance = "1244.00",
+      value = "-135.33"
+    ))
+
+  val transactionWithoutCounterparty = SandboxTransactionImport(id = "transaction-without-counterparty",
+    this_account = SandboxAccountIdImport(id = account1AtBank1.id, bank=account1AtBank1.bank),
+    counterparty = None,
+    details = SandboxAccountDetailsImport(
+      `type` = "SEPA",
+      description = "this is a description",
+      posted = "2012-03-07T00:00:00.001Z",
+      completed = "2012-04-07T00:00:00.001Z",
+      new_balance = "1244.00",
+      value = "-135.33"
+    ))
+
+  val standardTransactions = transactionWithCounterparty :: transactionWithoutCounterparty :: Nil
+
+  "Data import" should "work in the general case" in {
+
+    //same transaction id as another one used, but for a different bank account, so it should work
+    val anotherTransaction = SandboxTransactionImport(id = transactionWithoutCounterparty.id,
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = None,
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
+    val banks = standardBanks
+    val users = standardUsers
+    val accounts = standardAccounts
+    val transactions = anotherTransaction :: standardTransactions
+
+    val importJson = SandboxDataImport(banks, users, accounts, transactions)
+    val response = postImportJson(write(importJson))
+
+    response.code should equal(201)
+
+    banks.foreach(verifyBankCreated)
+    users.foreach(verifyUserCreated)
+    accounts.foreach(verifyAccountCreated)
+    transactions.foreach(verifyTransactionCreated(_, accounts))
+  }
+
+  def addField(json : JValue, fieldName : String, fieldValue : String) = {
+    json.transform{
+      case JObject(fields) => JObject(JField(fieldName, fieldValue) :: fields)
+    }
+  }
+
+  def removeField(json : JValue, fieldName : String) = {
+    json.remove {
+      case JField(fieldName, _) => true
+      case _ => false
+    }
+  }
+
+  def replaceField(json : JValue, fieldName : String, fieldValue : String) =
+    json.replace(List(fieldName), fieldValue)
+
+  def replaceDisplayName(json : JValue, displayName : String) =
+    replaceField(json, "display_name", displayName)
+
+  def addIdField(json : JValue, id : String) =
+    addField(json, "id", id)
+
+  def removeIdField(json : JValue) =
+    removeField(json, "id")
+
+  def addEmailField(json : JValue, email : String) =
+    addField(json, "email", email)
+
+  def removeEmailField(json : JValue) =
+    removeField(json, "email")
+
+  it should "require banks to have non-empty ids" in {
 
     //no banks should exist initially
     Connector.connector.vend.getBanks.size should equal(0)
 
-    val validId = "example-bank"
-    val shortName = "ExBank1"
-    val fullName = "Example Bank of Examplonia"
-    val logo = "http://example.com/logo"
-    val website = "http://example.com"
+    val bank1Json = Extraction.decompose(bank1)
 
-    val bankWithoutId =
-      ("short_name" -> shortName) ~
-      ("full_name" -> fullName) ~
-      ("logo" -> logo) ~
-      ("website" -> website)
+    val bankWithoutId = removeIdField(bank1Json)
 
-    def getResponse(bankJson : JObject) = {
+    def getResponse(bankJson : JValue) = {
       val json = createImportJson(List(bankJson), Nil, Nil, Nil)
       postImportJson(json)
     }
@@ -108,14 +327,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //no banks should have been created
     Connector.connector.vend.getBanks.size should equal(0)
 
-    val bankWithEmptyId = bankWithoutId ~ ("id" -> "")
+    val bankWithEmptyId = addIdField(bankWithoutId, "")
     getResponse(bankWithEmptyId).code should equal(400)
 
     //no banks should have been created
     Connector.connector.vend.getBanks.size should equal(0)
 
-    //Check that the same json become valid when a non-empty id is added
-    val bankWithValidId = bankWithoutId ~ ("id" -> validId)
+    //Check that the same json becomes valid when a non-empty id is added
+    val validId = "foo"
+    val bankWithValidId = addIdField(bankWithoutId, validId)
     val response = getResponse(bankWithValidId)
     response.code should equal(201)
 
@@ -125,141 +345,265 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val createdBank  = banks(0)
 
     createdBank.id should equal(BankId(validId))
-    createdBank.shortName should equal(shortName)
-    createdBank.fullName should equal(fullName)
-    createdBank.logoURL should equal(logo)
-    createdBank.website should equal(website)
+    createdBank.shortName should equal(bank1.short_name)
+    createdBank.fullName should equal(bank1.full_name)
+    createdBank.logoURL should equal(bank1.logo)
+    createdBank.website should equal(bank1.website)
   }
 
   it should "not allow multiple banks with the same id" in {
     //no banks should exist initially
     Connector.connector.vend.getBanks.size should equal(0)
 
-    val id = "example-bank"
-    val shortName = "ExBank1"
-    val fullName = "Example Bank of Examplonia"
-    val logo = "http://example.com/logo"
-    val website = "http://example.com"
-
-    val validBank =
-      ("id" -> id) ~
-      ("short_name" -> shortName) ~
-      ("full_name" -> fullName) ~
-      ("logo" -> logo) ~
-      ("website" -> website)
-
+    val bank1AsJValue = Extraction.decompose(bank1)
 
     val baseOtherBank =
-      ("short_name" -> {shortName + "2"}) ~
-      ("full_name" -> {fullName + "2"}) ~
-      ("logo" -> {logo + "2"}) ~
-      ("website" -> {website + "2"})
+      ("short_name" -> {bank1.short_name + "2"}) ~
+      ("full_name" -> {bank1.full_name + "2"}) ~
+      ("logo" -> {bank1.logo + "2"}) ~
+      ("website" -> {bank1.website + "2"})
 
-    //same id, but different other attributes
-    val bankWithSameId =
-      ("id" -> id) ~
-      baseOtherBank
+    //same id as bank1, but different other attributes
+    val bankWithSameId = addIdField(baseOtherBank, bank1.id)
 
-    def getResponse(bankJsons : List[JObject]) = {
+    def getResponse(bankJsons : List[JValue]) = {
       val json = createImportJson(bankJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
-    getResponse(List(validBank, bankWithSameId)).code should equal(400)
+    getResponse(List(bank1AsJValue, bankWithSameId)).code should equal(400)
 
     //now try again but this time with a different id
-    val validOtherBank =
-      ("id" -> {id + "2"}) ~
-      baseOtherBank
+    val validOtherBank = addIdField(baseOtherBank, {bank1.id + "2"})
 
-    getResponse(List(validBank, validOtherBank)).code should equal(201)
+    getResponse(List(bank1AsJValue, validOtherBank)).code should equal(201)
 
     //check that two banks were created
     val banks = Connector.connector.vend.getBanks
     banks.size should equal(2)
   }
 
-  it should "require users to have non-empty ids" in {
+  it should "require users to have valid emails" in {
 
-    def getResponse(userJson : JObject) = {
+    def getResponse(userJson : JValue) = {
       val json = createImportJson(Nil, List(userJson), Nil, Nil)
       postImportJson(json)
     }
 
-    val userWithoutId : JObject = ("display_name" -> "Ralph Bloggs")
+    val user1AsJson = Extraction.decompose(user1)
 
-    getResponse(userWithoutId).code should equal(400)
+    val userWithoutEmail = removeEmailField(user1AsJson)
 
-    val userWithEmptyId = ("id" -> "") ~ userWithoutId
+    getResponse(userWithoutEmail).code should equal(400)
+
+    val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
     //there should be no user with a blank id before we try to add one
     Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
 
-    getResponse(userWithEmptyId).code should equal(400)
+    getResponse(userWithEmptyEmail).code should equal(400)
 
-    //there should still be no user with a blank id
+    //there should still be no user with a blank email
     Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
 
-    val validId = "some-valid-id"
-    val userWithValidId = ("id" -> validId) ~ userWithoutId
+    //invalid email should fail
+    val invalidEmail = "foooo"
+    val userWithInvalidEmail = addEmailField(userWithoutEmail, invalidEmail)
 
-    getResponse(userWithValidId).code should equal(201)
+    getResponse(userWithInvalidEmail).code should equal(400)
+
+    //there should still be no user
+    Users.users.vend.getUserByProviderId(defaultProvider, invalidEmail) should equal(Empty)
+
+    val validEmail = "test@example.com"
+    val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
+
+    getResponse(userWithValidEmail).code should equal(201)
 
     //a user should now have been created
-    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, validId)
-    createdUser.isDefined should be true
+    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, validEmail)
+    createdUser.isDefined should equal(true)
     createdUser.get.provider should equal(defaultProvider)
-    createdUser.get.idGivenByProvider should equal(validId)
+    createdUser.get.idGivenByProvider should equal(validEmail)
+    createdUser.get.emailAddress should equal(validEmail)
 
   }
 
-  it should "not allow multiple users with the same id" in {
+  it should "not allow multiple users with the same email" in {
 
-    def getResponse(userJsons : List[JObject]) = {
+    def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil)
       postImportJson(json)
     }
 
-    //ids of the two users we will eventually create to show multiple users with different ids are possible
-    val firstUserId = "user-one"
-    val secondUserId = "user-two"
+    //emails of the user we will eventually create to show multiple users with different ids are possible
+    val secondUserEmail = "user-two@example.com"
 
-    val displayNameKey = "display_name"
-    val displayNameVal = "Jessica Bloggs"
-    val displayNameParam : JObject = (displayNameKey -> displayNameVal)
+    val user1Json = Extraction.decompose(user1)
 
-    //neither of these users should exist initially
-    Users.users.vend.getUserByProviderId(defaultProvider, firstUserId) should equal(Empty)
-    Users.users.vend.getUserByProviderId(defaultProvider, secondUserId) should equal(Empty)
+    val differentDisplayName = "Jessica Bloggs"
+    differentDisplayName should not equal(user1.display_name)
+    val userWithSameEmailAsUser1 = replaceDisplayName(user1Json, differentDisplayName)
 
-    val firstUserIdParam : JObject = ("id" -> firstUserId)
-    val userWithId1 = firstUserIdParam ~ displayNameParam
-    val anotherUserWithId1 = firstUserIdParam ~ displayNameParam
+    //neither of the users should exist initially
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, secondUserEmail) should equal(Empty)
 
-    getResponse(List(userWithId1, anotherUserWithId1)).code should equal(400)
+    getResponse(List(user1Json, userWithSameEmailAsUser1)).code should equal(400)
 
     //no user with firstUserId should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, firstUserId) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
 
     //when we only alter the id (display name stays the same), it should work
-    val userWithId2 = ("id" -> secondUserId) ~ displayNameParam
+    val userWithEmail2 = replaceField(userWithSameEmailAsUser1, "email", secondUserEmail)
 
-    getResponse(List(userWithId1, userWithId2)).code should equal(200)
+    getResponse(List(user1Json, userWithEmail2)).code should equal(200)
 
     //and both users should be created
-    val user1 = Users.users.vend.getUserByProviderId(defaultProvider, firstUserId)
-    val user2 = Users.users.vend.getUserByProviderId(defaultProvider, secondUserId)
+    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.email)
+    val secondUser = Users.users.vend.getUserByProviderId(defaultProvider, secondUserEmail)
 
-    user1.isDefined should be true
-    user2.isDefined should be true
+    firstUser.isDefined should equal(true)
+    secondUser.isDefined should equal(true)
 
-    user1.get.idGivenByProvider should equal(firstUserId)
-    user2.get.idGivenByProvider should equal(secondUserId)
+    firstUser.get.idGivenByProvider should equal(user1.email)
+    secondUser.get.idGivenByProvider should equal(secondUserEmail)
 
-    user1.get.name should equal(displayNameVal)
-    user2.get.name should equal(displayNameVal)
+    firstUser.get.emailAddress should equal(user1.email)
+    secondUser.get.emailAddress should equal(secondUserEmail)
+
+    firstUser.get.name should equal(user1.display_name)
+    secondUser.get.name should equal(differentDisplayName)
   }
 
+  it should "require accounts to have non-empty ids" in {
+
+    def getResponse(accountJsons : List[JValue]) = {
+      val banks = standardBanks.map(Extraction.decompose)
+      val users = standardUsers.map(Extraction.decompose)
+      val json = createImportJson(banks, users, accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val acc1AtBank1Json = Extraction.decompose(account1AtBank1)
+    val accountWithoutId = removeIdField(acc1AtBank1Json)
+
+    getResponse(List(accountWithoutId)).code should equal(400)
+
+    val accountWithEmptyId = addIdField(accountWithoutId, "")
+
+    getResponse(List(accountWithEmptyId)).code should equal(400)
+
+    //no account should exist with an empty id
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")) should equal(Empty)
+
+    getResponse(List(acc1AtBank1Json)).code should equal(201)
+
+    //an account should now exist
+    verifyAccountCreated(account1AtBank1)
+  }
+
+  it should "not allow multiple accounts at the same bank with the same id" in {
+
+    def getResponse(accountJsons : List[JValue]) = {
+      val banks = standardBanks.map(Extraction.decompose)
+      val users = standardUsers.map(Extraction.decompose)
+      val json = createImportJson(banks, users, accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val account1AtBank1Json = Extraction.decompose(account1AtBank1)
+    //might be nice to test a case where the only similar attribute between the accounts is the id
+    getResponse(List(account1AtBank1Json, account1AtBank1Json)).code should equal(400)
+
+    //no accounts should have been created
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)) should equal(Empty)
+
+    val accountIdTwo = "2"
+    val accountWithDifferentId = replaceField(account1AtBank1Json, "id", accountIdTwo)
+
+    getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(201)
+
+    //two accounts should have been created
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined should equal(true)
+
+  }
+
+  it should "not allow an account to have a bankId not specified in the imported banks" in {
+
+    val badBankId = "asdf"
+
+    def getResponse(accountJsons : List[JValue]) = {
+      standardBanks.exists(b => b.id == badBankId) should equal(false)
+      val banks = standardBanks.map(Extraction.decompose)
+
+      val users = standardUsers.map(Extraction.decompose)
+      val json = createImportJson(banks, users, accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val badBankAccount = replaceField(Extraction.decompose(account1AtBank1), "id", badBankId)
+
+    getResponse(List(badBankAccount)).code should equal(400)
+
+    //no account should have been created
+    Connector.connector.vend.getBankAccount(BankId(badBankId), AccountId(account1AtBank1.id)).isDefined should equal(false)
+  }
+
+  it should "not allow an account to be created without an owner" in {
+    def getResponse(accountJsons : List[JValue]) = {
+      val banks = standardBanks.map(Extraction.decompose)
+      val users = standardUsers.map(Extraction.decompose)
+
+      val json = createImportJson(banks, users, accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val acc1AtBank1Json = Extraction.decompose(account1AtBank1)
+
+    val accountWithNoOwnerField = removeField(acc1AtBank1Json, "owners")
+
+    getResponse(List(accountWithNoOwnerField)).code should equal(400)
+
+    val accountWithNilOwners = Extraction.decompose(account1AtBank1.copy(owners = Nil))
+
+    getResponse(List(accountWithNilOwners)).code should equal(400)
+  }
+
+  it should "not allow an account to be created with an non-existant owner" in {
+
+    val users = standardUsers
+    val banks = standardBanks
+
+    def getResponse(accountJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val nonExistantOwnerEmail = "asdfasdfasdf@example.com"
+    users.exists(u => u.email == nonExistantOwnerEmail) should equal(false)
+
+    val accountWithInvalidOwner = account1AtBank1.copy(owners = List(nonExistantOwnerEmail))
+
+    getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(400)
+
+    //it should not have been created
+    Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)) should equal(Empty)
+
+    //a mix of valid an invalid owners should also not work
+    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.email))
+    getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(400)
+
+    //it should not have been created
+    Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)) should equal(Empty)
+
+  }
+
+  it should "TODO: check that counterparty specified is not generated if it already exists (for the original account in question)" in {
+    1 should equal(2)
+  }
+/*
   feature("Adding sandbox test data") {
 
     scenario("We try to import valid data with a secret token") {
@@ -274,125 +618,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       //TODO: check we get an error and correct http code
     }
 
-    scenario("We define more than one bank with the same id") {
-      val validBank =
-        """{"id": "example-bank1",
-          |"short_name": "ExBank1",
-          |"full_name": "Example Bank 1 of Examplonia",
-          |"logo": "http://example.com/logo",
-          |"website: "http://example.com"}""".stripMargin
-      val bankWithSameIdAsValidBank =
-        """{"id": "example-bank1",
-          |"short_name": "ExB",
-          |"full_name": "An imposter Example Bank of Examplonia",
-          |"logo": "http://example.com/logo",
-          |"website: "http://example.com"}""".stripMargin
-
-      val importJson = createImportJson(List(validBank, bankWithSameIdAsValidBank), Nil, Nil, Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define a user without an id") {
-      val userWithoutId = """{"display_name": "Jeff Bloggs"}"""
-
-      val importJson = createImportJson(Nil, List(userWithoutId), Nil, Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define a user with an empty id") {
-      val userWithEmptyId = """{"id": "", "display_name": "Jeff Bloggs"}"""
-
-      val importJson = createImportJson(Nil, List(userWithEmptyId), Nil, Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define more than one user with the same id") {
-      val validUser = """{"id": "jeff@example.com", "display_name": "Jeff Bloggs"}"""
-      val userWithSameIdAsValidUser = """{"id": jeff@example.com", "display_name": "Jeff Bloggs Number 2"}"""
-
-      val importJson = createImportJson(Nil, List(validUser, userWithSameIdAsValidUser), Nil, Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define an account without an id") {
-      val bankId = "test"
-      val bank = importBankJson(bankId)
-      val ownerId = "foobar@example.com"
-      val owner = importUserJson(ownerId)
-
-
-      val accountWithoutId =
-        s"""{
-          |"bank" : ${bankId},
-          |"label" : "Foo",
-          |"number" : "23432432",
-          |"type" : "savings",
-          |"balance" : {
-          |  "currency" : "EUR",
-          |  "amount" : "23.54"
-          |},
-          |"IBAN" : "1231321321321",
-          |"owners" : ${toJsonArray(List(ownerId))}
-          |}
-        """.stripMargin
-
-      //TODO: set up users and banks
-      val importJson = createImportJson(Nil, Nil, List(accountWithoutId), Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define an account with an empty id") {
-      //TODO: set up users and banks
-      val importJson = createImportJson(Nil, Nil, List(accountWithEmptyId), Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
-    scenario("We define more than one account with the same id") {
-      //TODO: set up users and banks
-      val importJson = createImportJson(Nil, Nil, List(validAccount, accountWithSameIdAsValidAccount), Nil)
-      val response = postImportJson(importJson)
-      response.code should equal(400)
-    }
-
     scenario("We define an account with a public view") {
       //TODO: it should work
     }
 
     scenario("We define an account without a public view") {
-      //TODO: it should work
-    }
-
-    scenario("We define an account with an invalid bank") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define accounts with valid banks") {
-      //TODO: it should work + check everything is created, owners are set correctly, etc.
-    }
-
-    scenario("We define an account without an owner") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define an account with an invalid owner") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define an account with a valid owner") {
-      //TODO: it should work
-    }
-
-    scenario("We define an account with a mixture of valid and invalid owners") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define an account with more than one owners") {
       //TODO: it should work
     }
 
@@ -428,6 +658,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       //TODO: it shouldn't work
     }
 
-  }
+
+  }*/
 
 }
