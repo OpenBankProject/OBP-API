@@ -194,6 +194,40 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   }
 
+  def addField(json : JValue, fieldName : String, fieldValue : String) = {
+    json.transform{
+      case JObject(fields) => JObject(JField(fieldName, fieldValue) :: fields)
+    }
+  }
+
+  def removeField(json : JValue, fieldName : String) = {
+    json.remove {
+      case JField(fieldName, _) => true
+      case _ => false
+    }
+  }
+
+  def replaceField(json : JValue, fieldSpecifier : List[String], fieldValue : String) =
+    json.replace(fieldSpecifier, fieldValue)
+
+  def replaceField(json : JValue, fieldName : String, fieldValue : String) =
+    json.replace(List(fieldName), fieldValue)
+
+  def replaceDisplayName(json : JValue, displayName : String) =
+    replaceField(json, "display_name", displayName)
+
+  def addIdField(json : JValue, id : String) =
+    addField(json, "id", id)
+
+  def removeIdField(json : JValue) =
+    removeField(json, "id")
+
+  def addEmailField(json : JValue, email : String) =
+    addField(json, "email", email)
+
+  def removeEmailField(json : JValue) =
+    removeField(json, "email")
+
   val bank1 = SandboxBankImport(id = "bank1", short_name = "bank 1", full_name = "Bank 1 Inc.",
     logo = "http://example.com/logo", website = "http://example.com")
   val bank2 = SandboxBankImport(id = "bank2", short_name = "bank 2", full_name = "Bank 2 Inc.",
@@ -246,6 +280,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val standardTransactions = transactionWithCounterparty :: transactionWithoutCounterparty :: Nil
 
+  /**
+   *
+   *
+   * Tests below
+   *
+   *
+   */
+
   "Data import" should "work in the general case" in {
 
     //same transaction id as another one used, but for a different bank account, so it should work
@@ -277,36 +319,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     transactions.foreach(verifyTransactionCreated(_, accounts))
   }
 
-  def addField(json : JValue, fieldName : String, fieldValue : String) = {
-    json.transform{
-      case JObject(fields) => JObject(JField(fieldName, fieldValue) :: fields)
-    }
+  it should "not allow data to be imported without a secret token" in {
+    //TODO
+    1 should equal(2)
   }
 
-  def removeField(json : JValue, fieldName : String) = {
-    json.remove {
-      case JField(fieldName, _) => true
-      case _ => false
-    }
+  it should "not allow data to be imported with an invalid secret token" in {
+    //TODO
+    1 should equal(2)
   }
-
-  def replaceField(json : JValue, fieldName : String, fieldValue : String) =
-    json.replace(List(fieldName), fieldValue)
-
-  def replaceDisplayName(json : JValue, displayName : String) =
-    replaceField(json, "display_name", displayName)
-
-  def addIdField(json : JValue, id : String) =
-    addField(json, "id", id)
-
-  def removeIdField(json : JValue) =
-    removeField(json, "id")
-
-  def addEmailField(json : JValue, email : String) =
-    addField(json, "email", email)
-
-  def removeEmailField(json : JValue) =
-    removeField(json, "email")
 
   it should "require banks to have non-empty ids" in {
 
@@ -571,7 +592,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(accountWithNilOwners)).code should equal(400)
   }
 
-  it should "not allow an account to be created with an non-existant owner" in {
+  it should "not allow an account to be created with an non-existent owner" in {
 
     val users = standardUsers
     val banks = standardBanks
@@ -581,10 +602,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    val nonExistantOwnerEmail = "asdfasdfasdf@example.com"
-    users.exists(u => u.email == nonExistantOwnerEmail) should equal(false)
+    val nonExistentOwnerEmail = "asdfasdfasdf@example.com"
+    users.exists(u => u.email == nonExistentOwnerEmail) should equal(false)
 
-    val accountWithInvalidOwner = account1AtBank1.copy(owners = List(nonExistantOwnerEmail))
+    val accountWithInvalidOwner = account1AtBank1.copy(owners = List(nonExistentOwnerEmail))
 
     getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(400)
 
@@ -600,65 +621,155 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   }
 
-  it should "TODO: check that counterparty specified is not generated if it already exists (for the original account in question)" in {
+  it should "require transactions to have non-empty ids" in {
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose),
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    def transactionExists() : Boolean = {
+      Connector.connector.vend.getTransaction(BankId(transactionWithoutCounterparty.this_account.bank),
+        AccountId(transactionWithoutCounterparty.this_account.id),
+        TransactionId(transactionWithoutCounterparty.id)).isDefined
+    }
+
+    val transactionJson = Extraction.decompose(transactionWithoutCounterparty)
+
+    val missingIdTransaction = removeIdField(transactionJson)
+    getResponse(List(missingIdTransaction)).code should equal(400)
+    transactionExists() should equal(false)
+
+    val emptyIdTransaction = replaceField(transactionJson, "id", "")
+    getResponse(List(emptyIdTransaction)).code should equal(400)
+    transactionExists() should equal(false)
+
+    //the original transaction should work too (just to make sure it's not failing because we have, e.g. a bank id that doesn't exist)
+    getResponse(List(transactionJson)).code should equal(201)
+
+    //it should exist now
+    transactionExists() should equal(true)
+  }
+
+  it should "require transactions for a single account do not have the same id" in {
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose),
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t1 = transactionWithoutCounterparty
+    val t2 = transactionWithCounterparty
+
+    //make sure the two transactions are for the same account have different ids
+    t1.this_account.bank should equal(t2.this_account.bank)
+    t1.this_account.id should equal(t2.this_account.id)
+    t1.id should not equal(t2.id)
+
+    val transactionJson = Extraction.decompose(t1)
+    val transaction2Json = Extraction.decompose(t2)
+
+    //now edit the second transaction to give it the same id as the first one
+    val sameIdAsOtherTransaction = replaceField(transaction2Json, "id", t1.id)
+
+    getResponse(List(transactionJson, sameIdAsOtherTransaction)).code should equal(400)
+
+    //Neither should exist
+    Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
+      AccountId(t1.this_account.id),
+      TransactionId(t1.id)).isDefined should equal(false)
+
+    //now make sure it's not failing because we have, e.g. a bank id that doesn't exist by checking the originals worked
+    getResponse(List(transactionJson, transaction2Json)).code should equal(201)
+
+    //both should exist now
+    Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
+      AccountId(t1.this_account.id),
+      TransactionId(t1.id)).isDefined should equal(true)
+
+    Connector.connector.vend.getTransaction(BankId(t2.this_account.bank),
+      AccountId(t2.this_account.id),
+      TransactionId(t2.id)).isDefined should equal(true)
+  }
+
+  it should "not create any transactions when one has an invalid this_account" in {
+    val banks = standardBanks
+    val users = standardUsers
+    val accounts = standardAccounts
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+
+    val validTransaction = Extraction.decompose(t)
+
+    //ensure bank is correct
+    banks.exists(b => b.id == t.this_account.bank) should equal(true)
+
+    val invalidAccountId = "asdfasdfasdf"
+    //ensure account id is invalid
+    accounts.exists(a => a.bank == t.this_account.bank && a.id == invalidAccountId) should equal(false)
+
+    //check one where the bank id exists, but the account id doesn't
+    val invalidAccTransaction = replaceField(validTransaction, List("this_account","id"), invalidAccountId)
+
+    getResponse(List(invalidAccTransaction)).code should equal(400)
+
+    //transaction should not exist
+    Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(invalidAccountId),
+      TransactionId(t.id)).isDefined should equal(false)
+
+    //now check one where the bankId is invalid
+
+    val invalidBankId = "omommomom"
+    //ensure bank is invalid
+    banks.exists(b => b.id == invalidBankId) should equal(false)
+
+    val invalidBankTransaction = replaceField(validTransaction, List("this_account", "bank"), invalidBankId)
+
+    getResponse(List(invalidBankTransaction)).code should equal(400)
+
+    //transaction should not exist
+    Connector.connector.vend.getTransaction(BankId(invalidBankId),
+      AccountId(t.this_account.id),
+      TransactionId(t.id)).isDefined should equal(false)
+
+
+    //now make sure it works when all is well
+    getResponse(List(validTransaction)).code should equal(201)
+
+    //transaction should exist
+    Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(t.this_account.id),
+      TransactionId(t.id)).isDefined should equal(true)
+
+  }
+
+  it should "not create any transactions when one has an invalid counterparty" in {
+    //TODO
     1 should equal(2)
   }
-/*
-  feature("Adding sandbox test data") {
 
-    scenario("We try to import valid data with a secret token") {
-      //TODO: check that everything gets created, good response code
-    }
+  it should "not create any transactions when one has an unspecified value" in {
+    //TODO
+    1 should equal(2)
+  }
 
-    scenario("We try to import valid data without a secret token") {
-      //TODO: check we get an error and correct http code
-    }
+  it should "not create any transactions when one has an unspecified completed date" in {
+    //TODO
+    1 should equal(2)
+  }
 
-    scenario("We try to import valid data with an invalid secret token") {
-      //TODO: check we get an error and correct http code
-    }
-
-    scenario("We define an account with a public view") {
-      //TODO: it should work
-    }
-
-    scenario("We define an account without a public view") {
-      //TODO: it should work
-    }
-
-    scenario("We define a transaction without an id") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a transaction without an empty id") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define more than one transaction with the same id") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a transaction with an invalid this_account") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a transaction with an invalid counterparty") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a transaction without a counterparty") {
-      //TODO: it should work, and automatically generate a counterparty
-    }
-
-    scenario("We define a transaction without a value") {
-      //TODO: it shouldn't work
-    }
-
-    scenario("We define a transaction without a completed date") {
-      //TODO: it shouldn't work
-    }
-
-
-  }*/
+  it should "TODO: check that counterparty specified is not generated if it already exists (for the original account in question)" in {
+    //TODO
+    1 should equal(2)
+  }
 
 }
