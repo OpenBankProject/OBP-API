@@ -35,12 +35,14 @@ object Helper{
    * @param msg The message to give the Failure option if "statement" is false
    * @return A box that is Full if the condition was met, and a Failure(msg) if not
    */
-  def booleanToBox(statement: Boolean, msg: String): Box[Unit] = {
+  def booleanToBox(statement: => Boolean, msg: String): Box[Unit] = {
     if(statement)
       Full()
     else
       Failure(msg)
   }
+
+  def booleanToBox(statement: => Boolean): Box[Unit] = booleanToBox(statement, "")
 
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 }
