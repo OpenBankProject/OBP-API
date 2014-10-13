@@ -515,6 +515,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     secondUser.get.name should equal(differentDisplayName)
   }
 
+  it should "fail if a specified user already exists" in {
+    def getResponse(userJsons : List[JValue]) = {
+      val json = createImportJson(Nil, userJsons, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val user1Json = Extraction.decompose(user1)
+
+    //add user1
+    getResponse(List(user1Json)).code should equal(201)
+
+    //when we try to add it again it should now fail
+    getResponse(List(user1Json)).code should equal(400)
+  }
+
   it should "require accounts to have non-empty ids" in {
 
     def getResponse(accountJsons : List[JValue]) = {
