@@ -770,7 +770,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not create any transactions when one has an invalid counterparty" in {
-    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons: List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
@@ -827,7 +827,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not create any transactions when one has an invalid or missing value" in {
-    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
@@ -880,7 +880,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not create any transactions when one has an invalid or missing completed date" in {
-    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
@@ -932,7 +932,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "check that counterparty specified is not generated if it already exists (for the original account in question)" in {
-    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
