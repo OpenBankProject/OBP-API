@@ -36,17 +36,19 @@ import java.util.Date
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
+import code.model.dataAccess.OBPUser
 import code.model.{TransactionId, AccountId, BankId}
 import code.users.Users
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
+import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.{ShouldMatchers, FlatSpec}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
-import net.liftweb.common.{Empty}
+import net.liftweb.common.{Full, Empty}
 
 class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers{
 
@@ -241,8 +243,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val standardBanks = bank1 :: bank2 :: Nil
 
-  val user1 = SandboxUserImport(email = "user1@example.com", display_name = "User 1")
-  val user2 = SandboxUserImport(email = "user2@example.com", display_name = "User 2")
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", display_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", display_name = "User 2")
 
   val standardUsers = user1 :: user2 :: Nil
 
@@ -528,6 +530,46 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //when we try to add it again it should now fail
     getResponse(List(user1Json)).code should equal(400)
+  }
+
+  it should "fail if a user's password is missing or empty" in {
+    def getResponse(userJsons : List[JValue]) = {
+      val json = createImportJson(Nil, userJsons, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val goodUser = Extraction.decompose(user1)
+
+    val userWithoutPassword = removeField(goodUser, "password")
+    getResponse(List(userWithoutPassword)).code should equal(400)
+    //no user should be created
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
+
+    val userWithBlankPassword = replaceField(goodUser, "password", "")
+    getResponse(List(userWithBlankPassword)).code should equal(400)
+    //no user should be created
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
+
+    //check that a normal password is okay
+    getResponse(List(goodUser)).code should equal(201)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(true)
+  }
+
+  it should "set user passwords properly" in {
+    def getResponse(userJsons : List[JValue]) = {
+      val json = createImportJson(Nil, userJsons, Nil, Nil)
+      postImportJson(json)
+    }
+
+    getResponse(List(Extraction.decompose(user1))).code should equal(201)
+
+    //TODO: we shouldn't reference OBPUser here as it is an implementation, but for now there
+    //is no way to check User (the trait) passwords
+    val createdOBPUserBox = OBPUser.find(By(OBPUser.email, user1.email))
+    createdOBPUserBox.isDefined should equal(true)
+
+    val createdOBPUser = createdOBPUserBox.get
+    createdOBPUser.password.match_?(user1.password) should equal(true)
   }
 
   it should "require accounts to have non-empty ids" in {

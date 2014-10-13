@@ -1,6 +1,6 @@
 package code.sandbox
 
-import net.liftweb.common.{Failure, Box}
+import net.liftweb.common.{Full, Failure, Box}
 
 
 case class SandboxBankImport(
@@ -12,6 +12,7 @@ case class SandboxBankImport(
 
 case class SandboxUserImport(
   email : String,
+  password : String,
   display_name : String)
 
 case class SandboxAccountImport(
@@ -60,7 +61,31 @@ object DataImport {
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
   def importData(data : SandboxDataImport) : Box[Unit] = {
-    Failure("Not implemented")
+
+    def createBanks() : Box[Unit] = {
+      Failure("TODO")
+    }
+
+    def createUsers() : Box[Unit] = {
+      Failure("TODO")
+    }
+
+    def createAccounts() : Box[Unit] = {
+      Failure("TODO")
+    }
+
+    def createTransactions() : Box[Unit] = {
+      Failure("TODO")
+    }
+
+    for {
+      banks <- createBanks()
+      users <- createUsers()
+      accounts <- createAccounts()
+      transactions <- createTransactions()
+    } yield {
+      Full(Unit)
+    }
   }
 
 }
