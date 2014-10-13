@@ -424,6 +424,26 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     banks.size should equal(2)
   }
 
+  it should "fail if a specified bank already exists" in {
+    def getResponse(bankJsons : List[JValue]) = {
+      val json = createImportJson(bankJsons, Nil, Nil, Nil)
+      postImportJson(json)
+    }
+
+    val bank1Json = Extraction.decompose(bank1)
+
+    //add bank1
+    getResponse(List(bank1Json)).code should equal(201)
+
+
+    val otherBank = bank2
+    //when we try to add bank1 and another valid bank it should now fail
+    getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(400)
+
+    //and the other bank should not have been created
+    Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined should equal(false)
+  }
+
   it should "require users to have valid emails" in {
 
     def getResponse(userJson : JValue) = {
@@ -528,8 +548,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //add user1
     getResponse(List(user1Json)).code should equal(201)
 
-    //when we try to add it again it should now fail
-    getResponse(List(user1Json)).code should equal(400)
+
+    val otherUser = user2
+    //when we try to add user1 and another valid new user it should now fail
+    getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(400)
+
+    //and the other user should not have been created
+    Users.users.vend.getUserByProviderId(defaultProvider, otherUser.email)
   }
 
   it should "fail if a user's password is missing or empty" in {
@@ -624,6 +649,26 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined should equal(true)
 
+  }
+
+  it should "fail if a specified account already exists" in {
+    def getResponse(accountJsons : List[JValue]) = {
+      val banks = standardBanks.map(Extraction.decompose)
+      val users = standardUsers.map(Extraction.decompose)
+      val json = createImportJson(banks, users, accountJsons, Nil)
+      postImportJson(json)
+    }
+    val account1AtBank1Json = Extraction.decompose(account1AtBank1)
+
+    //add account1AtBank1
+    getResponse(List(account1AtBank1Json)).code should equal(201)
+
+    val otherAccount = account1AtBank2
+    //when we try to add account1AtBank2 and another valid account it should now fail
+    getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code should equal(400)
+
+    //and the other account should not have been created
+    Connector.connector.vend.getBankAccount(BankId(otherAccount.bank), AccountId(otherAccount.id)).isDefined should equal(false)
   }
 
   it should "not allow an account to have a bankId not specified in the imported banks" in {
@@ -767,6 +812,27 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     Connector.connector.vend.getTransaction(BankId(t2.this_account.bank),
       AccountId(t2.this_account.id),
       TransactionId(t2.id)).isDefined should equal(true)
+  }
+
+  it should "fail if a specified transaction already exists" in {
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose),
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t1Json = Extraction.decompose(transactionWithoutCounterparty)
+
+    //add transaction
+    getResponse(List(t1Json)).code should equal(201)
+
+    //when we try to add t1Json and another valid transaction it should now fail
+    getResponse(List(t1Json, Extraction.decompose(transactionWithoutCounterparty))).code should equal(400)
+
+    //and no new transaction should exist
+    Connector.connector.vend.getTransaction(BankId(transactionWithoutCounterparty.this_account.bank),
+      AccountId(transactionWithoutCounterparty.this_account.id),
+      TransactionId(transactionWithoutCounterparty.id)).isDefined should equal(false)
   }
 
   it should "not create any transactions when one has an invalid this_account" in {
