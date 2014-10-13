@@ -60,6 +60,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   //users should automatically be assigned the "hostname" as a provider (for now at least)
   val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
 
+  val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
+
   def toJsonArray(xs : List[String]) : String = {
     xs.mkString("[", ",", "]")
   }
@@ -75,7 +77,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   // posts the json with the correct secret token
   def postImportJson(json : String) : APIResponse = {
-    postImportJson(json, Some(Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")))
+    postImportJson(json, Some(theImportToken))
   }
 
   def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
@@ -324,13 +326,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not allow data to be imported without a secret token" in {
-    //TODO
-    1 should equal(2)
+    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions)
+    val response = postImportJson(write(importJson), None)
+
+    response.code should equal(403)
+
+    //nothing should be created
+    Connector.connector.vend.getBanks should equal(Nil)
   }
 
   it should "not allow data to be imported with an invalid secret token" in {
-    //TODO
-    1 should equal(2)
+    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions)
+    val badToken = "12345"
+    badToken should not equal(theImportToken)
+    val response = postImportJson(write(importJson), Some(badToken))
+
+    response.code should equal(403)
+
+    //nothing should be created
+    Connector.connector.vend.getBanks should equal(Nil)
   }
 
   it should "require banks to have non-empty ids" in {
