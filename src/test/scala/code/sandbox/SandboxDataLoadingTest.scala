@@ -207,6 +207,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
   }
 
+  def removeField(json : JValue, fieldSpecifier : List[String]) = {
+    json.replace(fieldSpecifier, JNothing)
+  }
+
   def replaceField(json : JValue, fieldSpecifier : List[String], fieldValue : String) =
     json.replace(fieldSpecifier, fieldValue)
 
@@ -741,7 +745,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       AccountId(t.this_account.id),
       TransactionId(t.id)).isDefined should equal(false)
 
-
     //now make sure it works when all is well
     getResponse(List(validTransaction)).code should equal(201)
 
@@ -753,23 +756,197 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not create any transactions when one has an invalid counterparty" in {
-    //TODO
-    1 should equal(2)
+    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+
+    def getResponse(transactionJsons: List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+
+    val validTransaction = Extraction.decompose(t)
+
+
+    val invalidCounterpartyBank = "pdmowmxs"
+
+    //ensure invalid bank does't exit
+    banks.exists(b => b.id == invalidCounterpartyBank) should equal(false)
+
+    val withBadCounterpartyBank = replaceField(validTransaction, List("counterparty", "bank"), invalidCounterpartyBank)
+
+    //need a new transaction id too:
+    val newTransId = "9032902030209"
+    t.id should not equal (newTransId)
+
+    def checkNoTransactionsExist() = checkTransactions(false)
+    def checkTransactionsExist() = checkTransactions(true)
+
+    def checkTransactions(exist: Boolean) = {
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(t.id)).isDefined should equal(exist)
+
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(newTransId)).isDefined should equal(exist)
+    }
+
+    val invalidCounterPartyTransaction = replaceField(withBadCounterpartyBank, "id", newTransId)
+
+    //it shouldn't work with a single transaction with an invalid counterparty
+    getResponse(List(invalidCounterPartyTransaction)).code should equal(400)
+    checkNoTransactionsExist()
+
+    //it shouldn't work when there are multiple transactions, one of which has an invalid counterparty
+    getResponse(List(validTransaction, invalidCounterPartyTransaction)).code should equal(400)
+
+    //transactions shouldn't exist
+    checkNoTransactionsExist()
+
+    //it should work if we make the counterparty valid again
+    val anotherValidTransaction = replaceField(validTransaction, List("counterparty", "bank"), t.counterparty.get.bank)
+
+    getResponse(List(validTransaction, anotherValidTransaction)).code should equal(201)
+    checkTransactionsExist()
   }
 
-  it should "not create any transactions when one has an unspecified value" in {
-    //TODO
-    1 should equal(2)
+  it should "not create any transactions when one has an invalid or missing value" in {
+    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+
+    val validTransaction = Extraction.decompose(t)
+
+    val newTransId = "0239403294322343"
+    newTransId should not equal(t.id)
+
+    val baseNewTransaction = replaceField(validTransaction, "id", newTransId)
+
+    val transactionWithoutValue = removeField(baseNewTransaction, List("details", "value"))
+
+    //shouldn't work
+    getResponse(List(validTransaction, transactionWithoutValue)).code should equal(400)
+
+    def checkNoTransactionsExist() = checkTransactions(false)
+    def checkTransactionsExist() = checkTransactions(true)
+
+    def checkTransactions(exist: Boolean) = {
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(t.id)).isDefined should equal(exist)
+
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(newTransId)).isDefined should equal(exist)
+    }
+
+    //no transactions should be created
+    checkNoTransactionsExist()
+
+    //check transaction with bad value
+    val transactionWithBadValue = replaceField(baseNewTransaction, List("details", "value"), "ABCD")
+
+    //shouldn't work
+    getResponse(List(validTransaction, transactionWithBadValue)).code should equal(400)
+    checkNoTransactionsExist()
+
+    //now make sure it works with a good value
+    val transactionWithGoodValue = replaceField(baseNewTransaction, List("details", "value"), "-34.65")
+
+    getResponse(List(validTransaction, transactionWithGoodValue)).code should equal(201)
+    checkTransactionsExist()
   }
 
-  it should "not create any transactions when one has an unspecified completed date" in {
-    //TODO
-    1 should equal(2)
+  it should "not create any transactions when one has an invalid or missing completed date" in {
+    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+
+    val validTransaction = Extraction.decompose(t)
+
+    val newTransId = "0239403294322343"
+    newTransId should not equal(t.id)
+
+    def checkNoTransactionsExist() = checkTransactions(false)
+    def checkTransactionsExist() = checkTransactions(true)
+
+    def checkTransactions(exist: Boolean) = {
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(t.id)).isDefined should equal(exist)
+
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(newTransId)).isDefined should equal(exist)
+    }
+
+    val baseNewTransaction = replaceField(validTransaction, "id", newTransId)
+
+    val transactionWithMissingCompleted = removeField(baseNewTransaction, List("details", "completed"))
+
+    //shouldn't work
+    getResponse(List(validTransaction, transactionWithMissingCompleted)).code should equal(400)
+    checkNoTransactionsExist()
+
+    //check transaction with bad completed date
+    val transactionWithBadCompleted = replaceField(baseNewTransaction, List("details", "completed"), "ASDF")
+
+    //shouldn't work
+    getResponse(List(validTransaction, transactionWithBadCompleted)).code should equal(400)
+    checkNoTransactionsExist()
+
+    //now make sure it works with a valid completed date
+    val transactionWithGoodcompleted = replaceField(baseNewTransaction, List("details", "completed"), "2016-11-07T05:25:33.001Z")
+
+    //should work
+    getResponse(List(validTransaction, transactionWithGoodcompleted)).code should equal(201)
+    checkTransactionsExist()
   }
 
-  it should "TODO: check that counterparty specified is not generated if it already exists (for the original account in question)" in {
-    //TODO
-    1 should equal(2)
+  it should "check that counterparty specified is not generated if it already exists (for the original account in question)" in {
+    val banks, users, accounts = standardBanks, standardUsers, standardAccounts
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+
+    val validTransaction = Extraction.decompose(t)
+
+    val newTransId = "0239403294322343"
+    newTransId should not equal(t.id)
+
+    val transactionWithSameCounterparty = replaceField(validTransaction, "id", newTransId)
+
+    getResponse(List(validTransaction, transactionWithSameCounterparty)).code should equal(201)
+
+    def getCreatedTransaction(id : String) =
+      Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+        AccountId(t.this_account.id),
+        TransactionId(id)).get
+
+    val t1 = getCreatedTransaction(t.id)
+    val t2 = getCreatedTransaction(newTransId)
+
+    //check the created transactions have the same counterparty id
+    t1.otherAccount.id should equal(t2.otherAccount.id)
   }
 
 }
