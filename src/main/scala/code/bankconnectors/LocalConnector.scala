@@ -104,8 +104,7 @@ private object LocalConnector extends Connector with Loggable {
     for{
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
-      objectId <- tryo{new ObjectId(transactionId.value)} ?~ {"Transaction "+transactionId+" not found"}
-      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("_id").is(objectId).get)
+      envelope <- OBPEnvelope.find(account.transactionsForAccount.put("transactionId").is(transactionId.value).get)
       transaction <- createTransaction(envelope,account)
     } yield {
       updateAccountTransactions(bank, account)
@@ -132,7 +131,7 @@ private object LocalConnector extends Connector with Loggable {
     val otherAccount_ = transaction.other_account.get
 
     val thisBankAccount = Account.toBankAccount(theAccount)
-    val id = TransactionId(env.id.is.toString())
+    val id = TransactionId(env.transactionId.get)
     val uuid = id.value
 
     //slight hack required: otherAccount id is, for legacy reasons, the mongodb id of its metadata object
@@ -179,7 +178,7 @@ private object LocalConnector extends Connector with Loggable {
         Some(t)
       }
       case _ => {
-        logger.warn(s"no metadata reference found for envelope ${env.id.get}")
+        logger.warn(s"no metadata reference found for envelope ${env.transactionId.get}")
         None
       }
     }
