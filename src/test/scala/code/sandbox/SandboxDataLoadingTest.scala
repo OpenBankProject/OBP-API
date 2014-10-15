@@ -634,20 +634,22 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
+    val accountWithSameId = replaceField(Extraction.decompose(account1AtBank2), "id", account1AtBank1.id)
     //might be nice to test a case where the only similar attribute between the accounts is the id
-    getResponse(List(account1AtBank1Json, account1AtBank1Json)).code should equal(400)
+    getResponse(List(account1AtBank1Json, accountWithSameId)).code should equal(400)
 
     //no accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank2.bank), AccountId(account1AtBank1.id)) should equal(Empty)
 
     val accountIdTwo = "2"
-    val accountWithDifferentId = replaceField(account1AtBank1Json, "id", accountIdTwo)
+    val accountWithDifferentId = replaceField(accountWithSameId, "id", accountIdTwo)
 
     getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(201)
 
     //two accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined should equal(true)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank2.bank), AccountId(accountIdTwo)).isDefined should equal(true)
 
   }
 
@@ -664,7 +666,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(account1AtBank1Json)).code should equal(201)
 
     val otherAccount = account1AtBank2
-    //when we try to add account1AtBank2 and another valid account it should now fail
+    //when we try to add account1AtBank1 and another valid account it should now fail
     getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code should equal(400)
 
     //and the other account should not have been created
@@ -712,7 +714,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(accountWithNilOwners)).code should equal(400)
   }
 
-  it should "not allow an account to be created with an non-existent owner" in {
+  it should "not allow an account to be created with an owner not specified in data import users" in {
 
     val users = standardUsers
     val banks = standardBanks
@@ -739,6 +741,36 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //it should not have been created
     Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)) should equal(Empty)
 
+  }
+
+  it should "not allow multiple accounts at the same bank with the same account number" in {
+    val users = standardUsers
+    val banks = standardBanks
+
+    def getResponse(accountJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil)
+      postImportJson(json)
+    }
+
+    val acc1 = account1AtBank1
+    val acc2 = account2AtBank1
+
+    val acc1Json = Extraction.decompose(acc1)
+    val acc2Json = Extraction.decompose(acc2)
+    val sameNumberJson = replaceField(acc2Json, "number", acc1.number)
+
+    getResponse(List(acc1Json, sameNumberJson)).code should equal(400)
+
+    //no accounts should have been created
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)) should equal(Empty)
+
+    //check it works with the normal different number
+    getResponse(List(acc1Json, acc2Json)).code should equal(201)
+
+    //and the accounts should be created
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(true)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(true)
   }
 
   it should "require transactions to have non-empty ids" in {
