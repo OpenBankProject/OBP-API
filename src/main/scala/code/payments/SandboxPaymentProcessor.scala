@@ -39,7 +39,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
-    createdFromTrans.map(_.id.toString)
+    createdFromTrans.map(_.transactionId.get)
   }
 
   private def createTransaction(account : BankAccount, otherBankId : BankId,

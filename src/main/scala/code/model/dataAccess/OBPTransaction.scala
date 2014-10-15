@@ -35,7 +35,7 @@ import code.util.Helper
 import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Empty, Failure}
-import java.util.Date
+import java.util.{UUID, Date}
 import net.liftweb.record.field.{StringField,LongField}
 import net.liftweb.json.JsonAST._
 import code.model._
@@ -143,6 +143,10 @@ curl -i -H "Content-Type: application/json" -X POST -d '[{
 // Seems to map to a collection of the plural name
 class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with Loggable{
   def meta = OBPEnvelope
+
+  object transactionId extends StringField(this, 100) {
+    override def defaultValue = UUID.randomUUID.toString
+  }
 
   // This creates a json attribute called "obp_transaction"
   object obp_transaction extends BsonRecordField(this, OBPTransaction)

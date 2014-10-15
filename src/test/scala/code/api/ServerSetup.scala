@@ -32,40 +32,31 @@ Berlin 13359, Germany
 
 package code.api.test
 
+import code.TestServer
 import code.model.{AccountId, BankId}
 import org.scalatest._
-import dispatch._, Defaults._
+import dispatch._
 import net.liftweb.json.NoTypeHints
-import net.liftweb.json.JsonAST.{JValue, JObject}
-import _root_.net.liftweb.json.Serialization.write
-import net.liftweb.json.parse
 import net.liftweb.common._
-import org.mortbay.jetty.Connector
 import org.mortbay.jetty.Server
 import org.mortbay.jetty.nio.SelectChannelConnector
 import org.mortbay.jetty.webapp.WebAppContext
 import net.liftweb.json.Serialization
-import org.junit.runner.RunWith
 import net.liftweb.mongodb._
 import code.model.dataAccess._
 import java.util.Date
 import _root_.net.liftweb.util._
 import Helpers._
-import org.bson.types.ObjectId
 import scala.util.Random._
 import scala.math.BigDecimal
 import BigDecimal._
-import scala.concurrent.duration._
-import scala.concurrent.Await
 
-case class APIResponse(code: Int, body: JValue)
-
-trait ServerSetup extends FeatureSpec
+trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
   with ShouldMatchers with Loggable{
 
-  var server = ServerSetup
+  var server = TestServer
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http
   def baseRequest = host(server.host, server.port)
@@ -236,60 +227,6 @@ trait ServerSetup extends FeatureSpec
     national_identifier(randomString(5)).
     save
 
-  private def getAPIResponse(req : Req) : APIResponse = {
-    Await.result(
-      for(response <- Http(req > as.Response(p => p)))
-      yield
-      {
-        val body = if(response.getResponseBody().isEmpty) "{}" else response.getResponseBody()
-        val parsedBody = tryo {parse(body)}
-        parsedBody match {
-          case Full(b) => APIResponse(response.getStatusCode, b)
-          case _ => throw new Exception(s"couldn't parse response from ${req.url} : $body")
-        }
-      }
-    , Duration.Inf)
-  }
-
-  /**
-   this method do a post request given a URL, a JSON and an optional Headers Map
-  */
-  def makePostRequest(req: Req, json: String = ""): APIResponse = {
-    req.addHeader("Content-Type", "application/json")
-    req.addHeader("Accept", "application/json")
-    req.setBody(json)
-    val jsonReq = (req).POST
-    getAPIResponse(jsonReq)
-  }
-
-  def makePutRequest(req: Req, json: String = "") : APIResponse = {
-    req.addHeader("Content-Type", "application/json")
-    req.setBody(json)
-    val jsonReq = (req).PUT
-    getAPIResponse(jsonReq)
-  }
-
-  /**
-  * this method do a post request given a URL
-  */
-  def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
-    val jsonReq = req.GET
-    params.foreach{
-      headerAndValue => {
-        jsonReq.addHeader(headerAndValue._1, headerAndValue._2)
-      }
-    }
-    getAPIResponse(jsonReq)
-  }
-
-  /**
-  * this method do a delete request given a URL
-  */
-  def makeDeleteRequest(req: Req) : APIResponse = {
-    val jsonReq = req.DELETE
-    getAPIResponse(jsonReq)
-  }
-
   def ownerView(bankId: BankId, accountId: AccountId) =
     ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
@@ -439,24 +376,4 @@ trait ServerSetup extends FeatureSpec
     canDeleteWhereTag_(true).
     save
 
-}
-
-object ServerSetup {
-  import net.liftweb.util.Props
-
-  val host = "localhost"
-  val port = Props.getInt("tests.port",8000)
-  val server = new Server
-  val scc = new SelectChannelConnector
-  scc.setPort(port)
-  server.setConnectors(Array(scc))
-
-  val context = new WebAppContext()
-  context.setServer(server)
-  context.setContextPath("/")
-  context.setWar("src/main/webapp")
-
-  server.addHandler(context)
-
-  server.start()
 }
