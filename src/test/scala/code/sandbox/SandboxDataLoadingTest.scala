@@ -219,7 +219,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   def removeField(json : JValue, fieldName : String) = {
     json.remove {
-      case JField(fieldName, _) => true
+      case JField(`fieldName`, _) => true
       case _ => false
     }
   }
