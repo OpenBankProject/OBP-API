@@ -30,7 +30,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
           importData <- tryo{json.extract[SandboxDataImport]} ?~ "invalid json"
           importWorked <- DataImport.importData(importData)
         } yield {
-          successJsonResponse(JsRaw("{}"))
+          successJsonResponse(JsRaw("{}"), 201)
         }
 
     }
