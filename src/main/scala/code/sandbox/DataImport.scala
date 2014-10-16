@@ -103,10 +103,15 @@ object DataImport extends Loggable {
 
     def createUsers() : Box[List[OBPUser]] = {
       val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
+      val allEmails = data.users.map(_.email)
+      val duplicateEmails = allEmails diff allEmails.distinct
+
       if(!existing.isEmpty) {
         val existingEmails = existing.map(_.email.get)
         Failure(s"User(s) with email(s) $existingEmails already exist (and may be different (e.g. different display_name)")
-      } else {
+      } else if(!duplicateEmails.isEmpty) {
+        Failure(s"Users must have unique emails: Duplicates found: $duplicateEmails")
+      }else {
 
         val obpUsers = data.users.map(u => {
           OBPUser.create
