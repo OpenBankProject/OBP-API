@@ -53,6 +53,9 @@ import net.liftweb.mongodb._
 
 class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers with BeforeAndAfterEach {
 
+  val SUCCESS: Int = 201
+  val FAILED: Int = 400
+
   implicit val formats = Serialization.formats(NoTypeHints)
 
   val server = TestServer
@@ -332,7 +335,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val importJson = SandboxDataImport(banks, users, accounts, transactions)
     val response = postImportJson(write(importJson))
 
-    response.code should equal(201)
+    response.code should equal(SUCCESS)
 
     banks.foreach(verifyBankCreated)
     users.foreach(verifyUserCreated)
@@ -376,13 +379,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    getResponse(bankWithoutId).code should equal(400)
+    getResponse(bankWithoutId).code should equal(FAILED)
 
     //no banks should have been created
     Connector.connector.vend.getBanks.size should equal(0)
 
     val bankWithEmptyId = addIdField(bankWithoutId, "")
-    getResponse(bankWithEmptyId).code should equal(400)
+    getResponse(bankWithEmptyId).code should equal(FAILED)
 
     //no banks should have been created
     Connector.connector.vend.getBanks.size should equal(0)
@@ -391,7 +394,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validId = "foo"
     val bankWithValidId = addIdField(bankWithoutId, validId)
     val response = getResponse(bankWithValidId)
-    response.code should equal(201)
+    response.code should equal(SUCCESS)
 
     //Check the bank was created
     val banks = Connector.connector.vend.getBanks
@@ -425,12 +428,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    getResponse(List(bank1AsJValue, bankWithSameId)).code should equal(400)
+    getResponse(List(bank1AsJValue, bankWithSameId)).code should equal(FAILED)
 
     //now try again but this time with a different id
     val validOtherBank = addIdField(baseOtherBank, {bank1.id + "2"})
 
-    getResponse(List(bank1AsJValue, validOtherBank)).code should equal(201)
+    getResponse(List(bank1AsJValue, validOtherBank)).code should equal(SUCCESS)
 
     //check that two banks were created
     val banks = Connector.connector.vend.getBanks
@@ -446,12 +449,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bank1Json = Extraction.decompose(bank1)
 
     //add bank1
-    getResponse(List(bank1Json)).code should equal(201)
+    getResponse(List(bank1Json)).code should equal(SUCCESS)
 
 
     val otherBank = bank2
     //when we try to add bank1 and another valid bank it should now fail
-    getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(400)
+    getResponse(List(bank1Json, Extraction.decompose(bank2))).code should equal(FAILED)
 
     //and the other bank should not have been created
     Connector.connector.vend.getBank(BankId(otherBank.id)).isDefined should equal(false)
@@ -468,14 +471,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val userWithoutEmail = removeEmailField(user1AsJson)
 
-    getResponse(userWithoutEmail).code should equal(400)
+    getResponse(userWithoutEmail).code should equal(FAILED)
 
     val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
     //there should be no user with a blank id before we try to add one
     Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
 
-    getResponse(userWithEmptyEmail).code should equal(400)
+    getResponse(userWithEmptyEmail).code should equal(FAILED)
 
     //there should still be no user with a blank email
     Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
@@ -484,7 +487,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val invalidEmail = "foooo"
     val userWithInvalidEmail = addEmailField(userWithoutEmail, invalidEmail)
 
-    getResponse(userWithInvalidEmail).code should equal(400)
+    getResponse(userWithInvalidEmail).code should equal(FAILED)
 
     //there should still be no user
     Users.users.vend.getUserByProviderId(defaultProvider, invalidEmail) should equal(Empty)
@@ -492,7 +495,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val validEmail = "test@example.com"
     val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
 
-    getResponse(userWithValidEmail).code should equal(201)
+    getResponse(userWithValidEmail).code should equal(SUCCESS)
 
     //a user should now have been created
     val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, validEmail)
@@ -523,7 +526,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
     Users.users.vend.getUserByProviderId(defaultProvider, secondUserEmail) should equal(Empty)
 
-    getResponse(List(user1Json, userWithSameEmailAsUser1)).code should equal(400)
+    getResponse(List(user1Json, userWithSameEmailAsUser1)).code should equal(FAILED)
 
     //no user with firstUserId should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
@@ -531,7 +534,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //when we only alter the id (display name stays the same), it should work
     val userWithEmail2 = replaceField(userWithSameEmailAsUser1, "email", secondUserEmail)
 
-    getResponse(List(user1Json, userWithEmail2)).code should equal(200)
+    getResponse(List(user1Json, userWithEmail2)).code should equal(SUCCESS)
 
     //and both users should be created
     val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.email)
@@ -559,12 +562,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val user1Json = Extraction.decompose(user1)
 
     //add user1
-    getResponse(List(user1Json)).code should equal(201)
+    getResponse(List(user1Json)).code should equal(SUCCESS)
 
 
     val otherUser = user2
     //when we try to add user1 and another valid new user it should now fail
-    getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(400)
+    getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(FAILED)
 
     //and the other user should not have been created
     Users.users.vend.getUserByProviderId(defaultProvider, otherUser.email)
@@ -579,17 +582,17 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val goodUser = Extraction.decompose(user1)
 
     val userWithoutPassword = removeField(goodUser, "password")
-    getResponse(List(userWithoutPassword)).code should equal(400)
+    getResponse(List(userWithoutPassword)).code should equal(FAILED)
     //no user should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
 
     val userWithBlankPassword = replaceField(goodUser, "password", "")
-    getResponse(List(userWithBlankPassword)).code should equal(400)
+    getResponse(List(userWithBlankPassword)).code should equal(FAILED)
     //no user should be created
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
 
     //check that a normal password is okay
-    getResponse(List(goodUser)).code should equal(201)
+    getResponse(List(goodUser)).code should equal(SUCCESS)
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(true)
   }
 
@@ -599,7 +602,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    getResponse(List(Extraction.decompose(user1))).code should equal(201)
+    getResponse(List(Extraction.decompose(user1))).code should equal(SUCCESS)
 
     //TODO: we shouldn't reference OBPUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
@@ -622,16 +625,16 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val acc1AtBank1Json = Extraction.decompose(account1AtBank1)
     val accountWithoutId = removeIdField(acc1AtBank1Json)
 
-    getResponse(List(accountWithoutId)).code should equal(400)
+    getResponse(List(accountWithoutId)).code should equal(FAILED)
 
     val accountWithEmptyId = addIdField(accountWithoutId, "")
 
-    getResponse(List(accountWithEmptyId)).code should equal(400)
+    getResponse(List(accountWithEmptyId)).code should equal(FAILED)
 
     //no account should exist with an empty id
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")) should equal(Empty)
 
-    getResponse(List(acc1AtBank1Json)).code should equal(201)
+    getResponse(List(acc1AtBank1Json)).code should equal(SUCCESS)
 
     //an account should now exist
     verifyAccountCreated(account1AtBank1)
@@ -649,7 +652,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
     val accountWithSameId = replaceField(Extraction.decompose(account1AtBank2), "id", account1AtBank1.id)
     //might be nice to test a case where the only similar attribute between the accounts is the id
-    getResponse(List(account1AtBank1Json, accountWithSameId)).code should equal(400)
+    getResponse(List(account1AtBank1Json, accountWithSameId)).code should equal(FAILED)
 
     //no accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)) should equal(Empty)
@@ -658,7 +661,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val accountIdTwo = "2"
     val accountWithDifferentId = replaceField(accountWithSameId, "id", accountIdTwo)
 
-    getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(201)
+    getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(SUCCESS)
 
     //two accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
@@ -676,11 +679,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
 
     //add account1AtBank1
-    getResponse(List(account1AtBank1Json)).code should equal(201)
+    getResponse(List(account1AtBank1Json)).code should equal(SUCCESS)
 
     val otherAccount = account1AtBank2
     //when we try to add account1AtBank1 and another valid account it should now fail
-    getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code should equal(400)
+    getResponse(List(account1AtBank1Json, Extraction.decompose(otherAccount))).code should equal(FAILED)
 
     //and the other account should not have been created
     Connector.connector.vend.getBankAccount(BankId(otherAccount.bank), AccountId(otherAccount.id)).isDefined should equal(false)
@@ -701,7 +704,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val badBankAccount = replaceField(Extraction.decompose(account1AtBank1), "id", badBankId)
 
-    getResponse(List(badBankAccount)).code should equal(400)
+    getResponse(List(badBankAccount)).code should equal(FAILED)
 
     //no account should have been created
     Connector.connector.vend.getBankAccount(BankId(badBankId), AccountId(account1AtBank1.id)).isDefined should equal(false)
@@ -720,11 +723,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val accountWithNoOwnerField = removeField(acc1AtBank1Json, "owners")
 
-    getResponse(List(accountWithNoOwnerField)).code should equal(400)
+    getResponse(List(accountWithNoOwnerField)).code should equal(FAILED)
 
     val accountWithNilOwners = Extraction.decompose(account1AtBank1.copy(owners = Nil))
 
-    getResponse(List(accountWithNilOwners)).code should equal(400)
+    getResponse(List(accountWithNilOwners)).code should equal(FAILED)
   }
 
   it should "not allow an account to be created with an owner not specified in data import users" in {
@@ -742,14 +745,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val accountWithInvalidOwner = account1AtBank1.copy(owners = List(nonExistentOwnerEmail))
 
-    getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(400)
+    getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(FAILED)
 
     //it should not have been created
     Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)) should equal(Empty)
 
     //a mix of valid an invalid owners should also not work
     val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.email))
-    getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(400)
+    getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
 
     //it should not have been created
     Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)) should equal(Empty)
@@ -772,14 +775,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val acc2Json = Extraction.decompose(acc2)
     val sameNumberJson = replaceField(acc2Json, "number", acc1.number)
 
-    getResponse(List(acc1Json, sameNumberJson)).code should equal(400)
+    getResponse(List(acc1Json, sameNumberJson)).code should equal(FAILED)
 
     //no accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)) should equal(Empty)
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)) should equal(Empty)
 
     //check it works with the normal different number
-    getResponse(List(acc1Json, acc2Json)).code should equal(201)
+    getResponse(List(acc1Json, acc2Json)).code should equal(SUCCESS)
 
     //and the accounts should be created
     Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(true)
@@ -803,15 +806,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionJson = Extraction.decompose(transactionWithoutCounterparty)
 
     val missingIdTransaction = removeIdField(transactionJson)
-    getResponse(List(missingIdTransaction)).code should equal(400)
+    getResponse(List(missingIdTransaction)).code should equal(FAILED)
     transactionExists() should equal(false)
 
     val emptyIdTransaction = replaceField(transactionJson, "id", "")
-    getResponse(List(emptyIdTransaction)).code should equal(400)
+    getResponse(List(emptyIdTransaction)).code should equal(FAILED)
     transactionExists() should equal(false)
 
     //the original transaction should work too (just to make sure it's not failing because we have, e.g. a bank id that doesn't exist)
-    getResponse(List(transactionJson)).code should equal(201)
+    getResponse(List(transactionJson)).code should equal(SUCCESS)
 
     //it should exist now
     transactionExists() should equal(true)
@@ -839,7 +842,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //now edit the second transaction to give it the same id as the first one
     val sameIdAsOtherTransaction = replaceField(transaction2Json, "id", t1.id)
 
-    getResponse(List(transactionJson, sameIdAsOtherTransaction)).code should equal(400)
+    getResponse(List(transactionJson, sameIdAsOtherTransaction)).code should equal(FAILED)
 
     //Neither should exist
     Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
@@ -847,7 +850,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       TransactionId(t1.id)).isDefined should equal(false)
 
     //now make sure it's not failing because we have, e.g. a bank id that doesn't exist by checking the originals worked
-    getResponse(List(transactionJson, transaction2Json)).code should equal(201)
+    getResponse(List(transactionJson, transaction2Json)).code should equal(SUCCESS)
 
     //both should exist now
     Connector.connector.vend.getTransaction(BankId(t1.this_account.bank),
@@ -869,10 +872,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val t1Json = Extraction.decompose(transactionWithoutCounterparty)
 
     //add transaction
-    getResponse(List(t1Json)).code should equal(201)
+    getResponse(List(t1Json)).code should equal(SUCCESS)
 
     //when we try to add t1Json and another valid transaction it should now fail
-    getResponse(List(t1Json, Extraction.decompose(transactionWithoutCounterparty))).code should equal(400)
+    getResponse(List(t1Json, Extraction.decompose(transactionWithoutCounterparty))).code should equal(FAILED)
 
     //and no new transaction should exist
     Connector.connector.vend.getTransaction(BankId(transactionWithoutCounterparty.this_account.bank),
@@ -905,7 +908,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //check one where the bank id exists, but the account id doesn't
     val invalidAccTransaction = replaceField(validTransaction, List("this_account","id"), invalidAccountId)
 
-    getResponse(List(invalidAccTransaction)).code should equal(400)
+    getResponse(List(invalidAccTransaction)).code should equal(FAILED)
 
     //transaction should not exist
     Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
@@ -920,7 +923,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val invalidBankTransaction = replaceField(validTransaction, List("this_account", "bank"), invalidBankId)
 
-    getResponse(List(invalidBankTransaction)).code should equal(400)
+    getResponse(List(invalidBankTransaction)).code should equal(FAILED)
 
     //transaction should not exist
     Connector.connector.vend.getTransaction(BankId(invalidBankId),
@@ -928,7 +931,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       TransactionId(t.id)).isDefined should equal(false)
 
     //now make sure it works when all is well
-    getResponse(List(validTransaction)).code should equal(201)
+    getResponse(List(validTransaction)).code should equal(SUCCESS)
 
     //transaction should exist
     Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
@@ -978,11 +981,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val invalidCounterPartyTransaction = replaceField(withBadCounterpartyBank, "id", newTransId)
 
     //it shouldn't work with a single transaction with an invalid counterparty
-    getResponse(List(invalidCounterPartyTransaction)).code should equal(400)
+    getResponse(List(invalidCounterPartyTransaction)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //it shouldn't work when there are multiple transactions, one of which has an invalid counterparty
-    getResponse(List(validTransaction, invalidCounterPartyTransaction)).code should equal(400)
+    getResponse(List(validTransaction, invalidCounterPartyTransaction)).code should equal(FAILED)
 
     //transactions shouldn't exist
     checkNoTransactionsExist()
@@ -990,7 +993,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //it should work if we make the counterparty valid again
     val anotherValidTransaction = replaceField(validTransaction, List("counterparty", "bank"), t.counterparty.get.bank)
 
-    getResponse(List(validTransaction, anotherValidTransaction)).code should equal(201)
+    getResponse(List(validTransaction, anotherValidTransaction)).code should equal(SUCCESS)
     checkTransactionsExist()
   }
 
@@ -1015,7 +1018,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionWithoutValue = removeField(baseNewTransaction, List("details", "value"))
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithoutValue)).code should equal(400)
+    getResponse(List(validTransaction, transactionWithoutValue)).code should equal(FAILED)
 
     def checkNoTransactionsExist() = checkTransactions(false)
     def checkTransactionsExist() = checkTransactions(true)
@@ -1037,13 +1040,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionWithBadValue = replaceField(baseNewTransaction, List("details", "value"), "ABCD")
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithBadValue)).code should equal(400)
+    getResponse(List(validTransaction, transactionWithBadValue)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a good value
     val transactionWithGoodValue = replaceField(baseNewTransaction, List("details", "value"), "-34.65")
 
-    getResponse(List(validTransaction, transactionWithGoodValue)).code should equal(201)
+    getResponse(List(validTransaction, transactionWithGoodValue)).code should equal(SUCCESS)
     checkTransactionsExist()
   }
 
@@ -1081,21 +1084,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val transactionWithMissingCompleted = removeField(baseNewTransaction, List("details", "completed"))
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithMissingCompleted)).code should equal(400)
+    getResponse(List(validTransaction, transactionWithMissingCompleted)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //check transaction with bad completed date
     val transactionWithBadCompleted = replaceField(baseNewTransaction, List("details", "completed"), "ASDF")
 
     //shouldn't work
-    getResponse(List(validTransaction, transactionWithBadCompleted)).code should equal(400)
+    getResponse(List(validTransaction, transactionWithBadCompleted)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a valid completed date
     val transactionWithGoodcompleted = replaceField(baseNewTransaction, List("details", "completed"), "2016-11-07T05:25:33.001Z")
 
     //should work
-    getResponse(List(validTransaction, transactionWithGoodcompleted)).code should equal(201)
+    getResponse(List(validTransaction, transactionWithGoodcompleted)).code should equal(SUCCESS)
     checkTransactionsExist()
   }
 
@@ -1117,7 +1120,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val transactionWithSameCounterparty = replaceField(validTransaction, "id", newTransId)
 
-    getResponse(List(validTransaction, transactionWithSameCounterparty)).code should equal(201)
+    getResponse(List(validTransaction, transactionWithSameCounterparty)).code should equal(SUCCESS)
 
     def getCreatedTransaction(id : String) =
       Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
