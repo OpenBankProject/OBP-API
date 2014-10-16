@@ -68,9 +68,12 @@ object DataImport extends Loggable {
 
     def createBanks() : Box[List[HostedBank]] = {
       val existing = data.banks.flatMap(b => HostedBank.find(BankId(b.id)))
+      val emptyIds = data.banks.filter(b => b.id.isEmpty)
       if(!existing.isEmpty) {
         val existingIds = existing.map(_.permalink.get)
         Failure(s"Bank(s) with id(s) $existingIds already exist (and may have different non-id [e.g. short_name] values).")
+      } else if (!emptyIds.isEmpty){
+        Failure(s"Bank(s) with empty ids are not allowed")
       } else {
         val hostedBanks = data.banks.map(b => {
           HostedBank.createRecord
