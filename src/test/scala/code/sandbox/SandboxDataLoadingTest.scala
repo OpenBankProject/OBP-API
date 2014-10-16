@@ -36,21 +36,22 @@ import java.util.Date
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess._
 import code.model.{TransactionId, AccountId, BankId}
 import code.users.Users
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.scalatest.{ShouldMatchers, FlatSpec}
+import org.scalatest.{BeforeAndAfterEach, ShouldMatchers, FlatSpec}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
 import net.liftweb.common.{Full, Empty}
+import net.liftweb.mongodb._
 
-class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers{
+class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers with BeforeAndAfterEach {
 
   implicit val formats = Serialization.formats(NoTypeHints)
 
@@ -63,6 +64,18 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
 
   val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
+
+
+  override def afterEach() = {
+    //drop database tables after the tests
+    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    ViewImpl.findAll.foreach(_.delete_!)
+    ViewPrivileges.findAll.foreach(_.delete_!)
+    HostedAccount.findAll.foreach(_.delete_!)
+    MappedAccountHolder.findAll.foreach(_.delete_!)
+    OBPUser.findAll.foreach(_.delete_!)
+  }
+
 
   def toJsonArray(xs : List[String]) : String = {
     xs.mkString("[", ",", "]")
