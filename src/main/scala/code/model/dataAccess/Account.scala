@@ -174,10 +174,22 @@ object Account extends Account with MongoMetaRecord[Account] {
       case _ => ""
     }
 
+    val accountHolders = Connector.connector.vend.getAccountHolders(account.bankId, account.accountId)
+
+    val owners =
+      if(accountHolders.isEmpty) {
+        //account holders are not all set up in the db yet, so we might not get any back.
+        //In this case, we just use the previous behaviour
+        Set(new AccountOwner("", account.holder.toString))
+      } else {
+        //TODO: AccountOwner lacks id of provider, but we should switch to returning Set[User] instead of Set[AccountOwner] anyway
+        accountHolders.map(accHolder => new AccountOwner(accHolder.idGivenByProvider, accHolder.name))
+      }
+
     val bankAccount =
       new BankAccount(
         accountId = account.accountId,
-        owners= Set(new AccountOwner("", account.holder.toString)),
+        owners= owners, //TODO: this should be a set of User
         accountType = account.kind.toString,
         balance = account.balance.get,
         currency = account.currency.toString,
