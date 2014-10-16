@@ -80,7 +80,7 @@ object DataImport extends Loggable {
       } else if (!emptyIds.isEmpty){
         Failure(s"Bank(s) with empty ids are not allowed")
       } else if(!duplicateIds.isEmpty) {
-        Failure(s"Banks must have unique ids. Duplicated found: $duplicateIds")
+        Failure(s"Banks must have unique ids. Duplicates found: $duplicateIds")
       }else {
         val hostedBanks = data.banks.map(b => {
           HostedBank.createRecord
