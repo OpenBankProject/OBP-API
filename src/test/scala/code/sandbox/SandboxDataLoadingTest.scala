@@ -98,7 +98,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
     val base = sandboxApiPrefix / "v1.0" / "data-import"
     val request = secretToken match {
-      case Some(t) => base << Map("secret_token" -> t)
+      case Some(t) => base <<? Map("secret_token" -> t)
       case None => base
     }
     makePostRequest(request, json)
