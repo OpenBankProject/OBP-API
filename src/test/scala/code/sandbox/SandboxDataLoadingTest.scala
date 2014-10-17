@@ -39,6 +39,7 @@ import code.api.v1_2_1.APIMethods121
 import code.model.dataAccess._
 import code.model.{TransactionId, AccountId, BankId}
 import code.users.Users
+import code.views.Views
 import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.mapper.By
@@ -163,7 +164,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //there should be an owner view
     val views = foundAccount.views(owner).get
-    views.exists(v => v.permalink == "owner") should equal(true)
+    val ownerView = views.find(v => v.permalink == "owner")
+    ownerView.isDefined should equal(true)
+
+    //and the owners should have access to it
+    ownerView.get.users.map(_.idGivenByProvider).toSet should equal(account.owners.toSet)
   }
 
   def verifyTransactionCreated(transaction : SandboxTransactionImport, accountsUsed : List[SandboxAccountImport]) = {
