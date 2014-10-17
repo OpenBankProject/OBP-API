@@ -69,7 +69,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
 
 
-  override def afterEach() = {
+  override def beforeEach() = {
     //drop database tables after the tests
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ViewImpl.findAll.foreach(_.delete_!)
