@@ -754,14 +754,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(Extraction.decompose(accountWithInvalidOwner))).code should equal(FAILED)
 
     //it should not have been created
-    Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined should equal(false)
 
     //a mix of valid an invalid owners should also not work
     val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.email))
     getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
 
     //it should not have been created
-    Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(accountWithSomeValidSomeInvalidOwners.bank), AccountId(accountWithSomeValidSomeInvalidOwners.id)).isDefined should equal(false)
 
   }
 
