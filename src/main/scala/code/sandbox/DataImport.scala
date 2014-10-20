@@ -328,10 +328,12 @@ object DataImport extends Loggable {
 
             for {
               metaAndCounter <- metadataBox
-              createdBank <- createdBanks.find(b => b.permalink.get == t.this_account.bank) //TODO: apifailure?
+              createdBank <- Box(createdBanks.find(b => b.permalink.get == t.this_account.bank)) ?~
+                s"Transaction this_account bank must be specified in import banks. Unspecified bank: ${t.this_account.bank}"
               //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
               //saved so the a.bankId method (which involves a db lookup) will not work
-              createdAcc <- createdAccounts.find(a => a.bankID.toString == createdBank.id.get.toString && a.accountId == AccountId(t.this_account.id)) //TODO: apifailure?
+              createdAcc <- Box(createdAccounts.find(a => a.bankID.toString == createdBank.id.get.toString && a.accountId == AccountId(t.this_account.id))) ?~
+                s"Transaction this_account account must be specified in import banks. Unspecified account id: ${t.this_account.id} at bank: ${t.this_account.bank}"
               newBalanceValue <- tryo{BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
               tValue <- tryo{BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
               postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
