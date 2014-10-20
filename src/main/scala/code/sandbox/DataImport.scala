@@ -256,10 +256,14 @@ object DataImport extends Loggable {
         else None
       })
 
-      if(!transactionsWithNoAccountSpecifiedInImport.isEmpty) {
+      val transactionsWithEmptyIds = data.transactions.filter(_.id.isEmpty)
+
+      if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
           t => s"transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank}")
         Failure(s"Transaction(s) exist with accounts/banks not specified in import data: $identifiers")
+      } else if (transactionsWithEmptyIds.nonEmpty) {
+        Failure(s"Transaction(s) exist with empty ids")
       } else {
         val existing = data.transactions.flatMap(t => {
           for {
