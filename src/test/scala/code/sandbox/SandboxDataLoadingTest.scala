@@ -961,7 +961,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val validTransaction = Extraction.decompose(t)
 
-
     val invalidCounterpartyBank = "pdmowmxs"
 
     //ensure invalid bank does't exit
@@ -999,7 +998,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     checkNoTransactionsExist()
 
     //it should work if we make the counterparty valid again
-    val anotherValidTransaction = replaceField(validTransaction, List("counterparty", "bank"), t.counterparty.get.bank)
+    val anotherValidTransaction = replaceField(invalidCounterPartyTransaction, List("counterparty", "bank"), t.counterparty.get.bank)
 
     getResponse(List(validTransaction, anotherValidTransaction)).code should equal(SUCCESS)
     checkTransactionsExist()
