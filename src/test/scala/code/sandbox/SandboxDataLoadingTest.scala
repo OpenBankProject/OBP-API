@@ -655,22 +655,23 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
-    val accountWithSameId = replaceField(Extraction.decompose(account1AtBank2), "id", account1AtBank1.id)
+    val accountWithSameId = replaceField(Extraction.decompose(account2AtBank1), "id", account1AtBank1.id)
     //might be nice to test a case where the only similar attribute between the accounts is the id
     getResponse(List(account1AtBank1Json, accountWithSameId)).code should equal(FAILED)
 
     //no accounts should have been created
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)) should equal(Empty)
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank2.bank), AccountId(account1AtBank1.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(false)
 
     val accountIdTwo = "2"
+    accountIdTwo should not equal(account1AtBank1.id)
+
     val accountWithDifferentId = replaceField(accountWithSameId, "id", accountIdTwo)
 
     getResponse(List(account1AtBank1Json, accountWithDifferentId)).code should equal(SUCCESS)
 
     //two accounts should have been created
     Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(account1AtBank1.id)).isDefined should equal(true)
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank2.bank), AccountId(accountIdTwo)).isDefined should equal(true)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId(accountIdTwo)).isDefined should equal(true)
 
   }
 
