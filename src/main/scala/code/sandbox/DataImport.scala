@@ -156,17 +156,24 @@ object DataImport extends Loggable {
       val emptyAccountIds = data.accounts.filter(acc => acc.id.isEmpty)
 
       case class AccountIdentifier(id : String, bank : String)
+      case class AccountNumberForBank(number : String, bank : String)
       val ids = data.accounts.map(acc => AccountIdentifier(acc.id, acc.bank))
       val duplicateIds = ids diff ids.distinct
+
+      val numbers = data.accounts.map(acc =>AccountNumberForBank(acc.number, acc.bank))
+      val duplicateNumbers = numbers diff numbers.distinct
 
       if(!banksNotSpecifiedInImport.isEmpty) {
         Failure(s"Error: one or more accounts specified are for" +
           s" banks not specified in the import data. Unspecified banks: $banksNotSpecifiedInImport)")
-      } else if (!emptyAccountIds.isEmpty){
+      } else if (emptyAccountIds.nonEmpty){
         Failure(s"Error: one or more accounts has an empty id")
-      } else if (!duplicateIds.isEmpty){
+      } else if (duplicateIds.nonEmpty){
         val duplicateMsg = duplicateIds.map(d => s"bank id ${d.bank}, account id: ${d.id}").mkString(",")
         Failure(s"Error: accounts at the same bank may not share an id: $duplicateMsg")
+      } else if(duplicateNumbers.nonEmpty){
+        val duplicateMsg = duplicateNumbers.map(d => s"bank id ${d.bank}, account number: ${d.number}").mkString(",")
+        Failure(s"Error: accounts at the same bank may not share account numbers: $duplicateMsg")
       } else {
 
         def getHostedBank(acc : SandboxAccountImport) =
