@@ -880,13 +880,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //add transaction
     getResponse(List(t1Json)).code should equal(SUCCESS)
 
+    val otherTransaction = transactionWithCounterparty
+
     //when we try to add t1Json and another valid transaction it should now fail
-    getResponse(List(t1Json, Extraction.decompose(transactionWithoutCounterparty))).code should equal(FAILED)
+    getResponse(List(t1Json, Extraction.decompose(otherTransaction))).code should equal(FAILED)
 
     //and no new transaction should exist
-    Connector.connector.vend.getTransaction(BankId(transactionWithoutCounterparty.this_account.bank),
-      AccountId(transactionWithoutCounterparty.this_account.id),
-      TransactionId(transactionWithoutCounterparty.id)).isDefined should equal(false)
+    Connector.connector.vend.getTransaction(BankId(otherTransaction.this_account.bank),
+      AccountId(otherTransaction.this_account.id),
+      TransactionId(otherTransaction.id)).isDefined should equal(false)
   }
 
   it should "not create any transactions when one has an invalid this_account" in {
