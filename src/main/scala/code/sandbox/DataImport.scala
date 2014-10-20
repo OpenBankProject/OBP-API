@@ -192,6 +192,12 @@ object DataImport extends Loggable {
             for {
               hBank <- hostedBank
               balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
+              ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
+                s"Accounts must have at least one owner. Violation: bank id ${acc.bank}, account id ${acc.id}"
+              ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
+                val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
+                s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
+              }
             } yield {
               val account = Account.createRecord
                 .permalink(acc.id)
