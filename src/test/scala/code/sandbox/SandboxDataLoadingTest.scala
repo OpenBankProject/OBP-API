@@ -784,8 +784,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(acc1Json, sameNumberJson)).code should equal(FAILED)
 
     //no accounts should have been created
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)) should equal(Empty)
-    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc1.id)).isDefined should equal(false)
+    Connector.connector.vend.getBankAccount(BankId(acc1.bank), AccountId(acc2.id)).isDefined should equal(false)
 
     //check it works with the normal different number
     getResponse(List(acc1Json, acc2Json)).code should equal(SUCCESS)
