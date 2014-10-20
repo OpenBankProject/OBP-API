@@ -1,9 +1,13 @@
 package code.sandbox
 
+import java.text.SimpleDateFormat
+
 import code.api.APIFailure
 import code.metadata.counterparties.{MongoCounterparties, Metadata}
 import code.model.{AccountId, BankId}
 import code.model.dataAccess._
+import code.util.Helper
+import code.views.Views
 import com.mongodb.QueryBuilder
 import net.liftweb.common._
 import net.liftweb.mapper.By
@@ -63,6 +67,10 @@ case class SandboxDataImport(
   transactions : List[SandboxTransactionImport])
 
 object DataImport extends Loggable {
+
+
+  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val dateFormat = new SimpleDateFormat(datePattern)
 
   /**
    * @param data
@@ -135,8 +143,10 @@ object DataImport extends Loggable {
       }
     }
 
-    //returns unsaved accounts and unsaved views for those accounts
-    def createAccountsAndViews(createdBanks : List[HostedBank], createdUsers : List[OBPUser]) : Box[List[(Account, List[ViewImpl])]] = {
+    type AccOwnerEmail = String
+
+    //returns unsaved accounts, unsaved views for those accounts
+    def createAccounts(createdBanks : List[HostedBank], createdUsers : List[OBPUser]) : Box[List[(Account, List[ViewImpl], List[AccOwnerEmail])]] = {
 
       val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
         if(data.banks.exists(b => b.id == acc.bank)) None
@@ -149,10 +159,10 @@ object DataImport extends Loggable {
       } else {
 
         def getHostedBank(acc : SandboxAccountImport) =
-          createdBanks.find(createdBank => createdBank.permalink.get == acc.bank)
+          Box(createdBanks.find(createdBank => createdBank.permalink.get == acc.bank))
 
         val existing = data.accounts.flatMap(acc => {
-          val hostedBank = getHostedBank(acc)
+          val hostedBank = getHostedBank(acc).toOption
           hostedBank match {
             case Some(hBank) => {
               val existing = hBank.getAccount(AccountId(acc.id))
@@ -166,7 +176,7 @@ object DataImport extends Loggable {
           val existingAccountAndBankIds = existing.map(e => (s"account id: ${e.permalink.get} bank id: ${e.bankId.value}}"))
           Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
         } else {
-          val accountsAndViews = data.accounts.flatMap(acc => {
+          val results = data.accounts.map(acc => {
             val hostedBank = getHostedBank(acc)
             for {
               hBank <- hostedBank
@@ -185,32 +195,32 @@ object DataImport extends Loggable {
               val bankId = BankId(acc.bank)
               val accountId = AccountId(acc.id)
 
-              val ownerView = Some(ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View"))
+              val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
 
               val publicView =
                 if(acc.generate_public_view) Some(ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, "Public View"))
                 else None
 
-              val views = List(ownerView, publicView).flatten
-              (account, views)
+              val views = List(Some(ownerView), publicView).flatten
+
+              (account, views, acc.owners)
             }
           })
 
-          if(accountsAndViews.size != data.accounts.size) {
-            logger.error("Couldn't create an Account for all accounts in data import")
-            val failMsg = "Unknown error"
-            //TODO: give a better message depending on the failure, perhaps a 400
-            ParamFailure(failMsg, APIFailure(failMsg, 500))
-          } else {
-            Full( accountsAndViews)
+          val firstFailure = results.collectFirst{case f: Failure => f}
+
+          firstFailure match {
+            case Some(f) => f
+            case None => Full(results.flatten) //no failures, so we can return the results
           }
+
         }
       }
 
     }
 
     //TODO: return metadata too? it will need to be saved as well
-    def createTransactions(createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
+    def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
 
       def createdAccount(transaction : SandboxTransactionImport) =
         createdAccounts.find(acc =>
@@ -244,111 +254,159 @@ object DataImport extends Loggable {
           Failure(s"Some transactions already exist: $existingIdentifiers")
         } else {
 
-          val envsAndMeta : List[(OBPEnvelope, Metadata)] = data.transactions.flatMap(t => {
+          val envsAndMeta : List[Box[(OBPEnvelope, Metadata)]] = data.transactions.map(t => {
 
-            val metadataOpt = t.counterparty match {
+            type CounterpartyAccount = Account
+            type CounterpartyBank = HostedBank
+
+            val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
               case Some(counter) => {
-                //TODO: verify counterparty was in data import
-                val counterPartyAccount = createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankId == BankId(counter.bank))
-
-                counterPartyAccount.map(a => {
+                for {
+                  counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank))//TODO: apifailure?
+                  //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
+                  //saved so the a.bankId method (which involves a db lookup) will not work
+                  counterPartyAccount <- Box(createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankID.get.toString == counterpartyBank.id.toString)) ?~
+                    s"transaction has counterparty not specified in data import: account id ${counter.id}, bank id ${counter.bank}"
+                } yield {
                   val existingMeta = Metadata.find(QueryBuilder.start("originalPartyBankId").is(t.this_account.bank)
                     .put("originalPartyAccountId").is(t.this_account.id)
-                    .put("holder").is(a.label.get).get())
+                    .put("holder").is(counterPartyAccount.label.get).get())
 
-                  existingMeta.getOrElse{
+                  (existingMeta.getOrElse{
                     Metadata.createRecord
-                      .holder(a.label.get)
+                      .holder(counterPartyAccount.label.get)
+                      .originalPartyAccountId(t.this_account.id)
+                      .originalPartyBankId(t.this_account.bank)
                       .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))
-                  }
-
-                })
+                  }, Some(counterPartyAccount, counterpartyBank))
+                }
               }
               case None => {
-                Some(Metadata.createRecord
+                Full((Metadata.createRecord
                   .holder(t.details.description)
-                  .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))))
+                  .originalPartyAccountId(t.this_account.id)
+                  .originalPartyBankId(t.this_account.bank)
+                  .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))),
+                  None)
               }
             }
 
-            metadataOpt.flatMap(m => {
+            for {
+              metaAndCounter <- metadataBox
+              createdBank <- createdBanks.find(b => b.permalink.get == t.this_account.bank) //TODO: apifailure?
+              //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
+              //saved so the a.bankId method (which involves a db lookup) will not work
+              createdAcc <- createdAccounts.find(a => a.bankID.toString == createdBank.id.get.toString && a.accountId == AccountId(t.this_account.id)) //TODO: apifailure?
+              newBalanceValue <- tryo{BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
+              tValue <- tryo{BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
+              postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
+              completedDate <-tryo{dateFormat.parse(t.details.completed)} ?~ s"Invalid date format: ${t.details.completed}. Expected pattern $datePattern"
+            } yield {
 
-              for {
-                createdAcc <- createdAccounts.find(a => a.bankId == BankId(t.this_account.bank) && a.accountId == AccountId(t.this_account.id))
-              } yield {
+              //bankNationalIdentifier not available from  createdAcc.bankNationalIdentifier as it hasn't been saved so we get it from createdBank
+              val obpThisAccountBank = OBPBank.createRecord
+                .national_identifier(createdBank.national_identifier.get)
 
-                //TODO: metadata will get gen'd automatically?? with wrong values???
+              val obpThisAccount = OBPAccount.createRecord
+                .holder(createdAcc.holder.get)
+                .number(createdAcc.number.get)
+                .kind(createdAcc.kind.get)
+                .bank(obpThisAccountBank)
 
-                val obpThisAccountBank = OBPBank.createRecord
-                  .national_identifier(createdAcc.bankNationalIdentifier)
+              val obpOtherAccountBank = OBPBank.createRecord
+                .national_identifier(metaAndCounter._2.map(_._2.national_identifier.get).getOrElse(""))
+                .IBAN(metaAndCounter._2.map(_._1.iban.get).getOrElse(""))
 
-                val obpThisAccount = OBPAccount.createRecord
-                  .holder(createdAcc.holder.get)
-                  .number(createdAcc.number.get)
-                  .kind(createdAcc.kind.get)
-                  .bank(obpThisAccountBank)
+              val obpOtherAccount = OBPAccount.createRecord
+                .holder(metaAndCounter._1.holder.get)
+                .number(metaAndCounter._2.map(_._1.number.get).getOrElse(""))
+                .kind(metaAndCounter._2.map(_._1.kind.get).getOrElse(""))
+                .bank(obpOtherAccountBank)
 
-                val obpOtherAccount = OBPAccount.createRecord
-                  .holder(m.holder.get)
+              val newBalance = OBPBalance.createRecord
+                .amount(newBalanceValue)
+                .currency(createdAcc.currency.get)
 
-                val newBalance = OBPBalance.createRecord
-                  .amount(BigDecimal("0.00")) //TODO: verify new balance as bigdecimal and use it
-                  .currency(createdAcc.currency.get)
+              val transactionValue = OBPValue.createRecord
+                .amount(tValue)
+                .currency(createdAcc.currency.get)
 
-                val transactionValue = OBPValue.createRecord
-                  .amount(BigDecimal("0.00")) //TODO: verify value as bigdecimal and use it
-                  .currency(createdAcc.currency.get)
-
-                val obpDetails = OBPDetails.createRecord
-                  .completed(new Date()) //TODO: verify date and use it
-                  .posted(new Date()) //TODO: verify date and use it
-                  .kind(t.details.`type`)
-                  .label(t.details.description)
-                  .new_balance(newBalance)
-                  .value(transactionValue)
+              val obpDetails = OBPDetails.createRecord
+                .completed(completedDate)
+                .posted(postedDate)
+                .kind(t.details.`type`)
+                .label(t.details.description)
+                .new_balance(newBalance)
+                .value(transactionValue)
 
 
-                val obpTransaction = OBPTransaction.createRecord
-                  .details(obpDetails)
-                  .this_account(obpThisAccount)
-                  .other_account(obpOtherAccount)
+              val obpTransaction = OBPTransaction.createRecord
+                .details(obpDetails)
+                .this_account(obpThisAccount)
+                .other_account(obpOtherAccount)
 
-                val env = OBPEnvelope.createRecord
-                  .transactionId(t.id)
-                  .obp_transaction(obpTransaction)
+              val env = OBPEnvelope.createRecord
+                .transactionId(t.id)
+                .obp_transaction(obpTransaction)
 
-                (env, m)
-              }
-            })
+              (env, metaAndCounter._1)
+            }
 
           })
 
-          //todo: if >0 metadata missing, does it always means the counterparty was not specified in data import?
+          //TODO: extract first failure check into method (it's copy pasted from account creation)
+          val firstFailure = envsAndMeta.collectFirst{case f: Failure => f}
 
-          //TODO: create obpenvelopes (and metadatas?)
-          Failure("TODO")
-          Full(envsAndMeta)
+          firstFailure match {
+            case Some(f) => f
+            case None => Full(envsAndMeta.flatten) //no failures, so we can return the results
+          }
         }
 
       }
 
-      //Failure("TODO")
     }
 
     for {
       banks <- createBanks()
       users <- createUsers()
-      accountsAndViews <- createAccountsAndViews(banks, users)
-      transactionsAndMetas <- createTransactions(accountsAndViews.map(_._1))
+      accountsResults <- createAccounts(banks, users)
+      transactionsAndMetas <- createTransactions(banks, accountsResults.map(_._1))
     } yield {
 
-      //import format has been shown to be correct, now we can save everything we created
+      //import format has now been verified: we can save everything we created
       banks.foreach(_.save(true))
       users.foreach(_.save())
-      accountsAndViews.foreach{
-        case (account, views) =>
+      accountsResults.foreach{
+        case (account, views, accOwnerEmails) =>
           account.save(true)
-          views.foreach(_.save)
+
+          val apiUserOwners = users.filter(obpUser => accOwnerEmails.exists(email => email == obpUser.email.get)).flatMap(_.user.obj)
+          if(apiUserOwners.size != accOwnerEmails.size) {
+            //This shouldn't happen as OBPUser should generate the APIUsers when saved
+            logger.error(s"api user(s) not found. Expected: ${accOwnerEmails}, got: ${apiUserOwners} ")
+            logger.error("Data import completed with errors.")
+          }
+
+          //when bankID was set earlier, the HostedBank had not been saved, so bankId.obj is still caching an Empty value
+          //resetting it here fixes that (ugly, but it works)
+          account.bankID.set(account.bankID.get)
+
+          val accountHolders = apiUserOwners.map(owner => {
+            MappedAccountHolder.create
+              .user(owner)
+              .accountBankPermalink(account.bankId.value)
+              .accountPermalink(account.accountId.value)
+          })
+
+          accountHolders.foreach(_.save)
+
+          views.foreach(v => {
+            v.save
+            //grant users access
+            val owners = accountHolders.flatMap(_.user.obj)
+            owners.foreach(o => Views.views.vend.addPermission(v, o))
+          })
       }
       transactionsAndMetas.foreach {
         case (trans, meta) => {
