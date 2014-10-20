@@ -708,7 +708,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       postImportJson(json)
     }
 
-    val badBankAccount = replaceField(Extraction.decompose(account1AtBank1), "id", badBankId)
+    val badBankAccount = replaceField(Extraction.decompose(account1AtBank1), "bank", badBankId)
 
     getResponse(List(badBankAccount)).code should equal(FAILED)
 
