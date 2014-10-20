@@ -184,7 +184,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundTransaction.id should equal(transactionId)
     foundTransaction.bankId should equal(bankId)
     foundTransaction.accountId should equal(accountId)
-    foundTransaction.description should equal(transaction.details.description)
+    foundTransaction.description should equal(Some(transaction.details.description))
     foundTransaction.balance.toString should equal(transaction.details.new_balance)
     foundTransaction.amount.toString should equal(transaction.details.value)
 
