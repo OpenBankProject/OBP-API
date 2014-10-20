@@ -297,7 +297,8 @@ object DataImport extends Loggable {
             val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
               case Some(counter) => {
                 for {
-                  counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank))//TODO: apifailure?
+                  counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank)) ?~
+                    s"transaction has counterparty bank not specified in data import: bank id ${counter.bank}"
                   //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
                   //saved so the a.bankId method (which involves a db lookup) will not work
                   counterPartyAccount <- Box(createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankID.get.toString == counterpartyBank.id.toString)) ?~
