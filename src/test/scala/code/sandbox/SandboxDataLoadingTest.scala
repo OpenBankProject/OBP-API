@@ -637,7 +637,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(accountWithEmptyId)).code should equal(FAILED)
 
     //no account should exist with an empty id
-    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")) should equal(Empty)
+    Connector.connector.vend.getBankAccount(BankId(account1AtBank1.bank), AccountId("")).isDefined should equal(false)
 
     getResponse(List(acc1AtBank1Json)).code should equal(SUCCESS)
 
