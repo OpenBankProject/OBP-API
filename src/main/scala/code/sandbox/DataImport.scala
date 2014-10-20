@@ -258,13 +258,21 @@ object DataImport extends Loggable {
 
       val transactionsWithEmptyIds = data.transactions.filter(_.id.isEmpty)
 
+      case class TransactionIdentifier(id : String, account : String, bank : String)
+
+      val identifiers = data.transactions.map(t => TransactionIdentifier(t.id, t.this_account.id, t.this_account.bank))
+      val duplicateIdentifiers = identifiers diff identifiers.distinct
+
       if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
           t => s"transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank}")
         Failure(s"Transaction(s) exist with accounts/banks not specified in import data: $identifiers")
       } else if (transactionsWithEmptyIds.nonEmpty) {
         Failure(s"Transaction(s) exist with empty ids")
-      } else {
+      } else if(duplicateIdentifiers.nonEmpty) {
+        val duplicatesMsg = duplicateIdentifiers.map(i => s"(transaction id : ${i.id}, account id: ${i.account}, bank id: ${i.bank})").mkString(",")
+        Failure(s"Transactions for an account must have unique ids. Violations: ${duplicatesMsg} ")
+      }else {
         val existing = data.transactions.flatMap(t => {
           for {
             account <- Box(createdAccount(t))
