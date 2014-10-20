@@ -153,9 +153,13 @@ object DataImport extends Loggable {
         else Some(acc.bank)
       })
 
+      val emptyAccountIds = data.accounts.filter(acc => acc.id.isEmpty)
+
       if(!banksNotSpecifiedInImport.isEmpty) {
         Failure(s"Error: one or more accounts specified are for" +
           s" banks not specified in the import data. Unspecified banks: $banksNotSpecifiedInImport)")
+      } else if (!emptyAccountIds.isEmpty){
+        Failure(s"Error: one or more accounts has an empty id")
       } else {
 
         def getHostedBank(acc : SandboxAccountImport) =
@@ -219,7 +223,6 @@ object DataImport extends Loggable {
 
     }
 
-    //TODO: return metadata too? it will need to be saved as well
     def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
 
       def createdAccount(transaction : SandboxTransactionImport) =
