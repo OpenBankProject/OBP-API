@@ -231,16 +231,24 @@ object DataImport extends Loggable {
             }
           })
 
-          val firstFailure = results.collectFirst{case f: Failure => f}
-
-          firstFailure match {
-            case Some(f) => f
-            case None => Full(results.flatten) //no failures, so we can return the results
-          }
-
+          dataOrFirstFailure(results)
         }
       }
 
+    }
+
+    /**
+     * Takes a list of boxes and returns a list of the content of the boxes if all boxes are Full, or returns
+     * the first failure
+     *
+     * TODO: handle Empty boxes
+     */
+    def dataOrFirstFailure[T](boxes : List[Box[T]]) = {
+      val firstFailure = boxes.collectFirst{case f: Failure => f}
+      firstFailure match {
+        case Some(f) => f
+        case None => Full(boxes.flatten) //no failures, so we can return the results
+      }
     }
 
     def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
@@ -392,13 +400,7 @@ object DataImport extends Loggable {
 
           })
 
-          //TODO: extract first failure check into method (it's copy pasted from account creation)
-          val firstFailure = envsAndMeta.collectFirst{case f: Failure => f}
-
-          firstFailure match {
-            case Some(f) => f
-            case None => Full(envsAndMeta.flatten) //no failures, so we can return the results
-          }
+          dataOrFirstFailure(envsAndMeta)
         }
 
       }
