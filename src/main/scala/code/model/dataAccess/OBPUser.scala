@@ -55,8 +55,17 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
+      val displayName = {
+        if(firstName.get.isEmpty) {
+          lastName.get
+        } else if(lastName.get.isEmpty) {
+          firstName.get
+        } else {
+          firstName.get + " " + lastName.get
+        }
+      }
       val apiUser = APIUser.create
-      .name_(lastName.get + " " + firstName.get)
+      .name_(displayName)
       .email(email)
       .provider_(Props.get("hostname",""))
       .providerId(email)

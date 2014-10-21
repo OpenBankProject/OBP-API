@@ -150,7 +150,7 @@ private object LocalConnector extends Connector with Loggable {
           iban = Some(otherAccount_.bank.get.IBAN.get),
           number = otherAccount_.number.get,
           bankName = otherAccount_.bank.get.name.get,
-          kind = "",
+          kind = otherAccount_.kind.get,
           originalPartyBankId = theAccount.bankId,
           originalPartyAccountId = theAccount.accountId
         )

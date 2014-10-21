@@ -623,7 +623,7 @@ object JSONFactory{
     new UserJSON(
           user.idGivenByProvider,
           stringOrNull(user.provider),
-          stringOrNull(user.emailAddress)
+          stringOrNull(user.emailAddress) //TODO: shouldn't this be the display name?
         )
   }
 
