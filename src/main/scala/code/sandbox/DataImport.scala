@@ -186,13 +186,13 @@ object DataImport extends Loggable {
       } else if (emptyAccountIds.nonEmpty){
         Failure(s"Error: one or more accounts has an empty id")
       } else if (duplicateIds.nonEmpty){
-        val duplicateMsg = duplicateIds.map(d => s"bank id ${d.bank}, account id: ${d.id}").mkString(",")
+        val duplicateMsg = duplicateIds.map(d => s"(bank id ${d.bank}, account id: ${d.id})").mkString(",")
         Failure(s"Error: accounts at the same bank may not share an id: $duplicateMsg")
       } else if(duplicateNumbers.nonEmpty){
-        val duplicateMsg = duplicateNumbers.map(d => s"bank id ${d.bank}, account number: ${d.number}").mkString(",")
+        val duplicateMsg = duplicateNumbers.map(d => s"(bank id ${d.bank}, account number: ${d.number})").mkString(",")
         Failure(s"Error: accounts at the same bank may not share account numbers: $duplicateMsg")
       } else if(existing.nonEmpty) {
-        val existingAccountAndBankIds = existing.map(e => (s"account id: ${e.permalink.get} bank id: ${e.bankId.value}}"))
+        val existingAccountAndBankIds = existing.map(e => (s"(account id: ${e.permalink.get} bank id: ${e.bankId.value})").mkString(","))
         Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
       } else {
         val results = data.accounts.map(acc => {
@@ -201,7 +201,7 @@ object DataImport extends Loggable {
             hBank <- hostedBank
             balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
             ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
-              s"Accounts must have at least one owner. Violation: bank id ${acc.bank}, account id ${acc.id}"
+              s"Accounts must have at least one owner. Violation: (bank id ${acc.bank}, account id ${acc.id})"
             ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
               val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
               s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
@@ -283,7 +283,7 @@ object DataImport extends Loggable {
 
       if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
-          t => s"transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank}")
+          t => s"(transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank})")
         Failure(s"Transaction(s) exist with accounts/banks not specified in import data: $identifiers")
       } else if (transactionsWithEmptyIds.nonEmpty) {
         Failure(s"Transaction(s) exist with empty ids")
@@ -292,7 +292,7 @@ object DataImport extends Loggable {
         Failure(s"Transactions for an account must have unique ids. Violations: ${duplicatesMsg} ")
       } else if(existing.nonEmpty) {
         val existingIdentifiers = existing.map {
-          case(t, env) => s"transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank}"
+          case(t, env) => s"(transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank})"
         }
         Failure(s"Some transactions already exist: $existingIdentifiers")
       } else {
