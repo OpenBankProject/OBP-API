@@ -76,6 +76,7 @@ object DataImport extends Loggable {
    * @param data
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
+  //TODO: might be nice to use something like scalaz's validations here
   def importData(data : SandboxDataImport) : Box[Unit] = {
 
     def createBanks() : Box[List[HostedBank]] = {
@@ -114,6 +115,7 @@ object DataImport extends Loggable {
       }
     }
 
+    //TODO: might be nice to use something like scalaz's validations here
     def createUsers() : Box[List[OBPUser]] = {
       val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
       val allEmails = data.users.map(_.email)
@@ -146,6 +148,7 @@ object DataImport extends Loggable {
     type AccOwnerEmail = String
 
     //returns unsaved accounts, unsaved views for those accounts
+    //TODO: might be nice to use something like scalaz's validations here
     def createAccounts(createdBanks : List[HostedBank], createdUsers : List[OBPUser]) : Box[List[(Account, List[ViewImpl], List[AccOwnerEmail])]] = {
 
       val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
@@ -248,6 +251,7 @@ object DataImport extends Loggable {
       }
     }
 
+    //TODO: might be nice to use something like scalaz's validations here
     def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
 
       def createdAccount(transaction : SandboxTransactionImport) =
