@@ -302,6 +302,14 @@ object DataImport extends Loggable {
           type CounterpartyAccount = Account
           type CounterpartyBank = HostedBank
 
+          def createMeta(holder : String, publicAlias : String) = {
+            Metadata.createRecord
+              .holder(holder)
+              .originalPartyAccountId(t.this_account.id)
+              .originalPartyBankId(t.this_account.bank)
+              .publicAlias(publicAlias)
+          }
+
           val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
             case Some(counter) => {
               for {
@@ -317,21 +325,16 @@ object DataImport extends Loggable {
                   .put("holder").is(counterPartyAccount.label.get).get())
 
                 (existingMeta.getOrElse{
-                  Metadata.createRecord
-                    .holder(counterPartyAccount.label.get)
-                    .originalPartyAccountId(t.this_account.id)
-                    .originalPartyBankId(t.this_account.bank)
-                    .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))
+                  val holder = counterPartyAccount.label.get
+                  val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
+                  createMeta(holder, publicAlias)
                 }, Some(counterPartyAccount, counterpartyBank))
               }
             }
             case None => {
-              Full((Metadata.createRecord
-                .holder(t.details.description)
-                .originalPartyAccountId(t.this_account.id)
-                .originalPartyBankId(t.this_account.bank)
-                .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))),
-                None)
+              val holder = t.details.description
+              val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
+              Full((createMeta(holder, publicAlias), None))
             }
           }
 
