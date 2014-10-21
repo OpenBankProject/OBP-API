@@ -93,7 +93,7 @@ object DataImport extends Loggable {
         Failure(s"Bank(s) with empty ids are not allowed")
       } else if(!duplicateIds.isEmpty) {
         Failure(s"Banks must have unique ids. Duplicates found: $duplicateIds")
-      }else {
+      } else {
         val hostedBanks = data.banks.map(b => {
           HostedBank.createRecord
             .permalink(b.id)
@@ -163,6 +163,20 @@ object DataImport extends Loggable {
       val numbers = data.accounts.map(acc =>AccountNumberForBank(acc.number, acc.bank))
       val duplicateNumbers = numbers diff numbers.distinct
 
+      def getHostedBank(acc : SandboxAccountImport) =
+        Box(createdBanks.find(createdBank => createdBank.permalink.get == acc.bank))
+
+      val existing = data.accounts.flatMap(acc => {
+        val hostedBank = getHostedBank(acc).toOption
+        hostedBank match {
+          case Some(hBank) => {
+            val existing = hBank.getAccount(AccountId(acc.id))
+            existing.toOption
+          }
+          case None => None //this is bad (no bank found), but will get handled later on in another check
+        }
+      })
+
       if(!banksNotSpecifiedInImport.isEmpty) {
         Failure(s"Error: one or more accounts specified are for" +
           s" banks not specified in the import data. Unspecified banks: $banksNotSpecifiedInImport)")
@@ -174,65 +188,48 @@ object DataImport extends Loggable {
       } else if(duplicateNumbers.nonEmpty){
         val duplicateMsg = duplicateNumbers.map(d => s"bank id ${d.bank}, account number: ${d.number}").mkString(",")
         Failure(s"Error: accounts at the same bank may not share account numbers: $duplicateMsg")
+      } else if(existing.nonEmpty) {
+        val existingAccountAndBankIds = existing.map(e => (s"account id: ${e.permalink.get} bank id: ${e.bankId.value}}"))
+        Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
       } else {
-
-        def getHostedBank(acc : SandboxAccountImport) =
-          Box(createdBanks.find(createdBank => createdBank.permalink.get == acc.bank))
-
-        val existing = data.accounts.flatMap(acc => {
-          val hostedBank = getHostedBank(acc).toOption
-          hostedBank match {
-            case Some(hBank) => {
-              val existing = hBank.getAccount(AccountId(acc.id))
-              existing.toOption
+        val results = data.accounts.map(acc => {
+          val hostedBank = getHostedBank(acc)
+          for {
+            hBank <- hostedBank
+            balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
+            ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
+              s"Accounts must have at least one owner. Violation: bank id ${acc.bank}, account id ${acc.id}"
+            ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
+              val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
+              s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
             }
-            case None => None //this is bad (no bank found), but will get handled later on in another check
+          } yield {
+            val account = Account.createRecord
+              .permalink(acc.id)
+              .bankID(hBank.id.get)
+              .label(acc.label)
+              .currency(acc.balance.currency)
+              .balance(balance)
+              .number(acc.number)
+              .kind(acc.`type`)
+              .iban(acc.IBAN)
+
+            val bankId = BankId(acc.bank)
+            val accountId = AccountId(acc.id)
+
+            val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
+
+            val publicView =
+              if(acc.generate_public_view) Some(ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, "Public View"))
+              else None
+
+            val views = List(Some(ownerView), publicView).flatten
+
+            (account, views, acc.owners)
           }
         })
 
-        if(!existing.isEmpty) {
-          val existingAccountAndBankIds = existing.map(e => (s"account id: ${e.permalink.get} bank id: ${e.bankId.value}}"))
-          Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
-        } else {
-          val results = data.accounts.map(acc => {
-            val hostedBank = getHostedBank(acc)
-            for {
-              hBank <- hostedBank
-              balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
-              ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
-                s"Accounts must have at least one owner. Violation: bank id ${acc.bank}, account id ${acc.id}"
-              ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
-                val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
-                s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
-              }
-            } yield {
-              val account = Account.createRecord
-                .permalink(acc.id)
-                .bankID(hBank.id.get)
-                .label(acc.label)
-                .currency(acc.balance.currency)
-                .balance(balance)
-                .number(acc.number)
-                .kind(acc.`type`)
-                .iban(acc.IBAN)
-
-              val bankId = BankId(acc.bank)
-              val accountId = AccountId(acc.id)
-
-              val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
-
-              val publicView =
-                if(acc.generate_public_view) Some(ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, "Public View"))
-                else None
-
-              val views = List(Some(ownerView), publicView).flatten
-
-              (account, views, acc.owners)
-            }
-          })
-
-          dataOrFirstFailure(results)
-        }
+        dataOrFirstFailure(results)
       }
 
     }
@@ -271,6 +268,15 @@ object DataImport extends Loggable {
       val identifiers = data.transactions.map(t => TransactionIdentifier(t.id, t.this_account.id, t.this_account.bank))
       val duplicateIdentifiers = identifiers diff identifiers.distinct
 
+      val existing = data.transactions.flatMap(t => {
+        for {
+          account <- Box(createdAccount(t))
+          accountEnvelopesQuery = account.transactionsForAccount
+          queryWithTransId = accountEnvelopesQuery.put("transactionId").is(t.id)
+          env <- OBPEnvelope.find(queryWithTransId.get)
+        } yield (t, env)
+      })
+
       if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
           t => s"transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank}")
@@ -280,128 +286,117 @@ object DataImport extends Loggable {
       } else if(duplicateIdentifiers.nonEmpty) {
         val duplicatesMsg = duplicateIdentifiers.map(i => s"(transaction id : ${i.id}, account id: ${i.account}, bank id: ${i.bank})").mkString(",")
         Failure(s"Transactions for an account must have unique ids. Violations: ${duplicatesMsg} ")
-      }else {
-        val existing = data.transactions.flatMap(t => {
+      } else if(existing.nonEmpty) {
+        val existingIdentifiers = existing.map {
+          case(t, env) => s"transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank}"
+        }
+        Failure(s"Some transactions already exist: $existingIdentifiers")
+      } else {
+
+        val envsAndMeta : List[Box[(OBPEnvelope, Metadata)]] = data.transactions.map(t => {
+
+          type CounterpartyAccount = Account
+          type CounterpartyBank = HostedBank
+
+          val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
+            case Some(counter) => {
+              for {
+                counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank)) ?~
+                  s"transaction has counterparty bank not specified in data import: bank id ${counter.bank}"
+                //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
+                //saved so the a.bankId method (which involves a db lookup) will not work
+                counterPartyAccount <- Box(createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankID.get.toString == counterpartyBank.id.toString)) ?~
+                  s"transaction has counterparty not specified in data import: account id ${counter.id}, bank id ${counter.bank}"
+              } yield {
+                val existingMeta = Metadata.find(QueryBuilder.start("originalPartyBankId").is(t.this_account.bank)
+                  .put("originalPartyAccountId").is(t.this_account.id)
+                  .put("holder").is(counterPartyAccount.label.get).get())
+
+                (existingMeta.getOrElse{
+                  Metadata.createRecord
+                    .holder(counterPartyAccount.label.get)
+                    .originalPartyAccountId(t.this_account.id)
+                    .originalPartyBankId(t.this_account.bank)
+                    .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))
+                }, Some(counterPartyAccount, counterpartyBank))
+              }
+            }
+            case None => {
+              Full((Metadata.createRecord
+                .holder(t.details.description)
+                .originalPartyAccountId(t.this_account.id)
+                .originalPartyBankId(t.this_account.bank)
+                .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))),
+                None)
+            }
+          }
+
           for {
-            account <- Box(createdAccount(t))
-            accountEnvelopesQuery = account.transactionsForAccount
-            queryWithTransId = accountEnvelopesQuery.put("transactionId").is(t.id)
-            env <- OBPEnvelope.find(queryWithTransId.get)
-          } yield (t, env)
+            metaAndCounter <- metadataBox
+            createdBank <- Box(createdBanks.find(b => b.permalink.get == t.this_account.bank)) ?~
+              s"Transaction this_account bank must be specified in import banks. Unspecified bank: ${t.this_account.bank}"
+            //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
+            //saved so the a.bankId method (which involves a db lookup) will not work
+            createdAcc <- Box(createdAccounts.find(a => a.bankID.toString == createdBank.id.get.toString && a.accountId == AccountId(t.this_account.id))) ?~
+              s"Transaction this_account account must be specified in import banks. Unspecified account id: ${t.this_account.id} at bank: ${t.this_account.bank}"
+            newBalanceValue <- tryo{BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
+            tValue <- tryo{BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
+            postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
+            completedDate <-tryo{dateFormat.parse(t.details.completed)} ?~ s"Invalid date format: ${t.details.completed}. Expected pattern $datePattern"
+          } yield {
+
+            //bankNationalIdentifier not available from  createdAcc.bankNationalIdentifier as it hasn't been saved so we get it from createdBank
+            val obpThisAccountBank = OBPBank.createRecord
+              .national_identifier(createdBank.national_identifier.get)
+
+            val obpThisAccount = OBPAccount.createRecord
+              .holder(createdAcc.holder.get)
+              .number(createdAcc.number.get)
+              .kind(createdAcc.kind.get)
+              .bank(obpThisAccountBank)
+
+            val obpOtherAccountBank = OBPBank.createRecord
+              .national_identifier(metaAndCounter._2.map(_._2.national_identifier.get).getOrElse(""))
+              .IBAN(metaAndCounter._2.map(_._1.iban.get).getOrElse(""))
+
+            val obpOtherAccount = OBPAccount.createRecord
+              .holder(metaAndCounter._1.holder.get)
+              .number(metaAndCounter._2.map(_._1.number.get).getOrElse(""))
+              .kind(metaAndCounter._2.map(_._1.kind.get).getOrElse(""))
+              .bank(obpOtherAccountBank)
+
+            val newBalance = OBPBalance.createRecord
+              .amount(newBalanceValue)
+              .currency(createdAcc.currency.get)
+
+            val transactionValue = OBPValue.createRecord
+              .amount(tValue)
+              .currency(createdAcc.currency.get)
+
+            val obpDetails = OBPDetails.createRecord
+              .completed(completedDate)
+              .posted(postedDate)
+              .kind(t.details.`type`)
+              .label(t.details.description)
+              .new_balance(newBalance)
+              .value(transactionValue)
+
+
+            val obpTransaction = OBPTransaction.createRecord
+              .details(obpDetails)
+              .this_account(obpThisAccount)
+              .other_account(obpOtherAccount)
+
+            val env = OBPEnvelope.createRecord
+              .transactionId(t.id)
+              .obp_transaction(obpTransaction)
+
+            (env, metaAndCounter._1)
+          }
+
         })
 
-        if(!existing.isEmpty) {
-          val existingIdentifiers = existing.map {
-            case(t, env) => s"transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank}"
-          }
-          Failure(s"Some transactions already exist: $existingIdentifiers")
-        } else {
-
-          val envsAndMeta : List[Box[(OBPEnvelope, Metadata)]] = data.transactions.map(t => {
-
-            type CounterpartyAccount = Account
-            type CounterpartyBank = HostedBank
-
-            val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
-              case Some(counter) => {
-                for {
-                  counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank)) ?~
-                    s"transaction has counterparty bank not specified in data import: bank id ${counter.bank}"
-                  //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
-                  //saved so the a.bankId method (which involves a db lookup) will not work
-                  counterPartyAccount <- Box(createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankID.get.toString == counterpartyBank.id.toString)) ?~
-                    s"transaction has counterparty not specified in data import: account id ${counter.id}, bank id ${counter.bank}"
-                } yield {
-                  val existingMeta = Metadata.find(QueryBuilder.start("originalPartyBankId").is(t.this_account.bank)
-                    .put("originalPartyAccountId").is(t.this_account.id)
-                    .put("holder").is(counterPartyAccount.label.get).get())
-
-                  (existingMeta.getOrElse{
-                    Metadata.createRecord
-                      .holder(counterPartyAccount.label.get)
-                      .originalPartyAccountId(t.this_account.id)
-                      .originalPartyBankId(t.this_account.bank)
-                      .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))
-                  }, Some(counterPartyAccount, counterpartyBank))
-                }
-              }
-              case None => {
-                Full((Metadata.createRecord
-                  .holder(t.details.description)
-                  .originalPartyAccountId(t.this_account.id)
-                  .originalPartyBankId(t.this_account.bank)
-                  .publicAlias(MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id)))),
-                  None)
-              }
-            }
-
-            for {
-              metaAndCounter <- metadataBox
-              createdBank <- Box(createdBanks.find(b => b.permalink.get == t.this_account.bank)) ?~
-                s"Transaction this_account bank must be specified in import banks. Unspecified bank: ${t.this_account.bank}"
-              //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
-              //saved so the a.bankId method (which involves a db lookup) will not work
-              createdAcc <- Box(createdAccounts.find(a => a.bankID.toString == createdBank.id.get.toString && a.accountId == AccountId(t.this_account.id))) ?~
-                s"Transaction this_account account must be specified in import banks. Unspecified account id: ${t.this_account.id} at bank: ${t.this_account.bank}"
-              newBalanceValue <- tryo{BigDecimal(t.details.new_balance)} ?~ s"Invalid new balance: ${t.details.new_balance}"
-              tValue <- tryo{BigDecimal(t.details.value)} ?~ s"Invalid transaction value: ${t.details.value}"
-              postedDate <- tryo{dateFormat.parse(t.details.posted)} ?~ s"Invalid date format: ${t.details.posted}. Expected pattern $datePattern"
-              completedDate <-tryo{dateFormat.parse(t.details.completed)} ?~ s"Invalid date format: ${t.details.completed}. Expected pattern $datePattern"
-            } yield {
-
-              //bankNationalIdentifier not available from  createdAcc.bankNationalIdentifier as it hasn't been saved so we get it from createdBank
-              val obpThisAccountBank = OBPBank.createRecord
-                .national_identifier(createdBank.national_identifier.get)
-
-              val obpThisAccount = OBPAccount.createRecord
-                .holder(createdAcc.holder.get)
-                .number(createdAcc.number.get)
-                .kind(createdAcc.kind.get)
-                .bank(obpThisAccountBank)
-
-              val obpOtherAccountBank = OBPBank.createRecord
-                .national_identifier(metaAndCounter._2.map(_._2.national_identifier.get).getOrElse(""))
-                .IBAN(metaAndCounter._2.map(_._1.iban.get).getOrElse(""))
-
-              val obpOtherAccount = OBPAccount.createRecord
-                .holder(metaAndCounter._1.holder.get)
-                .number(metaAndCounter._2.map(_._1.number.get).getOrElse(""))
-                .kind(metaAndCounter._2.map(_._1.kind.get).getOrElse(""))
-                .bank(obpOtherAccountBank)
-
-              val newBalance = OBPBalance.createRecord
-                .amount(newBalanceValue)
-                .currency(createdAcc.currency.get)
-
-              val transactionValue = OBPValue.createRecord
-                .amount(tValue)
-                .currency(createdAcc.currency.get)
-
-              val obpDetails = OBPDetails.createRecord
-                .completed(completedDate)
-                .posted(postedDate)
-                .kind(t.details.`type`)
-                .label(t.details.description)
-                .new_balance(newBalance)
-                .value(transactionValue)
-
-
-              val obpTransaction = OBPTransaction.createRecord
-                .details(obpDetails)
-                .this_account(obpThisAccount)
-                .other_account(obpOtherAccount)
-
-              val env = OBPEnvelope.createRecord
-                .transactionId(t.id)
-                .obp_transaction(obpTransaction)
-
-              (env, metaAndCounter._1)
-            }
-
-          })
-
-          dataOrFirstFailure(envsAndMeta)
-        }
+        dataOrFirstFailure(envsAndMeta)
 
       }
 
