@@ -11,7 +11,8 @@ import code.views.Views
 import com.mongodb.QueryBuilder
 import net.liftweb.common._
 import net.liftweb.mapper.By
-import java.util.Date
+import java.util.{UUID, Date}
+import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 
 
@@ -45,7 +46,7 @@ case class SandboxBalanceImport(
 case class SandboxTransactionImport(
   id : String,
   this_account : SandboxAccountIdImport,
-  counterparty : Option[SandboxAccountIdImport],
+  counterparty : Option[String],
   details : SandboxAccountDetailsImport)
 
 case class SandboxAccountIdImport(
@@ -251,8 +252,11 @@ object DataImport extends Loggable {
       }
     }
 
+    // a bit ugly to have this as a var
+    var metadatasToSave : List[Metadata] = Nil
+
     //TODO: might be nice to use something like scalaz's validations here
-    def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[(OBPEnvelope, Metadata)]] = {
+    def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[OBPEnvelope]] = {
 
       def createdAccount(transaction : SandboxTransactionImport) =
         createdAccounts.find(acc =>
@@ -297,10 +301,9 @@ object DataImport extends Loggable {
         Failure(s"Some transactions already exist: $existingIdentifiers")
       } else {
 
-        val envsAndMeta : List[Box[(OBPEnvelope, Metadata)]] = data.transactions.map(t => {
+        val envs : List[Box[OBPEnvelope]] = data.transactions.map(t => {
 
-          type CounterpartyAccount = Account
-          type CounterpartyBank = HostedBank
+          type Counterparty = String
 
           def createMeta(holder : String, publicAlias : String) = {
             Metadata.createRecord
@@ -310,36 +313,27 @@ object DataImport extends Loggable {
               .publicAlias(publicAlias)
           }
 
-          val metadataBox : Box[(Metadata, Option[(CounterpartyAccount, CounterpartyBank)])] = t.counterparty match {
-            case Some(counter) => {
-              for {
-                counterpartyBank <- Box(createdBanks.find(b => b.permalink.get == counter.bank)) ?~
-                  s"transaction has counterparty bank not specified in data import: bank id ${counter.bank}"
-                //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
-                //saved so the a.bankId method (which involves a db lookup) will not work
-                counterPartyAccount <- Box(createdAccounts.find(a => a.accountId == AccountId(counter.id) && a.bankID.get.toString == counterpartyBank.id.toString)) ?~
-                  s"transaction has counterparty not specified in data import: account id ${counter.id}, bank id ${counter.bank}"
-              } yield {
-                val existingMeta = Metadata.find(QueryBuilder.start("originalPartyBankId").is(t.this_account.bank)
-                  .put("originalPartyAccountId").is(t.this_account.id)
-                  .put("holder").is(counterPartyAccount.label.get).get())
+          val (metadata, counterparty) : (Metadata, Counterparty) = t.counterparty match {
+            case Some(c) if c.nonEmpty => {
+              val existingMeta = metadatasToSave.find(m => {
+                m.originalPartyAccountId == t.this_account.id &&
+                m.originalPartyBankId == t.this_account.bank &&
+                m.holder == c
+              })
 
-                (existingMeta.getOrElse{
-                  val holder = counterPartyAccount.label.get
-                  val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-                  createMeta(holder, publicAlias)
-                }, Some(counterPartyAccount, counterpartyBank))
-              }
+              (existingMeta.getOrElse{
+                val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
+                createMeta(c, publicAlias)
+              }, c)
             }
-            case None => {
-              val holder = t.details.description
+            case _ => {
+              val holder = "unknown_" + UUID.randomUUID.toString
               val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-              Full((createMeta(holder, publicAlias), None))
+              (createMeta(holder, publicAlias), holder)
             }
           }
 
           for {
-            metaAndCounter <- metadataBox
             createdBank <- Box(createdBanks.find(b => b.permalink.get == t.this_account.bank)) ?~
               s"Transaction this_account bank must be specified in import banks. Unspecified bank: ${t.this_account.bank}"
             //have to compare a.bankID to createdBank.id instead of just checking a.bankId against t.this_account.bank as createdBank hasn't been
@@ -362,15 +356,8 @@ object DataImport extends Loggable {
               .kind(createdAcc.kind.get)
               .bank(obpThisAccountBank)
 
-            val obpOtherAccountBank = OBPBank.createRecord
-              .national_identifier(metaAndCounter._2.map(_._2.national_identifier.get).getOrElse(""))
-              .IBAN(metaAndCounter._2.map(_._1.iban.get).getOrElse(""))
-
             val obpOtherAccount = OBPAccount.createRecord
-              .holder(metaAndCounter._1.holder.get)
-              .number(metaAndCounter._2.map(_._1.number.get).getOrElse(""))
-              .kind(metaAndCounter._2.map(_._1.kind.get).getOrElse(""))
-              .bank(obpOtherAccountBank)
+              .holder(counterparty)
 
             val newBalance = OBPBalance.createRecord
               .amount(newBalanceValue)
@@ -398,12 +385,14 @@ object DataImport extends Loggable {
               .transactionId(t.id)
               .obp_transaction(obpTransaction)
 
-            (env, metaAndCounter._1)
+            //add the metadatas to the list of them to save
+            metadatasToSave = metadata :: metadatasToSave
+            env
           }
 
         })
 
-        dataOrFirstFailure(envsAndMeta)
+        dataOrFirstFailure(envs)
 
       }
 
@@ -450,12 +439,8 @@ object DataImport extends Loggable {
             owners.foreach(o => Views.views.vend.addPermission(v, o))
           })
       }
-      transactionsAndMetas.foreach {
-        case (trans, meta) => {
-          meta.save(true)
-          trans.save(true)
-        }
-      }
+      transactionsAndMetas.foreach(_.save)
+      metadatasToSave.foreach(_.save)
 
       Full(Unit)
     }
