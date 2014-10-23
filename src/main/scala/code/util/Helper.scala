@@ -1,6 +1,6 @@
 package code.util
 
-import net.liftweb.common.{Failure, Full, Box, Loggable}
+import net.liftweb.common._
 import net.liftweb.util.{Mailer, Props}
 
 object Helper{
@@ -42,7 +42,12 @@ object Helper{
       Failure(msg)
   }
 
-  def booleanToBox(statement: => Boolean): Box[Unit] = booleanToBox(statement, "")
+  def booleanToBox(statement: => Boolean): Box[Unit] = {
+    if(statement)
+      Full()
+    else
+      Empty
+  }
 
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
 }
