@@ -134,6 +134,7 @@ object DataImport extends Loggable {
             .email(u.email)
             .lastName(u.display_name)
             .password(u.password)
+            .validated(true)
         })
 
         val validationErrors = obpUsers.flatMap(_.validate)
