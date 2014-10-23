@@ -208,6 +208,12 @@ object DataImport extends Loggable {
               val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
               s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
             }
+            ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view("owner", AccountId(acc.id), BankId(acc.bank)).isEmpty) ?~ {
+              s"owner view for account ${acc.id} at bank ${acc.bank} already exists"
+            }
+            publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view("public", AccountId(acc.id), BankId(acc.bank)).isEmpty) ?~ {
+              s"public view for account ${acc.id} at bank ${acc.bank} already exists"
+            }
           } yield {
             val account = Account.createRecord
               .permalink(acc.id)
