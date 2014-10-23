@@ -2,6 +2,7 @@ package code.metadata.narrative
 
 import code.model.{TransactionId, AccountId, BankId}
 import net.liftweb.common.Full
+import net.liftweb.mongodb.Upsert
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
@@ -27,14 +28,18 @@ private object MongoTransactionNarrative extends Narrative {
       OBPNarrative.delete(findQuery)
     } else {
 
-      val newNarrative = OBPNarrative.createRecord.
-        transactionId(transactionId.value).
-        accountId(accountId.value).
-        bankId(bankId.value).
-        narrative(narrative)
-
-      //use an upsert to avoid concurrency issues
-      OBPNarrative.upsert(findQuery, newNarrative.asDBObject)
+     //avoiding upsert for now as it seemed to behave a little strangely
+      val found = OBPNarrative.find(findQuery)
+      found match {
+        case Full(f) => f.narrative(narrative).save(true)
+        case _ => {
+          OBPNarrative.createRecord
+            .transactionId(transactionId.value)
+            .accountId(accountId.value)
+            .bankId(bankId.value)
+            .narrative(narrative).save(true)
+        }
+      }
     }
 
     //we don't have any useful information here so just assume it worked
