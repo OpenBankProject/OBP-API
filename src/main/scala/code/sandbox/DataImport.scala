@@ -231,7 +231,7 @@ object DataImport extends Loggable {
             val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
 
             val publicView =
-              if(acc.generate_public_view) Some(ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, "Public View"))
+              if(acc.generate_public_view) Some(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
               else None
 
             val views = List(Some(ownerView), publicView).flatten
