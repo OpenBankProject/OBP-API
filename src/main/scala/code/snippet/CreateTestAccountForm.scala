@@ -86,14 +86,14 @@ object CreateTestAccountForm{
           s"Account with id $accountId already exists at bank $bankId")
       } yield {
         //TODO: refactor into a single private api call, and have this return Box[BankAccount] instead of Account?
-        val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(new BankAccountNumber {
+        val bankAccount = BankAccountCreation.createAccount(new BankAccountNumber {
           override val accountNumber: String = accountId.value
         }, bank, user)
 
         //set currency and initial balance
         bankAccount.currency(currency).balance(initialBalanceAsNumber).save
 
-        BankAccountCreation.setAsOwner(bankId, accountId, hostedAccount, user)
+        BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount
       }
     }

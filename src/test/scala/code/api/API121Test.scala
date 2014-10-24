@@ -1126,11 +1126,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
     def addViews(accs : List[Account], ownerUser : APIUser, addPublicView : Boolean) = {
       accs.foreach(account => {
-        val hostedaccount =
-          HostedAccount.
-            create.
-            accountID(account.id.get.toString).
-            saveMe
         val owner = ownerView(account.bankId, account.accountId)
         ViewPrivileges.create.
           view(owner).
