@@ -569,7 +569,7 @@ object JSONFactory{
     )
   }
 
-  def createAccountHolderJSON(owner : AccountOwner, isAlias : Boolean) : AccountHolderJSON = {
+  def createAccountHolderJSON(owner : User, isAlias : Boolean) : AccountHolderJSON = {
     new AccountHolderJSON(
       name = owner.name,
       is_alias = isAlias
@@ -628,11 +628,11 @@ object JSONFactory{
     }
   }
 
-  def createOwnersJSON(owners : Set[AccountOwner], bankName : String) : List[UserJSON] = {
+  def createOwnersJSON(owners : Set[User], bankName : String) : List[UserJSON] = {
     owners.map(o => {
         new UserJSON(
-          o.id,
-          stringOrNull(bankName),
+          o.idGivenByProvider,
+          stringOrNull(o.provider),
           stringOrNull(o.name)
         )
       }

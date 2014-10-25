@@ -178,7 +178,7 @@ object ModeratedTransactionMetadata {
 
 class ModeratedBankAccount(
   val accountId : AccountId,
-  val owners : Option[Set[AccountOwner]],
+  val owners : Option[Set[User]],
   val accountType : Option[String],
   val balance: String = "",
   val currency : Option[String],
@@ -192,9 +192,9 @@ class ModeratedBankAccount(
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson = {
-    def ownersJson(x : Set[AccountOwner])=
+    def ownersJson(x : Set[User])=
       x.map(owner =>
-      ("id" ->owner.id) ~
+      ("id" ->owner.idGivenByProvider) ~
       ("name" -> owner.name))
 
     ("number" -> number.getOrElse("")) ~

@@ -39,17 +39,16 @@ import net.liftweb.mongodb.record.field.ObjectIdRefListField
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.ObjectIdRefField
 import net.liftweb.mongodb.record.field.DateField
-import net.liftweb.common.{ Box, Full, Loggable }
+import net.liftweb.common._
 import net.liftweb.mongodb.record.field.BsonRecordField
 import net.liftweb.mongodb.record.BsonRecord
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
 import net.liftweb.mongodb.{Limit, Skip}
-import code.model.{AccountId, BankId, AccountOwner, BankAccount}
+import code.model._
 import net.liftweb.mongodb.BsonDSL._
 import OBPEnvelope._
 import code.bankconnectors._
 import code.bankconnectors.OBPOffset
-import net.liftweb.common.Full
 import scala.Some
 import code.bankconnectors.OBPLimit
 import code.bankconnectors.OBPOrdering
@@ -176,14 +175,20 @@ object Account extends Account with MongoMetaRecord[Account] {
 
     val accountHolders = Connector.connector.vend.getAccountHolders(account.bankId, account.accountId)
 
-    val owners =
+    val owners : Set[User] =
       if(accountHolders.isEmpty) {
         //account holders are not all set up in the db yet, so we might not get any back.
-        //In this case, we just use the previous behaviour
-        Set(new AccountOwner("", account.holder.toString))
+        //In this case, we just use the previous behaviour, which did not return very much information at all
+        Set(new User {
+          val apiId = ""
+          val idGivenByProvider = ""
+          val provider = ""
+          val emailAddress = ""
+          val name : String = account.holder.toString
+          def views = Nil
+        })
       } else {
-        //TODO: AccountOwner lacks id of provider, but we should switch to returning Set[User] instead of Set[AccountOwner] anyway
-        accountHolders.map(accHolder => new AccountOwner(accHolder.idGivenByProvider, accHolder.name))
+        accountHolders
       }
 
     val bankAccount =

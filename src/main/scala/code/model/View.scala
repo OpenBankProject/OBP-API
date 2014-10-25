@@ -310,7 +310,7 @@ trait View {
   def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {
     if(canSeeTransactionThisBankAccount)
     {
-      val owners : Set[AccountOwner] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
+      val owners : Set[User] = if(canSeeBankAccountOwners) bankAccount.owners else Set()
       val balance = if(canSeeBankAccountBalance) bankAccount.balance.toString else ""
       val accountType = if(canSeeBankAccountType) Some(bankAccount.accountType) else None
       val currency = if(canSeeBankAccountCurrency) Some(bankAccount.currency) else None

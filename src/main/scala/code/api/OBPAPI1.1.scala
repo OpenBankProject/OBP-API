@@ -197,7 +197,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     )
   }
 
-  private def ownerJson(owner : AccountOwner) : JObject = {
+  private def ownerJson(owner : User) : JObject = {
     ("name" -> owner.name) ~
     ("is_alias" -> false)
   }
@@ -434,8 +434,8 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("is_public" -> view.isPublic)
       }
 
-      def ownerJson(accountOwner: AccountOwner): JObject = {
-        ("user_id" -> accountOwner.id) ~
+      def ownerJson(accountOwner: User): JObject = {
+        ("user_id" -> accountOwner.idGivenByProvider) ~
         ("user_provider" -> bankName) ~
         ("display_name" -> accountOwner.name)
       }

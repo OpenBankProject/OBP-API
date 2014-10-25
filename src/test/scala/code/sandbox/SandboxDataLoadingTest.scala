@@ -152,7 +152,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundAccount.balance.toString should equal(account.balance.amount)
     foundAccount.currency should equal(account.balance.currency)
 
-    foundAccount.owners.map(_.id) should equal(account.owners.toSet)
+    foundAccount.owners.map(_.emailAddress) should equal(account.owners.toSet)
 
     if(account.generate_public_view) {
       foundAccount.publicViews.size should equal(1)
@@ -160,7 +160,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       foundAccount.publicViews.size should equal(0)
     }
 
-    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.id).get
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.emailAddress).get
 
     //there should be an owner view
     val views = foundAccount.views(owner).get

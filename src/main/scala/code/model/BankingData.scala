@@ -149,7 +149,7 @@ class AccountOwner(
 
 class BankAccount(
   val accountId : AccountId,
-  val owners : Set[AccountOwner], //TODO: change this to a Set[User]
+  val owners : Set[User],
   val accountType : String,
   val balance : BigDecimal,
   val currency : String,
