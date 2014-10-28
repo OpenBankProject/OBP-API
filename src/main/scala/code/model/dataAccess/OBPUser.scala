@@ -227,6 +227,7 @@ import net.liftweb.util.Helpers._
 
 
 }
+/*
 
 //TODO: remove this
 @deprecated
@@ -258,4 +259,4 @@ class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, 
 @deprecated
 object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{
   override def dbIndexes = UniqueIndex(accountID):: super.dbIndexes
-}
+}*/

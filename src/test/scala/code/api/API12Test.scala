@@ -52,7 +52,7 @@ import scala.util.Random._
 
 import code.api.test.{ServerSetup, APIResponse}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, AccountId, BankId, ViewUpdateData, ViewCreationJSON}
-import code.model.dataAccess.{APIUser, Account, HostedAccount, ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{APIUser, Account, ViewImpl, ViewPrivileges}
 import code.model.TokenType._
 import APIUtil.OAuth._
 import code.views.Views

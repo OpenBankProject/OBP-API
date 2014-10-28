@@ -110,7 +110,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       }
     }
 
-    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): (Account, HostedAccount) = {
+    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): Account = {
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
@@ -119,22 +119,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       ) match {
         case Full(bankAccount) => {
           logger.info(s"account ${bankAccount.number} found")
-          val hostedAccount =
-            HostedAccount.find(By(HostedAccount.accountID, bankAccount.id.toString)) match {
-              case Full(h) => {
-                logger.info("hosted account found")
-                h
-              }
-              case _ =>{
-                logger.warn("hosted account not found ! ")
-                logger.info("creating hosted account")
-                HostedAccount
-                .create
-                .accountID(bankAccount.id.toString)
-                .saveMe
-              }
-            }
-          (bankAccount, hostedAccount)
+          bankAccount
         }
         case _ => {
           logger.info("creating account record ")
@@ -154,19 +139,14 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
             .iban("")
             .lastUpdate(now)
             .save
-          val hostedAccount =
-            HostedAccount
-            .create
-            .accountID(bankAccount.id.toString)
-            .saveMe
-          (bankAccount, hostedAccount)
+          bankAccount
         }
       }
     }
 
     //TODO: get rid of HostedAccount?
-    def setAsOwner(bankId : BankId, accountId : AccountId, account: HostedAccount, user: APIUser): Unit = {
-      createOwnerView(bankId, accountId, account, user)
+    def setAsOwner(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
+      createOwnerView(bankId, accountId, user)
       setAsAccountOwner(bankId, accountId, user)
     }
 
@@ -179,7 +159,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
     }
 
     //TODO: get rid of HostedAccount?
-    private def createOwnerView(bankId : BankId, accountId : AccountId, account: HostedAccount, user: APIUser): Unit = {
+    private def createOwnerView(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
 
       val existingOwnerView = ViewImpl.find(
         By(ViewImpl.permalink_, "owner") ::
@@ -190,7 +170,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
           logger.info(s"account $accountId at bank $bankId has already an owner view")
           v.users_.toList.find(_.id == user.id) match {
             case Some(u) => {
-              logger.info(s"user ${user.email.get} has already an owner view access on the account ${account.id.get}")
+              logger.info(s"user ${user.email.get} has already an owner view access on account $accountId at bank $bankId")
             }
             case _ =>{
               //TODO: When can this case occur?
@@ -246,8 +226,8 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
               logger.info("user found for owner view")
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
-              val (bankAccount,hostedAccount) = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), AccountId(message.accountNumber), hostedAccount, user)
+              val bankAccount = BankAccountCreation.createAccount(message, bank, user)
+              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), AccountId(message.accountNumber), user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 

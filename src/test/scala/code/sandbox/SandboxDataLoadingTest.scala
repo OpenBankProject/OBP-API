@@ -75,7 +75,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ViewImpl.findAll.foreach(_.delete_!)
     ViewPrivileges.findAll.foreach(_.delete_!)
-    HostedAccount.findAll.foreach(_.delete_!)
     MappedAccountHolder.findAll.foreach(_.delete_!)
     OBPUser.findAll.foreach(_.delete_!)
   }

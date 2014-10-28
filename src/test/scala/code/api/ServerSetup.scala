@@ -181,7 +181,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ViewImpl.findAll.foreach(_.delete_!)
     ViewPrivileges.findAll.foreach(_.delete_!)
-    HostedAccount.findAll.foreach(_.delete_!)
     MappedAccountHolder.findAll.foreach(_.delete_!)
   }
 
@@ -198,11 +197,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       label(randomString(4)).
       currency(currency).
       save
-
-    val hostedAccount = HostedAccount.
-      create.
-      accountID(created.id.get.toString).
-      saveMe
 
     val owner = ownerView(BankId(bank.permalink.get), accountId)
 

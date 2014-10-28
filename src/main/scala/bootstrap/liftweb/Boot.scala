@@ -264,7 +264,7 @@ class Boot extends Loggable{
 
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _,
-      OBPUser, Admin, Nonce, Token, Consumer, HostedAccount,
+      OBPUser, Admin, Nonce, Token, Consumer,
       ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
   }
 
