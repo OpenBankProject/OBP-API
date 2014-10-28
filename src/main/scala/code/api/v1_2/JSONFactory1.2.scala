@@ -351,7 +351,7 @@ object JSONFactory{
         ""
 
     new ViewJSON(
-      id = view.permalink,
+      id = view.viewId.value,
       short_name = stringOrNull(view.name),
       description = stringOrNull(view.description),
       is_public = view.isPublic,

@@ -2,6 +2,7 @@ package code.metadata.comments
 
 import code.model._
 import java.util.Date
+import code.util.Helper
 import net.liftweb.common.{Loggable, Full, Box}
 import org.bson.types.ObjectId
 import com.mongodb.{DBObject, QueryBuilder}
@@ -15,14 +16,14 @@ private object MongoTransactionComments extends Comments {
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)() : List[Comment] = {
      OBPComment.findAll(bankId, accountId, transactionId)
   }
-  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : Long, text : String, datePosted : Date) : Box[Comment] = {
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
     OBPComment.createRecord.userId(userId).
         transactionId(transactionId.value).
         accountId(accountId.value).
         bankId(bankId.value).
         textField(text).
         date(datePosted).
-        viewID(viewId).saveTheRecord()
+        forView(viewId.value).saveTheRecord()
   }
 
   def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Unit] = {
@@ -43,13 +44,18 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   object bankId extends StringField(this, 255)
 
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def text = textField.get
   def datePosted = date.get
   def id_ = id.is.toString
   def replyToID = replyTo.get
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object textField extends StringField(this, 255)
   object date extends DateField(this)
   object replyTo extends StringField(this,255)

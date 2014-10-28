@@ -1997,18 +1997,18 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = "owner"
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val viewId = ViewId("owner")
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
-        grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
+        grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
       }
       while(view.users.length > 1){
-        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId, user1)
+        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId.value, user1)
       }
       val viewUsersBefore = view.users
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId.value, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       val viewUsersAfter = view.users
@@ -2029,23 +2029,23 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       Given("A user is the account holder of an account (and has access to the owner view)")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val ownerViewId = "owner"
+      val ownerViewId = ViewId("owner")
 
       //set up: make obpuser3 the account holder and make sure they have access to the owner view
-      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
+      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
       MappedAccountHolder.create.
         user(obpuser3).
         accountBankPermalink(bankId).
         accountPermalink(bankAccount.id).save
 
       When("We try to revoke this user's access to the owner view")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
 
       Then("We will get a 400 response code")
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
-      val view = Views.views.vend.view(ownerViewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
       view.users should contain (obpuser3)
     }
 
@@ -2126,8 +2126,8 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = "owner"
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val viewId = ViewId("owner")
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       val userId = obpuser1.idGivenByProvider
 
       view.users.length should equal(1)
@@ -2164,7 +2164,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      val view = Views.views.vend.view("owner", AccountId(bankAccount.id), BankId(bankId)).get
+      val view = Views.views.vend.view(ViewUID(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
       view.users should contain (obpuser3)
     }
   }

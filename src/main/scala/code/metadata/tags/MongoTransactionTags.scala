@@ -2,6 +2,7 @@ package code.metadata.tags
 
 import code.model._
 import java.util.Date
+import code.util.Helper
 import net.liftweb.common.{Full, Box}
 import org.bson.types.ObjectId
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
@@ -14,13 +15,13 @@ private object MongoTransactionTags extends Tags {
   def getTags(bankId : BankId, accountId : AccountId, transactionId: TransactionId)() : List[TransactionTag] = {
     OBPTag.findAll(bankId, accountId, transactionId)
   }
-  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : Long, tagText : String, datePosted : Date) : Box[TransactionTag] = {
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
     OBPTag.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
       transactionId(transactionId.value).
       userId(userId).
-      viewID(viewId).
+      forView(viewId.value).
       tag(tagText).
       date(datePosted).saveTheRecord()
   }
@@ -44,14 +45,19 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object tag extends StringField(this, 255)
   object date extends DateField(this)
 
   def id_ = id.is.toString
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def value = tag.get
 }
 

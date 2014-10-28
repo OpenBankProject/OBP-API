@@ -50,4 +50,5 @@ object Helper{
   }
 
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
+  val deprecatedViewIdMessage = "Transition to using view id (forView) used in api urls as a string, rather than a long db index id"
 }

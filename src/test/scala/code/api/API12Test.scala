@@ -51,7 +51,7 @@ import net.liftweb.mapper.By
 import scala.util.Random._
 
 import code.api.test.{ServerSetup, APIResponse}
-import code.model.{Consumer => OBPConsumer, Token => OBPToken, AccountId, BankId, ViewUpdateData, ViewCreationJSON}
+import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
 import code.model.dataAccess.{APIUser, Account, ViewImpl, ViewPrivileges}
 import code.model.TokenType._
 import APIUtil.OAuth._
@@ -1421,18 +1421,18 @@ class API1_2Test extends ServerSetup with DefaultUsers {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val viewId = "owner"
-      val view = Views.views.vend.view(viewId, AccountId(bankAccount.id), BankId(bankId)).get
+      val viewId = ViewId("owner")
+      val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(view.users.length == 0){
         val userId = obpuser2.idGivenByProvider
-        grantUserAccessToView(bankId, bankAccount.id, userId, viewId, user1)
+        grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
       }
       while(view.users.length > 1){
-        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId, user1)
+        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId.value, user1)
       }
       val viewUsersBefore = view.users
       When("the request is sent")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId.value, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
       val viewUsersAfter = view.users

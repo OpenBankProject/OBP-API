@@ -1,5 +1,6 @@
 package code.metadata.wheretags
 
+import code.util.Helper
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
@@ -15,7 +16,12 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object date extends DateField(this)
 
   object geoLongitude extends DoubleField(this,0)
@@ -23,7 +29,7 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
 
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def longitude = geoLongitude.get
   def latitude = geoLatitude.get
 }
@@ -35,8 +41,8 @@ private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag]
   }
 
   //in theory commentId should be enough as we're just using the mongoId
-  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : Long) : DBObject = {
-    QueryBuilder.start("viewID").is(viewId).put("transactionId").is(transactionId.value).
+  def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : DBObject = {
+    QueryBuilder.start("forView").is(viewId.value).put("transactionId").is(transactionId.value).
       put("accountId").is(accountId.value).put("bankId").is(bankId.value).get()
   }
 }

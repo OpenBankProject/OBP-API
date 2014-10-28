@@ -163,7 +163,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //there should be an owner view
     val views = foundAccount.views(owner).get
-    val ownerView = views.find(v => v.permalink == "owner")
+    val ownerView = views.find(v => v.viewId.value == "owner")
     ownerView.isDefined should equal(true)
 
     //and the owners should have access to it

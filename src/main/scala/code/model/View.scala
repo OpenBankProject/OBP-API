@@ -79,16 +79,19 @@ case class ViewUpdateData(
 trait View {
 
   //e.g. "Public", "Authorities", "Our Network", etc.
-  def id: Long
+
+  //these ids are used together to uniquely identify a view
+  def viewId : ViewId
+  def accountId : AccountId
+  def bankId : BankId
+
+  //and here is the unique identifier
+  def uid : ViewUID = ViewUID(viewId, bankId, accountId)
+
   def name: String
   def description : String
-  def permalink : String
   def isPublic : Boolean
   def users: List[User]
-
-  //specifies which bank account this view is for
-  def bankAccountBankId : BankId
-  def bankAccountId : AccountId
 
   //the view settings
   def usePublicAliasIfOneExists: Boolean
@@ -187,7 +190,8 @@ trait View {
         val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
         val comments =
           if (canSeeComments)
-            Some(transaction.metadata.comments().filter(comment => comment.viewId==id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.comments().filter(comment => comment.viewId==viewId))
           else None
         val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
         val deleteCommentFunc =
@@ -198,7 +202,8 @@ trait View {
         val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
         val tags =
           if(canSeeTags)
-            Some(transaction.metadata.tags().filter(_.viewId==id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.tags().filter(_.viewId==viewId))
           else None
         val addTagFunc =
           if(canAddTag)
@@ -211,7 +216,8 @@ trait View {
             else
               None
         val images =
-          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == id))
+          //TODO: do view filtering at a lower level
+          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == viewId))
           else None
 
         val addImageFunc =
@@ -224,17 +230,18 @@ trait View {
 
         val whereTag =
           if(canSeeWhereTag)
-            Some(transaction.metadata.whereTags().find(tag => tag.viewId == id))
+            //TODO: do view filtering at a lower level
+            Some(transaction.metadata.whereTags().find(tag => tag.viewId == viewId))
           else
             None
 
-        val addWhereTagFunc : Option[(String, Long, Date, Double, Double) => Boolean] =
+        val addWhereTagFunc : Option[(String, ViewId, Date, Double, Double) => Boolean] =
           if(canAddWhereTag)
             Some(transaction.metadata.addWhereTag)
           else
             Empty
 
-        val deleteWhereTagFunc : Option[(Long) => Boolean] =
+        val deleteWhereTagFunc : Option[(ViewId) => Boolean] =
           if (canDeleteWhereTag)
             Some(transaction.metadata.deleteWhereTag)
           else
@@ -465,16 +472,16 @@ trait View {
 }
 
 object View {
-  def fromUrl(viewPermalink: String, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewPermalink, account)
-  def fromUrl(viewPermalink: String, accountId: AccountId, bankId: BankId): Box[View] =
-    Views.views.vend.view(viewPermalink, accountId, bankId)
+  def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
+    Views.views.vend.view(viewId, account)
+  def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
+    Views.views.vend.view(ViewUID(viewId, bankId, accountId))
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linksJson(views: List[View], accountId: AccountId, bankId: BankId): JObject = {
     val viewsJson = views.map(view => {
       ("rel" -> "account") ~
-        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/account/" + accountId + "/" + view.viewId }) ~
         ("method" -> "GET") ~
         ("title" -> "Get information about one account")
     })

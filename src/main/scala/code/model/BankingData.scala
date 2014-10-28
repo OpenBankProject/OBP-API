@@ -49,6 +49,20 @@ import code.views.Views
 import code.metadata.narrative.Narrative
 import code.metadata.counterparties.Counterparties
 
+/**
+ * Uniquely identifies a view
+ */
+case class ViewUID(viewId : ViewId, bankId : BankId, accountId : AccountId) {
+  override def toString = s"view $viewId, for account: $accountId at bank $bankId"
+}
+
+case class ViewId(val value : String) {
+  override def toString = value
+}
+
+object ViewId {
+  def unapply(id : String) = Some(ViewId(id))
+}
 
 case class TransactionId(val value : String) {
   override def toString = value
@@ -221,74 +235,53 @@ class BankAccount(
 
   /**
   * @param user the user that wants to grant another user access to a view on this account
-  * @param the id of the view that we want to grant access
+  * @param viewUID uid of the view to which we want to grant access
   * @param otherUserProvider the authentication provider of the user to whom access to the view will be granted
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def addPermission(user : User, viewId : String, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  def addPermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isSaved <- Views.views.vend.addPermission(view, otherUser) ?~ "could not save the privilege"
-      } yield isSaved
+        savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
+      } yield savedView
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
   * @param user the user that wants to grant another user access to a several views on this account
-  * @param the list of views ids that we want to grant access to
+  * @param viewUIDs uids of the views to which we want to grant access
   * @param otherUserProvider the authentication provider of the user to whom access to the views will be granted
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
   * @return a the list of the granted views if everything is okay, a Failure otherwise
   */
-  def addPermissions(user : User, viewIds : List[String], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
-    //we try to get all the views that correspond to that list of view ids
-    lazy val viewBoxes = viewIds.map(id => View.fromUrl(id, this))
-    //we see if the the is Failures
-    lazy val failureList = viewBoxes.collect(v => {
-      v match {
-        case Empty => Empty
-        case x : Failure => x
-      }
-    })
-
-    lazy val viewsFormIds : Box[List[View]] =
-      //if no failures then we return the Full views
-      if(failureList.isEmpty)
-        Full(viewBoxes.flatten)
-      else
-        //we return just the first failure
-        failureList.head
-
+  def addPermissions(user : User, viewUIDs : List[ViewUID], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        views <- viewsFormIds
-        grantedViews <- Views.views.vend.addPermissions(views, otherUser) ?~ "could not save the privilege"
-      } yield views
+        grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
+      } yield grantedViews
     else
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
   * @param user the user that wants to revoke another user's access to a view on this account
-  * @param the id of the view that we want to revoke access
+  * @param viewUID uid of the view to which we want to revoke access
   * @param otherUserProvider the authentication provider of the user to whom access to the view will be revoked
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def revokePermission(user : User, viewId : String, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  def revokePermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
-        view <- View.fromUrl(viewId, this) //check if the viewId corresponds to a view
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokePermission(view, otherUser) ?~ "could not revoke the privilege"
+        isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
@@ -338,11 +331,11 @@ class BankAccount(
     }
   }
 
-  def updateView(userDoingTheUpdate : User, viewPermalink : String, v: ViewUpdateData) : Box[View] = {
+  def updateView(userDoingTheUpdate : User, viewId : ViewId, v: ViewUpdateData) : Box[View] = {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(this, viewPermalink, v)
+      val view = Views.views.vend.updateView(this, viewId, v)
       
       if(view.isDefined) {
         logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
@@ -354,14 +347,14 @@ class BankAccount(
   }
     
 
-  def removeView(userDoingTheRemove : User, viewPermalink: String) : Box[Unit] = {
+  def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
     if(!userDoingTheRemove.ownerAccess(this)) {
       Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewPermalink, this)
+      val deleted = Views.views.vend.removeView(viewId, this)
       
       if(deleted.isDefined) {
-        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewPermalink +
+        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
             " for account " + accountId + "at bank " + bankId)
       }
       

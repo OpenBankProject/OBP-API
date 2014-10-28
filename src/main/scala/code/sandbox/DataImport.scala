@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 
 import code.api.APIFailure
 import code.metadata.counterparties.{MongoCounterparties, Metadata}
-import code.model.{AccountId, BankId}
+import code.model.{ViewUID, ViewId, AccountId, BankId}
 import code.model.dataAccess._
 import code.util.Helper
 import code.views.Views
@@ -208,10 +208,12 @@ object DataImport extends Loggable {
               val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
               s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
             }
-            ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view("owner", AccountId(acc.id), BankId(acc.bank)).isEmpty) ?~ {
+            accId = AccountId(acc.id)
+            bankId = BankId(acc.bank)
+            ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("owner"), bankId, accId)).isEmpty) ?~ {
               s"owner view for account ${acc.id} at bank ${acc.bank} already exists"
             }
-            publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view("public", AccountId(acc.id), BankId(acc.bank)).isEmpty) ?~ {
+            publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("public"), bankId, accId)).isEmpty) ?~ {
               s"public view for account ${acc.id} at bank ${acc.bank} already exists"
             }
           } yield {
@@ -443,7 +445,7 @@ object DataImport extends Loggable {
             v.save
             //grant users access
             val owners = accountHolders.flatMap(_.user.obj)
-            owners.foreach(o => Views.views.vend.addPermission(v, o))
+            owners.foreach(o => Views.views.vend.addPermission(v.uid, o))
           })
       }
       transactionsAndMetas.foreach(_.save)

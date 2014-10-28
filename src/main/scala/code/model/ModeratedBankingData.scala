@@ -69,7 +69,7 @@ class ModeratedTransaction(
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson(view: View): JObject = {
-    ("view" -> view.permalink) ~
+    ("view" -> view.viewId.value) ~
     ("uuid" -> id.value) ~ //legacy bug: id is used here (kept this way to keep api behaviour)
       ("this_account" -> bankAccount) ~
       ("other_account" -> otherBankAccount) ~
@@ -91,17 +91,17 @@ class ModeratedTransactionMetadata(
   val ownerComment : Option[String],
   val addOwnerComment : Option[(String => Unit)],
   val comments : Option[List[Comment]],
-  val addComment: Option[(String, Long, String, Date) => Box[Comment]],
+  val addComment: Option[(String, ViewId, String, Date) => Box[Comment]],
   private val deleteComment: Option[(String) => Box[Unit]],
   val tags : Option[List[TransactionTag]],
-  val addTag : Option[(String, Long, String, Date) => Box[TransactionTag]],
+  val addTag : Option[(String, ViewId, String, Date) => Box[TransactionTag]],
   private val deleteTag : Option[(String) => Box[Unit]],
   val images : Option[List[TransactionImage]],
-  val addImage : Option[(String, Long, String, Date, URL) => Box[TransactionImage]],
+  val addImage : Option[(String, ViewId, String, Date, URL) => Box[TransactionImage]],
   private val deleteImage : Option[String => Unit],
   val whereTag : Option[Option[GeoTag]],
-  val addWhereTag : Option[(String, Long, Date, Double, Double) => Boolean],
-  private val deleteWhereTag : Option[(Long) => Boolean]
+  val addWhereTag : Option[(String, ViewId, Date, Double, Double) => Boolean],
+  private val deleteWhereTag : Option[(ViewId) => Boolean]
 ){
 
   /**
@@ -152,7 +152,7 @@ class ModeratedTransactionMetadata(
     }
   }
 
-  def deleteWhereTag(viewId: Long, user: Option[User],bankAccount: BankAccount) : Box[Boolean] = {
+  def deleteWhereTag(viewId: ViewId, user: Option[User],bankAccount: BankAccount) : Box[Boolean] = {
     for {
       u <- Box(user) ?~ { "User must be logged in"}
       whereTagOption <- Box(whereTag) ?~ {"You must be able to see the where tag in order to delete it"}
@@ -291,8 +291,8 @@ class ModeratedOtherBankAccountMetadata(
   val addURL : Option[(String) => Boolean],
   val addImageURL : Option[(String) => Boolean],
   val addOpenCorporatesURL : Option[(String) => Boolean],
-  val addCorporateLocation : Option[(String, Long, Date, Double, Double) => Boolean],
-  val addPhysicalLocation : Option[(String, Long, Date, Double, Double) => Boolean],
+  val addCorporateLocation : Option[(String, ViewId, Date, Double, Double) => Boolean],
+  val addPhysicalLocation : Option[(String, ViewId, Date, Double, Double) => Boolean],
   val addPublicAlias : Option[(String) => Boolean],
   val addPrivateAlias : Option[(String) => Boolean],
   val deleteCorporateLocation : Option[() => Boolean],

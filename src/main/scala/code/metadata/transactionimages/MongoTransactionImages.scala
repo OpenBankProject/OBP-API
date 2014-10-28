@@ -1,6 +1,7 @@
 package code.metadata.transactionimages
 
 import code.model._
+import code.util.Helper
 import net.liftweb.common.{Loggable, Box}
 import java.net.URL
 import java.util.Date
@@ -19,13 +20,13 @@ private object MongoTransactionImages extends TransactionImages with Loggable {
   }
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: String, viewId : Long, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
+  (userId: String, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
     OBPTransactionImage.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
       transactionId(transactionId.value).
       userId(userId).
-      viewID(viewId).
+      forView(viewId.value).
       imageComment(description).
       date(datePosted).
       url(imageURL.toString).saveTheRecord()
@@ -51,7 +52,12 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   object bankId extends StringField(this, 255)
 
   object userId extends StringField(this,255)
+
+  @deprecated(Helper.deprecatedViewIdMessage)
   object viewID extends LongField(this)
+
+  object forView extends StringField(this, 255)
+
   object imageComment extends StringField(this, 1000)
   object date extends DateField(this)
   object url extends StringField(this, 500)
@@ -59,7 +65,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   def id_ = id.is.toString
   def datePosted = date.get
   def postedBy = User.findByApiId(userId.get)
-  def viewId = viewID.get
+  def viewId = ViewId(forView.get)
   def description = imageComment.get
   def imageUrl = {
     tryo {new URL(url.get)} getOrElse OBPTransactionImage.notFoundUrl

@@ -92,7 +92,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       JsonResponse(apiDetails)
     }
 
-    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: viewName :: Nil JsonGet json => {
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: ViewId(viewName) :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -146,7 +146,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
     }
 
     case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-      TransactionId(transactionId) :: "transaction" :: viewName :: Nil JsonGet  json => {
+      TransactionId(transactionId) :: "transaction" :: ViewId(viewName) :: Nil JsonGet  json => {
 
       //log the API call
       logAPICall
@@ -170,7 +170,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
     }
 
     case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" ::
-      TransactionId(transactionId) :: "comments" :: viewName :: Nil JsonGet json => {
+      TransactionId(transactionId) :: "comments" :: ViewId(viewName) :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -226,7 +226,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       }
     }
 
-    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: viewName :: Nil JsonGet json => {
+    case BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: ViewId(viewName) :: Nil JsonGet json => {
 
       //log the API call
       logAPICall
@@ -247,7 +247,7 @@ object OBPAPI1_0 extends RestHelper with Loggable {
 
       def linkJson(view: View): JObject = {
         ("rel" -> view.name) ~
-        ("href" -> { "/" + bankId + "/accounts/" + accountId + "/transactions/" + view.permalink }) ~
+        ("href" -> { "/" + bankId + "/accounts/" + accountId + "/transactions/" + view.viewId.value }) ~
         ("method" -> "GET") ~
         ("title" -> view.description)
       }
