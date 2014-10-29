@@ -46,9 +46,6 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
 
   object userId extends StringField(this,255)
 
-  @deprecated(Helper.deprecatedViewIdMessage)
-  object viewID extends LongField(this)
-
   object forView extends StringField(this, 255)
 
   object tag extends StringField(this, 255)

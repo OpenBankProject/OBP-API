@@ -51,9 +51,6 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   def replyToID = replyTo.get
   object userId extends StringField(this,255)
 
-  @deprecated(Helper.deprecatedViewIdMessage)
-  object viewID extends LongField(this)
-
   object forView extends StringField(this, 255)
 
   object textField extends StringField(this, 255)

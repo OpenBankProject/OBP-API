@@ -53,9 +53,6 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
 
   object userId extends StringField(this,255)
 
-  @deprecated(Helper.deprecatedViewIdMessage)
-  object viewID extends LongField(this)
-
   object forView extends StringField(this, 255)
 
   object imageComment extends StringField(this, 1000)

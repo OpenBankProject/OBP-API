@@ -83,9 +83,6 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
   object userId extends StringField(this,255)
 
-  @deprecated(Helper.deprecatedViewIdMessage)
-  object viewID extends LongField(this)
-
   object forView extends StringField(this, 255)
 
   object date extends DateField(this)
