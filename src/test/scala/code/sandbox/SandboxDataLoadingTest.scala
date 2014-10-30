@@ -235,9 +235,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     json.replace(fieldSpecifier, JNothing)
   }
 
-  //TODO: remove this method?
-  def replaceField(json : JValue, fieldSpecifier : List[String], fieldValue : String) =
-    json.replace(fieldSpecifier, fieldValue)
+  implicit class JValueWithSingleReplace(jValue : JValue) {
+    def replace(fieldName : String, fieldValue : String) =
+      jValue.replace(List(fieldName), fieldValue)
+  }
 
   //TODO: remove this method?
   def replaceField(json : JValue, fieldName : String, fieldValue : String) =
@@ -553,7 +554,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val differentDisplayName = "Jessica Bloggs"
     differentDisplayName should not equal(user1.display_name)
-    val userWithSameEmailAsUser1 = replaceDisplayName(user1Json, differentDisplayName)
+    val userWithSameEmailAsUser1 = user1Json.replace("display_name", differentDisplayName)
 
     //neither of the users should exist initially
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
@@ -565,7 +566,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
 
     //when we only alter the id (display name stays the same), it should work
-    val userWithEmail2 = replaceField(userWithSameEmailAsUser1, "email", secondUserEmail)
+    val userWithEmail2 = userWithSameEmailAsUser1.replace("email", secondUserEmail)
 
     getResponse(List(user1Json, userWithEmail2)).code should equal(SUCCESS)
 
@@ -942,7 +943,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     accounts.exists(a => a.bank == t.this_account.bank && a.id == invalidAccountId) should equal(false)
 
     //check one where the bank id exists, but the account id doesn't
-    val invalidAccTransaction = replaceField(validTransaction, List("this_account","id"), invalidAccountId)
+    val invalidAccTransaction = validTransaction.replace(List("this_account","id"), invalidAccountId)
 
     getResponse(List(invalidAccTransaction)).code should equal(FAILED)
 
@@ -957,7 +958,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //ensure bank is invalid
     banks.exists(b => b.id == invalidBankId) should equal(false)
 
-    val invalidBankTransaction = replaceField(validTransaction, List("this_account", "bank"), invalidBankId)
+    val invalidBankTransaction = validTransaction.replace(List("this_account", "bank"), invalidBankId)
 
     getResponse(List(invalidBankTransaction)).code should equal(FAILED)
 
@@ -987,7 +988,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val t = transactionWithCounterparty
     val baseT = Extraction.decompose(t)
-    val emptyCounterpartyNameTransaction = replaceField(baseT, List("counterparty", "name"), "")
+    val emptyCounterpartyNameTransaction = baseT.replace(List("counterparty", "name"), "")
 
     getResponse(List(emptyCounterpartyNameTransaction)).code should equal(SUCCESS)
 
@@ -1043,7 +1044,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val t = transactionWithCounterparty
     val baseT = Extraction.decompose(t)
-    val emptyCounterpartyAccountNumberTransaction = replaceField(baseT, List("counterparty", "account_number"), "")
+    val emptyCounterpartyAccountNumberTransaction = baseT.replace(List("counterparty", "account_number"), "")
 
     getResponse(List(emptyCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
 
@@ -1102,7 +1103,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val c1 = transactionWithCounterparty.counterparty.get
     val counterparty2AccountNumber = c1.account_number.get + "2"
 
-    val badT2 = replaceField(replaceField(t1, "id", t2Id), List("counterparty", "account_number"), counterparty2AccountNumber)
+    val badT2 = t1.replace("id", t2Id).replace(List("counterparty", "account_number"), counterparty2AccountNumber)
 
     getResponse(List(t1, badT2)).code should equal(FAILED)
 
@@ -1289,14 +1290,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     checkNoTransactionsExist()
 
     //check transaction with bad value
-    val transactionWithBadValue = replaceField(baseNewTransaction, List("details", "value"), "ABCD")
+    val transactionWithBadValue = baseNewTransaction.replace(List("details", "value"), "ABCD")
 
     //shouldn't work
     getResponse(List(validTransaction, transactionWithBadValue)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a good value
-    val transactionWithGoodValue = replaceField(baseNewTransaction, List("details", "value"), "-34.65")
+    val transactionWithGoodValue = baseNewTransaction.replace(List("details", "value"), "-34.65")
 
     getResponse(List(validTransaction, transactionWithGoodValue)).code should equal(SUCCESS)
     checkTransactionsExist()
@@ -1331,7 +1332,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
         TransactionId(newTransId)).isDefined should equal(exist)
     }
 
-    val baseNewTransaction = replaceField(validTransaction, "id", newTransId)
+    val baseNewTransaction = validTransaction.replace("id", newTransId)
 
     val transactionWithMissingCompleted = removeField(baseNewTransaction, List("details", "completed"))
 
@@ -1340,14 +1341,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     checkNoTransactionsExist()
 
     //check transaction with bad completed date
-    val transactionWithBadCompleted = replaceField(baseNewTransaction, List("details", "completed"), "ASDF")
+    val transactionWithBadCompleted = baseNewTransaction.replace(List("details", "completed"), "ASDF")
 
     //shouldn't work
     getResponse(List(validTransaction, transactionWithBadCompleted)).code should equal(FAILED)
     checkNoTransactionsExist()
 
     //now make sure it works with a valid completed date
-    val transactionWithGoodcompleted = replaceField(baseNewTransaction, List("details", "completed"), "2016-11-07T05:25:33.001Z")
+    val transactionWithGoodcompleted = baseNewTransaction.replace(List("details", "completed"), "2016-11-07T05:25:33.001Z")
 
     //should work
     getResponse(List(validTransaction, transactionWithGoodcompleted)).code should equal(SUCCESS)
