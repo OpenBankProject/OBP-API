@@ -46,8 +46,12 @@ case class SandboxBalanceImport(
 case class SandboxTransactionImport(
   id : String,
   this_account : SandboxAccountIdImport,
-  counterparty : Option[String],
+  counterparty : Option[SandboxTransactionCounterparty],
   details : SandboxAccountDetailsImport)
+
+case class SandboxTransactionCounterparty(
+  name : Option[String],
+  account_number : Option[String])
 
 case class SandboxAccountIdImport(
   id : String,
@@ -294,6 +298,30 @@ object DataImport extends Loggable {
         } yield (t, env)
       })
 
+      type Name = String
+      type AccountNumber = String
+
+      val counterpartiesWithSameNameButDifferentAccountNumbers = {
+        val counterparties = data.transactions.flatMap(_.counterparty)
+        //we only care that non-empty
+        val nonEmptyNames = counterparties.filter(c => {
+          c.name match {
+            case Some(n) => n.nonEmpty
+            case None => false
+          }
+        })
+        val namesAccs : List[(Name, AccountNumber)] = nonEmptyNames.map(c => (c.name.getOrElse(""), c.account_number.getOrElse("")))
+        val emptyMap = Map[Name, List[AccountNumber]]()
+        val grouped = namesAccs.foldLeft(emptyMap)((map, next) => {
+          val existing = map.get(next._1)
+          existing match {
+            case Some(numbers) => if(numbers.contains(next._2)) map else map.+(next._1 -> (next._2 :: numbers))
+            case None => map.+(next._1 -> List(next._2))
+          }
+        })
+        grouped.toList.filter(x => x._2.size > 1)
+      }
+
       if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
           t => s"(transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank})")
@@ -308,6 +336,9 @@ object DataImport extends Loggable {
           case(t, env) => s"(transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank})"
         }
         Failure(s"Some transactions already exist: $existingIdentifiers")
+      } else if(counterpartiesWithSameNameButDifferentAccountNumbers.nonEmpty) {
+        val found = counterpartiesWithSameNameButDifferentAccountNumbers.map(c => s"[name ${c._1}, accounts: ${c._2.mkString(",")}]").mkString(",")
+        Failure(s"Transaction counterparties found with same name but different account numbers: $found")
       } else {
 
         val envs : List[Box[OBPEnvelope]] = data.transactions.map(t => {
@@ -322,7 +353,9 @@ object DataImport extends Loggable {
               .publicAlias(publicAlias)
           }
 
-          val (metadata, counterparty) : (Metadata, Counterparty) = t.counterparty match {
+          val counterpartyName = t.counterparty.flatMap(_.name)
+
+          val (metadata, createdCounterpartyName) : (Metadata, Counterparty) = counterpartyName match {
             case Some(c) if c.nonEmpty => {
               val existingMeta = metadatasToSave.find(m => {
                 m.originalPartyAccountId == t.this_account.id &&
@@ -366,7 +399,8 @@ object DataImport extends Loggable {
               .bank(obpThisAccountBank)
 
             val obpOtherAccount = OBPAccount.createRecord
-              .holder(counterparty)
+              .holder(createdCounterpartyName)
+              .number(t.counterparty.flatMap(_.account_number).getOrElse(""))
 
             val newBalance = OBPBalance.createRecord
               .amount(newBalanceValue)

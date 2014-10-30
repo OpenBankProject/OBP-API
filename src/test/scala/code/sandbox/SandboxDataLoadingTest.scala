@@ -205,7 +205,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //if a counterparty was originally specified in the import data, it should correspond to that
     //counterparty
     if(transaction.counterparty.isDefined) {
-      otherAcc.label should equal(transaction.counterparty.get)
+      transaction.counterparty.get.name match {
+        case Some(name) => otherAcc.label should equal(name)
+        case None => otherAcc.label.nonEmpty should equal(true) //it should generate a counterparty label
+      }
+
+      transaction.counterparty.get.account_number match {
+        case Some(number) => otherAcc.number should equal(number)
+        case None => otherAcc.number should equal("")
+      }
     }
 
   }
@@ -227,12 +235,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     json.replace(fieldSpecifier, JNothing)
   }
 
+  //TODO: remove this method?
   def replaceField(json : JValue, fieldSpecifier : List[String], fieldValue : String) =
     json.replace(fieldSpecifier, fieldValue)
 
+  //TODO: remove this method?
   def replaceField(json : JValue, fieldName : String, fieldValue : String) =
     json.replace(List(fieldName), fieldValue)
 
+  //TODO: remove this method?
   def replaceDisplayName(json : JValue, displayName : String) =
     replaceField(json, "display_name", displayName)
 
@@ -274,9 +285,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
 
+  val counterparty1 = SandboxTransactionCounterparty(name = Some("Acme Inc."), account_number = Some("12345-B"))
+
   val transactionWithCounterparty = SandboxTransactionImport(id = "transaction-with-counterparty",
     this_account = SandboxAccountIdImport(id = account1AtBank1.id, bank=account1AtBank1.bank),
-    counterparty = Some("Acme Inc."),
+    counterparty = Some(counterparty1),
     details = SandboxAccountDetailsImport(
       `type` = "SEPA",
       description = "some description",
@@ -323,10 +336,34 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
         value = "-135.38"
       ))
 
+    val blankCounterpartyNameTransaction  = SandboxTransactionImport(id = "blankCounterpartNameTransaction",
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = Some(SandboxTransactionCounterparty(None, Some("123456-AVB"))),
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
+    val blankCounterpartyAccountNumberTransaction  = SandboxTransactionImport(id = "blankCounterpartAccountNumberTransaction",
+      this_account = SandboxAccountIdImport(id = account1AtBank2.id, bank=account1AtBank2.bank),
+      counterparty = Some(SandboxTransactionCounterparty(Some("Piano Repair"), None)),
+      details = SandboxAccountDetailsImport(
+        `type` = "SEPA",
+        description = "this is another description",
+        posted = "2012-03-07T00:00:00.001Z",
+        completed = "2012-04-07T00:00:00.001Z",
+        new_balance = "1224.00",
+        value = "-135.38"
+      ))
+
     val banks = standardBanks
     val users = standardUsers
     val accounts = standardAccounts
-    val transactions = anotherTransaction :: standardTransactions
+    val transactions = anotherTransaction :: blankCounterpartyNameTransaction :: blankCounterpartyAccountNumberTransaction :: standardTransactions
 
     val importJson = SandboxDataImport(banks, users, accounts, transactions)
     val response = postImportJson(write(importJson))
@@ -939,6 +976,157 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   }
 
+  it should "allow counterparty name to be empty" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+    val baseT = Extraction.decompose(t)
+    val emptyCounterpartyNameTransaction = replaceField(baseT, List("counterparty", "name"), "")
+
+    getResponse(List(emptyCounterpartyNameTransaction)).code should equal(SUCCESS)
+
+    //check it was created, name is generated, and account number matches
+    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(t.this_account.id),
+      TransactionId(t.id))
+
+    createdTransaction.isDefined should equal(true)
+    val created = createdTransaction.get
+
+    created.otherAccount.label.nonEmpty should equal(true)
+    created.otherAccount.number should equal(t.counterparty.get.account_number.get)
+
+  }
+
+  it should "allow counterparty name to be unspecified" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+    val baseT = Extraction.decompose(t)
+    val missingCounterpartNameTransaction = removeField(baseT, List("counterparty", "name"))
+
+    getResponse(List(missingCounterpartNameTransaction)).code should equal(SUCCESS)
+
+    //check it was created, name is generated, and account number matches
+    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(t.this_account.id),
+      TransactionId(t.id))
+
+    createdTransaction.isDefined should equal(true)
+    val created = createdTransaction.get
+
+    created.otherAccount.label.nonEmpty should equal(true)
+    created.otherAccount.number should equal(t.counterparty.get.account_number.get)
+
+  }
+
+  it should "allow counterparty account number to be empty" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+    val baseT = Extraction.decompose(t)
+    val emptyCounterpartyAccountNumberTransaction = replaceField(baseT, List("counterparty", "account_number"), "")
+
+    getResponse(List(emptyCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
+
+    //check it was created, name matches, and account number is empty
+    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(t.this_account.id),
+      TransactionId(t.id))
+
+    createdTransaction.isDefined should equal(true)
+    val created = createdTransaction.get
+
+    created.otherAccount.label should equal(t.counterparty.get.name.get)
+    created.otherAccount.number should equal("")
+  }
+
+  it should "allow counterparty account number to be unspecified" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t = transactionWithCounterparty
+    val baseT = Extraction.decompose(t)
+    val missingCounterpartyAccountNumberTransaction = removeField(baseT, List("counterparty", "account_number"))
+
+    getResponse(List(missingCounterpartyAccountNumberTransaction)).code should equal(SUCCESS)
+
+    //check it was created, name matches, and account number is empty
+    val createdTransaction = Connector.connector.vend.getTransaction(BankId(t.this_account.bank),
+      AccountId(t.this_account.id),
+      TransactionId(t.id))
+
+    createdTransaction.isDefined should equal(true)
+    val created = createdTransaction.get
+
+    created.otherAccount.label should equal(t.counterparty.get.name.get)
+    created.otherAccount.number should equal("")
+  }
+
+  it should "not allow counterparties with the same name to have different account numbers" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val t1 = Extraction.decompose(transactionWithCounterparty)
+    val t1Id = transactionWithCounterparty.id
+    val t2Id = "t2Id"
+    t2Id should not equal(t1Id)
+    val c1 = transactionWithCounterparty.counterparty.get
+    val counterparty2AccountNumber = c1.account_number.get + "2"
+
+    val badT2 = replaceField(replaceField(t1, "id", t2Id), List("counterparty", "account_number"), counterparty2AccountNumber)
+
+    getResponse(List(t1, badT2)).code should equal(FAILED)
+
+    val bankId = BankId(transactionWithCounterparty.this_account.bank)
+    val accountId = AccountId(transactionWithCounterparty.this_account.id)
+
+    def checkTransactionsCreated(created : Boolean) = {
+      val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t1Id))
+      val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(t2Id))
+
+      foundTransaction1Box.isDefined should equal(created)
+      foundTransaction2Box.isDefined should equal(created)
+    }
+
+    checkTransactionsCreated(false)
+
+    //now try it again with the correct account number
+    val goodT2 = replaceField(t1, "id", t2Id)
+
+    getResponse(List(t1, goodT2)).code should equal(SUCCESS)
+    checkTransactionsCreated(true)
+
+  }
+
   it should "have transactions share counterparties if they are the same" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
@@ -972,6 +1160,48 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
   }
 
+  it should "consider counterparties without names but with different account numbers to be different" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val id1 = "id1"
+    val id2 = "id2"
+    val counterpartyAccNumber1 = "1"
+    val counterpartyAccNumber2 = "2"
+
+    val baseT = transactionWithoutCounterparty
+    val baseTransaction = Extraction.decompose(baseT)
+
+    val t1 = baseTransaction.replace(List("id"), id1).replace(List("counterparty"), ("account_number" -> counterpartyAccNumber1))
+    val t2 = baseTransaction.replace(List("id"), id2).replace(List("counterparty"), ("account_number" -> counterpartyAccNumber2))
+
+    getResponse(List(t1, t2)).code should equal(SUCCESS)
+
+    val bankId = BankId(baseT.this_account.bank)
+    val accountId = AccountId(baseT.this_account.id)
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+
+    foundTransaction1Box.isDefined should equal(true)
+    foundTransaction2Box.isDefined should equal(true)
+
+    val counter1 = foundTransaction1Box.get.otherAccount
+    val counter2 = foundTransaction2Box.get.otherAccount
+
+    //transactions should have the same counterparty
+    counter1.id should not equal(counter2.id)
+    counter1.id.isEmpty should equal(false)
+    counter2.id.isEmpty should equal(false)
+    counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
+    counter1.number should equal(counterpartyAccNumber1)
+    counter2.number should equal(counterpartyAccNumber2)
+  }
+
   it should "always create a new counterparty if none was specified, rather than having all transactions without specified" +
     "counterparties share a single one" in {
 
@@ -987,26 +1217,36 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     id2 should not equal(transactionWithoutCounterparty.id)
     val anotherTransactionWithoutCounterparty = replaceField(Extraction.decompose(transactionWithoutCounterparty), "id", id2)
 
-    val response = getResponse(anotherTransactionWithoutCounterparty :: Extraction.decompose(transactionWithoutCounterparty) :: Nil)
+    val id3 = transactionWithCounterparty.id + "id3"
+    val transactionWithBlankCounterparty = replaceField(Extraction.decompose(transactionWithoutCounterparty), "id", id3).replace(List("counterparty"), JNothing)
+
+    val response = getResponse(anotherTransactionWithoutCounterparty :: transactionWithBlankCounterparty :: Extraction.decompose(transactionWithoutCounterparty) :: Nil)
     response.code should equal(SUCCESS)
 
     val accountId = AccountId(transactionWithoutCounterparty.this_account.id)
     val bankId = BankId(transactionWithoutCounterparty.this_account.bank)
     val tId1 = TransactionId(transactionWithoutCounterparty.id)
     val tId2 = TransactionId(id2)
+    val tId3 = TransactionId(id3)
 
     val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, tId1)
     val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, tId2)
+    val foundTransaction3Box = Connector.connector.vend.getTransaction(bankId, accountId, tId3)
 
     foundTransaction1Box.isDefined should equal(true)
     foundTransaction2Box.isDefined should equal(true)
+    foundTransaction3Box.isDefined should equal(true)
 
     val counter1 = foundTransaction1Box.get.otherAccount
     val counter2 = foundTransaction2Box.get.otherAccount
+    val counter3 = foundTransaction3Box.get.otherAccount
 
     counter1.id should not equal(counter2.id)
+    counter1.id should not equal(counter3.id)
+    counter2.id should not equal(counter3.id)
     counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
-
+    counter1.metadata.publicAlias should not equal(counter3.metadata.publicAlias)
+    counter2.metadata.publicAlias should not equal(counter3.metadata.publicAlias)
   }
 
   it should "not create any transactions when one has an invalid or missing value" in {
