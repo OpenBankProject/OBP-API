@@ -194,7 +194,7 @@ object Account extends Account with MongoMetaRecord[Account] {
     val bankAccount =
       new BankAccount(
         accountId = account.accountId,
-        owners= owners, //TODO: this should be a set of User
+        owners= owners,
         accountType = account.kind.toString,
         balance = account.balance.get,
         currency = account.currency.toString,
