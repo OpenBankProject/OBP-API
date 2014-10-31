@@ -190,8 +190,7 @@ trait View {
         val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
         val comments =
           if (canSeeComments)
-            //TODO: do view filtering at a lower level
-            Some(transaction.metadata.comments().filter(comment => comment.viewId==viewId))
+            Some(transaction.metadata.comments(viewId))
           else None
         val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
         val deleteCommentFunc =
@@ -202,8 +201,7 @@ trait View {
         val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
         val tags =
           if(canSeeTags)
-            //TODO: do view filtering at a lower level
-            Some(transaction.metadata.tags().filter(_.viewId==viewId))
+            Some(transaction.metadata.tags(viewId))
           else None
         val addTagFunc =
           if(canAddTag)
@@ -216,8 +214,7 @@ trait View {
             else
               None
         val images =
-          //TODO: do view filtering at a lower level
-          if(canSeeImages) Some(transaction.metadata.images().filter(_.viewId == viewId))
+          if(canSeeImages) Some(transaction.metadata.images(viewId))
           else None
 
         val addImageFunc =
@@ -230,8 +227,7 @@ trait View {
 
         val whereTag =
           if(canSeeWhereTag)
-            //TODO: do view filtering at a lower level
-            Some(transaction.metadata.whereTags().find(tag => tag.viewId == viewId))
+            Some(transaction.metadata.whereTags(viewId))
           else
             None
 

@@ -22,6 +22,6 @@ trait WhereTags {
   //instead, with the end effect of keeping them consistent. Leaving it as a Boolean for now...
   def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean
 
-  def getWhereTagsForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)() : List[GeoTag]
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Option[GeoTag]
 
 }

@@ -36,7 +36,7 @@ private object MongoTransactionWhereTags extends WhereTags with Loggable {
     true
   }
 
-  def getWhereTagsForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)() : List[GeoTag] = {
-    OBPWhereTag.findAll(bankId, accountId, transactionId)
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Option[GeoTag] = {
+    OBPWhereTag.find(bankId, accountId, transactionId, viewId)
   }
 }

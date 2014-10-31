@@ -16,7 +16,7 @@ object TransactionImages  extends SimpleInjector {
 
 trait TransactionImages {
 
-  def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)() : List[TransactionImage]
+  def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage]
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
   (userId: String, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage]

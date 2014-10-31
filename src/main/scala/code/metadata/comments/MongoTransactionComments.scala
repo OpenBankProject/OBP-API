@@ -13,8 +13,8 @@ import net.liftweb.record.field.{LongField, StringField}
 private object MongoTransactionComments extends Comments {
 
   
-  def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)() : List[Comment] = {
-     OBPComment.findAll(bankId, accountId, transactionId)
+  def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = {
+     OBPComment.findAll(bankId, accountId, transactionId, viewId)
   }
   def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
     OBPComment.createRecord.userId(userId).
@@ -59,8 +59,12 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
 }
 
 private object OBPComment extends OBPComment with MongoMetaRecord[OBPComment] with Loggable {
-  def findAll(bankId : BankId, accountId : AccountId, transactionId : TransactionId) : List[OBPComment] = {
-    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId.value).get
+  def findAll(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : List[OBPComment] = {
+    val query = QueryBuilder.
+      start("bankId").is(bankId.value).
+      put("accountId").is(accountId.value).
+      put("transactionId").is(transactionId.value).
+      put("forView").is(viewId.value).get
     findAll(query)
   }
 

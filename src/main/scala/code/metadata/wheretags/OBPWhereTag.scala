@@ -32,9 +32,9 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
 }
 
 private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {
-  def findAll(bankId : BankId, accountId : AccountId, transactionId : TransactionId) : List[OBPWhereTag] = {
-    val query = QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId.value).get
-    findAll(query)
+  def find(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : Option[OBPWhereTag] = {
+    val query = getFindQuery(bankId, accountId, transactionId, viewId)
+    find(query)
   }
 
   //in theory commentId should be enough as we're just using the mongoId

@@ -512,7 +512,7 @@ class Transaction(
       TransactionImages.transactionImages.vend.getImagesForTransaction(bankId, accountId, id) _,
       TransactionImages.transactionImages.vend.addTransactionImage(bankId, accountId, id) _,
       TransactionImages.transactionImages.vend.deleteTransactionImage(bankId, accountId, id) _,
-      WhereTags.whereTags.vend.getWhereTagsForTransaction(bankId, accountId, id) _,
+      WhereTags.whereTags.vend.getWhereTagForTransaction(bankId, accountId, id) _,
       WhereTags.whereTags.vend.addWhereTag(bankId, accountId, id) _,
       WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
     )
