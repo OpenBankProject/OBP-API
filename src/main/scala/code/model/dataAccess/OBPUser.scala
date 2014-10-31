@@ -227,36 +227,3 @@ import net.liftweb.util.Helpers._
 
 
 }
-/*
-
-//TODO: remove this
-@deprecated
-class HostedAccount extends LongKeyedMapper[HostedAccount] with OneToMany[Long, HostedAccount]{
-  def getSingleton = HostedAccount
-  def primaryKeyField = id
-
-  object id extends MappedLongIndex(this)
-  //the object id of the mongoDB Account
-  object accountID extends MappedString(this, 255)
-
-  def theAccount = Account.find(("_id", accountID.toString))
-
-  def name : String= theAccount match {
-    case Full(account) => account.name.get.toString()
-    case _ => ""
-  }
-  def bank : String = theAccount match {
-    case Full(account) => account.bankName
-    case _ => ""
-  }
-  def number : String = theAccount match {
-    case Full(account) => account.number.get
-    case _ => ""
-  }
-}
-
-//TODO: remove this
-@deprecated
-object HostedAccount extends HostedAccount with LongKeyedMetaMapper[HostedAccount]{
-  override def dbIndexes = UniqueIndex(accountID):: super.dbIndexes
-}*/

@@ -144,7 +144,6 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       }
     }
 
-    //TODO: get rid of HostedAccount?
     def setAsOwner(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
       createOwnerView(bankId, accountId, user)
       setAsAccountOwner(bankId, accountId, user)
@@ -158,7 +157,6 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
         .save
     }
 
-    //TODO: get rid of HostedAccount?
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
 
       val existingOwnerView = ViewImpl.find(
