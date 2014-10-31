@@ -208,8 +208,6 @@ class Token extends LongKeyedMapper[Token]{
   object id extends MappedLongIndex(this)
   object tokenType extends MappedEnum(this, TokenType)
   object consumerId extends MappedLongForeignKey(this, Consumer)
-  @deprecated //TODO: remove this once db upgrade scripts are done
-  object userId extends MappedString(this,255)
   object userForeignKey extends MappedLongForeignKey(this, APIUser)
   object key extends MappedString(this,250)
   object secret extends MappedString(this,250)
