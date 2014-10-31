@@ -266,7 +266,8 @@ object DataImport extends Loggable {
     }
 
     // a bit ugly to have this as a var
-    var metadatasToSave : List[Metadata] = Nil
+    case class MetadataAndAccountNumber(metadata : Metadata, accountNumber : Option[String])
+    var metadatasToSave : List[MetadataAndAccountNumber] = Nil
 
     //TODO: might be nice to use something like scalaz's validations here
     def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[OBPEnvelope]] = {
@@ -353,26 +354,48 @@ object DataImport extends Loggable {
               .publicAlias(publicAlias)
           }
 
-          val counterpartyName = t.counterparty.flatMap(_.name)
+          def findExistingMetadata(counter : SandboxTransactionCounterparty) = {
+            counter.name match { //try to find it by name first
+              case Some(name) if name.nonEmpty =>
+                metadatasToSave.find(mAndAcc => {
+                  val m = mAndAcc.metadata
+                  m.originalPartyAccountId == t.this_account.id &&
+                    m.originalPartyBankId == t.this_account.bank &&
+                    m.holder == name
+                })
+              case _ => {
+                counter.account_number match { //else try to find it by account number
+                  case Some(num) => metadatasToSave.find(mAndAcc => {
+                    mAndAcc.accountNumber == Some(num)
+                  })
+                  case None => None //name and account number are empty, so we should not use an existing metadata
+                }
+              }
+            }
+          }
 
-          val (metadata, createdCounterpartyName) : (Metadata, Counterparty) = counterpartyName match {
-            case Some(c) if c.nonEmpty => {
-              val existingMeta = metadatasToSave.find(m => {
-                m.originalPartyAccountId == t.this_account.id &&
-                m.originalPartyBankId == t.this_account.bank &&
-                m.holder == c
-              })
+          def generateNewMetadata() : Metadata = {
+            val holder = "unknown_" + UUID.randomUUID.toString
+            val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
+            createMeta(holder, publicAlias)
+          }
 
-              (existingMeta.getOrElse{
+          def newMetadatFromCounterparty(counter : SandboxTransactionCounterparty) : Metadata = {
+            counter.name match {
+              case Some(n) if n.nonEmpty => {
                 val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-                createMeta(c, publicAlias)
-              }, c)
+                createMeta(n, publicAlias)
+              }
+              case _ => generateNewMetadata()
             }
-            case _ => {
-              val holder = "unknown_" + UUID.randomUUID.toString
-              val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-              (createMeta(holder, publicAlias), holder)
+          }
+
+          val metadata = t.counterparty match {
+            case Some(counter) => {
+              val existingMeta = findExistingMetadata(counter)
+              existingMeta.map(_.metadata).getOrElse(newMetadatFromCounterparty(counter))
             }
+            case None => generateNewMetadata()
           }
 
           for {
@@ -398,9 +421,11 @@ object DataImport extends Loggable {
               .kind(createdAcc.kind.get)
               .bank(obpThisAccountBank)
 
+            val counterpartyAccountNumber = t.counterparty.flatMap(_.account_number)
+
             val obpOtherAccount = OBPAccount.createRecord
-              .holder(createdCounterpartyName)
-              .number(t.counterparty.flatMap(_.account_number).getOrElse(""))
+              .holder(metadata.holder.get)
+              .number(counterpartyAccountNumber.getOrElse(""))
 
             val newBalance = OBPBalance.createRecord
               .amount(newBalanceValue)
@@ -429,7 +454,7 @@ object DataImport extends Loggable {
               .obp_transaction(obpTransaction)
 
             //add the metadatas to the list of them to save
-            metadatasToSave = metadata :: metadatasToSave
+            metadatasToSave = MetadataAndAccountNumber(metadata, counterpartyAccountNumber) :: metadatasToSave
             env
           }
 
@@ -483,7 +508,7 @@ object DataImport extends Loggable {
           })
       }
       transactionsAndMetas.foreach(_.save)
-      metadatasToSave.foreach(_.save)
+      metadatasToSave.foreach(_.metadata.save)
 
       Full(Unit)
     }

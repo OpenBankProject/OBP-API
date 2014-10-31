@@ -1161,6 +1161,40 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
   }
 
+  it should "consider counterparties without names but with the same account numbers to be the same" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val baseT = Extraction.decompose(transactionWithCounterparty)
+    val t1 = removeField(baseT, List("counterparty", "name"))
+    val id1 = transactionWithCounterparty.id
+    val id2 = id1 + "--2"
+    val t2 = removeField(t1.replace("id", id2), List("counterparty", "name"))
+
+    getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
+
+    val bankId = BankId(transactionWithCounterparty.this_account.bank)
+    val accountId = AccountId(transactionWithCounterparty.this_account.id)
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+
+    foundTransaction1Box.isDefined should equal(true)
+    foundTransaction2Box.isDefined should equal(true)
+
+    val counter1 = foundTransaction1Box.get.otherAccount
+    val counter2 = foundTransaction2Box.get.otherAccount
+
+    counter1.id should equal(counter2.id)
+    counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
+    counter1.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter2.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+  }
+
   it should "consider counterparties without names but with different account numbers to be different" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
