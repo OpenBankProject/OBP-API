@@ -4,7 +4,7 @@ import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount
 import net.liftweb.common.Loggable
 import com.mongodb.QueryBuilder
 
-private object MongoCounterparties extends Counterparties with Loggable {
+object MongoCounterparties extends Counterparties with Loggable {
   import code.model.GeoTag
 
   def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
