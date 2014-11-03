@@ -53,6 +53,8 @@ package com.tesobe.model{
 
 package code.model.dataAccess {
 
+import java.util.UUID
+
 import code.model.{AccountId, BankId}
 import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftmodules.amqp.{
@@ -132,7 +134,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
             .number(bankAccountNumber.accountNumber)
             .kind("current")
             .name("")
-            .permalink(bankAccountNumber.accountNumber)
+            .permalink(UUID.randomUUID().toString)
             .bankID(bank.id.is)
             .label("")
             .currency("EUR")
