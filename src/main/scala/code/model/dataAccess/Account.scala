@@ -166,6 +166,9 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
+
+  def init = createIndex((permalink.name -> 1) ~ (bankID.name -> 1), true)
+
   def toBankAccount(account: Account): BankAccount = {
     val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
     val nationalIdentifier = account.bankID.obj match {
