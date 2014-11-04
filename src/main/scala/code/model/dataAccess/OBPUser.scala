@@ -97,6 +97,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger{
 object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
 
+  override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def dbTableName = "users" // define the DB table name
 
