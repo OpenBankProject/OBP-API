@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
 import net.liftweb.common._
 import scala.xml.NodeSeq
@@ -126,6 +127,50 @@ import net.liftweb.util.Helpers._
         }
       })
       SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
+  }
+
+  /**
+   * Overriden to use the hostname set in the props file
+   */
+  override def sendPasswordReset(email: String) {
+    findUserByUserName(email) match {
+      case Full(user) if user.validated_? =>
+        user.resetUniqueId().save
+        val resetLink = Props.get("hostname", "ERROR")+
+          passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
+
+        Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject),
+          (To(user.getEmail) ::
+            generateResetEmailBodies(user, resetLink) :::
+            (bccEmail.toList.map(BCC(_)))) :_*)
+
+        S.notice(S.?("password.reset.email.sent"))
+        S.redirectTo(homePage)
+
+      case Full(user) =>
+        sendValidationEmail(user)
+        S.notice(S.?("account.validation.resent"))
+        S.redirectTo(homePage)
+
+      case _ => S.error(userNameNotFoundString)
+    }
+  }
+
+  /**
+   * Overriden to use the hostname set in the props file
+   */
+  override def sendValidationEmail(user: TheUserType) {
+    val resetLink = Props.get("hostname", "ERROR")+"/"+validateUserPath.mkString("/")+
+      "/"+urlEncode(user.getUniqueId())
+
+    val email: String = user.getEmail
+
+    val msgXml = signupMailBody(user, resetLink)
+
+    Mailer.sendMail(From(emailFrom),Subject(signupMailSubject),
+      (To(user.getEmail) ::
+        generateValidationEmailBodies(user, resetLink) :::
+        (bccEmail.toList.map(BCC(_)))) :_* )
   }
 
   /**
