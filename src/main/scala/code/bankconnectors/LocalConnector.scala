@@ -46,7 +46,10 @@ private object LocalConnector extends Connector with Loggable {
         objId <- tryo{ new ObjectId(otherAccountID) }
         otherAccountmetadata <- {
           //"otherAccountID" is actually the mongodb id of the other account metadata" object.
-          val query = QueryBuilder.start("_id").is(objId).get()
+          val query = QueryBuilder.
+            start("_id").is(objId)
+            .put("originalPartyBankId").is(bankId.value)
+            .put("originalPartyAccountId").is(accountId.value).get()
           Metadata.find(query)
         }
       } yield{
