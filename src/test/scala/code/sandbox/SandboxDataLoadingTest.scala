@@ -1105,7 +1105,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val badT2 = t1.replace("id", t2Id).replace(List("counterparty", "account_number"), counterparty2AccountNumber)
 
-    getResponse(List(t1, badT2)).code should equal(FAILED)
+    getResponse(List(t1, badT2)).code should equal(SUCCESS)
 
     val bankId = BankId(transactionWithCounterparty.this_account.bank)
     val accountId = AccountId(transactionWithCounterparty.this_account.id)
@@ -1118,14 +1118,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       foundTransaction2Box.isDefined should equal(created)
     }
 
-    checkTransactionsCreated(false)
-
-    //now try it again with the correct account number
-    val goodT2 = replaceField(t1, "id", t2Id)
-
-    getResponse(List(t1, goodT2)).code should equal(SUCCESS)
     checkTransactionsCreated(true)
-
   }
 
   it should "have transactions share counterparties if they are the same" in {
@@ -1159,6 +1152,42 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     counter1.id should equal(counter2.id)
     counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
+  }
+
+  it should "consider counterparties with the same name but different account numbers to be different" in {
+    val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
+
+    def getResponse(transactionJsons : List[JValue]) = {
+      val json = createImportJson(banks.map(Extraction.decompose),
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons)
+      postImportJson(json)
+    }
+
+    val baseT = Extraction.decompose(transactionWithCounterparty)
+    val counterAcc1 = "1"
+    val counterAcc2 = "2"
+    val id1 = "id1"
+    val id2 = "id2"
+    val t1 = baseT.replace(List("counterparty", "account_number"), counterAcc1).replace(List("id"), id1)
+    val t2 = baseT.replace(List("counterparty", "account_number"), counterAcc2).replace(List("id"), id2)
+
+    getResponse(t1 :: t2 :: Nil).code should equal(SUCCESS)
+
+    val bankId = BankId(transactionWithCounterparty.this_account.bank)
+    val accountId = AccountId(transactionWithCounterparty.this_account.id)
+    val foundTransaction1Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id1))
+    val foundTransaction2Box = Connector.connector.vend.getTransaction(bankId, accountId, TransactionId(id2))
+
+    foundTransaction1Box.isDefined should equal(true)
+    foundTransaction2Box.isDefined should equal(true)
+
+    val counter1 = foundTransaction1Box.get.otherAccount
+    val counter2 = foundTransaction2Box.get.otherAccount
+
+    counter1.id should not equal(counter2.id)
+    counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
+    counter1.number should equal(counterAcc1)
+    counter2.number should equal(counterAcc2)
   }
 
   it should "consider counterparties without names but with the same account numbers to be the same" in {

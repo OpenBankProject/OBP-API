@@ -10,7 +10,7 @@ import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
-import code.metadata.counterparties.Metadata
+import code.metadata.counterparties.{MongoCounterparties, Metadata}
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
@@ -96,7 +96,7 @@ private object LocalConnector extends Connector with Loggable {
       account <- bank.getAccount(accountId)
     } yield {
       updateAccountTransactions(bank, account)
-      account.envelopes(queryParams: _*).flatMap(createTransaction(_, account))
+      account.envelopes(queryParams: _*).map(createTransaction(_, account))
     }
   }
 
@@ -105,10 +105,9 @@ private object LocalConnector extends Connector with Loggable {
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
       envelope <- OBPEnvelope.find(account.transactionsForAccount.put("transactionId").is(transactionId.value).get)
-      transaction <- createTransaction(envelope,account)
     } yield {
       updateAccountTransactions(bank, account)
-      transaction
+      createTransaction(envelope,account)
     }
   }
 
@@ -126,7 +125,7 @@ private object LocalConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-    private def createTransaction(env: OBPEnvelope, theAccount: Account): Option[Transaction] = {
+    private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
 
@@ -138,51 +137,55 @@ private object LocalConnector extends Connector with Loggable {
     //so we have to find that
     val query = QueryBuilder.start("originalPartyBankId").is(theAccount.bankId.value).
       put("originalPartyAccountId").is(theAccount.permalink.get).
+      put("accountNumber").is(otherAccount_.number.get).
       put("holder").is(otherAccount_.holder.get).get
 
-    Metadata.find(query) match {
-      case Full(m) => {
-        val otherAccount = new OtherBankAccount(
-          id = m.id.get.toString,
-          label = otherAccount_.holder.get,
-          nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-          swift_bic = None, //TODO: need to add this to the json/model
-          iban = Some(otherAccount_.bank.get.IBAN.get),
-          number = otherAccount_.number.get,
-          bankName = otherAccount_.bank.get.name.get,
-          kind = otherAccount_.kind.get,
-          originalPartyBankId = theAccount.bankId,
-          originalPartyAccountId = theAccount.accountId
-        )
-        val transactionType = transaction.details.get.kind.get
-        val amount = transaction.details.get.value.get.amount.get
-        val currency = transaction.details.get.value.get.currency.get
-        val label = Some(transaction.details.get.label.get)
-        val startDate = transaction.details.get.posted.get
-        val finishDate = transaction.details.get.completed.get
-        val balance = transaction.details.get.new_balance.get.amount.get
-        val t =
-          new Transaction(
-            uuid,
-            id,
-            thisBankAccount,
-            otherAccount,
-            transactionType,
-            amount,
-            currency,
-            label,
-            startDate,
-            finishDate,
-            balance
-          )
-        Some(t)
-      }
-      case _ => {
-        logger.warn(s"no metadata reference found for envelope ${env.transactionId.get}")
-        None
-      }
+
+    //it's a bit confusing what's going on here, as normally metadata should be automatically generated if
+    //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
+    //otherAccount ids are mongo metadata ids, so the metadata needs to exist before we created the OtherBankAccount
+    //so that we know what id to give it. That's why there's a hardcoded dependency on MongoCounterparties.
+    val metadataId = Metadata.find(query) match {
+      case Full(m) => m.id.get.toString
+      case _ => MongoCounterparties.createMetadata(
+        theAccount.bankId,
+        theAccount.accountId,
+        otherAccount_.holder.get,
+        otherAccount_.number.get).id.get.toString
     }
 
+    val otherAccount = new OtherBankAccount(
+      id = metadataId,
+      label = otherAccount_.holder.get,
+      nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
+      swift_bic = None, //TODO: need to add this to the json/model
+      iban = Some(otherAccount_.bank.get.IBAN.get),
+      number = otherAccount_.number.get,
+      bankName = otherAccount_.bank.get.name.get,
+      kind = otherAccount_.kind.get,
+      originalPartyBankId = theAccount.bankId,
+      originalPartyAccountId = theAccount.accountId
+    )
+    val transactionType = transaction.details.get.kind.get
+    val amount = transaction.details.get.value.get.amount.get
+    val currency = transaction.details.get.value.get.currency.get
+    val label = Some(transaction.details.get.label.get)
+    val startDate = transaction.details.get.posted.get
+    val finishDate = transaction.details.get.completed.get
+    val balance = transaction.details.get.new_balance.get.amount.get
+
+    new Transaction(
+      uuid,
+      id,
+      thisBankAccount,
+      otherAccount,
+      transactionType,
+      amount,
+      currency,
+      label,
+      startDate,
+      finishDate,
+      balance)
   }
 
   /**

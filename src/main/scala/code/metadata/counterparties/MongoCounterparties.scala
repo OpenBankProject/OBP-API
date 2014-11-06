@@ -26,7 +26,7 @@ object MongoCounterparties extends Counterparties with Loggable {
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label)
+      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.number)
     }
 
     createOtherBankAccountMetadata(metadata)
@@ -35,17 +35,16 @@ object MongoCounterparties extends Counterparties with Loggable {
   /**
    * This only exists for OBPEnvelope. Avoid using it for any other reason outside of this class
    */
-  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String) : Metadata = {
+  def createMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherAccountHolder : String, otherAccountNumber : String) : Metadata = {
     //create it
     if(otherAccountHolder.isEmpty){
       logger.info("other account holder is Empty. creating a metadata record with no public alias")
       //no holder name, nothing to hide, so we don't need to create a public alias
-      //otherwise several transactions where the holder is empty (like here)
-      //would automatically share the metadata and then the alias
       Metadata
         .createRecord
         .originalPartyBankId(originalPartyBankId.value)
         .originalPartyAccountId(originalPartyAccountId.value)
+        .accountNumber(otherAccountNumber)
         .holder("")
         .save
 
@@ -54,6 +53,7 @@ object MongoCounterparties extends Counterparties with Loggable {
         originalPartyBankId(originalPartyBankId.value).
         originalPartyAccountId(originalPartyAccountId.value).
         holder(otherAccountHolder).
+        accountNumber(otherAccountNumber).
         publicAlias(newPublicAliasName(originalPartyBankId, originalPartyAccountId)).save
     }
   }

@@ -180,27 +180,6 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     date1.after(date2)
   }
 
-  /**
-   * This only exists for payments and testing. Avoid using it otherwise.
-   */
-  def createMetadataReference: Box[Unit] = {
-    this.theAccount match {
-      case Full(a) => {
-        val realOtherAccHolder = this.obp_transaction.get.other_account.get.holder.get
-        val m = MongoCounterparties.createMetadata(a.bankId, a.accountId, realOtherAccHolder)
-        Full({})
-      }
-      case _ => {
-        val thisAcc = obp_transaction.get.this_account.get
-        val num = thisAcc.number.get
-        val bankId = thisAcc.bank.get.national_identifier.get
-        val error = "could not create aliases for account "+num+" at bank " +bankId
-        logger.warn(error)
-        Failure("Account not found to create aliases for")
-      }
-    }
-  }
-
 }
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {

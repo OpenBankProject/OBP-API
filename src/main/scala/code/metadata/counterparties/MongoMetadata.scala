@@ -19,6 +19,7 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   object originalPartyAccountId extends StringField(this, 100)
 
   object holder extends StringField(this, 255)
+  object accountNumber extends  StringField(this, 100)
   object publicAlias extends StringField(this, 100)
   object privateAlias extends StringField(this, 100)
   object moreInfo extends StringField(this, 100)

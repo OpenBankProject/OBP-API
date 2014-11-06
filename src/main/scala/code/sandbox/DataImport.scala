@@ -266,8 +266,7 @@ object DataImport extends Loggable {
     }
 
     // a bit ugly to have this as a var
-    case class MetadataAndAccountNumber(metadata : Metadata, accountNumber : Option[String])
-    var metadatasToSave : List[MetadataAndAccountNumber] = Nil
+    var metadatasToSave : List[Metadata] = Nil
 
     //TODO: might be nice to use something like scalaz's validations here
     def createTransactions(createdBanks : List[HostedBank], createdAccounts : List[Account]) : Box[List[OBPEnvelope]] = {
@@ -299,30 +298,6 @@ object DataImport extends Loggable {
         } yield (t, env)
       })
 
-      type Name = String
-      type AccountNumber = String
-
-      val counterpartiesWithSameNameButDifferentAccountNumbers = {
-        val counterparties = data.transactions.flatMap(_.counterparty)
-        //we only care that non-empty
-        val nonEmptyNames = counterparties.filter(c => {
-          c.name match {
-            case Some(n) => n.nonEmpty
-            case None => false
-          }
-        })
-        val namesAccs : List[(Name, AccountNumber)] = nonEmptyNames.map(c => (c.name.getOrElse(""), c.account_number.getOrElse("")))
-        val emptyMap = Map[Name, List[AccountNumber]]()
-        val grouped = namesAccs.foldLeft(emptyMap)((map, next) => {
-          val existing = map.get(next._1)
-          existing match {
-            case Some(numbers) => if(numbers.contains(next._2)) map else map.+(next._1 -> (next._2 :: numbers))
-            case None => map.+(next._1 -> List(next._2))
-          }
-        })
-        grouped.toList.filter(x => x._2.size > 1)
-      }
-
       if(transactionsWithNoAccountSpecifiedInImport.nonEmpty) {
         val identifiers = transactionsWithNoAccountSpecifiedInImport.map(
           t => s"(transaction id ${t.id}, account id ${t.this_account.id}, bank id ${t.this_account.bank})")
@@ -337,65 +312,64 @@ object DataImport extends Loggable {
           case(t, env) => s"(transaction id: ${t.id} account id : ${t.this_account.id} bank id : ${t.this_account.bank})"
         }
         Failure(s"Some transactions already exist: $existingIdentifiers")
-      } else if(counterpartiesWithSameNameButDifferentAccountNumbers.nonEmpty) {
-        val found = counterpartiesWithSameNameButDifferentAccountNumbers.map(c => s"[name ${c._1}, accounts: ${c._2.mkString(",")}]").mkString(",")
-        Failure(s"Transaction counterparties found with same name but different account numbers: $found")
       } else {
 
         val envs : List[Box[OBPEnvelope]] = data.transactions.map(t => {
 
           type Counterparty = String
 
-          def createMeta(holder : String, publicAlias : String) = {
+          def createMeta(holder : String, publicAlias : String, accountNumber : String) = {
             Metadata.createRecord
               .holder(holder)
+              .accountNumber(accountNumber)
               .originalPartyAccountId(t.this_account.id)
               .originalPartyBankId(t.this_account.bank)
               .publicAlias(publicAlias)
           }
 
           def findExistingMetadata(counter : SandboxTransactionCounterparty) = {
-            counter.name match { //try to find it by name first
-              case Some(name) if name.nonEmpty =>
-                metadatasToSave.find(mAndAcc => {
-                  val m = mAndAcc.metadata
-                  m.originalPartyAccountId == t.this_account.id &&
-                    m.originalPartyBankId == t.this_account.bank &&
-                    m.holder == name
+            //find by name and account number
+            counter.name match {
+              case Some(name) =>
+                metadatasToSave.find(m => {
+                  m.holder.get == name &&
+                  m.accountNumber.get == counter.account_number.getOrElse("")
                 })
-              case _ => {
-                counter.account_number match { //else try to find it by account number
-                  case Some(num) => metadatasToSave.find(mAndAcc => {
-                    mAndAcc.accountNumber == Some(num)
-                  })
-                  case None => None //name and account number are empty, so we should not use an existing metadata
+              case None => {
+                counter.account_number match {
+                  case Some(accNum) =>
+                    metadatasToSave.find(m => {
+                      m.accountNumber.get == accNum
+                    })
+                  case None => None
                 }
               }
             }
           }
 
-          def generateNewMetadata() : Metadata = {
+          def generateNewMetadata(accountNumber : Option[String]) : Metadata = {
             val holder = "unknown_" + UUID.randomUUID.toString
             val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-            createMeta(holder, publicAlias)
+            createMeta(holder, publicAlias, accountNumber.getOrElse(""))
           }
 
-          def newMetadatFromCounterparty(counter : SandboxTransactionCounterparty) : Metadata = {
+          def newMetadataFromCounterparty(counter : SandboxTransactionCounterparty) : Metadata = {
+            val counterAccNumber = counter.account_number.getOrElse("")
             counter.name match {
               case Some(n) if n.nonEmpty => {
                 val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-                createMeta(n, publicAlias)
+                createMeta(n, publicAlias, counterAccNumber)
               }
-              case _ => generateNewMetadata()
+              case _ => generateNewMetadata(Some(counterAccNumber))
             }
           }
 
           val metadata = t.counterparty match {
             case Some(counter) => {
               val existingMeta = findExistingMetadata(counter)
-              existingMeta.map(_.metadata).getOrElse(newMetadatFromCounterparty(counter))
+              existingMeta.getOrElse(newMetadataFromCounterparty(counter))
             }
-            case None => generateNewMetadata()
+            case None => generateNewMetadata(None)
           }
 
           for {
@@ -454,7 +428,7 @@ object DataImport extends Loggable {
               .obp_transaction(obpTransaction)
 
             //add the metadatas to the list of them to save
-            metadatasToSave = MetadataAndAccountNumber(metadata, counterpartyAccountNumber) :: metadatasToSave
+            metadatasToSave = metadata :: metadatasToSave
             env
           }
 
@@ -508,7 +482,7 @@ object DataImport extends Loggable {
           })
       }
       transactionsAndMetas.foreach(_.save)
-      metadatasToSave.foreach(_.metadata.save)
+      metadatasToSave.foreach(_.save)
 
       Full(Unit)
     }
