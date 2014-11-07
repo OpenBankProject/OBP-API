@@ -46,8 +46,12 @@ case class SandboxBalanceImport(
 case class SandboxTransactionImport(
   id : String,
   this_account : SandboxAccountIdImport,
-  counterparty : Option[String],
+  counterparty : Option[SandboxTransactionCounterparty],
   details : SandboxAccountDetailsImport)
+
+case class SandboxTransactionCounterparty(
+  name : Option[String],
+  account_number : Option[String])
 
 case class SandboxAccountIdImport(
   id : String,
@@ -314,32 +318,58 @@ object DataImport extends Loggable {
 
           type Counterparty = String
 
-          def createMeta(holder : String, publicAlias : String) = {
+          def createMeta(holder : String, publicAlias : String, accountNumber : String) = {
             Metadata.createRecord
               .holder(holder)
+              .accountNumber(accountNumber)
               .originalPartyAccountId(t.this_account.id)
               .originalPartyBankId(t.this_account.bank)
               .publicAlias(publicAlias)
           }
 
-          val (metadata, counterparty) : (Metadata, Counterparty) = t.counterparty match {
-            case Some(c) if c.nonEmpty => {
-              val existingMeta = metadatasToSave.find(m => {
-                m.originalPartyAccountId == t.this_account.id &&
-                m.originalPartyBankId == t.this_account.bank &&
-                m.holder == c
-              })
+          def findExistingMetadata(counter : SandboxTransactionCounterparty) = {
+            //find by name and account number
+            counter.name match {
+              case Some(name) =>
+                metadatasToSave.find(m => {
+                  m.holder.get == name &&
+                  m.accountNumber.get == counter.account_number.getOrElse("")
+                })
+              case None => {
+                counter.account_number match {
+                  case Some(accNum) =>
+                    metadatasToSave.find(m => {
+                      m.accountNumber.get == accNum
+                    })
+                  case None => None
+                }
+              }
+            }
+          }
 
-              (existingMeta.getOrElse{
+          def generateNewMetadata(accountNumber : Option[String]) : Metadata = {
+            val holder = "unknown_" + UUID.randomUUID.toString
+            val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
+            createMeta(holder, publicAlias, accountNumber.getOrElse(""))
+          }
+
+          def newMetadataFromCounterparty(counter : SandboxTransactionCounterparty) : Metadata = {
+            val counterAccNumber = counter.account_number.getOrElse("")
+            counter.name match {
+              case Some(n) if n.nonEmpty => {
                 val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-                createMeta(c, publicAlias)
-              }, c)
+                createMeta(n, publicAlias, counterAccNumber)
+              }
+              case _ => generateNewMetadata(Some(counterAccNumber))
             }
-            case _ => {
-              val holder = "unknown_" + UUID.randomUUID.toString
-              val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-              (createMeta(holder, publicAlias), holder)
+          }
+
+          val metadata = t.counterparty match {
+            case Some(counter) => {
+              val existingMeta = findExistingMetadata(counter)
+              existingMeta.getOrElse(newMetadataFromCounterparty(counter))
             }
+            case None => generateNewMetadata(None)
           }
 
           for {
@@ -365,8 +395,11 @@ object DataImport extends Loggable {
               .kind(createdAcc.kind.get)
               .bank(obpThisAccountBank)
 
+            val counterpartyAccountNumber = t.counterparty.flatMap(_.account_number)
+
             val obpOtherAccount = OBPAccount.createRecord
-              .holder(counterparty)
+              .holder(metadata.holder.get)
+              .number(counterpartyAccountNumber.getOrElse(""))
 
             val newBalance = OBPBalance.createRecord
               .amount(newBalanceValue)
