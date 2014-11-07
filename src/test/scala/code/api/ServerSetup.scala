@@ -36,12 +36,9 @@ import code.TestServer
 import code.model.{AccountId, BankId}
 import org.scalatest._
 import dispatch._
-import net.liftweb.json.NoTypeHints
+import net.liftweb.json.{Serialization, NoTypeHints}
 import net.liftweb.common._
-import org.mortbay.jetty.Server
-import org.mortbay.jetty.nio.SelectChannelConnector
-import org.mortbay.jetty.webapp.WebAppContext
-import net.liftweb.json.Serialization
+import code.bankconnectors.{OBPLimit, OBPOffset, Connector}
 import net.liftweb.mongodb._
 import code.model.dataAccess._
 import java.util.Date
@@ -120,7 +117,9 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
         }
       }
 
-      for(i <- 0 until 10){
+      val NUM_TRANSACTIONS = 10
+
+      for(i <- 0 until NUM_TRANSACTIONS){
 
         val otherAccountBank = OBPBank.createRecord.
           IBAN(randomString(5)).
@@ -167,6 +166,10 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
         account.balance(newBalance.amount.get).lastUpdate(now).save
         env.save
       }
+
+      //load all transactions for the account to generate the counterparty metadata
+      Connector.connector.vend.getTransactions(account.bankId, account.accountId, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
+
     })
     specificSetup()
   }
