@@ -1087,7 +1087,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     created.otherAccount.number should equal("")
   }
 
-  it should "not allow counterparties with the same name to have different account numbers" in {
+  it should "allow counterparties with the same name to have different account numbers" in {
     val (banks, users, accounts) = (standardBanks, standardUsers, standardAccounts)
 
     def getResponse(transactionJsons : List[JValue]) = {
