@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.model
 import java.util.Date
+import code.model.Moderation.Moderated
 import code.util.Helper
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.JsonAST.JString
@@ -42,19 +43,22 @@ import java.net.URL
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 
+object Moderation {
+  type Moderated[A] = Option[A]
+}
 
 class ModeratedTransaction(
   val UUID : String,
   val id: TransactionId,
-  val bankAccount: Option[ModeratedBankAccount],
-  val otherBankAccount: Option[ModeratedOtherBankAccount],
-  val metadata : Option[ModeratedTransactionMetadata],
-  val transactionType: Option[String],
-  val amount: Option[BigDecimal],
-  val currency: Option[String],
-  val description: Option[String],
-  val startDate: Option[Date],
-  val finishDate: Option[Date],
+  val bankAccount: Moderated[ModeratedBankAccount],
+  val otherBankAccount: Moderated[ModeratedOtherBankAccount],
+  val metadata : Moderated[ModeratedTransactionMetadata],
+  val transactionType: Moderated[String],
+  val amount: Moderated[BigDecimal],
+  val currency: Moderated[String],
+  val description: Moderated[String],
+  val startDate: Moderated[Date],
+  val finishDate: Moderated[Date],
   //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
   //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
   val balance : String
@@ -88,20 +92,20 @@ class ModeratedTransaction(
 }
 
 class ModeratedTransactionMetadata(
-  val ownerComment : Option[String],
-  val addOwnerComment : Option[(String => Unit)],
-  val comments : Option[List[Comment]],
-  val addComment: Option[(String, ViewId, String, Date) => Box[Comment]],
-  private val deleteComment: Option[(String) => Box[Unit]],
-  val tags : Option[List[TransactionTag]],
-  val addTag : Option[(String, ViewId, String, Date) => Box[TransactionTag]],
-  private val deleteTag : Option[(String) => Box[Unit]],
-  val images : Option[List[TransactionImage]],
-  val addImage : Option[(String, ViewId, String, Date, URL) => Box[TransactionImage]],
-  private val deleteImage : Option[String => Unit],
-  val whereTag : Option[Option[GeoTag]],
-  val addWhereTag : Option[(String, ViewId, Date, Double, Double) => Boolean],
-  private val deleteWhereTag : Option[(ViewId) => Boolean]
+  val ownerComment : Moderated[String],
+  val addOwnerComment : Moderated[(String => Unit)],
+  val comments : Moderated[List[Comment]],
+  val addComment: Moderated[(String, ViewId, String, Date) => Box[Comment]],
+  private val deleteComment: Moderated[(String) => Box[Unit]],
+  val tags : Moderated[List[TransactionTag]],
+  val addTag : Moderated[(String, ViewId, String, Date) => Box[TransactionTag]],
+  private val deleteTag : Moderated[(String) => Box[Unit]],
+  val images : Moderated[List[TransactionImage]],
+  val addImage : Moderated[(String, ViewId, String, Date, URL) => Box[TransactionImage]],
+  private val deleteImage : Moderated[String => Unit],
+  val whereTag : Moderated[Option[GeoTag]],
+  val addWhereTag : Moderated[(String, ViewId, Date, Double, Double) => Boolean],
+  private val deleteWhereTag : Moderated[(ViewId) => Boolean]
 ){
 
   /**
@@ -178,16 +182,16 @@ object ModeratedTransactionMetadata {
 
 class ModeratedBankAccount(
   val accountId : AccountId,
-  val owners : Option[Set[User]],
-  val accountType : Option[String],
-  val balance: String = "",
-  val currency : Option[String],
-  val label : Option[String],
-  val nationalIdentifier : Option[String],
-  val swift_bic : Option[String],
-  val iban : Option[String],
-  val number: Option[String],
-  val bankName: Option[String],
+  val owners : Moderated[Set[User]],
+  val accountType : Moderated[String],
+  val balance: String = "", //TODO: Moderated[String]?
+  val currency : Moderated[String],
+  val label : Moderated[String],
+  val nationalIdentifier : Moderated[String],
+  val swift_bic : Moderated[String],
+  val iban : Moderated[String],
+  val number: Moderated[String],
+  val bankName: Moderated[String],
   val bankId : BankId
 ){
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -249,13 +253,13 @@ object ModeratedBankAccount {
 class ModeratedOtherBankAccount(
   val id : String,
   val label : AccountName,
-  val nationalIdentifier : Option[String],
-  val swift_bic : Option[String],
-  val iban : Option[String],
-  val bankName : Option[String],
-  val number : Option[String],
-  val metadata : Option[ModeratedOtherBankAccountMetadata],
-  val kind : Option[String]
+  val nationalIdentifier : Moderated[String],
+  val swift_bic : Moderated[String],
+  val iban : Moderated[String],
+  val bankName : Moderated[String],
+  val number : Moderated[String],
+  val metadata : Moderated[ModeratedOtherBankAccountMetadata],
+  val kind : Moderated[String]
 ){
 
   def isAlias : Boolean = label.aliasType match{
@@ -279,24 +283,24 @@ object ModeratedOtherBankAccount {
 }
 
 class ModeratedOtherBankAccountMetadata(
-  val moreInfo : Option[String],
-  val url : Option[String],
-  val imageURL : Option[String],
-  val openCorporatesURL : Option[String],
-  val corporateLocation : Option[Option[GeoTag]],
-  val physicalLocation :  Option[Option[GeoTag]],
-  val publicAlias : Option[String],
-  val privateAlias : Option[String],
-  val addMoreInfo : Option[(String) => Boolean],
-  val addURL : Option[(String) => Boolean],
-  val addImageURL : Option[(String) => Boolean],
-  val addOpenCorporatesURL : Option[(String) => Boolean],
-  val addCorporateLocation : Option[(String, ViewId, Date, Double, Double) => Boolean],
-  val addPhysicalLocation : Option[(String, ViewId, Date, Double, Double) => Boolean],
-  val addPublicAlias : Option[(String) => Boolean],
-  val addPrivateAlias : Option[(String) => Boolean],
-  val deleteCorporateLocation : Option[() => Boolean],
-  val deletePhysicalLocation : Option[() => Boolean]
+  val moreInfo : Moderated[String],
+  val url : Moderated[String],
+  val imageURL : Moderated[String],
+  val openCorporatesURL : Moderated[String],
+  val corporateLocation : Moderated[Option[GeoTag]],
+  val physicalLocation :  Moderated[Option[GeoTag]],
+  val publicAlias : Moderated[String],
+  val privateAlias : Moderated[String],
+  val addMoreInfo : Moderated[(String) => Boolean],
+  val addURL : Moderated[(String) => Boolean],
+  val addImageURL : Moderated[(String) => Boolean],
+  val addOpenCorporatesURL : Moderated[(String) => Boolean],
+  val addCorporateLocation : Moderated[(String, ViewId, Date, Double, Double) => Boolean],
+  val addPhysicalLocation : Moderated[(String, ViewId, Date, Double, Double) => Boolean],
+  val addPublicAlias : Moderated[(String) => Boolean],
+  val addPrivateAlias : Moderated[(String) => Boolean],
+  val deleteCorporateLocation : Moderated[() => Boolean],
+  val deletePhysicalLocation : Moderated[() => Boolean]
 )
 
 object ModeratedOtherBankAccountMetadata {
