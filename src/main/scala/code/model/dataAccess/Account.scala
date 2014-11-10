@@ -237,8 +237,9 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
 
 }
 
-//TODO: enforce unique permalink (easier if we upgrade to Lift 2.6)
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {
+
+  def init = createIndex((permalink.name -> 1), true)
 
   def find(bankId : BankId) : Box[HostedBank] = find("permalink" -> bankId.value)
 

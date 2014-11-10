@@ -57,6 +57,7 @@ object MongoConfig {
     MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
 
 
+    HostedBank.init
     Account.init
   }
 }
