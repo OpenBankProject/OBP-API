@@ -23,7 +23,7 @@ import code.bankconnectors.Connector
 
 private object MapperViews extends Views with Loggable {
 
-  def permissions(account : BankAccount) : Box[List[Permission]] = {
+  def permissions(account : BankAccount) : List[Permission] = {
 
     val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
       ViewImpl.accountFilter(account.bankId, account.accountId): _*)
@@ -37,8 +37,7 @@ private object MapperViews extends Views with Loggable {
       )
     })
 
-    //TODO: get rid of the Box
-    Full(permissions)
+    permissions
   }
 
   def permission(account : BankAccount, user: User) : Box[Permission] = {

@@ -211,9 +211,9 @@ class BankAccount(
   def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
-      Views.views.vend.permissions(this)
+      Full(Views.views.vend.permissions(this))
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**

@@ -16,7 +16,7 @@ object Views  extends SimpleInjector {
 
 trait Views {
   
-  def permissions(account : BankAccount) : Box[List[Permission]]
+  def permissions(account : BankAccount) : List[Permission]
   def permission(account : BankAccount, user: User) : Box[Permission]
   def addPermission(viewUID : ViewUID, user : User) : Box[View]
   def addPermissions(views : List[ViewUID], user : User) : Box[List[View]]
