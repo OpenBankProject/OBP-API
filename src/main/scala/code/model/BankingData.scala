@@ -97,7 +97,7 @@ class Bank(
 )
 {
 
-  def accounts(user : Box[User]) : Box[List[BankAccount]] = {
+  def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user)
   }
 
@@ -106,7 +106,7 @@ class Bank(
   def accountv12AndBelow(user: Box[User]) : Box[List[BankAccount]] = {
     user match {
       case Full(u) => {
-        nonPublicAccounts(u)
+        Full(nonPublicAccounts(u))
       }
       case _ => {
         Full(publicAccounts)
@@ -115,7 +115,7 @@ class Bank(
   }
 
   def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
-  def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
+  def nonPublicAccounts(user : User) : List[BankAccount] = {
     Views.views.vend.getNonPublicBankAccounts(user, id)
   }
 
@@ -309,9 +309,7 @@ class BankAccount(
   def views(user : User) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
-      for{
-        isRevoked <- Views.views.vend.views(this) ?~ "could not get the views"
-      } yield isRevoked
+      Full(Views.views.vend.views(this))
     else
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
   }
@@ -363,8 +361,7 @@ class BankAccount(
   }
    
 
-  def publicViews : List[View] =
-    Views.views.vend.publicViews(this).getOrElse(Nil)
+  def publicViews : List[View] = Views.views.vend.publicViews(this)
 
   def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
@@ -439,7 +436,7 @@ object BankAccount {
     Views.views.vend.getAllAccountsUserCanSee(user)
   }
 
-  def nonPublicAccounts(user : User) : Box[List[BankAccount]] = {
+  def nonPublicAccounts(user : User) : List[BankAccount] = {
     Views.views.vend.getNonPublicBankAccounts(user)
   }
 }

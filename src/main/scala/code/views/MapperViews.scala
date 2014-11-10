@@ -259,8 +259,8 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def views(bankAccount : BankAccount) : Box[List[View]] = {
-    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*))
+  def views(bankAccount : BankAccount) : List[View] = {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*)
   }
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
@@ -290,12 +290,11 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
-  def publicViews(bankAccount : BankAccount) : Box[List[View]] = {
+  def publicViews(bankAccount : BankAccount) : List[View] = {
     //TODO: do this more efficiently?
-    //TODO: get rid of box
-    Full(ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*).filter(v => {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*).filter(v => {
       v.isPublic == true
-    }))
+    })
   }
 
   def getAllPublicAccounts() : List[BankAccount] = {
@@ -373,8 +372,7 @@ private object MapperViews extends Views with Loggable {
    * @param user
    * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
    */
-  //TODO: remove Box in result
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : Box[List[BankAccount]] = {
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccount] = {
     user match {
       case Full(theuser) => {
 
@@ -400,26 +398,26 @@ private object MapperViews extends Views with Loggable {
             val visibleBankAndAccountIds =
               (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-            Full(visibleBankAndAccountIds.map {
+            visibleBankAndAccountIds.map {
               case(bankId, accountId) => {
                 Connector.connector.vend.getBankAccount(bankId, accountId)
               }
-            }.flatten)
+            }.flatten
           }
           case _ => {
             logger.error("APIUser instance not found, could not get all accounts user can see")
-            Full(Nil)
+            Nil
           }
         }
       }
-      case _ => Full(getPublicBankAccounts(bank))
+      case _ => getPublicBankAccounts(bank)
     }
   }
 
   /**
    * @return the bank accounts where the user has at least access to a non public view (is_public==false)
    */
-  def getNonPublicBankAccounts(user : User) :  Box[List[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User) :  List[BankAccount] = {
 
     val accountsList =
     //TODO: get rid of this match statement
@@ -445,13 +443,13 @@ private object MapperViews extends Views with Loggable {
           Nil
         }
       }
-    Full(accountsList.flatten)
+    accountsList.flatten
   }
 
   /**
    * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
    */
-  def getNonPublicBankAccounts(user : User, bankId : BankId) :  Box[List[BankAccount]] = {
+  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccount] = {
     user match {
       case u : APIUser => {
 
@@ -462,13 +460,13 @@ private object MapperViews extends Views with Loggable {
         val nonPublicViewAccountIds = userNonPublicViewsForBank.
           map(_.accountId).distinct //we remove duplicates here
 
-        Full(nonPublicViewAccountIds.map( accountId =>
+        nonPublicViewAccountIds.map( accountId =>
           Connector.connector.vend.getBankAccount(bankId, accountId)
-        ).flatten)
+        ).flatten
       }
       case u : User => {
         logger.error("APIUser instance not found, could not find the non public account ")
-        Full(Nil)
+        Nil
       }
     }
   }

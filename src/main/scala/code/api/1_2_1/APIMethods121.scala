@@ -118,8 +118,8 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~ "user not found"
-            availableAccounts <- BankAccount.nonPublicAccounts(u)
           } yield {
+            val availableAccounts = BankAccount.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
           }
       }
@@ -140,8 +140,10 @@ trait APIMethods121 {
         user =>
           for{
             bank <- Bank(bankId)
-            availableAccounts <- bank.accounts(user)
-          } yield successJsonResponse(bankAccountsListToJson(availableAccounts, user))
+          } yield {
+            val availableAccounts = bank.accounts(user)
+            successJsonResponse(bankAccountsListToJson(availableAccounts, user))
+          }
       }
     }
 
@@ -152,8 +154,8 @@ trait APIMethods121 {
           for {
             u <- user ?~ "user not found"
             bank <- Bank(bankId)
-            availableAccounts <- bank.nonPublicAccounts(u)
           } yield {
+            val availableAccounts = bank.nonPublicAccounts(u)
             successJsonResponse(bankAccountsListToJson(availableAccounts, Full(u)))
           }
       }
