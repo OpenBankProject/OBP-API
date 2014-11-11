@@ -20,12 +20,12 @@ private object MongoTransactionImages extends TransactionImages with Loggable {
   }
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: String, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
+  (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage] = {
     OBPTransactionImage.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
       transactionId(transactionId.value).
-      userId(userId).
+      userId(userId.value).
       forView(viewId.value).
       imageComment(description).
       date(datePosted).

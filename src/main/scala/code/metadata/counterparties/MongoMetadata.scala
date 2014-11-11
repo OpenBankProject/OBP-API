@@ -5,7 +5,7 @@ import code.util.Helper
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import code.model.{ViewId, GeoTag}
+import code.model.{UserId, ViewId, GeoTag}
 //TODO: this should be private
 class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata] {
   import net.liftweb.mongodb.record.field.BsonRecordField
@@ -31,9 +31,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   object corporateLocation extends BsonRecordField(this, OBPGeoTag)
   object physicalLocation extends BsonRecordField(this, OBPGeoTag)
 
-  def addCorporateLocation(userId: String, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addCorporateLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
-      userId(userId).
+      userId(userId.value).
       forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
@@ -48,9 +48,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  def addPhysicalLocation(userId: String, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addPhysicalLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
-      userId(userId).
+      userId(userId.value).
       forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).

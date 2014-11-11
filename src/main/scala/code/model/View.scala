@@ -231,7 +231,7 @@ trait View {
           else
             None
 
-        val addWhereTagFunc : Option[(String, ViewId, Date, Double, Double) => Boolean] =
+        val addWhereTagFunc : Option[(UserId, ViewId, Date, Double, Double) => Boolean] =
           if(canAddWhereTag)
             Some(transaction.metadata.addWhereTag)
           else

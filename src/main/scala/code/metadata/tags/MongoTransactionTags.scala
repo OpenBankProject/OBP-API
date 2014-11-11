@@ -15,12 +15,12 @@ private object MongoTransactionTags extends Tags {
   def getTags(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionTag] = {
     OBPTag.findAll(bankId, accountId, transactionId, viewId)
   }
-  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: String, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
     OBPTag.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
       transactionId(transactionId.value).
-      userId(userId).
+      userId(userId.value).
       forView(viewId.value).
       tag(tagText).
       date(datePosted).saveTheRecord()

@@ -41,9 +41,13 @@ import code.views.Views
 import code.bankconnectors.Connector
 import code.users.Users
 
+case class UserId(val value : String) {
+  override def toString = value
+}
+
 trait User {
 
-  def apiId : String
+  def apiId : UserId
 
   def idGivenByProvider: String
   def provider : String

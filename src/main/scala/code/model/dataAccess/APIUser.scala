@@ -34,7 +34,7 @@ package code.model.dataAccess
 import net.liftweb.mapper._
 import net.liftweb.util.Props
 
-import code.model.{User, View}
+import code.model.{UserId, User, View}
 
 class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with OneToMany[Long, APIUser]{
   def getSingleton = APIUser
@@ -66,7 +66,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   }
 
   def idGivenByProvider = providerId.get
-  def apiId = id.get.toString
+  def apiId = UserId(id.get.toString)
 
   def name : String = name_.get
   def provider = provider_.get

@@ -7,14 +7,14 @@ import net.liftweb.common.Loggable
 private object MongoTransactionWhereTags extends WhereTags with Loggable {
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                 (userId: String, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+                 (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
 
 
     val newTag = OBPWhereTag.createRecord.
       bankId(bankId.value).
       accountId(accountId.value).
       transactionId(transactionId.value).
-      userId(userId).
+      userId(userId.value).
       forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).

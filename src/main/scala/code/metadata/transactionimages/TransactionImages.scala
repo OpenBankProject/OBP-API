@@ -19,7 +19,7 @@ trait TransactionImages {
   def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage]
   
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-  (userId: String, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage]
+  (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: URL) : Box[TransactionImage]
   
   def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Unit]
   
