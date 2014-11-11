@@ -1,6 +1,6 @@
 package code.metadata.wheretags
 
-import code.util.Helper
+import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
 import net.liftweb.record.field.{DoubleField, LongField, StringField}
@@ -32,6 +32,9 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
 }
 
 private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {
+
+  def init = createIndex((transactionId.name -> 1) ~ (accountId.name -> 1) ~ (bankId.name -> 1) ~ (forView.name -> 1), true)
+
   def find(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId) : Option[OBPWhereTag] = {
     val query = getFindQuery(bankId, accountId, transactionId, viewId)
     find(query)
@@ -42,4 +45,8 @@ private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag]
     QueryBuilder.start("forView").is(viewId.value).put("transactionId").is(transactionId.value).
       put("accountId").is(accountId.value).put("bankId").is(bankId.value).get()
   }
+}
+
+object OBPWhereTagInit {
+  def init = OBPWhereTag.init
 }

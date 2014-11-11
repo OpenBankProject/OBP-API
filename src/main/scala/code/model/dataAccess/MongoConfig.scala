@@ -31,6 +31,8 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.metadata.narrative.OBPNarrativeInit
+import code.metadata.wheretags.OBPWhereTagInit
 import net.liftweb.util.ConnectionIdentifier
 
 object AdminDb extends ConnectionIdentifier {
@@ -59,5 +61,7 @@ object MongoConfig {
 
     HostedBank.init
     Account.init
+    OBPNarrativeInit.init
+    OBPWhereTagInit.init
   }
 }

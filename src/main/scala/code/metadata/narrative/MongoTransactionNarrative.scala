@@ -2,7 +2,7 @@ package code.metadata.narrative
 
 import code.model.{TransactionId, AccountId, BankId}
 import net.liftweb.common.Full
-import net.liftweb.mongodb.Upsert
+import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
@@ -61,7 +61,14 @@ private class OBPNarrative private() extends MongoRecord[OBPNarrative] with Obje
 }
 
 private object OBPNarrative extends OBPNarrative with MongoMetaRecord[OBPNarrative] {
+
+  def init = createIndex((transactionId.name -> 1) ~ (accountId.name -> 1) ~ (bankId.name -> 1), true)
+
   def getFindQuery(bankId : BankId, accountId : AccountId, transactionId : TransactionId) : DBObject = {
     QueryBuilder.start("bankId").is(bankId.value).put("accountId").is(accountId.value).put("transactionId").is(transactionId.value).get
   }
+}
+
+object OBPNarrativeInit {
+  def init = OBPNarrative.init
 }
