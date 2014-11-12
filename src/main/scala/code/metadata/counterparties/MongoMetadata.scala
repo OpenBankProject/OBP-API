@@ -82,7 +82,7 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  object userId extends StringField(this,255)
+  object userId extends LongField(this)
 
   object forView extends StringField(this, 255)
 

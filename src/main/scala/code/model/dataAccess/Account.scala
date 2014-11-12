@@ -183,7 +183,7 @@ object Account extends Account with MongoMetaRecord[Account] {
         //account holders are not all set up in the db yet, so we might not get any back.
         //In this case, we just use the previous behaviour, which did not return very much information at all
         Set(new User {
-          val apiId = UserId("")
+          val apiId = UserId(-1)
           val idGivenByProvider = ""
           val provider = ""
           val emailAddress = ""

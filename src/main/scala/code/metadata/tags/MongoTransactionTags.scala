@@ -44,7 +44,7 @@ private class OBPTag private() extends MongoRecord[OBPTag] with ObjectIdPk[OBPTa
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  object userId extends StringField(this,255)
+  object userId extends LongField(this)
 
   object forView extends StringField(this, 255)
 

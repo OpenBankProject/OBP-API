@@ -51,7 +51,7 @@ with ObjectIdPk[OBPTransactionImage] with TransactionImage {
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  object userId extends StringField(this,255)
+  object userId extends LongField(this)
 
   object forView extends StringField(this, 255)
 

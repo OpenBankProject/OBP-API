@@ -66,7 +66,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   }
 
   def idGivenByProvider = providerId.get
-  def apiId = UserId(id.get.toString)
+  def apiId = UserId(id.get)
 
   def name : String = name_.get
   def provider = provider_.get

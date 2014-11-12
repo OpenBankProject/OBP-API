@@ -131,7 +131,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
     Token.find(By(Token.key, tokenID.get)) match {
       case Full(token) => {
         logger.info("access token: "+ token + " found")
-        val user = User.findByApiId(token.userForeignKey.get.toString)
+        val user = User.findByApiId(token.userForeignKey.get)
         //just a log
         user match {
           case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")

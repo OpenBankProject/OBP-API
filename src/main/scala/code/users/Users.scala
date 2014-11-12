@@ -13,7 +13,7 @@ object Users  extends SimpleInjector {
 }
 
 trait Users {
-  def getUserByApiId(id : String) : Box[User]
+  def getUserByApiId(id : Long) : Box[User]
   
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
 }

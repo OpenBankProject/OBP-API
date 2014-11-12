@@ -41,8 +41,8 @@ import code.views.Views
 import code.bankconnectors.Connector
 import code.users.Users
 
-case class UserId(val value : String) {
-  override def toString = value
+case class UserId(val value : Long) {
+  override def toString = value.toString
 }
 
 trait User {
@@ -88,7 +88,7 @@ trait User {
 }
 
 object User {
-  def findByApiId(id : String) : Box[User] =
+  def findByApiId(id : Long) : Box[User] =
     Users.users.vend.getUserByApiId(id)
 
   def findByProviderId(provider : String, idGivenByProvider : String) =

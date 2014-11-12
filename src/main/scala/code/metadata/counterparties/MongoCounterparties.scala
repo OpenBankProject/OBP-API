@@ -145,7 +145,7 @@ object MongoCounterparties extends Counterparties with Loggable {
   }
 
   private def locationTag(loc: OBPGeoTag): Option[GeoTag]={
-    if(loc.longitude==0 && loc.latitude==0 && loc.userId.get.isEmpty)
+    if(loc.longitude==0 && loc.latitude==0)
       None
     else
       Some(loc)

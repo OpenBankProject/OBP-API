@@ -15,7 +15,7 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  object userId extends StringField(this,255)
+  object userId extends LongField(this)
 
   object forView extends StringField(this, 255)
 

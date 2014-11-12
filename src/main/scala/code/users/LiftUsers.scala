@@ -8,11 +8,8 @@ import net.liftweb.mapper.By
 
 private object LiftUsers extends Users {
 
-  def getUserByApiId(id : String) : Box[User] = {
-    for{
-      idAsLong <- tryo { id.toLong } ?~ "Invalid id: long required"
-      user <- APIUser.find(By(APIUser.id, idAsLong)) ?~ { s"user $id not found"}
-    } yield user
+  def getUserByApiId(id : Long) : Box[User] = {
+    APIUser.find(id) ?~ { s"user $id not found"}
   }
 
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
