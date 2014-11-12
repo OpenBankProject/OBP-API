@@ -40,108 +40,73 @@ private object MapperViews extends Views with Loggable {
     permissions
   }
 
-  def permission(account : BankAccount, user: User) : Box[Permission] = {
+  def permission(account: BankAccount, user: User): Box[Permission] = {
 
-    user match {
-      case u: APIUser => {
-        //search ViewPrivileges to get all views for user and then filter the views
-        // by bankPermalink and accountPermalink
-        //TODO: do it in a single query with a join
-        val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-        val views = privileges.flatMap(_.view.obj).filter(v => {
-          v.accountId== account.accountId &&
-          v.bankId == account.bankId
-        })
-        Full(Permission(user, views))
+    //search ViewPrivileges to get all views for user and then filter the views
+    // by bankPermalink and accountPermalink
+    //TODO: do it in a single query with a join
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val views = privileges.flatMap(_.view.obj).filter(v => {
+      v.accountId == account.accountId &&
+        v.bankId == account.bankId
+    })
+    Full(Permission(user, views))
+  }
+
+  def addPermission(viewUID: ViewUID, user: User): Box[View] = {
+    val viewImpl = ViewImpl.find(viewUID)
+
+    viewImpl match {
+      case Full(vImpl) => {
+        if (ViewPrivileges.count(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
+          val saved = ViewPrivileges.create.
+            user(user.apiId.value).
+            view(vImpl.id).
+            save
+
+          if (saved) Full(vImpl)
+          else {
+            logger.info("failed to save ViewPrivileges")
+            Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
+          }
+        } else Full(vImpl) //privilege already exists, no need to create one
       }
-      case u: User => {
-        logger.error("APIUser instance not found, could not grant access ")
-        Empty
+      case _ => {
+        Empty ~> APIFailure(s"View $viewUID. not found", 404) //TODO: move message + code logic to api level
       }
     }
   }
 
-  def addPermission(viewUID : ViewUID, user : User) : Box[View] = {
-    user match {
-      case u: APIUser => {
+  def addPermissions(views: List[ViewUID], user: User): Box[List[View]] = {
+    val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v}
 
-        val viewImpl = ViewImpl.find(viewUID)
-
-        viewImpl match {
-          case Full(vImpl) => {
-            if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,vImpl.id)) == 0) {
-              val saved = ViewPrivileges.create.
-                user(u).
-                view(vImpl.id).
-                save
-
-              if(saved) Full(vImpl)
-              else {
-                logger.info("failed to save ViewPrivileges")
-                Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
-              }
-            } else Full(vImpl) //privilege already exists, no need to create one
-          }
-          case _ => {
-            Empty ~> APIFailure(s"View $viewUID. not found", 404) //TODO: move message + code logic to api level
-          }
+    if (viewImpls.size != views.size) {
+      val failMsg = s"not all viewimpls could be found for views $viewImpls"
+      logger.info(failMsg)
+      Failure(failMsg) ~>
+        APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
+      //TODO: APIFailures with http response codes belong at a higher level in the code
+    } else {
+      viewImpls.foreach(v => {
+        if (ViewPrivileges.count(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, v.id)) == 0) {
+          ViewPrivileges.create.
+            user(user.apiId.value).
+            view(v.id).
+            save
         }
-      }
-      case u: User => {
-        logger.error("APIUser instance not found, could not grant access ")
-        Empty
-      }
-    }
-  }
-
-  def addPermissions(views : List[ViewUID], user : User) : Box[List[View]] ={
-    user match {
-      //TODO: fix this match stuff
-      case u : APIUser => {
-
-        val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v }
-
-        if (viewImpls.size != views.size) {
-          val failMsg = s"not all viewimpls could be found for views $viewImpls"
-          logger.info(failMsg)
-          Failure(failMsg) ~>
-            APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour
-          //TODO: APIFailures with http response codes belong at a higher level in the code
-        } else {
-          viewImpls.foreach(v => {
-            if(ViewPrivileges.count(By(ViewPrivileges.user,u), By(ViewPrivileges.view,v.id))==0){
-              ViewPrivileges.create.
-                user(u).
-                view(v.id).
-                save
-            }
-          })
-          //TODO: this doesn't handle the case where one viewImpl fails to be saved
-          Full(viewImpls)
-        }
-      }
-      case u: User => {
-        logger.error("APIUser instance not found, could not grant access ")
-        Empty
-      }
+      })
+      //TODO: this doesn't handle the case where one viewImpl fails to be saved
+      Full(viewImpls)
     }
   }
 
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] = {
-    user match {
-      //TODO: fix this match stuff
-      case u:APIUser =>
-        for{
-          viewImpl <- ViewImpl.find(viewUID)
-          vp <- ViewPrivileges.find(By(ViewPrivileges.user, u), By(ViewPrivileges.view, viewImpl.id))
-          deletable <- accessRemovableAsBox(viewImpl, u)
-        } yield {
-            vp.delete_!
-          }
-      case u: User => {
-        logger.error("APIUser instance not found, could not revoke access")
-        Empty
-      }
+    for{
+      viewImpl <- ViewImpl.find(viewUID)
+      vp <- ViewPrivileges.find(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, viewImpl.id))
+      deletable <- accessRemovableAsBox(viewImpl, user)
+    } yield {
+      vp.delete_!
     }
   }
 
@@ -168,39 +133,30 @@ private object MapperViews extends Views with Loggable {
   }
 
   def revokeAllPermission(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
-    user match {
-      //TODO: fix this match stuff
-      case u:APIUser =>{
-        //TODO: make this more efficient by using one query (with a join)
-        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
+    //TODO: make this more efficient by using one query (with a join)
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
 
-        val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
-          case Full(v) => {
-            v.bankId == bankId && v.accountId == accountId
-          }
-          case _ => false
-        })
-
-        val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view.obj match {
-          case Full(v) => accessRemovable(v, u)
-          case _ => false
-        })
-
-
-        if(allRelevantPrivsRevokable) {
-          relevantAccountPrivs.foreach(_.delete_!)
-          Full(true)
-        } else {
-          Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
-            " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
-        }
-
+    val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
+      case Full(v) => {
+        v.bankId == bankId && v.accountId == accountId
       }
-      case u: User => {
-        logger.error("APIUser instance not found, could not revoke access ")
-        Empty
-      }
+      case _ => false
+    })
+
+    val allRelevantPrivsRevokable = relevantAccountPrivs.forall( p => p.view.obj match {
+      case Full(v) => accessRemovable(v, user)
+      case _ => false
+    })
+
+
+    if(allRelevantPrivsRevokable) {
+      relevantAccountPrivs.foreach(_.delete_!)
+      Full(true)
+    } else {
+      Failure("One of the views this user has access to is the owner view, and there would be no one with access" +
+        " to this owner view if access to the user was revoked. No permissions to any views on the account have been revoked.")
     }
+
   }
 
   def view(viewId : ViewId, account: BankAccount) : Box[View] = {
@@ -264,30 +220,20 @@ private object MapperViews extends Views with Loggable {
   }
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
-
-    user match {
-      //TODO: fix this match stuff
-      case u: APIUser=> {
-        //TODO: do this more efficiently?
-        val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-        val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
-          p.view.obj match {
-            case Full(v) => if(
-              !v.isPublic &&
-              v.bankId == bankAccount.bankId&&
-              v.accountId == bankAccount.accountId){
-              Some(v)
-            } else None
-            case _ => None
-          }
-        })
-        userNonPublicViewsForAccount ++ bankAccount.publicViews
+    //TODO: do this more efficiently?
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
+      p.view.obj match {
+        case Full(v) => if(
+          !v.isPublic &&
+            v.bankId == bankAccount.bankId&&
+            v.accountId == bankAccount.accountId){
+          Some(v)
+        } else None
+        case _ => None
       }
-      case _ => {
-        logger.error("APIUser instance not found, could not get Permitted views")
-        Nil
-      }
-    }
+    })
+    userNonPublicViewsForAccount ++ bankAccount.publicViews
   }
 
   def publicViews(bankAccount : BankAccount) : List[View] = {
@@ -332,37 +278,27 @@ private object MapperViews extends Views with Loggable {
   def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
     user match {
       case Full(theuser) => {
-        //TODO: get rid of this match
-        theuser match {
-          case u : APIUser => {
-            //TODO: this could be quite a bit more efficient...
+        //TODO: this could be quite a bit more efficient...
 
-            val publicViewBankAndAccountIds= ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
-              (v.bankId, v.accountId)
-            }).distinct
+        val publicViewBankAndAccountIds= ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v => {
+          (v.bankId, v.accountId)
+        }).distinct
 
-            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.apiId.value))
+        val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
-            val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
-              (v.bankId, v.accountId)
-            }).distinct //we remove duplicates here
+        val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+          (v.bankId, v.accountId)
+        }).distinct //we remove duplicates here
 
-            val visibleBankAndAccountIds =
-              (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
+        val visibleBankAndAccountIds =
+          (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-            visibleBankAndAccountIds.map {
-              case(bankId, accountId) => {
-                Connector.connector.vend.getBankAccount(bankId, accountId)
-              }
-            }.flatten
+        visibleBankAndAccountIds.map {
+          case(bankId, accountId) => {
+            Connector.connector.vend.getBankAccount(bankId, accountId)
           }
-          case _ => {
-            logger.error("APIUser instance not found, could not get all accounts user can see")
-            Nil
-          }
-        }
-
+        }.flatten
       }
       case _ => getAllPublicAccounts()
     }
@@ -375,40 +311,30 @@ private object MapperViews extends Views with Loggable {
   def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccount] = {
     user match {
       case Full(theuser) => {
+        //TODO: this could be quite a bit more efficient...
 
-        //TODO: get rid of this match
-        theuser match {
-          case u : APIUser => {
-            //TODO: this could be quite a bit more efficient...
+        val publicViewBankAndAccountIds = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
+          By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
+          (v.bankId, v.accountId)
+        }).distinct
 
-            val publicViewBankAndAccountIds = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
-              By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
-              (v.bankId, v.accountId)
-            }).distinct
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.apiId.value))
+        val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
+          !v.isPublic && v.bankId == bank.id
+        })
 
-            val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-            val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
-              !v.isPublic && v.bankId == bank.id
-            })
+        val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+          (v.bankId, v.accountId)
+        }).distinct //we remove duplicates here
 
-            val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
-              (v.bankId, v.accountId)
-            }).distinct //we remove duplicates here
+        val visibleBankAndAccountIds =
+          (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-            val visibleBankAndAccountIds =
-              (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
-
-            visibleBankAndAccountIds.map {
-              case(bankId, accountId) => {
-                Connector.connector.vend.getBankAccount(bankId, accountId)
-              }
-            }.flatten
+        visibleBankAndAccountIds.map {
+          case(bankId, accountId) => {
+            Connector.connector.vend.getBankAccount(bankId, accountId)
           }
-          case _ => {
-            logger.error("APIUser instance not found, could not get all accounts user can see")
-            Nil
-          }
-        }
+        }.flatten
       }
       case _ => getPublicBankAccounts(bank)
     }
@@ -418,31 +344,20 @@ private object MapperViews extends Views with Loggable {
    * @return the bank accounts where the user has at least access to a non public view (is_public==false)
    */
   def getNonPublicBankAccounts(user : User) :  List[BankAccount] = {
+    //TODO: make this more efficient
+    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
-    val accountsList =
-    //TODO: get rid of this match statement
-      user match {
-        case u : APIUser => {
-          //TODO: get rid of dependency on ViewPrivileges, ViewImpl
-          //TODO: make this more efficient
-          val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-          val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
+    val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
+      (v.bankId, v.accountId)
+    }).distinct //we remove duplicates here
 
-          val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
-            (v.bankId, v.accountId)
-          }).distinct //we remove duplicates here
-
-          nonPublicViewBankAndAccountIds.map {
-            case(bankId, accountId) => {
-              Connector.connector.vend.getBankAccount(bankId, accountId)
-            }
-          }
-        }
-        case u: User => {
-          logger.error("APIUser instance not found, could not find the non public accounts")
-          Nil
-        }
+    val accountsList = nonPublicViewBankAndAccountIds.map {
+      case(bankId, accountId) => {
+        Connector.connector.vend.getBankAccount(bankId, accountId)
       }
+    }
+
     accountsList.flatten
   }
 
@@ -450,25 +365,16 @@ private object MapperViews extends Views with Loggable {
    * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
    */
   def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccount] = {
-    user match {
-      case u : APIUser => {
+    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val userNonPublicViewsForBank : List[ViewImpl] =
+      userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId)
 
-        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, u))
-        val userNonPublicViewsForBank : List[ViewImpl] =
-          userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId)
+    val nonPublicViewAccountIds = userNonPublicViewsForBank.
+      map(_.accountId).distinct //we remove duplicates here
 
-        val nonPublicViewAccountIds = userNonPublicViewsForBank.
-          map(_.accountId).distinct //we remove duplicates here
-
-        nonPublicViewAccountIds.map( accountId =>
-          Connector.connector.vend.getBankAccount(bankId, accountId)
-        ).flatten
-      }
-      case u : User => {
-        logger.error("APIUser instance not found, could not find the non public account ")
-        Nil
-      }
-    }
+    nonPublicViewAccountIds.map( accountId =>
+      Connector.connector.vend.getBankAccount(bankId, accountId)
+    ).flatten
   }
 
 }
