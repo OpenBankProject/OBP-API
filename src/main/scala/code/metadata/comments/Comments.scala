@@ -9,7 +9,7 @@ object Comments extends SimpleInjector {
 
   val comments = new Inject(buildOne _) {}
   
-  def buildOne: Comments = MongoTransactionComments
+  def buildOne: Comments = MappedComments
   
 }
 

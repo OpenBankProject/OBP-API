@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
+import code.metadata.comments.MappedComment
 import net.liftweb._
 import util._
 import common._
@@ -265,7 +266,7 @@ class Boot extends Loggable{
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _,
       OBPUser, Admin, Nonce, Token, Consumer,
-      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
+      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder, MappedComment)
   }
 
   private def showException(le: Throwable): String = {
