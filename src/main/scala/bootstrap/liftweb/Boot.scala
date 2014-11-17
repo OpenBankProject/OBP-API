@@ -33,6 +33,8 @@ package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
 import code.metadata.comments.MappedComment
+import code.metadata.narrative.MappedNarrative
+import code.metadata.tags.MappedTag
 import net.liftweb._
 import util._
 import common._
@@ -266,7 +268,8 @@ class Boot extends Loggable{
   def schemifyAll() = {
     Schemifier.schemify(true, Schemifier.infoF _,
       OBPUser, Admin, Nonce, Token, Consumer,
-      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder, MappedComment)
+      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
+      MappedComment, MappedNarrative, MappedTag)
   }
 
   private def showException(le: Throwable): String = {
