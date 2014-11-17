@@ -36,6 +36,7 @@ import code.metadata.comments.MappedComment
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.wheretags.MappedWhereTag
 import net.liftweb._
 import util._
 import common._
@@ -271,7 +272,7 @@ class Boot extends Loggable{
       OBPUser, Admin, Nonce, Token, Consumer,
       ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
       MappedComment, MappedNarrative, MappedTag,
-      MappedTransactionImage)
+      MappedTransactionImage, MappedWhereTag)
   }
 
   private def showException(le: Throwable): String = {
