@@ -93,7 +93,6 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
   override def datePosted = date.get
   override def postedBy = User.findByApiId(userId.get)
-  override def viewId = ViewId(forView.get)
   override def longitude = geoLongitude.get
   override def latitude = geoLatitude.get
 

@@ -86,7 +86,6 @@ trait GeoTag {
 
   def datePosted : Date
   def postedBy : Box[User]
-  def viewId : ViewId
   def longitude : Double
   def latitude : Double
 }
