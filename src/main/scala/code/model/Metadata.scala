@@ -100,39 +100,39 @@ trait TransactionImage {
   def imageUrl : URL
 }
 
-class OtherBankAccountMetadata(
-  val publicAlias : String,
-  val privateAlias : String,
-  val moreInfo : String,
-  val url : String,
-  val imageURL : String,
-  val openCorporatesURL : String,
-  val corporateLocation : Option[GeoTag],
-  val physicalLocation : Option[GeoTag],
-  val addMoreInfo : (String) => Boolean,
-  val addURL : (String) => Boolean,
-  val addImageURL : (String) => Boolean,
-  val addOpenCorporatesURL : (String) => Boolean,
+trait OtherBankAccountMetadata {
+  def getPublicAlias: String
+  def getPrivateAlias: String
+  def getMoreInfo: String
+  def getUrl: String
+  def getImageURL: String
+  def getOpenCorporatesURL: String
+  def getCorporateLocation: Option[GeoTag]
+  def getPhysicalLocation: Option[GeoTag]
+  val addMoreInfo: (String) => Boolean
+  val addURL: (String) => Boolean
+  val addImageURL: (String) => Boolean
+  val addOpenCorporatesURL: (String) => Boolean
 
   /**
-  * @param: userId
-  * @param: datePosted
-  * @param: longitude
-  * @param: latitude
-  */
-  val addCorporateLocation : (UserId, Date, Double, Double) => Boolean,
-  val deleteCorporateLocation : () => Boolean,
+   * @param: userId
+   * @param: datePosted
+   * @param: longitude
+   * @param: latitude
+   */
+  val addCorporateLocation: (UserId, Date, Double, Double) => Boolean
+  val deleteCorporateLocation: () => Boolean
   /**
-  * @param: userId
-  * @param: datePosted
-  * @param: longitude
-  * @param: latitude
-  */
-  val addPhysicalLocation : (UserId, Date, Double, Double) => Boolean,
-  val deletePhysicalLocation : () => Boolean,
-  val addPublicAlias : (String) => Boolean,
-  val addPrivateAlias : (String) => Boolean
-)
+   * @param: userId
+   * @param: datePosted
+   * @param: longitude
+   * @param: latitude
+   */
+  val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean
+  val deletePhysicalLocation: () => Boolean
+  val addPublicAlias: (String) => Boolean
+  val addPrivateAlias: (String) => Boolean
+}
 
 class TransactionMetadata(
   val ownerComment : () => String,

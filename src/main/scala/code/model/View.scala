@@ -356,14 +356,14 @@ trait View {
 
         if (usePublicAliasIfOneExists) {
 
-          val publicAlias = otherBankAccount.metadata.publicAlias
+          val publicAlias = otherBankAccount.metadata.getPublicAlias
 
           if (! publicAlias.isEmpty ) AccountName(publicAlias, PublicAlias)
           else AccountName(realName, NoAlias)
 
         } else if (usePrivateAliasIfOneExists) {
 
-          val privateAlias = otherBankAccount.metadata.privateAlias
+          val privateAlias = otherBankAccount.metadata.getPrivateAlias
 
           if (! privateAlias.isEmpty) AccountName(privateAlias, PrivateAlias)
           else AccountName(realName, PrivateAlias)
@@ -396,20 +396,20 @@ trait View {
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){
           //other bank account metadata
-          val moreInfo = moderateField(canSeeMoreInfo,otherBankAccount.metadata.moreInfo)
-          val url = moderateField(canSeeUrl, otherBankAccount.metadata.url)
-          val imageUrl = moderateField(canSeeImageUrl, otherBankAccount.metadata.imageURL)
-          val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, otherBankAccount.metadata.openCorporatesURL)
-          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.corporateLocation)
-          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.physicalLocation)
+          val moreInfo = moderateField(canSeeMoreInfo,otherBankAccount.metadata.getMoreInfo)
+          val url = moderateField(canSeeUrl, otherBankAccount.metadata.getUrl)
+          val imageUrl = moderateField(canSeeImageUrl, otherBankAccount.metadata.getImageURL)
+          val openCorporatesUrl = moderateField (canSeeOpenCorporatesUrl, otherBankAccount.metadata.getOpenCorporatesURL)
+          val corporateLocation : Option[Option[GeoTag]] = moderateField(canSeeCorporateLocation, otherBankAccount.metadata.getCorporateLocation)
+          val physicalLocation : Option[Option[GeoTag]] = moderateField(canSeePhysicalLocation, otherBankAccount.metadata.getPhysicalLocation)
           val addMoreInfo = moderateField(canAddMoreInfo, otherBankAccount.metadata.addMoreInfo)
           val addURL = moderateField(canAddURL, otherBankAccount.metadata.addURL)
           val addImageURL = moderateField(canAddImageURL, otherBankAccount.metadata.addImageURL)
           val addOpenCorporatesUrl = moderateField(canAddOpenCorporatesUrl, otherBankAccount.metadata.addOpenCorporatesURL)
           val addCorporateLocation = moderateField(canAddCorporateLocation, otherBankAccount.metadata.addCorporateLocation)
           val addPhysicalLocation = moderateField(canAddPhysicalLocation, otherBankAccount.metadata.addPhysicalLocation)
-          val publicAlias = moderateField(canSeePublicAlias, otherBankAccount.metadata.publicAlias)
-          val privateAlias = moderateField(canSeePrivateAlias, otherBankAccount.metadata.privateAlias)
+          val publicAlias = moderateField(canSeePublicAlias, otherBankAccount.metadata.getPublicAlias)
+          val privateAlias = moderateField(canSeePrivateAlias, otherBankAccount.metadata.getPrivateAlias)
           val addPublicAlias = moderateField(canAddPublicAlias, otherBankAccount.metadata.addPublicAlias)
           val addPrivateAlias = moderateField(canAddPrivateAlias, otherBankAccount.metadata.addPrivateAlias)
           val deleteCorporateLocation = moderateField(canDeleteCorporateLocation, otherBankAccount.metadata.deleteCorporateLocation)

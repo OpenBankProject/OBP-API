@@ -5,9 +5,9 @@ import code.util.Helper
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import code.model.{UserId, ViewId, GeoTag}
+import code.model.{OtherBankAccountMetadata, UserId, ViewId, GeoTag}
 //TODO: this should be private
-class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata] {
+class Metadata private() extends OtherBankAccountMetadata with MongoRecord[Metadata] with ObjectIdPk[Metadata] {
   import net.liftweb.mongodb.record.field.BsonRecordField
   import java.util.Date
 
@@ -31,7 +31,7 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   object corporateLocation extends BsonRecordField(this, OBPGeoTag)
   object physicalLocation extends BsonRecordField(this, OBPGeoTag)
 
-  def addCorporateLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addCorporateLocationFn(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
       date(datePosted).
@@ -41,13 +41,13 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  def deleteCorporateLocation : Boolean = {
+  def deleteCorporateLocationFn : Boolean = {
     corporateLocation.clear
     this.save
     true
   }
 
-  def addPhysicalLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addPhysicalLocationFn(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
       date(datePosted).
@@ -57,12 +57,67 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  def deletePhysicalLocation : Boolean = {
+  def deletePhysicalLocationFn : Boolean = {
     physicalLocation.clear
     this.save
     true
   }
 
+  private def locationTag(loc: OBPGeoTag): Option[GeoTag]={
+    if(loc.longitude==0 && loc.latitude==0)
+      None
+    else
+      Some(loc)
+  }
+
+  override def getUrl = url.get
+  override def getCorporateLocation = locationTag(corporateLocation.get)
+  override def getPhysicalLocation = locationTag(physicalLocation.get)
+  override val deleteCorporateLocation = deleteCorporateLocationFn _
+  override val deletePhysicalLocation = deletePhysicalLocationFn _
+  override def getPrivateAlias = privateAlias.get
+  override def getPublicAlias = publicAlias.get
+  override def getMoreInfo = moreInfo.get
+  override def getImageURL: String = imageUrl.get
+  override val addPrivateAlias: (String) => Boolean = (alias => {
+    privateAlias(alias).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
+  override val addURL: (String) => Boolean = (text => {
+    url(text).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
+  override val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean = addPhysicalLocationFn _
+  override val addCorporateLocation: (UserId, Date, Double, Double) => Boolean = addCorporateLocationFn _
+  override val addMoreInfo: (String) => Boolean = (text => {
+    moreInfo(text).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
+  override def getOpenCorporatesURL: String = openCorporatesUrl.get
+  override val addPublicAlias: (String) => Boolean = (alias => {
+    publicAlias(alias).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
+  override val addOpenCorporatesURL: (String) => Boolean = (text => {
+    openCorporatesUrl(text).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
+  override val addImageURL: (String) => Boolean = (text => {
+    imageUrl(text).save
+    //the save method does not return a Boolean to inform about the saving state,
+    //so we a true
+    true
+  })
 }
 
 //TODO: this should be private
