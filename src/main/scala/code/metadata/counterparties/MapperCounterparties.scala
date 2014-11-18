@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.model._
 import code.model.dataAccess.APIUser
+import code.util.MappedUUID
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -35,6 +36,8 @@ object MapperCounterparties extends Counterparties {
 
 class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
   override def getSingleton = MappedCounterpartyMetadata
+
+  object counterpartyId extends MappedUUID(this)
 
   //these define the obp account to which this counterparty belongs
   object thisAccountBankId extends MappedString(this, 255)
