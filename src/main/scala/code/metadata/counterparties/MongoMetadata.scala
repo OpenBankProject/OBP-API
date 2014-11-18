@@ -31,10 +31,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   object corporateLocation extends BsonRecordField(this, OBPGeoTag)
   object physicalLocation extends BsonRecordField(this, OBPGeoTag)
 
-  def addCorporateLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addCorporateLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
-      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -48,10 +47,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  def addPhysicalLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addPhysicalLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
-      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -83,8 +81,6 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object bankId extends StringField(this, 255)
 
   object userId extends LongField(this)
-
-  object forView extends StringField(this, 255)
 
   object date extends DateField(this)
 

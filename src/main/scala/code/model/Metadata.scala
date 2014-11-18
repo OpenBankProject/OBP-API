@@ -116,21 +116,19 @@ class OtherBankAccountMetadata(
 
   /**
   * @param: userId
-  * @param: viewId
   * @param: datePosted
   * @param: longitude
   * @param: latitude
   */
-  val addCorporateLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
+  val addCorporateLocation : (UserId, Date, Double, Double) => Boolean,
   val deleteCorporateLocation : () => Boolean,
   /**
   * @param: userId
-  * @param: viewId
   * @param: datePosted
   * @param: longitude
   * @param: latitude
   */
-  val addPhysicalLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
+  val addPhysicalLocation : (UserId, Date, Double, Double) => Boolean,
   val deletePhysicalLocation : () => Boolean,
   val addPublicAlias : (String) => Boolean,
   val addPrivateAlias : (String) => Boolean
