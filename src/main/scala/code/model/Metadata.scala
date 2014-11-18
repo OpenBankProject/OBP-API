@@ -86,7 +86,6 @@ trait GeoTag {
 
   def datePosted : Date
   def postedBy : Box[User]
-  def viewId : ViewId
   def longitude : Double
   def latitude : Double
 }
@@ -117,23 +116,19 @@ class OtherBankAccountMetadata(
 
   /**
   * @param: userId
-  * @param: viewId
   * @param: datePosted
   * @param: longitude
   * @param: latitude
   */
-  //TODO: remove ViewId?
-  val addCorporateLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
+  val addCorporateLocation : (UserId, Date, Double, Double) => Boolean,
   val deleteCorporateLocation : () => Boolean,
   /**
   * @param: userId
-  * @param: viewId
   * @param: datePosted
   * @param: longitude
   * @param: latitude
   */
-  //TODO: remove ViewId?
-  val addPhysicalLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
+  val addPhysicalLocation : (UserId, Date, Double, Double) => Boolean,
   val deletePhysicalLocation : () => Boolean,
   val addPublicAlias : (String) => Boolean,
   val addPrivateAlias : (String) => Boolean

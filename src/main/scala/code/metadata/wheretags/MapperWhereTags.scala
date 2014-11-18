@@ -70,7 +70,6 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
 
   override def datePosted: Date = date.get
   override def postedBy: Box[User] = user.obj
-  override def viewId: ViewId = ViewId(view.get)
   override def latitude: Double = geoLatitude.get
   override def longitude: Double = geoLongitude.get
 }

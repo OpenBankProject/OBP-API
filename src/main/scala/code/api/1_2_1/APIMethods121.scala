@@ -755,7 +755,7 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.apiId, viewId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            if(addCorpLocation(u.apiId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
           } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -776,7 +776,7 @@ trait APIMethods121 {
             addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
             corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-            if(addCorpLocation(u.apiId, viewId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+            if(addCorpLocation(u.apiId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
           } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -818,7 +818,7 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.apiId, viewId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
           } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -839,7 +839,7 @@ trait APIMethods121 {
             addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
             physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
             correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-            if(addPhysicalLocation(u.apiId, viewId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+            if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
           } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))

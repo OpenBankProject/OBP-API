@@ -24,11 +24,10 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
   object geoLongitude extends DoubleField(this,0)
   object geoLatitude extends DoubleField(this,0)
 
-  def datePosted = date.get
-  def postedBy = User.findByApiId(userId.get)
-  def viewId = ViewId(forView.get)
-  def longitude = geoLongitude.get
-  def latitude = geoLatitude.get
+  override def datePosted = date.get
+  override def postedBy = User.findByApiId(userId.get)
+  override def longitude = geoLongitude.get
+  override def latitude = geoLatitude.get
 }
 
 private object OBPWhereTag extends OBPWhereTag with MongoMetaRecord[OBPWhereTag] {

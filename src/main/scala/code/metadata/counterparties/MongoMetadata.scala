@@ -31,10 +31,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
   object corporateLocation extends BsonRecordField(this, OBPGeoTag)
   object physicalLocation extends BsonRecordField(this, OBPGeoTag)
 
-  def addCorporateLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addCorporateLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
-      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -48,10 +47,9 @@ class Metadata private() extends MongoRecord[Metadata] with ObjectIdPk[Metadata]
     true
   }
 
-  def addPhysicalLocation(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+  def addPhysicalLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     val newTag = OBPGeoTag.createRecord.
       userId(userId.value).
-      forView(viewId.value).
       date(datePosted).
       geoLongitude(longitude).
       geoLatitude(latitude)
@@ -84,18 +82,15 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
 
   object userId extends LongField(this)
 
-  object forView extends StringField(this, 255)
-
   object date extends DateField(this)
 
   object geoLongitude extends DoubleField(this,0)
   object geoLatitude extends DoubleField(this,0)
 
-  def datePosted = date.get
-  def postedBy = User.findByApiId(userId.get)
-  def viewId = ViewId(forView.get)
-  def longitude = geoLongitude.get
-  def latitude = geoLatitude.get
+  override def datePosted = date.get
+  override def postedBy = User.findByApiId(userId.get)
+  override def longitude = geoLongitude.get
+  override def latitude = geoLatitude.get
 
 }
 //TODO: this should be private
