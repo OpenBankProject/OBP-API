@@ -13,12 +13,12 @@ object MapperCounterparties extends Counterparties {
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
 
     existing match {
-      case Full(e) => e.toOtherBankAccountMetadata
+      case Full(e) => e
       case _ => MappedCounterpartyMetadata.create
         .thisAccountBankId(originalPartyBankId.value)
         .thisAccountId(originalPartyAccountId.value)
         .holder(otherParty.label)
-        .accountNumber(otherParty.number).saveMe.toOtherBankAccountMetadata
+        .accountNumber(otherParty.number).saveMe
     }
   }
 
@@ -33,7 +33,7 @@ object MapperCounterparties extends Counterparties {
   }
 }
 
-class MappedCounterpartyMetadata extends LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
+class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
   override def getSingleton = MappedCounterpartyMetadata
 
   //these define the obp account to which this counterparty belongs
@@ -55,8 +55,20 @@ class MappedCounterpartyMetadata extends LongKeyedMapper[MappedCounterpartyMetad
   object physicalLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)
   object corporateLocation extends MappedLongForeignKey(this, MappedCounterpartyWhereTag)
 
+  /**
+   * Evaluates f, and then attempts to save. If no exceptions are thrown and save executes successfully,
+   * true is returned. If an exception is thrown or if the save fails, false is returned.
+   * @param f the expression to evaluate (e.g. imageUrl("http://example.com/foo.png")
+   * @return If saving the model worked after having evaluated f
+   */
+  private def trySave(f : => Any) : Boolean =
+    tryo{
+      f
+      save()
+    }.getOrElse(false)
+
   private def setWhere(whereTag : Box[MappedCounterpartyWhereTag])
-                      (userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+                      (userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Box[MappedCounterpartyWhereTag] = {
     val toUpdate = whereTag match {
       case Full(c) => c
       case _ => MappedCounterpartyWhereTag.create
@@ -64,32 +76,58 @@ class MappedCounterpartyMetadata extends LongKeyedMapper[MappedCounterpartyMetad
 
     tryo{
       toUpdate
-        .postedBy(userId.value)
+        .user(userId.value)
         .date(datePosted)
         .geoLongitude(longitude)
         .geoLatitude(latitude)
-        .save()
-    }.getOrElse(false)
+        .saveMe
+    }
   }
 
   def setCorporateLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    setWhere(corporateLocation.obj)(userId, datePosted, longitude, latitude)
-  }
-
-  def deleteCorporateLocation : Boolean = {
-    corporateLocation.obj.map(_.delete_!).getOrElse(false)
+    //save where tag
+    val savedWhere = setWhere(corporateLocation.obj)(userId, datePosted, longitude, latitude)
+    //set where tag for counterparty
+    savedWhere.map(location => trySave{corporateLocation(location)}).getOrElse(false)
   }
 
   def setPhysicalLocation(userId: UserId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    setWhere(physicalLocation.obj)(userId, datePosted, longitude, latitude)
+    //save where tag
+    val savedWhere = setWhere(physicalLocation.obj)(userId, datePosted, longitude, latitude)
+    //set where tag for counterparty
+    savedWhere.map(location => trySave{physicalLocation(location)}).getOrElse(false)
   }
 
-  def deletePhysicalLocation : Boolean = {
+  override def getPublicAlias: String = publicAlias.get
+  override def getCorporateLocation: Option[GeoTag] =
+    corporateLocation.obj
+  override def getOpenCorporatesURL: String = openCorporatesUrl.get
+  override def getMoreInfo: String = moreInfo.get
+  override def getPrivateAlias: String = privateAlias.get
+  override def getImageURL: String = imageUrl.get
+  override def getPhysicalLocation: Option[GeoTag] =
+    physicalLocation.obj
+  override def getUrl: String = url.get
+
+  override val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean = setCorporateLocation _
+  override val addCorporateLocation: (UserId, Date, Double, Double) => Boolean = setPhysicalLocation _
+  override val addPrivateAlias: (String) => Boolean = (x) =>
+    trySave{privateAlias(x)}
+  override val addURL: (String) => Boolean = (x) =>
+    trySave{url(x)}
+  override val addMoreInfo: (String) => Boolean = (x) =>
+    trySave{moreInfo(x)}
+  override val addPublicAlias: (String) => Boolean = (x) =>
+    trySave{publicAlias(x)}
+  override val addOpenCorporatesURL: (String) => Boolean = (x) =>
+    trySave{openCorporatesUrl(x)}
+  override val addImageURL: (String) => Boolean = (x) =>
+    trySave{imageUrl(x)}
+  override val deleteCorporateLocation = () =>
+    corporateLocation.obj.map(_.delete_!).getOrElse(false)
+  override val deletePhysicalLocation = () =>
     physicalLocation.obj.map(_.delete_!).getOrElse(false)
-  }
 
-  //TODO: make OtherBankAccountMetadata a trait?
-  def toOtherBankAccountMetadata : OtherBankAccountMetadata = ??? //TODO
 }
 
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
@@ -98,17 +136,21 @@ object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKe
     super.dbIndexes
 }
 
-class MappedCounterpartyWhereTag extends LongKeyedMapper[MappedCounterpartyWhereTag] with IdPK with CreatedUpdated {
+class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCounterpartyWhereTag] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedCounterpartyWhereTag
 
-  object postedBy extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, APIUser)
   object date extends MappedDate(this)
 
   //TODO: require these to be valid latitude/longitudes
   object geoLatitude extends MappedDouble(this)
   object geoLongitude extends MappedDouble(this)
 
+  override def postedBy: Box[User] = user.obj
+  override def datePosted: Date = date.get
+  override def latitude: Double = geoLatitude.get
+  override def longitude: Double = geoLongitude.get
 }
 
 object MappedCounterpartyWhereTag extends MappedCounterpartyWhereTag with LongKeyedMetaMapper[MappedCounterpartyWhereTag]
