@@ -33,6 +33,7 @@ package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
 import code.metadata.comments.MappedComment
+import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -272,7 +273,8 @@ class Boot extends Loggable{
       OBPUser, Admin, Nonce, Token, Consumer,
       ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
       MappedComment, MappedNarrative, MappedTag,
-      MappedTransactionImage, MappedWhereTag)
+      MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
+      MappedCounterpartyWhereTag)
   }
 
   private def showException(le: Throwable): String = {

@@ -122,6 +122,7 @@ class OtherBankAccountMetadata(
   * @param: longitude
   * @param: latitude
   */
+  //TODO: remove ViewId?
   val addCorporateLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
   val deleteCorporateLocation : () => Boolean,
   /**
@@ -131,6 +132,7 @@ class OtherBankAccountMetadata(
   * @param: longitude
   * @param: latitude
   */
+  //TODO: remove ViewId?
   val addPhysicalLocation : (UserId, ViewId, Date, Double, Double) => Boolean,
   val deletePhysicalLocation : () => Boolean,
   val addPublicAlias : (String) => Boolean,
