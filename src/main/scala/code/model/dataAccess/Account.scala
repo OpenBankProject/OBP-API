@@ -216,7 +216,7 @@ object Account extends Account with MongoMetaRecord[Account] {
   }
 }
 
-class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
+class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   def meta = HostedBank
 
   object name extends StringField(this, 255)
@@ -235,6 +235,11 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   def isAccount(bankAccountId : AccountId) : Boolean =
     Account.count(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) == 1
 
+  override def bankId: BankId = BankId(permalink.get)
+  override def shortName: String = alias.get
+  override def fullName: String = name.get
+  override def logoUrl: String = logoURL.get
+  override def websiteUrl: String = website.get
 }
 
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {

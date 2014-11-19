@@ -115,11 +115,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val foundBank = foundBankBox.get
 
-    foundBank.id should equal(bankId)
+    foundBank.bankId should equal(bankId)
     foundBank.shortName should equal(bank.short_name)
     foundBank.fullName should equal(bank.full_name)
-    foundBank.logoURL should equal(bank.logo)
-    foundBank.website should equal(bank.website)
+    foundBank.logoUrl should equal(bank.logo)
+    foundBank.websiteUrl should equal(bank.website)
   }
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -435,11 +435,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     banks.size should equal(1)
     val createdBank  = banks(0)
 
-    createdBank.id should equal(BankId(validId))
+    createdBank.bankId should equal(BankId(validId))
     createdBank.shortName should equal(bank1.short_name)
     createdBank.fullName should equal(bank1.full_name)
-    createdBank.logoURL should equal(bank1.logo)
-    createdBank.website should equal(bank1.website)
+    createdBank.logoUrl should equal(bank1.logo)
+    createdBank.websiteUrl should equal(bank1.website)
   }
 
   it should "not allow multiple banks with the same id" in {

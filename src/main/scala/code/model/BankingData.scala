@@ -88,14 +88,12 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
-class Bank(
-  val id: BankId,
-  val shortName : String,
-  val fullName : String,
-  val logoURL : String,
-  val website : String
-)
-{
+trait Bank {
+  def bankId: BankId
+  def shortName : String
+  def fullName : String
+  def logoUrl : String
+  def websiteUrl : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user)
@@ -116,7 +114,7 @@ class Bank(
 
   def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
   def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user, id)
+    Views.views.vend.getNonPublicBankAccounts(user, bankId)
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -128,7 +126,7 @@ class Bank(
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject = {
-    ("alias" -> id.value) ~
+    ("alias" -> bankId.value) ~
       ("name" -> shortName) ~
       ("logo" -> "") ~
       ("links" -> linkJson)
@@ -137,9 +135,9 @@ class Bank(
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def linkJson : JObject = {
     ("rel" -> "bank") ~
-    ("href" -> {"/" + id + "/bank"}) ~
+    ("href" -> {"/" + bankId + "/bank"}) ~
     ("method" -> "GET") ~
-    ("title" -> {"Get information about the bank identified by " + id})
+    ("title" -> {"Get information about the bank identified by " + bankId})
   }
 }
 

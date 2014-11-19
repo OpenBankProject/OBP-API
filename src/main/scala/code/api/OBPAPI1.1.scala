@@ -309,11 +309,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       logAPICall
       def bankToJson( b : Bank) = {
         ("bank" ->
-          ("id" -> b.id.value) ~
+          ("id" -> b.bankId.value) ~
           ("short_name" -> b.shortName) ~
           ("full_name" -> b.fullName) ~
-          ("logo" -> b.logoURL) ~
-          ("website" -> b.website)
+          ("logo" -> b.logoUrl) ~
+          ("website" -> b.websiteUrl)
         )
       }
 
@@ -327,11 +327,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
       def bankToJson( b : Bank) = {
         ("bank" ->
-          ("id" -> b.id.value) ~
+          ("id" -> b.bankId.value) ~
           ("short_name" -> b.shortName) ~
           ("full_name" -> b.fullName) ~
-          ("logo" -> b.logoURL) ~
-          ("website" -> b.website)
+          ("logo" -> b.logoUrl) ~
+          ("website" -> b.websiteUrl)
         )
       }
 

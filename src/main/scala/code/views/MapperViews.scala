@@ -262,12 +262,12 @@ private object MapperViews extends Views with Loggable {
     //TODO: do this more efficiently
 
     val accountIds : List[AccountId] =
-      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
+      ViewImpl.findAll(By(ViewImpl.isPublic_, true), By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {
         v.accountId
       }).distinct //we remove duplicates here
 
     accountIds.map(accountId => {
-      Connector.connector.vend.getBankAccount(bank.id, accountId)
+      Connector.connector.vend.getBankAccount(bank.bankId, accountId)
     }).flatten
   }
 
@@ -314,13 +314,13 @@ private object MapperViews extends Views with Loggable {
         //TODO: this could be quite a bit more efficient...
 
         val publicViewBankAndAccountIds = ViewImpl.findAll(By(ViewImpl.isPublic_, true),
-          By(ViewImpl.bankPermalink, bank.id.value)).map(v => {
+          By(ViewImpl.bankPermalink, bank.bankId.value)).map(v => {
           (v.bankId, v.accountId)
         }).distinct
 
         val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.apiId.value))
         val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
-          !v.isPublic && v.bankId == bank.id
+          !v.isPublic && v.bankId == bank.bankId
         })
 
         val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
