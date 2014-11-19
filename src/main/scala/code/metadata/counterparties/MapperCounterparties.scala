@@ -11,6 +11,39 @@ import net.liftweb.util.Helpers.tryo
 
 object MapperCounterparties extends Counterparties {
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: OtherBankAccount): OtherBankAccountMetadata = {
+
+    /**
+     * Generates a new alias name that is guaranteed not to collide with any existing public alias names
+     * for the account in question
+     */
+    def newPublicAliasName(): String = {
+      import scala.util.Random
+      val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
+
+      /**
+       * Returns true if @publicAlias is already the name of a public alias within @account
+       */
+      def isDuplicate(publicAlias: String) : Boolean = {
+        MappedCounterpartyMetadata.find(
+          By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+          By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
+          By(MappedCounterpartyMetadata.publicAlias, publicAlias)
+        ).isDefined
+      }
+
+      /**
+       * Appends things to @publicAlias until it a unique public alias name within @account
+       */
+      def appendUntilUnique(publicAlias: String): String = {
+        val newAlias = publicAlias + Random.nextLong().toString.take(1)
+        if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
+        else newAlias
+      }
+
+      if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
+      else firstAliasAttempt
+    }
+
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
 
     existing match {
@@ -19,6 +52,7 @@ object MapperCounterparties extends Counterparties {
         .thisAccountBankId(originalPartyBankId.value)
         .thisAccountId(originalPartyAccountId.value)
         .holder(otherParty.label)
+        .publicAlias(newPublicAliasName())
         .accountNumber(otherParty.number).saveMe
     }
   }
