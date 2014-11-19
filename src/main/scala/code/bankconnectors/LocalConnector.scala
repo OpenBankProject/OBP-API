@@ -10,7 +10,7 @@ import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
-import code.metadata.counterparties.{MongoCounterparties, Metadata}
+import code.metadata.counterparties.{MappedCounterpartyMetadata, MongoCounterparties, Metadata}
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
@@ -39,47 +39,41 @@ private object LocalConnector extends Connector with Loggable {
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
 
     /**
-     * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
-     * "other account metadata" object.
+     * In this implementation (for legacy reasons), the "otherAccountID" is actually the id of the
+     * metadata object.
      */
 
-      for{
-        objId <- tryo{ new ObjectId(otherAccountID) }
-        otherAccountmetadata <- {
-          //"otherAccountID" is actually the mongodb id of the other account metadata" object.
-          val query = QueryBuilder.
-            start("_id").is(objId)
-            .put("originalPartyBankId").is(bankId.value)
-            .put("originalPartyAccountId").is(accountId.value).get()
-          Metadata.find(query)
-        }
-      } yield{
-        val query = QueryBuilder
-          .start("obp_transaction.other_account.holder").is(otherAccountmetadata.holder.get)
-          .put("obp_transaction.other_account.number").is(otherAccountmetadata.accountNumber.get).get()
+    for {
+      counterpartyMetadata <- MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.counterpartyId, otherAccountID))
+    } yield {
+      val query = QueryBuilder
+        .start("obp_transaction.other_account.holder").is(counterpartyMetadata.holder.get)
+        .put("obp_transaction.other_account.number").is(counterpartyMetadata.accountNumber.get).get()
 
-        val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
-          case Full(envelope) => envelope.obp_transaction.get.other_account.get
-          case _ => {
-            logger.warn("no other account found")
-            OBPAccount.createRecord
-          }
+      val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
+        case Full(envelope) => envelope.obp_transaction.get.other_account.get
+        case _ => {
+          logger.warn("no other account found")
+          OBPAccount.createRecord
         }
-        moderate(createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)).get
       }
+      moderate(createOtherBankAccount(bankId, accountId, counterpartyMetadata, otherAccountFromTransaction)).get
+    }
   }
 
   def getModeratedOtherBankAccounts(bankId: BankId, accountId : AccountId)
   (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
 
     /**
-     * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
-     * "other account metadata" object.
+     * In this implementation (for legacy reasons), the "otherAccountID" is actually the id of the
+     * metadata object.
      */
 
-    val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountId.value).get
+    val counterpartyMetadatas = MappedCounterpartyMetadata.findAll(
+      By(MappedCounterpartyMetadata.thisAccountBankId, bankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, accountId.value))
 
-    val moderatedCounterparties = Metadata.findAll(query).map(meta => {
+    val moderatedCounterparties = counterpartyMetadatas.map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
@@ -221,9 +215,9 @@ private object LocalConnector extends Connector with Loggable {
 
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-    otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
+    otherAccount : MappedCounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
-      id = otherAccount.id.is.toString,
+      id = otherAccount.counterpartyId.get,
       label = otherAccount.holder.get,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       swift_bic = None, //TODO: need to add this to the json/model

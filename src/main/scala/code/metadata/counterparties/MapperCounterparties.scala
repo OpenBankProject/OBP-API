@@ -112,8 +112,8 @@ class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyed
     physicalLocation.obj
   override def getUrl: String = url.get
 
-  override val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean = setCorporateLocation _
-  override val addCorporateLocation: (UserId, Date, Double, Double) => Boolean = setPhysicalLocation _
+  override val addPhysicalLocation: (UserId, Date, Double, Double) => Boolean = setPhysicalLocation _
+  override val addCorporateLocation: (UserId, Date, Double, Double) => Boolean = setCorporateLocation _
   override val addPrivateAlias: (String) => Boolean = (x) =>
     trySave{privateAlias(x)}
   override val addURL: (String) => Boolean = (x) =>
@@ -135,6 +135,7 @@ class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyed
 
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
   override def dbIndexes =
+    UniqueIndex(counterpartyId) ::
     Index(thisAccountBankId, thisAccountId, holder, accountNumber) ::
     super.dbIndexes
 }

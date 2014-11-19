@@ -7,7 +7,7 @@ object Counterparties extends SimpleInjector {
 
   val counterparties = new Inject(buildOne _) {}
 
-  def buildOne: Counterparties = MongoCounterparties
+  def buildOne: Counterparties = MapperCounterparties
 
 }
 
