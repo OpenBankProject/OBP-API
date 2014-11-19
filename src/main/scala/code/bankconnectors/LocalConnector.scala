@@ -17,15 +17,11 @@ import com.tesobe.model.UpdateBankAccount
 private object LocalConnector extends Connector with Loggable {
 
   def getBank(bankId : BankId): Box[Bank] =
-    for{
-      bank <- getHostedBank(bankId)
-    } yield {
-      createBank(bank)
-    }
+    getHostedBank(bankId)
 
   //gets banks handled by this connector
   def getBanks : List[Bank] =
-    HostedBank.findAll.map(createBank)
+    HostedBank.findAll
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
     for{
@@ -232,15 +228,5 @@ private object LocalConnector extends Connector with Loggable {
 
   private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
     HostedBank.find("permalink", bankId.value) ?~ {"bank " + bankId + " not found"}
-  }
-
-  private def createBank(bank : HostedBank) : Bank = {
-    new Bank(
-      BankId(bank.permalink.is.toString),
-      bank.alias.is,
-      bank.name.is,
-      bank.logoURL.is,
-      bank.website.is
-    )
   }
 }
