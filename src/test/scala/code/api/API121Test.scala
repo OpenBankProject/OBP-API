@@ -1104,15 +1104,15 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     def generateAccounts() = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
         val acc = Account.createRecord.
-          balance(0).
+          accountBalance(0).
           holder(randomString(10)).
-          number(randomString(10)).
+          accountNumber(randomString(10)).
           kind(randomString(10)).
-          name(randomString(10)).
+          accountName(randomString(10)).
           permalink(randomString(10)).
           bankID(new ObjectId(bank.id.get.toString)).
-          label(randomString(10)).
-          currency(randomString(10)).
+          accountLabel(randomString(10)).
+          accountCurrency(randomString(10)).
           save
         logger.error("ZZZ: " + acc.permalink.get + " at bank " + bank.permalink)
         acc

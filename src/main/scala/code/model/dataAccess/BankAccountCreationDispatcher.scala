@@ -90,7 +90,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
   object BankAccountCreation extends Loggable {
     def createBank(message: CreateBankAccount): HostedBank = {
       // TODO: use a more unique id for the long term
-      HostedBank.find("national_identifier", message.bankIdentifier) match {
+      HostedBank.find(HostedBank.national_identifier.name, message.bankIdentifier) match {
         case Full(b)=> {
           logger.info(s"bank ${b.name} found")
           b
@@ -116,11 +116,11 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
-        ("number" -> bankAccountNumber.accountNumber)~
-        ("bankID" -> bank.id.is)
+        (Account.accountNumber.name -> bankAccountNumber.accountNumber)~
+        (Account.bankID.name -> bank.id.is)
       ) match {
         case Full(bankAccount) => {
-          logger.info(s"account ${bankAccount.number} found")
+          logger.info(s"account ${bankAccount.accountNumber} found")
           bankAccount
         }
         case _ => {
@@ -129,16 +129,16 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
           val bankAccount =
             Account
             .createRecord
-            .balance(0)
+            .accountBalance(0)
             .holder(accountHolder)
-            .number(bankAccountNumber.accountNumber)
+            .accountNumber(bankAccountNumber.accountNumber)
             .kind("current")
-            .name("")
+            .accountName("")
             .permalink(UUID.randomUUID().toString)
             .bankID(bank.id.is)
-            .label("")
-            .currency("EUR")
-            .iban("")
+            .accountLabel("")
+            .accountCurrency("EUR")
+            .accountIban("")
             .lastUpdate(now)
             .save
           bankAccount
