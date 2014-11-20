@@ -168,11 +168,11 @@ trait BankAccount extends Loggable {
   def currency : String
   def name : String
   def label : String
-  def nationalIdentifier : String
+  def nationalIdentifier : String //TODO: remove?
   def swift_bic : Option[String]
   def iban : Option[String]
   def number : String
-  def bankName : String
+  def bankName : String //TODO: remove?
   def bankId : BankId
 
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
