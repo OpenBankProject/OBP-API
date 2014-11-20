@@ -162,7 +162,9 @@ class AccountOwner(
   val name : String
 )
 
-trait BankAccount extends Loggable {
+trait BankAccount {
+
+  @transient protected val log = Logger(this.getClass)
 
   def accountId : AccountId
   def accountType : String
@@ -210,7 +212,7 @@ trait BankAccount extends Loggable {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
-        logger.info("no user was found in the permittedViews")
+        log.info("no user was found in the permittedViews")
         publicViews
       }
     }
@@ -348,7 +350,7 @@ trait BankAccount extends Loggable {
       val view = Views.views.vend.createView(this, v)
       
       if(view.isDefined) {
-        logger.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
+        log.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
       
@@ -363,7 +365,7 @@ trait BankAccount extends Loggable {
       val view = Views.views.vend.updateView(this, viewId, v)
       
       if(view.isDefined) {
-        logger.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
+        log.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
             " for account " + accountId + "at bank " + bankId)
       }
       
@@ -378,7 +380,7 @@ trait BankAccount extends Loggable {
       val deleted = Views.views.vend.removeView(viewId, this)
       
       if(deleted.isDefined) {
-        logger.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+        log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
             " for account " + accountId + "at bank " + bankId)
       }
       
