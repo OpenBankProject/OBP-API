@@ -89,13 +89,6 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   }
   object lastUpdate extends DateField(this)
 
-  def bankName: String ={
-    bankID.obj match {
-      case Full(bank) => bank.name.get
-      case _ => ""
-    }
-  }
-
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
     .start("obp_transaction.this_account.number")
@@ -236,6 +229,7 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   override def fullName: String = name.get
   override def logoUrl: String = logoURL.get
   override def websiteUrl: String = website.get
+  override def nationalIdentifier: String = national_identifier.get
 }
 
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {
