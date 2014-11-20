@@ -164,24 +164,6 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     }
   }
   override def accountId : AccountId = AccountId(permalink.get)
-  override def owners: Set[User] = {
-    val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
-
-    if(accountHolders.isEmpty) {
-      //account holders are not all set up in the db yet, so we might not get any back.
-      //In this case, we just use the previous behaviour, which did not return very much information at all
-      Set(new User {
-        val apiId = UserId(-1)
-        val idGivenByProvider = ""
-        val provider = ""
-        val emailAddress = ""
-        val name : String = holder.toString
-        def views = Nil
-      })
-    } else {
-      accountHolders
-    }
-  }
   override def iban: Option[String] = {
     val i = accountIban.get
     if (i.isEmpty) None else Some(i)
@@ -199,6 +181,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def name: String = accountName.get
   override def accountType: String = kind.get
   override def label: String = accountLabel.get
+  override def accountHolder: String = holder.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {

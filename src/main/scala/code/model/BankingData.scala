@@ -165,7 +165,6 @@ class AccountOwner(
 trait BankAccount extends Loggable {
 
   def accountId : AccountId
-  def owners : Set[User]
   def accountType : String
   def balance : BigDecimal
   def currency : String
@@ -176,12 +175,34 @@ trait BankAccount extends Loggable {
   def number : String
   def bankId : BankId
 
+  @deprecated("Get the account holder(s) via owners")
+  def accountHolder : String
+
   //TODO: remove?
   def bankName : String =
     Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
   //TODO: remove?
   def nationalIdentifier : String =
     Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
+
+  final def owners: Set[User] = {
+    val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
+
+    if(accountHolders.isEmpty) {
+      //account holders are not all set up in the db yet, so we might not get any back.
+      //In this case, we just use the previous behaviour, which did not return very much information at all
+      Set(new User {
+        val apiId = UserId(-1)
+        val idGivenByProvider = ""
+        val provider = ""
+        val emailAddress = ""
+        val name : String = accountHolder
+        def views = Nil
+      })
+    } else {
+      accountHolders
+    }
+  }
 
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
 
