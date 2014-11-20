@@ -229,11 +229,11 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   object national_identifier extends StringField(this, 255)
 
   def getAccount(bankAccountId: AccountId) : Box[Account] = {
-    Account.find(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
+    Account.find((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
   }
 
   def isAccount(bankAccountId : AccountId) : Boolean =
-    Account.count(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) == 1
+    Account.count((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) == 1
 
   override def bankId: BankId = BankId(permalink.get)
   override def shortName: String = alias.get
@@ -246,6 +246,6 @@ object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {
 
   def init = createIndex((permalink.name -> 1), true)
 
-  def find(bankId : BankId) : Box[HostedBank] = find("permalink" -> bankId.value)
+  def find(bankId : BankId) : Box[HostedBank] = find(HostedBank.permalink.name -> bankId.value)
 
 }

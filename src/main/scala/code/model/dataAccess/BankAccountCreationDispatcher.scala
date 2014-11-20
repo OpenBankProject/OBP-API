@@ -90,7 +90,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
   object BankAccountCreation extends Loggable {
     def createBank(message: CreateBankAccount): HostedBank = {
       // TODO: use a more unique id for the long term
-      HostedBank.find("national_identifier", message.bankIdentifier) match {
+      HostedBank.find(HostedBank.national_identifier.name, message.bankIdentifier) match {
         case Full(b)=> {
           logger.info(s"bank ${b.name} found")
           b
@@ -116,8 +116,8 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
-        ("number" -> bankAccountNumber.accountNumber)~
-        ("bankID" -> bank.id.is)
+        (Account.number.name -> bankAccountNumber.accountNumber)~
+        (Account.bankID.name -> bank.id.is)
       ) match {
         case Full(bankAccount) => {
           logger.info(s"account ${bankAccount.number} found")

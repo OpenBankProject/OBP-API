@@ -50,10 +50,10 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     for {
       otherBank <- HostedBank.find(otherBankId) ?~! "no other bank found"
       //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
-      otherAccs = Account.findAll(("permalink" -> otherAccountId.value))
+      otherAccs = Account.findAll((Account.permalink.name -> otherAccountId.value))
       otherAcc <- Box(otherAccs.filter(_.bankId == BankId(otherBank.permalink.get)).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
       transTime = now
-      thisAccs = Account.findAll(("permalink" -> account.accountId.value))
+      thisAccs = Account.findAll((Account.permalink.name -> account.accountId.value))
       thisAcc <- Box(thisAccs.filter(_.bankId == account.bankId).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankId}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {
@@ -114,7 +114,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
       import code.model.dataAccess.Account
       //TODO: would be nicer to incorporate the bank into the query here but I'm not sure it's possible
       //with the reference to the bank document
-      val accounts = Account.findAll(("number" -> accountNumber) ~ ("kind" -> accountKind) ~ ("holder" -> holder))
+      val accounts = Account.findAll((Account.number.name -> accountNumber) ~ (Account.kind.name -> accountKind) ~ (Account.holder.name -> holder))
       //Now get the one that actually belongs to the right bank
       val findFunc = (x : Account) => {
         x.bankId.value == bankName
