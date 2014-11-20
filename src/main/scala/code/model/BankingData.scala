@@ -159,21 +159,21 @@ class AccountOwner(
   val name : String
 )
 
-class BankAccount(
-  val accountId : AccountId,
-  val owners : Set[User],
-  val accountType : String,
-  val balance : BigDecimal,
-  val currency : String,
-  val name : String,
-  val label : String,
-  val nationalIdentifier : String,
-  val swift_bic : Option[String],
-  val iban : Option[String],
-  val number : String,
-  val bankName : String,
-  val bankId : BankId
-) extends Loggable{
+trait BankAccount extends Loggable {
+
+  def accountId : AccountId
+  def owners : Set[User]
+  def accountType : String
+  def balance : BigDecimal
+  def currency : String
+  def name : String
+  def label : String
+  def nationalIdentifier : String
+  def swift_bic : Option[String]
+  def iban : Option[String]
+  def number : String
+  def bankName : String
+  def bankId : BankId
 
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
 

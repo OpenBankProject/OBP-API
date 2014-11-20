@@ -56,7 +56,7 @@ import net.liftweb.mongodb.Limit
 import net.liftweb.mongodb.Skip
 
 
-class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
+class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
   def meta = Account
 
   object accountBalance extends DecimalField(this, 0) {
@@ -96,31 +96,13 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
     }
   }
 
-  def accountId : AccountId = {
-    AccountId(permalink.get)
-  }
-
-  def bankNationalIdentifier: String = {
-    bankID.obj match {
-      case Full(bank) => bank.national_identifier.get
-      case _ => ""
-    }
-  }
-
-  def bankId: BankId = {
-    bankID.obj match  {
-      case Full(bank) => BankId(bank.permalink.get)
-      case _ => BankId("")
-    }
-  }
-
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
     .start("obp_transaction.this_account.number")
     .is(accountNumber.get)
     //FIX: change that to use the bank identifier
     .put("obp_transaction.this_account.bank.national_identifier")
-    .is(bankNationalIdentifier)
+    .is(nationalIdentifier)
   }
 
   //find all the envelopes related to this account
@@ -181,57 +163,53 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
       }
     }
   }
+
+  override def bankId: BankId = {
+    bankID.obj match  {
+      case Full(bank) => BankId(bank.permalink.get)
+      case _ => BankId("")
+    }
+  }
+  override def accountId : AccountId = AccountId(permalink.get)
+  override def owners: Set[User] = {
+    val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
+
+    if(accountHolders.isEmpty) {
+      //account holders are not all set up in the db yet, so we might not get any back.
+      //In this case, we just use the previous behaviour, which did not return very much information at all
+      Set(new User {
+        val apiId = UserId(-1)
+        val idGivenByProvider = ""
+        val provider = ""
+        val emailAddress = ""
+        val name : String = holder.toString
+        def views = Nil
+      })
+    } else {
+      accountHolders
+    }
+  }
+  override def iban: Option[String] = {
+    val i = accountIban.get
+    if (i.isEmpty) None else Some(i)
+  }
+  override def currency: String = accountCurrency.get
+  override def nationalIdentifier: String = {
+    bankID.obj match {
+      case Full(bank) => bank.national_identifier.get
+      case _ => ""
+    }
+  }
+  override def swift_bic: Option[String] = None
+  override def number: String = accountNumber.get
+  override def balance: BigDecimal = accountBalance.get
+  override def name: String = accountName.get
+  override def accountType: String = kind.get
+  override def label: String = accountLabel.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
-
   def init = createIndex((permalink.name -> 1) ~ (bankID.name -> 1), true)
-
-  def toBankAccount(account: Account): BankAccount = {
-    val iban = if (account.accountIban.toString.isEmpty) None else Some(account.accountIban.toString)
-    val nationalIdentifier = account.bankID.obj match {
-      case Full(b) => b.national_identifier.get
-      case _ => ""
-    }
-
-    val accountHolders = Connector.connector.vend.getAccountHolders(account.bankId, account.accountId)
-
-    val owners : Set[User] =
-      if(accountHolders.isEmpty) {
-        //account holders are not all set up in the db yet, so we might not get any back.
-        //In this case, we just use the previous behaviour, which did not return very much information at all
-        Set(new User {
-          val apiId = UserId(-1)
-          val idGivenByProvider = ""
-          val provider = ""
-          val emailAddress = ""
-          val name : String = account.holder.toString
-          def views = Nil
-        })
-      } else {
-        accountHolders
-      }
-
-    val bankAccount =
-      new BankAccount(
-        accountId = account.accountId,
-        owners= owners,
-        accountType = account.kind.toString,
-        balance = account.accountBalance.get,
-        currency = account.accountCurrency.toString,
-        name = account.accountName.get,
-        label = account.accountLabel.toString,
-        //TODO: it is used for the bank national ID when populating Bank json model
-        //either we removed if from here or get it from some where else
-        nationalIdentifier = nationalIdentifier,
-        swift_bic = None,
-        iban = iban,
-        number = account.accountNumber.get,
-        bankName = account.bankName,
-        bankId = account.bankId
-      )
-    bankAccount
-  }
 }
 
 class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{

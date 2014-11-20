@@ -86,7 +86,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
      val thisAccountBank = OBPBank.createRecord.
         IBAN(randomString(5)).
-        national_identifier(account.bankNationalIdentifier).
+        national_identifier(account.nationalIdentifier).
         name(account.bankName)
       val thisAccount = OBPAccount.createRecord.
         holder(account.holder.get).

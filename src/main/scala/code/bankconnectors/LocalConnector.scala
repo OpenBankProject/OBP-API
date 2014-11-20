@@ -27,7 +27,7 @@ private object LocalConnector extends Connector with Loggable {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
-    } yield Account toBankAccount account
+    } yield account
   }
 
 
@@ -137,7 +137,6 @@ private object LocalConnector extends Connector with Loggable {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
 
-    val thisBankAccount = Account.toBankAccount(theAccount)
     val id = TransactionId(env.transactionId.get)
     val uuid = id.value
 
@@ -185,7 +184,7 @@ private object LocalConnector extends Connector with Loggable {
     new Transaction(
       uuid,
       id,
-      thisBankAccount,
+      theAccount,
       otherAccount,
       transactionType,
       amount,
