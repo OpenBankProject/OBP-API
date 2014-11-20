@@ -11,12 +11,14 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   object shortBankName extends MappedString(this, 100)
   object logoURL extends MappedString(this, 255)
   object websiteURL extends MappedString(this, 255)
+  object national_identifier extends MappedString(this, 255)
 
   override def bankId: BankId = BankId(permalink.get)
   override def fullName: String = fullBankName.get
   override def shortName: String = shortBankName.get
   override def logoUrl: String = logoURL.get
   override def websiteUrl: String = websiteURL.get
+  override def nationalIdentifier: String = national_identifier.get
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {

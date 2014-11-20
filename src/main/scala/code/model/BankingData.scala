@@ -165,7 +165,6 @@ class AccountOwner(
 trait BankAccount extends Loggable {
 
   def accountId : AccountId
-  def owners : Set[User]
   def accountType : String
   def balance : BigDecimal
   def currency : String
@@ -176,6 +175,9 @@ trait BankAccount extends Loggable {
   def number : String
   def bankId : BankId
 
+  @deprecated("Get the account holder(s) via owners")
+  def accountHolder : String
+
   //TODO: remove?
   def bankName : String =
     Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
@@ -183,9 +185,28 @@ trait BankAccount extends Loggable {
   def nationalIdentifier : String =
     Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
 
+  final def owners: Set[User] = {
+    val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
+
+    if(accountHolders.isEmpty) {
+      //account holders are not all set up in the db yet, so we might not get any back.
+      //In this case, we just use the previous behaviour, which did not return very much information at all
+      Set(new User {
+        val apiId = UserId(-1)
+        val idGivenByProvider = ""
+        val provider = ""
+        val emailAddress = ""
+        val name : String = accountHolder
+        def views = Nil
+      })
+    } else {
+      accountHolders
+    }
+  }
+
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
 
-  def permittedViews(user: Box[User]) : List[View] = {
+  final def permittedViews(user: Box[User]) : List[View] = {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
@@ -200,7 +221,7 @@ trait BankAccount extends Loggable {
   * @param user the user that we want to see if he has access to the view or not
   * @return true if the user is allowed to access this view, false otherwise
   */
-  def authorizedAccess(view: View, user: Option[User]) : Boolean = {
+  final def authorizedAccess(view: View, user: Option[User]) : Boolean = {
     if(view.isPublic)
       true
     else
@@ -214,7 +235,7 @@ trait BankAccount extends Loggable {
   * @param user a user requesting to see the other users' permissions
   * @return a Box of all the users' permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
   */
-  def permissions(user : User) : Box[List[Permission]] = {
+  final def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       Full(Views.views.vend.permissions(this))
@@ -228,7 +249,7 @@ trait BankAccount extends Loggable {
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) whose permissions will be retrieved
   * @return a Box of the user permissions of this bank account if the user passed as a parameter has access to the owner view (allowed to see this kind of data)
   */
-  def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Permission] = {
+  final def permission(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Permission] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
@@ -246,7 +267,7 @@ trait BankAccount extends Loggable {
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be granted
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def addPermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
+  final def addPermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[View] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
@@ -264,7 +285,7 @@ trait BankAccount extends Loggable {
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the views will be granted
   * @return a the list of the granted views if everything is okay, a Failure otherwise
   */
-  def addPermissions(user : User, viewUIDs : List[ViewUID], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
+  final def addPermissions(user : User, viewUIDs : List[ViewUID], otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
@@ -282,7 +303,7 @@ trait BankAccount extends Loggable {
   * @param otherUserIdGivenByProvider the id of the user (the one given by their auth provider) to whom access to the view will be revoked
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
-  def revokePermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokePermission(user : User, viewUID : ViewUID, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
@@ -301,7 +322,7 @@ trait BankAccount extends Loggable {
   * @return a Full(true) if everything is okay, a Failure otherwise
   */
 
-  def revokeAllPermissions(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
+  final def revokeAllPermissions(user : User, otherUserProvider : String, otherUserIdGivenByProvider: String) : Box[Boolean] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       for{
@@ -312,7 +333,7 @@ trait BankAccount extends Loggable {
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
-  def views(user : User) : Box[List[View]] = {
+  final def views(user : User) : Box[List[View]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
       Full(Views.views.vend.views(this))
@@ -320,7 +341,7 @@ trait BankAccount extends Loggable {
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
-  def createView(userDoingTheCreate : User,v: ViewCreationJSON): Box[View] = {
+  final def createView(userDoingTheCreate : User,v: ViewCreationJSON): Box[View] = {
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
@@ -335,7 +356,7 @@ trait BankAccount extends Loggable {
     }
   }
 
-  def updateView(userDoingTheUpdate : User, viewId : ViewId, v: ViewUpdateData) : Box[View] = {
+  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: ViewUpdateData) : Box[View] = {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
@@ -349,9 +370,8 @@ trait BankAccount extends Loggable {
       view
     }
   }
-    
 
-  def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
+  final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
     if(!userDoingTheRemove.ownerAccess(this)) {
       Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
@@ -365,18 +385,17 @@ trait BankAccount extends Loggable {
       deleted
     }
   }
-   
 
-  def publicViews : List[View] = Views.views.vend.publicViews(this)
+  final def publicViews : List[View] = Views.views.vend.publicViews(this)
 
-  def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
+  final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
       Connector.connector.vend.getTransaction(bankId, accountId, transactionId).map(view.moderate)
     else
       viewNotAllowed(view)
   }
 
-  def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
+  final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactions(bankId, accountId, queryParams: _*)
@@ -385,7 +404,7 @@ trait BankAccount extends Loggable {
     else viewNotAllowed(view)
   }
 
-  def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
+  final def moderatedBankAccount(view: View, user: Box[User]) : Box[ModeratedBankAccount] = {
     if(authorizedAccess(view, user))
       //implicit conversion from option to box
       view.moderate(this)
@@ -399,7 +418,7 @@ trait BankAccount extends Loggable {
   * @return a Box of a list ModeratedOtherBankAccounts, it the bank
   *  accounts that have at least one transaction in common with this bank account
   */
-  def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
+  final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
     if(authorizedAccess(view, user))
       Connector.connector.vend.getModeratedOtherBankAccounts(bankId, accountId)(view.moderate)
     else
@@ -412,14 +431,14 @@ trait BankAccount extends Loggable {
   * @return a Box of a ModeratedOtherBankAccounts, it a bank
   *  account that have at least one transaction in common with this bank account
   */
-  def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
+  final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
       Connector.connector.vend.getModeratedOtherBankAccount(bankId, accountId, otherAccountID)(view.moderate)
     else
       viewNotAllowed(view)
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
-  def overviewJson(user: Box[User]): JObject = {
+  final def overviewJson(user: Box[User]): JObject = {
     val views = permittedViews(user)
     ("number" -> number) ~
     ("account_alias" -> label) ~
