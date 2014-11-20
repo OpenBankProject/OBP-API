@@ -53,8 +53,8 @@ object CreateTestAccountForm{
     showSuccessMessage &
     SetHtml("created-account-id", <span>{createdAccount.permalink.get}</span>) &
     SetHtml("created-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
-    SetHtml("created-account-initial-balance", <span>{createdAccount.balance.get}</span>) &
-    SetHtml("created-account-currency", <span>{createdAccount.currency.get}</span>)
+    SetHtml("created-account-initial-balance", <span>{createdAccount.accountBalance.get}</span>) &
+    SetHtml("created-account-currency", <span>{createdAccount.accountCurrency.get}</span>)
   }
 
   def showError(msg : String) : JsCmd = {
@@ -91,7 +91,7 @@ object CreateTestAccountForm{
         }, bank, user)
 
         //set currency and initial balance
-        bankAccount.currency(currency).balance(initialBalanceAsNumber).save
+        bankAccount.accountCurrency(currency).accountBalance(initialBalanceAsNumber).save
 
         BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount

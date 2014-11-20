@@ -210,7 +210,7 @@ private object LocalConnector extends Connector with Loggable {
       val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
       val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
       if(outDatedTransactions && useMessageQueue) {
-        UpdatesRequestSender.sendMsg(UpdateBankAccount(account.number.get, bank.national_identifier.get))
+        UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
     }
   }

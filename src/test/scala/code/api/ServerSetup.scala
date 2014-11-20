@@ -90,7 +90,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
         name(account.bankName)
       val thisAccount = OBPAccount.createRecord.
         holder(account.holder.get).
-        number(account.number.get).
+        number(account.accountNumber.get).
         kind(account.kind.get).
         bank(thisAccountBank)
 
@@ -135,11 +135,11 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
         val transactionAmount = BigDecimal(nextDouble * 1000).setScale(2,RoundingMode.HALF_UP)
 
         val newBalance : OBPBalance = OBPBalance.createRecord.
-          currency(account.currency.get).
-          amount(account.balance.get + transactionAmount)
+          currency(account.accountCurrency.get).
+          amount(account.accountBalance.get + transactionAmount)
 
         val newValue : OBPValue = OBPValue.createRecord.
-          currency(account.currency.get).
+          currency(account.accountCurrency.get).
           amount(transactionAmount)
 
         val details ={
@@ -163,7 +163,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
         val env = OBPEnvelope.createRecord.
           obp_transaction(transaction).save
-        account.balance(newBalance.amount.get).lastUpdate(now).save
+        account.accountBalance(newBalance.amount.get).lastUpdate(now).save
         env.save
       }
 
@@ -189,15 +189,15 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountId : AccountId, currency : String) = {
 
     val created = Account.createRecord.
-      balance(1000).
+      accountBalance(1000).
       holder(randomString(4)).
-      number(randomString(4)).
+      accountNumber(randomString(4)).
       kind(randomString(4)).
-      name(randomString(4)).
+      accountName(randomString(4)).
       permalink(accountId.value).
       bankID(bank.id.get).
-      label(randomString(4)).
-      currency(currency).
+      accountLabel(randomString(4)).
+      accountCurrency(currency).
       save
 
     val owner = ownerView(BankId(bank.permalink.get), accountId)

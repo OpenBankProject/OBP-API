@@ -59,16 +59,34 @@ import net.liftweb.mongodb.Skip
 class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
   def meta = Account
 
-  object balance extends DecimalField(this, 0)
+  object accountBalance extends DecimalField(this, 0) {
+    //this is the legacy db field name
+    override def name = "balance"
+  }
   object holder extends StringField(this, 255)
-  object number extends StringField(this, 255)
+  object accountNumber extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "number"
+  }
   object kind extends StringField(this, 255)
-  object name extends StringField(this, 255)
+  object accountName extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "name"
+  }
   object permalink extends StringField(this, 255)
   object bankID extends ObjectIdRefField(this, HostedBank)
-  object label extends StringField(this, 255)
-  object currency extends StringField(this, 255)
-  object iban extends StringField(this, 255)
+  object accountLabel extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "label"
+  }
+  object accountCurrency extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "currency"
+  }
+  object accountIban extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "iban"
+  }
   object lastUpdate extends DateField(this)
 
   def bankName: String ={
@@ -99,7 +117,7 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
     .start("obp_transaction.this_account.number")
-    .is(number.get)
+    .is(accountNumber.get)
     //FIX: change that to use the bank identifier
     .put("obp_transaction.this_account.bank.national_identifier")
     .is(bankNationalIdentifier)
@@ -170,7 +188,7 @@ object Account extends Account with MongoMetaRecord[Account] {
   def init = createIndex((permalink.name -> 1) ~ (bankID.name -> 1), true)
 
   def toBankAccount(account: Account): BankAccount = {
-    val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
+    val iban = if (account.accountIban.toString.isEmpty) None else Some(account.accountIban.toString)
     val nationalIdentifier = account.bankID.obj match {
       case Full(b) => b.national_identifier.get
       case _ => ""
@@ -199,16 +217,16 @@ object Account extends Account with MongoMetaRecord[Account] {
         accountId = account.accountId,
         owners= owners,
         accountType = account.kind.toString,
-        balance = account.balance.get,
-        currency = account.currency.toString,
-        name = account.name.get,
-        label = account.label.toString,
+        balance = account.accountBalance.get,
+        currency = account.accountCurrency.toString,
+        name = account.accountName.get,
+        label = account.accountLabel.toString,
         //TODO: it is used for the bank national ID when populating Bank json model
         //either we removed if from here or get it from some where else
         nationalIdentifier = nationalIdentifier,
         swift_bic = None,
         iban = iban,
-        number = account.number.get,
+        number = account.accountNumber.get,
         bankName = account.bankName,
         bankId = account.bankId
       )

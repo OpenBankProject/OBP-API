@@ -116,11 +116,11 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
-        (Account.number.name -> bankAccountNumber.accountNumber)~
+        (Account.accountNumber.name -> bankAccountNumber.accountNumber)~
         (Account.bankID.name -> bank.id.is)
       ) match {
         case Full(bankAccount) => {
-          logger.info(s"account ${bankAccount.number} found")
+          logger.info(s"account ${bankAccount.accountNumber} found")
           bankAccount
         }
         case _ => {
@@ -129,16 +129,16 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
           val bankAccount =
             Account
             .createRecord
-            .balance(0)
+            .accountBalance(0)
             .holder(accountHolder)
-            .number(bankAccountNumber.accountNumber)
+            .accountNumber(bankAccountNumber.accountNumber)
             .kind("current")
-            .name("")
+            .accountName("")
             .permalink(UUID.randomUUID().toString)
             .bankID(bank.id.is)
-            .label("")
-            .currency("EUR")
-            .iban("")
+            .accountLabel("")
+            .accountCurrency("EUR")
+            .accountIban("")
             .lastUpdate(now)
             .save
           bankAccount

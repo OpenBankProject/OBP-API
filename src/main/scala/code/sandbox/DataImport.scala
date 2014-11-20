@@ -224,12 +224,12 @@ object DataImport extends Loggable {
             val account = Account.createRecord
               .permalink(acc.id)
               .bankID(hBank.id.get)
-              .label(acc.label)
-              .currency(acc.balance.currency)
-              .balance(balance)
-              .number(acc.number)
+              .accountLabel(acc.label)
+              .accountCurrency(acc.balance.currency)
+              .accountBalance(balance)
+              .accountNumber(acc.number)
               .kind(acc.`type`)
-              .iban(acc.IBAN)
+              .accountIban(acc.IBAN)
 
             val bankId = BankId(acc.bank)
             val accountId = AccountId(acc.id)
@@ -391,7 +391,7 @@ object DataImport extends Loggable {
 
             val obpThisAccount = OBPAccount.createRecord
               .holder(createdAcc.holder.get)
-              .number(createdAcc.number.get)
+              .number(createdAcc.accountNumber.get)
               .kind(createdAcc.kind.get)
               .bank(obpThisAccountBank)
 
@@ -403,11 +403,11 @@ object DataImport extends Loggable {
 
             val newBalance = OBPBalance.createRecord
               .amount(newBalanceValue)
-              .currency(createdAcc.currency.get)
+              .currency(createdAcc.accountCurrency.get)
 
             val transactionValue = OBPValue.createRecord
               .amount(tValue)
-              .currency(createdAcc.currency.get)
+              .currency(createdAcc.accountCurrency.get)
 
             val obpDetails = OBPDetails.createRecord
               .completed(completedDate)

@@ -168,7 +168,7 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
     val num = thisAcc.number.get
     val bankId = thisAcc.bank.get.national_identifier.get
     for {
-      account <- Account.find(Account.number.name, num)
+      account <- Account.find(Account.accountNumber.name, num)
       bank <- HostedBank.find(HostedBank.national_identifier.name, bankId)
       if(bank.id.get == account.bankID.get)
     } yield account

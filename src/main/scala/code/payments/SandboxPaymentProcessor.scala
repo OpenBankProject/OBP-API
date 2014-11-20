@@ -73,7 +73,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
                 ("name" -> account.bankId.value))) ~
           ("other_account" ->
             ("holder" -> otherAcc.holder.get) ~
-              ("number" -> otherAcc.number.get) ~
+              ("number" -> otherAcc.accountNumber.get) ~
               ("kind" -> otherAcc.kind.get) ~
               ("bank" ->
                 ("IBAN" -> "") ~
@@ -114,7 +114,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
       import code.model.dataAccess.Account
       //TODO: would be nicer to incorporate the bank into the query here but I'm not sure it's possible
       //with the reference to the bank document
-      val accounts = Account.findAll((Account.number.name -> accountNumber) ~ (Account.kind.name -> accountKind) ~ (Account.holder.name -> holder))
+      val accounts = Account.findAll((Account.accountNumber.name -> accountNumber) ~ (Account.kind.name -> accountKind) ~ (Account.holder.name -> holder))
       //Now get the one that actually belongs to the right bank
       val findFunc = (x : Account) => {
         x.bankId.value == bankName
@@ -124,7 +124,7 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
         case Some(account) => {
           def updateAccountBalance() = {
             logger.debug("Updating current balance for " + bankName + "/" + accountNumber + "/" + accountKind)
-            account.balance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
+            account.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
             logger.debug("Saving new transaction")
             e.save
           }
