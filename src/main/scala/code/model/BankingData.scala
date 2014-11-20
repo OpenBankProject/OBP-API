@@ -95,6 +95,9 @@ trait Bank {
   def logoUrl : String
   def websiteUrl : String
 
+  //it's not entirely clear what this is/represents
+  def nationalIdentifier : String
+
   def accounts(user : Box[User]) : List[BankAccount] = {
     Views.views.vend.getAllAccountsUserCanSee(this, user)
   }
@@ -168,12 +171,17 @@ trait BankAccount extends Loggable {
   def currency : String
   def name : String
   def label : String
-  def nationalIdentifier : String //TODO: remove?
   def swift_bic : Option[String]
   def iban : Option[String]
   def number : String
-  def bankName : String //TODO: remove?
   def bankId : BankId
+
+  //TODO: remove?
+  def bankName : String =
+    Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
+  //TODO: remove?
+  def nationalIdentifier : String =
+    Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
 
   private def viewNotAllowed(view : View ) = Failure("user does not have access to the " + view.name + " view")
 
