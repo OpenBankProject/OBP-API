@@ -3,6 +3,7 @@ package code.model.dataAccess
 import java.math.MathContext
 
 import code.model._
+import code.util.Helper
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
@@ -38,17 +39,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
     if(sb.isEmpty) None else Some(sb)
   }
   override def number: String = accountNumber.get
-  override def balance: BigDecimal = {
-    //this data was sourced from Wikipedia, so it might not all be correct,
-    //and some banking systems may still retain different units (e.g. CZK?)
-    val decimalPlaces = currency match {
-      //TODO: handle MRO and MGA, which are non-decimal
-      case "CZK" | "JPY" | "KRW" => 0
-      case "KWD" | "OMR" => 3
-      case _ => 2
-    }
-    BigDecimal(accountBalance, decimalPlaces)
-  }
+  override def balance: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(accountBalance.get, currency)
   override def name: String = accountName.get
   override def accountType: String = kind.get
   override def label: String = accountLabel.get

@@ -50,4 +50,20 @@ object Helper{
   }
 
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
+
+  /**
+   * Converts a number representing the smallest unit of a currency into a big decimal formatted according to the rules of
+   * that currency. E.g. JPY: 1000 units (yen) => 1000, EUR: 1000 units (cents) => 10.00
+   */
+  def smallestCurrencyUnitToBigDecimal(units : Long, currencyCode : String) = {
+    //this data was sourced from Wikipedia, so it might not all be correct,
+    //and some banking systems may still retain different units (e.g. CZK?)
+    val decimalPlaces = currencyCode match {
+      //TODO: handle MRO and MGA, which are non-decimal
+      case "CZK" | "JPY" | "KRW" => 0
+      case "KWD" | "OMR" => 3
+      case _ => 2
+    }
+    BigDecimal(units, decimalPlaces)
+  }
 }
