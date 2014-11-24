@@ -66,6 +66,14 @@ object MapperCounterparties extends Counterparties {
       By(MappedCounterpartyMetadata.holder, otherParty.label),
       By(MappedCounterpartyMetadata.accountNumber, otherParty.number))
   }
+
+  //get all counterparty metadatas for a single OBP account
+  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[OtherBankAccountMetadata] = {
+    MappedCounterpartyMetadata.findAll(
+      By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value)
+    )
+  }
 }
 
 class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
@@ -136,6 +144,8 @@ class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyed
   }
 
   override def metadataId: String = counterpartyId.get
+  override def getAccountNumber: String = accountNumber.get
+  override def getHolder: String = holder.get
   override def getPublicAlias: String = publicAlias.get
   override def getCorporateLocation: Option[GeoTag] =
     corporateLocation.obj
