@@ -135,6 +135,7 @@ class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyed
     savedWhere.map(location => trySave{physicalLocation(location)}).getOrElse(false)
   }
 
+  override def metadataId: String = counterpartyId.get
   override def getPublicAlias: String = publicAlias.get
   override def getCorporateLocation: Option[GeoTag] =
     corporateLocation.obj

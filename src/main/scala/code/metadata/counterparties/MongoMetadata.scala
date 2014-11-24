@@ -70,6 +70,7 @@ class Metadata private() extends OtherBankAccountMetadata with MongoRecord[Metad
       Some(loc)
   }
 
+  override def metadataId = id.get.toString
   override def getUrl = url.get
   override def getCorporateLocation = locationTag(corporateLocation.get)
   override def getPhysicalLocation = locationTag(physicalLocation.get)
