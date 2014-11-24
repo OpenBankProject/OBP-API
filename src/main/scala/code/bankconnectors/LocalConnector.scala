@@ -31,8 +31,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  def getModeratedOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String)
-  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
+  def getOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String): Box[OtherBankAccount] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -61,12 +60,11 @@ private object LocalConnector extends Connector with Loggable {
             OBPAccount.createRecord
           }
         }
-        moderate(createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)).get
+        createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)
       }
   }
 
-  def getModeratedOtherBankAccounts(bankId: BankId, accountId : AccountId)
-  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
+  def getOtherBankAccounts(bankId: BankId, accountId : AccountId): List[OtherBankAccount] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -75,7 +73,7 @@ private object LocalConnector extends Connector with Loggable {
 
     val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountId.value).get
 
-    val moderatedCounterparties = Metadata.findAll(query).map(meta => {
+    val counterparties = Metadata.findAll(query).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
@@ -91,10 +89,10 @@ private object LocalConnector extends Connector with Loggable {
           OBPAccount.createRecord
         }
       }
-      moderate(createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction))
+      createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction)
     })
 
-    Full(moderatedCounterparties.flatten)
+    counterparties
   }
 
   def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {

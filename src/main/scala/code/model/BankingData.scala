@@ -418,12 +418,11 @@ trait BankAccount extends Loggable {
   * @return a Box of a list ModeratedOtherBankAccounts, it the bank
   *  accounts that have at least one transaction in common with this bank account
   */
-  final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
+  final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccounts(bankId, accountId)(view.moderate)
+      Full(Connector.connector.vend.getOtherBankAccounts(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
-  }
   /**
   * @param the ID of the other bank account that the user want have access
   * @param the view that we will use to get the ModeratedOtherBankAccount
@@ -433,9 +432,10 @@ trait BankAccount extends Loggable {
   */
   final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccount(bankId, accountId, otherAccountID)(view.moderate)
+      Connector.connector.vend.getOtherBankAccount(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
+
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   final def overviewJson(user: Box[User]): JObject = {
