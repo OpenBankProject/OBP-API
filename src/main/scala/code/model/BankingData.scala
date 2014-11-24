@@ -181,15 +181,14 @@ trait BankAccount {
   def accountHolder : String
 
   //TODO: remove?
-  def bankName : String =
+  final def bankName : String =
     Connector.connector.vend.getBank(bankId).map(_.fullName).getOrElse("")
   //TODO: remove?
-  def nationalIdentifier : String =
+  final def nationalIdentifier : String =
     Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
 
   final def owners: Set[User] = {
     val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
-
     if(accountHolders.isEmpty) {
       //account holders are not all set up in the db yet, so we might not get any back.
       //In this case, we just use the previous behaviour, which did not return very much information at all
@@ -420,12 +419,11 @@ trait BankAccount {
   * @return a Box of a list ModeratedOtherBankAccounts, it the bank
   *  accounts that have at least one transaction in common with this bank account
   */
-  final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] = {
+  final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccounts(bankId, accountId)(view.moderate)
+      Full(Connector.connector.vend.getOtherBankAccounts(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
-  }
   /**
   * @param the ID of the other bank account that the user want have access
   * @param the view that we will use to get the ModeratedOtherBankAccount
@@ -435,7 +433,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getModeratedOtherBankAccount(bankId, accountId, otherAccountID)(view.moderate)
+      Connector.connector.vend.getOtherBankAccount(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
 

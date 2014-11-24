@@ -57,22 +57,20 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
   object MockedCardConnector extends Connector {
     //these methods aren't required by our test
-    def getBank(bankId : BankId) : Box[Bank] = Empty
-    def getBanks : List[Bank] = Nil
-    def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
-    def getModeratedOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String)
-                                    (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]) : Box[ModeratedOtherBankAccount] =
+    override def getBank(bankId : BankId) : Box[Bank] = Empty
+    override def getBanks : List[Bank] = Nil
+    override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
+    override def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount] =
       Empty
-    def getModeratedOtherBankAccounts(bankId: BankId, accountID : AccountId)
-                                     (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] =
+    override def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount] =
+      Nil
+    override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
-    def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
-      Empty
-    def getTransaction(bankId : BankId, accountID : AccountId, transactionID : TransactionId): Box[Transaction] =
+    override def getTransaction(bankId : BankId, accountID : AccountId, transactionID : TransactionId): Box[Transaction] =
       Empty
 
     //these methods are required
-    def getPhysicalCards(user : User) : Set[PhysicalCard] = {
+    override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
       if(user == obpuser1) {
         user1AllCards
       } else if (user == obpuser2) {
@@ -82,7 +80,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       }
     }
 
-    def getPhysicalCardsForBank(bankId : BankId, user : User) : Set[PhysicalCard] = {
+    override def getPhysicalCardsForBank(bankId : BankId, user : User) : Set[PhysicalCard] = {
       if(user == obpuser1) {
         user1CardsForOneBank
       } else if (user == obpuser2) {
@@ -92,7 +90,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       }
     }
 
-    def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
+    override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
   }
 
   override def beforeAll() {
