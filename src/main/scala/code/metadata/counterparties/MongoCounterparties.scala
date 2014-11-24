@@ -5,7 +5,12 @@ import net.liftweb.common.Loggable
 import com.mongodb.QueryBuilder
 
 object MongoCounterparties extends Counterparties with Loggable {
-  import code.model.GeoTag
+
+
+  def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[OtherBankAccountMetadata] = {
+    val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).get
+    Metadata.findAll(query)
+  }
 
   def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
     import net.liftweb.util.Helpers.tryo
