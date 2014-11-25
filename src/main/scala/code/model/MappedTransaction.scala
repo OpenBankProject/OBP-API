@@ -38,6 +38,11 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyAccountKind extends MappedString(this, 40)
 
 
+  def getCounterpartyIban() = {
+    val i = counterpartyIban.get
+    if(i.isEmpty) None else Some(i)
+  }
+
   def toTransaction : Box[Transaction] = {
     val bankId = BankId(bank.get)
     val accountId = AccountId(account.get)
@@ -51,10 +56,6 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     val transactionCurrency = currency.get
     val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
     val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
-    val iban = {
-      val i = counterpartyIban.get
-      if(i.isEmpty) None else Some(i)
-    }
 
     def createOtherBankAccount(id: String) = {
       new OtherBankAccount(
@@ -62,7 +63,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
         label = counterpartyAccountHolder.get,
         nationalIdentifier = counterpartyNationalId.get,
         swift_bic = None, //TODO: need to add this to the json/model
-        iban = iban,
+        iban = getCounterpartyIban(),
         number = counterpartyAccountNumber.get,
         bankName = counterpartyBankName.get,
         kind = counterpartyAccountKind.get,

@@ -1,5 +1,6 @@
 package code.metadata.counterparties
 
+import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount}
 
@@ -17,4 +18,6 @@ trait Counterparties {
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[OtherBankAccountMetadata]
+
+  def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[OtherBankAccountMetadata]
 }

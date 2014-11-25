@@ -44,6 +44,18 @@ object MapperCounterparties extends Counterparties {
       else firstAliasAttempt
     }
 
+
+    //can't find by MappedCounterpartyMetadata.counterpartyId = otherParty.id because in this implementation
+    //if the metadata doesn't exist, the id field of ther OtherBankAccount is not known yet, and will be empty
+    def findMappedCounterpartyMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
+                                       otherParty: OtherBankAccount) : Box[MappedCounterpartyMetadata] = {
+      MappedCounterpartyMetadata.find(
+        By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+        By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
+        By(MappedCounterpartyMetadata.holder, otherParty.label),
+        By(MappedCounterpartyMetadata.accountNumber, otherParty.number))
+    }
+
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
 
     existing match {
@@ -57,21 +69,22 @@ object MapperCounterparties extends Counterparties {
     }
   }
 
-
-  def findMappedCounterpartyMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-                                     otherParty: OtherBankAccount) : Box[MappedCounterpartyMetadata] = {
-    MappedCounterpartyMetadata.find(
-      By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
-      By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
-      By(MappedCounterpartyMetadata.holder, otherParty.label),
-      By(MappedCounterpartyMetadata.accountNumber, otherParty.number))
-  }
-
   //get all counterparty metadatas for a single OBP account
   override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[OtherBankAccountMetadata] = {
     MappedCounterpartyMetadata.findAll(
       By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
       By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value)
+    )
+  }
+
+  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[OtherBankAccountMetadata] = {
+    /**
+     * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
+     */
+    MappedCounterpartyMetadata.find(
+      By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
+      By(MappedCounterpartyMetadata.counterpartyId, counterpartyMetadataId)
     )
   }
 }

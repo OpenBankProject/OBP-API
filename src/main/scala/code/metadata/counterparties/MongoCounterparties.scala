@@ -1,8 +1,11 @@
 package code.metadata.counterparties
 
 import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount}
-import net.liftweb.common.Loggable
+import net.liftweb.common.{Box, Loggable}
 import com.mongodb.QueryBuilder
+import net.liftweb.util.Helpers.tryo
+import net.liftweb.common.Full
+import org.bson.types.ObjectId
 
 object MongoCounterparties extends Counterparties with Loggable {
 
@@ -12,21 +15,25 @@ object MongoCounterparties extends Counterparties with Loggable {
     Metadata.findAll(query)
   }
 
+  def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[OtherBankAccountMetadata] = {
+    /**
+     * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
+     */
+    for {
+      objId <- tryo { new ObjectId(counterpartyMetadataId) }
+      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).
+        put("_id").is(objId).get()
+      m <- Metadata.find(query)
+    } yield m
+  }
+
   def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
-    import net.liftweb.util.Helpers.tryo
-    import net.liftweb.common.Full
-    import org.bson.types.ObjectId
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = for {
-      objId <- tryo { new ObjectId(otherParty.id) }
-      query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).
-        put("_id").is(objId).get()
-      m <- Metadata.find(query)
-    } yield m
+    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.id)
 
     val metadata = existing match {
       case Full(m) => m
