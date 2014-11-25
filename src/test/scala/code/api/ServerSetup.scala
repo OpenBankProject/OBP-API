@@ -32,8 +32,10 @@ Berlin 13359, Germany
 
 package code.api.test
 
+import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.model.{AccountId, BankId}
+import code.model._
+import net.liftweb.mapper.{MetaMapper, Schemifier}
 import org.scalatest._
 import dispatch._
 import net.liftweb.json.{Serialization, NoTypeHints}
@@ -179,11 +181,16 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   }
 
   override def afterEach() = {
-    //drop the Database after the tests
+    //drop the mongo Database after each test
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
-    ViewImpl.findAll.foreach(_.delete_!)
-    ViewPrivileges.findAll.foreach(_.delete_!)
-    MappedAccountHolder.findAll.foreach(_.delete_!)
+
+    //returns true if the model should not be wiped after each test
+    def exclusion(m : MetaMapper[_]) = {
+      m == Nonce || m == Token || m == Consumer || m == OBPUser || m == APIUser
+    }
+
+    //empty the relational db tables after each test
+    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
   }
 
   def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountId : AccountId, currency : String) = {
