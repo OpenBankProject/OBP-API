@@ -4,7 +4,7 @@ import code.metadata.counterparties.{Counterparties, MappedCounterpartyMetadata}
 import code.model._
 import code.model.dataAccess.{MappedBankAccount, MappedAccountHolder, MappedBank}
 import net.liftweb.common.{Failure, Full, Box}
-import net.liftweb.mapper.By
+import net.liftweb.mapper._
 
 object LocalMappedConnector extends Connector {
   //gets a particular bank handled by this connector
@@ -23,9 +23,24 @@ object LocalMappedConnector extends Connector {
   }
 
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    Full(MappedTransaction.findAll(
-      By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountID.value)).flatMap(_.toTransaction))
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+    val ordering = queryParams.collect {
+      //we don't care about the intended sort field and only sort on finish date for now
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+        }
+    }
+
+    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
+
+    val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+    Full(mappedTransactions.flatMap(_.toTransaction))
   }
 
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] =
