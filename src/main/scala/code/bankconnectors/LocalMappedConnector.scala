@@ -1,14 +1,22 @@
 package code.bankconnectors
 
-import code.metadata.counterparties.{Counterparties, MappedCounterpartyMetadata}
+import code.metadata.counterparties.Counterparties
 import code.model._
-import code.model.dataAccess.{MappedBankAccount, MappedAccountHolder, MappedBank}
-import net.liftweb.common.{Failure, Full, Box}
+import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
+import com.tesobe.model.UpdateBankAccount
+import net.liftweb.common.{Full, Box}
 import net.liftweb.mapper._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
+
+import scala.concurrent.ops._
 
 object LocalMappedConnector extends Connector {
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] =
+    getMappedBank(bankId)
+
+  private def getMappedBank(bankId: BankId): Box[MappedBank] =
     MappedBank.find(By(MappedBank.permalink, bankId.value))
 
   //gets banks handled by this connector
@@ -16,6 +24,9 @@ object LocalMappedConnector extends Connector {
     MappedBank.findAll
 
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
+
+    updateAccountTransactions(bankId, accountID)
+
     MappedTransaction.find(
       By(MappedTransaction.bank, bankId.value),
       By(MappedTransaction.account, accountID.value),
@@ -40,13 +51,47 @@ object LocalMappedConnector extends Connector {
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
 
     val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+
+    updateAccountTransactions(bankId, accountID)
+
     Full(mappedTransactions.flatMap(_.toTransaction))
   }
 
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] =
+  /**
+   *
+   * refreshes transactions via hbci if the transaction info is sourced from hbci
+   *
+   *  Checks if the last update of the account was made more than one hour ago.
+   *  if it is the case we put a message in the message queue to ask for
+   *  transactions updates
+   *
+   *  It will be used each time we fetch transactions from the DB. But the test
+   *  is performed in a different thread.
+   */
+  private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
+
+    for {
+      bank <- getMappedBank(bankId)
+      account <- getMappedBankAccount(bankId, accountId)
+    } {
+      spawn{
+        val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
+        val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
+        if(outDatedTransactions && useMessageQueue) {
+          UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
+        }
+      }
+    }
+  }
+
+  private def getMappedBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value))
+  }
+
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] =
+    getMappedBankAccount(bankId, accountId)
 
   //gets the users who are the legal owners/holders of the account
   override def getAccountHolders(bankId: BankId, accountID: AccountId): Set[User] =

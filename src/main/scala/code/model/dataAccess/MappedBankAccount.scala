@@ -27,6 +27,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object kind extends MappedString(this, 40)
   object accountLabel extends MappedString(this, 255)
 
+  //the last time this account was updated via hbci
+  object lastUpdate extends MappedDate(this)
+
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
     val i = accountIban.get
