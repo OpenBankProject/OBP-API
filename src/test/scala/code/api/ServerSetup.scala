@@ -242,6 +242,13 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
 
+  def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
+    MappedAccountHolder.create.
+      user(user.apiId.value).
+      accountBankPermalink(bankId.value).
+      accountPermalink(accountId.value).save
+  }
+
   def grantAccessToAllExistingViews(user : User) = {
     ViewImpl.findAll.foreach(v => {
       ViewPrivileges.create.

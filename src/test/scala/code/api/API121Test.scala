@@ -48,7 +48,7 @@ import code.views.Views
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
 
-class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts with SetAccountHolder {
+class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
