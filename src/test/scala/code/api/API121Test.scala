@@ -663,11 +663,11 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we make a payment", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -734,12 +734,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     scenario("we can't make a payment without access to the owner view", Payments) {
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
 
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -775,11 +775,11 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     scenario("we can't make a payment without an oauth user", Payments) {
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -817,12 +817,11 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       When("we try to make a payment with amount = 0")
 
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -859,11 +858,11 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -902,9 +901,9 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -936,11 +935,11 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "GBP")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -2084,10 +2083,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       //set up: make obpuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
-      MappedAccountHolder.create.
-        user(obpuser3).
-        accountBankPermalink(bankId).
-        accountPermalink(bankAccount.id).save
+      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to all views")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, obpuser3.idGivenByProvider, user1)

@@ -1,6 +1,8 @@
 package code.api
 
 import code.api.test.ServerSetup
+import code.bankconnectors.Connector
+import code.model.{AccountId, User}
 import code.model.dataAccess.{ViewPrivileges, APIUser, Account, HostedBank}
 import net.liftweb.util.Helpers._
 import org.bson.types.ObjectId
@@ -19,46 +21,26 @@ trait PrivateUser2Accounts {
    */
   def accountTestsSpecificDBSetup() {
 
-    val banks =  HostedBank.findAll
+    val banks =  Connector.connector.vend.getBanks
 
-    def generateAccounts() = banks.flatMap(bank => {
+    def generateAccounts(owner: User) = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        val acc = Account.createRecord.
-          accountBalance(0).
-          holder(randomString(10)).
-          accountNumber(randomString(10)).
-          kind(randomString(10)).
-          accountName(randomString(10)).
-          permalink(randomString(10)).
-          bankID(new ObjectId(bank.id.get.toString)).
-          accountLabel(randomString(10)).
-          accountCurrency(randomString(10)).
-          save
-        acc
+        createAccountAndOwnerView(Some(owner), bank.bankId, AccountId(randomString(10)), randomString(10))
       }
     })
 
     //fake bank accounts
-    val privateAccountsForUser1 = generateAccounts()
-    val privateAccountsForUser2 = generateAccounts()
-    val publicAccounts = generateAccounts()
 
-    def addViews(accs : List[Account], ownerUser : APIUser, addPublicView : Boolean) = {
-      accs.foreach(account => {
-        val owner = ownerView(account.bankId, account.accountId)
-        ViewPrivileges.create.
-          view(owner).
-          user(ownerUser).
-          save
+    //private accounts for obpuser1 (visible to obpuser1)
+    generateAccounts(obpuser1)
+    //private accounts for obpuser2 (not visible to obpuser1)
+    generateAccounts(obpuser2)
 
-        if(addPublicView) {
-          publicView(account.bankId, account.accountId)
-        }
-      })
-    }
-    addViews(privateAccountsForUser1, obpuser1, false)
-    addViews(privateAccountsForUser2, obpuser2, false)
-    addViews(publicAccounts, obpuser2, true)
+    //public accounts owned by obpuser2 (visible to obpuser1)
+    //create accounts
+    val accounts = generateAccounts(obpuser2)
+    //add public views
+    accounts.foreach(acc => publicView(acc.bankId, acc.accountId))
   }
 
 }

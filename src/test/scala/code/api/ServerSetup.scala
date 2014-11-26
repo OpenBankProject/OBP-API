@@ -35,6 +35,7 @@ package code.api.test
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.model._
+import com.mongodb.QueryBuilder
 import net.liftweb.mapper.{MetaMapper, Schemifier}
 import org.scalatest._
 import dispatch._
@@ -66,13 +67,13 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
     //fake banks
     val banks = for{i <- 0 until 3} yield {
-      createBank(randomString(5))
+      createHostedBank(randomString(5))
     }
 
     //fake bank accounts
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
-        createAccountAndOwnerView(None, bank, AccountId(randomString(4)), randomString(4))
+        createMongoAccountAndOwnerView(None, bank.bankId, AccountId(randomString(4)), randomString(4))
         }
       })
 
@@ -188,7 +189,10 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
   }
 
-  def createAccountAndOwnerView(accountOwner: Option[APIUser], bank: HostedBank, accountId : AccountId, currency : String) = {
+  private def createMongoAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : Account = {
+
+    val q = QueryBuilder.start(HostedBank.permalink.name).is(bankId.value).get()
+    val hostedBank = HostedBank.find(q).get
 
     val created = Account.createRecord.
       accountBalance(1000).
@@ -197,41 +201,53 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       kind(randomString(4)).
       accountName(randomString(4)).
       permalink(accountId.value).
-      bankID(bank.id.get).
+      bankID(hostedBank.id.get).
       accountLabel(randomString(4)).
       accountCurrency(currency).
       save
 
-    val owner = ownerView(BankId(bank.permalink.get), accountId)
+    val owner = ownerViewImpl(bankId, accountId)
 
     //give to user1 owner view
     if(accountOwner.isDefined) {
       ViewPrivileges.create.
         view(owner).
-        user(accountOwner.get).
+        user(accountOwner.get.apiId.value).
         save
     }
 
     created
   }
 
-  def createPaymentTestBank() =
+  def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+    createMongoAccountAndOwnerView(accountOwner, bankId, accountId, currency)
+  }
+
+  def createPaymentTestBank() : Bank =
     createBank("payment-test-bank")
 
-  def createBank(permalink : String) =  HostedBank.createRecord.
-    name(randomString(5)).
-    alias(randomString(5)).
-    permalink(permalink).
-    national_identifier(randomString(5)).
-    save
+  private def createHostedBank(permalink : String) : HostedBank = {
+    HostedBank.createRecord.
+      name(randomString(5)).
+      alias(randomString(5)).
+      permalink(permalink).
+      national_identifier(randomString(5)).
+      save
+  }
 
-  def ownerView(bankId: BankId, accountId: AccountId) =
+  def createBank(permalink : String) : Bank =
+    createHostedBank(permalink)
+
+  private def ownerViewImpl(bankId : BankId, accountId : AccountId) : ViewImpl =
     ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
-  def publicView(bankId: BankId, accountId: AccountId) =
+  def ownerView(bankId: BankId, accountId: AccountId) : View =
+    ownerViewImpl(bankId, accountId)
+
+  def publicView(bankId: BankId, accountId: AccountId) : View =
     ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, randomString(3))
 
-  def randomView(bankId: BankId, accountId: AccountId) =
+  def randomView(bankId: BankId, accountId: AccountId) : View =
     ViewImpl.create.
     name_(randomString(5)).
     description_(randomString(3)).
@@ -302,6 +318,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     canAddWhereTag_(true).
     canSeeWhereTag_(true).
     canDeleteWhereTag_(true).
-    save
+    saveMe
 
 }
