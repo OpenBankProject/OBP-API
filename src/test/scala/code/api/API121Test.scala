@@ -774,8 +774,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment without an oauth user", Payments) {
@@ -814,8 +814,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment of zero units of currency", Payments) {
@@ -856,8 +856,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment with a negative amount of money", Payments) {
@@ -899,8 +899,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
@@ -934,7 +934,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount))
 
       And("the balance of the sender's account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
     }
 
     scenario("we can't make a payment between accounts with different currencies", Payments) {
@@ -974,8 +974,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
   }
 
