@@ -66,16 +66,44 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     //create fake data for the tests
 
     //fake banks
-    val banks = for{i <- 0 until 3} yield {
-      createHostedBank(randomString(5))
+    val banks = createBanks()
+    //fake bank accounts
+    val accounts = createAccounts(banks)
+    //fake transactions
+    createTransactions(accounts)
+  }
+
+  override def afterEach() = {
+    //drop the mongo Database after each test
+    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+
+    //returns true if the model should not be wiped after each test
+    def exclusion(m : MetaMapper[_]) = {
+      m == Nonce || m == Token || m == Consumer || m == OBPUser || m == APIUser
     }
 
-    //fake bank accounts
+    //empty the relational db tables after each test
+    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+  }
+
+  private def createBanks() : Traversable[HostedBank] = {
+    for{i <- 0 until 3} yield {
+      createHostedBank(randomString(5))
+    }
+  }
+
+  /**
+   * Creates accounts for each bank in @banks and creates an owner view, public view,
+   * and a random view. No accounts owner is set, so no one has access to the owner and random view. This access
+   * can be granted later.
+   * @param banks
+   */
+  private def createAccounts(banks : Traversable[HostedBank]) : Traversable[Account] = {
     val accounts = banks.flatMap(bank => {
       for { i <- 0 until 2 } yield {
         createMongoAccountAndOwnerView(None, bank.bankId, AccountId(randomString(4)), randomString(4))
-        }
-      })
+      }
+    })
 
     accounts.foreach(account => {
       //create public view and another random view (owner view has already been created
@@ -83,11 +111,19 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       randomView(account.bankId, account.accountId)
     })
 
-    //fake transactions
+    accounts
+  }
+
+  /**
+   * Creates transactions for each account in @accounts and initializes each
+   * transaction's metadata
+   * @param accounts
+   */
+  private def createTransactions(accounts : Traversable[Account]) = {
     accounts.foreach(account => {
       import java.util.Calendar
 
-     val thisAccountBank = OBPBank.createRecord.
+      val thisAccountBank = OBPBank.createRecord.
         IBAN(randomString(5)).
         national_identifier(account.nationalIdentifier).
         name(account.bankName)
@@ -150,14 +186,14 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
           val completedDate = add10Minutes(postedDate)
 
           OBPDetails
-          .createRecord
-          .kind(randomString(5))
-          .posted(postedDate)
-          .other_data(randomString(5))
-          .new_balance(newBalance)
-          .value(newValue)
-          .completed(completedDate)
-          .label(randomString(5))
+            .createRecord
+            .kind(randomString(5))
+            .posted(postedDate)
+            .other_data(randomString(5))
+            .new_balance(newBalance)
+            .value(newValue)
+            .completed(completedDate)
+            .label(randomString(5))
         }
         val transaction = OBPTransaction.createRecord.
           this_account(thisAccount).
@@ -174,19 +210,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       Connector.connector.vend.getTransactions(account.bankId, account.accountId, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
 
     })
-  }
-
-  override def afterEach() = {
-    //drop the mongo Database after each test
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
-
-    //returns true if the model should not be wiped after each test
-    def exclusion(m : MetaMapper[_]) = {
-      m == Nonce || m == Token || m == Consumer || m == OBPUser || m == APIUser
-    }
-
-    //empty the relational db tables after each test
-    ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
   }
 
   private def createMongoAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : Account = {
@@ -219,13 +242,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
     created
   }
 
-  def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
-    createMongoAccountAndOwnerView(accountOwner, bankId, accountId, currency)
-  }
-
-  def createPaymentTestBank() : Bank =
-    createBank("payment-test-bank")
-
   private def createHostedBank(permalink : String) : HostedBank = {
     HostedBank.createRecord.
       name(randomString(5)).
@@ -235,12 +251,18 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       save
   }
 
-  def createBank(permalink : String) : Bank =
-    createHostedBank(permalink)
-
   private def ownerViewImpl(bankId : BankId, accountId : AccountId) : ViewImpl =
     ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
+  def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+    createMongoAccountAndOwnerView(accountOwner, bankId, accountId, currency)
+  }
+
+  def createPaymentTestBank() : Bank =
+    createBank("payment-test-bank")
+
+  def createBank(permalink : String) : Bank =
+    createHostedBank(permalink)
 
   def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
     MappedAccountHolder.create.
