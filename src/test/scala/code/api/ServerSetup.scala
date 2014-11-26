@@ -241,6 +241,16 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   private def ownerViewImpl(bankId : BankId, accountId : AccountId) : ViewImpl =
     ViewImpl.createAndSaveOwnerView(bankId, accountId, randomString(3))
 
+
+  def grantAccessToAllExistingViews(user : User) = {
+    ViewImpl.findAll.foreach(v => {
+      ViewPrivileges.create.
+        view(v).
+        user(user.apiId.value).
+        save
+    })
+  }
+
   def ownerView(bankId: BankId, accountId: AccountId) : View =
     ownerViewImpl(bankId, accountId)
 
