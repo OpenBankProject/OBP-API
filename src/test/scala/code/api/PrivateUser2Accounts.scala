@@ -3,9 +3,7 @@ package code.api
 import code.api.test.ServerSetup
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
-import code.model.dataAccess.{ViewPrivileges, APIUser, Account, HostedBank}
 import net.liftweb.util.Helpers._
-import org.bson.types.ObjectId
 
 trait PrivateUser2Accounts {
 

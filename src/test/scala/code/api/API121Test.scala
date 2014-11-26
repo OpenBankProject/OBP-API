@@ -31,7 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
-import code.api.{SetAccountHolder, PrivateUser2Accounts, User1AllPrivileges, DefaultUsers}
+import code.api.{PrivateUser2Accounts, User1AllPrivileges, DefaultUsers}
 import code.api.util.APIUtil
 import code.bankconnectors.Connector
 import org.scalatest.Tag
