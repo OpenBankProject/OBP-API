@@ -33,8 +33,8 @@ package code.api.v1_2_1
 
 import code.api.{SetAccountHolder, PrivateUser2Accounts, User1AllPrivileges, DefaultUsers}
 import code.api.util.APIUtil
+import code.bankconnectors.Connector
 import org.scalatest.Tag
-import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
 import dispatch._
@@ -43,11 +43,8 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
-import code.api.test.{ServerSetup}
 import APIUtil.OAuth._
-import org.bson.types.ObjectId
 import code.views.Views
-import code.model.dataAccess._
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
 
@@ -660,6 +657,14 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     val view = "owner"
 
+    def transactionCount(accounts: BankAccount*) : Int = {
+      accounts.foldLeft(0)((accumulator, account) => {
+        //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
+        //it with the correct account owners, and be sure that we don't even run into pagination problems
+        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
+      })
+    }
+
     scenario("we make a payment", Payments) {
 
       val testBank = createPaymentTestBank()
@@ -680,7 +685,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -729,7 +734,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       getToAccount.balance should equal(expectedNewToBalance)
 
       And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
-      OBPEnvelope.count should equal(totalTransactionsBefore + 2)
+      transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
     }
 
     scenario("we can't make a payment without access to the owner view", Payments) {
@@ -752,7 +757,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -766,7 +771,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
@@ -792,7 +797,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -806,7 +811,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
@@ -834,7 +839,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -848,7 +853,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
@@ -877,7 +882,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -891,7 +896,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
@@ -913,7 +918,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       val fromAccount = getFromAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount)
 
       val beforeFromBalance = fromAccount.balance
 
@@ -926,7 +931,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for the sender's account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount))
 
       And("the balance of the sender's account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
@@ -952,7 +957,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -966,7 +971,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
       beforeFromBalance should equal(fromAccount.balance)
