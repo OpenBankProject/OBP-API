@@ -31,7 +31,7 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
-import code.api.DefaultUsers
+import code.api.{SetAccountHolder, PrivateUser2Accounts, User1AllPrivileges, DefaultUsers}
 import code.api.util.APIUtil
 import org.scalatest.Tag
 import org.scalatest._
@@ -51,7 +51,7 @@ import code.model.dataAccess._
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
 
-class API1_2_1Test extends ServerSetup with DefaultUsers {
+class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts with SetAccountHolder {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
@@ -78,18 +78,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
   )
-
-  override def specificSetup() ={
-    //give to user1 all the privileges on all the accounts
-    for{
-      v <- ViewImpl.findAll()
-    }{
-      ViewPrivileges.create.
-        view(v).
-        user(obpuser1).
-        save
-    }
-  }
 
   /************************* test tags ************************/
 
@@ -1089,59 +1077,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     accJson.accounts.size should equal(accountIdentifiers.size)
   }
 
-  /**
-   * Adds some private accounts for obpuser2 to the DB so that not all accounts in the DB are public
-   * (which is at the time of writing, the default created in ServerSetup)
-   *
-   * Also adds some public accounts to which user1 does not have owner access
-   *
-   * Also adds some private accounts for user1 that are not public
-   */
-  def accountTestsSpecificDBSetup() {
-
-    val banks =  HostedBank.findAll
-
-    def generateAccounts() = banks.flatMap(bank => {
-      for { i <- 0 until 2 } yield {
-        val acc = Account.createRecord.
-          accountBalance(0).
-          holder(randomString(10)).
-          accountNumber(randomString(10)).
-          kind(randomString(10)).
-          accountName(randomString(10)).
-          permalink(randomString(10)).
-          bankID(new ObjectId(bank.id.get.toString)).
-          accountLabel(randomString(10)).
-          accountCurrency(randomString(10)).
-          save
-        logger.error("ZZZ: " + acc.permalink.get + " at bank " + bank.permalink)
-        acc
-      }
-    })
-
-    //fake bank accounts
-    val privateAccountsForUser1 = generateAccounts()
-    val privateAccountsForUser2 = generateAccounts()
-    val publicAccounts = generateAccounts()
-
-    def addViews(accs : List[Account], ownerUser : APIUser, addPublicView : Boolean) = {
-      accs.foreach(account => {
-        val owner = ownerView(account.bankId, account.accountId)
-        ViewPrivileges.create.
-          view(owner).
-          user(ownerUser).
-          save
-
-        if(addPublicView) {
-          publicView(account.bankId, account.accountId)
-        }
-      })
-    }
-    addViews(privateAccountsForUser1, obpuser1, false)
-    addViews(privateAccountsForUser2, obpuser2, false)
-    addViews(publicAccounts, obpuser2, true)
-  }
-
   feature("Information about all the bank accounts for all banks"){
     scenario("we get only the public bank accounts", API1_2, GetBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
@@ -2033,10 +1968,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       //set up: make obpuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
-      MappedAccountHolder.create.
-        user(obpuser3).
-        accountBankPermalink(bankId).
-        accountPermalink(bankAccount.id).save
+      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to the owner view")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)

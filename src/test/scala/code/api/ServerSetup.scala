@@ -173,11 +173,6 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
       Connector.connector.vend.getTransactions(account.bankId, account.accountId, OBPOffset(0), OBPLimit(NUM_TRANSACTIONS))
 
     })
-    specificSetup()
-  }
-
-  //this method is to run a specific behavior before running each test class
-  def specificSetup() = {
   }
 
   override def afterEach() = {

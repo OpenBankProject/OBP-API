@@ -32,33 +32,23 @@ Berlin 13359, Germany
 package code.api.v1_2
 
 import java.util.Date
-import code.api.DefaultUsers
+import code.api.{User1AllPrivileges, DefaultUsers}
 import code.api.util.APIUtil
 import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import _root_.net.liftweb.util._
 import Helpers._
-import _root_.net.liftweb.common._
-import dispatch._, Defaults._
-import _root_.net.liftweb.json.Extraction
-import _root_.net.liftweb.json.Serialization
+import dispatch._
 import _root_.net.liftweb.json.Serialization.write
-import _root_.net.liftweb.json.JsonAST.{JValue, JObject}
-import net.liftweb.json.NoTypeHints
+import _root_.net.liftweb.json.JsonAST.{JObject}
 import net.liftweb.json.JsonDSL._
-import net.liftweb.mapper.By
 import scala.util.Random._
-
-import code.api.test.{ServerSetup, APIResponse}
+import code.api.test.{APIResponse}
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
-import code.model.dataAccess.{APIUser, Account, ViewImpl, ViewPrivileges}
-import code.model.TokenType._
 import APIUtil.OAuth._
 import code.views.Views
 
 
-class API1_2Test extends ServerSetup with DefaultUsers {
+class API1_2Test extends User1AllPrivileges with DefaultUsers {
 
   def v1_2Request = baseRequest / "obp" / "v1.2"
 
@@ -85,18 +75,6 @@ class API1_2Test extends ServerSetup with DefaultUsers {
     "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
     )
-
-  override def specificSetup() ={
-    //give to user1 all the privileges on all the accounts
-    for{
-      v <- ViewImpl.findAll()
-    }{
-      ViewPrivileges.create.
-        view(v).
-        user(obpuser1).
-        save
-    }
-  }
 
   /************************* test tags ************************/
 
