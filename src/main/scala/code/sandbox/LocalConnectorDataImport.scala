@@ -10,7 +10,10 @@ import net.liftweb.mapper.By
 import java.util.{UUID, Date}
 import net.liftweb.util.Helpers._
 
-object DataImport extends OBPDataImport with Loggable {
+/**
+ * Imports data into the format used by LocalConnector (e.g. HostedBank)
+ */
+object LocalConnectorDataImport extends OBPDataImport with Loggable {
 
   /**
    * @param data

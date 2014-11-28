@@ -8,7 +8,7 @@ object OBPDataImport extends SimpleInjector {
 
   val importer =  new Inject(buildOne _) {}
 
-  def buildOne : OBPDataImport = DataImport
+  def buildOne : OBPDataImport = LocalConnectorDataImport
 
 }
 
