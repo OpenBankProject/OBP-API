@@ -15,7 +15,7 @@ object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
 
-  def buildOne: Connector = LocalConnector
+  def buildOne: Connector = LocalMappedConnector
 
 }
 

@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.api.test
 
 import code.TestServer
-import code.api.LocalConnectorTestSetup
+import code.api.{LocalMappedConnectorTestSetup, LocalConnectorTestSetup}
 import org.scalatest._
 import dispatch._
 import net.liftweb.json.{Serialization, NoTypeHints}
@@ -42,7 +42,7 @@ import net.liftweb.common._
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with ShouldMatchers with Loggable with LocalConnectorTestSetup {
+  with ShouldMatchers with Loggable with LocalMappedConnectorTestSetup {
 
   var server = TestServer
   implicit val formats = Serialization.formats(NoTypeHints)
