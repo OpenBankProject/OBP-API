@@ -2,7 +2,7 @@ package code.api.sandbox
 
 import code.api.{APIFailure, OBPRestHelper}
 import code.api.util.APIUtil._
-import code.sandbox.{DataImport, SandboxDataImport}
+import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
 import net.liftweb.common.{Box, Full, Failure, Loggable}
 import net.liftweb.http.{JsonResponse, ForbiddenResponse, S}
@@ -28,7 +28,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
           providedToken <- S.param("secret_token") ~> APIFailure("secret_token parameter required", 403)
           tokensMatch <- Helper.booleanToBox(providedToken == correctToken) ~> APIFailure("incorrect secret token", 403)
           importData <- tryo{json.extract[SandboxDataImport]} ?~ "invalid json"
-          importWorked <- DataImport.importData(importData)
+          importWorked <- OBPDataImport.importer.vend.importData(importData)
         } yield {
           successJsonResponse(JsRaw("{}"), 201)
         }
