@@ -3,9 +3,7 @@ package code.api
 import code.api.test.ServerSetup
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
-import code.model.dataAccess.{ViewPrivileges, APIUser, Account, HostedBank}
 import net.liftweb.util.Helpers._
-import org.bson.types.ObjectId
 
 trait PrivateUser2Accounts {
 
@@ -40,7 +38,7 @@ trait PrivateUser2Accounts {
     //create accounts
     val accounts = generateAccounts(obpuser2)
     //add public views
-    accounts.foreach(acc => publicView(acc.bankId, acc.accountId))
+    accounts.foreach(acc => createPublicView(acc.bankId, acc.accountId))
   }
 
 }
