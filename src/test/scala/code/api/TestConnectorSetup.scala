@@ -56,8 +56,12 @@ trait TestConnectorSetup {
       object InitialDateFactory{
         val calendar = Calendar.getInstance
         calendar.setTime(initialDate)
+        var i = 0
         def date: Date = {
-          calendar.add(Calendar.HOUR, 10)
+          //makes it so the transactions aren't created in date order
+          if(i % 2 == 0) calendar.add(Calendar.HOUR, 10)
+          else calendar.add(Calendar.HOUR, -5)
+          i = i + 1
           calendar.getTime
         }
       }
