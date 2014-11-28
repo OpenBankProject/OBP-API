@@ -1,81 +1,16 @@
 package code.sandbox
 
-import java.text.SimpleDateFormat
-
-import code.api.APIFailure
 import code.metadata.counterparties.{MongoCounterparties, Metadata}
 import code.model.{ViewUID, ViewId, AccountId, BankId}
 import code.model.dataAccess._
 import code.util.Helper
 import code.views.Views
-import com.mongodb.QueryBuilder
 import net.liftweb.common._
 import net.liftweb.mapper.By
 import java.util.{UUID, Date}
-import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
 
-
-case class SandboxBankImport(
-  id : String,
-  short_name : String,
-  full_name : String,
-  logo : String,
-  website : String)
-
-case class SandboxUserImport(
-  email : String,
-  password : String,
-  display_name : String)
-
-case class SandboxAccountImport(
-  id : String,
-  bank : String,
-  label : String,
-  number : String,
-  `type` : String,
-  balance : SandboxBalanceImport,
-  IBAN : String,
-  owners : List[String],
-  generate_public_view : Boolean)
-
-case class SandboxBalanceImport(
-  currency : String,
-  amount : String)
-
-case class SandboxTransactionImport(
-  id : String,
-  this_account : SandboxAccountIdImport,
-  counterparty : Option[SandboxTransactionCounterparty],
-  details : SandboxAccountDetailsImport)
-
-case class SandboxTransactionCounterparty(
-  name : Option[String],
-  account_number : Option[String])
-
-case class SandboxAccountIdImport(
-  id : String,
-  bank : String)
-
-case class SandboxAccountDetailsImport(
-  `type` : String,
-  description : String,
-  posted : String,
-  completed : String,
-  new_balance : String,
-  value : String)
-
-case class SandboxDataImport(
-  banks : List[SandboxBankImport],
-  users : List[SandboxUserImport],
-  accounts : List[SandboxAccountImport],
-  transactions : List[SandboxTransactionImport])
-
-object DataImport extends Loggable {
-
-
-  val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-  val dateFormat = new SimpleDateFormat(datePattern)
+object DataImport extends OBPDataImport with Loggable {
 
   /**
    * @param data
