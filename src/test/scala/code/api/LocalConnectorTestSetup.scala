@@ -26,12 +26,11 @@ trait LocalConnectorTestSetup extends TestConnectorSetup {
       save
   }
 
-  override protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : Account = {
-
+  override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : Account = {
     val q = QueryBuilder.start(HostedBank.permalink.name).is(bankId.value).get()
     val hostedBank = HostedBank.find(q).get
 
-    val created = Account.createRecord.
+    Account.createRecord.
       accountBalance(1000).
       holder(randomString(4)).
       accountNumber(randomString(4)).
@@ -42,20 +41,7 @@ trait LocalConnectorTestSetup extends TestConnectorSetup {
       accountLabel(randomString(4)).
       accountCurrency(currency).
       save
-
-    val owner = ownerViewImpl(bankId, accountId)
-
-    //give to user1 owner view
-    if(accountOwner.isDefined) {
-      ViewPrivileges.create.
-        view(owner).
-        user(accountOwner.get.apiId.value).
-        save
-    }
-
-    created
   }
-
 
   override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
 
@@ -214,6 +200,14 @@ trait LocalConnectorTestSetup extends TestConnectorSetup {
         user(user.apiId.value).
         save
     })
+  }
+
+  override protected def grantAccessToView(user : User, view : View) = {
+    val viewImpl = ViewImpl.find(view.uid)
+    ViewPrivileges.create.
+      view(viewImpl.get). //explodes if no viewImpl exists, but that's okay, the test should fail then
+      user(user.apiId.value).
+      save
   }
 
   override protected def wipeTestData() = {

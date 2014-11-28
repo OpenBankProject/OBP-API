@@ -9,8 +9,18 @@ import net.liftweb.util.Helpers._
 trait TestConnectorSetup {
 
   protected def createBank(id : String) : Bank
-  protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount
+  protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
+
+
+  final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+    val account = createAccount(bankId, accountId, currency)
+    val ownerView = createOwnerView(bankId, accountId)
+    accountOwner.foreach(owner => {
+      grantAccessToView(owner, ownerView)
+    })
+    account
+  }
 
   final protected def createBanks() : Traversable[Bank] = {
     for{i <- 0 until 3} yield {
@@ -86,6 +96,7 @@ trait TestConnectorSetup {
 
   protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId)
   protected def grantAccessToAllExistingViews(user : User)
+  protected def grantAccessToView(user : User, view : View)
 
   protected def wipeTestData()
 }
