@@ -1,5 +1,7 @@
 package code.model
 
+import java.util.UUID
+
 import code.bankconnectors.Connector
 import code.metadata.counterparties.Counterparties
 import code.util.{Helper, MappedUUID}
@@ -11,7 +13,9 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   object bank extends MappedString(this, 255)
   object account extends MappedString(this, 255)
-  object transactionId extends MappedString(this, 255)
+  object transactionId extends MappedString(this, 255) {
+    override def defaultValue = UUID.randomUUID().toString
+  }
   //TODO: review the need for this
   object transactionUUID extends MappedUUID(this)
   object transactionType extends MappedString(this, 20)
