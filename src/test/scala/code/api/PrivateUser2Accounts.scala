@@ -38,7 +38,7 @@ trait PrivateUser2Accounts {
     //create accounts
     val accounts = generateAccounts(obpuser2)
     //add public views
-    accounts.foreach(acc => publicView(acc.bankId, acc.accountId))
+    accounts.foreach(acc => createPublicView(acc.bankId, acc.accountId))
   }
 
 }
