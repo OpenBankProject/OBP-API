@@ -51,8 +51,8 @@ import net.liftweb.util.Helpers
 import java.io.FileInputStream
 import java.io.File
 import javax.mail.internet.MimeMessage
-import code.model.{Nonce, Consumer, Token, dataAccess}
-import dataAccess._
+import code.model._
+import code.model.dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 
@@ -326,5 +326,5 @@ object ToSchemify {
     ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
     MappedComment, MappedNarrative, MappedTag,
     MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag)
+    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction)
 }
