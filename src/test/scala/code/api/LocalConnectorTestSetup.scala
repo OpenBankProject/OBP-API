@@ -26,7 +26,7 @@ trait LocalConnectorTestSetup extends TestConnectorSetup {
       save
   }
 
-  override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : Account = {
+  override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val q = QueryBuilder.start(HostedBank.permalink.name).is(bankId.value).get()
     val hostedBank = HostedBank.find(q).get
 
