@@ -28,7 +28,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
           providedToken <- S.param("secret_token") ~> APIFailure("secret_token parameter required", 403)
           tokensMatch <- Helper.booleanToBox(providedToken == correctToken) ~> APIFailure("incorrect secret token", 403)
           importData <- tryo{json.extract[SandboxDataImport]} ?~ "invalid json"
-          importWorked <- OBPDataImport.importer.vend.tmpImportData(importData)
+          importWorked <- OBPDataImport.importer.vend.importData(importData)
         } yield {
           successJsonResponse(JsRaw("{}"), 201)
         }

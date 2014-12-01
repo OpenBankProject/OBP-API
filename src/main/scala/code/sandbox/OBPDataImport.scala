@@ -48,7 +48,7 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def tmpCreateBanks(data : SandboxDataImport) = {
+  protected def createBanks(data : SandboxDataImport) = {
     val existing = data.banks.flatMap(b => Connector.connector.vend.getBanks)
 
     val allIds = data.banks.map(_.id)
@@ -71,7 +71,7 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
 
   //TODO: remove dependency on OBPUser
-  protected def tmpCreateUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
+  protected def createUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
     val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
     val allEmails = data.users.map(_.email)
     val duplicateEmails = allEmails diff allEmails.distinct
@@ -107,7 +107,7 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def tmpCreateAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+  protected def createAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
@@ -191,13 +191,17 @@ trait OBPDataImport extends Loggable {
   }
 
   //TODO: have this return a saveable something?
-  protected def tmpSetAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit
 
-  def tmpImportData(data: SandboxDataImport) : Box[Unit] = {
+  /**
+   * @param data
+   * @return A full box if the import worked, or else a failure describing what went wrong
+   */
+  def importData(data: SandboxDataImport) : Box[Unit] = {
     for {
-      banks <- tmpCreateBanks(data)
-      users <- tmpCreateUsers(data)
-      accountResults <- tmpCreateAccounts(data, banks.map(_.value), users.map(_.value))
+      banks <- createBanks(data)
+      users <- createUsers(data)
+      accountResults <- createAccounts(data, banks.map(_.value), users.map(_.value))
       (transactions, metadatas) <- tmpCreateTransactionsAndMetas(data, banks.map(_.value), accountResults.map(_._1.value))
     } yield {
       banks.foreach(_.save())
@@ -216,7 +220,7 @@ trait OBPDataImport extends Loggable {
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))
           })
 
-          accOwnerEmails.foreach(tmpSetAccountOwner(_, account.value, users.map(_.value)))
+          accOwnerEmails.foreach(setAccountOwner(_, account.value, users.map(_.value)))
       }
 
       transactions.foreach(_.save())
@@ -224,12 +228,6 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  /**
-   * @param data
-   * @return A full box if the import worked, or else a failure describing what went wrong
-   */
-  //TODO: might be nice to use something like scalaz's validations here
-  //def importData(data : SandboxDataImport) : Box[Unit]
 }
 
 

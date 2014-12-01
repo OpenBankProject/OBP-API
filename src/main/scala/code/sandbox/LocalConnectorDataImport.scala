@@ -20,7 +20,7 @@ object LocalConnectorDataImport extends OBPDataImport {
   type MetadataType = Metadata
 
   //TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
-  protected def tmpSetAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit = {
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit = {
     val apiUserOwner = createdUsers.find(obpUser => owner == obpUser.email.get).flatMap(_.user.obj)
 
     apiUserOwner match {
