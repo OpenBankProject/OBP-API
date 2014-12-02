@@ -48,11 +48,35 @@ trait OBPDataImport extends Loggable {
     }
   }
 
+  /**
+   * Create banks that can be saved. This method assumes the banks in @data have passed validation checks and are allowed
+   * to be created as is.
+   */
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
+
+  /**
+   * Creates the owner view and a public view (if the public view is requested), for an account.
+   */
   protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]]
+
+  /**
+   * Creates an account that can be saved. This methods assumes that @acc has passed validatoin checks and is allowed
+   * to be created as is.
+   */
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
+
+  /**
+   * Sets the user with email @owner as the owner of @account
+   */
   protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit
-  //TODO: separate this into two methods?
+
+  /**
+   *
+   * Creates transactions and transaction metadata objects for @transactions. This method assumes the transactions have passed
+   * preliminary validation checks.
+   *
+   * TODO: separate this into two methods?
+   */
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
   Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
 
