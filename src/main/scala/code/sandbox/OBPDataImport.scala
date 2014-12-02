@@ -55,9 +55,14 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
 
   /**
-   * Creates the owner view and a public view (if the public view is requested), for an account.
+   * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]]
+  protected def createSaveableOwnerView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
+
+  /**
+   * Create a public view for account with BankId @bankId and AccountId @accountId that can be saved.
+   */
+  protected def createSaveablePublicView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
 
   /**
    * Creates an account that can be saved. This methods assumes that @acc has passed validatoin checks and is allowed
@@ -203,12 +208,6 @@ trait OBPDataImport extends Loggable {
   final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
   : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
-
-    def asSaveableViewImpl(viewImpl : ViewImpl) = new Saveable[ViewImpl] {
-      val value = viewImpl
-      def save() = value.save
-    }
-
     val saveableAccounts =
       for(acc <- accs)
         yield for {
@@ -218,6 +217,21 @@ trait OBPDataImport extends Loggable {
         }
 
     dataOrFirstFailure(saveableAccounts)
+  }
+
+  /**
+   * Creates the owner view and a public view (if the public view is requested), for an account.
+   */
+  final protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]] = {
+    val bankId = BankId(acc.bank)
+    val accountId = AccountId(acc.id)
+
+    val ownerView = createSaveableOwnerView(bankId, accountId)
+    val publicView =
+      if(acc.generate_public_view) Some(createSaveablePublicView(bankId, accountId))
+      else None
+
+    List(Some(ownerView), publicView).flatten
   }
 
   final protected def createTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
