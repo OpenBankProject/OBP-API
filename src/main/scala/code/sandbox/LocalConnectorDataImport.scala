@@ -7,6 +7,7 @@ import net.liftweb.common._
 import java.util.UUID
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.util.Helpers._
+import org.bson.types.ObjectId
 
 //An basic implementation of Saveable for MongoRecords
 case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] {
@@ -24,7 +25,7 @@ object LocalConnectorDataImport extends OBPDataImport {
   type MetadataType = Metadata
 
   //TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit = {
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: Account, createdUsers: List[OBPUser]) : Unit = {
     val apiUserOwner = createdUsers.find(obpUser => owner == obpUser.email.get).flatMap(_.user.obj)
 
     apiUserOwner match {
@@ -45,6 +46,7 @@ object LocalConnectorDataImport extends OBPDataImport {
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val hostedBanks = data.map(b => {
       HostedBank.createRecord
+        .id(ObjectId.get)
         .permalink(b.id)
         .name(b.full_name)
         .alias(b.short_name)
@@ -62,60 +64,38 @@ object LocalConnectorDataImport extends OBPDataImport {
     }
   }
 
-  protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
-  : Box[List[(Saveable[Account], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+  protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[HostedBank]) : Box[Saveable[Account]] = {
     def getHostedBank(acc : SandboxAccountImport) = Box(banks.find(b => b.permalink.get == acc.bank))
 
-    //can't use SaveableMongoObj because Account depends on a HostedBank value
-    def asSaveableAccount(acc : Account, bank : HostedBank) = new Saveable[Account] {
-      val value = acc
+    def asSaveableAccount(account : Account, hostedBank : HostedBank) = new Saveable[Account] {
+      val value = account
+
       def save() = {
-        //TODO: need to ensure HostedBank got saved first
-        value.bankID(bank.id.get)
-        value.save(true)
+        //this looks pointless, but what it is doing is refreshing the Account.bankID.obj reference, which
+        //is used by Account.bankId. If we don't refresh it here, Account.bankId will return BankId("")
+        account.bankID(account.bankID.get).save(true)
       }
     }
 
-    //TODO: refactor Saveable
-    def asSaveableViewImpl(viewImpl : ViewImpl) = new Saveable[ViewImpl] {
-      val value = viewImpl
-      def save() = value.save
-    }
-
-    val results = accs.map(acc => {
-      for {
-        hBank <- getHostedBank(acc) ?~ {
-          logger.warn("hosted bank not found")
-          "Server error"
-        }
-        balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
-      } yield {
-        val account = Account.createRecord
-          .permalink(acc.id)
-          .bankID(hBank.id.get)
-          .accountLabel(acc.label)
-          .accountCurrency(acc.balance.currency)
-          .accountBalance(balance)
-          .accountNumber(acc.number)
-          .kind(acc.`type`)
-          .accountIban(acc.IBAN)
-
-        val bankId = BankId(acc.bank)
-        val accountId = AccountId(acc.id)
-
-        val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
-
-        val publicView =
-          if(acc.generate_public_view) Some(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
-          else None
-
-        val views = List(Some(ownerView), publicView).flatten
-
-        (asSaveableAccount(account, hBank), views.map(asSaveableViewImpl), acc.owners)
+    for {
+      hBank <- getHostedBank(acc) ?~ {
+        logger.warn("hosted bank not found")
+        "Server error"
       }
-    })
+      balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
+    } yield {
+      val account = Account.createRecord
+        .permalink(acc.id)
+        .bankID(hBank.id.get)
+        .accountLabel(acc.label)
+        .accountCurrency(acc.balance.currency)
+        .accountBalance(balance)
+        .accountNumber(acc.number)
+        .kind(acc.`type`)
+        .accountIban(acc.IBAN)
 
-    dataOrFirstFailure(results)
+      asSaveableAccount(account, hBank)
+    }
   }
 
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):

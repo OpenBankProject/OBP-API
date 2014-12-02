@@ -168,8 +168,38 @@ trait OBPDataImport extends Loggable {
     }
   }
 
+  protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
+
   protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
-  : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]]
+  : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+
+
+    def asSaveableViewImpl(viewImpl : ViewImpl) = new Saveable[ViewImpl] {
+      val value = viewImpl
+      def save() = value.save
+    }
+
+    val saveableAccounts =
+      for(acc <- accs)
+        yield for {
+          saveableAccount <- createSaveableAccount(acc, banks)
+        } yield {
+          val bankId = BankId(acc.bank)
+          val accountId = AccountId(acc.id)
+
+          val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
+
+          val publicView =
+            if(acc.generate_public_view) Some(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
+            else None
+
+          val views = List(Some(ownerView), publicView).flatten
+
+          (saveableAccount, views.map(asSaveableViewImpl), acc.owners)
+        }
+
+    dataOrFirstFailure(saveableAccounts)
+  }
 
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
     Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
