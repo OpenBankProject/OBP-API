@@ -23,6 +23,14 @@ trait Saveable[T] {
   def save() : Unit
 }
 
+/**
+ * This trait attempts to implement as much validation logic as possible, leaving the
+ * unimplemented abstract methods for the creation of specific implementations of
+ * banks, accounts, transactions, etc.
+ *
+ * The idea is that the validation happens first, and if everything was okay, everything
+ * gets saved. That's the reason for the use of the Saveable trait.
+ */
 trait OBPDataImport extends Loggable {
   val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
   val dateFormat = new SimpleDateFormat(datePattern)
@@ -106,7 +114,7 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  //TODO: remove dependency on OBPUser
+  //TODO: remove dependency on OBPUser?
   final protected def createUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
     val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
     val allEmails = data.users.map(_.email)
