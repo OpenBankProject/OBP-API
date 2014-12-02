@@ -48,7 +48,16 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def createBanks(data : SandboxDataImport) = {
+  protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
+  protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]]
+  protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit
+  //TODO: separate this into two methods?
+  protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
+  Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
+
+
+  final protected def createBanks(data : SandboxDataImport) = {
     val existing = data.banks.flatMap(b => Connector.connector.vend.getBanks)
 
     val allIds = data.banks.map(_.id)
@@ -68,10 +77,8 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
-
   //TODO: remove dependency on OBPUser
-  protected def createUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
+  final protected def createUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
     val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
     val allEmails = data.users.map(_.email)
     val duplicateEmails = allEmails diff allEmails.distinct
@@ -107,7 +114,7 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def validateAccount(acc : SandboxAccountImport, data : SandboxDataImport) : Box[SandboxAccountImport] = {
+  final protected def validateAccount(acc : SandboxAccountImport, data : SandboxDataImport) : Box[SandboxAccountImport] = {
     for {
       ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
         s"Accounts must have at least one owner. Violation: (bank id ${acc.bank}, account id ${acc.id})"
@@ -126,7 +133,7 @@ trait OBPDataImport extends Loggable {
     } yield acc
   }
 
-  protected def createAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
+  final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
@@ -169,11 +176,7 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]]
-
-  protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
-
-  protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
+  final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
   : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
 
@@ -193,10 +196,7 @@ trait OBPDataImport extends Loggable {
     dataOrFirstFailure(saveableAccounts)
   }
 
-  protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
-    Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
-
-  protected def createTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
+  final protected def createTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
     def createdAccount(transaction : SandboxTransactionImport) =
       createdAccounts.find(acc =>
         acc.accountId == AccountId(transaction.this_account.id) &&
@@ -234,9 +234,6 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  //TODO: have this return a saveable something?
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: AccountType, createdUsers: List[OBPUser]) : Unit
-
   /**
    * @param data
    * @return A full box if the import worked, or else a failure describing what went wrong
@@ -245,7 +242,7 @@ trait OBPDataImport extends Loggable {
     for {
       banks <- createBanks(data)
       users <- createUsers(data)
-      accountResults <- createAccounts(data, banks.map(_.value), users.map(_.value))
+      accountResults <- createAccountsAndViews(data, banks.map(_.value), users.map(_.value))
       (transactions, metadatas) <- createTransactionsAndMetas(data, banks.map(_.value), accountResults.map(_._1.value))
     } yield {
       banks.foreach(_.save())
