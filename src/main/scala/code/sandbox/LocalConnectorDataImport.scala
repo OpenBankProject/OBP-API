@@ -68,7 +68,8 @@ object LocalConnectorDataImport extends OBPDataImport {
     }
   }
 
-  protected def createSaveableAccountResults(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[Account], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+  protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
+  : Box[List[(Saveable[Account], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
     def getHostedBank(acc : SandboxAccountImport) = Box(banks.find(b => b.permalink.get == acc.bank))
 
     //TODO: refactor Saveable
@@ -87,27 +88,13 @@ object LocalConnectorDataImport extends OBPDataImport {
       def save() = value.save
     }
 
-    val results = data.accounts.map(acc => {
+    val results = accs.map(acc => {
       for {
         hBank <- getHostedBank(acc) ?~ {
           logger.warn("hosted bank not found")
           "Server error"
         }
         balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
-        ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
-          s"Accounts must have at least one owner. Violation: (bank id ${acc.bank}, account id ${acc.id})"
-        ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
-          val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
-          s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
-        }
-        accId = AccountId(acc.id)
-        bankId = BankId(acc.bank)
-        ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("owner"), bankId, accId)).isEmpty) ?~ {
-          s"owner view for account ${acc.id} at bank ${acc.bank} already exists"
-        }
-        publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("public"), bankId, accId)).isEmpty) ?~ {
-          s"public view for account ${acc.id} at bank ${acc.bank} already exists"
-        }
       } yield {
         val account = Account.createRecord
           .permalink(acc.id)

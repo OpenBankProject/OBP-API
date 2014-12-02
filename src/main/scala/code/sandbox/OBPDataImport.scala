@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import code.bankconnectors.Connector
 import code.model.dataAccess.{MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
+import code.util.Helper
 import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.mapper.By
@@ -107,6 +108,25 @@ trait OBPDataImport extends Loggable {
     }
   }
 
+  protected def validateAccount(acc : SandboxAccountImport, data : SandboxDataImport) : Box[SandboxAccountImport] = {
+    for {
+      ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
+        s"Accounts must have at least one owner. Violation: (bank id ${acc.bank}, account id ${acc.id})"
+      ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
+        val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
+        s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
+      }
+      accId = AccountId(acc.id)
+      bankId = BankId(acc.bank)
+      ownerViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("owner"), bankId, accId)).isEmpty) ?~ {
+        s"owner view for account ${acc.id} at bank ${acc.bank} already exists"
+      }
+      publicViewDoesNotExist <- Helper.booleanToBox(Views.views.vend.view(ViewUID(ViewId("public"), bankId, accId)).isEmpty) ?~ {
+        s"public view for account ${acc.id} at bank ${acc.bank} already exists"
+      }
+    } yield acc
+  }
+
   protected def createAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
@@ -143,11 +163,15 @@ trait OBPDataImport extends Loggable {
       val existingAccountAndBankIds = existing.map(e => (s"(account id: ${e.accountId.value} bank id: ${e.bankId.value})").mkString(","))
       Failure(s"Account(s) to be imported already exist: $existingAccountAndBankIds")
     } else {
-      createSaveableAccountResults(data, banks, users)
+
+      val validatedAccounts = dataOrFirstFailure(data.accounts.map(validateAccount(_, data)))
+
+      validatedAccounts.flatMap(createSaveableAccountResults(_, banks, users))
     }
   }
 
-  protected def createSaveableAccountResults(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]]
+  protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
+  : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]]
 
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
     Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
