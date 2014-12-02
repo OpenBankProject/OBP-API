@@ -174,7 +174,7 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
     Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
 
-  protected def tmpCreateTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
+  protected def createTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
     def createdAccount(transaction : SandboxTransactionImport) =
       createdAccounts.find(acc =>
         acc.accountId == AccountId(transaction.this_account.id) &&
@@ -224,7 +224,7 @@ trait OBPDataImport extends Loggable {
       banks <- createBanks(data)
       users <- createUsers(data)
       accountResults <- createAccounts(data, banks.map(_.value), users.map(_.value))
-      (transactions, metadatas) <- tmpCreateTransactionsAndMetas(data, banks.map(_.value), accountResults.map(_._1.value))
+      (transactions, metadatas) <- createTransactionsAndMetas(data, banks.map(_.value), accountResults.map(_._1.value))
     } yield {
       banks.foreach(_.save())
 
