@@ -18,12 +18,10 @@ object OBPDataImport extends SimpleInjector {
 
 }
 
-//TODO: refactor Saveable
 trait Saveable[T] {
   val value : T
   def save() : Unit
 }
-
 
 trait OBPDataImport extends Loggable {
   val datePattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"

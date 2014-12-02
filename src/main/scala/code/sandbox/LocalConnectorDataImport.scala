@@ -3,11 +3,15 @@ package code.sandbox
 import code.metadata.counterparties.{MongoCounterparties, Metadata}
 import code.model._
 import code.model.dataAccess._
-import code.util.Helper
-import code.views.Views
 import net.liftweb.common._
 import java.util.UUID
+import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.util.Helpers._
+
+//An basic implementation of Saveable for MongoRecords
+case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] {
+  def save() = value.save(true)
+}
 
 /**
  * Imports data into the format used by LocalConnector (e.g. HostedBank)
@@ -54,17 +58,7 @@ object LocalConnectorDataImport extends OBPDataImport {
     if(!validationErrors.isEmpty) {
       Failure(s"Errors: ${validationErrors.map(_.msg)}")
     } else {
-
-      def asSaveable(b : HostedBank) = {
-        new Saveable[HostedBank] {
-          val value = b
-          def save() : Unit = {
-            value.save()
-          }
-        }
-      }
-
-      Full(hostedBanks.map(asSaveable))
+      Full(hostedBanks.map(SaveableMongoObj(_)))
     }
   }
 
@@ -72,7 +66,7 @@ object LocalConnectorDataImport extends OBPDataImport {
   : Box[List[(Saveable[Account], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
     def getHostedBank(acc : SandboxAccountImport) = Box(banks.find(b => b.permalink.get == acc.bank))
 
-    //TODO: refactor Saveable
+    //can't use SaveableMongoObj because Account depends on a HostedBank value
     def asSaveableAccount(acc : Account, bank : HostedBank) = new Saveable[Account] {
       val value = acc
       def save() = {
@@ -126,16 +120,6 @@ object LocalConnectorDataImport extends OBPDataImport {
 
   protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
     Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
-
-    def saveableEnv(e : OBPEnvelope) = new Saveable[OBPEnvelope] {
-      val value = e
-      def save() = value.save(true)
-    }
-
-    def saveableMetadata(m : Metadata) = new Saveable[Metadata] {
-      val value = m
-      def save() = m.save(true)
-    }
 
     // a bit ugly to have this as a var
     var metadatasToSave : List[Metadata] = Nil
@@ -261,7 +245,7 @@ object LocalConnectorDataImport extends OBPDataImport {
     })
 
     val envelopes = dataOrFirstFailure(envs)
-    envelopes.map(es => (es.map(saveableEnv), metadatasToSave.map(saveableMetadata)))
+    envelopes.map(es => (es.map(SaveableMongoObj(_)), metadatasToSave.map(SaveableMongoObj(_))))
   }
 
 }
