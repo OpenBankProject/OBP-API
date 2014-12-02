@@ -30,6 +30,7 @@ trait OBPDataImport extends Loggable {
   type BankType <: Bank
   type AccountType <: BankAccount
   type MetadataType <: OtherBankAccountMetadata
+  type ViewType = ViewImpl //TODO: <: View
   type TransactionType
   type AccountOwnerEmail = String
 
@@ -125,7 +126,7 @@ trait OBPDataImport extends Loggable {
     } yield acc
   }
 
-  protected def createAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+  protected def createAccounts(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
@@ -168,10 +169,30 @@ trait OBPDataImport extends Loggable {
     }
   }
 
+  protected def createSaveableViews(acc : SandboxAccountImport) : List[Saveable[ViewType]] = {
+
+    def asSaveableViewImpl(viewImpl : ViewImpl) = new Saveable[ViewImpl] {
+      val value = viewImpl
+      def save() = value.save
+    }
+
+
+    val bankId = BankId(acc.bank)
+    val accountId = AccountId(acc.id)
+
+    val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
+
+    val publicView =
+      if(acc.generate_public_view) Some(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
+      else None
+
+    List(Some(ownerView), publicView).flatten.map(asSaveableViewImpl)
+  }
+
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
 
   protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
-  : Box[List[(Saveable[AccountType], List[Saveable[ViewImpl]], List[AccountOwnerEmail])]] = {
+  : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
 
     def asSaveableViewImpl(viewImpl : ViewImpl) = new Saveable[ViewImpl] {
@@ -184,18 +205,7 @@ trait OBPDataImport extends Loggable {
         yield for {
           saveableAccount <- createSaveableAccount(acc, banks)
         } yield {
-          val bankId = BankId(acc.bank)
-          val accountId = AccountId(acc.id)
-
-          val ownerView = ViewImpl.unsavedOwnerView(bankId, accountId, "Owner View")
-
-          val publicView =
-            if(acc.generate_public_view) Some(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
-            else None
-
-          val views = List(Some(ownerView), publicView).flatten
-
-          (saveableAccount, views.map(asSaveableViewImpl), acc.owners)
+          (saveableAccount, createSaveableViews(acc), acc.owners)
         }
 
     dataOrFirstFailure(saveableAccounts)
