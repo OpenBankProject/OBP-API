@@ -56,14 +56,23 @@ object Helper{
    * that currency. E.g. JPY: 1000 units (yen) => 1000, EUR: 1000 units (cents) => 10.00
    */
   def smallestCurrencyUnitToBigDecimal(units : Long, currencyCode : String) = {
+    BigDecimal(units, currencyDecimalPlaces(currencyCode))
+  }
+
+  /**
+   * Returns the number of decimal places a currency has. E.g. "EUR" -> 2, "JPY" -> 0
+   * @param currencyCode
+   * @return
+   */
+  def currencyDecimalPlaces(currencyCode : String) = {
     //this data was sourced from Wikipedia, so it might not all be correct,
     //and some banking systems may still retain different units (e.g. CZK?)
-    val decimalPlaces = currencyCode match {
+    //notable it doesn't cover non-traditional currencies (e.g. cryptocurrencies)
+    currencyCode match {
       //TODO: handle MRO and MGA, which are non-decimal
       case "CZK" | "JPY" | "KRW" => 0
       case "KWD" | "OMR" => 3
       case _ => 2
     }
-    BigDecimal(units, decimalPlaces)
   }
 }
