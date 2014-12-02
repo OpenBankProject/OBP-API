@@ -24,25 +24,6 @@ object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls {
   type TransactionType = OBPEnvelope
   type MetadataType = Metadata
 
-  //TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: Account, createdUsers: List[OBPUser]) : Unit = {
-    val apiUserOwner = createdUsers.find(obpUser => owner == obpUser.email.get).flatMap(_.user.obj)
-
-    apiUserOwner match {
-      case Some(o) => {
-        MappedAccountHolder.create
-          .user(o)
-          .accountBankPermalink(account.bankId.value)
-          .accountPermalink(account.accountId.value).save
-      }
-      case None => {
-        //This shouldn't happen as OBPUser should generate the APIUsers when saved
-        logger.error(s"api user(s) with email $owner not found.")
-        logger.error("Data import completed with errors.")
-      }
-    }
-  }
-
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val hostedBanks = data.map(b => {
       HostedBank.createRecord
