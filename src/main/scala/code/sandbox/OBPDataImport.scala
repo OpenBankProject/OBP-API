@@ -259,12 +259,12 @@ trait OBPDataImport extends Loggable {
   }
 
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
-    def createdAccount(transaction : SandboxTransactionImport) =
-      createdAccounts.find(acc =>
-        acc.accountId == AccountId(transaction.this_account.id) &&
-          acc.bankId == BankId(transaction.this_account.bank))
 
-    val transactionsWithNoAccountSpecifiedInImport = data.transactions.filter(createdAccount(_).isDefined)
+    def accountSpecifiedInImport(t : SandboxTransactionImport) : Boolean = {
+      data.accounts.exists(acc => acc.bank == t.this_account.bank && acc.id == t.this_account.id)
+    }
+
+    val transactionsWithNoAccountSpecifiedInImport = data.transactions.filterNot(accountSpecifiedInImport)
     val transactionsWithEmptyIds = data.transactions.filter(_.id.isEmpty)
 
     case class TransactionIdentifier(id : String, account : String, bank : String)
