@@ -8,7 +8,7 @@ import code.util.{Helper, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
-class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated {
+class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID {
   def getSingleton = MappedTransaction
 
   object bank extends MappedString(this, 255)
@@ -42,15 +42,16 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyAccountKind extends MappedString(this, 40)
 
 
+  override def theTransactionId = TransactionId(transactionId.get)
+  override def theAccountId = AccountId(account.get)
+  override def theBankId = BankId(bank.get)
+
   def getCounterpartyIban() = {
     val i = counterpartyIban.get
     if(i.isEmpty) None else Some(i)
   }
 
   def toTransaction : Box[Transaction] = {
-    val bankId = BankId(bank.get)
-    val accountId = AccountId(account.get)
-    val tId = TransactionId(transactionId.get)
 
     val label = {
       val d = description.get
@@ -71,8 +72,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
         number = counterpartyAccountNumber.get,
         bankName = counterpartyBankName.get,
         kind = counterpartyAccountKind.get,
-        originalPartyBankId = bankId,
-        originalPartyAccountId = accountId
+        originalPartyBankId = theBankId,
+        originalPartyAccountId = theAccountId
       )
     }
 
@@ -81,16 +82,16 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
     //so that we know what id to give it.
     val dummyOtherBankAccount = createOtherBankAccount("")
-    val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(bankId, accountId, dummyOtherBankAccount)
+    val metadata = Counterparties.counterparties.vend.getOrCreateMetadata(theBankId, theAccountId, dummyOtherBankAccount)
 
     val otherAccount = createOtherBankAccount(metadata.metadataId)
 
     for {
-      acc <- Connector.connector.vend.getBankAccount(bankId, accountId)
+      acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
     } yield {
       new Transaction(
         transactionUUID.get,
-        tId,
+        theTransactionId,
         acc,
         otherAccount,
         transactionType.get,
