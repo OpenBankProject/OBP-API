@@ -486,6 +486,12 @@ class OtherBankAccount(
   }
 }
 
+trait TransactionUUID {
+  def theTransactionId : TransactionId
+  def theBankId : BankId
+  def theAccountId : AccountId
+}
+
 class Transaction(
   //A universally unique id
   val uuid : String,

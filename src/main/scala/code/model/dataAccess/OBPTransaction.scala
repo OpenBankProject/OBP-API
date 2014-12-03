@@ -141,8 +141,12 @@ curl -i -H "Content-Type: application/json" -X POST -d '[{
  */
 
 // Seems to map to a collection of the plural name
-class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with Loggable{
+class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBPEnvelope] with Loggable with TransactionUUID {
   def meta = OBPEnvelope
+
+  def theTransactionId = TransactionId(transactionId.get)
+  def theAccountId = theAccount.map(_.accountId).getOrElse(AccountId(""))
+  def theBankId = theAccount.map(_.bankId).getOrElse(BankId(""))
 
   object transactionId extends StringField(this, 100) {
     override def defaultValue = UUID.randomUUID.toString

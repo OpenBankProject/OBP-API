@@ -79,68 +79,44 @@ object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls {
     }
   }
 
-  protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
-    Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
+  override protected def createSaveableTransactions(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
+    Box[List[Saveable[TransactionType]]] = {
 
-    // a bit ugly to have this as a var
-    var metadatasToSave : List[Metadata] = Nil
+    /**
+     * Because we want to generate placeholder counterparty names if they're not present, but also want to have counterparties with
+     * missing names but the same account number share metadata, we need to keep track of all generated names and the account numbers
+     * to which they are linked to avoid generating two names for the same account number
+     */
+    val emptyHoldersAccNums = scala.collection.mutable.Map[String, String]()
 
     val envs : List[Box[OBPEnvelope]] = transactions.map(t => {
 
       type Counterparty = String
 
-      def createMeta(holder : String, publicAlias : String, accountNumber : String) = {
-        Metadata.createRecord
-          .holder(holder)
-          .accountNumber(accountNumber)
-          .originalPartyAccountId(t.this_account.id)
-          .originalPartyBankId(t.this_account.bank)
-          .publicAlias(publicAlias)
+      def randomCounterpartyHolderName(accNumber: Option[String]) : String = {
+        val name = s"unknown_${UUID.randomUUID.toString}"
+        accNumber.foreach(emptyHoldersAccNums.put(_, name))
+        name
       }
 
-      def findExistingMetadata(counter : SandboxTransactionCounterparty) = {
-        //find by name and account number
-        counter.name match {
-          case Some(name) =>
-            metadatasToSave.find(m => {
-              m.holder.get == name &&
-                m.accountNumber.get == counter.account_number.getOrElse("")
-            })
-          case None => {
-            counter.account_number match {
-              case Some(accNum) =>
-                metadatasToSave.find(m => {
-                  m.accountNumber.get == accNum
-                })
-              case None => None
+      val counterpartyAccNumber = t.counterparty.flatMap(_.account_number)
+
+      //If the counterparty name is present in 't', then use it
+      val counterpartyHolder = t.counterparty.flatMap(_.name) match {
+        case Some(holder) if holder.nonEmpty => holder
+        case _ => {
+          counterpartyAccNumber match {
+            case Some(accNum) if accNum.nonEmpty => {
+              val existing = emptyHoldersAccNums.get(accNum)
+              existing match {
+                case Some(e) => e //holder already generated for an empty-name counterparty with the same account number
+                case None => randomCounterpartyHolderName(Some(accNum)) //generate a new counterparty name
+              }
             }
+            //no name, no account number, generate a random new holder
+            case _ => randomCounterpartyHolderName(None)
           }
         }
-      }
-
-      def generateNewMetadata(accountNumber : Option[String]) : Metadata = {
-        val holder = "unknown_" + UUID.randomUUID.toString
-        val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-        createMeta(holder, publicAlias, accountNumber.getOrElse(""))
-      }
-
-      def newMetadataFromCounterparty(counter : SandboxTransactionCounterparty) : Metadata = {
-        val counterAccNumber = counter.account_number.getOrElse("")
-        counter.name match {
-          case Some(n) if n.nonEmpty => {
-            val publicAlias = MongoCounterparties.newPublicAliasName(BankId(t.this_account.bank), AccountId(t.this_account.id))
-            createMeta(n, publicAlias, counterAccNumber)
-          }
-          case _ => generateNewMetadata(Some(counterAccNumber))
-        }
-      }
-
-      val metadata = t.counterparty match {
-        case Some(counter) => {
-          val existingMeta = findExistingMetadata(counter)
-          existingMeta.getOrElse(newMetadataFromCounterparty(counter))
-        }
-        case None => generateNewMetadata(None)
       }
 
       for {
@@ -169,7 +145,7 @@ object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls {
         val counterpartyAccountNumber = t.counterparty.flatMap(_.account_number)
 
         val obpOtherAccount = OBPAccount.createRecord
-          .holder(metadata.holder.get)
+          .holder(counterpartyHolder)
           .number(counterpartyAccountNumber.getOrElse(""))
 
         val newBalance = OBPBalance.createRecord
@@ -198,15 +174,13 @@ object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls {
           .transactionId(t.id)
           .obp_transaction(obpTransaction)
 
-        //add the metadatas to the list of them to save
-        metadatasToSave = metadata :: metadatasToSave
         env
       }
 
     })
 
     val envelopes = dataOrFirstFailure(envs)
-    envelopes.map(es => (es.map(SaveableMongoObj(_)), metadatasToSave.map(SaveableMongoObj(_))))
+    envelopes.map(es => es.map(SaveableMongoObj(_)))
   }
 
 }
