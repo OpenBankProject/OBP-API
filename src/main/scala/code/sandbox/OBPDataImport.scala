@@ -1,6 +1,7 @@
 package code.sandbox
 
 import java.text.SimpleDateFormat
+import java.util.UUID
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
@@ -102,11 +103,11 @@ trait OBPDataImport extends Loggable {
   }
 
   /**
-   * Creates saveable transactions objects for @transactions. This method assumes the transactions have passed
+   * Creates a saveable transaction object. This method assumes the transaction has passed
    * preliminary validation checks.
    */
-  protected def createSaveableTransactions(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
-  Box[List[Saveable[TransactionType]]]
+  protected def createSaveableTransaction(t : SandboxTransactionImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) :
+  Box[Saveable[TransactionType]]
 
 
   final protected def createBanks(data : SandboxDataImport) = {
@@ -290,8 +291,51 @@ trait OBPDataImport extends Loggable {
       }
       Failure(s"Some transactions already exist: ${existingIdentifiers.mkString("[", ",", "]")}")
     } else {
+
+      /**
+       * Because we want to generate placeholder counterparty names if they're not present, but also want to have counterparties with
+       * missing names but the same account number share metadata, we need to keep track of all generated names and the account numbers
+       * to which they are linked to avoid generating two names for the same account number
+       */
+      val emptyHoldersAccNums = scala.collection.mutable.Map[String, String]()
+
+      def randomCounterpartyHolderName(accNumber: Option[String]) : String = {
+        val name = s"unknown_${UUID.randomUUID.toString}"
+        accNumber.foreach(emptyHoldersAccNums.put(_, name))
+        name
+      }
+
       //TODO validate numbers and dates in one place
-      createSaveableTransactions(data.transactions, createdBanks, createdAccounts)
+      val results = data.transactions.map(t => {
+
+
+        val counterpartyAccNumber = t.counterparty.flatMap(_.account_number)
+
+        //If the counterparty name is present in 't', then use it
+        val counterpartyHolder = t.counterparty.flatMap(_.name) match {
+          case Some(holder) if holder.nonEmpty => holder
+          case _ => {
+            counterpartyAccNumber match {
+              case Some(accNum) if accNum.nonEmpty => {
+                val existing = emptyHoldersAccNums.get(accNum)
+                existing match {
+                  case Some(e) => e //holder already generated for an empty-name counterparty with the same account number
+                  case None => randomCounterpartyHolderName(Some(accNum)) //generate a new counterparty name
+                }
+              }
+              //no name, no account number, generate a random new holder
+              case _ => randomCounterpartyHolderName(None)
+            }
+          }
+        }
+
+        //fill in the "correct" counterparty name
+        val modifiedTransaction  = t.copy(counterparty = Some(SandboxTransactionCounterparty(name = Some(counterpartyHolder), account_number = counterpartyAccNumber)))
+
+        createSaveableTransaction(modifiedTransaction, createdBanks, createdAccounts)
+      })
+
+      dataOrFirstFailure(results)
     }
   }
 
