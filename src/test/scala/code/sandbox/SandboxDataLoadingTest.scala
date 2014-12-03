@@ -191,8 +191,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       APIMethods121.DateParser.parse(dateString).get
     }
 
-    foundTransaction.startDate should equal(toDate(transaction.details.posted))
-    foundTransaction.finishDate should equal(toDate(transaction.details.completed))
+    foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)
+    foundTransaction.finishDate.getTime should equal(toDate(transaction.details.completed).getTime)
 
     //a counterparty should exist
     val otherAcc = foundTransaction.otherAccount
