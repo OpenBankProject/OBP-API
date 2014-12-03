@@ -1,7 +1,7 @@
 package code.sandbox
 
 import java.text.SimpleDateFormat
-import code.bankconnectors.Connector
+import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
 import code.util.Helper
@@ -39,7 +39,7 @@ trait OBPDataImport extends Loggable {
   type AccountType <: BankAccount
   type MetadataType <: OtherBankAccountMetadata
   type ViewType <: View
-  type TransactionType
+  type TransactionType <: TransactionUUID
   type AccountOwnerEmail = String
 
   /**
@@ -102,14 +102,11 @@ trait OBPDataImport extends Loggable {
   }
 
   /**
-   *
-   * Creates transactions and transaction metadata objects for @transactions. This method assumes the transactions have passed
+   * Creates saveable transactions objects for @transactions. This method assumes the transactions have passed
    * preliminary validation checks.
-   *
-   * TODO: separate this into two methods?
    */
-  protected def createSaveableTransactionsAndMetas(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
-  Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])]
+  protected def createSaveableTransactions(transactions : List[SandboxTransactionImport], createdBanks : List[BankType], createdAccounts : List[AccountType]):
+  Box[List[Saveable[TransactionType]]]
 
 
   final protected def createBanks(data : SandboxDataImport) = {
@@ -260,7 +257,7 @@ trait OBPDataImport extends Loggable {
     List(Some(ownerView), publicView).flatten
   }
 
-  final protected def createTransactionsAndMetas(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[(List[Saveable[TransactionType]], List[Saveable[MetadataType]])] = {
+  final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
     def createdAccount(transaction : SandboxTransactionImport) =
       createdAccounts.find(acc =>
         acc.accountId == AccountId(transaction.this_account.id) &&
@@ -294,7 +291,7 @@ trait OBPDataImport extends Loggable {
       Failure(s"Some transactions already exist: ${existingIdentifiers.mkString("[", ",", "]")}")
     } else {
       //TODO validate numbers and dates in one place
-      createSaveableTransactionsAndMetas(data.transactions, createdBanks, createdAccounts)
+      createSaveableTransactions(data.transactions, createdBanks, createdAccounts)
     }
   }
 
@@ -307,7 +304,7 @@ trait OBPDataImport extends Loggable {
       banks <- createBanks(data)
       users <- createUsers(data)
       accountResults <- createAccountsAndViews(data, banks.map(_.value), users.map(_.value))
-      (transactions, metadatas) <- createTransactionsAndMetas(data, banks.map(_.value), accountResults.map(_._1.value))
+      transactions <- createTransactions(data, banks.map(_.value), accountResults.map(_._1.value))
     } yield {
       banks.foreach(_.save())
 
@@ -328,8 +325,11 @@ trait OBPDataImport extends Loggable {
           accOwnerEmails.foreach(setAccountOwner(_, account.value, users.map(_.value)))
       }
 
-      transactions.foreach(_.save())
-      metadatas.foreach(_.save())
+      transactions.foreach { t =>
+        t.save()
+        //load it to force creation of metadata
+        Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
+      }
     }
   }
 
