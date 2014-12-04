@@ -1,5 +1,6 @@
 package code.payments
 
+import code.bankconnectors.Connector
 import code.model.{AccountId, BankId, BankAccount}
 import net.liftweb.common.{Loggable, Full, Failure, Box}
 import net.liftweb.util.Helpers._
@@ -48,37 +49,34 @@ private object SandboxPaymentProcessor extends PaymentProcessor with Loggable {
     val oldBalance = account.balance
 
     for {
-      otherBank <- HostedBank.find(otherBankId) ?~! "no other bank found"
-      //yeah dumb, but blame the bad mongodb structure that attempts to use foreign keys
-      otherAccs = Account.findAll((Account.permalink.name -> otherAccountId.value))
-      otherAcc <- Box(otherAccs.filter(_.bankId == BankId(otherBank.permalink.get)).headOption) ?~! s"no other acc found. ${otherAccs.size} searched for matching bank ${otherBank.id.get.toString} :: ${otherAccs.map(_.toString)}"
+      otherBank <- Connector.connector.vend.getBank(otherBankId) ?~! "no other bank found"
+      otherAcc <- Connector.connector.vend.getBankAccount(otherBankId, otherAccountId)
       transTime = now
-      thisAccs = Account.findAll((Account.permalink.name -> account.accountId.value))
-      thisAcc <- Box(thisAccs.filter(_.bankId == account.bankId).headOption) ?~! s"no this acc found. ${thisAccs.size} searched for matching bank ${account.bankId}?"
       //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
       envJsonDateFormat = {
         val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
         simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
         simpleDateFormat
       }
+
       envJson =
       ("obp_transaction" ->
         ("this_account" ->
           ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
             ("number" -> account.number) ~
-            ("kind" -> thisAcc.kind.get) ~
+            ("kind" -> account.accountType) ~
             ("bank" ->
               ("IBAN" -> account.iban.getOrElse("")) ~
                 ("national_identifier" -> account.nationalIdentifier) ~
                 ("name" -> account.bankId.value))) ~
           ("other_account" ->
-            ("holder" -> otherAcc.holder.get) ~
-              ("number" -> otherAcc.accountNumber.get) ~
-              ("kind" -> otherAcc.kind.get) ~
+            ("holder" -> otherAcc.accountHolder) ~
+              ("number" -> otherAcc.number) ~
+              ("kind" -> otherAcc.accountType) ~
               ("bank" ->
                 ("IBAN" -> "") ~
-                  ("national_identifier" -> otherBank.national_identifier.get) ~
-                  ("name" -> otherBank.name.get))) ~
+                  ("national_identifier" -> otherBank.nationalIdentifier) ~
+                  ("name" -> otherBank.fullName))) ~
           ("details" ->
             ("type_en" -> "") ~
               ("type_de" -> "") ~
