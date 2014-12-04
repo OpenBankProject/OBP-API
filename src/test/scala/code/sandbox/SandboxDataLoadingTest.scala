@@ -33,6 +33,7 @@ package code.sandbox
 
 import java.util.Date
 
+import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
@@ -73,10 +74,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   override def beforeEach() = {
     //drop database tables after the tests
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
-    ViewImpl.findAll.foreach(_.delete_!)
-    ViewPrivileges.findAll.foreach(_.delete_!)
-    MappedAccountHolder.findAll.foreach(_.delete_!)
-    OBPUser.findAll.foreach(_.delete_!)
+    ToSchemify.models.foreach(_.bulkDelete_!!())
   }
 
 
