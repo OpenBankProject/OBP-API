@@ -64,7 +64,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
     def createOtherBankAccount(id: String) = {
       new OtherBankAccount(
-        id = "",
+        id = id,
         label = counterpartyAccountHolder.get,
         nationalIdentifier = counterpartyNationalId.get,
         swift_bic = None, //TODO: need to add this to the json/model
