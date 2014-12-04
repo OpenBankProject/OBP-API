@@ -75,4 +75,15 @@ object Helper{
       case _ => 2
     }
   }
+
+  /**
+   * E.g.
+   * amount: BigDecimal("12.45"), currencyCode : "EUR" => 1245
+   * amount: BigDecimal("9034"), currencyCode : "JPY" => 9034
+   */
+  def convertToSmallestCurrencyUnits(amount : BigDecimal, currencyCode : String) : Long = {
+    val decimalPlaces = Helper.currencyDecimalPlaces(currencyCode)
+
+    (amount * BigDecimal("10").pow(decimalPlaces)).toLong
+  }
 }

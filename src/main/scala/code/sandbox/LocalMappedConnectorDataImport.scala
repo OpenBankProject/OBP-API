@@ -3,7 +3,7 @@ package code.sandbox
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
-import code.util.Helper
+import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper
 import net.liftweb.util.Helpers._
@@ -38,14 +38,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     }
   }
 
-  private def convertToSmallestCurrencyUnits(amount : BigDecimal, currencyCode : String) : Long = {
-    val decimalPlaces = Helper.currencyDecimalPlaces(currencyCode)
-
-    (amount * BigDecimal("10").pow(decimalPlaces)).toLong
-  }
-
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]] = {
-
 
     val mappedAccount = for {
       balance <- tryo{BigDecimal(acc.balance.amount)} ?~ s"Invalid balance: ${acc.balance.amount}"
