@@ -15,7 +15,7 @@ object OBPDataImport extends SimpleInjector {
 
   val importer =  new Inject(buildOne _) {}
 
-  def buildOne : OBPDataImport = LocalConnectorDataImport
+  def buildOne : OBPDataImport = LocalMappedConnectorDataImport
 
 }
 
