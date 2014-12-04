@@ -26,8 +26,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   object currency extends MappedString(this, 10)
 
-  object tStartDate extends MappedDate(this)
-  object tFinishDate extends MappedDate(this)
+  object tStartDate extends MappedDateTime(this)
+  object tFinishDate extends MappedDateTime(this)
 
   object description extends MappedText(this)
 
