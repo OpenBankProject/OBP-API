@@ -3,15 +3,19 @@ package code.bankconnectors
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
+import code.payments.PaymentsNotSupported
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Full, Box}
+import net.liftweb.common.{Loggable, Full, Box}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.concurrent.ops._
 
-object LocalMappedConnector extends Connector {
+object LocalMappedConnector extends Connector with Loggable with PaymentsNotSupported {
+
+  type AccountType = MappedBankAccount
+
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] =
     getMappedBank(bankId)
@@ -72,7 +76,7 @@ object LocalMappedConnector extends Connector {
 
     for {
       bank <- getMappedBank(bankId)
-      account <- getMappedBankAccount(bankId, accountId)
+      account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -84,14 +88,11 @@ object LocalMappedConnector extends Connector {
     }
   }
 
-  private def getMappedBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+  override def getBankAccountType(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value))
   }
-
-  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[BankAccount] =
-    getMappedBankAccount(bankId, accountId)
 
   //gets the users who are the legal owners/holders of the account
   override def getAccountHolders(bankId: BankId, accountID: AccountId): Set[User] =

@@ -4,7 +4,8 @@ import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
-import net.liftweb.common.{Empty, Box}
+import code.payments.PaymentsNotSupported
+import net.liftweb.common.{Loggable, Empty, Box}
 import code.model._
 import dispatch._
 import net.liftweb.util.Helpers._
@@ -55,11 +56,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   val user1CardsForOneBank = Set(user1CardAtBank1)
   val user2CardsForOneBank = Set(user2CardAtBank1)
 
-  object MockedCardConnector extends Connector {
+  object MockedCardConnector extends Connector with Loggable with PaymentsNotSupported {
+
+    type AccountType = BankAccount
+
     //these methods aren't required by our test
     override def getBank(bankId : BankId) : Box[Bank] = Empty
     override def getBanks : List[Bank] = Nil
-    override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
+    override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount] =
       Empty
     override def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount] =
@@ -96,6 +100,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   override def beforeAll() {
     super.beforeAll()
     //use the mock connector
+    import code.payments.PaymentsNotSupported
     Connector.connector.default.set(MockedCardConnector)
   }
 
