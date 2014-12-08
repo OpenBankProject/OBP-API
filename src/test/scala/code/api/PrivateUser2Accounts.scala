@@ -1,13 +1,13 @@
 package code.api
 
-import code.api.test.ServerSetup
+import code.api.test.{ServerSetupWithTestData, ServerSetup}
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
 import net.liftweb.util.Helpers._
 
 trait PrivateUser2Accounts {
 
-  self: ServerSetup with DefaultUsers =>
+  self: ServerSetupWithTestData with DefaultUsers =>
 
   /**
    * Adds some private accounts for obpuser2 to the DB so that not all accounts in the DB are public
