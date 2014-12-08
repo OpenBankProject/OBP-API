@@ -162,6 +162,8 @@ class AccountOwner(
   val name : String
 )
 
+case class BankAccountUID(bankId : BankId, accountId : AccountId)
+
 trait BankAccount extends Loggable {
 
   def accountId : AccountId

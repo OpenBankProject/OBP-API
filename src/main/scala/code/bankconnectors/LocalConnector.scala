@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.payments.{SandboxLocalConnectorPayments, PaymentProcessor}
 import net.liftweb.common.Box
 import scala.concurrent.ops.spawn
 import code.model._
@@ -14,7 +15,9 @@ import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metada
 import net.liftweb.common.Full
 import com.tesobe.model.UpdateBankAccount
 
-private object LocalConnector extends Connector with Loggable {
+private object LocalConnector extends Connector with Loggable with SandboxLocalConnectorPayments {
+
+  type AccountType = Account
 
   def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
@@ -23,7 +26,7 @@ private object LocalConnector extends Connector with Loggable {
   def getBanks : List[Bank] =
     HostedBank.findAll
 
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
+  override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[Account] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)

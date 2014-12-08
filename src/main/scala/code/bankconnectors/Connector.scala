@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.payments.PaymentProcessor
 import net.liftweb.common.Box
 import code.model._
 import net.liftweb.util.SimpleInjector
@@ -15,7 +16,7 @@ object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
 
-  def buildOne: Connector = LocalConnector
+  def buildOne: Connector with PaymentProcessor = LocalConnector
 
 }
 
@@ -38,13 +39,18 @@ case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryP
 
 trait Connector {
 
+  type AccountType <: BankAccount
+
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank]
 
   //gets banks handled by this connector
   def getBanks : List[Bank]
 
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount]
+  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] =
+    getBankAccountType(bankId, accountId)
+
+  protected def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
   def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]
 
