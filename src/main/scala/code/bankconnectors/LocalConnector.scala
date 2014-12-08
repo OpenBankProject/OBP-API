@@ -2,8 +2,6 @@ package code.bankconnectors
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
-
-import code.payments.{SandboxLocalConnectorPayments, PaymentProcessor}
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.JsonAST.JValue
 import scala.concurrent.ops.spawn
