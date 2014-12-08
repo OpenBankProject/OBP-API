@@ -4,16 +4,10 @@ import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
-import code.payments.PaymentsNotSupported
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
 import dispatch._
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 import APIUtil.OAuth.{Token, Consumer}
-import code.model.dataAccess.APIUser
-import code.model.TokenType._
-import APIUtil.OAuth.Consumer
 import code.model.PhysicalCard
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
@@ -103,7 +97,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   override def beforeAll() {
     super.beforeAll()
     //use the mock connector
-    import code.payments.PaymentsNotSupported
     Connector.connector.default.set(MockedCardConnector)
   }
 
