@@ -3,7 +3,7 @@ package code.bankconnectors
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
-import code.payments.PaymentsNotSupported
+import code.payments.{SandboxMappedConnectorPaymentProcessor, PaymentsNotSupported}
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
 import net.liftweb.mapper._
@@ -12,7 +12,7 @@ import net.liftweb.util.Props
 
 import scala.concurrent.ops._
 
-object LocalMappedConnector extends Connector with Loggable with PaymentsNotSupported {
+object LocalMappedConnector extends Connector with Loggable with SandboxMappedConnectorPaymentProcessor {
 
   type AccountType = MappedBankAccount
 

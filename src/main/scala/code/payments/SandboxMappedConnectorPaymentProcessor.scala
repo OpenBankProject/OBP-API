@@ -1,17 +1,21 @@
-/*
 package code.payments
 
-import code.model.{TransactionId, MappedTransaction, BankAccount}
+import code.bankconnectors.Connector
+import code.model.dataAccess.MappedBankAccount
+import code.model.{BankAccount, TransactionId, MappedTransaction}
+import code.util.Helper
 import net.liftweb.common.{Full, Box}
 import net.liftweb.util.Helpers._
 import code.util.Helper.convertToSmallestCurrencyUnits
 
 /**
- * This payment processor works against the relational db mapped MappedLocalConnector implementation.
+ * Works with Connectors that have AccountType = MappedBankAccount
  */
-object SandboxMappedConnectorPaymentProcessor extends PaymentProcessor {
+trait SandboxMappedConnectorPaymentProcessor extends PaymentProcessor {
 
-  override def makePayment(fromAccount: BankAccount, toAccount: BankAccount, amt: BigDecimal): Box[String] = {
+  self : Connector =>
+
+  def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -19,23 +23,22 @@ object SandboxMappedConnectorPaymentProcessor extends PaymentProcessor {
     val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt)
     saveTransaction(toAccount, fromAccount, toTransAmt)
 
-    sentTransactionId.map(_.value)
+    sentTransactionId
   }
 
   /**
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(account : BankAccount, counterparty : BankAccount, amt : BigDecimal) : Box[TransactionId] = {
+  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal) : Box[TransactionId] = {
 
     val transactionTime = now
     val currency = account.currency
 
 
-    //TODO: need to update account balances..., but that's not possible via the BankAccount trait, this needs to
-    //work on the MappedBankAccount (that presumably exists)
-
-    val newAccountBalance : Long = 0//???
+    //update the balance of the account for which a transaction is being created
+    val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
+    account.accountBalance(newAccountBalance).save()
 
 
     val mappedTransaction = MappedTransaction.create
@@ -58,4 +61,3 @@ object SandboxMappedConnectorPaymentProcessor extends PaymentProcessor {
     Full(mappedTransaction.theTransactionId)
   }
 }
-*/
