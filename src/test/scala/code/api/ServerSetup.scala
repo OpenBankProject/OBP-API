@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.api.test
 
 import code.TestServer
-import code.api.LocalConnectorTestSetup
+import code.api.{TestConnectorSetup, LocalConnectorTestSetup}
 import org.scalatest._
 import dispatch._
 import net.liftweb.json.{Serialization, NoTypeHints}
@@ -42,14 +42,20 @@ import net.liftweb.common._
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
   with BeforeAndAfterAll
-  with ShouldMatchers with Loggable with LocalConnectorTestSetup {
+  with ShouldMatchers with Loggable {
 
   var server = TestServer
   implicit val formats = Serialization.formats(NoTypeHints)
   val h = Http
   def baseRequest = host(server.host, server.port)
 
+}
+
+trait ServerSetupWithTestData extends ServerSetup with LocalConnectorTestSetup {
+
   override def beforeEach() = {
+    super.beforeEach()
+
     implicit val dateFormats = net.liftweb.json.DefaultFormats
     //create fake data for the tests
 
@@ -62,6 +68,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   }
 
   override def afterEach() = {
+    super.afterEach()
     wipeTestData()
   }
 
