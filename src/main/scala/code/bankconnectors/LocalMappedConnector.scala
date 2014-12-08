@@ -4,6 +4,7 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.payments.{SandboxMappedConnectorPaymentProcessor, PaymentsNotSupported}
+import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
 import net.liftweb.mapper._
@@ -12,7 +13,7 @@ import net.liftweb.util.Props
 
 import scala.concurrent.ops._
 
-object LocalMappedConnector extends Connector with Loggable with SandboxMappedConnectorPaymentProcessor {
+object LocalMappedConnector extends Connector {
 
   type AccountType = MappedBankAccount
 
@@ -139,4 +140,51 @@ object LocalMappedConnector extends Connector with Loggable with SandboxMappedCo
 
   override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
     Set.empty
+
+
+  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal): Box[TransactionId] = {
+    val fromTransAmt = -amt //from account balance should decrease
+    val toTransAmt = amt //to account balance should increase
+
+    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt)
+    saveTransaction(toAccount, fromAccount, toTransAmt)
+
+    sentTransactionId
+  }
+
+  /**
+   * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
+   * of the saved transaction.
+   */
+  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal) : Box[TransactionId] = {
+
+    val transactionTime = now
+    val currency = account.currency
+
+
+    //update the balance of the account for which a transaction is being created
+    val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
+    account.accountBalance(newAccountBalance).save()
+
+
+    val mappedTransaction = MappedTransaction.create
+      .bank(account.bankId.value)
+      .account(account.accountId.value)
+      .transactionType("sandbox-payment")
+      .amount(Helper.convertToSmallestCurrencyUnits(amt, currency))
+      .newAccountBalance(newAccountBalance)
+      .currency(currency)
+      .tStartDate(transactionTime)
+      .tFinishDate(transactionTime)
+      .description("")
+      .counterpartyAccountHolder(counterparty.accountHolder)
+      .counterpartyAccountNumber(counterparty.number)
+      .counterpartyAccountKind(counterparty.accountType)
+      .counterpartyBankName(counterparty.bankName)
+      .counterpartyIban(counterparty.iban.getOrElse(""))
+      .counterpartyNationalId(counterparty.nationalIdentifier).saveMe
+
+    Full(mappedTransaction.theTransactionId)
+  }
 }

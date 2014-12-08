@@ -5,7 +5,7 @@ import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
 import code.payments.PaymentsNotSupported
-import net.liftweb.common.{Loggable, Empty, Box}
+import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
 import dispatch._
 import net.liftweb.util.Helpers._
@@ -56,7 +56,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   val user1CardsForOneBank = Set(user1CardAtBank1)
   val user2CardsForOneBank = Set(user2CardAtBank1)
 
-  object MockedCardConnector extends Connector with Loggable with PaymentsNotSupported {
+  object MockedCardConnector extends Connector with Loggable {
 
     type AccountType = BankAccount
 
@@ -95,6 +95,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     }
 
     override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
+
+    protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
+      Failure("not supported")
   }
 
   override def beforeAll() {
