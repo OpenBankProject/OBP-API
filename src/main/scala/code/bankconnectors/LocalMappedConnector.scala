@@ -3,7 +3,6 @@ package code.bankconnectors
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
-import code.payments.{SandboxMappedConnectorPaymentProcessor, PaymentsNotSupported}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
