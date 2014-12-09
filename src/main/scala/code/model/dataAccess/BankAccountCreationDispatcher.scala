@@ -227,11 +227,12 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
               val bankAccount = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), AccountId(message.accountNumber), user)
+              val accountId = bankAccount.permalink.get
+              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), AccountId(accountId), user)
 
-              logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
+              logger.info(s"created account $accountId at ${message.bankIdentifier}")
 
-              logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
+              logger.info(s"Send message to get updates for the account $accountId at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             }
           }.getOrElse(
