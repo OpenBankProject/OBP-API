@@ -111,7 +111,7 @@ trait OBPDataImport extends Loggable {
 
 
   final protected def createBanks(data : SandboxDataImport) = {
-    val existing = data.banks.flatMap(b => Connector.connector.vend.getBanks)
+    val existing = data.banks.flatMap(b => Connector.connector.vend.getBank(BankId(b.id)))
 
     val allIds = data.banks.map(_.id)
     val emptyIds = allIds.filter(_.isEmpty)
