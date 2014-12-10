@@ -3,7 +3,7 @@ package code.sandbox
 import java.text.SimpleDateFormat
 import java.util.UUID
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
-import code.model.dataAccess.{MappedAccountHolder, ViewImpl, OBPUser}
+import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
 import code.util.Helper
 import code.views.Views
@@ -76,18 +76,45 @@ trait OBPDataImport extends Loggable {
   protected def createSaveablePublicView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
 
   /**
-   * Creates an account that can be saved. This methods assumes that @acc has passed validatoin checks and is allowed
+   * Creates an account that can be saved. This method assumes that @acc has passed validatoin checks and is allowed
    * to be created as is.
    */
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]]
+
+
+  /**
+   * Creates an APIUser that can be saved. This method assumes there is no existing user with an email
+   * equal to @u.email
+   */
+  protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[APIUser]]
+
+  protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[APIUser]]] = {
+    val existingApiUsers = toImport.flatMap(u => APIUser.find(By(APIUser.email, u.email)))
+    val allEmails = toImport.map(_.email)
+    val duplicateEmails = allEmails diff allEmails.distinct
+
+    def usersExist(existingEmails : List[String]) =
+      Failure(s"User(s) with email(s) $existingEmails already exist (and may be different (e.g. different display_name)")
+
+    if(!existingApiUsers.isEmpty) {
+      usersExist(existingApiUsers.map(_.email.get))
+    } else if(!duplicateEmails.isEmpty) {
+      Failure(s"Users must have unique emails: Duplicates found: $duplicateEmails")
+    }else {
+
+      val apiUsers = toImport.map(createSaveableUser(_))
+
+      dataOrFirstFailure(apiUsers)
+    }
+  }
 
   /**
    * Sets the user with email @owner as the owner of @account
    *
    * TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
    */
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: BankAccount, createdUsers: List[OBPUser]) : Unit = {
-    val apiUserOwner = createdUsers.find(obpUser => owner == obpUser.email.get).flatMap(_.user.obj)
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: BankAccount, createdUsers: List[APIUser]) : Unit = {
+    val apiUserOwner = createdUsers.find(user => owner == user.emailAddress)
 
     apiUserOwner match {
       case Some(o) => {
@@ -132,43 +159,6 @@ trait OBPDataImport extends Loggable {
     }
   }
 
-  //TODO: remove dependency on OBPUser?
-  final protected def createUsers(data : SandboxDataImport) : Box[List[Saveable[OBPUser]]] = {
-    val existing = data.users.flatMap(u => OBPUser.find(By(OBPUser.email, u.email)))
-    val allEmails = data.users.map(_.email)
-    val duplicateEmails = allEmails diff allEmails.distinct
-
-    if(!existing.isEmpty) {
-      val existingEmails = existing.map(_.email.get)
-      Failure(s"User(s) with email(s) $existingEmails already exist (and may be different (e.g. different display_name)")
-    } else if(!duplicateEmails.isEmpty) {
-      Failure(s"Users must have unique emails: Duplicates found: $duplicateEmails")
-    }else {
-
-      val obpUsers = data.users.map(u => {
-        OBPUser.create
-          .email(u.email)
-          .lastName(u.display_name)
-          .password(u.password)
-          .validated(true)
-      })
-
-      val validationErrors = obpUsers.flatMap(_.validate)
-
-      if(!validationErrors.isEmpty) {
-        Failure(s"Errors: ${validationErrors.map(_.msg)}")
-      } else {
-
-        def asSaveable(u : OBPUser) = new Saveable[OBPUser] {
-          val value = u
-          def save() = u.save()
-        }
-
-        Full(obpUsers.map(asSaveable))
-      }
-    }
-  }
-
   final protected def validateAccount(acc : SandboxAccountImport, data : SandboxDataImport) : Box[SandboxAccountImport] = {
     for {
       ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
@@ -188,7 +178,7 @@ trait OBPDataImport extends Loggable {
     } yield acc
   }
 
-  final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType], users : List[OBPUser]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
+  final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
@@ -227,11 +217,11 @@ trait OBPDataImport extends Loggable {
 
       val validatedAccounts = dataOrFirstFailure(data.accounts.map(validateAccount(_, data)))
 
-      validatedAccounts.flatMap(createSaveableAccountResults(_, banks, users))
+      validatedAccounts.flatMap(createSaveableAccountResults(_, banks))
     }
   }
 
-  final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType], users : List[OBPUser])
+  final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType])
   : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
 
     val saveableAccounts =
@@ -348,8 +338,8 @@ trait OBPDataImport extends Loggable {
   def importData(data: SandboxDataImport) : Box[Unit] = {
     for {
       banks <- createBanks(data)
-      users <- createUsers(data)
-      accountResults <- createAccountsAndViews(data, banks.map(_.value), users.map(_.value))
+      users <- createUsers(data.users)
+      accountResults <- createAccountsAndViews(data, banks.map(_.value))
       transactions <- createTransactions(data, banks.map(_.value), accountResults.map(_._1.value))
     } yield {
       banks.foreach(_.save())
@@ -364,7 +354,7 @@ trait OBPDataImport extends Loggable {
           views.map(_.value).filterNot(_.isPublic).foreach(v => {
             //grant the owner access to non-public views
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
-            val accOwners = users.map(_.value).filter(u => accOwnerEmails.exists(email => u.email.get == email)).flatMap(_.user.obj)
+            val accOwners = users.map(_.value).filter(u => accOwnerEmails.exists(email => u.emailAddress == email))
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))
           })
 
