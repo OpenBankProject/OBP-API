@@ -2,7 +2,6 @@ package code.views
 
 import scala.collection.immutable.List
 import code.model._
-import code.model.dataAccess.APIUser
 import code.model.dataAccess.ViewImpl
 import code.model.dataAccess.ViewPrivileges
 import net.liftweb.common.Loggable
@@ -13,11 +12,9 @@ import code.model.ViewCreationJSON
 import net.liftweb.common.Full
 import code.model.Permission
 import code.model.ViewUpdateData
-import scala.Some
 import code.bankconnectors.Connector
 
 
-//TODO: get rid of references to APIUser
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
