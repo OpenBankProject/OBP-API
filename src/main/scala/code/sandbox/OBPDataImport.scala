@@ -15,7 +15,9 @@ object OBPDataImport extends SimpleInjector {
 
   val importer =  new Inject(buildOne _) {}
 
-  def buildOne : OBPDataImport = LocalConnectorDataImport
+  //Provide an implementation of OBPDataImport here if you want to support importing
+  //banks, users, accounts, and transactions via api calls
+  def buildOne : OBPDataImport = DummyDataImport
 
 }
 

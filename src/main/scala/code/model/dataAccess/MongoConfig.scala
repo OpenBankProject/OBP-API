@@ -58,9 +58,6 @@ object MongoConfig {
     MongoDB.defineDb(DefaultConnectionIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
     MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
 
-
-    HostedBank.init
-    Account.init
     OBPNarrativeInit.init
     OBPWhereTagInit.init
   }

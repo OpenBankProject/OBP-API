@@ -238,10 +238,6 @@ class Boot extends Loggable{
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
-    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
-    if(useMessageQueue)
-      BankAccountCreationListener.startListen
-
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })

@@ -13,7 +13,8 @@ object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
 
-  def buildOne: Connector = LocalConnector
+  //Have this return a proper connector that actually does something
+  def buildOne: Connector = DummyConnector
 
 }
 
@@ -36,6 +37,8 @@ case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryP
 
 trait Connector {
 
+  //set this in the implementation
+  //e.g. type AccountType = MyBankAccountImplClass
   type AccountType <: BankAccount
 
   //gets a particular bank handled by this connector
