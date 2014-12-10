@@ -5,6 +5,7 @@ import code.model._
 import code.model.dataAccess._
 import net.liftweb.common._
 import java.util.UUID
+import net.liftweb.mapper.By
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.util.Helpers._
 import org.bson.types.ObjectId
@@ -17,7 +18,7 @@ case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] 
 /**
  * Imports data into the format used by LocalConnector (e.g. HostedBank)
  */
-object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls {
+object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls with CreateOBPUsers {
 
   type BankType = HostedBank
   type AccountType = Account
