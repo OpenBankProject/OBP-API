@@ -1,9 +1,18 @@
 package code.util
 
 import net.liftweb.common._
+import net.liftweb.http.js.JsCmd
 import net.liftweb.util.{Mailer, Props}
 
 object Helper{
+
+  case class JsHideByClass(className: String) extends JsCmd {
+    def toJsCmd = s"$$('.$className').hide()"
+  }
+
+  case class JsShowByClass(className: String) extends JsCmd {
+    def toJsCmd = s"$$('.$className').show()"
+  }
 
   def generatePermalink(name: String): String = {
     name.trim.toLowerCase.replace("-","").replaceAll(" +", " ").replaceAll(" ", "-")
