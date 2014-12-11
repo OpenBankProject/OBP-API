@@ -105,12 +105,6 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.scala-tools.testing</groupId>
-      <artifactId>specs_${scala.version}</artifactId>
-      <version>1.6.9</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
       <version>7.6.16.v20140903</version>
@@ -121,12 +115,6 @@
         <artifactId>jetty-webapp</artifactId>
         <version>7.6.16.v20140903</version>
         <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mongodb</groupId>
-      <artifactId>casbah_${scala.version}</artifactId>
-      <version>2.6.2</version>
-      <type>pom</type>
     </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
