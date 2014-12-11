@@ -1,6 +1,7 @@
 package code.sandbox
 
 import code.model._
+import code.model.dataAccess.APIUser
 import net.liftweb.common.Box
 
 object DummyDataImport extends OBPDataImport {
@@ -39,4 +40,9 @@ object DummyDataImport extends OBPDataImport {
    */
   override protected def createSaveableAccount(acc: SandboxAccountImport, banks: List[DummyDataImport.BankType]): Box[Saveable[AccountType]] = ???
 
+  /**
+   * Creates an APIUser that can be saved. This method assumes there is no existing user with an email
+   * equal to @u.email
+   */
+  protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[APIUser]] = ???
 }
