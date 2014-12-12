@@ -227,24 +227,24 @@ This trait is responsible for setting up a test data source. If your new impleme
 As this is a relatively new feature, it is possible there are still some issues. Notably, if your Connector implementation only supports a single bank, the tests for the API calls returning the supported banks may fail, as they assume the connector can be configured to support multiple banks. This issue will be resolved in future releases. If all non-bank specific API tests pass, you will be in good shape.
 
 
-OBPDataImport (src/main/scala/code/sandbox/OBPDataImport.scala
+**OBPDataImport** (src/main/scala/code/sandbox/OBPDataImport.scala
 
 This is optional. It is a way to import banks/users/accounts/transactions via a json api call. You will probably not want to use it, but if you do, you will need to implement this trait and edit
 
-def buildOne : OBPDataImport = DummyDataImport
+	def buildOne : OBPDataImport = DummyDataImport
 
 in OBPDataImport 
 
 to read
 
-def buildOne: Connector = MyNewDataImport
+	def buildOne: Connector = MyNewDataImport
 
 where MyNewDataImport  is the name of your implementation of the OBPDataImport trait.
 
 You will also need to set “sandbox_data_import_secret” in your .props file to some value (preferably a UUID). The api call to import data via json requires the sandbox_data_import_secret url parameter to match the value set in the props file in order to work (it is considered a private API call and is used primarily for setting up sandbox environments).
 
 
-Customising the default oAuth login page
+###Customising the default oAuth login page
 
 The template for the login page is found at src/main/webapp/oauth/authorize.html , and is governed by the standard templating rules of the Lift web framework (see https://www.assembla.com/wiki/show/liftweb/Templates_and_Binding for more details)
 
@@ -256,7 +256,7 @@ The short version is: You may edit this html as long as you take care not to rem
 Where the root source path is src/main/webapp. So in the example above, the css file at src/main/webapp/media/css/website.css?20140425 will be used, as well as the js file at src/main/webapp/media/js/website.js
 
 
-Adding new API methods
+###Adding new API methods
 
 API routes are defined as partial functions matching a request with a function to be executed upon that request. 
 
