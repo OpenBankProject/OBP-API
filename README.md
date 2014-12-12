@@ -14,7 +14,8 @@ Our tag line is: Bank as a Platform. Transparency as an Asset.
 
 The API uses OAuth 1.0 authentication.
 
-The project roadmap is available [here.](https://trello.com/b/O9IjhPXB/open-bank-project-api) 
+The project roadmap is available [here.](https://www.openbankproject.com/roadmap)
+The project FAQ is available [here.](https://www.openbankproject.com/faq)  
 
 ## DOCUMENTATION 
 
@@ -31,11 +32,7 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
-
-Note: These may be a bit outdated.
-
-Otherwise use sbt or Maven 2 as a build tool.
+Use sbt or Maven 2 as a build tool.
 
 ----
 
