@@ -8,7 +8,7 @@
 
 #Open Bank Project 
 ![OBP icon](https://www.openbankproject.com/static/images/logo.png)
-##Southbound Integration 
+##Southbound Integration Guide 
 
 ###Integrating the Open Bank Project API with a new banking system
 
@@ -29,7 +29,7 @@ E-Mail: contact@tesobe.com
 
 Version: 1.0
 Published: Dec. 12th 2014
-Author: Everett Schowkowsik, Tweaking: Simon Redfern.
+Author: Everett Sochowski, Tweaking: Simon Redfern.
 MD Editor Used: Mou (http://25.io/mou/)
 
 
@@ -74,8 +74,11 @@ Notably:
 If both “db.driver” and “db.url” are not included in the file, an h2 database will be automatically created and used. This can be useful for development.
 
 “hostname” should be the url at which you will access the url when it runs on your machine. You must specify this in order for oAuth to work properly.
+
 “payments_enabled” controls a specific payments api call: it is not required if you are going to implement your own payment calls
+
 “allow_sandbox_data_import” controls an api call for adding banks/users/accounts/transactions. You will probably not need it (and it will require implementation work by you in order for it to work, if you want it)
+
 “sandbox_data_import_secret” is a secret token guarding the above mentioned data import call. It is only important (and should be set to some UUID string) if  allow_sandbox_data_import is set to true.
 
 
@@ -172,8 +175,11 @@ The “transloadit” parameters are for the image processing service that handl
 
 “hostname” will be the url through which you will access the Social Finance web app. Important notes: if your API is running on 127.0.0.1, you will want to use “localhost” (or some other value not equal to 127.0.0.1). The same idea applies to API instances running on “localhost” or another value: they will need to be different between the API and Social Finance. Otherwise, there can be issues with conflicting sessions. 
 
-As you will want to run Social Finance on a different port than the API, remember this is possible via, e.g. mvn -Djetty.port=8089 jetty:run
-Implementing a new connection to a banking system
+As you will want to run Social Finance on a different port than the API, remember this is possible via, e.g. 
+
+	mvn -Djetty.port=8089 jetty:run
+
+##Implementing a new connection to a banking system
 
 There are a few traits you will need to implement to get the Open Bank Project API running against a new banking system.
 
