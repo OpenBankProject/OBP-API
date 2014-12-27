@@ -1,12 +1,12 @@
 # README
 
-Welcome to the Open Bank Project API 
+The Open Bank Project API
 
 ## ABOUT
 
 The Open Bank Project is an open source API for banks that enables account holders to interact with their bank using a wider range of applications and services.
 
-The OBP API supports transparency options (enabling account holders to share configurable views of their transaction data with trusted individuals and even the public), data blurring (to preserve sensitive information) and data enrichment (enabling users to add tags, comments and images to transactions). 
+The OBP API supports transparency options (enabling account holders to share configurable views of their transaction data with trusted individuals and even the public), data blurring (to preserve sensitive information) and data enrichment (enabling users to add tags, comments and images to transactions).
 
 Thus, the OBP API abstracts away the peculiarities of each core banking system so that a wide range of apps can interact with  multiple banks on behalf of the account holder. We want to raise the bar of financial transparency and enable a rich ecosystem of innovative financial applications and services.
 
@@ -31,17 +31,15 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-Vagrant and Puppet scripts are available [here](https://github.com/OpenBankProject/OBP-VM) to create a Virtual Box VM running the Open Bank Project API.
+Use Maven (or sbt) as build tool.
 
-Note: These may be a bit outdated.
+To compile and run jetty, install Maven 3 and execute:
 
-Otherwise use sbt or Maven 2 as a build tool.
+mvn jetty:run
 
 ----
 
-SBT:
-
-To compile and run jetty execute:
+Alternatively, sbt can be used, but might need some tweaks.
 
 $ sbt
 ...
@@ -54,12 +52,7 @@ In OS X, sbt can be installed with $ sudo port install sbt
 
 ----
 
-Maven:
-
-mvn jetty:run
-
-----
-
 # Databases:
 
 The default datastores used are MongoDB (metadata, transaction cache) and Postgres (user accounts).
+
