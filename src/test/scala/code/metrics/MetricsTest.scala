@@ -106,7 +106,6 @@ class MetricsTest extends ServerSetup with WipeMetrics {
  */
 trait WipeMetrics {
   def wipeAllExistingMetrics() = {
-    //just drops all mongodb databases
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    MappedMetric.bulkDelete_!!()
   }
 }

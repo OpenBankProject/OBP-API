@@ -38,6 +38,7 @@ import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
+import code.metrics.MappedMetric
 import net.liftweb._
 import util._
 import common._
@@ -326,5 +327,5 @@ object ToSchemify {
     ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
     MappedComment, MappedNarrative, MappedTag,
     MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction)
+    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction, MappedMetric)
 }
