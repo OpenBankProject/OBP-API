@@ -31,24 +31,11 @@ Some files (OAuth related) are licensed under the Apache 2 license.
 
 ## SETUP
 
-Use Maven (or sbt) as build tool.
+The project uses Maven 3 as its build tool.
 
 To compile and run jetty, install Maven 3 and execute:
 
 mvn jetty:run
-
-----
-
-Alternatively, sbt can be used, but might need some tweaks.
-
-$ sbt
-...
-> compile
-> ~;container:start; container:reload /
-
-(Note that you first have to start sbt and then on its console start jetty with the container:start task, otherwise it will exit immediately. More here: https://github.com/siasia/xsbt-web-plugin/wiki)
-
-In OS X, sbt can be installed with $ sudo port install sbt
 
 ----
 
