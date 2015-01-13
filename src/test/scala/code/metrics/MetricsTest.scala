@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.test.ServerSetup
-import net.liftweb.mongodb._
 
 class MetricsTest extends ServerSetup with WipeMetrics {
 
