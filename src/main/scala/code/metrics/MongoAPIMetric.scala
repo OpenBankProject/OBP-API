@@ -60,18 +60,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   }
 
   def getAllGroupedByDay() : Map[Date, List[APIMetric]] = {
-    def byDay(metric  : MongoAPIMetric) : Date = {
-      val metricDate = metric.date.get
-      val cal = Calendar.getInstance()
-      cal.setTime(metricDate)
-      cal.set(Calendar.HOUR,0)
-      cal.set(Calendar.MINUTE,0)
-      cal.set(Calendar.SECOND,0)
-      cal.set(Calendar.MILLISECOND,0)
-      cal.getTime
-    }
-
-    MongoAPIMetric.findAll.groupBy[Date](byDay)
+    MongoAPIMetric.findAll.groupBy[Date](APIMetrics.getMetricDay)
   }
 
 }

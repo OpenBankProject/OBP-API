@@ -9,15 +9,32 @@ object APIMetrics extends SimpleInjector {
 
   def buildOne: APIMetrics = MongoAPIMetric
 
+  /**
+   * Returns a Date which is at the start of the day of the date
+   * of the metric. Useful for implementing getAllGroupedByDay
+   * @param metric
+   * @return
+   */
+  def getMetricDay(metric : APIMetric) : Date = {
+    val cal = Calendar.getInstance()
+    cal.setTime(metric.getDate())
+    cal.set(Calendar.HOUR_OF_DAY,0)
+    cal.set(Calendar.MINUTE,0)
+    cal.set(Calendar.SECOND,0)
+    cal.set(Calendar.MILLISECOND,0)
+    cal.getTime
+  }
+
 }
 
 trait APIMetrics {
 
-  //TODO: inject date
   def saveMetric(url : String, date : Date) : Unit
 
+  //TODO: ordering of list? should this be by date? currently not enforced
   def getAllGroupedByUrl() : Map[String, List[APIMetric]]
 
+  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByDay() : Map[Date, List[APIMetric]]
 
 }
