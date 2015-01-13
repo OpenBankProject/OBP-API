@@ -12,7 +12,7 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save()
 }
 
-object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls {
+object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls with CreateOBPUsers {
 
   type BankType = MappedBank
   type AccountType = MappedBankAccount
