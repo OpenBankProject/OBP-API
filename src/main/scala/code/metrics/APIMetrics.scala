@@ -18,7 +18,7 @@ object APIMetrics extends SimpleInjector {
   def getMetricDay(metric : APIMetric) : Date = {
     val cal = Calendar.getInstance()
     cal.setTime(metric.getDate())
-    cal.set(Calendar.HOUR,0)
+    cal.set(Calendar.HOUR_OF_DAY,0)
     cal.set(Calendar.MINUTE,0)
     cal.set(Calendar.SECOND,0)
     cal.set(Calendar.MILLISECOND,0)
