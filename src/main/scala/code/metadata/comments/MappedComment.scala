@@ -61,7 +61,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
   }
 
   object view extends MappedString(this, 255)
-  object date extends MappedDate(this)
+  object date extends MappedDateTime(this)
 
   object bank extends MappedString(this, 255)
   object account extends MappedString(this, 255)

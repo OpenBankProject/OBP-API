@@ -203,7 +203,7 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
   def getSingleton = MappedCounterpartyWhereTag
 
   object user extends MappedLongForeignKey(this, APIUser)
-  object date extends MappedDate(this)
+  object date extends MappedDateTime(this)
 
   //TODO: require these to be valid latitude/longitudes
   object geoLatitude extends MappedDouble(this)

@@ -52,7 +52,7 @@ class MappedTransactionImage extends TransactionImage with LongKeyedMapper[Mappe
 
   object imageId extends MappedUUID(this)
   object user extends MappedLongForeignKey(this, APIUser)
-  object date extends MappedDate(this)
+  object date extends MappedDateTime(this)
 
   object url extends MappedText(this)
   object imageDescription extends MappedText(this)

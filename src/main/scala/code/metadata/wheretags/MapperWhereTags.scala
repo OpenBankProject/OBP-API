@@ -62,7 +62,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object view extends MappedString(this, 255)
 
   object user extends MappedLongForeignKey(this, APIUser)
-  object date extends MappedDate(this)
+  object date extends MappedDateTime(this)
 
   //TODO: require these to be valid latitude/longitudes
   object geoLatitude extends MappedDouble(this)

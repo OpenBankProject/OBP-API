@@ -46,7 +46,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
 
   object user extends MappedLongForeignKey(this, APIUser)
   object tag extends MappedString(this, 255)
-  object date extends MappedDate(this)
+  object date extends MappedDateTime(this)
 
   override def id_ : String = tagId.get
   override def postedBy: Box[User] = user.obj
