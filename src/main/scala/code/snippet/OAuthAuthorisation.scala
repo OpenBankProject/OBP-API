@@ -46,6 +46,7 @@ object OAuthAuthorisation {
   val FailedLoginParam = "failedLogin"
 
   val ErrorMessageSel = "#errorMessage"
+  val VerifierBlocSel = "#verifierBloc"
 
   def shouldNotLogUserOut() : Boolean = {
     S.param(LogUserOutParam) match {
@@ -67,7 +68,8 @@ object OAuthAuthorisation {
 
     def error(msg : String) : CssSel = {
       ErrorMessageSel #> S.?(msg) &
-      "#userAccess" #> NodeSeq.Empty
+      "#userAccess" #> NodeSeq.Empty &
+      VerifierBlocSel #> NodeSeq.Empty
     }
 
     //TODO: refactor into something nicer / more readable
@@ -126,7 +128,7 @@ object OAuthAuthorisation {
           case Full(consumer) => {
             hideFailedLoginMessageIfNeeded &
               "#applicationName" #> consumer.name &
-              "#verifierBloc" #> NodeSeq.Empty &
+              VerifierBlocSel #> NodeSeq.Empty &
               ErrorMessageSel #> NodeSeq.Empty &
               {
                 ".login [action]" #> OBPUser.loginPageURL &
