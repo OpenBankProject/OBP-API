@@ -1,4 +1,4 @@
- /**
+/**
 Open Bank Project
 
 Copyright 2011,2012 TESOBE / Music Pictures Ltd.
@@ -24,7 +24,8 @@ limitations under the License.
 		Simon Redfern : simon AT tesobe DOT com
 		Everett Sochowski: everett AT tesobe DOT com
 		Ayoub Benali : ayoub AT tesobe Dot com
-*/
+
+  */
 package code.snippet
 
 import code.util.Helper
@@ -48,7 +49,7 @@ object OAuthAuthorisation {
   val ErrorMessageSel = "#errorMessage"
   val VerifierBlocSel = "#verifierBloc"
 
-  def shouldNotLogUserOut() : Boolean = {
+  def shouldNotLogUserOut(): Boolean = {
     S.param(LogUserOutParam) match {
       case Full("false") => true
       case _ => false
@@ -66,14 +67,14 @@ object OAuthAuthorisation {
   // to the application (step 2))
   def tokenCheck = {
 
-    def error(msg : String) : CssSel = {
+    def error(msg: String): CssSel = {
       ErrorMessageSel #> S.?(msg) &
-      "#userAccess" #> NodeSeq.Empty &
-      VerifierBlocSel #> NodeSeq.Empty
+        "#userAccess" #> NodeSeq.Empty &
+        VerifierBlocSel #> NodeSeq.Empty
     }
 
     //TODO: refactor into something nicer / more readable
-    def validTokenCase(appToken : Token, unencodedTokenParam : String) : CssSel = {
+    def validTokenCase(appToken: Token, unencodedTokenParam: String): CssSel = {
       if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
         var verifier = ""
         // if the user is logged in and no verifier have been generated
@@ -83,8 +84,8 @@ object OAuthAuthorisation {
           val obpUser = OBPUser.currentUser.get
           //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
           //link the token with the concrete API User
-          obpUser.user.obj.map{
-            u  => {
+          obpUser.user.obj.map {
+            u => {
               //We want ApiUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"
               appToken.userForeignKey(u.id.get)
@@ -103,16 +104,16 @@ object OAuthAuthorisation {
             "#account" #> ""
         else {
           //send the user to another obp page that handles the redirect
-          val oauthQueryParams: List[(String, String)] = ("oauth_token", unencodedTokenParam) :: ("oauth_verifier",verifier) :: Nil
+          val oauthQueryParams: List[(String, String)] = ("oauth_token", unencodedTokenParam) ::("oauth_verifier", verifier) :: Nil
           val applicationRedirectionUrl = appendParams(appToken.callbackURL, oauthQueryParams)
           val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
           val redirectionUrl = Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
-          val redirectionParam = List(("redirectUrl",encodedApplicationRedirectionUrl))
+          val redirectionParam = List(("redirectUrl", encodedApplicationRedirectionUrl))
           S.redirectTo(appendParams(redirectionUrl, redirectionParam))
         }
       } else {
         val currentUrl = S.uriAndQueryString.getOrElse("/")
-        if(OBPUser.loggedIn_?) {
+        if (OBPUser.loggedIn_?) {
           OBPUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
           //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
@@ -129,19 +130,18 @@ object OAuthAuthorisation {
             hideFailedLoginMessageIfNeeded &
               "#applicationName" #> consumer.name &
               VerifierBlocSel #> NodeSeq.Empty &
-              ErrorMessageSel #> NodeSeq.Empty &
-              {
-                ".login [action]" #> OBPUser.loginPageURL &
-                  ".forgot [href]" #> {
-                    val href = for {
-                      menu <- OBPUser.resetPasswordMenuLoc
-                    } yield menu.loc.calcDefaultHref
+              ErrorMessageSel #> NodeSeq.Empty & {
+              ".login [action]" #> OBPUser.loginPageURL &
+                ".forgot [href]" #> {
+                  val href = for {
+                    menu <- OBPUser.resetPasswordMenuLoc
+                  } yield menu.loc.calcDefaultHref
 
-                    href getOrElse "#"
-                  } &
-                  ".signup [href]" #>
-                    OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
-              }
+                  href getOrElse "#"
+                } &
+                ".signup [href]" #>
+                  OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+            }
           }
           case _ => error("Application not found")
         }
@@ -165,22 +165,22 @@ object OAuthAuthorisation {
 
   }
 
-	//looks for expired tokens and nonces and delete them
-	def dataBaseCleaner : Unit = {
-		import net.liftweb.util.Schedule
-		import net.liftweb.mapper.By_<
-		Schedule.schedule(dataBaseCleaner _, 1 hour)
+  //looks for expired tokens and nonces and delete them
+  def dataBaseCleaner: Unit = {
+    import net.liftweb.util.Schedule
+    import net.liftweb.mapper.By_<
+    Schedule.schedule(dataBaseCleaner _, 1 hour)
 
-		val currentDate = new Date()
+    val currentDate = new Date()
 
-		/*
-			As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
-			requests. So this function will delete nonces which have a timestamp older than
-			currentDate - 3 minutes
-		*/
-		val timeLimit = new Date(currentDate.getTime + 180000)
+    /*
+      As in "wrong timestamp" function, 3 minutes is the timestamp limit where we accept
+      requests. So this function will delete nonces which have a timestamp older than
+      currentDate - 3 minutes
+    */
+    val timeLimit = new Date(currentDate.getTime + 180000)
 
-		//delete expired tokens and nonces
-		(Token.findAll(By_<(Token.expirationDate,currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp,timeLimit))).foreach(t => t.delete_!)
-	}
+    //delete expired tokens and nonces
+    (Token.findAll(By_<(Token.expirationDate, currentDate)) ++ Nonce.findAll(By_<(Nonce.timestamp, timeLimit))).foreach(t => t.delete_!)
+  }
 }
