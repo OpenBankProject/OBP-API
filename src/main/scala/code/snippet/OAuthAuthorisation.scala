@@ -15,15 +15,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
- Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
+  Open Bank Project (http://www.openbankproject.com)
+  Copyright 2011,2012 TESOBE / Music Pictures Ltd
 
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-		by
-		Simon Redfern : simon AT tesobe DOT com
-		Everett Sochowski: everett AT tesobe DOT com
-		Ayoub Benali : ayoub AT tesobe Dot com
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Everett Sochowski: everett AT tesobe DOT com
+  Ayoub Benali : ayoub AT tesobe Dot com
 
   */
 package code.snippet
@@ -82,7 +83,7 @@ object OAuthAuthorisation {
           val randomVerifier = appToken.gernerateVerifier
           //the user is logged in so we have the current user
           val obpUser = OBPUser.currentUser.get
-          
+
           //link the token with the concrete API User
           obpUser.user.obj.map {
             u => {
