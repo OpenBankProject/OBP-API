@@ -26,35 +26,36 @@ limitations under the License.
 		Ayoub Benali : ayoub AT tesobe Dot com
 */
 package code.snippet
-import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.Full
+
+import code.util.Helper
+import net.liftweb.common.{Failure, Full}
 import net.liftweb.http.S
 import code.model.{Nonce, Consumer, Token}
 import net.liftweb.mapper.By
 import java.util.Date
-import java.net.URLEncoder
-import javax.crypto.spec.SecretKeySpec
-import net.liftweb.util.Helpers
+import net.liftweb.util.{CssSel, Helpers, Props}
 import code.model.TokenType
-import TokenType._
 import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
 
 object OAuthAuthorisation {
 
   val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
+  val LogUserOutParam = "logUserOut"
+  val FailedLoginParam = "failedLogin"
+
+  val ErrorMessageSel = "#errorMessage"
 
   def shouldNotLogUserOut() : Boolean = {
-    S.param("logUserOut") match {
+    S.param(LogUserOutParam) match {
       case Full("false") => true
       case _ => false
     }
   }
 
   def hideFailedLoginMessageIfNeeded() = {
-    S.param("failedLogin") match {
+    S.param(FailedLoginParam) match {
       case Full("true") => NOOP_SELECTOR
       case _ => ".login-error" #> ""
     }
@@ -62,98 +63,105 @@ object OAuthAuthorisation {
 
   // this method is specific to the authorization page ( where the user login to grant access
   // to the application (step 2))
-  def tokenCheck =
-    S.param("oauth_token") match {
-      case Full(token) =>
-        Token.find(By(Token.key, Helpers.urlDecode(token.toString)), By(Token.tokenType, TokenType.Request)) match {
-          case Full(appToken) =>
-            //check if the token is still valid
-            if (appToken.isValid) {
-              if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
-                var verifier = ""
-                // if the user is logged in and no verifier have been generated
-                if (appToken.verifier.isEmpty) {
-                  val randomVerifier = appToken.gernerateVerifier
-                  //the user is logged in so we have the current user
-                  val obpUser = OBPUser.currentUser.get
-                  //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
-                  //link the token with the concrete API User
-                  obpUser.user.obj.map{
-                    u  => {
-                      //We want ApiUser.id because it is unique, unlike the id given by a provider
-                      // i.e. two different providers can have a user with id "bob"
-                      appToken.userForeignKey(u.id.get)
-                    }
-                  }
-                  if (appToken.save())
-                    verifier = randomVerifier
-                } else
-                  verifier = appToken.verifier
+  def tokenCheck = {
 
-                // show the verifier if the application does not support
-                // redirection
-                if (appToken.callbackURL.is == "oob")
-                  "#verifier *" #> verifier &
-                    "#errorMessage" #> "" &
-                    "#account" #> ""
-                else {
-                  //send the user to another obp page that handles the redirect
-                  val oauthQueryParams: List[(String, String)] = ("oauth_token", token) :: ("oauth_verifier",verifier) :: Nil
-                  val applicationRedirectionUrl = appendParams(appToken.callbackURL, oauthQueryParams)
-                  val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
-                  val redirectionUrl = Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
-                  val redirectionParam = List(("redirectUrl",encodedApplicationRedirectionUrl))
-                  S.redirectTo(appendParams(redirectionUrl, redirectionParam))
-                }
-              } else {
-                val currentUrl = S.uriAndQueryString.getOrElse("/")
-                if(OBPUser.loggedIn_?) {
-                  OBPUser.logUserOut()
-                  //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
-                  //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
-                  //properly and the redirect after login gets messed up. -E.S.
-                  S.redirectTo(currentUrl)
-                }
-                //if login succeeds, reload the page with logUserOut=false to process it
-                OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("logUserOut", "false")))))
-                //if login fails, just reload the page with the login form visible
-                OBPUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List(("failedLogin", "true")))))
-                //the user is not logged in so we show a login form
-                Consumer.find(By(Consumer.id, appToken.consumerId)) match {
-                  case Full(consumer) => {
-                    hideFailedLoginMessageIfNeeded &
-                    "#applicationName" #> consumer.name &
-                      "#verifierBloc" #> NodeSeq.Empty &
-                      "#errorMessage" #> NodeSeq.Empty &
-                      {
-                        ".login [action]" #> OBPUser.loginPageURL &
-                          ".forgot [href]" #> {
-                            val href = for {
-                              menu <- OBPUser.resetPasswordMenuLoc
-                            } yield menu.loc.calcDefaultHref
-
-                            href getOrElse "#"
-                          } &
-                          ".signup [href]" #>
-                          OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
-                      }
-                  }
-                  case _ =>
-                    "#errorMessage" #> "Application not found" &
-                      "#userAccess" #> NodeSeq.Empty
-                }
-              }
-            } else
-              "#errorMessage" #> "Token expired" &
-                "#userAccess" #> NodeSeq.Empty
-          case _ =>
-            "#errorMessage" #> "This token does not exist" &
-              "#userAccess" #> NodeSeq.Empty
-        }
-      case _ =>
-        "#errorMessage" #> "There is no Token" &
-          "#userAccess" #> NodeSeq.Empty
+    def error(msg : String) : CssSel = {
+      ErrorMessageSel #> S.?(msg) &
+      "#userAccess" #> NodeSeq.Empty
     }
+
+    //TODO: refactor into something nicer / more readable
+    def validTokenCase(appToken : Token, unencodedTokenParam : String) : CssSel = {
+      if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
+        var verifier = ""
+        // if the user is logged in and no verifier have been generated
+        if (appToken.verifier.isEmpty) {
+          val randomVerifier = appToken.gernerateVerifier
+          //the user is logged in so we have the current user
+          val obpUser = OBPUser.currentUser.get
+          //FIXME: The whole snippet still use OBPUser, we must change it to the User trait
+          //link the token with the concrete API User
+          obpUser.user.obj.map{
+            u  => {
+              //We want ApiUser.id because it is unique, unlike the id given by a provider
+              // i.e. two different providers can have a user with id "bob"
+              appToken.userForeignKey(u.id.get)
+            }
+          }
+          if (appToken.save())
+            verifier = randomVerifier
+        } else
+          verifier = appToken.verifier
+
+        // show the verifier if the application does not support
+        // redirection
+        if (appToken.callbackURL.is == "oob")
+          "#verifier *" #> verifier &
+            ErrorMessageSel #> "" &
+            "#account" #> ""
+        else {
+          //send the user to another obp page that handles the redirect
+          val oauthQueryParams: List[(String, String)] = ("oauth_token", unencodedTokenParam) :: ("oauth_verifier",verifier) :: Nil
+          val applicationRedirectionUrl = appendParams(appToken.callbackURL, oauthQueryParams)
+          val encodedApplicationRedirectionUrl = urlEncode(applicationRedirectionUrl)
+          val redirectionUrl = Props.get("hostname", "") + OAuthWorkedThanks.menu.loc.calcDefaultHref
+          val redirectionParam = List(("redirectUrl",encodedApplicationRedirectionUrl))
+          S.redirectTo(appendParams(redirectionUrl, redirectionParam))
+        }
+      } else {
+        val currentUrl = S.uriAndQueryString.getOrElse("/")
+        if(OBPUser.loggedIn_?) {
+          OBPUser.logUserOut()
+          //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
+          //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
+          //properly and the redirect after login gets messed up. -E.S.
+          S.redirectTo(currentUrl)
+        }
+        //if login succeeds, reload the page with logUserOut=false to process it
+        OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+        //if login fails, just reload the page with the login form visible
+        OBPUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
+        //the user is not logged in so we show a login form
+        Consumer.find(By(Consumer.id, appToken.consumerId)) match {
+          case Full(consumer) => {
+            hideFailedLoginMessageIfNeeded &
+              "#applicationName" #> consumer.name &
+              "#verifierBloc" #> NodeSeq.Empty &
+              ErrorMessageSel #> NodeSeq.Empty &
+              {
+                ".login [action]" #> OBPUser.loginPageURL &
+                  ".forgot [href]" #> {
+                    val href = for {
+                      menu <- OBPUser.resetPasswordMenuLoc
+                    } yield menu.loc.calcDefaultHref
+
+                    href getOrElse "#"
+                  } &
+                  ".signup [href]" #>
+                    OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+              }
+          }
+          case _ => error("Application not found")
+        }
+      }
+    }
+
+    //TODO: improve error messages
+    val cssSel = for {
+      tokenParam <- S.param("oauth_token") ?~! "There is no Token."
+      token <- Token.find(By(Token.key, Helpers.urlDecode(tokenParam.toString)), By(Token.tokenType, TokenType.Request)) ?~! "This token does not exist"
+      tokenValid <- Helper.booleanToBox(token.isValid, "Token expired")
+    } yield {
+      validTokenCase(token, tokenParam)
+    }
+
+    cssSel match {
+      case Full(sel) => sel
+      case Failure(msg, _, _) => error(msg)
+      case _ => error("unknown error")
+    }
+
+  }
 
 	//looks for expired tokens and nonces and delete them
 	def dataBaseCleaner : Unit = {
