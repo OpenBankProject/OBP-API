@@ -39,14 +39,13 @@ import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
 import net.liftweb.util.Props
 import net.liftweb.common.Loggable
+import code.util.Helper.NOOP_SELECTOR
 
 class ConsumerRegistration extends Loggable {
 
   //TODO: for security reasons this snippet and the template must be re-factored
   //to use the lift build in form function(SHtml._) so we can hide to what
   //the input fields are mapped to in the server side !!
-
-  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")

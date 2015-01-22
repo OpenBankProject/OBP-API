@@ -40,10 +40,10 @@ import code.model.TokenType
 import code.model.dataAccess.OBPUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
+import code.util.Helper.NOOP_SELECTOR
 
 object OAuthAuthorisation {
 
-  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
   val LogUserOutParam = "logUserOut"
   val FailedLoginParam = "failedLogin"
 

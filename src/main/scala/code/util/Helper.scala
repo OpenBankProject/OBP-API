@@ -2,8 +2,16 @@ package code.util
 
 import net.liftweb.common._
 import net.liftweb.util.{Mailer, Props}
+import net.liftweb.util.Helpers._
 
 object Helper{
+
+  /**
+   * A css selector that will (unless you have a template containing an element
+   * name i_am_an_id_that_should_never_exist) have no effect. Useful when you have
+   * a method that needs to return a CssSel but in some code paths don't want to do anything.
+   */
+  val NOOP_SELECTOR = "#i_am_an_id_that_should_never_exist" #> ""
 
   def generatePermalink(name: String): String = {
     name.trim.toLowerCase.replace("-","").replaceAll(" +", " ").replaceAll(" ", "-")
