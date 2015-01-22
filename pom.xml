@@ -179,6 +179,7 @@
           <!-- add src/main/java to source dirs -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.9.1</version>
           <executions>
             <execution>
               <phase>generate-sources</phase>
