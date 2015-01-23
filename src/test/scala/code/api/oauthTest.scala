@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.api
 
 import code.api.util.APIUtil
+import net.liftweb.util.Props
 import org.scalatest._
 import dispatch._, Defaults._
 import net.liftweb.util.Helpers._
@@ -56,6 +57,9 @@ case class OAuhtResponse(
 class OAuthTest extends ServerSetup{
 
   def oauthRequest = baseRequest / "oauth"
+
+  //a url that will be guaranteed to resolve when the oauth redirects us to it
+  val selfCallback = Props.get("hostname").openOrThrowException("hostname not set")
 
   lazy val testConsumer =
     OBPConsumer.create.
@@ -194,7 +198,7 @@ class OAuthTest extends ServerSetup{
   feature("Verifier"){
     scenario("the user login and get redirected to the application back", Verifier, Oauth){
       Given("we will use a valid request token")
-      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
       val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
@@ -238,7 +242,7 @@ class OAuthTest extends ServerSetup{
     }
     scenario("we get an access token with a callback", AccessToken, Oauth){
       Given("we will first get a request token and a verifier")
-      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
       When("when we ask for an access token")
@@ -257,7 +261,7 @@ class OAuthTest extends ServerSetup{
     }
     scenario("we don't get an access token because the request token is wrong", AccessToken, Oauth){
       Given("we will first get request token and a verifier")
-      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
       When("when we ask for an access token with a request token")
@@ -268,7 +272,7 @@ class OAuthTest extends ServerSetup{
     }
     scenario("we don't get an access token because the requestToken and the verifier are wrong", AccessToken, Oauth){
       Given("we will first get request token and a verifier")
-      val reply = getRequestToken(consumer, "http://localhost:8000")
+      val reply = getRequestToken(consumer, selfCallback)
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(5))
