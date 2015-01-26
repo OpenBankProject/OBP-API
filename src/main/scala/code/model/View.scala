@@ -35,7 +35,7 @@ package code.model
 
 import java.util.Date
 import code.util.Helper
-import net.liftweb.common.{Box, Empty}
+import net.liftweb.common._
 import code.views.Views
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json.JsonAST.JObject
@@ -77,7 +77,7 @@ case class ViewUpdateData(
   allowed_actions: List[String]) extends ViewData
 
 trait View {
-
+  val viewLogger = Logger(classOf[View])
   //e.g. "Public", "Authorities", "Our Network", etc.
 
   //these ids are used together to uniquely identify a view
@@ -174,140 +174,178 @@ trait View {
   // transfer methods
   def canInitiateTransaction: Boolean  
 
+  def moderate(transaction : Transaction): Box[ModeratedTransaction] = {
+    moderate(transaction, moderate(transaction.thisAccount))
+  }
+
   // In the future we can add a method here to allow someone to show only transactions over a certain limit
+  private def moderate(transaction: Transaction, moderatedAccount : Option[ModeratedBankAccount]): Box[ModeratedTransaction] = {
 
-  def moderate(transaction: Transaction): ModeratedTransaction = {
-    //transaction data
-    val transactionId = transaction.id
-    val transactionUUID = transaction.uuid
-    val thisBankAccount = moderate(transaction.thisAccount)
-    val otherBankAccount = moderate(transaction.otherAccount)
+    lazy val moderatedTransaction = {
+      //transaction data
+      val transactionId = transaction.id
+      val transactionUUID = transaction.uuid
+      val otherBankAccount = moderate(transaction.otherAccount)
 
-    //transation metadata
-    val transactionMetadata =
-      if(canSeeTransactionMetadata)
-      {
-        val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
-        val comments =
-          if (canSeeComments)
-            Some(transaction.metadata.comments(viewId))
-          else None
-        val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
-        val deleteCommentFunc =
+      //transation metadata
+      val transactionMetadata =
+        if(canSeeTransactionMetadata)
+        {
+          val ownerComment = if (canSeeOwnerComment) Some(transaction.metadata.ownerComment()) else None
+          val comments =
+            if (canSeeComments)
+              Some(transaction.metadata.comments(viewId))
+            else None
+          val addCommentFunc= if(canAddComment) Some(transaction.metadata.addComment) else None
+          val deleteCommentFunc =
             if(canDeleteComment)
               Some(transaction.metadata.deleteComment)
             else
               None
-        val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
-        val tags =
-          if(canSeeTags)
-            Some(transaction.metadata.tags(viewId))
-          else None
-        val addTagFunc =
-          if(canAddTag)
-            Some(transaction.metadata.addTag)
-          else
-            None
-        val deleteTagFunc =
+          val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
+          val tags =
+            if(canSeeTags)
+              Some(transaction.metadata.tags(viewId))
+            else None
+          val addTagFunc =
+            if(canAddTag)
+              Some(transaction.metadata.addTag)
+            else
+              None
+          val deleteTagFunc =
             if(canDeleteTag)
               Some(transaction.metadata.deleteTag)
             else
               None
-        val images =
-          if(canSeeImages) Some(transaction.metadata.images(viewId))
-          else None
+          val images =
+            if(canSeeImages) Some(transaction.metadata.images(viewId))
+            else None
 
-        val addImageFunc =
-          if(canAddImage) Some(transaction.metadata.addImage)
-          else None
+          val addImageFunc =
+            if(canAddImage) Some(transaction.metadata.addImage)
+            else None
 
-        val deleteImageFunc =
-          if(canDeleteImage) Some(transaction.metadata.deleteImage)
-          else None
+          val deleteImageFunc =
+            if(canDeleteImage) Some(transaction.metadata.deleteImage)
+            else None
 
-        val whereTag =
-          if(canSeeWhereTag)
-            Some(transaction.metadata.whereTags(viewId))
-          else
-            None
+          val whereTag =
+            if(canSeeWhereTag)
+              Some(transaction.metadata.whereTags(viewId))
+            else
+              None
 
-        val addWhereTagFunc : Option[(UserId, ViewId, Date, Double, Double) => Boolean] =
-          if(canAddWhereTag)
-            Some(transaction.metadata.addWhereTag)
-          else
-            Empty
+          val addWhereTagFunc : Option[(UserId, ViewId, Date, Double, Double) => Boolean] =
+            if(canAddWhereTag)
+              Some(transaction.metadata.addWhereTag)
+            else
+              Empty
 
-        val deleteWhereTagFunc : Option[(ViewId) => Boolean] =
-          if (canDeleteWhereTag)
-            Some(transaction.metadata.deleteWhereTag)
-          else
-            Empty
+          val deleteWhereTagFunc : Option[(ViewId) => Boolean] =
+            if (canDeleteWhereTag)
+              Some(transaction.metadata.deleteWhereTag)
+            else
+              Empty
 
 
-        new Some(
-          new ModeratedTransactionMetadata(
-            ownerComment = ownerComment,
-            addOwnerComment = addOwnerCommentFunc,
-            comments = comments,
-            addComment = addCommentFunc,
-            deleteComment = deleteCommentFunc,
-            tags = tags,
-            addTag = addTagFunc,
-            deleteTag = deleteTagFunc,
-            images = images,
-            addImage = addImageFunc,
-            deleteImage = deleteImageFunc,
-            whereTag = whereTag,
-            addWhereTag = addWhereTagFunc,
-            deleteWhereTag = deleteWhereTagFunc
+          new Some(
+            new ModeratedTransactionMetadata(
+              ownerComment = ownerComment,
+              addOwnerComment = addOwnerCommentFunc,
+              comments = comments,
+              addComment = addCommentFunc,
+              deleteComment = deleteCommentFunc,
+              tags = tags,
+              addTag = addTagFunc,
+              deleteTag = deleteTagFunc,
+              images = images,
+              addImage = addImageFunc,
+              deleteImage = deleteImageFunc,
+              whereTag = whereTag,
+              addWhereTag = addWhereTagFunc,
+              deleteWhereTag = deleteWhereTagFunc
+            )
           )
-        )
+        }
+        else
+          None
+
+      val transactionType =
+        if (canSeeTransactionType) Some(transaction.transactionType)
+        else None
+
+      val transactionAmount =
+        if (canSeeTransactionAmount) Some(transaction.amount)
+        else None
+
+      val transactionCurrency =
+        if (canSeeTransactionCurrency) Some(transaction.currency)
+        else None
+
+      val transactionDescription =
+        if (canSeeTransactionDescription) transaction.description
+        else None
+
+      val transactionStartDate =
+        if (canSeeTransactionStartDate) Some(transaction.startDate)
+        else None
+
+      val transactionFinishDate =
+        if (canSeeTransactionFinishDate) Some(transaction.finishDate)
+        else None
+
+      val transactionBalance =
+        if (canSeeTransactionBalance) transaction.balance.toString()
+        else ""
+
+      new ModeratedTransaction(
+        UUID = transactionUUID,
+        id = transactionId,
+        bankAccount = moderatedAccount,
+        otherBankAccount = otherBankAccount,
+        metadata = transactionMetadata,
+        transactionType = transactionType,
+        amount = transactionAmount,
+        currency = transactionCurrency,
+        description = transactionDescription,
+        startDate = transactionStartDate,
+        finishDate = transactionFinishDate,
+        balance = transactionBalance
+      )
+    }
+
+
+    val belongsToModeratedAccount : Boolean = moderatedAccount match {
+      case Some(acc) => acc.accountId == transaction.accountId && acc.bankId == transaction.bankId
+      case None => true
+    }
+
+    if(!belongsToModeratedAccount) {
+      val failMsg = "Attempted to moderate a transaction using the incorrect moderated account"
+      viewLogger.warn(failMsg)
+      Failure(failMsg)
+    } else {
+      Full(moderatedTransaction)
+    }
+
+  }
+
+  def moderateTransactionsWithSameAccount(transactions : List[Transaction]) : Box[List[ModeratedTransaction]] = {
+
+    val accountUids = transactions.map(t => BankAccountUID(t.bankId, t.accountId))
+
+    if(accountUids.toSet.size > 1) {
+      viewLogger.warn("Attempted to moderate transactions not belonging to the same account in a call where they should")
+      Failure("Could not moderate transactions as they do not all belong to the same account")
+    } else {
+      transactions.headOption match {
+        case Some(firstTransaction) =>
+          val moderatedAccount = moderate(firstTransaction.thisAccount)
+          Full(transactions.flatMap(t => moderate(t, moderatedAccount)))
+        case None =>
+          Full(Nil)
       }
-      else
-        None
-
-    val transactionType =
-      if (canSeeTransactionType) Some(transaction.transactionType)
-      else None
-
-    val transactionAmount =
-      if (canSeeTransactionAmount) Some(transaction.amount)
-      else None
-
-    val transactionCurrency =
-      if (canSeeTransactionCurrency) Some(transaction.currency)
-      else None
-
-    val transactionDescription =
-      if (canSeeTransactionDescription) transaction.description
-      else None
-
-    val transactionStartDate =
-      if (canSeeTransactionStartDate) Some(transaction.startDate)
-      else None
-
-    val transactionFinishDate =
-      if (canSeeTransactionFinishDate) Some(transaction.finishDate)
-      else None
-
-    val transactionBalance =
-      if (canSeeTransactionBalance) transaction.balance.toString()
-      else ""
-
-    new ModeratedTransaction(
-      UUID = transactionUUID,
-      id = transactionId,
-      bankAccount = thisBankAccount,
-      otherBankAccount = otherBankAccount,
-      metadata = transactionMetadata,
-      transactionType = transactionType,
-      amount = transactionAmount,
-      currency = transactionCurrency,
-      description = transactionDescription,
-      startDate = transactionStartDate,
-      finishDate = transactionFinishDate,
-      balance = transactionBalance
-    )
+    }
   }
 
   def moderate(bankAccount: BankAccount) : Option[ModeratedBankAccount] = {

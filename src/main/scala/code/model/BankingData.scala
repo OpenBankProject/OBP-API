@@ -393,7 +393,7 @@ trait BankAccount {
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getTransaction(bankId, accountId, transactionId).map(view.moderate)
+      Connector.connector.vend.getTransaction(bankId, accountId, transactionId).flatMap(view.moderate)
     else
       viewNotAllowed(view)
   }
@@ -402,7 +402,8 @@ trait BankAccount {
     if(authorizedAccess(view, user)) {
       for {
         transactions <- Connector.connector.vend.getTransactions(bankId, accountId, queryParams: _*)
-      } yield transactions.map(view.moderate)
+        moderated <- view.moderateTransactionsWithSameAccount(transactions) ?~! "Server error"
+      } yield moderated
     }
     else viewNotAllowed(view)
   }
