@@ -481,13 +481,40 @@ class OtherBankAccount(
   val bankName : String,
   val kind : String,
   val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
+  val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
+  val alreadyFoundMetadata : Option[OtherBankAccountMetadata]
+  ) {
+
+  val metadata : OtherBankAccountMetadata = {
+    alreadyFoundMetadata match {
+      case Some(meta) =>
+        meta
+      case None =>
+        Counterparties.counterparties.vend.getOrCreateMetadata(originalPartyBankId, originalPartyAccountId, this)
+    }
+  }
+}
+
+
+/*class OtherBankAccount(
+  val id : String,
+  val label : String,
+  val nationalIdentifier : String,
+  //the bank international identifier
+  val swift_bic : Option[String],
+  //the international account identifier
+  val iban : Option[String],
+  val number : String,
+  val bankName : String,
+  val kind : String,
+  val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
   val originalPartyAccountId: AccountId //account id of the party for which this OtherBankAccount is the counterparty
 ) {
 
   val metadata : OtherBankAccountMetadata = {
     Counterparties.counterparties.vend.getOrCreateMetadata(originalPartyBankId, originalPartyAccountId, this)
   }
-}
+}*/
 
 trait TransactionUUID {
   def theTransactionId : TransactionId
