@@ -5,10 +5,13 @@ import java.util.UUID
 import code.bankconnectors.Connector
 import code.metadata.counterparties.Counterparties
 import code.util.{Helper, MappedUUID}
-import net.liftweb.common.Box
+import net.liftweb.common.{Logger, Box}
 import net.liftweb.mapper._
 
 class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID {
+
+  private val logger = Logger(classOf[MappedTransaction])
+
   def getSingleton = MappedTransaction
 
   object bank extends MappedString(this, 255)
@@ -51,52 +54,55 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     if(i.isEmpty) None else Some(i)
   }
 
-  def toTransaction : Box[Transaction] = {
+  def toTransaction(account: BankAccount): Option[Transaction] = {
+    val tBankId = theBankId
+    val tAccId = theAccountId
 
-    val label = {
-      val d = description.get
-      if(d.isEmpty) None else Some(d)
-    }
+    if (tBankId != account.bankId || tAccId != account.accountId) {
+      logger.warn("Attempted to convert MappedTransaction to Transaction using unrelated existing BankAccount object")
+      None
+    } else {
+      val label = {
+        val d = description.get
+        if (d.isEmpty) None else Some(d)
+      }
 
-    val transactionCurrency = currency.get
-    val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
-    val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
+      val transactionCurrency = currency.get
+      val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
+      val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-    def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-      new OtherBankAccount(
-        id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-        label = counterpartyAccountHolder.get,
-        nationalIdentifier = counterpartyNationalId.get,
-        swift_bic = None, //TODO: need to add this to the json/model
-        iban = getCounterpartyIban(),
-        number = counterpartyAccountNumber.get,
-        bankName = counterpartyBankName.get,
-        kind = counterpartyAccountKind.get,
-        originalPartyBankId = theBankId,
-        originalPartyAccountId = theAccountId,
-        alreadyFoundMetadata = alreadyFoundMetadata
-      )
-    }
+      def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+        new OtherBankAccount(
+          id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+          label = counterpartyAccountHolder.get,
+          nationalIdentifier = counterpartyNationalId.get,
+          swift_bic = None, //TODO: need to add this to the json/model
+          iban = getCounterpartyIban(),
+          number = counterpartyAccountNumber.get,
+          bankName = counterpartyBankName.get,
+          kind = counterpartyAccountKind.get,
+          originalPartyBankId = theBankId,
+          originalPartyAccountId = theAccountId,
+          alreadyFoundMetadata = alreadyFoundMetadata
+        )
+      }
 
-    //it's a bit confusing what's going on here, as normally metadata should be automatically generated if
-    //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
-    //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
-    //so that we know what id to give it.
+      //it's a bit confusing what's going on here, as normally metadata should be automatically generated if
+      //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
+      //otherAccount ids are metadata ids, so the metadata needs to exist before we created the OtherBankAccount
+      //so that we know what id to give it.
 
-    //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-    val dummyOtherBankAccount = createOtherBankAccount(None)
+      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+      val dummyOtherBankAccount = createOtherBankAccount(None)
 
-    //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-    //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-    val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+      val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
 
-    for {
-      acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
-    } yield {
-      new Transaction(
+      Some(new Transaction(
         transactionUUID.get,
         theTransactionId,
-        acc,
+        account,
         otherAccount,
         transactionType.get,
         amt,
@@ -104,9 +110,17 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
         label,
         tStartDate.get,
         tFinishDate.get,
-        newBalance)
+        newBalance))
     }
   }
+
+  def toTransaction : Option[Transaction] = {
+    for {
+      acc <- Connector.connector.vend.getBankAccount(theBankId, theAccountId)
+      transaction <- toTransaction(acc)
+    } yield transaction
+  }
+
 }
 
 object MappedTransaction extends MappedTransaction with LongKeyedMetaMapper[MappedTransaction] {

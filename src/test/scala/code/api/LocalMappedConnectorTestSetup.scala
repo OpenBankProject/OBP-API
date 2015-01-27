@@ -57,7 +57,7 @@ trait LocalMappedConnectorTestSetup extends LocalConnectorTestSetup {
       .counterpartyIban(randomString(5))
       .counterpartyNationalId(randomString(5))
       .saveMe
-      .toTransaction.openOrThrowException("Test setup issue: could not create Transaction")
+      .toTransaction.get
   }
 
   override protected def wipeTestData() = {

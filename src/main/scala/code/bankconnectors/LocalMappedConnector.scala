@@ -58,7 +58,8 @@ object LocalMappedConnector extends Connector {
 
     updateAccountTransactions(bankId, accountID)
 
-    Full(mappedTransactions.flatMap(_.toTransaction))
+    for (account <- getBankAccount(bankId, accountID))
+      yield mappedTransactions.flatMap(_.toTransaction(account))
   }
 
   /**
