@@ -165,17 +165,17 @@ private object LocalConnector extends Connector with Loggable {
     //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
     //otherAccount ids are mongo metadata ids, so the metadata needs to exist before we created the OtherBankAccount
     //so that we know what id to give it. That's why there's a hardcoded dependency on MongoCounterparties.
-    val metadataId = Metadata.find(query) match {
-      case Full(m) => m.id.get.toString
+    val metadata = Metadata.find(query) match {
+      case Full(m) => m
       case _ => MongoCounterparties.createMetadata(
         theAccount.bankId,
         theAccount.accountId,
         otherAccount_.holder.get,
-        otherAccount_.number.get).id.get.toString
+        otherAccount_.number.get)
     }
 
     val otherAccount = new OtherBankAccount(
-      id = metadataId,
+      id = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       swift_bic = None, //TODO: need to add this to the json/model
@@ -184,7 +184,8 @@ private object LocalConnector extends Connector with Loggable {
       bankName = otherAccount_.bank.get.name.get,
       kind = otherAccount_.kind.get,
       originalPartyBankId = theAccount.bankId,
-      originalPartyAccountId = theAccount.accountId
+      originalPartyAccountId = theAccount.accountId,
+      alreadyFoundMetadata = Some(metadata)
     )
     val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
@@ -308,7 +309,8 @@ private object LocalConnector extends Connector with Loggable {
       bankName = otherAccountFromTransaction.bank.get.name.get,
       kind = "",
       originalPartyBankId = originalPartyBankId,
-      originalPartyAccountId = originalPartyAccountId
+      originalPartyAccountId = originalPartyAccountId,
+      alreadyFoundMetadata = Some(otherAccount)
     )
   }
 
