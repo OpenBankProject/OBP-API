@@ -111,7 +111,6 @@ object LocalMappedConnector extends Connector {
         By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
         By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
     } yield {
-      //TODO: it's a bit counterproductive that creating the OtherBankAccount will load the metadata again
       new OtherBankAccount(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
         id = metadata.metadataId,
@@ -123,7 +122,8 @@ object LocalMappedConnector extends Connector {
         bankName = t.counterpartyBankName.get,
         kind = t.counterpartyAccountKind.get,
         originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId
+        originalPartyAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(metadata)
       )
     }
   }
