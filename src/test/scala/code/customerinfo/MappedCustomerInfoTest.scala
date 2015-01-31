@@ -11,10 +11,10 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
 
   val testBankId = BankId("bank")
 
-  val customerInfo1 = MappedCustomerInfo.create
+  lazy val customerInfo1 = MappedCustomerInfo.create
     .mBank(testBankId.value).mEmail("bob@example.com").mFaceImageTime(new Date(12340000))
     .mFaceImageUrl("http://example.com/image.jpg").mLegalName("John Johnson")
-    .mMobileNumber("12343434").mNumber("343").mUser(obpuser1).saveMe
+    .mMobileNumber("12343434").mNumber("343").mUser(obpuser1).saveMe()
 
   feature("Getting customer info") {
 
@@ -48,6 +48,10 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
 
   override def beforeAll() = {
     super.beforeAll()
+    MappedCustomerInfo.bulkDelete_!!()
+
+    //init/save customerInfo1
+    customerInfo1
   }
 
   override def afterAll() = {
