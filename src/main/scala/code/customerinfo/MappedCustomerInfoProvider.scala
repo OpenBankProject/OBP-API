@@ -29,13 +29,13 @@ class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustome
   object mFaceImageUrl extends MappedText(this)
   object mFaceImageTime extends MappedDateTime(this)
 
-  override val number: String = mNumber.get
-  override val mobileNumber: String = mMobileNumber.get
-  override val legalName: String = mLegalName.get
-  override val email: String = mEmail.get
-  override val faceImage: CustomerFaceImage = new CustomerFaceImage {
-    override val date: Date = mFaceImageTime.get
-    override val url: String = mFaceImageUrl.get
+  override def number: String = mNumber.get
+  override def mobileNumber: String = mMobileNumber.get
+  override def legalName: String = mLegalName.get
+  override def email: String = mEmail.get
+  override def faceImage: CustomerFaceImage = new CustomerFaceImage {
+    override def date: Date = mFaceImageTime.get
+    override def url: String = mFaceImageUrl.get
   }
 }
 

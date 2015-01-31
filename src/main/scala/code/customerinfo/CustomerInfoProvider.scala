@@ -19,14 +19,14 @@ trait CustomerInfoProvider {
 }
 
 trait CustomerInfo {
-  val number : String
-  val legalName : String
-  val mobileNumber : String
-  val email : String
-  val faceImage : CustomerFaceImage
+  def number : String
+  def legalName : String
+  def mobileNumber : String
+  def email : String
+  def faceImage : CustomerFaceImage
 }
 
 trait CustomerFaceImage {
-  val url : String
-  val date : Date
+  def url : String
+  def date : Date
 }
