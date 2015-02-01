@@ -16,6 +16,8 @@ object CustomerInfo extends SimpleInjector {
 
 trait CustomerInfoProvider {
   def getInfo(bankId : BankId, user : User) : Box[CustomerInfo]
+
+  def getUser(bankId : BankId, customerId : String) : Box[User]
 }
 
 trait CustomerInfo {

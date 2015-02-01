@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
-import code.customerinfo.MappedCustomerInfo
+import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import net.liftweb._
 import util._
 import common._
@@ -320,5 +320,5 @@ class Boot extends Loggable{
 object ToSchemify {
   val models = List(OBPUser, Admin, Nonce, Token, Consumer,
     ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
-    MappedCustomerInfo)
+    MappedCustomerInfo, MappedCustomerMessage)
 }

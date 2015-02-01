@@ -13,6 +13,13 @@ object MappedCustomerInfoProvider extends CustomerInfoProvider {
       By(MappedCustomerInfo.mUser, user.apiId.value),
       By(MappedCustomerInfo.mBank, bankId.value))
   }
+
+  override def getUser(bankId: BankId, customerNumber: String): Box[User] = {
+    MappedCustomerInfo.find(
+      By(MappedCustomerInfo.mBank, bankId.value),
+      By(MappedCustomerInfo.mNumber, customerNumber)
+    ).flatMap(_.mUser.obj)
+  }
 }
 
 class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustomerInfo] with IdPK with CreatedUpdated {
@@ -41,5 +48,5 @@ class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustome
 
 object MappedCustomerInfo extends MappedCustomerInfo with LongKeyedMetaMapper[MappedCustomerInfo] {
   //one customer info per bank for each api user
-  override def dbIndexes = UniqueIndex(mUser, mBank) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mBank, mNumber) :: UniqueIndex(mUser, mBank) :: super.dbIndexes
 }

@@ -32,6 +32,8 @@ class CustomerInfoTest extends ServerSetup with DefaultUsers {
       if(bankId == mockBankId) Full(mockCustomerInfo)
       else Empty
     }
+
+    override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
   }
 
   override def beforeAll() {

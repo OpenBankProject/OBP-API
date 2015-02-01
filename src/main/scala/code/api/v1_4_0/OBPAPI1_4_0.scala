@@ -8,7 +8,10 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
 
   val VERSION = "1.4.0"
 
-  val routes = List(Implementations1_4_0.getCustomerInfo)
+  val routes = List(
+    Implementations1_4_0.getCustomerInfo,
+    Implementations1_4_0.getCustomerMessages,
+    Implementations1_4_0.addCustomerMessage)
 
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
