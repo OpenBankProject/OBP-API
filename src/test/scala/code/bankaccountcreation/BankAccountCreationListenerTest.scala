@@ -14,7 +14,7 @@ class BankAccountCreationListenerTest extends ServerSetup {
   object AccountHolderSetup extends Tag("account_holder_setup")
 
   feature("The account holder gets properly set when a bank account is created"){
-    scenario("a bank account is created") {
+    scenario("a bank account is created", AccountHolderSetup) {
 
       When("We create a bank account")
       val userId = "foo"
