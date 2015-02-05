@@ -34,30 +34,14 @@ package code.api.v1_1
 import net.liftweb.http._
 import net.liftweb.http.rest._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.json.Printer._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
 import net.liftweb.common.{Failure,Full,Empty, Box, Loggable}
-import net.liftweb.mongodb._
-import com.mongodb.casbah.Imports._
-import _root_.java.math.MathContext
-import org.bson.types._
-import org.joda.time.DateTimeZone
-import java.util.regex.Pattern
-import _root_.net.liftweb.util._
 import _root_.net.liftweb.mapper._
 import _root_.net.liftweb.util.Helpers._
-import _root_.net.liftweb.sitemap._
-import _root_.scala.xml._
-import _root_.net.liftweb.http.S._
-import _root_.net.liftweb.util.Helpers._
-import net.liftweb.mongodb.Limit
-import _root_.net.liftweb.http.S._
-import _root_.net.liftweb.mapper.view._
 import code.model._
 import java.util.Date
 import code.api.OAuthHandshake._
-import code.bankconnectors.{OBPOrder, OBPLimit, OBPOffset, OBPOrdering, OBPFromDate, OBPToDate, OBPQueryParam}
 import java.net.URL
 import code.metrics.{APIMetrics}
 
@@ -309,11 +293,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       logAPICall
       def bankToJson( b : Bank) = {
         ("bank" ->
-          ("id" -> b.id.value) ~
+          ("id" -> b.bankId.value) ~
           ("short_name" -> b.shortName) ~
           ("full_name" -> b.fullName) ~
-          ("logo" -> b.logoURL) ~
-          ("website" -> b.website)
+          ("logo" -> b.logoUrl) ~
+          ("website" -> b.websiteUrl)
         )
       }
 
@@ -327,11 +311,11 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
       def bankToJson( b : Bank) = {
         ("bank" ->
-          ("id" -> b.id.value) ~
+          ("id" -> b.bankId.value) ~
           ("short_name" -> b.shortName) ~
           ("full_name" -> b.fullName) ~
-          ("logo" -> b.logoURL) ~
-          ("website" -> b.website)
+          ("logo" -> b.logoUrl) ~
+          ("website" -> b.websiteUrl)
         )
       }
 
@@ -1604,7 +1588,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.apiId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1663,7 +1647,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addCorporateLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.apiId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1722,7 +1706,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.apiId, datePosted, longitude, latitude)
                   }
                 )
               }
@@ -1781,7 +1765,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                 addPhysicalLocation.map(
                   func =>{
                     val datePosted = (now: TimeSpan)
-                    func(user.apiId, viewId, datePosted, longitude, latitude)
+                    func(user.apiId, datePosted, longitude, latitude)
                   }
                 )
               }

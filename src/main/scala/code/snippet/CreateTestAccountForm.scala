@@ -53,8 +53,8 @@ object CreateTestAccountForm{
     showSuccessMessage &
     SetHtml("created-account-id", <span>{createdAccount.permalink.get}</span>) &
     SetHtml("created-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
-    SetHtml("created-account-initial-balance", <span>{createdAccount.balance.get}</span>) &
-    SetHtml("created-account-currency", <span>{createdAccount.currency.get}</span>)
+    SetHtml("created-account-initial-balance", <span>{createdAccount.accountBalance.get}</span>) &
+    SetHtml("created-account-currency", <span>{createdAccount.accountCurrency.get}</span>)
   }
 
   def showError(msg : String) : JsCmd = {
@@ -86,12 +86,10 @@ object CreateTestAccountForm{
           s"Account with id $accountId already exists at bank $bankId")
       } yield {
         //TODO: refactor into a single private api call, and have this return Box[BankAccount] instead of Account?
-        val bankAccount = BankAccountCreation.createAccount(new BankAccountNumber {
-          override val accountNumber: String = accountId.value
-        }, bank, user)
+        val bankAccount = BankAccountCreation.createAccount(accountId, bank, user)
 
         //set currency and initial balance
-        bankAccount.currency(currency).balance(initialBalanceAsNumber).save
+        bankAccount.accountCurrency(currency).accountBalance(initialBalanceAsNumber).save
 
         BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount

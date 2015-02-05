@@ -56,53 +56,46 @@ import net.liftweb.mongodb.Limit
 import net.liftweb.mongodb.Skip
 
 
-class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
+class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
   def meta = Account
 
-  object balance extends DecimalField(this, 0)
+  object accountBalance extends DecimalField(this, 0) {
+    //this is the legacy db field name
+    override def name = "balance"
+  }
   object holder extends StringField(this, 255)
-  object number extends StringField(this, 255)
+  object accountNumber extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "number"
+  }
   object kind extends StringField(this, 255)
-  object name extends StringField(this, 255)
+  object accountName extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "name"
+  }
   object permalink extends StringField(this, 255)
   object bankID extends ObjectIdRefField(this, HostedBank)
-  object label extends StringField(this, 255)
-  object currency extends StringField(this, 255)
-  object iban extends StringField(this, 255)
+  object accountLabel extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "label"
+  }
+  object accountCurrency extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "currency"
+  }
+  object accountIban extends StringField(this, 255){
+    //this is the legacy db field name
+    override def name = "iban"
+  }
   object lastUpdate extends DateField(this)
-
-  def bankName: String ={
-    bankID.obj match {
-      case Full(bank) => bank.name.get
-      case _ => ""
-    }
-  }
-
-  def accountId : AccountId = {
-    AccountId(permalink.get)
-  }
-
-  def bankNationalIdentifier: String = {
-    bankID.obj match {
-      case Full(bank) => bank.national_identifier.get
-      case _ => ""
-    }
-  }
-
-  def bankId: BankId = {
-    bankID.obj match  {
-      case Full(bank) => BankId(bank.permalink.get)
-      case _ => BankId("")
-    }
-  }
 
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
     .start("obp_transaction.this_account.number")
-    .is(number.get)
+    .is(accountNumber.get)
     //FIX: change that to use the bank identifier
     .put("obp_transaction.this_account.bank.national_identifier")
-    .is(bankNationalIdentifier)
+    .is(nationalIdentifier)
   }
 
   //find all the envelopes related to this account
@@ -163,60 +156,33 @@ class Account extends MongoRecord[Account] with ObjectIdPk[Account] with Loggabl
       }
     }
   }
+
+  override def bankId: BankId = {
+    bankID.obj match  {
+      case Full(bank) => BankId(bank.permalink.get)
+      case _ => BankId("")
+    }
+  }
+  override def accountId : AccountId = AccountId(permalink.get)
+  override def iban: Option[String] = {
+    val i = accountIban.get
+    if (i.isEmpty) None else Some(i)
+  }
+  override def currency: String = accountCurrency.get
+  override def swift_bic: Option[String] = None
+  override def number: String = accountNumber.get
+  override def balance: BigDecimal = accountBalance.get
+  override def name: String = accountName.get
+  override def accountType: String = kind.get
+  override def label: String = accountLabel.get
+  override def accountHolder: String = holder.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
-
   def init = createIndex((permalink.name -> 1) ~ (bankID.name -> 1), true)
-
-  def toBankAccount(account: Account): BankAccount = {
-    val iban = if (account.iban.toString.isEmpty) None else Some(account.iban.toString)
-    val nationalIdentifier = account.bankID.obj match {
-      case Full(b) => b.national_identifier.get
-      case _ => ""
-    }
-
-    val accountHolders = Connector.connector.vend.getAccountHolders(account.bankId, account.accountId)
-
-    val owners : Set[User] =
-      if(accountHolders.isEmpty) {
-        //account holders are not all set up in the db yet, so we might not get any back.
-        //In this case, we just use the previous behaviour, which did not return very much information at all
-        Set(new User {
-          val apiId = UserId(-1)
-          val idGivenByProvider = ""
-          val provider = ""
-          val emailAddress = ""
-          val name : String = account.holder.toString
-          def views = Nil
-        })
-      } else {
-        accountHolders
-      }
-
-    val bankAccount =
-      new BankAccount(
-        accountId = account.accountId,
-        owners= owners,
-        accountType = account.kind.toString,
-        balance = account.balance.get,
-        currency = account.currency.toString,
-        name = account.name.get,
-        label = account.label.toString,
-        //TODO: it is used for the bank national ID when populating Bank json model
-        //either we removed if from here or get it from some where else
-        nationalIdentifier = nationalIdentifier,
-        swift_bic = None,
-        iban = iban,
-        number = account.number.get,
-        bankName = account.bankName,
-        bankId = account.bankId
-      )
-    bankAccount
-  }
 }
 
-class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
+class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   def meta = HostedBank
 
   object name extends StringField(this, 255)
@@ -229,18 +195,24 @@ class HostedBank extends MongoRecord[HostedBank] with ObjectIdPk[HostedBank]{
   object national_identifier extends StringField(this, 255)
 
   def getAccount(bankAccountId: AccountId) : Box[Account] = {
-    Account.find(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
+    Account.find((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
   }
 
   def isAccount(bankAccountId : AccountId) : Boolean =
-    Account.count(("permalink" -> bankAccountId.value) ~ ("bankID" -> id.is)) == 1
+    Account.count((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) == 1
 
+  override def bankId: BankId = BankId(permalink.get)
+  override def shortName: String = alias.get
+  override def fullName: String = name.get
+  override def logoUrl: String = logoURL.get
+  override def websiteUrl: String = website.get
+  override def nationalIdentifier: String = national_identifier.get
 }
 
 object HostedBank extends HostedBank with MongoMetaRecord[HostedBank] {
 
   def init = createIndex((permalink.name -> 1), true)
 
-  def find(bankId : BankId) : Box[HostedBank] = find("permalink" -> bankId.value)
+  def find(bankId : BankId) : Box[HostedBank] = find(HostedBank.permalink.name -> bankId.value)
 
 }

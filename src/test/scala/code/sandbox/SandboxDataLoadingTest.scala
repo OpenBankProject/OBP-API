@@ -33,6 +33,7 @@ package code.sandbox
 
 import java.util.Date
 
+import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
@@ -73,10 +74,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   override def beforeEach() = {
     //drop database tables after the tests
     MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
-    ViewImpl.findAll.foreach(_.delete_!)
-    ViewPrivileges.findAll.foreach(_.delete_!)
-    MappedAccountHolder.findAll.foreach(_.delete_!)
-    OBPUser.findAll.foreach(_.delete_!)
+    ToSchemify.models.foreach(_.bulkDelete_!!())
   }
 
 
@@ -115,11 +113,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val foundBank = foundBankBox.get
 
-    foundBank.id should equal(bankId)
+    foundBank.bankId should equal(bankId)
     foundBank.shortName should equal(bank.short_name)
     foundBank.fullName should equal(bank.full_name)
-    foundBank.logoURL should equal(bank.logo)
-    foundBank.website should equal(bank.website)
+    foundBank.logoUrl should equal(bank.logo)
+    foundBank.websiteUrl should equal(bank.website)
   }
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -191,8 +189,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       APIMethods121.DateParser.parse(dateString).get
     }
 
-    foundTransaction.startDate should equal(toDate(transaction.details.posted))
-    foundTransaction.finishDate should equal(toDate(transaction.details.completed))
+    foundTransaction.startDate.getTime should equal(toDate(transaction.details.posted).getTime)
+    foundTransaction.finishDate.getTime should equal(toDate(transaction.details.completed).getTime)
 
     //a counterparty should exist
     val otherAcc = foundTransaction.otherAccount
@@ -200,7 +198,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     otherAcc.originalPartyAccountId should equal(accountId)
     otherAcc.originalPartyBankId should equal(bankId)
     val otherAccMeta = otherAcc.metadata
-    otherAccMeta.publicAlias should not be empty
+    otherAccMeta.getPublicAlias should not be empty
 
     //if a counterparty was originally specified in the import data, it should correspond to that
     //counterparty
@@ -435,11 +433,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     banks.size should equal(1)
     val createdBank  = banks(0)
 
-    createdBank.id should equal(BankId(validId))
+    createdBank.bankId should equal(BankId(validId))
     createdBank.shortName should equal(bank1.short_name)
     createdBank.fullName should equal(bank1.full_name)
-    createdBank.logoURL should equal(bank1.logo)
-    createdBank.website should equal(bank1.website)
+    createdBank.logoUrl should equal(bank1.logo)
+    createdBank.websiteUrl should equal(bank1.website)
   }
 
   it should "not allow multiple banks with the same id" in {
@@ -1151,7 +1149,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter2 = foundTransaction2Box.get.otherAccount
 
     counter1.id should equal(counter2.id)
-    counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
+    counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
   }
 
   it should "consider counterparties with the same name but different account numbers to be different" in {
@@ -1185,7 +1183,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter2 = foundTransaction2Box.get.otherAccount
 
     counter1.id should not equal(counter2.id)
-    counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
+    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.number should equal(counterAcc1)
     counter2.number should equal(counterAcc2)
   }
@@ -1219,7 +1217,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val counter2 = foundTransaction2Box.get.otherAccount
 
     counter1.id should equal(counter2.id)
-    counter1.metadata.publicAlias should equal(counter2.metadata.publicAlias)
+    counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
     counter1.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
     counter2.number should equal(transactionWithCounterparty.counterparty.get.account_number.get)
   }
@@ -1261,7 +1259,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     counter1.id should not equal(counter2.id)
     counter1.id.isEmpty should equal(false)
     counter2.id.isEmpty should equal(false)
-    counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
+    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
     counter1.number should equal(counterpartyAccNumber1)
     counter2.number should equal(counterpartyAccNumber2)
   }
@@ -1308,9 +1306,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     counter1.id should not equal(counter2.id)
     counter1.id should not equal(counter3.id)
     counter2.id should not equal(counter3.id)
-    counter1.metadata.publicAlias should not equal(counter2.metadata.publicAlias)
-    counter1.metadata.publicAlias should not equal(counter3.metadata.publicAlias)
-    counter2.metadata.publicAlias should not equal(counter3.metadata.publicAlias)
+    counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
+    counter1.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
+    counter2.metadata.getPublicAlias should not equal(counter3.metadata.getPublicAlias)
   }
 
   it should "not create any transactions when one has an invalid or missing value" in {

@@ -1,42 +1,41 @@
 package code.bankconnectors
 
-import net.liftweb.common.Box
+import java.text.SimpleDateFormat
+import java.util.TimeZone
+import net.liftweb.common.{Failure, Box, Loggable, Full}
+import net.liftweb.json.JsonAST.JValue
 import scala.concurrent.ops.spawn
 import code.model._
 import code.model.dataAccess._
 import net.liftweb.mapper.By
-import net.liftweb.common.Loggable
+import net.liftweb.mongodb.BsonDSL._
 import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
-import code.metadata.counterparties.{MongoCounterparties, Metadata}
-import net.liftweb.common.Full
+import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metadata}
 import com.tesobe.model.UpdateBankAccount
 
 private object LocalConnector extends Connector with Loggable {
 
-  def getBank(bankId : BankId): Box[Bank] =
-    for{
-      bank <- getHostedBank(bankId)
-    } yield {
-      createBank(bank)
-    }
+  type AccountType = Account
+
+  override def getBank(bankId : BankId): Box[Bank] =
+    getHostedBank(bankId)
 
   //gets banks handled by this connector
-  def getBanks : List[Bank] =
-    HostedBank.findAll.map(createBank)
+  override def getBanks : List[Bank] =
+    HostedBank.findAll
 
-  def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
+  override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[Account] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
-    } yield Account toBankAccount account
+    } yield account
   }
 
 
-  def getModeratedOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String)
-  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[ModeratedOtherBankAccount] = {
+  override def getOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String): Box[OtherBankAccount] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -65,43 +64,38 @@ private object LocalConnector extends Connector with Loggable {
             OBPAccount.createRecord
           }
         }
-        moderate(createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)).get
+        createOtherBankAccount(bankId, accountId, otherAccountmetadata, otherAccountFromTransaction)
       }
   }
 
-  def getModeratedOtherBankAccounts(bankId: BankId, accountId : AccountId)
-  (moderate: OtherBankAccount => Option[ModeratedOtherBankAccount]): Box[List[ModeratedOtherBankAccount]] = {
+  override def getOtherBankAccounts(bankId: BankId, accountId : AccountId): List[OtherBankAccount] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
      * "other account metadata" object.
      */
 
-    val query = QueryBuilder.start("originalPartyBankId").is(bankId.value).put("originalPartyAccountId").is(accountId.value).get
-
-    val moderatedCounterparties = Metadata.findAll(query).map(meta => {
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).map(meta => {
       //for legacy reasons some of the data about the "other account" are stored only on the transactions
       //so we need first to get a transaction that match to have the rest of the data
       val query = QueryBuilder
-        .start("obp_transaction.other_account.holder").is(meta.holder.get)
-        .put("obp_transaction.other_account.number").is(meta.accountNumber.get).get()
+        .start("obp_transaction.other_account.holder").is(meta.getHolder)
+        .put("obp_transaction.other_account.number").is(meta.getAccountNumber).get()
 
       val otherAccountFromTransaction : OBPAccount = OBPEnvelope.find(query) match {
         case Full(envelope) => {
           envelope.obp_transaction.get.other_account.get
         }
         case _ => {
-          logger.warn(s"envelope not found for other account ${meta.id.get}")
+          logger.warn(s"envelope not found for other account ${meta.metadataId}")
           OBPAccount.createRecord
         }
       }
-      moderate(createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction))
+      createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction)
     })
-
-    Full(moderatedCounterparties.flatten)
   }
 
-  def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
       bank <- getHostedBank(bankId)
@@ -112,7 +106,7 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId): Box[Transaction] = {
+  override def getTransaction(bankId: BankId, accountId : AccountId, transactionId : TransactionId): Box[Transaction] = {
     for{
       bank <- getHostedBank(bankId) ?~! s"Transaction not found: bank $bankId not found"
       account  <- bank.getAccount(accountId) ?~! s"Transaction not found: account $accountId not found"
@@ -123,25 +117,39 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  def getPhysicalCards(user : User) : Set[PhysicalCard] = {
+  override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
     Set.empty
   }
 
-  def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
+  override def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
     Set.empty
   }
 
-  def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
+  override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
     MappedAccountHolder.findAll(
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-    private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
+  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal) : Box[TransactionId] = {
+    val fromTransAmt = -amt //from account balance should decrease
+    val toTransAmt = amt //to account balance should increase
+
+    //this is the transaction that gets attached to the account of the person making the payment
+    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt)
+
+    // this creates the transaction that gets attached to the account of the person receiving the payment
+    saveNewTransaction(toAccount, fromAccount, toTransAmt)
+
+    //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
+    //be updated (the tests should fail if it doesn't)
+    createdFromTrans.map(t => TransactionId(t.transactionId.get))
+  }
+
+  private def createTransaction(env: OBPEnvelope, theAccount: Account): Transaction = {
     val transaction: OBPTransaction = env.obp_transaction.get
     val otherAccount_ = transaction.other_account.get
 
-    val thisBankAccount = Account.toBankAccount(theAccount)
     val id = TransactionId(env.transactionId.get)
     val uuid = id.value
 
@@ -157,17 +165,17 @@ private object LocalConnector extends Connector with Loggable {
     //it doesn't exist when an OtherBankAccount object is created. The issue here is that for legacy reasons
     //otherAccount ids are mongo metadata ids, so the metadata needs to exist before we created the OtherBankAccount
     //so that we know what id to give it. That's why there's a hardcoded dependency on MongoCounterparties.
-    val metadataId = Metadata.find(query) match {
-      case Full(m) => m.id.get.toString
+    val metadata = Metadata.find(query) match {
+      case Full(m) => m
       case _ => MongoCounterparties.createMetadata(
         theAccount.bankId,
         theAccount.accountId,
         otherAccount_.holder.get,
-        otherAccount_.number.get).id.get.toString
+        otherAccount_.number.get)
     }
 
     val otherAccount = new OtherBankAccount(
-      id = metadataId,
+      id = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       swift_bic = None, //TODO: need to add this to the json/model
@@ -176,7 +184,8 @@ private object LocalConnector extends Connector with Loggable {
       bankName = otherAccount_.bank.get.name.get,
       kind = otherAccount_.kind.get,
       originalPartyBankId = theAccount.bankId,
-      originalPartyAccountId = theAccount.accountId
+      originalPartyAccountId = theAccount.accountId,
+      alreadyFoundMetadata = Some(metadata)
     )
     val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
@@ -189,7 +198,7 @@ private object LocalConnector extends Connector with Loggable {
     new Transaction(
       uuid,
       id,
-      thisBankAccount,
+      theAccount,
       otherAccount,
       transactionType,
       amount,
@@ -198,6 +207,74 @@ private object LocalConnector extends Connector with Loggable {
       startDate,
       finishDate,
       balance)
+  }
+
+  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal) : Box[OBPEnvelope] = {
+
+    val oldBalance = account.balance
+
+    def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : Account) : Box[OBPEnvelope] = {
+
+      val envelope: Box[OBPEnvelope] = OBPEnvelope.envlopesFromJvalue(transactionJS)
+
+      if(envelope.isDefined) {
+        val e : OBPEnvelope = envelope.get
+        logger.debug(s"Updating current balance for ${thisAccount.bankName} / ${thisAccount.accountNumber} / ${thisAccount.accountType}")
+        thisAccount.accountBalance(e.obp_transaction.get.details.get.new_balance.get.amount.get).save
+        logger.debug("Saving new transaction")
+        Full(e.save)
+      } else {
+        Failure("couldn't save transaction")
+      }
+    }
+
+    for {
+      otherBank <- Connector.connector.vend.getBank(otherAccount.bankId) ?~! "no other bank found"
+      transTime = now
+      //mongodb/the lift mongo thing wants a literal Z in the timestamp, apparently
+      envJsonDateFormat = {
+        val simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+        simpleDateFormat
+      }
+
+      envJson =
+      ("obp_transaction" ->
+        ("this_account" ->
+          ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
+            ("number" -> account.number) ~
+            ("kind" -> account.accountType) ~
+            ("bank" ->
+              ("IBAN" -> account.iban.getOrElse("")) ~
+                ("national_identifier" -> account.nationalIdentifier) ~
+                ("name" -> account.bankId.value))) ~
+          ("other_account" ->
+            ("holder" -> otherAccount.accountHolder) ~
+              ("number" -> otherAccount.number) ~
+              ("kind" -> otherAccount.accountType) ~
+              ("bank" ->
+                ("IBAN" -> "") ~
+                  ("national_identifier" -> otherBank.nationalIdentifier) ~
+                  ("name" -> otherBank.fullName))) ~
+          ("details" ->
+            ("type_en" -> "") ~
+              ("type_de" -> "") ~
+              ("posted" ->
+                ("$dt" -> envJsonDateFormat.format(transTime))
+                ) ~
+              ("completed" ->
+                ("$dt" -> envJsonDateFormat.format(transTime))
+                ) ~
+              ("new_balance" ->
+                ("currency" -> account.currency) ~
+                  ("amount" -> (oldBalance + amount).toString)) ~
+              ("value" ->
+                ("currency" -> account.currency) ~
+                  ("amount" -> amount.toString))))
+      saved <- saveAndUpdateAccountBalance(envJson, account)
+    } yield {
+      saved
+    }
   }
 
   /**
@@ -214,17 +291,17 @@ private object LocalConnector extends Connector with Loggable {
       val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
       val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
       if(outDatedTransactions && useMessageQueue) {
-        UpdatesRequestSender.sendMsg(UpdateBankAccount(account.number.get, bank.national_identifier.get))
+        UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
     }
   }
 
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-    otherAccount : Metadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
+    otherAccount : OtherBankAccountMetadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
     new OtherBankAccount(
-      id = otherAccount.id.is.toString,
-      label = otherAccount.holder.get,
+      id = otherAccount.metadataId,
+      label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       swift_bic = None, //TODO: need to add this to the json/model
       iban = Some(otherAccountFromTransaction.bank.get.IBAN.get),
@@ -232,21 +309,12 @@ private object LocalConnector extends Connector with Loggable {
       bankName = otherAccountFromTransaction.bank.get.name.get,
       kind = "",
       originalPartyBankId = originalPartyBankId,
-      originalPartyAccountId = originalPartyAccountId
+      originalPartyAccountId = originalPartyAccountId,
+      alreadyFoundMetadata = Some(otherAccount)
     )
   }
 
   private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
     HostedBank.find("permalink", bankId.value) ?~ {"bank " + bankId + " not found"}
-  }
-
-  private def createBank(bank : HostedBank) : Bank = {
-    new Bank(
-      BankId(bank.permalink.is.toString),
-      bank.alias.is,
-      bank.name.is,
-      bank.logoURL.is,
-      bank.website.is
-    )
   }
 }

@@ -31,10 +31,10 @@ Berlin 13359, Germany
  */
 package code.api.v1_2_1
 
-import code.api.DefaultUsers
+import code.api.{PrivateUser2Accounts, User1AllPrivileges, DefaultUsers}
 import code.api.util.APIUtil
+import code.bankconnectors.Connector
 import org.scalatest.Tag
-import org.scalatest._
 import _root_.net.liftweb.util._
 import Helpers._
 import dispatch._
@@ -43,15 +43,12 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import scala.util.Random._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
-import code.api.test.{ServerSetup}
 import APIUtil.OAuth._
-import org.bson.types.ObjectId
 import code.views.Views
-import code.model.dataAccess._
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
 
-class API1_2_1Test extends ServerSetup with DefaultUsers {
+class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
 
@@ -78,18 +75,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     "can_add_comment","can_delete_comment","can_add_tag","can_delete_tag","can_add_image",
     "can_delete_image","can_add_where_tag","can_see_where_tag","can_delete_where_tag"
   )
-
-  override def specificSetup() ={
-    //give to user1 all the privileges on all the accounts
-    for{
-      v <- ViewImpl.findAll()
-    }{
-      ViewPrivileges.create.
-        view(v).
-        user(obpuser1).
-        save
-    }
-  }
 
   /************************* test tags ************************/
 
@@ -672,14 +657,22 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
     val view = "owner"
 
+    def transactionCount(accounts: BankAccount*) : Int = {
+      accounts.foldLeft(0)((accumulator, account) => {
+        //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
+        //it with the correct account owners, and be sure that we don't even run into pagination problems
+        accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
+      })
+    }
+
     scenario("we make a payment", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -692,7 +685,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -741,17 +734,17 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       getToAccount.balance should equal(expectedNewToBalance)
 
       And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
-      OBPEnvelope.count should equal(totalTransactionsBefore + 2)
+      transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
     }
 
     scenario("we can't make a payment without access to the owner view", Payments) {
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
 
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -764,7 +757,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -778,20 +771,20 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment without an oauth user", Payments) {
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -804,7 +797,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -818,23 +811,22 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment of zero units of currency", Payments) {
       When("we try to make a payment with amount = 0")
 
       val testBank = createPaymentTestBank()
-      val bankMongoId = testBank.id.get.toString
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -847,7 +839,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -861,21 +853,21 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment with a negative amount of money", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -890,7 +882,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -904,19 +896,19 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
 
     scenario("we can't make a payment to an account that doesn't exist", Payments) {
 
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -926,7 +918,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       val fromAccount = getFromAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount)
 
       val beforeFromBalance = fromAccount.balance
 
@@ -939,20 +931,20 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for the sender's account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount))
 
       And("the balance of the sender's account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
     }
 
     scenario("we can't make a payment between accounts with different currencies", Payments) {
       When("we try to make a payment to an account that has a different currency")
       val testBank = createPaymentTestBank()
-      val bankId = BankId(testBank.permalink.get)
+      val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), testBank, accountId2, "GBP")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -965,7 +957,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       val fromAccount = getFromAccount
       val toAccount = getToAccount
 
-      val totalTransactionsBefore = OBPEnvelope.count
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
@@ -979,11 +971,11 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
       postResult.code should equal(400)
 
       And("the number of transactions for each account should remain unchanged")
-      totalTransactionsBefore should equal(OBPEnvelope.count)
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
 
       And("the balances of each account should remain unchanged")
-      beforeFromBalance should equal(fromAccount.balance)
-      beforeToBalance should equal(toAccount.balance)
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
     }
   }
 
@@ -1087,59 +1079,6 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
     }
     //if they are all unique, the set will contain the same number of elements as the list
     accJson.accounts.size should equal(accountIdentifiers.size)
-  }
-
-  /**
-   * Adds some private accounts for obpuser2 to the DB so that not all accounts in the DB are public
-   * (which is at the time of writing, the default created in ServerSetup)
-   *
-   * Also adds some public accounts to which user1 does not have owner access
-   *
-   * Also adds some private accounts for user1 that are not public
-   */
-  def accountTestsSpecificDBSetup() {
-
-    val banks =  HostedBank.findAll
-
-    def generateAccounts() = banks.flatMap(bank => {
-      for { i <- 0 until 2 } yield {
-        val acc = Account.createRecord.
-          balance(0).
-          holder(randomString(10)).
-          number(randomString(10)).
-          kind(randomString(10)).
-          name(randomString(10)).
-          permalink(randomString(10)).
-          bankID(new ObjectId(bank.id.get.toString)).
-          label(randomString(10)).
-          currency(randomString(10)).
-          save
-        logger.error("ZZZ: " + acc.permalink.get + " at bank " + bank.permalink)
-        acc
-      }
-    })
-
-    //fake bank accounts
-    val privateAccountsForUser1 = generateAccounts()
-    val privateAccountsForUser2 = generateAccounts()
-    val publicAccounts = generateAccounts()
-
-    def addViews(accs : List[Account], ownerUser : APIUser, addPublicView : Boolean) = {
-      accs.foreach(account => {
-        val owner = ownerView(account.bankId, account.accountId)
-        ViewPrivileges.create.
-          view(owner).
-          user(ownerUser).
-          save
-
-        if(addPublicView) {
-          publicView(account.bankId, account.accountId)
-        }
-      })
-    }
-    addViews(privateAccountsForUser1, obpuser1, false)
-    addViews(privateAccountsForUser2, obpuser2, false)
-    addViews(publicAccounts, obpuser2, true)
   }
 
   feature("Information about all the bank accounts for all banks"){
@@ -2033,10 +1972,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       //set up: make obpuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
-      MappedAccountHolder.create.
-        user(obpuser3).
-        accountBankPermalink(bankId).
-        accountPermalink(bankAccount.id).save
+      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to the owner view")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
@@ -2152,10 +2088,7 @@ class API1_2_1Test extends ServerSetup with DefaultUsers {
 
       //set up: make obpuser3 the account holder and make sure they have access to the owner view
       grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
-      MappedAccountHolder.create.
-        user(obpuser3).
-        accountBankPermalink(bankId).
-        accountPermalink(bankAccount.id).save
+      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to all views")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, obpuser3.idGivenByProvider, user1)

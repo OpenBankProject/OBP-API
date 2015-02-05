@@ -318,7 +318,7 @@ case class ViewIdsJson(
 
 object JSONFactory{
   def stringOrNull(text : String) =
-    if(text.isEmpty)
+    if(text == null || text.isEmpty)
       null
     else
       text
@@ -331,11 +331,11 @@ object JSONFactory{
 
   def createBankJSON(bank : Bank) : BankJSON = {
     new BankJSON(
-      stringOrNull(bank.id.value),
+      stringOrNull(bank.bankId.value),
       stringOrNull(bank.shortName),
       stringOrNull(bank.fullName),
-      stringOrNull(bank.logoURL),
-      stringOrNull(bank.website)
+      stringOrNull(bank.logoUrl),
+      stringOrNull(bank.websiteUrl)
     )
   }
 

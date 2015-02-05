@@ -263,9 +263,7 @@ class Boot extends Loggable{
   }
 
   def schemifyAll() = {
-    Schemifier.schemify(true, Schemifier.infoF _,
-      OBPUser, Admin, Nonce, Token, Consumer,
-      ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
+    Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
   }
 
   private def showException(le: Throwable): String = {
@@ -315,4 +313,9 @@ class Boot extends Loggable{
     if(mailSent.isEmpty)
       logger.warn(s"Exception notification failed: $mailSent")
   }
+}
+
+object ToSchemify {
+  val models = List(OBPUser, Admin, Nonce, Token, Consumer,
+    ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
 }

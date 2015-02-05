@@ -5,7 +5,12 @@ import net.liftweb.common.Loggable
 import com.mongodb.QueryBuilder
 
 object MongoCounterparties extends Counterparties with Loggable {
-  import code.model.GeoTag
+
+
+  def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[OtherBankAccountMetadata] = {
+    val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).get
+    Metadata.findAll(query)
+  }
 
   def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
     import net.liftweb.util.Helpers.tryo
@@ -28,7 +33,7 @@ object MongoCounterparties extends Counterparties with Loggable {
       case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.number)
     }
 
-    createOtherBankAccountMetadata(metadata)
+    metadata
   }
 
   /**
@@ -87,67 +92,5 @@ object MongoCounterparties extends Counterparties with Loggable {
 
     if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
     else firstAliasAttempt
-  }
-
-
-
-  private def createOtherBankAccountMetadata(otherAccountMetadata : Metadata): OtherBankAccountMetadata = {
-    new OtherBankAccountMetadata(
-      publicAlias = otherAccountMetadata.publicAlias.get,
-      privateAlias = otherAccountMetadata.privateAlias.get,
-      moreInfo = otherAccountMetadata.moreInfo.get,
-      url = otherAccountMetadata.url.get,
-      imageURL = otherAccountMetadata.imageUrl.get,
-      openCorporatesURL = otherAccountMetadata.openCorporatesUrl.get,
-      corporateLocation = locationTag(otherAccountMetadata.corporateLocation.get),
-      physicalLocation = locationTag(otherAccountMetadata.physicalLocation.get),
-      addMoreInfo = (text => {
-        otherAccountMetadata.moreInfo(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addURL = (text => {
-        otherAccountMetadata.url(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addImageURL = (text => {
-        otherAccountMetadata.imageUrl(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addOpenCorporatesURL = (text => {
-        otherAccountMetadata.openCorporatesUrl(text).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addCorporateLocation = otherAccountMetadata.addCorporateLocation,
-      addPhysicalLocation = otherAccountMetadata.addPhysicalLocation,
-      addPublicAlias = (alias => {
-        otherAccountMetadata.publicAlias(alias).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      addPrivateAlias = (alias => {
-        otherAccountMetadata.privateAlias(alias).save
-        //the save method does not return a Boolean to inform about the saving state,
-        //so we a true
-        true
-      }),
-      deleteCorporateLocation = otherAccountMetadata.deleteCorporateLocation _,
-      deletePhysicalLocation = otherAccountMetadata.deletePhysicalLocation _
-    )
-  }
-
-  private def locationTag(loc: OBPGeoTag): Option[GeoTag]={
-    if(loc.longitude==0 && loc.latitude==0)
-      None
-    else
-      Some(loc)
   }
 }
