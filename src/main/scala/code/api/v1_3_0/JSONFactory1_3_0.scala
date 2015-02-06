@@ -39,7 +39,7 @@ case class PinResetJSON(
 object JSONFactory1_3_0 {
 
   def stringOrNull(text : String) =
-    if(text.isEmpty)
+    if(text == null || text.isEmpty)
       null
     else
       text

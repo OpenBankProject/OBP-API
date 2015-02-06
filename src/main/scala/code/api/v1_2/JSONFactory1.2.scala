@@ -315,7 +315,7 @@ case class ViewIdsJson(
 
 object JSONFactory{
   def stringOrNull(text : String) =
-    if(text.isEmpty)
+    if(text == null || text.isEmpty)
       null
     else
       text

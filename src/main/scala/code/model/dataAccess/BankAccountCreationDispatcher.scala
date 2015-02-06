@@ -72,6 +72,8 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftweb.mapper.By
   import net.liftweb.util.Helpers._
 
+import scala.util.Random
+
 
 /**
   *  an AMQP dispatcher that waits for message coming from a specif queue
@@ -112,12 +114,12 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
       }
     }
 
-    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): Account = {
+    private def createAccount(bankAccountNumber: BankAccountNumber, accountId : AccountId, bank : HostedBank, u: APIUser) : Account = {
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
         (Account.accountNumber.name -> bankAccountNumber.accountNumber)~
-        (Account.bankID.name -> bank.id.is)
+          (Account.bankID.name -> bank.id.is)
       ) match {
         case Full(bankAccount) => {
           logger.info(s"account ${bankAccount.accountNumber} found")
@@ -128,22 +130,47 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
           val accountHolder = s"${u.name}"
           val bankAccount =
             Account
-            .createRecord
-            .accountBalance(0)
-            .holder(accountHolder)
-            .accountNumber(bankAccountNumber.accountNumber)
-            .kind("current")
-            .accountName("")
-            .permalink(UUID.randomUUID().toString)
-            .bankID(bank.id.is)
-            .accountLabel("")
-            .accountCurrency("EUR")
-            .accountIban("")
-            .lastUpdate(now)
-            .save
+              .createRecord
+              .accountBalance(0)
+              .holder(accountHolder)
+              .accountNumber(bankAccountNumber.accountNumber)
+              .kind("current")
+              .accountName("")
+              .permalink(accountId.value)
+              .bankID(bank.id.is)
+              .accountLabel("")
+              .accountCurrency("EUR")
+              .accountIban("")
+              .lastUpdate(now)
+              .save
           bankAccount
         }
       }
+    }
+
+    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): Account = {
+      createAccount(bankAccountNumber, AccountId(UUID.randomUUID().toString), bank, u)
+    }
+
+    def createAccount(accountId: AccountId, bank: HostedBank, u: APIUser): Account = {
+      import net.liftweb.mongodb.BsonDSL._
+      val uniqueAccountNumber = {
+        def exists(number : String) = Account.count((Account.accountNumber.name -> number) ~ (Account.bankID.name -> bank.id.get)) > 0
+
+        def appendUntilOkay(number : String) : String = {
+          val newNumber = number + Random.nextInt(10)
+          if(!exists(newNumber)) newNumber
+          else appendUntilOkay(newNumber)
+        }
+
+        //generates a random 8 digit account number
+        val firstTry = (Random.nextDouble() * 10E8).toInt.toString
+        appendUntilOkay(firstTry)
+      }
+
+      createAccount(new BankAccountNumber {
+        override val accountNumber: String = uniqueAccountNumber
+      }, accountId, bank, u)
     }
 
     def setAsOwner(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
