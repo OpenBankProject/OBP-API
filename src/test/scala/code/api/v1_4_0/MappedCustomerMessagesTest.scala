@@ -1,7 +1,6 @@
 package code.api.v1_4_0
 
 import code.api.DefaultUsers
-import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerMessagesJson}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo, CustomerInfo}
@@ -11,11 +10,9 @@ import code.api.util.APIUtil.OAuth._
 import net.liftweb.json.Serialization.{read, write}
 
 //TODO: API test should be independent of CustomerMessages implementation
-class MappedCustomerMessagesTest extends ServerSetup with DefaultUsers {
+class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   implicit val format = APIUtil.formats
-
-  def v1_4Request = baseRequest / "obp" / "v1.4.0"
 
   val mockBankId = BankId("mockbank1")
   val mockCustomerNumber = "9393490320"

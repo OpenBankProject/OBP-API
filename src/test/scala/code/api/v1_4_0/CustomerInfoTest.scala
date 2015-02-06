@@ -3,7 +3,6 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.DefaultUsers
-import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerInfoJson
 import code.customerinfo.{CustomerFaceImage, CustomerInfo, CustomerInfoProvider}
@@ -12,9 +11,7 @@ import net.liftweb.common.{Full, Empty, Box}
 import dispatch._
 import code.api.util.APIUtil.OAuth._
 
-class CustomerInfoTest extends ServerSetup with DefaultUsers {
-
-  def v1_4Request = baseRequest / "obp" / "v1.4.0"
+class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("mockbank1")
 
