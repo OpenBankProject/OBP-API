@@ -2,6 +2,7 @@ package code.api.v1_4_0
 
 import code.api.APIFailure
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
+import code.bankbranches.BankBranches
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
 import net.liftweb.common.Box
@@ -61,6 +62,19 @@ trait APIMethods140 {
               "Server error: could not add message")
           } yield {
             successJsonResponse(JsRaw("{}"), 201)
+          }
+        }
+      }
+    }
+
+    lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
+        user => {
+          for {
+            branches <- Box(BankBranches.bankBranchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available", 404)
+          } yield {
+            val json = JSONFactory1_4_0.createBranchesJson(branches)
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
