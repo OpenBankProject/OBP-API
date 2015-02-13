@@ -55,7 +55,8 @@ package code.model.dataAccess {
 
 import java.util.UUID
 
-import code.model.{AccountId, BankId}
+import code.model.{User, AccountId, BankId}
+import code.users.Users
 import com.rabbitmq.client.{ConnectionFactory,Channel}
   import net.liftmodules.amqp.{
     AMQPDispatcher,
@@ -114,7 +115,7 @@ import scala.util.Random
       }
     }
 
-    private def createAccount(bankAccountNumber: BankAccountNumber, accountId : AccountId, bank : HostedBank, u: APIUser) : Account = {
+    private def createAccount(bankAccountNumber: BankAccountNumber, accountId : AccountId, bank : HostedBank, u: User) : Account = {
       //TODO: fill these fields using the HBCI library.
       import net.liftweb.mongodb.BsonDSL._
       Account.find(
@@ -148,11 +149,11 @@ import scala.util.Random
       }
     }
 
-    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: APIUser): Account = {
+    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: User): Account = {
       createAccount(bankAccountNumber, AccountId(UUID.randomUUID().toString), bank, u)
     }
 
-    def createAccount(accountId: AccountId, bank: HostedBank, u: APIUser): Account = {
+    def createAccount(accountId: AccountId, bank: HostedBank, u: User): Account = {
       import net.liftweb.mongodb.BsonDSL._
       val uniqueAccountNumber = {
         def exists(number : String) = Account.count((Account.accountNumber.name -> number) ~ (Account.bankID.name -> bank.id.get)) > 0
@@ -173,20 +174,20 @@ import scala.util.Random
       }, accountId, bank, u)
     }
 
-    def setAsOwner(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
+    def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
       setAsAccountOwner(bankId, accountId, user)
     }
 
-    private def setAsAccountOwner(bankId : BankId, accountId : AccountId, user : APIUser) : Unit = {
+    private def setAsAccountOwner(bankId : BankId, accountId : AccountId, user : User) : Unit = {
       MappedAccountHolder.create
         .accountBankPermalink(bankId.value)
         .accountPermalink(accountId.value)
-        .user(user)
+        .user(user.apiId.value)
         .save
     }
 
-    private def createOwnerView(bankId : BankId, accountId : AccountId, user: APIUser): Unit = {
+    private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
       val existingOwnerView = ViewImpl.find(
         By(ViewImpl.permalink_, "owner") ::
@@ -195,16 +196,16 @@ import scala.util.Random
       existingOwnerView match {
         case Full(v) => {
           logger.info(s"account $accountId at bank $bankId has already an owner view")
-          v.users_.toList.find(_.id == user.id) match {
+          v.users_.toList.find(_.id == user.apiId.value) match {
             case Some(u) => {
-              logger.info(s"user ${user.email.get} has already an owner view access on account $accountId at bank $bankId")
+              logger.info(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }
             case _ =>{
               //TODO: When can this case occur?
-              logger.info(s"creating owner view access to user ${user.email.get}")
+              logger.info(s"creating owner view access to user ${user.emailAddress}")
               ViewPrivileges
                 .create
-                .user(user)
+                .user(user.apiId.value)
                 .view(v)
                 .save
             }
@@ -216,10 +217,10 @@ import scala.util.Random
             logger.info(s"creating owner view on account account $accountId at bank $bankId")
             val view = ViewImpl.createAndSaveOwnerView(bankId, accountId, "")
 
-            logger.info(s"creating owner view access to user ${user.email.get}")
+            logger.info(s"creating owner view access to user ${user.emailAddress}")
             ViewPrivileges
               .create
-              .user(user)
+              .user(user.apiId.value)
               .view(view)
               .save
           }
@@ -246,10 +247,8 @@ import scala.util.Random
         case msg@AMQPMessage(message: CreateBankAccount) => {
           logger.info(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
-          APIUser.find(
-            By(APIUser.provider_, message.accountOwnerProvider),
-            By(APIUser.providerId, message.accountOwnerId)
-          ).map{ user => {
+          val foundUser  = Users.users.vend.getUserByProviderId(message.accountOwnerProvider, message.accountOwnerId)
+          foundUser.map{ user => {
               logger.info("user found for owner view")
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
