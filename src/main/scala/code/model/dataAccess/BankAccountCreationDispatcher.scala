@@ -43,17 +43,10 @@ package com.tesobe.model{
     accountNumber: String,
     bankIdentifier: String,
     bankName: String
-  ) extends BankAccountNumber
-
-  trait BankAccountNumber {
-    val accountNumber : String
-  }
-
+  )
 }
 
 package code.model.dataAccess {
-
-import java.util.UUID
 
 import code.bankconnectors.Connector
 import code.model._
@@ -67,15 +60,10 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
     AMQPAddListener
   }
 
-  import net.liftweb.util._
-  import net.liftweb.common.{Loggable, Full}
-  import net.liftweb.actor.LiftActor
-  import com.tesobe.model.{BankAccountNumber, CreateBankAccount, UpdateBankAccount}
-  import code.util.Helper
-  import net.liftweb.mapper.By
-  import net.liftweb.util.Helpers._
-
-import scala.util.Random
+import net.liftweb.util._
+import net.liftweb.common.{Loggable, Full}
+import net.liftweb.actor.LiftActor
+import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
 
 /**
