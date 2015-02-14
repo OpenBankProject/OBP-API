@@ -3,16 +3,14 @@ package code.snippet
 import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.{AccountId, BankId, BankAccount}
+import code.model.{Bank, AccountId, BankId, BankAccount}
 import code.util.Helper._
 import net.liftweb.common.{Empty, Full, Failure, Box}
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
-import code.model.dataAccess.{OBPUser, HostedBank, Account, BankAccountCreation}
-import com.tesobe.model.BankAccountNumber
-import net.liftweb.mongodb.BsonDSL._
+import code.model.dataAccess.{OBPUser, BankAccountCreation}
 
 object CreateTestAccountForm{
 
@@ -78,7 +76,7 @@ object CreateTestAccountForm{
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentObpUser <- OBPUser.currentUser ?~! "You need to be logged in to create an account"
         user <- currentObpUser.user.obj ?~ "Server error: could not identify user"
-        bank <- HostedBank.find(bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
+        bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
         bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, user.name)
