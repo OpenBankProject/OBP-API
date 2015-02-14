@@ -93,109 +93,17 @@ import scala.util.Random
   }
 
   object BankAccountCreation extends Loggable {
-/*    def createBank(message: CreateBankAccount): HostedBank = {
-      // TODO: use a more unique id for the long term
-      HostedBank.find(HostedBank.national_identifier.name, message.bankIdentifier) match {
-        case Full(b)=> {
-          logger.info(s"bank ${b.name} found")
-          b
-        }
-        case _ =>{
-          //TODO: if name is empty use bank id as name alias
-
-          //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
-
-          logger.info(s"creating HostedBank")
-          HostedBank
-          .createRecord
-          .name(message.bankName)
-          .alias(message.bankName)
-          .permalink(Helper.generatePermalink(message.bankName))
-          .national_identifier(message.bankIdentifier)
-          .save
-        }
-      }
-    }*/
-
-/*    private def createAccount(bankAccountNumber: BankAccountNumber, accountId : AccountId, bank : HostedBank, u: User) : Account = {
-      //TODO: fill these fields using the HBCI library.
-      import net.liftweb.mongodb.BsonDSL._
-      Account.find(
-        (Account.accountNumber.name -> bankAccountNumber.accountNumber)~
-          (Account.bankID.name -> bank.id.is)
-      ) match {
-        case Full(bankAccount) => {
-          logger.info(s"account ${bankAccount.accountNumber} found")
-          bankAccount
-        }
-        case _ => {
-          logger.info("creating account record ")
-          val accountHolder = s"${u.name}"
-          val bankAccount =
-            Account
-              .createRecord
-              .accountBalance(0)
-              .holder(accountHolder)
-              .accountNumber(bankAccountNumber.accountNumber)
-              .kind("current")
-              .accountName("")
-              .permalink(accountId.value)
-              .bankID(bank.id.is)
-              .accountLabel("")
-              .accountCurrency("EUR")
-              .accountIban("")
-              .lastUpdate(now)
-              .save
-          bankAccount
-        }
-      }
-    }
-
-    def createAccount(bankAccountNumber: BankAccountNumber, bank: HostedBank, u: User): Account = {
-      createAccount(bankAccountNumber, AccountId(UUID.randomUUID().toString), bank, u)
-    }
-
-    def createAccount(accountId: AccountId, bank: HostedBank, u: User): Account = {
-      val uniqueAccountNumber = {
-        def exists(number : String) = Connector.connector.vend.accountExists(bank.bankId, number)
-
-        def appendUntilOkay(number : String) : String = {
-          val newNumber = number + Random.nextInt(10)
-          if(!exists(newNumber)) newNumber
-          else appendUntilOkay(newNumber)
-        }
-
-        //generates a random 8 digit account number
-        val firstTry = (Random.nextDouble() * 10E8).toInt.toString
-        appendUntilOkay(firstTry)
-      }
-
-      createAccount(new BankAccountNumber {
-        override val accountNumber: String = uniqueAccountNumber
-      }, accountId, bank, u)
-    }*/
 
     def setAsOwner(bankId : BankId, accountId : AccountId, user: User): Unit = {
       createOwnerView(bankId, accountId, user)
-      //setAsAccountOwner(bankId, accountId, user)
       Connector.connector.vend.setAccountHolder(BankAccountUID(bankId, accountId), user)
     }
 
-/*    private def setAsAccountOwner(bankId : BankId, accountId : AccountId, user : User) : Unit = {
-      MappedAccountHolder.create
-        .accountBankPermalink(bankId.value)
-        .accountPermalink(accountId.value)
-        .user(user.apiId.value)
-        .save
-    }*/
 
     private def createOwnerView(bankId : BankId, accountId : AccountId, user: User): Unit = {
 
       val ownerViewUID = ViewUID(ViewId("owner"), bankId, accountId)
       val existingOwnerView = Views.views.vend.view(ownerViewUID)
-      /*val existingOwnerView = ViewImpl.find(
-        By(ViewImpl.permalink_, "owner") ::
-        ViewImpl.accountFilter(bankId, accountId): _*)*/
 
       existingOwnerView match {
         case Full(v) => {
@@ -208,11 +116,6 @@ import scala.util.Random
               //TODO: When can this case occur?
               logger.info(s"creating owner view access to user ${user.emailAddress}")
               Views.views.vend.addPermission(ownerViewUID, user)
-/*              ViewPrivileges
-                .create
-                .user(user.apiId.value)
-                .view(v)
-                .save*/
             }
           }
         }
@@ -224,11 +127,6 @@ import scala.util.Random
 
             logger.info(s"creating owner view access to user ${user.emailAddress}")
             Views.views.vend.addPermission(ownerViewUID, user)
-/*            ViewPrivileges
-              .create
-              .user(user.apiId.value)
-              .view(view)
-              .save*/
           }
         }
       }
