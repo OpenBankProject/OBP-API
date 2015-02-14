@@ -353,12 +353,12 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  override def createHBCIBankAccount(details: CreateBankAccount, accountHolderName : String): BankAccount = {
+  override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String): (Bank, BankAccount) = {
 
     // TODO: use a more unique id for the long term
     val hostedBank = {
       // TODO: use a more unique id for the long term
-      HostedBank.find(HostedBank.national_identifier.name, details.bankIdentifier) match {
+      HostedBank.find(HostedBank.national_identifier.name, bankNationalIdentifier) match {
         case Full(b)=> {
           logger.info(s"bank ${b.name} found")
           b
@@ -371,17 +371,19 @@ private object LocalConnector extends Connector with Loggable {
           logger.info(s"creating HostedBank")
           HostedBank
             .createRecord
-            .name(details.bankName)
-            .alias(details.bankName)
-            .permalink(Helper.generatePermalink(details.bankName))
-            .national_identifier(details.bankIdentifier)
+            .name(bankName)
+            .alias(bankName)
+            .permalink(Helper.generatePermalink(bankName))
+            .national_identifier(bankNationalIdentifier)
             .save
         }
       }
     }
 
-    createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
-      details.accountNumber, "EUR", BigDecimal("0.00"), accountHolderName)
+    val createdAccount = createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
+      accountNumber, "EUR", BigDecimal("0.00"), accountHolderName)
+
+    (hostedBank, createdAccount)
   }
 
   //sets a user as an account owner/holder

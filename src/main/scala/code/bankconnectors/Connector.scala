@@ -100,7 +100,7 @@ trait Connector {
   //non-standard calls --do not make sense in the regular context
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  def createHBCIBankAccount(createBankAccount : CreateBankAccount, accountHolderName : String) : BankAccount
+  def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)
 
   //generates an unused account number and then creates the sandbox account using that number
   def createSandboxBankAccount(bankId : BankId, accountId : AccountId, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {

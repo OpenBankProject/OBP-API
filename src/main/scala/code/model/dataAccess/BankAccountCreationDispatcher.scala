@@ -61,7 +61,7 @@ import com.rabbitmq.client.{ConnectionFactory,Channel}
   }
 
 import net.liftweb.util._
-import net.liftweb.common.{Loggable, Full}
+import net.liftweb.common.{Failure, Loggable, Full}
 import net.liftweb.actor.LiftActor
 import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
@@ -140,22 +140,23 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
           logger.info(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
           val foundUser  = Users.users.vend.getUserByProviderId(message.accountOwnerProvider, message.accountOwnerId)
-          foundUser.map{ user => {
-              logger.info("user found for owner view")
+          val result = for {
+            user <- foundUser ?~!
+              s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
+          } yield {
+            val (_, bankAccount) = Connector.connector.vend.createBankAndAccount(message.bankName, message.bankIdentifier, message.accountNumber, user.name)
+            BankAccountCreation.setAsOwner(bankAccount.bankId, AccountId(message.accountNumber), user)
+          }
 
-              //val bank: HostedBank = BankAccountCreation.createBank(message)
-              val bankAccount = Connector.connector.vend.createHBCIBankAccount(message, user.name)
-              //val bankAccount = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.setAsOwner(bankAccount.bankId, AccountId(message.accountNumber), user)
-
+          result match {
+            case Full(_) =>
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
-
               logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
-            }
-          }.getOrElse(
-            logger.warn(s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view")
-          )
+            case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
+            case _ => logger.warn(s"account creation failed")
+          }
+
         }
       }
     }
