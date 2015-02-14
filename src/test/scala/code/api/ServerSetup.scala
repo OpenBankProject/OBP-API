@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.api.test
 
 import code.TestServer
-import code.api.{TestConnectorSetup, LocalConnectorTestSetup}
+import code.api.{DefaultConnectorTestSetup, TestConnectorSetup, LocalConnectorTestSetup}
 import org.scalatest._
 import dispatch._
 import net.liftweb.json.{Serialization, NoTypeHints}
@@ -51,7 +51,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
 
 }
 
-trait ServerSetupWithTestData extends ServerSetup with LocalConnectorTestSetup {
+trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup {
 
   override def beforeEach() = {
     super.beforeEach()
