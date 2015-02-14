@@ -4,6 +4,7 @@ import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
+import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
 import dispatch._
@@ -92,6 +93,19 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
     protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
       Failure("not supported")
+
+    override def createHBCIBankAccount(createBankAccount: CreateBankAccount, accountHolderName: String): AccountType = ???
+
+    //sets a user as an account owner/holder
+    override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+
+    //for sandbox use -> allows us to check if we can generate a new test account with the given number
+    override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
+
+    //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
+    override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,
+                                          accountNumber: String, currency: String,
+                                          initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
   }
 
   override def beforeAll() {

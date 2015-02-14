@@ -1,7 +1,8 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
-import java.util.TimeZone
+import java.util.{UUID, TimeZone}
+import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.JsonAST.JValue
 import scala.concurrent.ops.spawn
@@ -14,7 +15,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
 import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metadata}
-import com.tesobe.model.UpdateBankAccount
+import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -316,5 +317,102 @@ private object LocalConnector extends Connector with Loggable {
 
   private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
     HostedBank.find("permalink", bankId.value) ?~ {"bank " + bankId + " not found"}
+  }
+
+  //Need to pass in @hostedBank because the Account model doesn't have any references to BankId, just to the mongo id of the Bank object (which itself does have the bank id)
+  private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
+    import net.liftweb.mongodb.BsonDSL._
+    Account.find(
+      (Account.accountNumber.name -> accountNumber)~
+        (Account.bankID.name -> hostedBank.id.is)
+    ) match {
+      case Full(bankAccount) => {
+        logger.info(s"account with number ${bankAccount.accountNumber} at bank ${hostedBank.bankId} already exists. No need to create a new one.")
+        bankAccount
+      }
+      case _ => {
+        logger.info("creating account record ")
+        val bankAccount =
+          Account
+            .createRecord
+            .accountBalance(initialBalance)
+            .holder(holderName)
+            .accountNumber(accountNumber)
+            .kind("current")
+            .accountName("")
+            .permalink(accountId.value)
+            .bankID(hostedBank.id.is)
+            .accountLabel("")
+            .accountCurrency(currency)
+            .accountIban("")
+            .lastUpdate(now)
+            .save
+        bankAccount
+      }
+    }
+  }
+
+  //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
+  override def createHBCIBankAccount(details: CreateBankAccount, accountHolderName : String): BankAccount = {
+
+    // TODO: use a more unique id for the long term
+    val hostedBank = {
+      // TODO: use a more unique id for the long term
+      HostedBank.find(HostedBank.national_identifier.name, details.bankIdentifier) match {
+        case Full(b)=> {
+          logger.info(s"bank ${b.name} found")
+          b
+        }
+        case _ =>{
+          //TODO: if name is empty use bank id as name alias
+
+          //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
+
+          logger.info(s"creating HostedBank")
+          HostedBank
+            .createRecord
+            .name(details.bankName)
+            .alias(details.bankName)
+            .permalink(Helper.generatePermalink(details.bankName))
+            .national_identifier(details.bankIdentifier)
+            .save
+        }
+      }
+    }
+
+    createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
+      details.accountNumber, "EUR", BigDecimal("0.00"), accountHolderName)
+  }
+
+  //sets a user as an account owner/holder
+  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+    MappedAccountHolder.create
+      .accountBankPermalink(bankAccountUID.bankId.value)
+      .accountPermalink(bankAccountUID.accountId.value)
+      .user(user.apiId.value)
+      .save
+  }
+
+  //for sandbox use -> allows us to check if we can generate a new test account with the given number
+  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
+    import net.liftweb.mongodb.BsonDSL._
+
+    getHostedBank(bankId).map(_.id.get) match {
+      case Full(mongoId) =>
+        Account.count((Account.accountNumber.name -> accountNumber) ~ (Account.bankID.name -> mongoId)) > 0
+      case _ =>
+        logger.warn("tried to check account existence for an account at a bank that doesn't exist")
+        false
+    }
+  }
+
+  //creates a bank account for an existing bank, with the appropriate values set
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,  accountNumber: String,
+                                        currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+    HostedBank.find(bankId) match {
+      case Full(b) => Full(createAccount(b, accountId, accountNumber, currency, initialBalance, accountHolderName))
+      case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
+    }
+
   }
 }

@@ -1,5 +1,6 @@
 package code.snippet
 
+import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
 import code.model.{AccountId, BankId, BankAccount}
@@ -31,11 +32,10 @@ object CreateTestAccountForm{
       }
     }
 
-    //TODO: would be nice to avoid tying this to the mongodb class
-    val banks = HostedBank.findAll
+    val banks = Connector.connector.vend.getBanks
     val bankOptions = banks.map{b =>
-      val permalink = b.permalink.get
-      (permalink, permalink)
+      val id = b.bankId.value
+      (id, id)
     }
 
     "@bank-id" #> SHtml.select(bankOptions, Empty, bankId = _) &
@@ -45,16 +45,13 @@ object CreateTestAccountForm{
     "type=submit" #> SHtml.ajaxSubmit("Create Account", processForm) //Would be nice to be able to set initial value in template
   }
 
-  /**
-   * TODO: would be better for this to take a BankAccount (api data structure) instead of an Account (mongodb model)
-   */
-  def showSuccess(createdAccount : Account) : JsCmd = {
+  def showSuccess(createdAccount : BankAccount) : JsCmd = {
     hideErrorMessage &
     showSuccessMessage &
-    SetHtml("created-account-id", <span>{createdAccount.permalink.get}</span>) &
+    SetHtml("created-account-id", <span>{createdAccount.accountId.value}</span>) &
     SetHtml("created-account-bank-id", <span>{createdAccount.bankId.value}</span>) &
-    SetHtml("created-account-initial-balance", <span>{createdAccount.accountBalance.get}</span>) &
-    SetHtml("created-account-currency", <span>{createdAccount.accountCurrency.get}</span>)
+    SetHtml("created-account-initial-balance", <span>{createdAccount.balance}</span>) &
+    SetHtml("created-account-currency", <span>{createdAccount.currency}</span>)
   }
 
   def showError(msg : String) : JsCmd = {
@@ -71,7 +68,7 @@ object CreateTestAccountForm{
    * Attempts to create a new account, based on form params
    * @return a box containing the created account or reason for account creation failure
    */
-  def createAccount(accountId : AccountId, bankId : BankId, currency : String, initialBalance : String) : Box[Account] =  {
+  def createAccount(accountId : AccountId, bankId : BankId, currency : String, initialBalance : String) : Box[BankAccount] =  {
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
@@ -84,13 +81,8 @@ object CreateTestAccountForm{
         bank <- HostedBank.find(bankId) ?~ s"Bank $bankId not found"//Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
+        bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, user.name)
       } yield {
-        //TODO: refactor into a single private api call, and have this return Box[BankAccount] instead of Account?
-        val bankAccount = BankAccountCreation.createAccount(accountId, bank, user)
-
-        //set currency and initial balance
-        bankAccount.accountCurrency(currency).accountBalance(initialBalanceAsNumber).save
-
         BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount
       }

@@ -1,6 +1,7 @@
 package code.bankconnectors
 
 import code.util.Helper._
+import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
 import code.model._
 import net.liftweb.util.SimpleInjector
@@ -8,6 +9,8 @@ import code.model.User
 import code.model.OtherBankAccount
 import code.model.Transaction
 import java.util.Date
+
+import scala.util.Random
 
 object Connector  extends SimpleInjector {
 
@@ -92,4 +95,39 @@ trait Connector {
   }
 
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId]
+
+
+  //non-standard calls --do not make sense in the regular context
+
+  //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
+  def createHBCIBankAccount(createBankAccount : CreateBankAccount, accountHolderName : String) : BankAccount
+
+  //generates an unused account number and then creates the sandbox account using that number
+  def createSandboxBankAccount(bankId : BankId, accountId : AccountId, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
+    val uniqueAccountNumber = {
+      def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
+
+      def appendUntilOkay(number : String) : String = {
+        val newNumber = number + Random.nextInt(10)
+        if(!exists(newNumber)) newNumber
+        else appendUntilOkay(newNumber)
+      }
+
+      //generates a random 8 digit account number
+      val firstTry = (Random.nextDouble() * 10E8).toInt.toString
+      appendUntilOkay(firstTry)
+    }
+
+    createSandboxBankAccount(bankId, accountId, uniqueAccountNumber, currency, initialBalance, accountHolderName)
+  }
+
+  //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
+  def createSandboxBankAccount(bankId : BankId, accountId : AccountId,  accountNumber: String,
+                               currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
+
+  //sets a user as an account owner/holder
+  def setAccountHolder(bankAccountUID: BankAccountUID, user : User) : Unit
+
+  //for sandbox use -> allows us to check if we can generate a new test account with the given number
+  def accountExists(bankId : BankId, accountNumber : String) : Boolean
 }
