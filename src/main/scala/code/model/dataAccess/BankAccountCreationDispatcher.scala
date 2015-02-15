@@ -145,12 +145,12 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
               s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
           } yield {
             val (_, bankAccount) = Connector.connector.vend.createBankAndAccount(message.bankName, message.bankIdentifier, message.accountNumber, user.name)
-            BankAccountCreation.setAsOwner(bankAccount.bankId, AccountId(message.accountNumber), user)
+            logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
+            BankAccountCreation.setAsOwner(bankAccount.bankId, bankAccount.accountId, user)
           }
 
           result match {
             case Full(_) =>
-              logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
               logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
