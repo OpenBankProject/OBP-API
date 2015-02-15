@@ -255,7 +255,7 @@ import scala.util.Random
               val bankAccount = BankAccountCreation.createAccount(message, bank, user)
               BankAccountCreation.setAsOwner(BankId(bank.permalink.get), bankAccount.accountId, user)
 
-              logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.accountNumber} at bank with identifier ${message.bankIdentifier}")
+              logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
 
               logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
