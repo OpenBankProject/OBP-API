@@ -253,7 +253,7 @@ import scala.util.Random
 
               val bank: HostedBank = BankAccountCreation.createBank(message)
               val bankAccount = BankAccountCreation.createAccount(message, bank, user)
-              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), AccountId(message.accountNumber), user)
+              BankAccountCreation.setAsOwner(BankId(bank.permalink.get), bankAccount.accountId, user)
 
               logger.info(s"created account ${message.accountNumber} at ${message.bankIdentifier}")
 
