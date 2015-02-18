@@ -257,7 +257,7 @@ import scala.util.Random
 
               logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
 
-              logger.info(s"Send message to get updates for the account with id ${bankAccount.bankId.value}" +
+              logger.info(s"Send message to get updates for the account with id ${bankAccount.accountId.value}" +
                 s" with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             }
