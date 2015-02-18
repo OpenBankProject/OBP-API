@@ -32,6 +32,8 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
+import code.bankbranches.{MappedBankBranch, MappedDataLicense}
+import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import net.liftweb._
 import util._
 import common._
@@ -169,6 +171,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
+    LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
 
     // add other apis
     LiftRules.statelessDispatch.append(BankMockAPI)
@@ -317,5 +320,7 @@ class Boot extends Loggable{
 
 object ToSchemify {
   val models = List(OBPUser, Admin, Nonce, Token, Consumer,
-    ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder)
+    ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
+    MappedCustomerInfo, MappedCustomerMessage,
+    MappedBankBranch, MappedDataLicense)
 }
