@@ -2,9 +2,10 @@ package code.bankaccountcreation
 
 import code.api.DefaultConnectorTestSetup
 import code.api.test.ServerSetup
-import code.model.BankId
+import code.model.{User, BankId}
 import code.views.Views
 import net.liftweb.common.Full
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
 import code.model.dataAccess.{APIUser, BankAccountCreationListener}
@@ -31,16 +32,18 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     val userProvider = "bar"
 
     //need to create the user for the bank accout creation process to work
-    val user =
-      APIUser.create.
-        provider_(userProvider).
-        providerId(userId).
-        saveMe
+    def getTestUser() =
+      APIUser.find(By(APIUser.provider_, userProvider), By(APIUser.providerId, userId)).getOrElse{
+        APIUser.create.
+          provider_(userProvider).
+          providerId(userId).
+          saveMe
+      }
 
     val expectedBankId = "quxbank"
     val accountNumber = "123456"
 
-    def thenCheckAccountCreated() = {
+    def thenCheckAccountCreated(user : User) = {
       Then("An account with the proper parameters should be created")
       val userAccounts = Views.views.vend.getAllAccountsUserCanSee(Full(user))
       userAccounts.size should equal(1)
@@ -59,6 +62,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
     scenario("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {
       val bankIdentifier = "qux"
+      val user = getTestUser()
 
       Given("The account doesn't already exist")
       Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
@@ -77,7 +81,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       //sleep to give the actor time to process the message
       Thread.sleep(5000)
 
-      thenCheckAccountCreated()
+      thenCheckAccountCreated(user)
 
       And("A bank should be created")
       val createdBankBox = Connector.connector.vend.getBank(BankId(expectedBankId))
@@ -88,6 +92,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     }
 
     scenario("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {
+      val user = getTestUser()
       Given("The account doesn't already exist")
       Views.views.vend.getAllAccountsUserCanSee(Full(user)).size should equal(0)
 
@@ -102,7 +107,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       //sleep to give the actor time to process the message
       Thread.sleep(5000)
 
-      thenCheckAccountCreated()
+      thenCheckAccountCreated(user)
     }
   }
 
