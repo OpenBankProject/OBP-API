@@ -151,7 +151,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
 
           result match {
             case Full(_) =>
-              logger.info(s"Send message to get updates for the account ${message.accountNumber} at ${message.bankIdentifier}")
+              logger.info(s"Send message to get updates for the account with account number ${message.accountNumber} at ${message.bankIdentifier}")
               UpdatesRequestSender.sendMsg(UpdateBankAccount(message.accountNumber, message.bankIdentifier))
             case Failure(msg, _, _) => logger.warn(s"account creation failed: $msg")
             case _ => logger.warn(s"account creation failed")
