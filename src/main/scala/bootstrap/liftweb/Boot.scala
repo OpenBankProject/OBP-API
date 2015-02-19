@@ -34,7 +34,7 @@ package bootstrap.liftweb
 import code.api.sandbox.SandboxApiCalls
 import code.bankbranches.{MappedBankBranch, MappedDataLicense}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
-import code.tesobe.CashAccountAPI
+import code.tesobe.{ImporterAPI, CashAccountAPI}
 import net.liftweb._
 import util._
 import common._
@@ -173,7 +173,10 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+
+    //Tesobe specific
     LiftRules.statelessDispatch.append(CashAccountAPI)
+    LiftRules.statelessDispatch.append(ImporterAPI)
 
     // add other apis
     LiftRules.statelessDispatch.append(BankMockAPI)
