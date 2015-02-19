@@ -166,6 +166,9 @@ case class BankAccountUID(bankId : BankId, accountId : AccountId)
 
 trait BankAccount extends Loggable {
 
+  @deprecated
+  def uuid : String
+
   def accountId : AccountId
   def accountType : String
   def balance : BigDecimal

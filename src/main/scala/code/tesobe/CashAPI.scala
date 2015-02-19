@@ -10,6 +10,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import net.liftweb.json.pretty
+import net.liftweb.json.JsonDSL._
 
 import scala.math.BigDecimal.RoundingMode
 
@@ -43,9 +44,10 @@ object CashAccountAPI extends RestHelper with Loggable {
 
   serve("obp" / "v1.0" prefix {
 
-    case "cash-accounts" :: id :: "transactions" :: Nil JsonPost json -> _ => {
+    case "cash-accounts" :: uuid :: "transactions" :: Nil JsonPost json -> _ => {
       if(isValidKey)
-        Account.find(id) match {
+        //legacy: uses uuid (mongo id in this case) to find the account
+        Account.find(uuid) match {
           case Full(account) =>
             tryo{
               json.extract[CashTransaction]
@@ -126,7 +128,7 @@ object CashAccountAPI extends RestHelper with Loggable {
                 JsonResponse(ErrorMessage(error), Nil, Nil, 400)
               }
             }
-          case _ => JsonResponse(ErrorMessage("Account " + id + " not found" ), Nil, Nil, 400)
+          case _ => JsonResponse(ErrorMessage("Account " + uuid + " not found" ), Nil, Nil, 400)
         }
       else
         JsonResponse(ErrorMessage("No key found or wrong key"), Nil, Nil, 401)
