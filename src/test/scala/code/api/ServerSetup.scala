@@ -36,7 +36,7 @@ import code.TestServer
 import code.api.{DefaultConnectorTestSetup, TestConnectorSetup, LocalConnectorTestSetup}
 import org.scalatest._
 import dispatch._
-import net.liftweb.json.{Serialization, NoTypeHints}
+import net.liftweb.json.{DefaultFormats, Serialization, NoTypeHints}
 import net.liftweb.common._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
@@ -45,7 +45,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with ShouldMatchers with Loggable {
 
   var server = TestServer
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats = DefaultFormats
   val h = Http
   def baseRequest = host(server.host, server.port)
 
@@ -56,7 +56,6 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
   override def beforeEach() = {
     super.beforeEach()
 
-    implicit val dateFormats = net.liftweb.json.DefaultFormats
     //create fake data for the tests
 
     //fake banks
