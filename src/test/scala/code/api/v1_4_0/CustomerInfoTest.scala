@@ -92,8 +92,6 @@ class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
 
       And("We should get the right information back")
 
-      implicit val format = APIUtil.formats
-
       val info = response.body.extract[CustomerInfoJson]
       val received = MockCustomerInfo(info.customer_number, info.mobile_phone_number,
         info.legal_name, info.email, MockFaceImage(info.face_image.date, info.face_image.url))
