@@ -156,7 +156,7 @@ object ImporterAPI extends RestHelper with Loggable {
       def savetransactions ={
         val rawEnvelopes = json._1.children
         val envelopes : List[OBPEnvelope]= rawEnvelopes.flatMap(e => {
-          OBPEnvelope.envlopesFromJvalue(e)
+          OBPEnvelope.envelopesFromJValue(e)
         })
 
         def updateAccountBalance(accountNumber: String, bankId: String, account: Account) = {
