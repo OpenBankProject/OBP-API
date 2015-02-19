@@ -55,8 +55,8 @@ object CashAccountAPI extends RestHelper with Loggable {
               case Full(cashTransaction) => {
 
                 val thisAccountBank = OBPBank.createRecord.
-                  IBAN("").
-                  national_identifier("").
+                  IBAN(account.iban.getOrElse("")).
+                  national_identifier(account.nationalIdentifier).
                   name(account.bankName)
 
                 val thisAccount = OBPAccount.createRecord.
