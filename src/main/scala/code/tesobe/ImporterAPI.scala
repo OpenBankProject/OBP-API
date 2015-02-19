@@ -105,52 +105,7 @@ object ImporterAPI extends RestHelper with Loggable {
   }
 
   serve {
-
-    /**
-     * curl -i -H "Content-Type: application/json" -X POST -d '{
-     * "obp_transaction":{
-     * "this_account":{
-     * "holder":"Music Pictures Limited",
-     * "number":"123567",
-     * "kind":"current",
-     * "bank":{
-     * "IBAN":"DE1235123612",
-     * "national_identifier":"de.10010010",
-     * "name":"Postbank"
-     * }
-     * },
-     * "other_account":{
-     * "holder":"Client 1",
-     * "number":"123567",
-     * "kind":"current",
-     * "bank":{
-     * "IBAN":"UK12222879",
-     * "national_identifier":"uk.10010010",
-     * "name":"HSBC"
-     * }
-     * },
-     * "details":{
-     * "type_en":"Transfer",
-     * "type_de":"Überweisung",
-     * "posted":{
-     * "$dt":"2012-01-04T18:06:22.000Z"
-     * },
-     * "completed":{
-     * "$dt":"2012-09-04T18:52:13.000Z"
-     * },
-     * "new_balance":{
-     * "currency":"EUR",
-     * "amount":"4323.45"
-     * },
-     * "value":{
-     * "currency":"EUR",
-     * "amount":"123.45"
-     * },
-     * "other_data":"9"
-     * }
-     * }
-     * }  ' http://localhost:8080/api/transactions
-     */
+    
     case "api" :: "transactions" :: Nil JsonPost json => {
 
       def savetransactions ={
