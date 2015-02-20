@@ -129,7 +129,11 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
     scenario("Attempting to add an incoming transaction to an existing account using the correct secret key") {
       val f = fixture()
       Given("An account with no existing transactions")
-      Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
+      val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
+      accountBox.isDefined should equal(true)
+
+      val balanceBefore = accountBox.get.balance
+
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
       tsBefore.size should equal(0)
 
@@ -159,12 +163,20 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
 
       //incoming transaction should have positive value
       addedTransaction.amount.toDouble should equal(tData.amount) //icky BigDecimal to double conversion here..
+
+      And("The account should have its balance properly updated")
+      val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
+      balanceAfter.toDouble should equal(balanceBefore.toDouble + tData.amount) //icky BigDecimal to double conversion here..
     }
 
     scenario("Attempting to add an outgoing transaction to an existing account using the correct secret key") {
       val f = fixture()
       Given("An account with no existing transactions")
-      Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
+      val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
+      accountBox.isDefined should equal(true)
+
+      val balanceBefore = accountBox.get.balance
+
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
       tsBefore.size should equal(0)
 
@@ -194,6 +206,10 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
 
       //outgoing transaction should have negative value
       addedTransaction.amount.toDouble should equal(-1 * tData.amount) //icky BigDecimal to double conversion here..
+
+      And("The account should have its balance properly updated")
+      val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
+      balanceAfter.toDouble should equal(balanceBefore.toDouble - tData.amount) //icky BigDecimal to double conversion here..
     }
 
     scenario("Sending the wrong kind of json") {
