@@ -42,6 +42,8 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     val t2StartDate = "2012-01-04T18:06:22.000Z"
     val t2EndDate = "2012-01-06T18:52:13.000Z"
 
+    val dummyLabel = "this is a description"
+
     //import transaction json is just an array of 'tJson'.
     val testJson = s"""[${List(
       tJson(t1Value, t1NewBalance, t1StartDate, t1EndDate),
@@ -75,6 +77,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
         |        "details": {
         |            "type_en": "Transfer",
         |            "type_de": "Überweisung",
+        |            "label": "$dummyLabel"
         |            "posted": {
         |                "$$dt": "$startDateString"
         |            },
@@ -154,6 +157,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       def checkOkay(t : Transaction, value : String, newBalance : String, startDate : String, endDate : String) = {
         t.amount.toString should equal(value)
         t.balance.toString should equal(newBalance)
+        t.description should equal(Some(f.dummyLabel))
 
         //the import api uses a different degree of detail than the main api (extra SSS)
         //to compare the import api date string values to the dates returned from the api
