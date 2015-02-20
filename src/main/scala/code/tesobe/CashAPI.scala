@@ -42,96 +42,107 @@ object CashAccountAPI extends RestHelper with Loggable {
     localKey == sentKey
   }
 
+  lazy val invalidCashTransactionJsonFormatError = {
+    val error = "Post data must be in the format: \n" +
+      pretty(
+        JsonAST.render(
+          Extraction.decompose(
+            CashTransaction(
+              otherParty = "other party",
+              date = new Date,
+              amount = 1231.12,
+              kind = "in / out",
+              label = "what is this transaction for",
+              otherInformation = "more info"
+            ))))
+    JsonResponse(ErrorMessage(error), Nil, Nil, 400)
+  }
+
   serve("obp" / "v1.0" prefix {
 
     case "cash-accounts" :: uuid :: "transactions" :: Nil JsonPost json -> _ => {
-      if(isValidKey)
-        //legacy: uses uuid (mongo id in this case) to find the account
-        Account.find(uuid) match {
-          case Full(account) =>
-            tryo{
-              json.extract[CashTransaction]
-            } match {
-              case Full(cashTransaction) => {
 
-                val thisAccountBank = OBPBank.createRecord.
-                  IBAN(account.iban.getOrElse("")).
-                  national_identifier(account.nationalIdentifier).
-                  name(account.bankName)
+      def getAccountByUUID(uuid : String) : Box[Account] = {
+        Account.find(uuid)
+      }
 
-                val thisAccount = OBPAccount.createRecord.
-                  holder(account.holder.get).
-                  number(account.number).
-                  kind(account.kind.get).
-                  bank(thisAccountBank)
+      def addCashTransaction(account : Account, cashTransaction : CashTransaction) = {
+        val thisAccountBank = OBPBank.createRecord.
+          IBAN(account.iban.getOrElse("")).
+          national_identifier(account.nationalIdentifier).
+          name(account.bankName)
 
-                val otherAccountBank = OBPBank.createRecord.
-                  IBAN("").
-                  national_identifier("").
-                  name("")
+        val thisAccount = OBPAccount.createRecord.
+          holder(account.holder.get).
+          number(account.number).
+          kind(account.kind.get).
+          bank(thisAccountBank)
 
-                val otherAccount = OBPAccount.createRecord.
-                  holder(cashTransaction.otherParty).
-                  number("").
-                  kind("").
-                  bank(otherAccountBank)
+        val otherAccountBank = OBPBank.createRecord.
+          IBAN("").
+          national_identifier("").
+          name("")
 
-                val amount : BigDecimal = {
-                  if(cashTransaction.kind == "in")
-                    BigDecimal(cashTransaction.amount).setScale(2,RoundingMode.HALF_UP).abs
-                  else
-                    BigDecimal((cashTransaction.amount * (-1) )).setScale(2,RoundingMode.HALF_UP)
-                }
+        val otherAccount = OBPAccount.createRecord.
+          holder(cashTransaction.otherParty).
+          number("").
+          kind("").
+          bank(otherAccountBank)
 
-                val newBalance : OBPBalance = OBPBalance.createRecord.
-                  currency(account.currency).
-                  amount(account.balance + amount)
-
-                val newValue : OBPValue = OBPValue.createRecord.
-                  currency(account.currency).
-                  amount(amount)
-
-                val details = OBPDetails.createRecord.
-                  kind("cash").
-                  posted(cashTransaction.date).
-                  other_data(cashTransaction.otherInformation).
-                  new_balance(newBalance).
-                  value(newValue).
-                  completed(cashTransaction.date).
-                  label(cashTransaction.label)
-
-                val transaction = OBPTransaction.createRecord.
-                  this_account(thisAccount).
-                  other_account(otherAccount).
-                  details(details)
-
-                val env = OBPEnvelope.createRecord.
-                  obp_transaction(transaction).save
-                account.accountBalance(account.balance + amount).lastUpdate(now)
-                env.save
-
-                JsonResponse(SuccessMessage("transaction successfully added"), Nil, Nil, 200)
-              }
-              case _ =>{
-                val error = "Post data must be in the format: \n" +
-                  pretty(
-                    JsonAST.render(
-                      Extraction.decompose(
-                        CashTransaction(
-                          otherParty = "other party",
-                          date = new Date,
-                          amount = 1231.12,
-                          kind = "in / out",
-                          label = "what is this transaction for",
-                          otherInformation = "more info"
-                        ))))
-                JsonResponse(ErrorMessage(error), Nil, Nil, 400)
-              }
-            }
-          case _ => JsonResponse(ErrorMessage("Account " + uuid + " not found" ), Nil, Nil, 400)
+        val amount : BigDecimal = {
+          if(cashTransaction.kind == "in")
+            BigDecimal(cashTransaction.amount).setScale(2,RoundingMode.HALF_UP).abs
+          else
+            BigDecimal((cashTransaction.amount * (-1) )).setScale(2,RoundingMode.HALF_UP)
         }
-      else
+
+        val newBalance : OBPBalance = OBPBalance.createRecord.
+          currency(account.currency).
+          amount(account.balance + amount)
+
+        val newValue : OBPValue = OBPValue.createRecord.
+          currency(account.currency).
+          amount(amount)
+
+        val details = OBPDetails.createRecord.
+          kind("cash").
+          posted(cashTransaction.date).
+          other_data(cashTransaction.otherInformation).
+          new_balance(newBalance).
+          value(newValue).
+          completed(cashTransaction.date).
+          label(cashTransaction.label)
+
+        val transaction = OBPTransaction.createRecord.
+          this_account(thisAccount).
+          other_account(otherAccount).
+          details(details)
+
+        val env = OBPEnvelope.createRecord.
+          obp_transaction(transaction).save
+        account.accountBalance(account.balance + amount).lastUpdate(now)
+        env.save
+      }
+
+      if(isValidKey) {
+        getAccountByUUID(uuid) match {
+          case Full(account) =>
+            tryo { json.extract[CashTransaction] } match {
+              case Full(cashTransaction) =>
+                addCashTransaction(account, cashTransaction)
+                JsonResponse(SuccessMessage("transaction successfully added"), Nil, Nil, 200)
+              case _ =>
+                invalidCashTransactionJsonFormatError
+            }
+          case _ =>
+            JsonResponse(ErrorMessage("Account " + uuid + " not found" ), Nil, Nil, 400)
+        }
+
+      } else {
         JsonResponse(ErrorMessage("No key found or wrong key"), Nil, Nil, 401)
+      }
+
     }
+
   })
 }
