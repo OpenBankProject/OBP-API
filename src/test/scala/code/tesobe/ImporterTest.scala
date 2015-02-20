@@ -190,6 +190,11 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       val t2 = tsAfter(1)
       checkOkay(t2, f.t2Value, f.t2NewBalance, f.t2StartDate, f.t2EndDate)
 
+
+      And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
+      val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
+      account.balance.toString should equal(f.t2NewBalance) //t2 has a later completed date than t1
+
     }
 
     scenario("Attempting to import transactions using an incorrect json format") {
