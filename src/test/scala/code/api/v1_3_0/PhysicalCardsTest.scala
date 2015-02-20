@@ -4,6 +4,7 @@ import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
+import code.tesobe.CashTransaction
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
@@ -107,6 +108,12 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,
                                           accountNumber: String, currency: String,
                                           initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
+
+    //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
+    override def getAccountByUUID(uuid: String): Box[PhysicalCardsTest.this.MockedCardConnector.AccountType] = ???
+
+    //cash api requires a call to add a new transaction and update the account balance
+    override def addCashTransactionAndUpdateBalance(account: PhysicalCardsTest.this.MockedCardConnector.AccountType, cashTransaction: CashTransaction): Unit = ???
   }
 
   override def beforeAll() {

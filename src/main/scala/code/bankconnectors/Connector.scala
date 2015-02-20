@@ -1,5 +1,6 @@
 package code.bankconnectors
 
+import code.tesobe.CashTransaction
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
@@ -130,4 +131,11 @@ trait Connector {
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Boolean
+
+
+  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
+  def getAccountByUUID(uuid : String) : Box[AccountType]
+
+  //cash api requires a call to add a new transaction and update the account balance
+  def addCashTransactionAndUpdateBalance(account : AccountType, cashTransaction : CashTransaction)
 }

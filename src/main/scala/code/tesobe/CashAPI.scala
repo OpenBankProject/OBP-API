@@ -1,6 +1,7 @@
 package code.tesobe
 
 import java.util.Date
+import code.bankconnectors.Connector
 import code.model.dataAccess._
 import net.liftweb.common.{Full, Box, Loggable}
 import net.liftweb.http.{JsonResponse, S}
@@ -62,75 +63,14 @@ object CashAccountAPI extends RestHelper with Loggable {
 
     case "cash-accounts" :: uuid :: "transactions" :: Nil JsonPost json -> _ => {
 
-      def getAccountByUUID(uuid : String) : Box[Account] = {
-        Account.find(uuid)
-      }
-
-      def addCashTransaction(account : Account, cashTransaction : CashTransaction) = {
-        val thisAccountBank = OBPBank.createRecord.
-          IBAN(account.iban.getOrElse("")).
-          national_identifier(account.nationalIdentifier).
-          name(account.bankName)
-
-        val thisAccount = OBPAccount.createRecord.
-          holder(account.holder.get).
-          number(account.number).
-          kind(account.kind.get).
-          bank(thisAccountBank)
-
-        val otherAccountBank = OBPBank.createRecord.
-          IBAN("").
-          national_identifier("").
-          name("")
-
-        val otherAccount = OBPAccount.createRecord.
-          holder(cashTransaction.otherParty).
-          number("").
-          kind("").
-          bank(otherAccountBank)
-
-        val amount : BigDecimal = {
-          if(cashTransaction.kind == "in")
-            BigDecimal(cashTransaction.amount).setScale(2,RoundingMode.HALF_UP).abs
-          else
-            BigDecimal((cashTransaction.amount * (-1) )).setScale(2,RoundingMode.HALF_UP)
-        }
-
-        val newBalance : OBPBalance = OBPBalance.createRecord.
-          currency(account.currency).
-          amount(account.balance + amount)
-
-        val newValue : OBPValue = OBPValue.createRecord.
-          currency(account.currency).
-          amount(amount)
-
-        val details = OBPDetails.createRecord.
-          kind("cash").
-          posted(cashTransaction.date).
-          other_data(cashTransaction.otherInformation).
-          new_balance(newBalance).
-          value(newValue).
-          completed(cashTransaction.date).
-          label(cashTransaction.label)
-
-        val transaction = OBPTransaction.createRecord.
-          this_account(thisAccount).
-          other_account(otherAccount).
-          details(details)
-
-        val env = OBPEnvelope.createRecord.
-          obp_transaction(transaction)
-        account.accountBalance(account.balance + amount).lastUpdate(now)
-        account.save
-        env.save
-      }
+      val connector = Connector.connector.vend
 
       if(isValidKey) {
-        getAccountByUUID(uuid) match {
+        connector.getAccountByUUID(uuid) match {
           case Full(account) =>
             tryo { json.extract[CashTransaction] } match {
               case Full(cashTransaction) =>
-                addCashTransaction(account, cashTransaction)
+                connector.addCashTransactionAndUpdateBalance(account, cashTransaction)
                 JsonResponse(SuccessMessage("transaction successfully added"), Nil, Nil, 200)
               case _ =>
                 invalidCashTransactionJsonFormatError

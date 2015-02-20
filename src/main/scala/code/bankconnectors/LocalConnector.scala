@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.text.SimpleDateFormat
 import java.util.{UUID, TimeZone}
+import code.tesobe.CashTransaction
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.JsonAST.JValue
@@ -16,6 +17,8 @@ import net.liftweb.util.Props
 import com.mongodb.QueryBuilder
 import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metadata}
 import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
+
+import scala.math.BigDecimal.RoundingMode
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -416,5 +419,70 @@ private object LocalConnector extends Connector with Loggable {
       case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
     }
 
+  }
+
+  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
+  override def getAccountByUUID(uuid: String): Box[AccountType] = {
+    Account.find(uuid)
+  }
+
+  //cash api requires a call to add a new transaction and update the account balance
+  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = {
+    val thisAccountBank = OBPBank.createRecord.
+      IBAN(account.iban.getOrElse("")).
+      national_identifier(account.nationalIdentifier).
+      name(account.bankName)
+
+    val thisAccount = OBPAccount.createRecord.
+      holder(account.holder.get).
+      number(account.number).
+      kind(account.kind.get).
+      bank(thisAccountBank)
+
+    val otherAccountBank = OBPBank.createRecord.
+      IBAN("").
+      national_identifier("").
+      name("")
+
+    val otherAccount = OBPAccount.createRecord.
+      holder(cashTransaction.otherParty).
+      number("").
+      kind("").
+      bank(otherAccountBank)
+
+    val amount : BigDecimal = {
+      if(cashTransaction.kind == "in")
+        BigDecimal(cashTransaction.amount).setScale(2,RoundingMode.HALF_UP).abs
+      else
+        BigDecimal((cashTransaction.amount * (-1) )).setScale(2,RoundingMode.HALF_UP)
+    }
+
+    val newBalance : OBPBalance = OBPBalance.createRecord.
+      currency(account.currency).
+      amount(account.balance + amount)
+
+    val newValue : OBPValue = OBPValue.createRecord.
+      currency(account.currency).
+      amount(amount)
+
+    val details = OBPDetails.createRecord.
+      kind("cash").
+      posted(cashTransaction.date).
+      other_data(cashTransaction.otherInformation).
+      new_balance(newBalance).
+      value(newValue).
+      completed(cashTransaction.date).
+      label(cashTransaction.label)
+
+    val transaction = OBPTransaction.createRecord.
+      this_account(thisAccount).
+      other_account(otherAccount).
+      details(details)
+
+    val env = OBPEnvelope.createRecord.
+      obp_transaction(transaction)
+    account.accountBalance(account.balance + amount).lastUpdate(now)
+    account.save
+    env.save
   }
 }
