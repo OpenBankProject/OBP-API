@@ -7,7 +7,7 @@ import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers
 
-object EnvelopeInserter extends LiftActor with Loggable{
+object TransactionInserter extends LiftActor with Loggable{
 
   /**
    * Determines whether two transactions to be imported are considered "identical"

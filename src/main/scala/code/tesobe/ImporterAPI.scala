@@ -150,7 +150,7 @@ object ImporterAPI extends RestHelper with Loggable {
          * per "Account".
          */
         // TODO: this duration limit should be fixed
-        val createdEnvelopes = EnvelopeInserter !? (3 minutes, toInsert)
+        val createdEnvelopes = TransactionInserter !? (3 minutes, toInsert)
 
         createdEnvelopes match {
           case Full(inserted : InsertedTransactions) =>
