@@ -1,10 +1,12 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
-import java.util.{UUID, TimeZone}
+import java.util.{Date, UUID, TimeZone}
 import code.tesobe.CashTransaction
+import code.tesobe.ImporterAPI.ImporterTransaction
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import scala.concurrent.ops.spawn
 import code.model._
@@ -484,5 +486,77 @@ private object LocalConnector extends Connector with Loggable {
     account.accountBalance(account.balance + amount).lastUpdate(now)
     account.save
     env.save
+  }
+
+  //used by transaction import api call to check for duplicates
+  override def getMatchingTransactionCount(amount: String, completed: Date, otherAccountHolder: String): Int = {
+    //this is refactored legacy code, and it seems the empty account holder check had to do with potentially missing
+    //fields in the db. not sure if this is still required.
+    if(otherAccountHolder.isEmpty){
+      def emptyHolderOrEmptyString(holder: Box[String]): Boolean = {
+        holder match {
+          case Full(s) => s.isEmpty
+          case _ => true
+        }
+      }
+
+      val qry =
+        QueryBuilder.start("obp_transaction.details.value.amount")
+          .is(amount)
+          .put("obp_transaction.details.completed")
+          .is(completed)
+          .get
+
+      val partialMatches = OBPEnvelope.findAll(qry)
+
+      partialMatches.filter(e => {
+        emptyHolderOrEmptyString(e.obp_transaction.get.other_account.get.holder.valueBox)
+      }).size
+    }
+    else{
+      val qry =
+        QueryBuilder.start("obp_transaction.details.value.amount")
+          .is(amount)
+          .put("obp_transaction.other_account.holder")
+          .is(otherAccountHolder)
+          .put("obp_transaction.details.completed")
+          .is(completed)
+          .get
+
+      val partialMatches = OBPEnvelope.count(qry)
+      partialMatches.toInt //icky
+    }
+  }
+
+  //used by transaction import api
+  override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
+    import net.liftweb.mongodb.BsonDSL._
+
+    implicit val formats =  net.liftweb.json.DefaultFormats.lossless
+    val asJValue = Extraction.decompose(transaction)
+
+    for {
+      env <- OBPEnvelope.envelopesFromJValue(asJValue)
+      nationalIdentifier = transaction.obp_transaction.this_account.bank.national_identifier
+      bank <- HostedBank.find(HostedBank.national_identifier.name -> nationalIdentifier) ?~
+        s"No bank found with national identifier ${nationalIdentifier} could not save envelope"
+      accountNumber = transaction.obp_transaction.this_account.number
+      account <- Account.find((Account.bankID.name -> bank.id.get) ~ (Account.accountNumber.name -> accountNumber)) ?~
+        s"No account found with number ${accountNumber} at bank with id ${bank.bankId}: could not save envelope"
+      savedEnv <- env.saveTheRecord() ?~ "Could not save envelope"
+    } yield {
+      createTransaction(savedEnv, account)
+    }
+  }
+
+  //used by the transaction import api
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+    getBankAccountType(bankId, accountId) match {
+      case Full(acc) =>
+        acc.accountBalance(newBalance).saveTheRecord().isDefined
+        true
+      case _ =>
+        false
+    }
   }
 }

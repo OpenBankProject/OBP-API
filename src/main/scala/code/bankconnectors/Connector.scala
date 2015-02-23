@@ -1,6 +1,7 @@
 package code.bankconnectors
 
 import code.tesobe.CashTransaction
+import code.tesobe.ImporterAPI.ImporterTransaction
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
@@ -138,4 +139,14 @@ trait Connector {
 
   //cash api requires a call to add a new transaction and update the account balance
   def addCashTransactionAndUpdateBalance(account : AccountType, cashTransaction : CashTransaction)
+
+  //used by transaction import api call to check for duplicates
+  //the implementation is responsible for dealing with the amount as a string
+  def getMatchingTransactionCount(amount : String, completed : Date, otherAccountHolder : String) : Int
+
+  //used by transaction import api
+  def createImportedTransaction(transaction: ImporterTransaction) : Box[Transaction]
+
+  //used by the transaction import api
+  def updateAccountBalance(bankId : BankId, accountId : AccountId, newBalance : BigDecimal) : Boolean
 }

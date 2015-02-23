@@ -2,33 +2,105 @@ package code.tesobe
 
 import java.util.Date
 
+import code.bankconnectors.Connector
+import code.model.Transaction
 import code.model.dataAccess.{Account, OBPEnvelope}
 import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JField, JObject, JArray}
+import net.liftweb.json.{DefaultFormats, Extraction}
+import net.liftweb.json.JsonAST.{JString, JField, JObject, JArray}
 import net.liftweb.mongodb.Limit
 import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import net.liftweb.json.JsonDSL._
 
+/**
+ * This is legacy code and does not handle edge cases very well and assumes certain things, e.g.
+ * that bank national identifier is unique (when in reality it should only be unique for a given
+ * country). So if it looks like it's doing things in a very weird way, that's because it is.
+ */
 object ImporterAPI extends RestHelper with Loggable {
 
-  case class EnvelopesToInsert(l: List[OBPEnvelope])
-  case class InsertedEnvelopes(l: List[OBPEnvelope])
+  case class TransactionsToInsert(l : List[ImporterTransaction])
+  case class InsertedTransactions(l : List[Transaction])
+
+  //models the json format -> This model cannot change or it will break the api call!
+  //if you want to update/modernize the json format, you will need to create a new api call
+  //and leave these models untouched until the old api call is no longer used by any clients
+  case class ImporterTransaction(obp_transaction : ImporterOBPTransaction)
+  case class ImporterOBPTransaction(this_account : ImporterAccount, other_account : ImporterAccount, details : ImporterDetails)
+  case class ImporterAccount(holder : String, number : String, kind : String, bank : ImporterBank)
+
+  /**
+   * it doesn't make sense that the IBAN attribute is on the Bank (as IBAN is in reality a property of an account),
+   * but this was how it was originally written and is also the
+   */
+  case class ImporterBank(IBAN : String, national_identifier : String, name : String)
+
+  case class ImporterDetails(type_en : String, type_de : String, posted : ImporterDate,
+                             completed : ImporterDate, new_balance : ImporterAmount, value : ImporterAmount,
+                             label : String)
+  case class ImporterDate(`$dt` : Date) //format : "2012-01-04T18:06:22.000Z" (see tests)
+  case class ImporterAmount(currency : String, amount : String)
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), Nil, Nil, httpCode)
 
-
   /**
-   * A JSON representation of the transaction to be returned when successfully added via an API call
+   * Legacy format
+   *
+   * TODO: can we just get rid of this? is anything using it?
    */
-  def whenAddedJson(env : OBPEnvelope) : JObject = {
+  def whenAddedJson(t : Transaction) : JObject = {
+
+    def formatDate(date : Date) : String = {
+      DefaultFormats.lossless.dateFormat.format(date)
+    }
+
+    val thisBank = Connector.connector.vend.getBank(t.bankId)
+    val thisAcc = Connector.connector.vend.getBankAccount(t.bankId, t.accountId)
+    val thisAccJson = JObject(List(JField("holder",
+      JObject(List(
+        JField("holder", JString(thisAcc.map(_.accountHolder).getOrElse(""))),
+        JField("alias", JString("no"))))),
+      JField("number", JString(thisAcc.map(_.number).getOrElse(""))),
+      JField("kind", JString(thisAcc.map(_.accountType).getOrElse(""))),
+      JField("bank", JObject(List( JField("IBAN", JString(thisAcc.flatMap(_.iban).getOrElse(""))),
+        JField("national_identifier", JString(thisBank.map(_.nationalIdentifier).getOrElse(""))),
+        JField("name", JString(thisBank.map(_.fullName).getOrElse(""))))))))
+
+    val otherAcc = t.otherAccount
+    val otherAccJson = JObject(List(JField("holder",
+      JObject(List(
+        JField("holder", JString(otherAcc.label)),
+        JField("alias", JString("no"))))),
+      JField("number", JString(otherAcc.number)),
+      JField("kind", JString(otherAcc.kind)),
+      JField("bank", JObject(List( JField("IBAN", JString(otherAcc.iban.getOrElse(""))),
+        JField("national_identifier", JString(otherAcc.nationalIdentifier)),
+        JField("name", JString(otherAcc.bankName)))))))
+
+    val detailsJson = JObject(List( JField("type_en", JString(t.transactionType)),
+      JField("type", JString(t.transactionType)),
+      JField("posted", JString(formatDate(t.startDate))),
+      JField("completed", JString(formatDate(t.finishDate))),
+      JField("other_data", JString("")),
+      JField("new_balance", JObject(List( JField("currency", JString(t.currency)),
+        JField("amount", JString(t.balance.toString))))),
+      JField("value", JObject(List( JField("currency", JString(t.currency)),
+        JField("amount", JString(t.amount.toString)))))))
+
+    val transactionJson = {
+      JObject(List(JField("obp_transaction_uuid", JString(t.uuid)),
+        JField("this_account", thisAccJson),
+        JField("other_account", otherAccJson),
+        JField("details", detailsJson)))
+    }
+
     JObject(
       List(
-        JField("obp_transaction", env.obp_transaction.get.whenAddedJson(env.id.toString))
+        JField("obp_transaction", transactionJson)
       )
     )
   }
@@ -38,49 +110,37 @@ object ImporterAPI extends RestHelper with Loggable {
     case "api" :: "transactions" :: Nil JsonPost json => {
 
       def savetransactions ={
-        val rawEnvelopes = json._1.children
-        val envelopes : List[OBPEnvelope]= rawEnvelopes.flatMap(e => {
-          OBPEnvelope.envelopesFromJValue(e)
-        })
 
-        def updateAccountBalance(accountNumber: String, bankId: String, account: Account) = {
-          val newest =
-            OBPEnvelope.findAll(
-              ("obp_transaction.this_account.number" -> accountNumber) ~
-                ("obp_transaction.this_account.bank.national_identifier" -> bankId),
-              ("obp_transaction.details.completed" -> -1),
-              Limit(1)
-            ).headOption
+        def updateBankAccountBalance(insertedTransactions : List[Transaction]) = {
+          if(insertedTransactions.nonEmpty) {
+            //we assume here that all the Envelopes concern only one account
+            val mostRecentTransaction = insertedTransactions.maxBy(t => t.finishDate)
 
-          if(newest.isDefined) {
-            logger.debug(s"Updating current balance for account $accountNumber at bank $bankId")
-            account.accountBalance(newest.get.obp_transaction.get.details.get.new_balance.get.amount.get).save
-          }
-          else
-            logger.warn("Could not update the balance for the account $accountNumber at bank $bankId")
-        }
-        def updateBankAccount(insertedEnvelopes: List[OBPEnvelope]) = {
-          if(insertedEnvelopes.nonEmpty) {
-            //we assume here that all the Envelopes concerns only one account
-            val envelope = insertedEnvelopes(0)
-            val thisAccount = envelope.obp_transaction.get.this_account.get
-            val accountNumber = thisAccount.number.get
-            val bankId = thisAccount.bank.get.national_identifier.get
-            envelope.theAccount match {
-              case Full(account) =>  {
-                account.lastUpdate(new Date).save
-                updateAccountBalance(accountNumber, bankId, account)
-              }
-              case _ => logger.info("account $accountNumber at bank $bankId not found")
-            }
+            Connector.connector.vend.updateAccountBalance(
+              mostRecentTransaction.bankId,
+              mostRecentTransaction.accountId,
+              mostRecentTransaction.balance)
           }
         }
 
         val ipAddress = json._2.remoteAddr
-        logger.info("Received " + rawEnvelopes.size +
+
+        val rawTransactions = json._1.children
+
+        logger.info("Received " + rawTransactions.size +
           " json transactions to insert from ip address " + ipAddress)
-        logger.info("Received " + envelopes.size +
-          " valid transactions to insert from ip address " + ipAddress)
+
+        //importer api expects lossless dates
+        val losslessFormats =  net.liftweb.json.DefaultFormats.lossless
+        val mf = implicitly[Manifest[ImporterTransaction]]
+        val importerTransactions = rawTransactions.flatMap(j => j.extractOpt[ImporterTransaction](losslessFormats, mf))
+
+        logger.info("Received " + importerTransactions.size +
+          " valid json transactions to insert from ip address " + ipAddress)
+
+        if(importerTransactions.isEmpty) logger.warn("no transactions found to insert")
+
+        val toInsert = TransactionsToInsert(importerTransactions)
 
         /**
          * Using an actor to do insertions avoids concurrency issues with
@@ -89,19 +149,16 @@ object ImporterAPI extends RestHelper with Loggable {
          * is too inefficient. If it is, we could break it up into one actor
          * per "Account".
          */
-
-        val l = EnvelopesToInsert(envelopes)
         // TODO: this duration limit should be fixed
-        val createdEnvelopes = EnvelopeInserter !? (3 minutes, l)
+        val createdEnvelopes = EnvelopeInserter !? (3 minutes, toInsert)
 
         createdEnvelopes match {
-          case Full(env: InsertedEnvelopes) =>{
-            val insertedEnvelopes = env.l
-            logger.info("inserted " + insertedEnvelopes.size + " transactions")
-            updateBankAccount(insertedEnvelopes)
-            val jsonList = insertedEnvelopes.map(whenAddedJson)
+          case Full(inserted : InsertedTransactions) =>
+            val insertedTs = inserted.l
+            logger.info("inserted " + insertedTs.size + " transactions")
+            updateBankAccountBalance(insertedTs)
+            val jsonList = insertedTs.map(whenAddedJson)
             JsonResponse(JArray(jsonList))
-          }
           case _ => {
             logger.warn("no envelopes inserted")
             InternalServerErrorResponse()

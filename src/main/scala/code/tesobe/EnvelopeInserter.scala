@@ -1,8 +1,8 @@
 package code.tesobe
 
-import code.model.dataAccess.OBPEnvelope
-import code.tesobe.ImporterAPI.{InsertedEnvelopes, EnvelopesToInsert}
-import com.mongodb.QueryBuilder
+import code.bankconnectors.Connector
+import code.model.Transaction
+import code.tesobe.ImporterAPI._
 import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers
@@ -10,102 +10,75 @@ import net.liftweb.util.Helpers
 object EnvelopeInserter extends LiftActor with Loggable{
 
   /**
-   * Determines whether two obp envelopes are considered "identical"
+   * Determines whether two transactions to be imported are considered "identical"
    *
    * Currently this is considered true if the date cleared, the transaction amount,
    * and the name of the other party are the same.
    */
-  def isIdentical(e1: OBPEnvelope, e2: OBPEnvelope) : Boolean = {
-    val t1 = e1.obp_transaction.get
-    val t2 = e2.obp_transaction.get
+  def isIdentical(t1: ImporterTransaction, t2: ImporterTransaction) : Boolean = {
 
-    t1.details.get.completed.get.equals(t2.details.get.completed.get) &&
-      t1.details.get.value.get.amount.get.equals(t2.details.get.value.get.amount.get) &&
-      t1.other_account.get.holder.get.equals(t2.other_account.get.holder.get)
+    val t1Details = t1.obp_transaction.details
+    val t1Completed = t1Details.completed
+    val t1Amount = t1Details.value.amount
+    val t1OtherAccHolder = t1.obp_transaction.other_account.holder
 
+    val t2Details = t2.obp_transaction.details
+    val t2Completed = t2Details.completed
+    val t2Amount = t2Details.value.amount
+    val t2OtherAccHolder = t2.obp_transaction.other_account.holder
+
+    t1Completed == t2Completed &&
+    t1Amount == t2Amount &&
+    t1OtherAccHolder == t2OtherAccHolder
   }
 
   /**
-   * Inserts a list of identical envelopes, ensuring that no duplicates are made.
+   * Inserts a list of identical transactions, ensuring that no duplicates are made.
    *
-   * This is done by querying for all existing copies of this identical envelope,
-   * and comparing the number of results to the size of the envelopes list.
+   * This is done by querying for all existing copies of this transaction,
+   * and comparing the number of results to the size of the list of transactions to insert.
    *
-   * E.g. If this method receives 3 identical envelopes, and only 1 copy exists
+   * E.g. If this method receives 3 identical transactions, and only 1 copy exists
    *  in the database, then 2 more should be added.
    *
-   *  If this method receives 3 identical envelopes, and 3 copies exist in the
+   *  If this method receives 3 identical transactions, and 3 copies exist in the
    *  database, then 0 more should be added.
    */
-  def insert(identicalEnvelopes : List[OBPEnvelope]) : List[OBPEnvelope] = {
-    if(identicalEnvelopes.size == 0){
+  def insertIdenticalTransactions(identicalTransactions : List[ImporterTransaction]) : List[Transaction] = {
+    if(identicalTransactions.size == 0){
       Nil
     }else{
       //we don't want to be putting people's transaction info in the logs, so we use an id
       val insertID = Helpers.randomString(10)
       logger.info("Starting insert operation, id: " + insertID)
 
-      val toMatch = identicalEnvelopes(0)
-      val matches =
-        if(toMatch.obp_transaction.get.other_account.get.holder.get.isEmpty){
-          logger.info("for operation " + insertID + " holder is empty")
-          def emptyHolderOrEmptyString(holder: Box[String]): Boolean = {
-            holder match {
-              case Full(s) => s.isEmpty
-              case _ => true
-            }
-          }
+      val toMatch = identicalTransactions(0)
 
-          val qry =
-            QueryBuilder.start("obp_transaction.details.value.amount")
-              .is(toMatch.obp_transaction.get.details.get.value.get.amount.get.toString)
-              .put("obp_transaction.details.completed")
-              .is(toMatch.obp_transaction.get.details.get.completed.get)
-              .get
+      val existingMatches = Connector.connector.vend.getMatchingTransactionCount(
+        toMatch.obp_transaction.details.value.amount,
+        toMatch.obp_transaction.details.completed.`$dt`,
+        toMatch.obp_transaction.other_account.holder)
 
-          val partialMatches = OBPEnvelope.findAll(qry)
-          logger.info("Insert operation id " + insertID + " # of partial matches: " + partialMatches.size)
+      logger.info("Insert operation id " + insertID + " # of existing matches: " + existingMatches)
 
-          partialMatches.filter(e => {
-            emptyHolderOrEmptyString(e.obp_transaction.get.other_account.get.holder.valueBox)
-          })
-        }
-        else{
-          logger.info("for operation " + insertID + " holder not empty")
-          val qry =
-            QueryBuilder.start("obp_transaction.details.value.amount")
-              .is(toMatch.obp_transaction.get.details.get.value.get.amount.get.toString)
-              .put("obp_transaction.other_account.holder")
-              .is(toMatch.obp_transaction.get.other_account.get.holder.get)
-              .put("obp_transaction.details.completed")
-              .is(toMatch.obp_transaction.get.details.get.completed.get)
-              .get
+      val numberToInsert = identicalTransactions.size - existingMatches
 
-          val partialMatches = OBPEnvelope.findAll(qry)
-          logger.info("Insert operation id " + insertID + " # of partial matches: " + partialMatches.size)
-          partialMatches
-        }
+      logger.info("Insert operation id " + insertID + " copies being inserted: " + numberToInsert)
 
-      logger.info("Insert operation id " + insertID + " # of full matches: " + matches.size)
-      val copiesToInsert = identicalEnvelopes drop matches.size
-      logger.info("Insert operation id " + insertID + " copies being inserted: " + copiesToInsert.size)
+      val results = (1 to numberToInsert).map(_ => Connector.connector.vend.createImportedTransaction(toMatch)).toList
 
-      val attemptedSaved = copiesToInsert.map(_.saveTheRecord())
-
-      attemptedSaved.foreach{
-        case Failure(msg, _, _) => logger.warn("could not save envelope: " + msg)
-        case Empty => logger.warn("could not save envelope -- reason unknown")
-        case _ => //do nothing
+      results.foreach{
+        case Failure(msg, _, _) => logger.warn(s"create transaction failed: $msg")
+        case Empty => logger.warn("create transaction failed")
+        case _ => Unit //do nothing
       }
 
-      attemptedSaved.collect{
-        case Full(s) => s
-      }
+      results.flatten
     }
   }
 
   def messageHandler = {
-    case EnvelopesToInsert(envelopes: List[OBPEnvelope]) => {
+    case TransactionsToInsert(ts : List[ImporterTransaction]) => {
 
       /**
        * Example:
@@ -116,7 +89,7 @@ object EnvelopeInserter extends LiftActor with Loggable{
        *  avoid inserting duplicates.
        */
 
-      def groupIdenticals(list : List[OBPEnvelope]) : List[List[OBPEnvelope]] = {
+      def groupIdenticals(list : List[ImporterTransaction]) : List[List[ImporterTransaction]] = {
         list match{
           case Nil => Nil
           case h::Nil => List(list)
@@ -128,15 +101,15 @@ object EnvelopeInserter extends LiftActor with Loggable{
         }
       }
 
-      val grouped = groupIdenticals(envelopes)
+      val grouped = groupIdenticals(ts)
 
-      val insertedEnvelopes =
+      val insertedTransactions =
         grouped
-          .map(identicals => insert(identicals))
+          .map(identicals => insertIdenticalTransactions(identicals))
           .flatten
 
       reply(
-        InsertedEnvelopes(insertedEnvelopes)
+        InsertedTransactions(insertedTransactions)
       )
     }
   }
