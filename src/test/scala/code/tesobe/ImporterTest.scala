@@ -106,7 +106,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
 
     def addTransactions(data : String, secretKey : Option[String]) : APIResponse = {
 
-      val baseReq = (baseRequest / "api" / "transactions").POST
+      val baseReq = (baseRequest / "obp_transactions_saver" / "api" / "transactions").POST
 
       val req = secretKey match {
         case Some(key) =>

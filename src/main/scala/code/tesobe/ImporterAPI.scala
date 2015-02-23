@@ -107,7 +107,7 @@ object ImporterAPI extends RestHelper with Loggable {
 
   serve {
     
-    case "api" :: "transactions" :: Nil JsonPost json => {
+    case "obp_transactions_saver" :: "api" :: "transactions" :: Nil JsonPost json => {
 
       def savetransactions ={
 
