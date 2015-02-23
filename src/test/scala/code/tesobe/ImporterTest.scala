@@ -278,7 +278,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       checkTransactionOkay(tsBefore(0))
       checkTransactionOkay(tsBefore(1))
 
-      When("We try to add 5 copies of the tranaction")
+      When("We try to add 5 copies of the transaction")
       val response = addTransactions(secondImportJson, Some(secretKeyValue))
 
       Then("We should get a 200") //implementation returns 200 and not 201, so we'll leave it like that
