@@ -117,7 +117,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def addCashTransactionAndUpdateBalance(account: PhysicalCardsTest.this.MockedCardConnector.AccountType, cashTransaction: CashTransaction): Unit = ???
 
     //used by transaction import api call to check for duplicates
-    override def getMatchingTransactionCount(amount: String, completed: Date, otherAccountHolder: String): Int = ???
+    override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
 
     //used by transaction import api
     override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???

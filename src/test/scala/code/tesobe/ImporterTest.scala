@@ -28,10 +28,12 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
 
   val dummyKind = "Transfer"
 
-  def fixture() = new {
+  def defaultFixture() = fixture("an-account")
+
+  def fixture(accId : String) = new {
     lazy val bank = createBank("a-bank")
     lazy val accountCurrency = "EUR"
-    lazy val account = createAccount(bank.bankId, AccountId("an-account"), accountCurrency)
+    lazy val account = createAccount(bank.bankId, AccountId(accId), accountCurrency)
     val originalBalance = account.balance.toString
 
     val t1Value = "12.34"
@@ -142,7 +144,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Attempting to import transactions without using a secret key") {
-      val f = fixture()
+      val f = defaultFixture()
 
       Given("An account with no transactions")
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
@@ -160,7 +162,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Attempting to import transactions with the incorrect secret key") {
-      val f = fixture()
+      val f = defaultFixture()
 
       Given("An account with no transactions")
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
@@ -178,7 +180,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Attempting to import transactions with the correct secret key") {
-      val f = fixture()
+      val f = defaultFixture()
 
       Given("An account with no transactions")
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
@@ -209,7 +211,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Attempting to add 'identical' transactions") {
-      val f = fixture()
+      val f = defaultFixture()
       def checkTransactionOkay(t : Transaction) = checkOkay(t, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
       Given("An account with no transactions")
@@ -239,7 +241,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Adding transactions that have already been imported") {
-      val f = fixture()
+      val f = defaultFixture()
       def checkTransactionOkay(t : Transaction) = checkOkay(t, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
       val t1Json = f.tJson(f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate)
@@ -266,7 +268,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
     }
 
     scenario("Adding 'identical' transactions, some of which have already been imported") {
-      val f = fixture()
+      val f = defaultFixture()
       def checkTransactionOkay(t : Transaction) = checkOkay(t, f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate, f.dummyLabel)
 
       val t1Json = f.tJson(f.t1Value, f.t1NewBalance, f.t1StartDate, f.t1EndDate)
@@ -294,8 +296,40 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       tsAfter.foreach(checkTransactionOkay)
     }
 
+    //TODO: this test case is pretty messy and was done in bit of a rush
+    scenario("Adding 'identical' transactions when such transactions already exist, but for another account") {
+      val f1 = fixture("an-account")
+      val f2 = fixture("another-account")
+      def checkF1TransactionOkay(t : Transaction) = checkOkay(t, f1.t1Value, f1.t1NewBalance, f1.t1StartDate, f1.t1EndDate, f1.dummyLabel)
+
+      def checkF2TransactionOkay(t : Transaction) = checkOkay(t, f2.t1Value, f2.t1NewBalance, f2.t1StartDate, f2.t1EndDate, f2.dummyLabel)
+
+      val t1F1Json = f1.tJson(f1.t1Value, f1.t1NewBalance, f1.t1StartDate, f1.t1EndDate)
+      val t1F1ImportJson = f1.importJson(List.fill(2)(t1F1Json))
+
+      Given("Two 'identical' existing transactions at a different account")
+      addTransactions(t1F1ImportJson, Some(secretKeyValue))
+
+      val f1TsBefore = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).get
+      f1TsBefore.size should equal(2)
+      f1TsBefore.foreach(checkF1TransactionOkay)
+
+      When("We add these same 'identical' transactions to a different account")
+      addTransactions(t1F1ImportJson, Some(secretKeyValue))
+
+      Then("There should be two transactions for each account")
+      val f1TsAfter = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).get
+      f1TsAfter.size should equal(2)
+      f1TsAfter.foreach(checkF1TransactionOkay)
+
+      val f2Ts = Connector.connector.vend.getTransactions(f2.account.bankId, f2.account.accountId).get
+      f2Ts.size should equal(2)
+      f2Ts.foreach(checkF2TransactionOkay)
+
+    }
+
     scenario("Attempting to import transactions using an incorrect json format") {
-      val f = fixture()
+      val f = defaultFixture()
       Given("An account with no transactions")
       val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
       tsBefore.size should equal(0)
