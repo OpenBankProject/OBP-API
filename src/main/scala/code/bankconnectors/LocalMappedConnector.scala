@@ -192,6 +192,11 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(mappedTransaction.theTransactionId)
   }
 
+
+  /*
+    Bank account creation
+   */
+
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = ???
 
@@ -201,17 +206,37 @@ object LocalMappedConnector extends Connector with Loggable {
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String, currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = ???
 
-  //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
-
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+
+  /*
+    End of bank account creation
+   */
+
+
+  /*
+    Transaction importer api
+   */
+
+  //used by the transaction import api
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
 
   //used by transaction import api call to check for duplicates
   override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
 
   //used by transaction import api
   override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
+
+  /*
+    End of transaction importer api
+   */
+
+
+
+  /*
+    Cash api
+   */
+
 
   //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
   override def getAccountByUUID(uuid: String): Box[AccountType] = {
@@ -264,4 +289,8 @@ object LocalMappedConnector extends Connector with Loggable {
         logger.warn("Failed to update account balance after new cash transaction")
     }
   }
+
+  /*
+    End of cash api
+   */
 }
