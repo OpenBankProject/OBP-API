@@ -1,6 +1,6 @@
 package code.bankconnectors
 
-import java.util.Date
+import java.util.{UUID, Date}
 
 import code.metadata.counterparties.Counterparties
 import code.model._
@@ -198,16 +198,77 @@ object LocalMappedConnector extends Connector with Loggable {
    */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = ???
+  //again assume national identifier is unique
+  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
+    //don't require and exact match on the name, just the identifier
+    val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
+      case Full(b) =>
+        logger.info(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
+        b
+      case _ =>
+        logger.info(s"creating bank with national identifier $bankNationalIdentifier")
+        //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
+        MappedBank.create
+          .permalink(Helper.generatePermalink(bankName))
+          .fullBankName(bankName)
+          .shortBankName(bankName)
+          .national_identifier(bankNationalIdentifier)
+          .saveMe()
+    }
+
+    //TODO: pass in currency as a parameter?
+    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, "EUR", 0L, accountHolderName)
+
+    (bank, account)
+  }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
-  override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
+  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
+    MappedBankAccount.count(
+      By(MappedBankAccount.bank, bankId.value),
+      By(MappedBankAccount.accountNumber, accountNumber)) > 0
+  }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String, currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = ???
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+                                        currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+
+    for {
+      bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
+    } yield {
+
+      val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
+      createAccountIfNotExisting(bankId, accountId, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+    }
+
+  }
 
   //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+    MappedAccountHolder.create
+      .accountBankPermalink(bankAccountUID.bankId.value)
+      .accountPermalink(bankAccountUID.accountId.value)
+      .user(user.apiId.value)
+      .save
+  }
+
+  private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
+                            currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
+    getBankAccountType(bankId, accountId) match {
+      case Full(a) =>
+        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        a
+      case _ =>
+        MappedBankAccount.create
+          .bank(bankId.value)
+          .theAccountId(accountId.value)
+          .accountNumber(accountNumber)
+          .accountCurrency(currency)
+          .accountBalance(balanceInSmallestCurrencyUnits)
+          .holder(accountHolderName)
+          .saveMe()
+    }
+  }
 
   /*
     End of bank account creation
