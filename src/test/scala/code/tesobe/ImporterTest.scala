@@ -306,6 +306,8 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
 
       val t1F1Json = f1.tJson(f1.t1Value, f1.t1NewBalance, f1.t1StartDate, f1.t1EndDate)
       val t1F1ImportJson = f1.importJson(List.fill(2)(t1F1Json))
+      val t1F2Json = f2.tJson(f1.t1Value, f1.t1NewBalance, f1.t1StartDate, f1.t1EndDate)
+      val t1F2ImportJson = f2.importJson(List.fill(2)(t1F2Json))
 
       Given("Two 'identical' existing transactions at a different account")
       addTransactions(t1F1ImportJson, Some(secretKeyValue))
@@ -315,7 +317,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       f1TsBefore.foreach(checkF1TransactionOkay)
 
       When("We add these same 'identical' transactions to a different account")
-      addTransactions(t1F1ImportJson, Some(secretKeyValue))
+      addTransactions(t1F2ImportJson, Some(secretKeyValue))
 
       Then("There should be two transactions for each account")
       val f1TsAfter = Connector.connector.vend.getTransactions(f1.account.bankId, f1.account.accountId).get
