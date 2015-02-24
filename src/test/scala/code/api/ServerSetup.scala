@@ -56,6 +56,7 @@ trait ServerSetupWithTestData extends ServerSetup with DefaultConnectorTestSetup
   override def beforeEach() = {
     super.beforeEach()
 
+    implicit val dateFormats = net.liftweb.json.DefaultFormats
     //create fake data for the tests
 
     //fake banks

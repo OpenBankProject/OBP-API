@@ -8,7 +8,7 @@ object WhereTags  extends SimpleInjector {
 
   val whereTags = new Inject(buildOne _) {}
 
-  def buildOne: WhereTags = MongoTransactionWhereTags
+  def buildOne: WhereTags = MapperWhereTags
 
 }
 

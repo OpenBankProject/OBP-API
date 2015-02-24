@@ -32,6 +32,13 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
+import code.metadata.comments.MappedComment
+import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
+import code.metadata.narrative.MappedNarrative
+import code.metadata.tags.MappedTag
+import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.wheretags.MappedWhereTag
+import code.metrics.MappedMetric
 import code.bankbranches.{MappedBankBranch, MappedDataLicense}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import code.tesobe.{ImporterAPI, CashAccountAPI}
@@ -48,8 +55,8 @@ import net.liftweb.util.Helpers
 import java.io.FileInputStream
 import java.io.File
 import javax.mail.internet.MimeMessage
-import code.model.{Nonce, Consumer, Token, dataAccess}
-import dataAccess._
+import code.model._
+import code.model.dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 
@@ -326,6 +333,9 @@ class Boot extends Loggable{
 object ToSchemify {
   val models = List(OBPUser, Admin, Nonce, Token, Consumer,
     ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
-    MappedCustomerInfo, MappedCustomerMessage,
+    MappedComment, MappedNarrative, MappedTag,
+    MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
+    MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
     MappedBankBranch, MappedDataLicense)
 }

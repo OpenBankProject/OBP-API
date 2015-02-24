@@ -4,7 +4,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.api.test.ServerSetup
-import net.liftweb.mongodb._
 
 class MetricsTest extends ServerSetup with WipeMetrics {
 
@@ -106,7 +105,6 @@ class MetricsTest extends ServerSetup with WipeMetrics {
  */
 trait WipeMetrics {
   def wipeAllExistingMetrics() = {
-    //just drops all mongodb databases
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    MappedMetric.bulkDelete_!!()
   }
 }
