@@ -231,21 +231,21 @@ object LocalMappedConnector extends Connector with Loggable {
 
     //can't forget to set the sign of the amount cashed on kind being "in" or "out"
     //we just assume if it's not "in", then it's "out"
-    val amountInSmallestCurrentUnits = {
+    val amountInSmallestCurrencyUnits = {
       if(cashTransaction.kind == "in") doubleToSmallestCurrencyUnits(cashTransaction.amount)
       else doubleToSmallestCurrencyUnits(-1 * cashTransaction.amount)
     }
 
-    val currentBalanceInSmallestCurrentUnits = account.accountBalance.get
-    val newBalanceInSmallestCurrentUnits = currentBalanceInSmallestCurrentUnits + amountInSmallestCurrentUnits
+    val currentBalanceInSmallestCurrencyUnits = account.accountBalance.get
+    val newBalanceInSmallestCurrencyUnits = currentBalanceInSmallestCurrencyUnits + amountInSmallestCurrencyUnits
 
     //create transaction
     val transactionCreated = MappedTransaction.create
       .bank(account.bankId.value)
       .account(account.accountId.value)
       .transactionType("cash")
-      .amount(amountInSmallestCurrentUnits)
-      .newAccountBalance(newBalanceInSmallestCurrentUnits)
+      .amount(amountInSmallestCurrencyUnits)
+      .newAccountBalance(newBalanceInSmallestCurrencyUnits)
       .currency(account.currency)
       .tStartDate(cashTransaction.date)
       .tFinishDate(cashTransaction.date)
@@ -258,7 +258,7 @@ object LocalMappedConnector extends Connector with Loggable {
       logger.warn("Failed to save cash transaction")
     } else {
       //update account
-      val accountUpdated = account.accountBalance(newBalanceInSmallestCurrentUnits).save()
+      val accountUpdated = account.accountBalance(newBalanceInSmallestCurrencyUnits).save()
 
       if(!accountUpdated)
         logger.warn("Failed to update account balance after new cash transaction")
