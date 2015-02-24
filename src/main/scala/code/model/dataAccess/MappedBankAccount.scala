@@ -3,7 +3,7 @@ package code.model.dataAccess
 import java.math.MathContext
 
 import code.model._
-import code.util.Helper
+import code.util.{MappedUUID, Helper}
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
@@ -20,6 +20,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   @deprecated
   object holder extends MappedString(this, 100)
 
+  @deprecated
+  object accUUID extends MappedUUID(this)
+
   //this is the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
   object accountBalance extends MappedLong(this)
 
@@ -30,6 +33,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   //the last time this account was updated via hbci
   object lastUpdate extends MappedDateTime(this)
 
+  override def uuid = accUUID.get
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
     val i = accountIban.get

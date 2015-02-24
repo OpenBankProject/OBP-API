@@ -1,8 +1,12 @@
 package code.bankconnectors
 
+import java.util.Date
+
 import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
+import code.tesobe.CashTransaction
+import code.tesobe.ImporterAPI.ImporterTransaction
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
@@ -187,4 +191,31 @@ object LocalMappedConnector extends Connector {
 
     Full(mappedTransaction.theTransactionId)
   }
+
+  //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
+  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = ???
+
+  //for sandbox use -> allows us to check if we can generate a new test account with the given number
+  override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
+
+  //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String, currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = ???
+
+  //used by the transaction import api
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
+
+  //sets a user as an account owner/holder
+  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+
+  //cash api requires a call to add a new transaction and update the account balance
+  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = ???
+
+  //used by transaction import api call to check for duplicates
+  override def getMatchingTransactionCount(amount: String, completed: Date, otherAccountHolder: String): Int = ???
+
+  //used by transaction import api
+  override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
+
+  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
+  override def getAccountByUUID(uuid: String): Box[AccountType] = ???
 }
