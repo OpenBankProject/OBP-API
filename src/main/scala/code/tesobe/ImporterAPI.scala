@@ -38,7 +38,7 @@ object ImporterAPI extends RestHelper with Loggable {
    */
   case class ImporterBank(IBAN : String, national_identifier : String, name : String)
 
-  case class ImporterDetails(type_en : String, type_de : String, posted : ImporterDate,
+  case class ImporterDetails(kind : String, posted : ImporterDate,
                              completed : ImporterDate, new_balance : ImporterAmount, value : ImporterAmount,
                              label : String)
   case class ImporterDate(`$dt` : Date) //format : "2012-01-04T18:06:22.000Z" (see tests)

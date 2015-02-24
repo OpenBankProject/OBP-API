@@ -26,6 +26,8 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
   val secretKeyHttpParamName = "secret"
   val secretKeyValue = Props.get("importer_secret").get
 
+  val dummyKind = "Transfer"
+
   def fixture() = new {
     lazy val bank = createBank("a-bank")
     lazy val accountCurrency = "EUR"
@@ -79,8 +81,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
         |            }
         |        },
         |        "details": {
-        |            "type_en": "Transfer",
-        |            "type_de": "Überweisung",
+        |            "kind": "$dummyKind",
         |            "label": "$dummyLabel"
         |            "posted": {
         |                "$$dt": "$startDateString"
@@ -133,6 +134,8 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
         f.setTimeZone(TimeZone.getTimeZone("UTC"))
         f
       }
+
+      t.transactionType should equal(dummyKind)
 
       t.startDate should equal(importJsonDateFormat.parse(startDate))
       t.finishDate should equal(importJsonDateFormat.parse(endDate))
