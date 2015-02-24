@@ -16,7 +16,7 @@ import net.liftweb.util.Props
 
 import scala.concurrent.ops._
 
-object LocalMappedConnector extends Connector {
+object LocalMappedConnector extends Connector with Loggable {
 
   type AccountType = MappedBankAccount
 
@@ -207,9 +207,6 @@ object LocalMappedConnector extends Connector {
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
 
-  //cash api requires a call to add a new transaction and update the account balance
-  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = ???
-
   //used by transaction import api call to check for duplicates
   override def getMatchingTransactionCount(amount: String, completed: Date, otherAccountHolder: String): Int = ???
 
@@ -217,5 +214,54 @@ object LocalMappedConnector extends Connector {
   override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
 
   //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
-  override def getAccountByUUID(uuid: String): Box[AccountType] = ???
+  override def getAccountByUUID(uuid: String): Box[AccountType] = {
+    MappedBankAccount.find(By(MappedBankAccount.accUUID, uuid))
+  }
+
+  //cash api requires a call to add a new transaction and update the account balance
+  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = {
+
+    val currency = account.currency
+    val currencyDecimalPlaces = Helper.currencyDecimalPlaces(currency)
+
+    //not ideal to have to convert it this way
+    def doubleToSmallestCurrencyUnits(x : Double) : Long = {
+      (x * math.pow(10, currencyDecimalPlaces)).toLong
+    }
+
+    //can't forget to set the sign of the amount cashed on kind being "in" or "out"
+    //we just assume if it's not "in", then it's "out"
+    val amountInSmallestCurrentUnits = {
+      if(cashTransaction.kind == "in") doubleToSmallestCurrencyUnits(cashTransaction.amount)
+      else doubleToSmallestCurrencyUnits(-1 * cashTransaction.amount)
+    }
+
+    val currentBalanceInSmallestCurrentUnits = account.accountBalance.get
+    val newBalanceInSmallestCurrentUnits = currentBalanceInSmallestCurrentUnits + amountInSmallestCurrentUnits
+
+    //create transaction
+    val transactionCreated = MappedTransaction.create
+      .bank(account.bankId.value)
+      .account(account.accountId.value)
+      .transactionType("cash")
+      .amount(amountInSmallestCurrentUnits)
+      .newAccountBalance(newBalanceInSmallestCurrentUnits)
+      .currency(account.currency)
+      .tStartDate(cashTransaction.date)
+      .tFinishDate(cashTransaction.date)
+      .description(cashTransaction.label)
+      .counterpartyAccountHolder(cashTransaction.otherParty)
+      .counterpartyAccountKind("cash")
+      .save
+
+    if(!transactionCreated) {
+      logger.warn("Failed to save cash transaction")
+    } else {
+      //update account
+      val accountUpdated = account.accountBalance(newBalanceInSmallestCurrentUnits).save()
+
+      if(!accountUpdated)
+        logger.warn("Failed to update account balance after new cash transaction")
+    }
+  }
 }
