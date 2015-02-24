@@ -219,13 +219,99 @@ object LocalMappedConnector extends Connector with Loggable {
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+
+    //this will be Full(true) if everything went well
+    val result = for {
+      acc <- getBankAccountType(bankId, accountId)
+    } yield {
+      acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
+    }
+
+    result.getOrElse(false)
+  }
+
+  //transaction import api uses bank national identifiers to uniquely indentify banks,
+  //which is unfortunate as theoretically the national identifier is unique to a bank within
+  //one country
+  private def getBankByNationalIdentifier(nationalIdentifier : String) : Box[Bank] = {
+    MappedBank.find(By(MappedBank.national_identifier, nationalIdentifier))
+  }
+
+  private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+    MappedBankAccount.find(
+      By(MappedBankAccount.bank, bankId.value),
+      By(MappedBankAccount.accountNumber, number))
+  }
+
+  private val bigDecimalFailureHandler : PartialFunction[Throwable, Unit] = {
+    case ex : NumberFormatException => {
+      logger.warn(s"could not convert amount to a BigDecimal: $ex")
+    }
+  }
 
   //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
+    val count = for {
+      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
+      account <- getAccountByNumber(bankId, accountNumber)
+      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(amount))
+    } yield {
+
+      val amountInSmallestCurrencyUnits =
+        Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
+
+      MappedTransaction.count(
+        By(MappedTransaction.bank, bankId.value),
+        By(MappedTransaction.account, account.accountId.value),
+        By(MappedTransaction.amount, amountInSmallestCurrencyUnits),
+        By(MappedTransaction.tFinishDate, completed),
+        By(MappedTransaction.counterpartyAccountHolder, otherAccountHolder))
+    }
+
+    //icky
+    count.map(_.toInt) getOrElse 0
+  }
 
   //used by transaction import api
-  override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
+  override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
+    //we need to convert from the legacy bankNationalIdentifier to BankId, and from the legacy accountNumber to AccountId
+    val obpTransaction = transaction.obp_transaction
+    val thisAccount = obpTransaction.this_account
+    val nationalIdentifier = thisAccount.bank.national_identifier
+    val accountNumber = thisAccount.number
+    for {
+      bank <- getBankByNationalIdentifier(transaction.obp_transaction.this_account.bank.national_identifier) ?~!
+        s"No bank found with national identifier $nationalIdentifier"
+      bankId = bank.bankId
+      account <- getAccountByNumber(bankId, accountNumber)
+      details = obpTransaction.details
+      amountAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.value.amount))
+      newBalanceAsBigDecimal <- tryo(bigDecimalFailureHandler)(BigDecimal(details.new_balance.amount))
+      amountInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(amountAsBigDecimal, account.currency)
+      newBalanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(newBalanceAsBigDecimal, account.currency)
+      otherAccount = obpTransaction.other_account
+      mappedTransaction = MappedTransaction.create
+        .bank(bankId.value)
+        .account(account.accountId.value)
+        .transactionType(details.kind)
+        .amount(amountInSmallestCurrencyUnits)
+        .newAccountBalance(newBalanceInSmallestCurrencyUnits)
+        .currency(account.currency)
+        .tStartDate(details.posted.`$dt`)
+        .tFinishDate(details.completed.`$dt`)
+        .description(details.label)
+        .counterpartyAccountNumber(otherAccount.number)
+        .counterpartyAccountHolder(otherAccount.holder)
+        .counterpartyAccountKind(otherAccount.kind)
+        .counterpartyNationalId(otherAccount.bank.national_identifier)
+        .counterpartyBankName(otherAccount.bank.name)
+        .counterpartyIban(otherAccount.bank.IBAN)
+        .saveMe()
+      transaction <- mappedTransaction.toTransaction(account)
+    } yield transaction
+  }
 
   /*
     End of transaction importer api
