@@ -139,8 +139,9 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
 
       t.transactionType should equal(dummyKind)
 
-      t.startDate should equal(importJsonDateFormat.parse(startDate))
-      t.finishDate should equal(importJsonDateFormat.parse(endDate))
+      //compare time as a long to avoid issues comparing Dates, e.g. java.util.Date vs java.sql.Date
+      t.startDate.getTime should equal(importJsonDateFormat.parse(startDate).getTime) 
+      t.finishDate.getTime should equal(importJsonDateFormat.parse(endDate).getTime)
     }
 
     scenario("Attempting to import transactions without using a secret key") {
