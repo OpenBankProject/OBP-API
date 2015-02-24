@@ -142,7 +142,7 @@ trait Connector {
 
   //used by transaction import api call to check for duplicates
   //the implementation is responsible for dealing with the amount as a string
-  def getMatchingTransactionCount(amount : String, completed : Date, otherAccountHolder : String) : Int
+  def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount : String, completed : Date, otherAccountHolder : String) : Int
 
   //used by transaction import api
   def createImportedTransaction(transaction: ImporterTransaction) : Box[Transaction]

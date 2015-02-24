@@ -489,7 +489,17 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //used by transaction import api call to check for duplicates
-  override def getMatchingTransactionCount(amount: String, completed: Date, otherAccountHolder: String): Int = {
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+
+    val baseQuery = QueryBuilder.start("obp_transaction.details.value.amount")
+      .is(amount)
+      .put("obp_transaction.details.completed")
+      .is(completed)
+      .put("obp_transaction.this_account.bank.national_identifier")
+      .is(bankNationalIdentifier)
+      .put("obp_transaction.this_account.number")
+      .is(accountNumber)
+
     //this is refactored legacy code, and it seems the empty account holder check had to do with potentially missing
     //fields in the db. not sure if this is still required.
     if(otherAccountHolder.isEmpty){
@@ -500,28 +510,14 @@ private object LocalConnector extends Connector with Loggable {
         }
       }
 
-      val qry =
-        QueryBuilder.start("obp_transaction.details.value.amount")
-          .is(amount)
-          .put("obp_transaction.details.completed")
-          .is(completed)
-          .get
-
-      val partialMatches = OBPEnvelope.findAll(qry)
+      val partialMatches = OBPEnvelope.findAll(baseQuery.get())
 
       partialMatches.filter(e => {
         emptyHolderOrEmptyString(e.obp_transaction.get.other_account.get.holder.valueBox)
       }).size
     }
     else{
-      val qry =
-        QueryBuilder.start("obp_transaction.details.value.amount")
-          .is(amount)
-          .put("obp_transaction.other_account.holder")
-          .is(otherAccountHolder)
-          .put("obp_transaction.details.completed")
-          .is(completed)
-          .get
+      val qry = baseQuery.put("obp_transaction.other_account.holder").is(otherAccountHolder).get
 
       val partialMatches = OBPEnvelope.count(qry)
       partialMatches.toInt //icky

@@ -55,6 +55,8 @@ object TransactionInserter extends LiftActor with Loggable{
       val toMatch = identicalTransactions(0)
 
       val existingMatches = Connector.connector.vend.getMatchingTransactionCount(
+        toMatch.obp_transaction.this_account.bank.national_identifier,
+        toMatch.obp_transaction.this_account.number,
         toMatch.obp_transaction.details.value.amount,
         toMatch.obp_transaction.details.completed.`$dt`,
         toMatch.obp_transaction.other_account.holder)
