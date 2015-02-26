@@ -4,7 +4,7 @@ import java.net.URL
 import java.util.Date
 import code.model._
 import code.model.dataAccess.APIUser
-import code.util.MappedUUID
+import code.util.{MappedUserInputString, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -54,8 +54,8 @@ class MappedTransactionImage extends TransactionImage with LongKeyedMapper[Mappe
   object user extends MappedLongForeignKey(this, APIUser)
   object date extends MappedDateTime(this)
 
-  object url extends MappedText(this)
-  object imageDescription extends MappedText(this)
+  object url extends MappedUserInputString(this)
+  object imageDescription extends MappedUserInputString(this)
 
   override def id_ : String = imageId.get
   override def postedBy: Box[User] = user.obj

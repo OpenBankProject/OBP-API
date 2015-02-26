@@ -1,6 +1,7 @@
 package code.metadata.narrative
 
 import code.model.{TransactionId, AccountId, BankId}
+import code.util.MappedUserInputString
 import net.liftweb.common.Full
 import net.liftweb.mapper._
 
@@ -45,7 +46,7 @@ class MappedNarrative extends LongKeyedMapper[MappedNarrative] with IdPK with Cr
   object account extends MappedString(this, 255)
   object transaction extends MappedString(this, 255)
 
-  object narrative extends MappedText(this)
+  object narrative extends MappedUserInputString(this)
 }
 
 object MappedNarrative extends MappedNarrative with LongKeyedMetaMapper[MappedNarrative] {
