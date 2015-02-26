@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.util.Helper
+import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.record.field._
 import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord, BsonMetaRecord, BsonRecord}
 import net.liftweb.common.{Box, Empty, Failure}
@@ -42,6 +43,7 @@ import code.model._
 import net.liftweb.common.Loggable
 import net.liftweb.record.field.{DoubleField,DecimalField}
 import net.liftweb.util.FieldError
+import org.bson.types.ObjectId
 import scala.xml.Unparsed
 import net.liftweb.json.JsonAST.JObject
 import scala.Some
@@ -168,13 +170,14 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
   }
 
   lazy val theAccount: Box[Account] = {
+    import net.liftweb.mongodb.BsonDSL._
     val thisAcc = obp_transaction.get.this_account.get
     val num = thisAcc.number.get
-    val bankId = thisAcc.bank.get.national_identifier.get
+    val bankNationalIdentifier = thisAcc.bank.get.national_identifier.get
     for {
-      account <- Account.find(Account.accountNumber.name, num)
-      bank <- HostedBank.find(HostedBank.national_identifier.name, bankId)
-      if(bank.id.get == account.bankID.get)
+      bank <- HostedBank.find((HostedBank.national_identifier.name -> bankNationalIdentifier))
+      bankMongoId : ObjectId = bank.id.get
+      account <- Account.find((Account.accountNumber.name -> num) ~ (Account.bankID.name -> bankMongoId))
     } yield account
   }
 
