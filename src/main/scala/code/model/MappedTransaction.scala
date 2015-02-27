@@ -4,7 +4,7 @@ import java.util.UUID
 
 import code.bankconnectors.Connector
 import code.metadata.counterparties.Counterparties
-import code.util.{Helper, MappedUUID}
+import code.util.{DefaultStringField, Helper, MappedUUID}
 import net.liftweb.common.{Logger, Box}
 import net.liftweb.mapper._
 
@@ -32,7 +32,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object tStartDate extends MappedDateTime(this)
   object tFinishDate extends MappedDateTime(this)
 
-  object description extends MappedText(this)
+  object description extends DefaultStringField(this)
 
   object counterpartyAccountNumber extends MappedString(this, 60)
   object counterpartyAccountHolder extends MappedString(this, 100)

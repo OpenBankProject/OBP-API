@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.APIUser
+import code.util.DefaultStringField
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -27,13 +28,13 @@ class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustome
   def getSingleton = MappedCustomerInfo
 
   object mUser extends MappedLongForeignKey(this, APIUser)
-  object mBank extends MappedText(this)
+  object mBank extends DefaultStringField(this)
 
-  object mNumber extends MappedText(this)
-  object mMobileNumber extends MappedText(this)
-  object mLegalName extends MappedText(this)
+  object mNumber extends DefaultStringField(this)
+  object mMobileNumber extends DefaultStringField(this)
+  object mLegalName extends DefaultStringField(this)
   object mEmail extends MappedEmail(this, 200)
-  object mFaceImageUrl extends MappedText(this)
+  object mFaceImageUrl extends DefaultStringField(this)
   object mFaceImageTime extends MappedDateTime(this)
 
   override def number: String = mNumber.get

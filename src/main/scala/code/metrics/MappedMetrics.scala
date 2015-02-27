@@ -2,6 +2,7 @@ package code.metrics
 
 import java.util.Date
 
+import code.util.DefaultStringField
 import net.liftweb.mapper._
 
 object MappedMetrics extends APIMetrics {
@@ -25,7 +26,7 @@ object MappedMetrics extends APIMetrics {
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
   override def getSingleton = MappedMetric
 
-  object url extends MappedText(this)
+  object url extends DefaultStringField(this)
   object date extends MappedDateTime(this)
 
 

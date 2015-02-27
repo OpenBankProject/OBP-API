@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.APIUser
-import code.util.MappedUUID
+import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.mapper._
 
 object MappedCustomerMessageProvider extends CustomerMessageProvider {
@@ -33,11 +33,11 @@ class MappedCustomerMessage extends CustomerMessage
   def getSingleton = MappedCustomerMessage
 
   object user extends MappedLongForeignKey(this, APIUser)
-  object bank extends MappedText(this)
+  object bank extends DefaultStringField(this)
 
-  object mFromPerson extends MappedText(this)
-  object mFromDepartment extends MappedText(this)
-  object mMessage extends MappedText(this)
+  object mFromPerson extends DefaultStringField(this)
+  object mFromDepartment extends DefaultStringField(this)
+  object mMessage extends DefaultStringField(this)
   object mMessageId extends MappedUUID(this)
 
 
