@@ -4,7 +4,7 @@ import java.util.{UUID, Date}
 
 import code.model._
 import code.model.dataAccess.APIUser
-import code.util.{MappedUserInputString, MappedUUID}
+import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.{Failure, Full, Box}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -52,7 +52,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
 
   object apiId extends MappedUUID(this)
 
-  object text_ extends MappedUserInputString(this)
+  object text_ extends DefaultStringField(this)
   object poster extends MappedLongForeignKey(this, APIUser)
   object replyTo extends MappedUUID(this) {
     override def defaultValue = ""
