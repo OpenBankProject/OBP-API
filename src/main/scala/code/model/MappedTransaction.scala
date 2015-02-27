@@ -44,6 +44,15 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
 
+  //This is a holder for storing data from a previous model version that wasn't set correctly
+  //e.g. some previous models had counterpartyAccountNumber set to a string that was clearly
+  //not a valid account number, though the string may have actually contained the account number
+  //somewhere within it (e.g. "BLS 3020201 BLAH BLAH S/C 2014-05-22")
+  //
+  // We save information like this so that we can try to manually process it later.
+  @deprecated
+  object extraInfo extends DefaultStringField(this)
+
 
   override def theTransactionId = TransactionId(transactionId.get)
   override def theAccountId = AccountId(account.get)
