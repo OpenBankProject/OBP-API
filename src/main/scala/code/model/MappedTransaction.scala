@@ -21,7 +21,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   }
   //TODO: review the need for this
   object transactionUUID extends MappedUUID(this)
-  object transactionType extends MappedString(this, 20)
+  object transactionType extends MappedString(this, 100)
 
   //amount/new balance use the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
   object amount extends MappedLong(this)
