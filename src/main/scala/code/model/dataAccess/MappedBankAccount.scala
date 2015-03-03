@@ -3,7 +3,7 @@ package code.model.dataAccess
 import java.math.MathContext
 
 import code.model._
-import code.util.{MappedUUID, Helper}
+import code.util.{MappedAccountNumber, MappedUUID, Helper}
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
@@ -15,7 +15,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountIban extends MappedString(this, 50)
   object accountCurrency extends MappedString(this, 10)
   object accountSwiftBic extends MappedString(this, 50)
-  object accountNumber extends MappedString(this, 50)
+  object accountNumber extends MappedAccountNumber(this)
 
   @deprecated
   object holder extends MappedString(this, 100)

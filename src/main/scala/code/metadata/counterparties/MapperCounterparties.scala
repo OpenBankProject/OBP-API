@@ -4,7 +4,7 @@ import java.util.Date
 
 import code.model._
 import code.model.dataAccess.APIUser
-import code.util.{DefaultStringField, MappedUUID}
+import code.util.{MappedAccountNumber, DefaultStringField, MappedUUID}
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
@@ -100,7 +100,7 @@ class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyed
 
   //these define the counterparty
   object holder extends MappedString(this, 255)
-  object accountNumber extends MappedString(this, 100)
+  object accountNumber extends MappedAccountNumber(this)
 
   //this is the counterparty's metadata
   object publicAlias extends DefaultStringField(this)

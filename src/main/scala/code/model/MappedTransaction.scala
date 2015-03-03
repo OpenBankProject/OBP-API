@@ -4,7 +4,7 @@ import java.util.UUID
 
 import code.bankconnectors.Connector
 import code.metadata.counterparties.Counterparties
-import code.util.{DefaultStringField, Helper, MappedUUID}
+import code.util.{MappedAccountNumber, DefaultStringField, Helper, MappedUUID}
 import net.liftweb.common.{Logger, Box}
 import net.liftweb.mapper._
 
@@ -34,7 +34,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   object description extends DefaultStringField(this)
 
-  object counterpartyAccountNumber extends MappedString(this, 60)
+  object counterpartyAccountNumber extends MappedAccountNumber(this)
   object counterpartyAccountHolder extends MappedString(this, 100)
   //still unclear exactly how what this is defined to mean
   object counterpartyNationalId extends MappedString(this, 40)
@@ -50,6 +50,9 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   //somewhere within it (e.g. "BLS 3020201 BLAH BLAH S/C 2014-05-22")
   //
   // We save information like this so that we can try to manually process it later.
+  //
+  // Keep in mind that changing the counterparty account number will require an update
+  // to the corresponding counterparty metadata object!
   @deprecated
   object extraInfo extends DefaultStringField(this)
 
