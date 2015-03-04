@@ -1,4 +1,4 @@
- package code.sandbox
+package code.sandbox
 
 import code.metadata.counterparties.{MongoCounterparties, Metadata}
 import code.model._

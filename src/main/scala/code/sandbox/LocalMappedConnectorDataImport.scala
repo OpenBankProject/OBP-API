@@ -1,4 +1,4 @@
- package code.sandbox
+package code.sandbox
 
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}

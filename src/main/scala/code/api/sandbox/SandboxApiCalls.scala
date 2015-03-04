@@ -1,4 +1,4 @@
- package code.api.sandbox
+package code.api.sandbox
 
 import code.api.{APIFailure, OBPRestHelper}
 import code.api.util.APIUtil._

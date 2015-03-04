@@ -1,4 +1,4 @@
- package code.sandbox
+package code.sandbox
 
 import code.model.{AccountId, BankId}
 import code.model.dataAccess.ViewImpl

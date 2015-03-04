@@ -1,4 +1,4 @@
- package code.sandbox
+package code.sandbox
 
 import code.model.dataAccess.{OBPUser, APIUser}
 import net.liftweb.common.{Full, Failure, Box}

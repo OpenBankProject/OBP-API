@@ -1,4 +1,4 @@
- package code.bankaccountcreation
+package code.bankaccountcreation
 
 import code.api.test.ServerSetup
 import code.api.{DefaultConnectorTestSetup, DefaultUsers}

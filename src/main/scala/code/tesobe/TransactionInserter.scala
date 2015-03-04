@@ -1,4 +1,4 @@
- package code.tesobe
+package code.tesobe
 
 import code.bankconnectors.Connector
 import code.model.Transaction

@@ -1,4 +1,4 @@
- package code.tesobe
+package code.tesobe
 
 import java.util.{UUID, Date}
 import net.liftweb.json.Serialization.write
