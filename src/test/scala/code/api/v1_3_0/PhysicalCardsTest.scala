@@ -96,7 +96,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
       Failure("not supported")
 
-     override def createBankAndAccount(bankName : String, bankNationalIdentifier : String,
+    override def createBankAndAccount(bankName : String, bankNationalIdentifier : String,
                                       accountNumber : String, accountHolderName : String): (Bank, BankAccount) = ???
 
     //sets a user as an account owner/holder
