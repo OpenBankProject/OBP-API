@@ -99,7 +99,7 @@ trait Connector {
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId]
 
 
-  //non-standard calls --do not make sense in the regular context
+   //non-standard calls --do not make sense in the regular context
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)

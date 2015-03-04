@@ -199,7 +199,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
+   override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>

@@ -325,7 +325,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //Need to pass in @hostedBank because the Account model doesn't have any references to BankId, just to the mongo id of the Bank object (which itself does have the bank id)
-  private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
+   private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
     import net.liftweb.mongodb.BsonDSL._
     Account.find(
       (Account.accountNumber.name -> accountNumber)~

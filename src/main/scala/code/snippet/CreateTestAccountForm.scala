@@ -1,4 +1,4 @@
-package code.snippet
+ package code.snippet
 
 import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._

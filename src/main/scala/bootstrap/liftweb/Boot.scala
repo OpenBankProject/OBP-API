@@ -192,7 +192,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(OAuthHandshake)
 
     //add sandbox api calls only if we're running in sandbox mode
-    if(Props.getBool("allow_sandbox_data_import", false)) {
+     if(Props.getBool("allow_sandbox_data_import", false)) {
       logger.info("Adding sandbox api calls")
       LiftRules.statelessDispatch.append(SandboxApiCalls)
     } else {
