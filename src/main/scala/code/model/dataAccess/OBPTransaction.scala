@@ -191,18 +191,23 @@ class OBPEnvelope private() extends MongoRecord[OBPEnvelope] with ObjectIdPk[OBP
 
 object OBPEnvelope extends OBPEnvelope with MongoMetaRecord[OBPEnvelope] with Loggable {
 
-  def envlopesFromJvalue(jval: JValue) : Box[OBPEnvelope] = {
-    val created = fromJValue(jval)
-    val errors = created.get.validate
-    if(errors.isEmpty)
-      created match {
-        case Full(e) => Full(e)
-        case _ => Failure("could not create Envelope form JValue")
-      }
-    else{
-      logger.warn("could not create a obp envelope.errors: ")
-      logger.warn(errors)
-      Empty
+  def envelopesFromJValue(jval: JValue) : Box[OBPEnvelope] = {
+    val createdBox = fromJValue(jval)
+
+    createdBox match {
+      case Full(created) =>
+        val errors = created.validate
+        if(errors.isEmpty) {
+          Full(created)
+        } else {
+          logger.warn("could not create a obp envelope.errors: ")
+          logger.warn(errors)
+          Empty
+        }
+      case Failure(msg, _, _) =>
+        Failure(s"could not create Envelope from JValue: $msg")
+      case _ =>
+        Failure(s"could not create Envelope from JValue")
     }
   }
 }

@@ -215,7 +215,7 @@ private object LocalConnector extends Connector with Loggable {
 
     def saveAndUpdateAccountBalance(transactionJS : JValue, thisAccount : Account) : Box[OBPEnvelope] = {
 
-      val envelope: Box[OBPEnvelope] = OBPEnvelope.envlopesFromJvalue(transactionJS)
+      val envelope: Box[OBPEnvelope] = OBPEnvelope.envelopesFromJValue(transactionJS)
 
       if(envelope.isDefined) {
         val e : OBPEnvelope = envelope.get

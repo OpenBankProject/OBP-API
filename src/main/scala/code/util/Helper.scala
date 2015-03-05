@@ -58,4 +58,40 @@ object Helper{
   }
 
   val deprecatedJsonGenerationMessage = "json generation handled elsewhere as it changes from api version to api version"
+
+  /**
+   * Converts a number representing the smallest unit of a currency into a big decimal formatted according to the rules of
+   * that currency. E.g. JPY: 1000 units (yen) => 1000, EUR: 1000 units (cents) => 10.00
+   */
+  def smallestCurrencyUnitToBigDecimal(units : Long, currencyCode : String) = {
+    BigDecimal(units, currencyDecimalPlaces(currencyCode))
+  }
+
+  /**
+   * Returns the number of decimal places a currency has. E.g. "EUR" -> 2, "JPY" -> 0
+   * @param currencyCode
+   * @return
+   */
+  def currencyDecimalPlaces(currencyCode : String) = {
+    //this data was sourced from Wikipedia, so it might not all be correct,
+    //and some banking systems may still retain different units (e.g. CZK?)
+    //notable it doesn't cover non-traditional currencies (e.g. cryptocurrencies)
+    currencyCode match {
+      //TODO: handle MRO and MGA, which are non-decimal
+      case "CZK" | "JPY" | "KRW" => 0
+      case "KWD" | "OMR" => 3
+      case _ => 2
+    }
+  }
+
+  /**
+   * E.g.
+   * amount: BigDecimal("12.45"), currencyCode : "EUR" => 1245
+   * amount: BigDecimal("9034"), currencyCode : "JPY" => 9034
+   */
+  def convertToSmallestCurrencyUnits(amount : BigDecimal, currencyCode : String) : Long = {
+    val decimalPlaces = Helper.currencyDecimalPlaces(currencyCode)
+
+    (amount * BigDecimal("10").pow(decimalPlaces)).toLong
+  }
 }

@@ -10,7 +10,7 @@ object TransactionImages  extends SimpleInjector {
 
   val transactionImages = new Inject(buildOne _) {}
   
-  def buildOne: TransactionImages = MongoTransactionImages
+  def buildOne: TransactionImages = MapperTransactionImages
   
 }
 

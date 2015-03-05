@@ -7,7 +7,7 @@ object Narrative extends SimpleInjector {
 
   val narrative = new Inject(buildOne _) {}
 
-  def buildOne: Narrative = MongoTransactionNarrative
+  def buildOne: Narrative = MappedNarratives
 
 }
 

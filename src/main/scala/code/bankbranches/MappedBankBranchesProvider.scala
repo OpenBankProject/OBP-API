@@ -2,6 +2,7 @@ package code.bankbranches
 
 import code.bankbranches.BankBranches.{DataLicense, BankBranchId, Address, BankBranch}
 import code.model.BankId
+import code.util.DefaultStringField
 import net.liftweb.mapper._
 
 object MappedBankBranchesProvider extends BankBranchesProvider {
@@ -16,19 +17,19 @@ class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch]
 
   override def getSingleton = MappedBankBranch
 
-  object mBankId extends MappedText(this)
-  object mName extends MappedText(this)
+  object mBankId extends DefaultStringField(this)
+  object mName extends DefaultStringField(this)
 
-  object mBranchId extends MappedText(this)
+  object mBranchId extends DefaultStringField(this)
 
-  object mLine1 extends MappedText(this)
-  object mLine2 extends MappedText(this)
-  object mLine3 extends MappedText(this)
-  object mLine4 extends MappedText(this)
-  object mLine5 extends MappedText(this)
+  object mLine1 extends DefaultStringField(this)
+  object mLine2 extends DefaultStringField(this)
+  object mLine3 extends DefaultStringField(this)
+  object mLine4 extends DefaultStringField(this)
+  object mLine5 extends DefaultStringField(this)
 
   object mCountryCode extends MappedString(this, 2)
-  object mPostCode extends MappedText(this)
+  object mPostCode extends DefaultStringField(this)
 
 
   override def branchId: BankBranchId = BankBranchId(mBranchId.get)
@@ -52,9 +53,9 @@ object MappedBankBranch extends MappedBankBranch with LongKeyedMetaMapper[Mapped
 class MappedDataLicense extends DataLicense with LongKeyedMapper[MappedDataLicense] with IdPK {
   override def getSingleton = MappedDataLicense
 
-  object mBankId extends MappedText(this)
-  object mName extends MappedText(this)
-  object mUrl extends MappedText(this)
+  object mBankId extends DefaultStringField(this)
+  object mName extends DefaultStringField(this)
+  object mUrl extends DefaultStringField(this)
 
   override def name: String = mName.get
   override def url: String = mUrl.get
