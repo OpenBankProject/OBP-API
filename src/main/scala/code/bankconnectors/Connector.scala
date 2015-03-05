@@ -36,6 +36,9 @@ case class OBPOrdering(field: Option[String], order: OBPOrder) extends OBPQueryP
 
 trait Connector {
 
+  //We have the Connector define its BankAccount implementation here so that it can
+  //have access to the implementation details (e.g. the ability to set the balance) in
+  //the implementation of makePaymentImpl
   type AccountType <: BankAccount
 
   //gets a particular bank handled by this connector
