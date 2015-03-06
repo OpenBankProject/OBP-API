@@ -22,3 +22,27 @@ mail.smtp.port=25
 #secret key that allows access to api calls to get info about oauth tokens. You should change this
 #to your own secret key
 BankMockKey=0Msfsofo3px99v0annf09s9j032
+
+
+#tesobe specific settings
+
+#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+cashApplicationKey=c0cc72b899109dh98dwh
+
+#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+importer_secret=nmoiai2noth839hsioihqohihqop
+
+#set this to true if you want to have the api to send a message to the hbci project to refresh transactions for an account
+messageQueue.updateBankAccountsTransaction=false
+
+#set this to true if you want to have the api listen for "create account" messages from the hbci project
+messageQueue.createBankAccounts=true
+
+#set this to true if you want to allow users to create sandbox test accounts with a starting balance
+allow_sandbox_account_creation=true
+
+#set this to true if you want to allow the "data import" api call
+allow_sandbox_data_import=true
+
+#secret key that allows access to the "data import" api. You should change this to your own secret key
+sandbox_data_import_secret=09ejf09jf09efje09jfe0jw23rssnkndiu733n
