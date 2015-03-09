@@ -26,6 +26,12 @@ BankMockKey=0Msfsofo3px99v0annf09s9j032
 
 #tesobe specific settings
 
+#rabbitMQ settings (used to communicate with HBCI project)
+connection.host=localhost
+connection.user=theusername
+connection.password=thepassword
+
+
 #secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
 cashApplicationKey=c0cc72b899109dh98dwh
 
