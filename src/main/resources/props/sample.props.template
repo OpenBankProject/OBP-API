@@ -10,6 +10,11 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 # if this is 127.0.0.1 don't use localhost to access it.
 hostname=http://127.0.0.1:8080
 
+#this is only useful for running the api locally via RunWebApp
+#if you use it, make sure this matches your hostname port!
+#if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
+dev.port=8089
+
 #set this to false if you don't want the api payments call to work
 payments_enabled=true
 
