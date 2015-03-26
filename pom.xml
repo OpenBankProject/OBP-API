@@ -12,8 +12,8 @@
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.10</scala.version>
-    <scala.compiler>2.10.4</scala.compiler>
-    <lift.version>2.6-M4</lift.version>
+    <scala.compiler>2.10.5</scala.compiler>
+    <lift.version>2.6.2</lift.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
