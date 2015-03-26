@@ -79,7 +79,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
 
   val VERSION : String
   def vPlusVersion = "v" + VERSION
-  def apiPrefix = "obp" / vPlusVersion oPrefix _
+  def apiPrefix = ("obp" / vPlusVersion).oPrefix(_)
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
@@ -93,6 +93,18 @@ trait OBPRestHelper extends RestHelper with Loggable {
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
+    }
+  }
+
+
+  def failIfBadJSON(r: Req, h: (PartialFunction[Req, Box[User] => Box[JsonResponse]])): Box[User] => Box[JsonResponse] = {
+    r.json_? match {
+      case true =>
+        r.json match {
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Invalid JSON: $msg"))
+          case _ => h(r)
+        }
+      case false => h(r)
     }
   }
 
@@ -133,18 +145,32 @@ trait OBPRestHelper extends RestHelper with Loggable {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
+          //check (in that order):
+          //if request is correct json
+          //if request matches PartialFunction cases for each defined url
+          //if request has correct oauth headers
           failIfBadOauth {
-            handler(r)
+            failIfBadJSON(r, handler)
           }
         }
-        def isDefinedAt(r : Req) = handler.isDefinedAt(r)
+        def isDefinedAt(r : Req) = {
+          //if the content-type is json and json parsing failed, simply accept call but then fail in apply() above
+          //the cases don't match if json failed and don't allow
+          r.json_? match {
+            case true =>
+              r.json match {
+                case Failure(msg, _, _) => true
+                case _ => handler.isDefinedAt(r)
+              }
+            case false => handler.isDefinedAt(r)
+          }
+        }
       }
     }
     serve(obpHandler)
   }
 
-  override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit= {
-
+  override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
