@@ -22,7 +22,7 @@ Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to s
 
 ## STATUS
 
-[V1.2] (https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2) is mostly implemented
+[V1.2.1] (https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1) is the current stable API.
 
 ## LICENSE
 
@@ -35,11 +35,11 @@ The project uses Maven 3 as its build tool.
 
 To compile and run jetty, install Maven 3 and execute:
 
-mvn jetty:run
+./mvn.sh jetty:run
 
 ----
 
 # Databases:
 
-The default datastores used are MongoDB (metadata, transaction cache) and Postgres (user accounts).
+The default datastore used is PostgreSQL (user accounts, metadata, transaction cache).
 
