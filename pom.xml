@@ -162,9 +162,10 @@
         <version>1.0-RC1</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+            <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <argLine>-Drun.mode=test</argLine>
+            <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
         </configuration>
         <executions>
           <execution>
@@ -201,7 +202,6 @@
           <configuration>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
-              <jvmArg>-Xmx1024m</jvmArg>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
 						<args>
@@ -349,7 +349,6 @@
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>
-            <jvmArg>-Xmx1024m</jvmArg>
             <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
           </jvmArgs>
           <scalaCompatVersion>${scala.version}</scalaCompatVersion>
