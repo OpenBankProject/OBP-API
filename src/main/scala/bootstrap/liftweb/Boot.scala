@@ -128,7 +128,7 @@ class Boot extends Loggable{
 
 
     // This sets up MongoDB config
-    MongoConfig.init
+    //MongoConfig.init
 
     // set up the way to connect to the relational DB we're using
     if (!DB.jndiJdbcConnAvailable_?) {

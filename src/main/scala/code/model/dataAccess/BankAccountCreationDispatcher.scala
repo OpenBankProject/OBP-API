@@ -36,8 +36,8 @@ Berlin 13359, Germany
 * so that the API create an Bank (if necessary),
 * the bank account and an owner view.
 */
-package com.tesobe.model{
-  case class CreateBankAccount(
+package com.tesobe.model {
+@SerialVersionUID(3988687883966746423L) case class CreateBankAccount (
     accountOwnerId: String,
     accountOwnerProvider: String,
     accountNumber: String,
