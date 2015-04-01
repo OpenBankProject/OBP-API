@@ -199,17 +199,35 @@
           <artifactId>scala-maven-plugin</artifactId>
           <version>3.2.0</version>
           <configuration>
-            <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
               <jvmArg>-Xmx1024m</jvmArg>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
+            <scalaVersion>${scala.compiler}</scalaVersion>
+            <scalaCompatVersion>${scala.version}</scalaCompatVersion>
+            <recompileMode>incremental</recompileMode>
+            <useZincServer>true</useZincServer>
           </configuration>
           <executions>
             <execution>
               <goals>
                 <goal>compile</goal>
+                <goal>testCompile</goal>
+              </goals>
+              <configuration>
+                <args>
+                  <arg>-make:transitive</arg>
+                  <arg>-dependencyfile</arg>
+                  <arg>${project.build.directory}/.scala_dependencies</arg>
+                  <arg>-deprecation</arg>
+                </args>
+              </configuration>
+            </execution>
+            <execution>
+              <id>scala-test-compile</id>
+              <phase>process-test-resources</phase>
+              <goals>
                 <goal>testCompile</goal>
               </goals>
             </execution>
@@ -325,12 +343,15 @@
         <artifactId>scala-maven-plugin</artifactId>
         <version>3.2.0</version>
         <configuration>
-          <scalaVersion>${scala.compiler}</scalaVersion>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>
             <jvmArg>-Xmx1024m</jvmArg>
             <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
           </jvmArgs>
+          <scalaCompatVersion>${scala.version}</scalaCompatVersion>
+          <scalaVersion>${scala.compiler}</scalaVersion>
+          <recompileMode>incremental</recompileMode>
+          <useZincServer>true</useZincServer>
         </configuration>
       </plugin>
     </plugins>
