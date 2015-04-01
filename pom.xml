@@ -276,6 +276,7 @@
           <configuration>
             <contextPath>/</contextPath>
             <scanIntervalSeconds>5</scanIntervalSeconds>
+            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
           </configuration>
         </plugin>
         <plugin>
