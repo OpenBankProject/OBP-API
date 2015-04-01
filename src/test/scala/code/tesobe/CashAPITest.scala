@@ -35,7 +35,7 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
   }
 
   val CashKeyParam = "cashApplicationKey"
-  val validKey = Props.get(CashKeyParam).get
+  val validKey = Props.get(CashKeyParam).openOrThrowException("Props key CashKeyParam not found")
 
   def fixture() = new {
     lazy val bank = createBank("test-bank")
