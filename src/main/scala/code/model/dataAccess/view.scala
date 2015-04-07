@@ -547,7 +547,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
       canSeeTransactionThisBankAccount_(true).
       canSeeTransactionOtherBankAccount_(true).
       canSeeTransactionMetadata_(true).
-      canSeeTransactionDescription_(true).
+      canSeeTransactionDescription_(false).
       canSeeTransactionAmount_(true).
       canSeeTransactionType_(true).
       canSeeTransactionCurrency_(true).
