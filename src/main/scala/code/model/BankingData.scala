@@ -340,7 +340,7 @@ trait BankAccount {
   }
 
   final def views(user : User) : Box[List[View]] = {
-    //check if the user have access to the owner view in this the account
+    //check if the user has access to the owner view in this the account
     if(user.ownerAccess(this))
       Full(Views.views.vend.views(this))
     else
