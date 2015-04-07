@@ -196,7 +196,7 @@ trait APIMethods121 {
           for {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
-            views <- account views u
+            views <- account views u  // In other words: views = account.views(u) This calls BankingData.scala BankAccount.views
           } yield {
             val viewsJSON = JSONFactory.createViewsJSON(views)
             successJsonResponse(Extraction.decompose(viewsJSON))
