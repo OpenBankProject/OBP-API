@@ -12,8 +12,8 @@
   <inceptionYear>2011</inceptionYear>
   <properties>
     <scala.version>2.10</scala.version>
-    <scala.compiler>2.10.4</scala.compiler>
-    <lift.version>2.6-M4</lift.version>
+    <scala.compiler>2.10.5</scala.compiler>
+    <lift.version>2.6.2</lift.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -162,9 +162,10 @@
         <version>1.0-RC1</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+            <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <argLine>-Drun.mode=test</argLine>
+            <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
         </configuration>
         <executions>
           <execution>
@@ -199,17 +200,38 @@
           <artifactId>scala-maven-plugin</artifactId>
           <version>3.2.0</version>
           <configuration>
-            <scalaVersion>${scala.compiler}</scalaVersion>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
-              <jvmArg>-Xmx1024m</jvmArg>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
+            <args>
+                <arg>-Xmax-classfile-name</arg>
+                <arg>130</arg>
+            </args>
+            <scalaVersion>${scala.compiler}</scalaVersion>
+            <scalaCompatVersion>${scala.version}</scalaCompatVersion>
+            <recompileMode>incremental</recompileMode>
+            <useZincServer>true</useZincServer>
           </configuration>
           <executions>
             <execution>
               <goals>
                 <goal>compile</goal>
+                <goal>testCompile</goal>
+              </goals>
+              <configuration>
+                <args>
+                  <arg>-make:transitive</arg>
+                  <arg>-dependencyfile</arg>
+                  <arg>${project.build.directory}/.scala_dependencies</arg>
+                  <arg>-deprecation</arg>
+                </args>
+              </configuration>
+            </execution>
+            <execution>
+              <id>scala-test-compile</id>
+              <phase>process-test-resources</phase>
+              <goals>
                 <goal>testCompile</goal>
               </goals>
             </execution>
@@ -254,6 +276,7 @@
           <configuration>
             <contextPath>/</contextPath>
             <scanIntervalSeconds>5</scanIntervalSeconds>
+            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
           </configuration>
         </plugin>
         <plugin>
@@ -325,12 +348,14 @@
         <artifactId>scala-maven-plugin</artifactId>
         <version>3.2.0</version>
         <configuration>
-          <scalaVersion>${scala.compiler}</scalaVersion>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>
-            <jvmArg>-Xmx1024m</jvmArg>
             <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
           </jvmArgs>
+          <scalaCompatVersion>${scala.version}</scalaCompatVersion>
+          <scalaVersion>${scala.compiler}</scalaVersion>
+          <recompileMode>incremental</recompileMode>
+          <useZincServer>true</useZincServer>
         </configuration>
       </plugin>
     </plugins>
