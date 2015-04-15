@@ -127,7 +127,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   WORK IN PROGRESS TODO: Complete!
 
    */
-  def verifyBranchCreated(branch : SandboxBankBranchImport) = {
+  def verifyBranchCreated(branch : SandboxBranchImport) = {
     val branchId = BranchId(branch.id)
 
 
@@ -302,8 +302,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardLocation1 = SandboxLocationImport(52.556198, 13.384099)
 
 
-  val branch1AtBank1 = SandboxBankBranchImport(id = "branch1", name = "Ashbourne", bank = "bank1", address = standardAddress1, location = standardLocation1)
-  val branch2AtBank1 = SandboxBankBranchImport(id = "branch2", name = "Manchester", bank = "bank1", address = standardAddress1, location = standardLocation1)
+  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank = "bank1", address = standardAddress1, location = standardLocation1)
+  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank = "bank1", address = standardAddress1, location = standardLocation1)
 
   val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
 
@@ -1503,7 +1503,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val bankId = BankId(bank1.id)
 
-    Branches.bankBranchesProvider.vend.getBranches(bankId).size should equal(0)
+    Branches.branchesProvider.vend.getBranches(bankId).size should equal(0)
 
 
     val branch1Json = Extraction.decompose(branch1AtBank1)

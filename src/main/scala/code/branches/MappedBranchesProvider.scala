@@ -1,19 +1,19 @@
 package code.branches
 
-import code.branches.Branches.{DataLicense, BranchId, Address, BankBranch}
+import code.branches.Branches.{DataLicense, BranchId, Address, Branch}
 import code.model.BankId
 import code.util.DefaultStringField
 import net.liftweb.mapper._
 
-object MappedBranchesProvider extends BankBranchesProvider {
-  override protected def branchData(bank: BankId): List[BankBranch] =
+object MappedBranchesProvider extends BranchesProvider {
+  override protected def branchData(bank: BankId): List[Branch] =
     MappedBranch.findAll(By(MappedBranch.mBankId, bank.value))
 
   override protected def branchDataLicense(bank: BankId): Option[DataLicense] =
     MappedDataLicense.find(By(MappedDataLicense.mBankId, bank.value))
 }
 
-class MappedBranch extends BankBranch with LongKeyedMapper[MappedBranch] with IdPK {
+class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def getSingleton = MappedBranch
 

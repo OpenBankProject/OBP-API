@@ -377,7 +377,7 @@ case class SandboxBankImport(
   logo : String,
   website : String)
 
-case class SandboxBankBranchImport(
+case class SandboxBranchImport(
   id : String,
   bank: String,
   name : String,
@@ -452,4 +452,4 @@ case class SandboxDataImport(
   users : List[SandboxUserImport],
   accounts : List[SandboxAccountImport],
   transactions : List[SandboxTransactionImport],
-  branches: List[SandboxBankBranchImport])
+  branches: List[SandboxBranchImport])

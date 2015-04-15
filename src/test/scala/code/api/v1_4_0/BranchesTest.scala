@@ -2,8 +2,8 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchDataJson}
 import dispatch._
-import code.branches.Branches.{Address, BranchId, BankBranch, DataLicense}
-import code.branches.{Branches, BankBranchesProvider}
+import code.branches.Branches.{Address, BranchId, Branch, DataLicense}
+import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 
 class BranchesTest extends V140ServerSetup {
@@ -11,23 +11,23 @@ class BranchesTest extends V140ServerSetup {
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")
 
-  case class BankBranchImpl(branchId : BranchId, name : String, address : Address) extends BankBranch
+  case class BranchImpl(branchId : BranchId, name : String, address : Address) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, line4 : String,
                          line5 : String, postCode : String, countryCode : String) extends Address
 
   val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "mvmvmv", "C4SF5", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeBranch1 = BankBranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1)
-  val fakeBranch2 = BankBranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2)
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2)
 
   val fakeLicense = new DataLicense {
     override def name: String = "sample-license"
     override def url: String = "http://example.com/license"
   }
 
-  val mockConnector = new BankBranchesProvider {
-    override protected def branchData(bank: BankId): List[BankBranch] = {
+  val mockConnector = new BranchesProvider {
+    override protected def branchData(bank: BankId): List[Branch] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the connector does not return them
         case BankWithLicense | BankWithoutLicense=> List(fakeBranch1, fakeBranch2)
@@ -43,7 +43,7 @@ class BranchesTest extends V140ServerSetup {
     }
   }
 
-  def verifySameData(branch: BankBranch, branchJson : BranchJson) = {
+  def verifySameData(branch: Branch, branchJson : BranchJson) = {
     branch.name should equal (branchJson.name)
     branch.branchId should equal(BranchId(branchJson.id))
     branch.address.line1 should equal(branchJson.address.line_1)
@@ -58,13 +58,13 @@ class BranchesTest extends V140ServerSetup {
   override def beforeAll() {
     super.beforeAll()
     //use the mock connector
-    Branches.bankBranchesProvider.default.set(mockConnector)
+    Branches.branchesProvider.default.set(mockConnector)
   }
 
   override def afterAll() {
     super.afterAll()
     //reset the default connector
-    Branches.bankBranchesProvider.default.set(Branches.buildOne)
+    Branches.branchesProvider.default.set(Branches.buildOne)
   }
 
   feature("Getting bank branches") {

@@ -41,21 +41,21 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     }
   }
 
-  protected def createSaveableBranches(data : List[SandboxBankBranchImport]) : Box[List[Saveable[BranchType]]] = {
-    val mappedBankBranches = data.map(bankBranch => {
+  protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]] = {
+    val mappedBranches = data.map(branch => {
       MappedBranch.create
-        .mBranchId(bankBranch.id)
-        .mBankId(bankBranch.bank)
-        .mName(bankBranch.name)
+        .mBranchId(branch.id)
+        .mBankId(branch.bank)
+        .mName(branch.name)
       // TODO add the other fields
     })
 
-    val validationErrors = mappedBankBranches.flatMap(_.validate)
+    val validationErrors = mappedBranches.flatMap(_.validate)
 
     if(validationErrors.nonEmpty) {
       Failure(s"Errors: ${validationErrors.map(_.msg)}")
     } else {
-      Full(mappedBankBranches.map(MappedSaveable(_)))
+      Full(mappedBranches.map(MappedSaveable(_)))
     }
   }
 

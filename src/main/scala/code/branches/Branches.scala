@@ -1,6 +1,6 @@
 package code.branches
 
-import code.branches.Branches.{BankBranch, DataLicense, BranchData}
+import code.branches.Branches.{Branch, DataLicense, BranchData}
 import code.model.{BranchId, BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
@@ -8,14 +8,14 @@ import net.liftweb.util.SimpleInjector
 object Branches extends SimpleInjector {
 
   case class BranchId(value : String)
-  case class BranchData(branches : List[BankBranch], license : DataLicense)
+  case class BranchData(branches : List[Branch], license : DataLicense)
 
   trait DataLicense {
     def name : String
     def url : String
   }
 
-  trait BankBranch {
+  trait Branch {
     def branchId : BranchId
     def name : String
     def address : Address
@@ -32,15 +32,15 @@ object Branches extends SimpleInjector {
     def countryCode : String
   }
 
-  val bankBranchesProvider = new Inject(buildOne _) {}
+  val branchesProvider = new Inject(buildOne _) {}
 
-  def buildOne: BankBranchesProvider = MappedBranchesProvider
+  def buildOne: BranchesProvider = MappedBranchesProvider
 
 }
 
-trait BankBranchesProvider {
+trait BranchesProvider {
 
-  private val logger = Logger(classOf[BankBranchesProvider])
+  private val logger = Logger(classOf[BranchesProvider])
 
   final def getBranches(bank : BankId) : Option[BranchData] = {
     branchDataLicense(bank) match {
@@ -71,7 +71,7 @@ trait BankBranchesProvider {
 
 
 
-  protected def branchData(bank : BankId) : List[BankBranch]
+  protected def branchData(bank : BankId) : List[Branch]
   protected def branchDataLicense(bank : BankId) : Option[DataLicense]
 }
 
