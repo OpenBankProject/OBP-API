@@ -3,6 +3,7 @@ package code.sandbox
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
+import code.bankbranches.{MappedBankBranch, MappedDataLicense}
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper
@@ -18,6 +19,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   type AccountType = MappedBankAccount
   type MetadataType = MappedCounterpartyMetadata
   type TransactionType = MappedTransaction
+  type BankBranchType = MappedBankBranch
+  type DataLicenseType = MappedDataLicense
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val mappedBanks = data.map(bank => {
@@ -37,6 +40,27 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
       Full(mappedBanks.map(MappedSaveable(_)))
     }
   }
+
+  protected def createSaveableBranches(data : List[SandboxBankBranchImport]) : Box[List[Saveable[BankBranchType]]] = {
+    val mappedBankBranches = data.map(bankBranch => {
+      MappedBankBranch.create
+        .mBranchId(bankBranch.id)
+        .mBankId(bankBranch.bank)
+        .mName(bankBranch.name)
+      // TODO add the other fields
+    })
+
+    val validationErrors = mappedBankBranches.flatMap(_.validate)
+
+    if(validationErrors.nonEmpty) {
+      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+    } else {
+      Full(mappedBankBranches.map(MappedSaveable(_)))
+    }
+  }
+
+
+
 
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]] = {
 

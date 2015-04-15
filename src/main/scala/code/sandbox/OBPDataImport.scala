@@ -377,6 +377,34 @@ case class SandboxBankImport(
   logo : String,
   website : String)
 
+case class SandboxBankBranchImport(
+  id : String,
+  bank: String,
+  name : String,
+  address : SandboxAddressImport,
+  location : SandboxLocationImport)
+
+case class SandboxDataLicenseImport(
+  id : String,
+  short_name : String,
+  full_name : String,
+  logo : String,
+  website : String)
+
+case class SandboxAddressImport(
+   line_1 : String,
+   line_2 : String,
+   line_3 : String,
+   line_4 : String,
+   line_5 : String,
+   post_code : String,
+   country_code: String)
+
+case class SandboxLocationImport(
+  latitude : Double,
+  longitude : Double
+)
+
 case class SandboxUserImport(
   email : String,
   password : String,
@@ -423,4 +451,5 @@ case class SandboxDataImport(
   banks : List[SandboxBankImport],
   users : List[SandboxUserImport],
   accounts : List[SandboxAccountImport],
-  transactions : List[SandboxTransactionImport])
+  transactions : List[SandboxTransactionImport],
+  branches: List[SandboxBankBranchImport])

@@ -88,6 +88,15 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+case class BranchId(val value : String) {
+  override def toString = value
+}
+
+object BranchId {
+  def unapply(id : String) = Some(BranchId(id))
+}
+
+
 trait Bank {
   def bankId: BankId
   def shortName : String

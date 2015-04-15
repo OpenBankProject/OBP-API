@@ -1,7 +1,7 @@
 package code.bankbranches
 
 import code.bankbranches.BankBranches.{BankBranch, DataLicense, BranchData}
-import code.model.BankId
+import code.model.{BranchId, BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
@@ -52,6 +52,24 @@ trait BankBranchesProvider {
       }
     }
   }
+
+  // TODO work in progress. Add singular BranchData
+  final def getBranch(bank : BankId, branch : BranchId) : Option[BranchData] = {
+    branchDataLicense(bank) match {
+      case Some(license) =>
+        Some(BranchData(branchData(bank), license))
+      case None => {
+        logger.info(s"No branch data license found for bank ${bank.value}")
+        None
+      }
+    }
+  }
+
+
+
+
+
+
 
   protected def branchData(bank : BankId) : List[BankBranch]
   protected def branchDataLicense(bank : BankId) : Option[DataLicense]
