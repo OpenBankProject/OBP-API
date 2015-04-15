@@ -1,13 +1,13 @@
 package code.bankbranches
 
-import code.bankbranches.BankBranches.{BankBranch, DataLicense, BranchData}
+import code.bankbranches.Branches.{BankBranch, DataLicense, BranchData}
 import code.model.{BranchId, BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
-object BankBranches extends SimpleInjector {
+object Branches extends SimpleInjector {
 
-  case class BankBranchId(value : String)
+  case class BranchId(value : String)
   case class BranchData(branches : List[BankBranch], license : DataLicense)
 
   trait DataLicense {
@@ -16,7 +16,7 @@ object BankBranches extends SimpleInjector {
   }
 
   trait BankBranch {
-    def branchId : BankBranchId
+    def branchId : BranchId
     def name : String
     def address : Address
   }
@@ -34,7 +34,7 @@ object BankBranches extends SimpleInjector {
 
   val bankBranchesProvider = new Inject(buildOne _) {}
 
-  def buildOne: BankBranchesProvider = MappedBankBranchesProvider
+  def buildOne: BankBranchesProvider = MappedBranchesProvider
 
 }
 

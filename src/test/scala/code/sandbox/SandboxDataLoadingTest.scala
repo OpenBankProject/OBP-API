@@ -37,7 +37,7 @@ import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
-import code.bankbranches.BankBranches
+import code.bankbranches.Branches
 import code.model.dataAccess._
 import code.model.{BranchId, TransactionId, AccountId, BankId}
 import code.users.Users
@@ -1503,7 +1503,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val bankId = BankId(bank1.id)
 
-    BankBranches.bankBranchesProvider.vend.getBranches(bankId).size should equal(0)
+    Branches.bankBranchesProvider.vend.getBranches(bankId).size should equal(0)
 
 
     val branch1Json = Extraction.decompose(branch1AtBank1)

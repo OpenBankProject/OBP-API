@@ -1,21 +1,21 @@
 package code.bankbranches
 
-import code.bankbranches.BankBranches.{DataLicense, BankBranchId, Address, BankBranch}
+import code.bankbranches.Branches.{DataLicense, BranchId, Address, BankBranch}
 import code.model.BankId
 import code.util.DefaultStringField
 import net.liftweb.mapper._
 
-object MappedBankBranchesProvider extends BankBranchesProvider {
+object MappedBranchesProvider extends BankBranchesProvider {
   override protected def branchData(bank: BankId): List[BankBranch] =
-    MappedBankBranch.findAll(By(MappedBankBranch.mBankId, bank.value))
+    MappedBranch.findAll(By(MappedBranch.mBankId, bank.value))
 
   override protected def branchDataLicense(bank: BankId): Option[DataLicense] =
     MappedDataLicense.find(By(MappedDataLicense.mBankId, bank.value))
 }
 
-class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch] with IdPK {
+class MappedBranch extends BankBranch with LongKeyedMapper[MappedBranch] with IdPK {
 
-  override def getSingleton = MappedBankBranch
+  override def getSingleton = MappedBranch
 
   object mBankId extends DefaultStringField(this)
   object mName extends DefaultStringField(this)
@@ -32,7 +32,7 @@ class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch]
   object mPostCode extends DefaultStringField(this)
 
 
-  override def branchId: BankBranchId = BankBranchId(mBranchId.get)
+  override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
   override def address: Address = new Address {
@@ -46,7 +46,7 @@ class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch]
   }
 }
 
-object MappedBankBranch extends MappedBankBranch with LongKeyedMetaMapper[MappedBankBranch] {
+object MappedBranch extends MappedBranch with LongKeyedMetaMapper[MappedBranch] {
   override def dbIndexes = UniqueIndex(mBankId, mBranchId) :: Index(mBankId) :: super.dbIndexes
 }
 

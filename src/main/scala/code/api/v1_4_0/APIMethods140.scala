@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.APIFailure
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
-import code.bankbranches.BankBranches
+import code.bankbranches.Branches
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
 import net.liftweb.common.Box
@@ -71,7 +71,7 @@ trait APIMethods140 {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
-            branches <- Box(BankBranches.bankBranchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available", 404)
+            branches <- Box(Branches.bankBranchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available", 404)
           } yield {
             val json = JSONFactory1_4_0.createBranchesJson(branches)
             successJsonResponse(Extraction.decompose(json))

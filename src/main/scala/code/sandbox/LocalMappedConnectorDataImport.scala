@@ -3,7 +3,7 @@ package code.sandbox
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
-import code.bankbranches.{MappedBankBranch, MappedDataLicense}
+import code.bankbranches.{MappedBranch, MappedDataLicense}
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper
@@ -19,7 +19,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   type AccountType = MappedBankAccount
   type MetadataType = MappedCounterpartyMetadata
   type TransactionType = MappedTransaction
-  type BankBranchType = MappedBankBranch
+  type BranchType = MappedBranch
   type DataLicenseType = MappedDataLicense
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
@@ -41,9 +41,9 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     }
   }
 
-  protected def createSaveableBranches(data : List[SandboxBankBranchImport]) : Box[List[Saveable[BankBranchType]]] = {
+  protected def createSaveableBranches(data : List[SandboxBankBranchImport]) : Box[List[Saveable[BranchType]]] = {
     val mappedBankBranches = data.map(bankBranch => {
-      MappedBankBranch.create
+      MappedBranch.create
         .mBranchId(bankBranch.id)
         .mBankId(bankBranch.bank)
         .mName(bankBranch.name)
