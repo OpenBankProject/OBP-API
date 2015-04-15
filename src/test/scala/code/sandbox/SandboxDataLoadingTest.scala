@@ -37,7 +37,7 @@ import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
-import code.bankbranches.Branches
+import code.branches.Branches
 import code.model.dataAccess._
 import code.model.{BranchId, TransactionId, AccountId, BankId}
 import code.users.Users

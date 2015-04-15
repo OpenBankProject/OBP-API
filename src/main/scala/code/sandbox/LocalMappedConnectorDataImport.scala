@@ -3,7 +3,7 @@ package code.sandbox
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
-import code.bankbranches.{MappedBranch, MappedDataLicense}
+import code.branches.{MappedBranch, MappedDataLicense}
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper

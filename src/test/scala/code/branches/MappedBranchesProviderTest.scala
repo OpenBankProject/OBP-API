@@ -1,4 +1,4 @@
-package code.bankbranches
+package code.branches
 
 import code.api.test.ServerSetup
 import code.model.BankId

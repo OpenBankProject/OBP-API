@@ -2,8 +2,8 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchDataJson}
 import dispatch._
-import code.bankbranches.Branches.{Address, BranchId, BankBranch, DataLicense}
-import code.bankbranches.{Branches, BankBranchesProvider}
+import code.branches.Branches.{Address, BranchId, BankBranch, DataLicense}
+import code.branches.{Branches, BankBranchesProvider}
 import code.model.BankId
 
 class BranchesTest extends V140ServerSetup {

@@ -1,6 +1,6 @@
-package code.bankbranches
+package code.branches
 
-import code.bankbranches.Branches.{DataLicense, BranchId, Address, BankBranch}
+import code.branches.Branches.{DataLicense, BranchId, Address, BankBranch}
 import code.model.BankId
 import code.util.DefaultStringField
 import net.liftweb.mapper._

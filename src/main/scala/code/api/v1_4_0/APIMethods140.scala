@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.APIFailure
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
-import code.bankbranches.Branches
+import code.branches.Branches
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
 import net.liftweb.common.Box

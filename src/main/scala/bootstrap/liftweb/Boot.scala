@@ -39,7 +39,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.bankbranches.{MappedBranch, MappedDataLicense}
+import code.branches.{MappedBranch, MappedDataLicense}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import code.tesobe.{ImporterAPI, CashAccountAPI}
 import net.liftweb._

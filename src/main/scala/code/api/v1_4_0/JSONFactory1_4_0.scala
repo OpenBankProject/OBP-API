@@ -2,8 +2,8 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.bankbranches.Branches
-import code.bankbranches.Branches.{BankBranch, DataLicense, BranchData}
+import code.branches.Branches
+import code.branches.Branches.{BankBranch, DataLicense, BranchData}
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 
 object JSONFactory1_4_0 {

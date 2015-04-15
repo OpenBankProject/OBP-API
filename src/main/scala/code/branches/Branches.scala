@@ -1,6 +1,6 @@
-package code.bankbranches
+package code.branches
 
-import code.bankbranches.Branches.{BankBranch, DataLicense, BranchData}
+import code.branches.Branches.{BankBranch, DataLicense, BranchData}
 import code.model.{BranchId, BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
