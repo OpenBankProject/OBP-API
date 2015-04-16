@@ -9,8 +9,11 @@ import net.liftweb.util.Helpers._
 
 import scala.util.Random
 
-trait LocalMappedConnectorTestSetup extends LocalConnectorTestSetup {
-
+trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermissions {
+  //TODO: replace all these helpers with connector agnostic methods like createRandomBank
+  // that call Connector.createBank etc.
+  // (same in LocalConnectorTestSetup)
+  // Tests should simply use the currently selected connector
   override protected def createBank(id : String) : Bank = {
     MappedBank.create
       .fullBankName(randomString(5))

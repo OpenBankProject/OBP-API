@@ -303,6 +303,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
+  //get one bank account
   def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
     makeGetRequest(request)
@@ -1106,7 +1107,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("There are no duplicate accounts")
       assertNoDuplicateAccounts(publicAccountsInfo)
     }
-    scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
+    scenario("we get the bank accounts the user has access to", API1_2, GetBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")

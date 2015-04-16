@@ -63,3 +63,11 @@ allow_sandbox_data_import=true
 
 #secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=09ejf09jf09efje09jfe0jw23rssnkndiu733n
+
+#management modules
+
+#set this to true if you want to allow users to delete accounts
+allow_account_deletion=true
+
+#TODO: should be used
+#allow_transactions_inserting=true
