@@ -6,7 +6,7 @@ import code.metadata.counterparties.Counterparties
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.tesobe.CashTransaction
-import code.tesobe.ImporterAPI.ImporterTransaction
+import code.management.ImporterAPI.ImporterTransaction
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}

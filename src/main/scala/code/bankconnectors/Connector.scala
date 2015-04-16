@@ -1,7 +1,7 @@
 package code.bankconnectors
 
+import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.tesobe.ImporterAPI.ImporterTransaction
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box

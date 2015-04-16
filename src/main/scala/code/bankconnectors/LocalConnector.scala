@@ -2,8 +2,8 @@ package code.bankconnectors
 
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID, TimeZone}
+import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.tesobe.ImporterAPI.ImporterTransaction
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.Extraction
