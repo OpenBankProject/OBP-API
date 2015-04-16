@@ -1,6 +1,12 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+#which data connector to use
+
+#connector=mongo
+#connector=rest
+connector=mapped
+
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 db.driver=org.postgresql.Driver
 #be sure to create your database and update the line below!

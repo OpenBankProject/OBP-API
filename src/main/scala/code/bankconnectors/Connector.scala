@@ -6,7 +6,7 @@ import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
 import code.model._
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 import code.model.User
 import code.model.OtherBankAccount
 import code.model.Transaction
@@ -18,7 +18,11 @@ object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
 
-  def buildOne: Connector = LocalMappedConnector
+  def buildOne: Connector =
+    Props.get("connector").openOrThrowException("no connector set") match {
+      case "mapped" => LocalMappedConnector
+      case "mongo" => LocalConnector
+    }
 
 }
 
