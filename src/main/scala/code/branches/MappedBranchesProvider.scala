@@ -6,7 +6,11 @@ import code.util.DefaultStringField
 import net.liftweb.mapper._
 
 object MappedBranchesProvider extends BranchesProvider {
-  override protected def branchData(bank: BankId): List[Branch] =
+
+//  override protected def branchData(branch: BranchId): Option[Branch] =
+//    MappedBranch.find(By(MappedBranch.mBranchId, branch.value))
+
+  override protected def branchesData(bank: BankId): List[Branch] =
     MappedBranch.findAll(By(MappedBranch.mBankId, bank.value))
 
   override protected def branchDataLicense(bank: BankId): Option[DataLicense] =

@@ -1,6 +1,6 @@
 package code.branches
 
-import code.branches.Branches.{Branch, DataLicense, BranchData}
+import code.branches.Branches.{Branch, DataLicense, BranchesData, BranchData}
 import code.model.{BranchId, BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
@@ -8,7 +8,8 @@ import net.liftweb.util.SimpleInjector
 object Branches extends SimpleInjector {
 
   case class BranchId(value : String)
-  case class BranchData(branches : List[Branch], license : DataLicense)
+  case class BranchesData(branches : List[Branch], license : DataLicense)
+  case class BranchData(branch : Branch, license : DataLicense)
 
   trait DataLicense {
     def name : String
@@ -42,10 +43,10 @@ trait BranchesProvider {
 
   private val logger = Logger(classOf[BranchesProvider])
 
-  final def getBranches(bank : BankId) : Option[BranchData] = {
+  final def getBranches(bank : BankId) : Option[BranchesData] = {
     branchDataLicense(bank) match {
       case Some(license) =>
-        Some(BranchData(branchData(bank), license))
+        Some(BranchesData(branchesData(bank), license))
       case None => {
         logger.info(s"No branch data license found for bank ${bank.value}")
         None
@@ -54,24 +55,21 @@ trait BranchesProvider {
   }
 
   // TODO work in progress. Add singular BranchData
-  final def getBranch(bank : BankId, branch : BranchId) : Option[BranchData] = {
-    branchDataLicense(bank) match {
-      case Some(license) =>
-        Some(BranchData(branchData(bank), license))
-      case None => {
-        logger.info(s"No branch data license found for bank ${bank.value}")
-        None
-      }
-    }
-  }
+//  final def getBranch(bank : BankId, branch : BranchId) : Option[BranchData] = {
+//    // Only return the data if we have a license!
+//    branchDataLicense(bank) match {
+//      case Some(license) =>
+//        Some(BranchData(branchData(bank, branch), license))
+//      case None => {
+//        logger.info(s"No branch data license found for bank ${bank.value}")
+//        None
+//      }
+//    }
+//  }
 
 
-
-
-
-
-
-  protected def branchData(bank : BankId) : List[Branch]
+  //protected def branchData(bank : BankId, branch : BranchId) : Branch
+  protected def branchesData(bank : BankId) : List[Branch]
   protected def branchDataLicense(bank : BankId) : Option[DataLicense]
 }
 

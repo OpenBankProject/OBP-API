@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.branches.Branches
-import code.branches.Branches.{Branch, DataLicense, BranchData}
+import code.branches.Branches.{Branch, DataLicense, BranchesData}
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 
 object JSONFactory1_4_0 {
@@ -56,7 +56,7 @@ object JSONFactory1_4_0 {
     BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address))
   }
 
-  def createBranchesJson(branchData : BranchData) : BranchDataJson = {
+  def createBranchesJson(branchData : BranchesData) : BranchDataJson = {
     BranchDataJson(createDataLicenseJson(branchData.license), branchData.branches.map(createBranchJson))
   }
 

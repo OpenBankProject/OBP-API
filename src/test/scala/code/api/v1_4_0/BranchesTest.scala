@@ -27,7 +27,7 @@ class BranchesTest extends V140ServerSetup {
   }
 
   val mockConnector = new BranchesProvider {
-    override protected def branchData(bank: BankId): List[Branch] = {
+    override protected def branchesData(bank: BankId): List[Branch] = {
       bank match {
         // have it return branches even for the bank without a license so we can test the connector does not return them
         case BankWithLicense | BankWithoutLicense=> List(fakeBranch1, fakeBranch2)

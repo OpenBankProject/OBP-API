@@ -130,10 +130,12 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   def verifyBranchCreated(branch : SandboxBranchImport) = {
     val branchId = BranchId(branch.id)
 
+    //val foundBranchBox = Connector.connector.vend.getBank(branchId)
 
 
+    // val foundBranchBox = Branches.branchesProvider.vend.getBranches(bankId)
 
-//    val foundBranchBox = Connector.connector.vend.getBank(branchId)
+
 //
 //
 //    BankBranches.bankBranchesProvider.vend.getBranches(bankId).size should equal(0)
