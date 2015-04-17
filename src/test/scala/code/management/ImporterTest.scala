@@ -1,4 +1,4 @@
-package code.tesobe
+package code.management
 
 import java.text.SimpleDateFormat
 import java.util.TimeZone
@@ -6,10 +6,10 @@ import java.util.TimeZone
 import code.api.DefaultConnectorTestSetup
 import code.api.test.{APIResponse, ServerSetup}
 import code.bankconnectors.Connector
-import code.model.{Transaction, AccountId}
+import code.model.{AccountId, Transaction}
+import dispatch._
 import net.liftweb.common.Loggable
 import net.liftweb.util.Props
-import dispatch._
 
 class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSetup {
 

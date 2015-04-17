@@ -1,8 +1,8 @@
-package code.tesobe
+package code.management
 
 import code.bankconnectors.Connector
 import code.model.Transaction
-import code.tesobe.ImporterAPI._
+import code.management.ImporterAPI._
 import net.liftweb.actor.LiftActor
 import net.liftweb.common._
 import net.liftweb.util.Helpers

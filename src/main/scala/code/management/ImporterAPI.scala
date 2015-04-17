@@ -1,19 +1,17 @@
-package code.tesobe
+package code.management
 
 import java.util.Date
 
 import code.bankconnectors.Connector
 import code.model.Transaction
-import code.model.dataAccess.{Account, OBPEnvelope}
+import code.tesobe.ErrorMessage
 import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.json.{DefaultFormats, Extraction}
-import net.liftweb.json.JsonAST.{JString, JField, JObject, JArray}
-import net.liftweb.mongodb.Limit
-import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
-import net.liftweb.json.JsonDSL._
+import net.liftweb.util.Props
 
 /**
  * This is legacy code and does not handle edge cases very well and assumes certain things, e.g.

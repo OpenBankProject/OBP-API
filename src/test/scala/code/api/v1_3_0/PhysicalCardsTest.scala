@@ -4,8 +4,8 @@ import code.api.DefaultUsers
 import code.api.test.ServerSetup
 import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
+import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.tesobe.ImporterAPI.ImporterTransaction
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._

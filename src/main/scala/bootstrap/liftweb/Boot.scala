@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
+import code.management.ImporterAPI
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
 import code.metadata.narrative.MappedNarrative
@@ -41,7 +42,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
 import code.branches.{MappedBranch, MappedDataLicense}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
-import code.tesobe.{ImporterAPI, CashAccountAPI}
+import code.tesobe.CashAccountAPI
 import net.liftweb._
 import util._
 import common._
