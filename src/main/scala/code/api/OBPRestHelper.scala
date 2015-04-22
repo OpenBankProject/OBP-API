@@ -85,11 +85,11 @@ trait OBPRestHelper extends RestHelper with Loggable {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.info("API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.info("jsonResponseBoxToJsonReponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case Failure(msg, _, _) => {
-        logger.info("API Failure: " + msg)
+        logger.info("jsonResponseBoxToJsonReponse case Failure API Failure: " + msg)
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
@@ -115,9 +115,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        logger.info("Yes we have content-type is json")
+        logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Invalid JSON: $msg"))
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"failIfBadJSON says Error: Invalid JSON: $msg"))
           case _ => h(r)
         }
       case false => h(r)

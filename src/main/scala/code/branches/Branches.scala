@@ -1,7 +1,9 @@
 package code.branches
 
-import code.branches.Branches.{Branch, DataLicense, BranchesData, BranchData}
-import code.model.{BranchId, BankId}
+// Need to import these one by one because in same package!
+import code.branches.Branches.{Branch, DataLicense, BranchesData, BranchData, BranchId}
+
+import code.model.{BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
@@ -9,7 +11,7 @@ object Branches extends SimpleInjector {
 
   case class BranchId(value : String)
   case class BranchesData(branches : List[Branch], license : DataLicense)
-  case class BranchData(branch : Branch, license : DataLicense)
+  case class BranchData(branch : Option[Branch], license : DataLicense)
 
   trait DataLicense {
     def name : String
@@ -43,34 +45,47 @@ trait BranchesProvider {
 
   private val logger = Logger(classOf[BranchesProvider])
 
-  final def getBranches(bank : BankId) : Option[BranchesData] = {
-    branchDataLicense(bank) match {
+
+  /*
+  Common logic for returning branches.
+  Implementation details in branchesData
+
+   */
+
+  final def getBranches(bankId : BankId) : Option[BranchesData] = {
+    branchDataLicense(bankId) match {
       case Some(license) =>
-        Some(BranchesData(branchesData(bank), license))
+        Some(BranchesData(branchesData(bankId), license))
       case None => {
-        logger.info(s"No branch data license found for bank ${bank.value}")
+        logger.warn(s"getBranches says: No branch data license found for bank ${bankId.value}")
         None
       }
     }
   }
 
-  // TODO work in progress. Add singular BranchData
-//  final def getBranch(bank : BankId, branch : BranchId) : Option[BranchData] = {
-//    // Only return the data if we have a license!
-//    branchDataLicense(bank) match {
-//      case Some(license) =>
-//        Some(BranchData(branchData(bank, branch), license))
-//      case None => {
-//        logger.info(s"No branch data license found for bank ${bank.value}")
-//        None
-//      }
-//    }
-//  }
+  /*
 
+  Return one Branch
+  Needs bankId so we can get the licence related to the bank (BranchId should be unique anyway)
+   */
+  final def getBranch(bankId: BankId, branchId : BranchId) : Option[BranchData] = {
+    // Only return the data if we have a license!
+    branchDataLicense(bankId) match {
+      case Some(license) =>
+        Some(BranchData(branchData(branchId), license))
+      case None => {
+        logger.warn(s"getBranch says: No branch data license found for bank ${bankId.value}")
+        None
+      }
+    }
+  }
 
-  //protected def branchData(bank : BankId, branch : BranchId) : Branch
+  protected def branchData(branchId : BranchId) : Option[Branch]
   protected def branchesData(bank : BankId) : List[Branch]
   protected def branchDataLicense(bank : BankId) : Option[DataLicense]
+
+
+// End of Trait
 }
 
 

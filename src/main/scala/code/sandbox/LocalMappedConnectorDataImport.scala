@@ -61,6 +61,25 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
 
 
 
+  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]] = {
+    val mappedDataLicenses = data.map(license => {
+      MappedDataLicense.create
+        .mBankId(license.bank)
+        .mName(license.name)
+        .mUrl(license.url)
+    })
+
+    val validationErrors = mappedDataLicenses.flatMap(_.validate)
+
+    if(validationErrors.nonEmpty) {
+      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+    } else {
+      Full(mappedDataLicenses.map(MappedSaveable(_)))
+    }
+  }
+
+
+
 
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]] = {
 

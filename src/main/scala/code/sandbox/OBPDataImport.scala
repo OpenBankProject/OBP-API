@@ -5,6 +5,7 @@ import java.util.UUID
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
+import code.branches.Branches.{Branch, DataLicense}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box}
@@ -15,6 +16,7 @@ object OBPDataImport extends SimpleInjector {
 
   val importer =  new Inject(buildOne _) {}
 
+  // TODO put this in props like main connector
   def buildOne : OBPDataImport = LocalMappedConnectorDataImport
 
 }
@@ -42,6 +44,8 @@ trait OBPDataImport extends Loggable {
   type ViewType <: View
   type TransactionType <: TransactionUUID
   type AccountOwnerEmail = String
+  type BranchType <: Branch
+  type DataLicenseType <: DataLicense
 
   /**
    * Takes a list of boxes and returns a list of the content of the boxes if all boxes are Full, or returns
@@ -62,6 +66,18 @@ trait OBPDataImport extends Loggable {
    * to be created as is.
    */
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]]
+
+
+  /**
+   * Create branches that can be saved.
+   */
+  protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]]
+
+
+  /**
+   * Create branches that can be saved.
+   */
+  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]]
 
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
@@ -156,6 +172,82 @@ trait OBPDataImport extends Loggable {
       createSaveableBanks(data.banks)
     }
   }
+
+
+  final protected def createDataLicences(data : SandboxDataImport) = {
+
+
+    logger.info("Hello from createDataLicences")
+
+
+
+    // TODO Check the data.licenses is OK before calling the following
+
+    createSaveableDataLicenses(data.licenses)
+
+
+    /*
+    val existing = data.licenses.flatMap(lic => Connector.connector.vend.getDataLicense(BankId(lic.id)))
+
+    val allIds = data.banks.map(_.id)
+    val emptyIds = allIds.filter(_.isEmpty)
+    val uniqueIds = data.banks.map(_.id).distinct
+    val duplicateIds = allIds diff uniqueIds
+
+    if(!existing.isEmpty) {
+      val existingIds = existing.map(_.bankId.value)
+      Failure(s"Bank(s) with id(s) $existingIds already exist (and may have different non-id [e.g. short_name] values).")
+    } else if (!emptyIds.isEmpty){
+      Failure(s"Bank(s) with empty ids are not allowed")
+    } else if(!duplicateIds.isEmpty) {
+      Failure(s"Banks must have unique ids. Duplicates found: $duplicateIds")
+    } else {
+      createSaveableDataLicenses(data.licenses)
+    }
+    */
+  }
+
+
+  final protected def createBranches(data : SandboxDataImport) = {
+
+
+    logger.info("Hello from createBranches")
+
+
+
+    // TODO Check the data.branches is OK before calling the following
+
+    createSaveableBranches(data.branches)
+
+
+    /*
+    val existing = data.licenses.flatMap(lic => Connector.connector.vend.getDataLicense(BankId(lic.id)))
+
+    val allIds = data.banks.map(_.id)
+    val emptyIds = allIds.filter(_.isEmpty)
+    val uniqueIds = data.banks.map(_.id).distinct
+    val duplicateIds = allIds diff uniqueIds
+
+    if(!existing.isEmpty) {
+      val existingIds = existing.map(_.bankId.value)
+      Failure(s"Bank(s) with id(s) $existingIds already exist (and may have different non-id [e.g. short_name] values).")
+    } else if (!emptyIds.isEmpty){
+      Failure(s"Bank(s) with empty ids are not allowed")
+    } else if(!duplicateIds.isEmpty) {
+      Failure(s"Banks must have unique ids. Duplicates found: $duplicateIds")
+    } else {
+      createSaveableDataLicenses(data.licenses)
+    }
+    */
+  }
+
+
+
+
+
+
+
+
 
   final protected def validateAccount(acc : SandboxAccountImport, data : SandboxDataImport) : Box[SandboxAccountImport] = {
     for {
@@ -339,10 +431,15 @@ trait OBPDataImport extends Loggable {
       users <- createUsers(data.users)
       accountResults <- createAccountsAndViews(data, banks.map(_.value))
       transactions <- createTransactions(data, banks.map(_.value), accountResults.map(_._1.value))
+      licenses <- createDataLicences(data)
+      branches <- createBranches(data)
     } yield {
       banks.foreach(_.save())
 
       users.foreach(_.save())
+
+      licenses.foreach(_.save())
+
 
       accountResults.foreach {
         case (account, views, accOwnerEmails) =>
@@ -386,10 +483,9 @@ case class SandboxBranchImport(
 
 case class SandboxDataLicenseImport(
   id : String,
-  short_name : String,
-  full_name : String,
-  logo : String,
-  website : String)
+  bank : String,
+  name : String,
+  url : String)
 
 case class SandboxAddressImport(
    line_1 : String,
@@ -452,4 +548,5 @@ case class SandboxDataImport(
   users : List[SandboxUserImport],
   accounts : List[SandboxAccountImport],
   transactions : List[SandboxTransactionImport],
-  branches: List[SandboxBranchImport])
+  branches: List[SandboxBranchImport],
+  licenses: List[SandboxDataLicenseImport])

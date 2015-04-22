@@ -7,11 +7,11 @@ import net.liftweb.mapper._
 
 object MappedBranchesProvider extends BranchesProvider {
 
-//  override protected def branchData(branch: BranchId): Option[Branch] =
-//    MappedBranch.find(By(MappedBranch.mBranchId, branch.value))
+  override protected def branchData(branchId: BranchId): Option[Branch] =
+  MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
-  override protected def branchesData(bank: BankId): List[Branch] =
-    MappedBranch.findAll(By(MappedBranch.mBankId, bank.value))
+  override protected def branchesData(bankId: BankId): List[Branch] =
+    MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
 
   override protected def branchDataLicense(bank: BankId): Option[DataLicense] =
     MappedDataLicense.find(By(MappedDataLicense.mBankId, bank.value))
@@ -54,6 +54,11 @@ object MappedBranch extends MappedBranch with LongKeyedMetaMapper[MappedBranch] 
   override def dbIndexes = UniqueIndex(mBankId, mBranchId) :: Index(mBankId) :: super.dbIndexes
 }
 
+/*
+For storing the data license (conceived for open data e.g. branches)
+Currently used as one license per bank for all open data?
+Else could store a link to this with each open data record - or via config for each open data type
+ */
 class MappedDataLicense extends DataLicense with LongKeyedMapper[MappedDataLicense] with IdPK {
   override def getSingleton = MappedDataLicense
 

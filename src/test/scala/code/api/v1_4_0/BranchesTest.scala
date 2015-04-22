@@ -35,6 +35,19 @@ class BranchesTest extends V140ServerSetup {
       }
     }
 
+    override protected def branchData(branchId: BranchId): Option[Branch] = {
+      branchId match {
+        // have it return a branch even for the bank without a license so we can test the connector does not return them
+        case BankWithLicense | BankWithoutLicense=> Some(fakeBranch1)
+        case _ => None
+      }
+    }
+
+
+
+
+
+
     override protected def branchDataLicense(bank: BankId): Option[DataLicense] = {
       bank match {
         case BankWithLicense => Some(fakeLicense)
