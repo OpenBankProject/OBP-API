@@ -191,6 +191,18 @@ trait BankAccount {
   final def nationalIdentifier : String =
     Connector.connector.vend.getBank(bankId).map(_.nationalIdentifier).getOrElse("")
 
+  /*
+  * Delete this account (if connector allows it, e.g. local mirror of account data)
+  * */
+  final def remove(user : User): Boolean = {
+    if(user.ownerAccess(this)){
+      Connector.connector.vend.removeAccount(this.bankId, this.accountId)
+    } else {
+      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      false
+    }
+  }
+
   final def owners: Set[User] = {
     val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
     if(accountHolders.isEmpty) {

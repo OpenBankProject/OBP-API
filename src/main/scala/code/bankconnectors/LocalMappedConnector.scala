@@ -12,9 +12,10 @@ import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{False, Props}
 
 import scala.concurrent.ops._
+import scala.util.Failure
 
 object LocalMappedConnector extends Connector with Loggable {
 
@@ -227,6 +228,18 @@ object LocalMappedConnector extends Connector with Loggable {
     MappedBankAccount.count(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.accountNumber, accountNumber)) > 0
+  }
+
+  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+      val account = MappedBankAccount.find(
+        By(MappedBankAccount.bank, bankId.value),
+        By(MappedBankAccount.theAccountId, accountId.value)
+      )
+
+      account match {
+        case Full(acc) => acc.delete_!
+        case _ => false
+      }
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist

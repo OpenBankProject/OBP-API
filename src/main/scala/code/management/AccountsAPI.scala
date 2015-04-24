@@ -22,16 +22,18 @@ object AccountsAPI extends OBPRestHelper with Loggable {
   val VERSION = "management"
 
   oauthServe(apiPrefix {
-      //deletes a bank account
-      case "v1.0" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete json => {
-        user =>
-          for {
-            u <- user ?~ "user not found"
-            account <- BankAccount(bankId, accountId)
-            //view <- account removeView(viewId)
-          } yield {
+    //deletes a bank account
+    case "v1.0" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete json => {
+      user =>
+        for {
+          u <- user ?~ "user not found"
+          account <- BankAccount(bankId, accountId) ?~ "Account not found"
+        } yield {
+          if(account.remove(u))
             successJsonResponse(JsRaw("{}"), 204)
-          }
-      }
+          else
+            errorJsonResponse("{'Error': 'could not delete Account'}", 500)
+        }
+    }
   })
 }

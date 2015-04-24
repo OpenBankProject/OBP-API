@@ -413,6 +413,23 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
+  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+    import net.liftweb.mongodb.BsonDSL._
+    for {
+        account <- Account.find((Account.bankID.name -> bankId.value) ~ (Account.accountId.value -> accountId.value)) ?~
+          s"No account found with number ${accountId} at bank with id ${bankId}: could not save envelope"
+      } yield {
+        account.delete_!
+      }
+
+    false
+/*          account
+      } match {
+        case Full(acc) => acc.
+      }
+      */
+  }
+
   //creates a bank account for an existing bank, with the appropriate values set
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,  accountNumber: String,
                                         currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {

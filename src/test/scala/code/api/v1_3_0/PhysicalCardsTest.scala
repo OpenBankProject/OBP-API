@@ -105,6 +105,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     //for sandbox use -> allows us to check if we can generate a new test account with the given number
     override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
 
+    override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = ???
+
     //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
     override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,
                                           accountNumber: String, currency: String,
