@@ -34,9 +34,6 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
     wipeTestData()
   }
 
-  val CashKeyParam = "cashApplicationKey"
-  val validKey = Props.get(CashKeyParam).openOrThrowException("Props key CashKeyParam not found")
-
   def fixture() = new {
     lazy val bank = createBank("test-bank")
     lazy val account = createAccount(bank.bankId, AccountId("some-account-id"), "EUR")
@@ -73,159 +70,164 @@ class CashAPITest extends ServerSetup with Loggable with DefaultConnectorTestSet
     formats.dateFormat.format(d1) should equal(formats.dateFormat.format(d1))
   }
 
-  feature("Adding cash transactions to accounts") {
+  val CashKeyParam = "cashApplicationKey"
+  val validKey = Props.get(CashKeyParam).openOr("false") //.openOrThrowException("Props key CashKeyParam not found")
 
-    scenario("Attempting to add a transaction to an existing account using an incorrect secret key") {
-      val f = fixture()
-      Given("An invalid key")
-      val invalidKey = validKey + "1"
+  if(validKey != "false") {
+    feature("Adding cash transactions to accounts") {
 
-      And("An account with no existing transactions")
-      Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
+      scenario("Attempting to add a transaction to an existing account using an incorrect secret key") {
+        val f = fixture()
+        Given("An invalid key")
+        val invalidKey = validKey + "1"
 
-      When("We try to add a cash transaction")
-      val response = addCashTransaction(f.account.uuid, f.incomingTransactionData, Some(invalidKey))
+        And("An account with no existing transactions")
+        Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
+        val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsBefore.size should equal(0)
 
-      Then("We should get a 401 not authorized")
-      response.code should equal(401)
+        When("We try to add a cash transaction")
+        val response = addCashTransaction(f.account.uuid, f.incomingTransactionData, Some(invalidKey))
 
-      And("No transaction should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
+        Then("We should get a 401 not authorized")
+        response.code should equal(401)
+
+        And("No transaction should be added")
+        val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsAfter.size should equal(0)
+      }
+
+      scenario("Attempting to add a transaction to an existing account without using a secret key ") {
+        val f = fixture()
+        Given("An account with no existing transactions")
+        Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
+        val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsBefore.size should equal(0)
+
+        When("We try to add a cash transaction")
+        val response = addCashTransaction(f.account.uuid, f.incomingTransactionData, None)
+
+        Then("We should get a 401 not authorized")
+        response.code should equal(401)
+
+        And("No transaction should be added")
+        val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsAfter.size should equal(0)
+      }
+
+      scenario("Attempting to add a transaction to nonexistent account using the correct secret key") {
+        val f = fixture()
+        val nonexistentAccountUUID = UUID.randomUUID().toString
+
+        When("We try to add a cash transaction")
+        val response = addCashTransaction(nonexistentAccountUUID, f.incomingTransactionData, Some(validKey))
+
+        Then("We should get a 400")
+        response.code should equal(400)
+      }
+
+
+      scenario("Attempting to add an incoming transaction to an existing account using the correct secret key") {
+        val f = fixture()
+        Given("An account with no existing transactions")
+        val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
+        accountBox.isDefined should equal(true)
+
+        val balanceBefore = accountBox.get.balance
+
+        val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsBefore.size should equal(0)
+
+        When("We try to add a cash transaction")
+        val tData = f.incomingTransactionData
+        val response = addCashTransaction(f.account.uuid, tData, Some(validKey))
+
+        //for some reason this was originally set to 200 instead of 201, but we'll leave it that way to avoid breaking anything
+        Then("We should get a 200")
+        response.code should equal(200)
+
+        //TODO: check response body format?
+
+        And("The transaction should be added")
+        val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsAfter.size should equal(1)
+
+        val addedTransaction = tsAfter(0)
+
+        And("This transaction should have the appropriate values")
+        checkSameDate(addedTransaction.finishDate, tData.date)
+        addedTransaction.description should equal(Some(tData.label))
+        addedTransaction.otherAccount.label should equal(tData.otherParty)
+
+        //cash api should always set transaction type to cash
+        addedTransaction.transactionType should equal("cash")
+
+        //incoming transaction should have positive value
+        addedTransaction.amount.toDouble should equal(tData.amount) //icky BigDecimal to double conversion here..
+
+        And("The account should have its balance properly updated")
+        val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
+        balanceAfter.toDouble should equal(balanceBefore.toDouble + tData.amount) //icky BigDecimal to double conversion here..
+      }
+
+      scenario("Attempting to add an outgoing transaction to an existing account using the correct secret key") {
+        val f = fixture()
+        Given("An account with no existing transactions")
+        val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
+        accountBox.isDefined should equal(true)
+
+        val balanceBefore = accountBox.get.balance
+
+        val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsBefore.size should equal(0)
+
+        When("We try to add a cash transaction")
+        val tData = f.outgoingTransactionData
+        val response = addCashTransaction(f.account.uuid, tData, Some(validKey))
+
+        //for some reason this was originally set to 200 instead of 201, but we'll leave it that way to avoid breaking anything
+        Then("We should get a 200")
+        response.code should equal(200)
+
+        //TODO: check response body format?
+
+        And("The transaction should be added")
+        val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsAfter.size should equal(1)
+
+        val addedTransaction = tsAfter(0)
+
+        And("This transaction should have the appropriate values")
+        checkSameDate(addedTransaction.finishDate, tData.date)
+        addedTransaction.description should equal(Some(tData.label))
+        addedTransaction.otherAccount.label should equal(tData.otherParty)
+
+        //cash api should always set transaction type to cash
+        addedTransaction.transactionType should equal("cash")
+
+        //outgoing transaction should have negative value
+        addedTransaction.amount.toDouble should equal(-1 * tData.amount) //icky BigDecimal to double conversion here..
+
+        And("The account should have its balance properly updated")
+        val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
+        balanceAfter.toDouble should equal(balanceBefore.toDouble - tData.amount) //icky BigDecimal to double conversion here..
+      }
+
+      scenario("Sending the wrong kind of json") {
+        val f = fixture()
+
+        When("We send the wrong json format")
+        val response = addCashTransaction(f.account.uuid, """{"foo": "bar"}""", Some(validKey))
+
+        Then("We should get a 400")
+        response.code should equal(400)
+
+        And("No transaction should be added")
+        val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
+        tsAfter.size should equal(0)
+      }
+
     }
-
-    scenario("Attempting to add a transaction to an existing account without using a secret key ") {
-      val f = fixture()
-      Given("An account with no existing transactions")
-      Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).isDefined should equal(true)
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
-
-      When("We try to add a cash transaction")
-      val response = addCashTransaction(f.account.uuid, f.incomingTransactionData, None)
-
-      Then("We should get a 401 not authorized")
-      response.code should equal(401)
-
-      And("No transaction should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
-    }
-
-    scenario("Attempting to add a transaction to nonexistent account using the correct secret key") {
-      val f = fixture()
-      val nonexistentAccountUUID = UUID.randomUUID().toString
-
-      When("We try to add a cash transaction")
-      val response = addCashTransaction(nonexistentAccountUUID, f.incomingTransactionData, Some(validKey))
-
-      Then("We should get a 400")
-      response.code should equal(400)
-    }
-
-
-    scenario("Attempting to add an incoming transaction to an existing account using the correct secret key") {
-      val f = fixture()
-      Given("An account with no existing transactions")
-      val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
-      accountBox.isDefined should equal(true)
-
-      val balanceBefore = accountBox.get.balance
-
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
-
-      When("We try to add a cash transaction")
-      val tData = f.incomingTransactionData
-      val response = addCashTransaction(f.account.uuid, tData, Some(validKey))
-
-      //for some reason this was originally set to 200 instead of 201, but we'll leave it that way to avoid breaking anything
-      Then("We should get a 200")
-      response.code should equal(200)
-
-      //TODO: check response body format?
-
-      And("The transaction should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(1)
-
-      val addedTransaction = tsAfter(0)
-
-      And("This transaction should have the appropriate values")
-      checkSameDate(addedTransaction.finishDate, tData.date)
-      addedTransaction.description should equal(Some(tData.label))
-      addedTransaction.otherAccount.label should equal(tData.otherParty)
-
-      //cash api should always set transaction type to cash
-      addedTransaction.transactionType should equal("cash")
-
-      //incoming transaction should have positive value
-      addedTransaction.amount.toDouble should equal(tData.amount) //icky BigDecimal to double conversion here..
-
-      And("The account should have its balance properly updated")
-      val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
-      balanceAfter.toDouble should equal(balanceBefore.toDouble + tData.amount) //icky BigDecimal to double conversion here..
-    }
-
-    scenario("Attempting to add an outgoing transaction to an existing account using the correct secret key") {
-      val f = fixture()
-      Given("An account with no existing transactions")
-      val accountBox = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId)
-      accountBox.isDefined should equal(true)
-
-      val balanceBefore = accountBox.get.balance
-
-      val tsBefore = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsBefore.size should equal(0)
-
-      When("We try to add a cash transaction")
-      val tData = f.outgoingTransactionData
-      val response = addCashTransaction(f.account.uuid, tData, Some(validKey))
-
-      //for some reason this was originally set to 200 instead of 201, but we'll leave it that way to avoid breaking anything
-      Then("We should get a 200")
-      response.code should equal(200)
-
-      //TODO: check response body format?
-
-      And("The transaction should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(1)
-
-      val addedTransaction = tsAfter(0)
-
-      And("This transaction should have the appropriate values")
-      checkSameDate(addedTransaction.finishDate, tData.date)
-      addedTransaction.description should equal(Some(tData.label))
-      addedTransaction.otherAccount.label should equal(tData.otherParty)
-
-      //cash api should always set transaction type to cash
-      addedTransaction.transactionType should equal("cash")
-
-      //outgoing transaction should have negative value
-      addedTransaction.amount.toDouble should equal(-1 * tData.amount) //icky BigDecimal to double conversion here..
-
-      And("The account should have its balance properly updated")
-      val balanceAfter = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get.balance
-      balanceAfter.toDouble should equal(balanceBefore.toDouble - tData.amount) //icky BigDecimal to double conversion here..
-    }
-
-    scenario("Sending the wrong kind of json") {
-      val f = fixture()
-
-      When("We send the wrong json format")
-      val response = addCashTransaction(f.account.uuid, """{"foo": "bar"}""", Some(validKey))
-
-      Then("We should get a 400")
-      response.code should equal(400)
-
-      And("No transaction should be added")
-      val tsAfter = Connector.connector.vend.getTransactions(f.account.bankId, f.account.accountId).get
-      tsAfter.size should equal(0)
-    }
-
   }
 
 }
