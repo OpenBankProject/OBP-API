@@ -14,6 +14,7 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
+# (this needs to be an URL)
 hostname=http://127.0.0.1:8080
 
 #this is only useful for running the api locally via RunWebApp
