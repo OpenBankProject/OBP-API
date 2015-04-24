@@ -3,8 +3,9 @@
 
 #which data connector to use
 
-#connector=mongo
+#connector=mongodb
 #connector=rest
+#connector=...
 connector=mapped
 
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url

@@ -127,9 +127,9 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-
-    // This sets up MongoDB config
-    //MongoConfig.init
+    // This sets up MongoDB config (for the mongodb connector)
+    if(Props.get("connector").getOrElse("") == "mongodb")
+      MongoConfig.init
 
     // set up the way to connect to the relational DB we're using
     if (!DB.jndiJdbcConnAvailable_?) {
