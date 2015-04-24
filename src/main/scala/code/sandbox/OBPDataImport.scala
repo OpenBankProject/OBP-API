@@ -440,6 +440,7 @@ trait OBPDataImport extends Loggable {
 
       licenses.foreach(_.save())
 
+      branches.foreach(_.save())
 
       accountResults.foreach {
         case (account, views, accOwnerEmails) =>

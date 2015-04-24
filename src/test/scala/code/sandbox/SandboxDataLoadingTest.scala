@@ -75,8 +75,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
   override def beforeEach() = {
-    //drop database tables after (before?) the tests
-    MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
+    //drop database tables before
+    //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
   }
 
@@ -132,17 +132,32 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
    */
   def verifyBranchCreated(branch : SandboxBranchImport) = {
 
+
+    println("Hello from verifyBranchCreated")
+
+
     // Get ids from input
     val bankId = BankId(branch.bank)
     val branchId = BranchId(branch.id)
 
+    println(s"bankId is $bankId")
+    println(s"branchId is $branchId")
+
+
     // Check one record found
     val foundBranchCount = Branches.branchesProvider.vend.getBranch(bankId, branchId).size
+
+
+
+
     foundBranchCount should equal(1)
 
     val foundBranchBox: Option[BranchData] = Branches.branchesProvider.vend.getBranch(bankId, branchId)
     foundBranchBox.isDefined should equal(true)
 
+
+
+    println ("before fbb get")
     val foundBranch = foundBranchBox.get
 
 
@@ -1559,6 +1574,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check that for each branch we did indeed create something good
     standardBranches.foreach(verifyBranchCreated)
+
 
   }
 }
