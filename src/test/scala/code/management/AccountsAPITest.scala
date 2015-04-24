@@ -7,6 +7,7 @@ import code.api.test.APIResponse
 import code.model.BankId
 import dispatch._
 import code.bankconnectors.Connector
+import net.liftweb.common.Empty
 import org.scalatest.Tag
 
 
@@ -22,23 +23,25 @@ class AccountsAPITest extends User1AllPrivileges with DefaultUsers with PrivateU
 
   //some helpers
   def v1_2Request = baseRequest / "obp" / "v1.2.1"
+  def managementRequest = baseRequest / "obp" / "vmanagement" / "v1.0"
 
   def deleteBankAccount(bankId : String, accountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "banks" / bankId / "accounts" / accountId <@ (consumerAndToken)
+    val request = (managementRequest / "banks" / bankId / "accounts" / accountId).DELETE <@ (consumerAndToken)
     makeDeleteRequest(request)
   }
 
   def getBankAccountsForAllBanks(consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = v1_2Request / "accounts" <@(consumerAndToken)
+    val request = (v1_2Request / "accounts").GET <@(consumerAndToken)
     makeGetRequest(request)
   }
 
   def getPublicAccountsForAllBanks() : APIResponse= {
-    val request = v1_2Request / "accounts" / "public"
+    val request = (v1_2Request / "accounts" / "public").GET
     makeGetRequest(request)
   }
 
   val OK: Int = 200
+  val OK_NO_CONTENT: Int = 204
   val CREATED: Int = 201
   val BAD_REQUEST: Int = 400
 
@@ -57,10 +60,10 @@ class AccountsAPITest extends User1AllPrivileges with DefaultUsers with PrivateU
 
       //delete it
       val response = deleteBankAccount(bankId = account.bank_id, accountId = account.id, consumerAndToken = user1)
-      response.code should equal(OK)
+      response.code should equal(OK_NO_CONTENT)
 
       //check that it's gone
-      Connector.connector.vend.getBank(BankId(account.bank_id)) should equal(Nil)
+      Connector.connector.vend.getBank(BankId(account.bank_id)) should equal(Empty)
     }
   }
 }

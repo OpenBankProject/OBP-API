@@ -24,7 +24,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
   }
 
   val secretKeyHttpParamName = "secret"
-  val secretKeyValue = Props.get("importer_secret").get
+  val secretKeyValue = Props.get("importer_secret").openOrThrowException("Prop importer_secret not specified.")
 
   val dummyKind = "Transfer"
 

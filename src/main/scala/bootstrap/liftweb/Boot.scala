@@ -33,6 +33,7 @@ package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
 import code.management.ImporterAPI
+import code.management.AccountsAPI
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
 import code.metadata.narrative.MappedNarrative
@@ -182,12 +183,14 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
 
-    //Tesobe specific
-    LiftRules.statelessDispatch.append(CashAccountAPI)
+    //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
+    LiftRules.statelessDispatch.append(AccountsAPI)
 
     // add other apis
+    LiftRules.statelessDispatch.append(CashAccountAPI)
     LiftRules.statelessDispatch.append(BankMockAPI)
+
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
     //OAuth API call
     LiftRules.statelessDispatch.append(OAuthHandshake)

@@ -94,11 +94,11 @@ object APIUtil {
   object OAuth {
     import javax.crypto
 
-import dispatch.{Req => Request}
+    import dispatch.{Req => Request}
     import net.liftweb.util.Helpers
     import org.apache.http.protocol.HTTP.UTF_8
 
-import scala.collection.Map
+    import scala.collection.Map
     import scala.collection.immutable.{TreeMap, Map => IMap}
     import scala.collection.mutable.Set
 

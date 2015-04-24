@@ -115,9 +115,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        logger.info("failIfBadJSON says: Cool, content-type is json")
+        //logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"failIfBadJSON says Error: Invalid JSON: $msg"))
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Error: Invalid JSON: $msg"))
           case _ => h(r)
         }
       case false => h(r)

@@ -355,6 +355,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
           ("views_available" -> views.map(viewToJson(_)))
         ))
       }
+
       def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
         val accJson = bankAccounts.map(accountToJson(_,user))
         JsonResponse(("accounts" -> accJson))

@@ -59,7 +59,7 @@ trait SendServerRequests {
   }
 
   /**
-  this method do a post request given a URL, a JSON and an optional Headers Map
+  this method do a POST request given a URL, a JSON and an optional Headers Map
     */
   def makePostRequest(req: Req, json: String = ""): APIResponse = {
     req.addHeader("Content-Type", "application/json")
@@ -77,7 +77,7 @@ trait SendServerRequests {
   }
 
   /**
-   * this method do a post request given a URL
+   * this method do a GET request given a URL
    */
   def makeGetRequest(req: Req, params: List[(String, String)] = Nil) : APIResponse = {
     val jsonReq = req.GET
@@ -93,6 +93,7 @@ trait SendServerRequests {
    * this method do a delete request given a URL
    */
   def makeDeleteRequest(req: Req) : APIResponse = {
+    //Note: method will be set to late for oauth signing, so set it before using <@
     val jsonReq = req.DELETE
     getAPIResponse(jsonReq)
   }
