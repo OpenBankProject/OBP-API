@@ -21,7 +21,7 @@ object Connector  extends SimpleInjector {
   def buildOne: Connector =
     Props.get("connector").openOrThrowException("no connector set") match {
       case "mapped" => LocalMappedConnector
-      case "mongo" => LocalConnector
+      case "mongodb" => LocalConnector
     }
 
 }

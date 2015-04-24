@@ -61,11 +61,10 @@ object TransactionInserter extends LiftActor with Loggable{
         toMatch.obp_transaction.details.completed.`$dt`,
         toMatch.obp_transaction.other_account.holder)
 
-      logger.info("Insert operation id " + insertID + " # of existing matches: " + existingMatches)
-
+      //logger.info("Insert operation id " + insertID + " # of existing matches: " + existingMatches)
       val numberToInsert = identicalTransactions.size - existingMatches
-
-      logger.info("Insert operation id " + insertID + " copies being inserted: " + numberToInsert)
+      if(numberToInsert > 0)
+        logger.info("Insert operation id " + insertID + " copies being inserted: " + numberToInsert)
 
       val results = (1 to numberToInsert).map(_ => Connector.connector.vend.createImportedTransaction(toMatch)).toList
 
