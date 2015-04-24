@@ -31,6 +31,8 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import code.api.sandbox.SandboxApiCalls
+import code.management.ImporterAPI
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
 import code.metadata.narrative.MappedNarrative
@@ -38,8 +40,9 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.bankbranches.{MappedBankBranch, MappedDataLicense}
+import code.branches.{MappedBranch, MappedDataLicense}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
+import code.tesobe.CashAccountAPI
 import net.liftweb._
 import util._
 import common._
@@ -124,9 +127,9 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-
-    // This sets up MongoDB config
-    //MongoConfig.init
+    // This sets up MongoDB config (for the mongodb connector)
+    if(Props.get("connector").getOrElse("") == "mongodb")
+      MongoConfig.init
 
     // set up the way to connect to the relational DB we're using
     if (!DB.jndiJdbcConnAvailable_?) {
@@ -179,11 +182,23 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
 
+    //Tesobe specific
+    LiftRules.statelessDispatch.append(CashAccountAPI)
+    LiftRules.statelessDispatch.append(ImporterAPI)
+
     // add other apis
     LiftRules.statelessDispatch.append(BankMockAPI)
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
     //OAuth API call
     LiftRules.statelessDispatch.append(OAuthHandshake)
+
+    //add sandbox api calls only if we're running in sandbox mode
+    if(Props.getBool("allow_sandbox_data_import", false)) {
+      logger.info("Adding sandbox api calls")
+      LiftRules.statelessDispatch.append(SandboxApiCalls)
+    } else {
+      logger.info("Not adding sandbox api calls")
+    }
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
@@ -238,6 +253,10 @@ class Boot extends Loggable{
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+
+    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+    if(useMessageQueue)
+      BankAccountCreationListener.startListen
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
@@ -319,5 +338,5 @@ object ToSchemify {
     MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
     MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
-    MappedBankBranch, MappedDataLicense)
+    MappedBranch, MappedDataLicense)
 }

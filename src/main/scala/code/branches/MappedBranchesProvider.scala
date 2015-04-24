@@ -1,21 +1,25 @@
-package code.bankbranches
+package code.branches
 
-import code.bankbranches.BankBranches.{DataLicense, BankBranchId, Address, BankBranch}
+import code.branches.Branches.{DataLicense, BranchId, Address, Branch}
 import code.model.BankId
 import code.util.DefaultStringField
 import net.liftweb.mapper._
 
-object MappedBankBranchesProvider extends BankBranchesProvider {
-  override protected def branchData(bank: BankId): List[BankBranch] =
-    MappedBankBranch.findAll(By(MappedBankBranch.mBankId, bank.value))
+object MappedBranchesProvider extends BranchesProvider {
+
+  override protected def branchData(branchId: BranchId): Option[Branch] =
+  MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
+
+  override protected def branchesData(bankId: BankId): List[Branch] =
+    MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value))
 
   override protected def branchDataLicense(bank: BankId): Option[DataLicense] =
     MappedDataLicense.find(By(MappedDataLicense.mBankId, bank.value))
 }
 
-class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch] with IdPK {
+class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
 
-  override def getSingleton = MappedBankBranch
+  override def getSingleton = MappedBranch
 
   object mBankId extends DefaultStringField(this)
   object mName extends DefaultStringField(this)
@@ -32,7 +36,7 @@ class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch]
   object mPostCode extends DefaultStringField(this)
 
 
-  override def branchId: BankBranchId = BankBranchId(mBranchId.get)
+  override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
   override def address: Address = new Address {
@@ -46,10 +50,15 @@ class MappedBankBranch extends BankBranch with LongKeyedMapper[MappedBankBranch]
   }
 }
 
-object MappedBankBranch extends MappedBankBranch with LongKeyedMetaMapper[MappedBankBranch] {
+object MappedBranch extends MappedBranch with LongKeyedMetaMapper[MappedBranch] {
   override def dbIndexes = UniqueIndex(mBankId, mBranchId) :: Index(mBankId) :: super.dbIndexes
 }
 
+/*
+For storing the data license (conceived for open data e.g. branches)
+Currently used as one license per bank for all open data?
+Else could store a link to this with each open data record - or via config for each open data type
+ */
 class MappedDataLicense extends DataLicense with LongKeyedMapper[MappedDataLicense] with IdPK {
   override def getSingleton = MappedDataLicense
 

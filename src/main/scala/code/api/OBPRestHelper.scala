@@ -79,20 +79,48 @@ trait OBPRestHelper extends RestHelper with Loggable {
 
   val VERSION : String
   def vPlusVersion = "v" + VERSION
-  def apiPrefix = "obp" / vPlusVersion oPrefix _
+  def apiPrefix = ("obp" / vPlusVersion).oPrefix(_)
 
   implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.info("API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.info("jsonResponseBoxToJsonReponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case Failure(msg, _, _) => {
-        logger.info("API Failure: " + msg)
+        logger.info("jsonResponseBoxToJsonReponse case Failure API Failure: " + msg)
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
+    }
+  }
+
+
+  /*
+  A method which takes
+    a Request r
+    and
+    a partial function h
+      which takes
+      a Request
+      and
+      a User
+      and returns a JsonResponse
+    and returns a JsonResponse (but what about the User?)
+
+
+   */
+  def failIfBadJSON(r: Req, h: (PartialFunction[Req, Box[User] => Box[JsonResponse]])): Box[User] => Box[JsonResponse] = {
+    // Check if the content-type is text/json or application/json
+    r.json_? match {
+      case true =>
+        logger.info("failIfBadJSON says: Cool, content-type is json")
+        r.json match {
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"failIfBadJSON says Error: Invalid JSON: $msg"))
+          case _ => h(r)
+        }
+      case false => h(r)
     }
   }
 
@@ -129,22 +157,44 @@ trait OBPRestHelper extends RestHelper with Loggable {
   //Give all lists of strings in OBPRestHelpers the oPrefix method
   implicit def stringListToRichStringList(list : List[String]) : RichStringList = new RichStringList(list)
 
+  /*
+  oauthServe wraps many get calls and probably all calls that post (and put and delete) json data.
+  Since the URL path matching will fail if there is invalid JsonPost, and this leads to a generic 404 response which is confusing to the developer,
+  we want to detect invalid json *before* matching on the url so we can fail with a more specific message.
+  See SandboxApiCalls for an example of JsonPost being used.
+  The down side is that we might be validating json more than once per request and we're doing work before authentication is completed (possible DOS vector)
+   */
+
   def oauthServe(handler : PartialFunction[Req, Box[User] => Box[JsonResponse]]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {
+          //check (in that order):
+          //if request is correct json
+          //if request matches PartialFunction cases for each defined url
+          //if request has correct oauth headers
           failIfBadOauth {
-            handler(r)
+            failIfBadJSON(r, handler)
           }
         }
-        def isDefinedAt(r : Req) = handler.isDefinedAt(r)
+        def isDefinedAt(r : Req) = {
+          //if the content-type is json and json parsing failed, simply accept call but then fail in apply() above
+          //the cases don't match if json failed and don't allow
+          r.json_? match {
+            case true =>
+              r.json match {
+                case Failure(msg, _, _) => true
+                case _ => handler.isDefinedAt(r)
+              }
+            case false => handler.isDefinedAt(r)
+          }
+        }
       }
     }
     serve(obpHandler)
   }
 
-  override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit= {
-
+  override protected def serve(handler: PartialFunction[Req, () => Box[LiftResponse]]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
         def apply(r : Req) = {

@@ -87,7 +87,6 @@ case class BankId(val value : String) {
 object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
-
 trait Bank {
   def bankId: BankId
   def shortName : String

@@ -63,7 +63,7 @@ trait User {
       Full()
     } 
     else {
-      Failure("user don't have access to any view allowing to initiate transactions")
+      Failure("user doesn't have access to any view that allows initiating transactions")
     }
   }
      

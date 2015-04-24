@@ -47,6 +47,7 @@ import APIUtil.OAuth._
 import code.views.Views
 import net.liftweb.json.JsonAST.JString
 import code.api.test.APIResponse
+import net.liftweb.util.Props
 
 class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
@@ -303,6 +304,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
+  //get one bank account
   def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
     makeGetRequest(request)
@@ -665,76 +667,79 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       })
     }
 
-    scenario("we make a payment", Payments) {
+    if (Props.getBool("messageQueue.createBankAccounts") == false) {
+      ignore("we make a payment", Payments) {}
+    } else {
+      scenario("we make a payment", Payments) {
+        val testBank = createPaymentTestBank()
+        val bankId = testBank.bankId
+        val accountId1 = AccountId("__acc1")
+        val accountId2 = AccountId("__acc2")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
-      val testBank = createPaymentTestBank()
-      val bankId = testBank.bankId
-      val accountId1 = AccountId("__acc1")
-      val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        def getFromAccount: BankAccount = {
+          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        }
 
-      def getFromAccount : BankAccount = {
-        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
-      }
+        def getToAccount: BankAccount = {
+          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        }
 
-      def getToAccount : BankAccount = {
-        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
-      }
+        val fromAccount = getFromAccount
+        val toAccount = getToAccount
 
-      val fromAccount = getFromAccount
-      val toAccount = getToAccount
+        val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
-      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+        val beforeFromBalance = fromAccount.balance
+        val beforeToBalance = toAccount.balance
 
-      val beforeFromBalance = fromAccount.balance
-      val beforeToBalance = toAccount.balance
+        val amt = BigDecimal("12.50")
 
-      val amt = BigDecimal("12.50")
+        val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+        val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+        val transId: String = (postResult.body \ "transaction_id") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        transId should not equal ("")
 
-      val transId : String = (postResult.body \ "transaction_id") match {
-        case JString(i) => i
-        case _ => ""
-      }
-      transId should not equal("")
-
-      val reply = getTransaction(
+        val reply = getTransaction(
           fromAccount.bankId.value, fromAccount.accountId.value, view, transId, user1)
 
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transJson = reply.body.extract[TransactionJSON]
+        Then("we should get a 200 ok code")
+        reply.code should equal(200)
+        val transJson = reply.body.extract[TransactionJSON]
 
-      val fromAccountTransAmt = transJson.details.value.amount
-      //the from account transaction should have a negative value
-      //since money left the account
-      And("the json we receive back should have a transaction amount equal to the amount specified to pay")
-      fromAccountTransAmt should equal((-amt).toString)
+        val fromAccountTransAmt = transJson.details.value.amount
+        //the from account transaction should have a negative value
+        //since money left the account
+        And("the json we receive back should have a transaction amount equal to the amount specified to pay")
+        fromAccountTransAmt should equal((-amt).toString)
 
-      val expectedNewFromBalance = beforeFromBalance - amt
-      And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
-      transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
-      getFromAccount.balance should equal(expectedNewFromBalance)
-      val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
-      toAccountTransactionsReq.code should equal(200)
-      val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
-      val newestToAccountTransaction = toAccountTransactions.transactions(0)
+        val expectedNewFromBalance = beforeFromBalance - amt
+        And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
+        transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
+        getFromAccount.balance should equal(expectedNewFromBalance)
+        val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
+        toAccountTransactionsReq.code should equal(200)
+        val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
+        val newestToAccountTransaction = toAccountTransactions.transactions(0)
 
-      //here amt should be positive (unlike in the transaction in the "from" account")
-      And("the newest transaction for the account receiving the payment should have the proper amount")
-      newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        //here amt should be positive (unlike in the transaction in the "from" account")
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
 
-      And("the account receiving the payment should have the proper balance")
-      val expectedNewToBalance = beforeToBalance + amt
-      newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
-      getToAccount.balance should equal(expectedNewToBalance)
+        And("the account receiving the payment should have the proper balance")
+        val expectedNewToBalance = beforeToBalance + amt
+        newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
+        getToAccount.balance should equal(expectedNewToBalance)
 
-      And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
-      transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+        transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+      }
     }
 
     scenario("we can't make a payment without access to the owner view", Payments) {
@@ -1106,7 +1111,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("There are no duplicate accounts")
       assertNoDuplicateAccounts(publicAccountsInfo)
     }
-    scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
+    scenario("we get the bank accounts the user has access to", API1_2, GetBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
