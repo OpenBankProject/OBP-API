@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.branches.Branches
-import code.branches.Branches.{Branch, DataLicense, BranchesData}
+import code.branches.Branches.{Branch, Meta}
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 
 object JSONFactory1_4_0 {
@@ -21,9 +21,13 @@ object JSONFactory1_4_0 {
 
   case class AddCustomerMessageJson(message : String, from_department : String, from_person : String)
 
-  case class BranchDataJson(license : DataLicenseJson, branches : List[BranchJson])
+  //case class BranchDataJson(license : DataLicenseJson, branches : List[BranchJson])
   case class DataLicenseJson(name : String, url : String)
-  case class BranchJson(id : String, name : String, address : AddressJson)
+
+
+  case class BranchJson(id : String, name : String) // , address : AddressJson, meta : Meta)
+  case class BranchesJson (branches : List[BranchJson])
+
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, line_4 : String, line_5 : String, postcode_zip : String, country : String)
 
   def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
@@ -43,21 +47,22 @@ object JSONFactory1_4_0 {
   def createCustomerMessagesJson(messages : List[CustomerMessage]) : CustomerMessagesJson = {
     CustomerMessagesJson(messages.map(createCustomerMessageJson))
   }
-
-  def createDataLicenseJson(dataLicense : DataLicense) : DataLicenseJson = {
-    DataLicenseJson(dataLicense.name, dataLicense.url)
-  }
+//
+//  def createDataLicenseJson(dataLicense : DataLicense) : DataLicenseJson = {
+//    DataLicenseJson(dataLicense.name, dataLicense.url)
+//  }
 
   def createAddressJson(address : Branches.Address) : AddressJson = {
     AddressJson(address.line1, address.line2, address.line3, address.line4, address.line5, address.postCode, address.countryCode)
   }
 
   def createBranchJson(branch: Branch) : BranchJson = {
-    BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address))
+    BranchJson(branch.branchId.value, branch.name)
+      //, createAddressJson(branch.address), branch.meta)
   }
 
-  def createBranchesJson(branchData : BranchesData) : BranchDataJson = {
-    BranchDataJson(createDataLicenseJson(branchData.license), branchData.branches.map(createBranchJson))
+  def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {
+    BranchesJson(branchesList.map(createBranchJson))
   }
 
 }
