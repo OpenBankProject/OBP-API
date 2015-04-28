@@ -1,27 +1,25 @@
 package code.branches
 
 // Need to import these one by one because in same package!
-import code.branches.Branches.{Branch, DataLicense, BranchesData, BranchData, BranchId}
+import code.branches.Branches.{Branch, BranchId}
 
 import code.model.{BankId}
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
+import scala.util.Try
+
 object Branches extends SimpleInjector {
 
   case class BranchId(value : String)
-  case class BranchesData(branches : List[Branch], license : DataLicense)
-  case class BranchData(branch : Option[Branch], license : DataLicense)
 
-  trait DataLicense {
-    def name : String
-    def url : String
+  trait License {
+    def name : String = "simon says"
+    def url : String  = "www.google.com"
   }
 
-  trait Branch {
-    def branchId : BranchId
-    def name : String
-    def address : Address
+  trait Meta {
+    def license : License = new License {} // Note: {} used to instantiate an anonymous class of the License trait
   }
 
   trait Address {
@@ -35,9 +33,27 @@ object Branches extends SimpleInjector {
     def countryCode : String
   }
 
+  trait Branch {
+    def branchId : BranchId
+    def name : String
+    //def address : Address
+    //def meta : Meta = new Meta {} // Note: {} used to instantiate an anonymous class of the Meta trait
+  }
+
   val branchesProvider = new Inject(buildOne _) {}
 
   def buildOne: BranchesProvider = MappedBranchesProvider
+
+
+  // Helper to get the count out of an option
+  def countOfBranches (listOpt: Option[List[Branch]]) : Int = {
+    val count = listOpt match {
+      case Some(list) => list.size
+      case None => 0
+    }
+    count
+  }
+
 
 }
 
@@ -49,18 +65,17 @@ trait BranchesProvider {
   /*
   Common logic for returning branches.
   Implementation details in branchesData
-
    */
 
-  final def getBranches(bankId : BankId) : Option[BranchesData] = {
-    branchDataLicense(bankId) match {
-      case Some(license) =>
-        Some(BranchesData(branchesData(bankId), license))
-      case None => {
-        logger.warn(s"getBranches says: No branch data license found for bank ${bankId.value}")
-        None
-      }
-    }
+  final def getBranches(bankId : BankId) : Option[List[Branch]] = {
+//    branchDataLicense(bankId) match {
+//      case Some(license) =>
+        getBranchesFromProvider(bankId)
+//      case None => {
+//        logger.warn(s"getBranches says: No branch data license found for bank ${bankId.value}")
+//        None
+//      }
+//    }
   }
 
   /*
@@ -68,22 +83,20 @@ trait BranchesProvider {
   Return one Branch
   Needs bankId so we can get the licence related to the bank (BranchId should be unique anyway)
    */
-  final def getBranch(bankId: BankId, branchId : BranchId) : Option[BranchData] = {
-    // Only return the data if we have a license!
-    branchDataLicense(bankId) match {
-      case Some(license) =>
-        Some(BranchData(branchData(branchId), license))
-      case None => {
-        logger.warn(s"getBranch says: No branch data license found for bank ${bankId.value}")
-        None
-      }
-    }
+  final def getBranch(branchId : BranchId) : Option[Branch] = {
+//    // Only return the data if we have a license!
+//    branchDataLicense(bankId) match {
+//      case Some(license) =>
+        getBranchFromProvider(branchId)
+//      case None => {
+//        logger.warn(s"getBranch says: No branch data license found for bank ${bankId.value}")
+//        None
+//      }
+
   }
 
-  protected def branchData(branchId : BranchId) : Option[Branch]
-  protected def branchesData(bank : BankId) : List[Branch]
-  protected def branchDataLicense(bank : BankId) : Option[DataLicense]
-
+  protected def getBranchFromProvider(branchId : BranchId) : Option[Branch]
+  protected def getBranchesFromProvider(bank : BankId) : Option[List[Branch]]
 
 // End of Trait
 }

@@ -3,7 +3,7 @@ package code.sandbox
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
-import code.branches.{MappedBranch, MappedDataLicense}
+import code.branches.{MappedBranch} // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper
@@ -20,7 +20,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   type MetadataType = MappedCounterpartyMetadata
   type TransactionType = MappedTransaction
   type BranchType = MappedBranch
-  type DataLicenseType = MappedDataLicense
+  //type DataLicenseType = MappedDataLicense
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val mappedBanks = data.map(bank => {
@@ -61,22 +61,22 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
 
 
 
-  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]] = {
-    val mappedDataLicenses = data.map(license => {
-      MappedDataLicense.create
-        .mBankId(license.bank)
-        .mName(license.name)
-        .mUrl(license.url)
-    })
-
-    val validationErrors = mappedDataLicenses.flatMap(_.validate)
-
-    if(validationErrors.nonEmpty) {
-      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-    } else {
-      Full(mappedDataLicenses.map(MappedSaveable(_)))
-    }
-  }
+//  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]] = {
+//    val mappedDataLicenses = data.map(license => {
+//      MappedDataLicense.create
+//        .mBankId(license.bank)
+//        .mName(license.name)
+//        .mUrl(license.url)
+//    })
+//
+//    val validationErrors = mappedDataLicenses.flatMap(_.validate)
+//
+//    if(validationErrors.nonEmpty) {
+//      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+//    } else {
+//      Full(mappedDataLicenses.map(MappedSaveable(_)))
+//    }
+//  }
 
 
 

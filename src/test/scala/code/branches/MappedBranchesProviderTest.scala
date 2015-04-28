@@ -99,10 +99,11 @@ class MappedBranchesProviderTest extends ServerSetup {
 
       Then("We should get back the data license and the branches")
       branchDataOpt.isDefined should equal(true)
-      val branchData = branchDataOpt.get
+      val branches = branchDataOpt.get
 
-      branchData.license should equal(fixture.license)
-      branchData.branches.toSet should equal(expectedBranches)
+      // We no longer have one license per collection so this does not make sense
+      // branchData.branches. should equal(fixture.license)
+      branches.toSet should equal(expectedBranches)
     }
 
     scenario("We try to get branch data for a bank with a data license, but no branches") {
@@ -122,10 +123,10 @@ class MappedBranchesProviderTest extends ServerSetup {
 
       Then("We should get back the data license, and a list branches of size 0")
       branchDataOpt.isDefined should equal(true)
-      val branchData = branchDataOpt.get
+      val branches = branchDataOpt.get
 
-      branchData.license should equal(license)
-      branchData.branches should equal(Nil)
+      // ditto above: branchData.license should equal(license)
+      branches should equal(Nil)
 
     }
 

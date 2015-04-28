@@ -71,7 +71,7 @@ trait APIMethods140 {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available", 404)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available. License may not be set.", 404)
           } yield {
             val json = JSONFactory1_4_0.createBranchesJson(branches)
             successJsonResponse(Extraction.decompose(json))

@@ -38,7 +38,7 @@ import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
 import code.branches.Branches
-import code.branches.Branches.{BranchData, BranchId}
+import code.branches.Branches.{Branch, BranchId, countOfBranches}
 import code.model.dataAccess._
 import code.model.{TransactionId, AccountId, BankId}
 import code.users.Users
@@ -72,7 +72,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val defaultProvider = Props.get("hostname").openOrThrowException("no hostname set")
 
   val theImportToken = Props.get("sandbox_data_import_secret").openOrThrowException("sandbox_data_import_secret not set")
-
 
   override def beforeEach() = {
     //drop database tables before
@@ -125,16 +124,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBank.websiteUrl should equal(bank.website)
   }
 
-
-  /*
-
-
-   */
   def verifyBranchCreated(branch : SandboxBranchImport) = {
-
-
     println("Hello from verifyBranchCreated")
-
 
     // Get ids from input
     val bankId = BankId(branch.bank)
@@ -144,51 +135,19 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     println(s"branchId is $branchId")
 
 
-    // Check one record found
-    val foundBranchCount = Branches.branchesProvider.vend.getBranch(bankId, branchId).size
+    // check we have found a branch
+    val foundBranchOpt: Option[Branch] = Branches.branchesProvider.vend.getBranch(branchId)
+    foundBranchOpt.isDefined should equal(true)
 
 
-
-
-    foundBranchCount should equal(1)
-
-    val foundBranchBox: Option[BranchData] = Branches.branchesProvider.vend.getBranch(bankId, branchId)
-    foundBranchBox.isDefined should equal(true)
-
-
-
-    println ("before fbb get")
-    val foundBranch = foundBranchBox.get
-
-
-    //foundBranchBox.map(_.branch).map(_.name)
-
-    foundBranch.branch.get.name should equal(branch.name)
-
-
-    foundBranch.branch.map(_.name) should equal(branch.name)
-    foundBranch.branch.map(_.address) should equal(branch.address)
+    // Check some fields
+    foundBranchOpt.map(_.name).get should equal(branch.name)
+    // foundBranch.branch.map(_.address).get should equal(branch.address)
 
     // TODO check more branch fields
-
-
     // TODO check license (need separate get function)
 
   }
-
-
-//  def verifyLicenseCreated(branch : SandboxBranchImport) = {
-//
-//    // Get ids from input
-//    val bankId = BankId(branch.bank)
-//
-//
-//
-//  }
-
-
-
-
 
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -1538,43 +1497,41 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     t1.otherAccount.id should equal(t2.otherAccount.id)
   }
 
-  it should "require branches to have non-empty ids" in {
+  it should "create branches ok" in {
 
     // Helper function expects banks and branches
-    def getResponse(branchJson : JValue) = {
-      val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, List(branchJson),
-        standardLicenses.map(Extraction.decompose))
-      postImportJson(json)
-    }
+    def getResponse(branchList : List[JValue]) = {
+          val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, branchList,
+            standardLicenses.map(Extraction.decompose))
+          println(json)
+          postImportJson(json)
+        }
+
 
     val bankId1 = BankId(bank1.id)
 
-    val branch1Json = Extraction.decompose(branch1AtBank1)
-    val branchWithoutId = removeIdField(branch1Json)
+    val branchesJson  = standardBranches.map(Extraction.decompose)
 
-//    val branchesJson = Extraction.decompose(standardBranches)
-//    val branchesWithoutId = removeIdField(branchesJson)
+    // Check we are starting from a clean slate (no branches for this bank)
+    // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
+    val existingBranches: Option[List[Branch]] = Branches.branchesProvider.vend.getBranches(bankId1)
 
-    // Check not exists to start with
-    val countBranchesBefore = Branches.branchesProvider.vend.getBranches(bankId1).size
-    countBranchesBefore should equal(0)
+    // We want the size of the list inside the Option
+    val existingBranchesCount = countOfBranches(existingBranches)
+    existingBranchesCount should equal (0)
 
-    // Check creation without Id fails
-    getResponse(branchWithoutId).code should equal(FAILED)
+    // Check creation succeeds
+    val response = getResponse(branchesJson).code
+    response should equal(SUCCESS)
 
-    // Check creation with Id succeeds
-    getResponse(branch1Json).code should equal(SUCCESS)
+    // Check count after creation. Again counting the items in list, not the option
+    val countBranchesAfter = countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
+    countBranchesAfter should equal(standardBranches.size) // We expect N branches
 
-    // Check count after creation
-    val countBranchesAfter = Branches.branchesProvider.vend.getBranches(bankId1).size
-    countBranchesAfter should equal(1) // We expect N branches
-
-    // TODO Check that for each license we did indeed create something good
+    // TODO Check license situation
     //standardBranches.foreach(verifyLicenseCreated)
 
     // Check that for each branch we did indeed create something good
     standardBranches.foreach(verifyBranchCreated)
-
-
   }
 }

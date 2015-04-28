@@ -5,7 +5,7 @@ import java.util.UUID
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
-import code.branches.Branches.{Branch, DataLicense}
+import code.branches.Branches.{Branch}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box}
@@ -45,7 +45,7 @@ trait OBPDataImport extends Loggable {
   type TransactionType <: TransactionUUID
   type AccountOwnerEmail = String
   type BranchType <: Branch
-  type DataLicenseType <: DataLicense
+  //type DataLicenseType <: DataLicense
 
   /**
    * Takes a list of boxes and returns a list of the content of the boxes if all boxes are Full, or returns
@@ -77,7 +77,7 @@ trait OBPDataImport extends Loggable {
   /**
    * Create branches that can be saved.
    */
-  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]]
+  //protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]]
 
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
@@ -183,7 +183,7 @@ trait OBPDataImport extends Loggable {
 
     // TODO Check the data.licenses is OK before calling the following
 
-    createSaveableDataLicenses(data.licenses)
+    //createSaveableDataLicenses(data.licenses)
 
 
     /*
@@ -431,14 +431,14 @@ trait OBPDataImport extends Loggable {
       users <- createUsers(data.users)
       accountResults <- createAccountsAndViews(data, banks.map(_.value))
       transactions <- createTransactions(data, banks.map(_.value), accountResults.map(_._1.value))
-      licenses <- createDataLicences(data)
+      //licenses <- createDataLicences(data)
       branches <- createBranches(data)
     } yield {
       banks.foreach(_.save())
 
       users.foreach(_.save())
 
-      licenses.foreach(_.save())
+      //licenses.foreach(_.save())
 
       branches.foreach(_.save())
 
