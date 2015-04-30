@@ -41,7 +41,7 @@ import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.branches.{MappedBranch}
+import code.branches.{MappedLicense, MappedBranch}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import code.tesobe.CashAccountAPI
 import net.liftweb._
@@ -128,23 +128,19 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-    // This sets up MongoDB config (for the mongodb connector)
-    if(Props.get("connector").getOrElse("") == "mongodb")
-      MongoConfig.init
-
-    // set up the way to connect to the relational DB we're using
+    // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
         Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>  Props.get("db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => Props.get("db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
             new StandardDBVendor(driver,
-               Props.get("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-               Props.get("db.user"), Props.get("db.password"))
+              Props.get("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+              Props.get("db.user"), Props.get("db.password"))
           case _ =>
             new StandardDBVendor(
               driver,
@@ -158,6 +154,14 @@ class Boot extends Loggable{
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
 
+    // ensure our relational database's tables are created/fit the schema
+    if(Props.get("connector").getOrElse("") == "mapped")
+      schemifyAll()
+
+    // This sets up MongoDB config (for the mongodb connector)
+    if(Props.get("connector").getOrElse("") == "mongodb")
+      MongoConfig.init
+
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
       case Props.RunModes.Staging => "Staging mode"
@@ -167,10 +171,6 @@ class Boot extends Loggable{
     }
 
     logger.info("running mode: " + runningMode)
-
-
-    // ensure our relational database's tables are created/fit the schema
-    schemifyAll()
 
     // where to search snippet
     LiftRules.addToPackages("code")
@@ -341,5 +341,5 @@ object ToSchemify {
     MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
     MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
-    MappedBranch)
+    MappedBranch, MappedLicense)
 }

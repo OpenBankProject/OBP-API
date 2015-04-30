@@ -87,6 +87,7 @@ case class BankId(val value : String) {
 object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
+
 trait Bank {
   def bankId: BankId
   def shortName : String
@@ -94,7 +95,10 @@ trait Bank {
   def logoUrl : String
   def websiteUrl : String
 
-  //it's not entirely clear what this is/represents
+  //SWIFT BIC banking code (globally unique)
+  def swiftBic: String
+
+  //it's not entirely clear what this is/represents (BLZ in Germany?)
   def nationalIdentifier : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
@@ -170,16 +174,16 @@ trait BankAccount {
   @deprecated
   def uuid : String
 
-  def accountId : AccountId
+  def accountId : AccountId    //an identifier that hides the actual account number (obp identifier)
   def accountType : String
   def balance : BigDecimal
   def currency : String
   def name : String
   def label : String
-  def swift_bic : Option[String]
+  def swift_bic : Option[String]   //TODO: deduplication, bank field should not be in account fields
   def iban : Option[String]
-  def number : String
-  def bankId : BankId
+  def number : String         //the actual number as given by the bank
+  def bankId : BankId         //bank identifier, usually short name of
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String
@@ -194,12 +198,11 @@ trait BankAccount {
   /*
   * Delete this account (if connector allows it, e.g. local mirror of account data)
   * */
-  final def remove(user : User): Boolean = {
+  final def remove(user : User): Box[Boolean] = {
     if(user.ownerAccess(this)){
-      Connector.connector.vend.removeAccount(this.bankId, this.accountId)
+      Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId))
     } else {
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
-      false
     }
   }
 

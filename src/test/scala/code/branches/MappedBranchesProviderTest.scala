@@ -8,7 +8,7 @@ class MappedBranchesProviderTest extends ServerSetup {
 
   private def delete(): Unit = {
     MappedBranch.bulkDelete_!!()
-    MappedDataLicense.bulkDelete_!!()
+    MappedLicense.bulkDelete_!!()
   }
 
   override def beforeAll() = {
@@ -26,7 +26,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       val bankIdWithLicenseAndData = "some-bank"
       val bankIdWithNoLicense = "unlicensed-bank"
 
-      val license = MappedDataLicense.create
+      val license = MappedLicense.create
         .mBankId(bankIdWithLicenseAndData)
         .mName("some-license")
         .mUrl("http://www.example.com/license").saveMe()
@@ -74,7 +74,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       val fixture = defaultSetup()
 
       Given("The bank in question has no data license")
-      MappedDataLicense.count(By(MappedDataLicense.mBankId, fixture.bankIdWithNoLicense)) should equal(0)
+      MappedLicense.count(By(MappedLicense.mBankId, fixture.bankIdWithNoLicense)) should equal(0)
 
       And("The bank in question has branches")
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdWithNoLicense)).isDefined should equal(true)
@@ -84,14 +84,13 @@ class MappedBranchesProviderTest extends ServerSetup {
 
       Then("We should get an empty option")
       branchData should equal(None)
-
     }
 
     scenario("We try to get branch data for a bank which does have a data license set") {
       val fixture = defaultSetup()
       val expectedBranches = Set(fixture.branch1, fixture.branch2)
       Given("We have a data license and branches for a bank")
-      MappedDataLicense.count(By(MappedDataLicense.mBankId, fixture.bankIdWithLicenseAndData)) should equal(1)
+      MappedLicense.count(By(MappedLicense.mBankId, fixture.bankIdWithLicenseAndData)) should equal(1)
       MappedBranch.findAll(By(MappedBranch.mBankId, fixture.bankIdWithLicenseAndData)).toSet should equal(expectedBranches)
 
       When("We try to get the branch data for that bank")
@@ -111,7 +110,7 @@ class MappedBranchesProviderTest extends ServerSetup {
       Given("We have a data license for a bank, but no branches")
 
       val bankWithNoBranches = "bank-with-no-branches"
-      val license = MappedDataLicense.create
+      val license = MappedLicense.create
         .mBankId(bankWithNoBranches)
         .mName("some-license")
         .mUrl("http://www.example.com/license").saveMe()

@@ -193,7 +193,7 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   object website extends StringField(this, 255)
   object email extends StringField(this, 255)
   object permalink extends StringField(this, 255)
-  object SWIFT_BIC extends StringField(this, 255)
+  object swiftBIC extends StringField(this, 255)
   object national_identifier extends StringField(this, 255)
 
   def getAccount(bankAccountId: AccountId) : Box[Account] = {
@@ -208,6 +208,7 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   override def fullName: String = name.get
   override def logoUrl: String = logoURL.get
   override def websiteUrl: String = website.get
+  override def swiftBic: String = swiftBIC.get
   override def nationalIdentifier: String = national_identifier.get
 }
 
