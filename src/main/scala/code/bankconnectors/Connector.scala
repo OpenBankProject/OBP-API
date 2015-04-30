@@ -140,7 +140,7 @@ trait Connector {
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Boolean
 
-  //remove an account
+  //remove an account and associated transactions
   def removeAccount(bankId: BankId, accountId: AccountId) : Boolean
 
   //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId

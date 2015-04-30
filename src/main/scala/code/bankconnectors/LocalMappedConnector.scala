@@ -2,7 +2,15 @@ package code.bankconnectors
 
 import java.util.{UUID, Date}
 
+import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
+import code.metadata.narrative.MappedNarrative
+import code.metadata.tags.MappedTag
+import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.wheretags.MappedWhereTag
+import code.model.dataAccess.ViewImpl
+import code.model.dataAccess.ViewPrivileges
+
 import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.tesobe.CashTransaction
@@ -230,17 +238,76 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedBankAccount.accountNumber, accountNumber)) > 0
   }
 
+  //remove an account and associated transactions
   override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
-      val account = MappedBankAccount.find(
-        By(MappedBankAccount.bank, bankId.value),
-        By(MappedBankAccount.theAccountId, accountId.value)
-      )
+    //delete comments on transactions of this account
+    val commentsDeleted = MappedComment.bulkDelete_!!(
+      By(MappedComment.bank, bankId.value),
+      By(MappedComment.account, accountId.value)
+    )
 
-      account match {
-        case Full(acc) => acc.delete_!
-        case _ => false
-      }
-  }
+    //delete narratives on transactions of this account
+    val narrativesDeleted = MappedNarrative.bulkDelete_!!(
+      By(MappedNarrative.bank, bankId.value),
+      By(MappedNarrative.account, accountId.value)
+    )
+
+    //delete narratives on transactions of this account
+    val tagsDeleted = MappedTag.bulkDelete_!!(
+      By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value)
+    )
+
+    //delete WhereTags on transactions of this account
+    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
+      By(MappedWhereTag.bank, bankId.value),
+      By(MappedWhereTag.account, accountId.value)
+    )
+
+    //delete transaction images on transactions of this account
+    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
+      By(MappedTransactionImage.bank, bankId.value),
+      By(MappedTransactionImage.account, accountId.value)
+    )
+
+    //delete transactions of account
+    val transactionsDeleted = MappedTransaction.bulkDelete_!!(
+      By(MappedTransaction.bank, bankId.value),
+      By(MappedTransaction.account, accountId.value)
+    )
+
+    //remove view privileges (get views first)
+    val views = ViewImpl.findAll(
+      By(ViewImpl.bankPermalink, bankId.value),
+      By(ViewImpl.accountPermalink, accountId.value)
+    )
+
+    //loop over them and delete
+    var privilegesDeleted = true
+    views.map (x => {
+      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
+    })
+
+    //delete views of account
+    val viewsDeleted = ViewImpl.bulkDelete_!!(
+      By(ViewImpl.bankPermalink, bankId.value),
+      By(ViewImpl.accountPermalink, accountId.value)
+    )
+
+    //delete account
+    val account = MappedBankAccount.find(
+      By(MappedBankAccount.bank, bankId.value),
+      By(MappedBankAccount.theAccountId, accountId.value)
+    )
+
+    val accountDeleted = account match {
+      case Full(acc) => acc.delete_!
+      case _ => false
+    }
+
+    commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
+      transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
+}
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,

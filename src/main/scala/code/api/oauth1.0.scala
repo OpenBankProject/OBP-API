@@ -404,7 +404,8 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
     else
       httpCode = 200
-    logger.error("error message : " + message)
+    if(message.nonEmpty)
+      logger.error("error message : " + message)
 
     (httpCode, message, parameters)
   }

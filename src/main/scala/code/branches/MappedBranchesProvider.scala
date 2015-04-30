@@ -77,7 +77,7 @@ Else could store a link to this with each open data record - or via config for e
 
 
 class MappedLicense extends License with LongKeyedMapper[MappedLicense] with IdPK {
-  override def getSingleton = MappedDataLicense
+  override def getSingleton = MappedLicense
 
   object mBankId extends DefaultStringField(this)
   object mName extends DefaultStringField(this)
@@ -88,6 +88,6 @@ class MappedLicense extends License with LongKeyedMapper[MappedLicense] with IdP
 }
 
 
-object MappedDataLicense extends MappedLicense with LongKeyedMetaMapper[MappedLicense] {
+object MappedLicense extends MappedLicense with LongKeyedMetaMapper[MappedLicense] {
   override  def dbIndexes = Index(mBankId) :: super.dbIndexes
 }

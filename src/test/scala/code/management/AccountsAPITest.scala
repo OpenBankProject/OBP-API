@@ -4,10 +4,12 @@ import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.{AccountsJSON, API1_2_1Test}
 import code.api.{PrivateUser2Accounts, DefaultUsers, User1AllPrivileges}
 import code.api.test.APIResponse
+import code.model.dataAccess.ViewImpl
 import code.model.{BankId, AccountId}
 import dispatch._
 import code.bankconnectors.Connector
 import net.liftweb.common.Empty
+import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 
@@ -47,7 +49,7 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
       //get one of those
       val account = reply.body.extract[AccountsJSON].accounts.head
 
-      //delete it
+      //delete the account
       val response = deleteBankAccount(bankId = account.bank_id, accountId = account.id, consumerAndToken = user1)
       response.code should equal(OK_NO_CONTENT)
 
@@ -65,11 +67,11 @@ class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultU
       //get one of those
       val account = reply.body.extract[AccountsJSON].accounts.head
 
-      //delete it with the other user that should not have owner permissions
+      When("Deleting the account with another user that does not have owner permissions")
       val response = deleteBankAccount(bankId = account.bank_id, accountId = account.id, consumerAndToken = user1)
       response.code should equal(SERVER_ERROR)
 
-      //check that it is still there
+      Then("The account should still be there")
       Connector.connector.vend.getBankAccount(BankId(account.bank_id), AccountId(account.id)) should not equal(Empty)
     }
   }
