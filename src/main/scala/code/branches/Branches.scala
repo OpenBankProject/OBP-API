@@ -66,16 +66,8 @@ trait BranchesProvider {
   Common logic for returning branches.
   Implementation details in branchesData
    */
-
   final def getBranches(bankId : BankId) : Option[List[Branch]] = {
-//    branchDataLicense(bankId) match {
-//      case Some(license) =>
         getBranchesFromProvider(bankId)
-//      case None => {
-//        logger.warn(s"getBranches says: No branch data license found for bank ${bankId.value}")
-//        None
-//      }
-//    }
   }
 
   /*
