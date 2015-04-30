@@ -19,11 +19,13 @@ object AccountsAPI extends OBPRestHelper with Loggable {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
-  val VERSION = "management"
+  val MODULE = "internal"
+  val VERSION = "v1.0"
+  val prefix = (MODULE / VERSION ).oPrefix(_)
 
-  oauthServe(apiPrefix {
+  oauthServe(prefix {
     //deletes a bank account
-    case "v1.0" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete json => {
+    case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonDelete json => {
       user =>
         for {
           u <- user ?~ "user not found"
