@@ -72,9 +72,7 @@ trait BranchesProvider {
   }
 
   /*
-
   Return one Branch
-  Needs bankId so we can get the licence related to the bank (BranchId should be unique anyway)
    */
   final def getBranch(branchId : BranchId) : Option[Branch] = {
 //    // Only return the data if we have a license!
