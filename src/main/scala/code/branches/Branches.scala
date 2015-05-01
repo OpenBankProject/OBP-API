@@ -14,13 +14,14 @@ object Branches extends SimpleInjector {
   case class BranchId(value : String)
 
   trait License {
-    def name : String = "simon says"
-    def url : String  = "www.google.com"
+    def name : String
+    def url : String
   }
 
   trait Meta {
-    def license : License = new License {} // Note: {} used to instantiate an anonymous class of the License trait
+    def license : License
   }
+
 
   trait Address {
     def line1 : String
@@ -36,8 +37,8 @@ object Branches extends SimpleInjector {
   trait Branch {
     def branchId : BranchId
     def name : String
-    //def address : Address
-    //def meta : Meta = new Meta {} // Note: {} used to instantiate an anonymous class of the Meta trait
+    def address : Address
+    def meta : Meta
   }
 
   val branchesProvider = new Inject(buildOne _) {}

@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import dispatch._
-import code.branches.Branches.{BranchId, Branch, License, Address}
+import code.branches.Branches.{BranchId, Branch, License, Address, Meta}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.util.Helper.prettyJson
@@ -13,7 +13,8 @@ class BranchesTest extends V140ServerSetup {
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")
 
-  case class BranchImpl(branchId : BranchId, name : String) extends Branch
+  // Have to repeat the constructor parameters from the trait
+  case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, line4 : String,
                          line5 : String, postCode : String, countryCode : String) extends Address
 
@@ -21,15 +22,21 @@ class BranchesTest extends V140ServerSetup {
   val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "mvmvmv", "C4SF5", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1")
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2")
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta)
 
 
 
-  val fakeLicense = new License {
-    override def name: String = "sample-license"
-    override def url: String = "http://example.com/license"
+  val fakeMeta = new Meta {
+    val license = new License {
+      override def name: String = "sample-license"
+      override def url: String = "http://example.com/license"
+    }
   }
+
+
+
+
 
   val mockConnector = new BranchesProvider {
     override protected def getBranchesFromProvider(bank: BankId): Option[List[Branch]] = {
@@ -64,13 +71,13 @@ class BranchesTest extends V140ServerSetup {
   def verifySameData(branch: Branch, branchJson : BranchJson) = {
     branch.name should equal (branchJson.name)
     branch.branchId should equal(BranchId(branchJson.id))
-//    branch.address.line1 should equal(branchJson.address.line_1)
-//    branch.address.line2 should equal(branchJson.address.line_2)
-//    branch.address.line3 should equal(branchJson.address.line_3)
-//    branch.address.line4 should equal(branchJson.address.line_4)
-//    branch.address.line5 should equal(branchJson.address.line_5)
-//    branch.address.countryCode should equal(branchJson.address.country)
-//    branch.address.postCode should equal(branchJson.address.postcode_zip)
+    branch.address.line1 should equal(branchJson.address.line_1)
+    branch.address.line2 should equal(branchJson.address.line_2)
+    branch.address.line3 should equal(branchJson.address.line_3)
+    branch.address.line4 should equal(branchJson.address.line_4)
+    branch.address.line5 should equal(branchJson.address.line_5)
+    branch.address.countryCode should equal(branchJson.address.country)
+    branch.address.postCode should equal(branchJson.address.postcode)
   }
 
   override def beforeAll() {

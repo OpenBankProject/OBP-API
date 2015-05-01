@@ -25,10 +25,10 @@ object JSONFactory1_4_0 {
   case class DataLicenseJson(name : String, url : String)
 
 
-  case class BranchJson(id : String, name : String) // , address : AddressJson, meta : Meta)
+  case class BranchJson(id : String, name : String, address : AddressJson, meta : Meta)
   case class BranchesJson (branches : List[BranchJson])
 
-  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, line_4 : String, line_5 : String, postcode_zip : String, country : String)
+  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, line_4 : String, line_5 : String, postcode : String, country : String)
 
   def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
 
@@ -57,8 +57,7 @@ object JSONFactory1_4_0 {
   }
 
   def createBranchJson(branch: Branch) : BranchJson = {
-    BranchJson(branch.branchId.value, branch.name)
-      //, createAddressJson(branch.address), branch.meta)
+    BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address), branch.meta)
   }
 
   def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {

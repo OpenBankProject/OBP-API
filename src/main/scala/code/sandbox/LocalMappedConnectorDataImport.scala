@@ -47,7 +47,17 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         .mBranchId(branch.id)
         .mBankId(branch.bank)
         .mName(branch.name)
-      // TODO add the other fields
+        // Note: address fields are returned in meta.address
+        // but are stored flat as fields / columns in the table
+        .mLine1(branch.address.line_1)
+        .mLine2(branch.address.line_2)
+        .mLine3(branch.address.line_3)
+        .mLine4(branch.address.line_4)
+        .mLine5(branch.address.line_5)
+        .mPostCode(branch.address.post_code)
+        .mCountryCode(branch.address.country_code)
+        .mLicenseName(branch.meta.license.name)
+        .mLicenseUrl(branch.meta.license.url)
     })
 
     val validationErrors = mappedBranches.flatMap(_.validate)

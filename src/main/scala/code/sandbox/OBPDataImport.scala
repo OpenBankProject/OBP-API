@@ -480,13 +480,24 @@ case class SandboxBranchImport(
   bank: String,
   name : String,
   address : SandboxAddressImport,
-  location : SandboxLocationImport)
+  location : SandboxLocationImport,
+  meta : SandboxMetaImport)
 
-case class SandboxDataLicenseImport(
-  id : String,
-  bank : String,
-  name : String,
-  url : String)
+case class SandboxLicenseImport(
+   name : String,
+   url : String)
+
+case class SandboxMetaImport(
+   license : SandboxLicenseImport
+)
+
+
+
+//case class SandboxDataLicenseImport(
+//  id : String,
+//  bank : String,
+//  name : String,
+//  url : String)
 
 case class SandboxAddressImport(
    line_1 : String,
@@ -549,5 +560,4 @@ case class SandboxDataImport(
   users : List[SandboxUserImport],
   accounts : List[SandboxAccountImport],
   transactions : List[SandboxTransactionImport],
-  branches: List[SandboxBranchImport],
-  licenses: List[SandboxDataLicenseImport])
+  branches: List[SandboxBranchImport])
