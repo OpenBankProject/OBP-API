@@ -3,12 +3,12 @@ package code.branches
 import code.api.test.ServerSetup
 import code.model.BankId
 import net.liftweb.mapper.By
+import code.branches.Branches.Branch
 
 class MappedBranchesProviderTest extends ServerSetup {
 
   private def delete(): Unit = {
     MappedBranch.bulkDelete_!!()
-    //MappedLicense.bulkDelete_!!()
   }
 
   override def beforeAll() = {
@@ -23,16 +23,13 @@ class MappedBranchesProviderTest extends ServerSetup {
 
   def defaultSetup() =
     new {
-      val bankIdWithLicenseAndData = "some-bank"
-      val bankIdWithNoLicense = "unlicensed-bank"
+      val bankIdX = "some-bank-x"
+      val bankIdY = "some-bank-y"
 
-//      val license = MappedLicense.create
-//        .mBankId(bankIdWithLicenseAndData)
-//        .mName("some-license")
-//        .mUrl("http://www.example.com/license").saveMe()
+      // 3 branches for bank X (one branch does not have a license)
 
       val unlicensedBranch = MappedBranch.create
-        .mBankId(bankIdWithNoLicense)
+        .mBankId(bankIdX)
         .mName("unlicensed")
         .mBranchId("unlicensed")
         .mCountryCode("es")
@@ -42,9 +39,10 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine3("c4")
         .mLine4("d4")
         .mLine5("e4").saveMe()
+        // Note: The license is not set
 
       val branch1 = MappedBranch.create
-        .mBankId(bankIdWithLicenseAndData)
+        .mBankId(bankIdX)
         .mName("branch 1")
         .mBranchId("branch1")
         .mCountryCode("de")
@@ -58,7 +56,7 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLicenseUrl("http://www.example.com/license").saveMe()
 
       val branch2 = MappedBranch.create
-        .mBankId(bankIdWithLicenseAndData)
+        .mBankId(bankIdX)
         .mName("branch 2")
         .mBranchId("branch2")
         .mCountryCode("fr")
@@ -70,66 +68,53 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine5("e2")
         .mLicenseName("some-license")
         .mLicenseUrl("http://www.example.com/license").saveMe()
+
     }
 
-  feature("FIX ME MappedBranchesProvider") {
 
-    scenario("We try to get branch data for a bank which does not have a data license set") {
+  feature("MappedBranchesProvider") {
+
+    scenario("We try to get branches") {
+
       val fixture = defaultSetup()
 
-      Given("The bank in question has no data license")
-      //MappedLicense.count(By(MappedLicense.mBankId, fixture.bankIdWithNoLicense)) should equal(0)
+      // Only these have license set
+      val expectedBranches =  Set(fixture.branch1 :: fixture.branch2 :: Nil)
 
-      And("The bank in question has branches")
-      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdWithNoLicense)).isDefined should equal(true)
 
-      When("We try to get the branch data for that bank")
-      val branchData = MappedBranchesProvider.getBranches(BankId(fixture.bankIdWithNoLicense))
+      Given("the bank in question has branches")
+      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
-      Then("We should get an empty option")
-      branchData should equal(None)
+      When("we try to get the branches for that bank")
+      val branchesOpt: Option[List[Branch]] = MappedBranchesProvider.getBranches(BankId(fixture.bankIdX))
+
+      Then("We should get a branches list")
+      branchesOpt.isDefined should equal (true)
+      val branches = branchesOpt.get
+
+      And("it should contain two branches")
+      branches.size should equal(2)
+
+      //And("they should be the licensed ones")
+      //branches.toSet should equal (expectedBranches)
     }
 
-    scenario("FIX ME We try to get branch data for a bank which does have a data license set") {
+    scenario("We try to get branches for a bank that doesn't have any") {
+
       val fixture = defaultSetup()
-      val expectedBranches = Set(fixture.branch1, fixture.branch2)
-      Given("We have a data license and branches for a bank")
-      //MappedLicense.count(By(MappedLicense.mBankId, fixture.bankIdWithLicenseAndData)) should equal(1)
-      MappedBranch.findAll(By(MappedBranch.mBankId, fixture.bankIdWithLicenseAndData)).toSet should equal(expectedBranches)
 
-      When("We try to get the branch data for that bank")
-      val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdWithLicenseAndData))
+      Given("we don't have any branches")
 
-      Then("We should get back the data license and the branches")
+      MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdY)).isDefined should equal(false)
+
+      When("we try to get the branches for that bank")
+      val branchDataOpt = MappedBranchesProvider.getBranches(BankId(fixture.bankIdY))
+
+      Then("we should get back an empty list")
       branchDataOpt.isDefined should equal(true)
       val branches = branchDataOpt.get
 
-      // We no longer have one license per collection so this does not make sense
-      // branchData.branches. should equal(fixture.license)
-      branches.toSet should equal(expectedBranches)
-    }
-
-    scenario("FIX ME We try to get branch data for a bank with a data license, but no branches") {
-
-      Given("We have a data license for a bank, but no branches")
-
-      val bankWithNoBranches = "bank-with-no-branches"
-//      val license = MappedLicense.create
-//        .mBankId(bankWithNoBranches)
-//        .mName("some-license")
-//        .mUrl("http://www.example.com/license").saveMe()
-
-      MappedBranch.find(By(MappedBranch.mBankId, bankWithNoBranches)).isDefined should equal(false)
-
-      When("We try to get the branch data for that bank")
-      val branchDataOpt = MappedBranchesProvider.getBranches(BankId(bankWithNoBranches))
-
-      Then("We should get back the data license, and a list branches of size 0")
-      branchDataOpt.isDefined should equal(true)
-      val branches = branchDataOpt.get
-
-      // ditto above: branchData.license should equal(license)
-      branches should equal(Nil)
+      branches.size should equal(0)
 
     }
 

@@ -68,22 +68,19 @@ trait BranchesProvider {
   Implementation details in branchesData
    */
   final def getBranches(bankId : BankId) : Option[List[Branch]] = {
-        getBranchesFromProvider(bankId)
+    // If we get branches filter them
+    getBranchesFromProvider(bankId) match {
+      case Some(b) => Option(b.filter(x => x.meta.license.name != "" && x.meta.license.url != ""))
+      case None => None
+    }
   }
 
   /*
   Return one Branch
    */
   final def getBranch(branchId : BranchId) : Option[Branch] = {
-//    // Only return the data if we have a license!
-//    branchDataLicense(bankId) match {
-//      case Some(license) =>
-        getBranchFromProvider(branchId)
-//      case None => {
-//        logger.warn(s"getBranch says: No branch data license found for bank ${bankId.value}")
-//        None
-//      }
-
+    // Filter out if no license data
+    getBranchFromProvider(branchId).filter(x => x.meta.license.name != "" && x.meta.license.url != "")
   }
 
   protected def getBranchFromProvider(branchId : BranchId) : Option[Branch]
