@@ -22,11 +22,6 @@ class BranchesTest extends V140ServerSetup {
   val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "mvmvmv", "C4SF5", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta)
-
-
-
   val fakeMeta = new Meta {
     val license = new License {
       override def name: String = "sample-license"
@@ -34,38 +29,38 @@ class BranchesTest extends V140ServerSetup {
     }
   }
 
+  val fakeMetaNoLicense = new Meta {
+    val license = new License {
+      override def name: String = ""
+      override def url: String = ""
+    }
+  }
 
 
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta)
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeMetaNoLicense) // Should not be returned
 
-
+  // Note: This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
     override protected def getBranchesFromProvider(bank: BankId): Option[List[Branch]] = {
+      println("heelo from mockConnector getBranchesFromProvider")
       bank match {
-        // have it return branches even for the bank without a license so we can test the connector does not return them
-        case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2))
+        // have it return branches even for the bank without a license so we can test the API does not return them
+        case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))
         case _ => None
       }
     }
 
+    // Mock a badly behaving connector that returns data that doesn't have license.
     override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] = {
       branchId match {
-        // have it return a branch even for the bank without a license so we can test the connector does not return them
-        case BankWithLicense | BankWithoutLicense=> Some(fakeBranch1)
+         case BankWithLicense => Some(fakeBranch1)
+         case BankWithoutLicense=> Some(fakeBranch3) // In case the connector returns, the API should guard
         case _ => None
       }
     }
 
-
-
-
-
-
-//    override protected def branchDataLicense(bank: BankId): Option[License] = {
-//      bank match {
-//        case BankWithLicense => Some(fakeLicense)
-//        case _ => None
-//      }
-//    }
   }
 
   def verifySameData(branch: Branch, branchJson : BranchJson) = {
@@ -100,8 +95,8 @@ class BranchesTest extends V140ServerSetup {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET
       val response = makeGetRequest(request)
 
-      Then("We should get a 404")
-      response.code should equal(404)
+      Then("We should get a 200")
+      response.code should equal(200)
     }
 
     scenario("We try to get bank branches for a bank with a data license for branch information") {
@@ -117,14 +112,7 @@ class BranchesTest extends V140ServerSetup {
       val responseBodyOpt = wholeResponseBody.extractOpt[BranchesJson]
       responseBodyOpt.isDefined should equal(true)
 
-
       val responseBody = responseBodyOpt.get
-
-      //And("We should get the right license")
-      // TODO put back in
-//      val license = responseBody.meta.license
-//      license.name should equal(fakeLicense.name)
-//      license.url should equal(fakeLicense.url)
 
       And("We should get the right branches")
       val branches = responseBody.branches
