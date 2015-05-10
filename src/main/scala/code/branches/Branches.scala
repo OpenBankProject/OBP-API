@@ -27,8 +27,8 @@ object Branches extends SimpleInjector {
     def line1 : String
     def line2 : String
     def line3 : String
-    def line4 : String
-    def line5 : String
+    def city : String
+    def state : String // or county
     def postCode : String
     //ISO_3166-1_alpha-2
     def countryCode : String

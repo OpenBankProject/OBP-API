@@ -15,8 +15,8 @@ class BranchesTest extends V140ServerSetup {
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta) extends Branch
-  case class AddressImpl(line1 : String, line2 : String, line3 : String, line4 : String,
-                         line5 : String, postCode : String, countryCode : String) extends Address
+  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String,
+                         state : String, postCode : String, countryCode : String) extends Address
 
 
   val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "mvmvmv", "C4SF5", "DE")
@@ -69,8 +69,8 @@ class BranchesTest extends V140ServerSetup {
     branch.address.line1 should equal(branchJson.address.line_1)
     branch.address.line2 should equal(branchJson.address.line_2)
     branch.address.line3 should equal(branchJson.address.line_3)
-    branch.address.line4 should equal(branchJson.address.line_4)
-    branch.address.line5 should equal(branchJson.address.line_5)
+    branch.address.city should equal(branchJson.address.city)
+    branch.address.state should equal(branchJson.address.state)
     branch.address.countryCode should equal(branchJson.address.country)
     branch.address.postCode should equal(branchJson.address.postcode)
   }

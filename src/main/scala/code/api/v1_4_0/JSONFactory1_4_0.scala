@@ -29,7 +29,7 @@ object JSONFactory1_4_0 {
   case class BranchJson(id : String, name : String, address : AddressJson, meta : MetaJson)
   case class BranchesJson (branches : List[BranchJson])
 
-  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, line_4 : String, line_5 : String, postcode : String, country : String)
+  case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
   def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
 
@@ -61,7 +61,7 @@ object JSONFactory1_4_0 {
 
   // Accept an address object and return its json representation
   def createAddressJson(address : Branches.Address) : AddressJson = {
-    AddressJson(address.line1, address.line2, address.line3, address.line4, address.line5, address.postCode, address.countryCode)
+    AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
   }
 
   def createBranchJson(branch: Branch) : BranchJson = {

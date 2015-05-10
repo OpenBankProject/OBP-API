@@ -34,8 +34,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mLine1 extends DefaultStringField(this)
   object mLine2 extends DefaultStringField(this)
   object mLine3 extends DefaultStringField(this)
-  object mLine4 extends DefaultStringField(this)
-  object mLine5 extends DefaultStringField(this)
+  object mCity extends DefaultStringField(this)
+  object mState extends DefaultStringField(this)
   object mCountryCode extends MappedString(this, 2)
   object mPostCode extends DefaultStringField(this)
 
@@ -51,8 +51,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     override def line1: String = mLine1.get
     override def line2: String = mLine2.get
     override def line3: String = mLine3.get
-    override def line4: String = mLine4.get
-    override def line5: String = mLine5.get
+    override def city: String = mCity.get
+    override def state: String = mState.get
     override def countryCode: String = mCountryCode.get
     override def postCode: String = mPostCode.get
   }

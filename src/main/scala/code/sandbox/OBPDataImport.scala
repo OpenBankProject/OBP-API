@@ -503,8 +503,8 @@ case class SandboxAddressImport(
    line_1 : String,
    line_2 : String,
    line_3 : String,
-   line_4 : String,
-   line_5 : String,
+   city : String,
+   state : String, // or county / region
    post_code : String,
    country_code: String)
 

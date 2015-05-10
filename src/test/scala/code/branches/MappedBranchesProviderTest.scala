@@ -37,8 +37,8 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine1("a4")
         .mLine2("b4")
         .mLine3("c4")
-        .mLine4("d4")
-        .mLine5("e4").saveMe()
+        .mCity("d4")
+        .mState("e4").saveMe()
         // Note: The license is not set
 
       val branch1 = MappedBranch.create
@@ -50,8 +50,8 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine1("a")
         .mLine2("b")
         .mLine3("c")
-        .mLine4("d")
-        .mLine5("e")
+        .mCity("d")
+        .mState("e")
         .mLicenseName("some-license")
         .mLicenseUrl("http://www.example.com/license").saveMe()
 
@@ -64,8 +64,8 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine1("a2")
         .mLine2("b2")
         .mLine3("c2")
-        .mLine4("d2")
-        .mLine5("e2")
+        .mCity("d2")
+        .mState("e2")
         .mLicenseName("some-license")
         .mLicenseUrl("http://www.example.com/license").saveMe()
 

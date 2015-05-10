@@ -143,8 +143,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.line1 should equal(branch.address.line_1)
     foundBranch.address.line2 should equal(branch.address.line_2)
     foundBranch.address.line3 should equal(branch.address.line_3)
-    foundBranch.address.line4 should equal(branch.address.line_4)
-    foundBranch.address.line5 should equal(branch.address.line_5)
+    foundBranch.address.city should equal(branch.address.city)
+    foundBranch.address.state should equal(branch.address.state)
 
     foundBranch.address.postCode should equal(branch.address.post_code)
     foundBranch.address.countryCode should equal(branch.address.country_code)
@@ -304,7 +304,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
   val standardAddress1 = SandboxAddressImport(line_1 = "5 Some Street", line_2 = "Rosy Place", line_3 = "Sunny Village",
-    line_4 = "Out There", line_5 = "Derbyshire", post_code = "WHY RU4", country_code = "UK")
+    city = "Ashbourne", state = "Derbyshire", post_code = "WHY RU4", country_code = "UK")
 
   val standardLocation1 = SandboxLocationImport(52.556198, 13.384099)
 
