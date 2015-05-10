@@ -81,15 +81,19 @@ trait OBPRestHelper extends RestHelper with Loggable {
   def vPlusVersion = "v" + VERSION
   def apiPrefix = ("obp" / vPlusVersion).oPrefix(_)
 
-  implicit def jsonResponseBoxToJsonReponse(box: Box[JsonResponse]): JsonResponse = {
+  /*
+  An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
+  If we have something good, return it. Else log and return an error.
+  */
+  implicit def jsonResponseBoxToJsonResponse(box: Box[JsonResponse]): JsonResponse = {
     box match {
       case Full(r) => r
       case ParamFailure(_, _, _, apiFailure : APIFailure) => {
-        logger.info("jsonResponseBoxToJsonReponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
+        logger.info("jsonResponseBoxToJsonResponse case ParamFailure says: API Failure: " + apiFailure.msg + " ($apiFailure.responseCode)")
         errorJsonResponse(apiFailure.msg, apiFailure.responseCode)
       }
       case Failure(msg, _, _) => {
-        logger.info("jsonResponseBoxToJsonReponse case Failure API Failure: " + msg)
+        logger.info("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
