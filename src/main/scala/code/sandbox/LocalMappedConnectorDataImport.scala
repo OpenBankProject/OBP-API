@@ -45,7 +45,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     val mappedBranches = data.map(branch => {
       MappedBranch.create
         .mBranchId(branch.id)
-        .mBankId(branch.bank)
+        .mBankId(branch.bank_id)
         .mName(branch.name)
         // Note: address fields are returned in meta.address
         // but are stored flat as fields / columns in the table

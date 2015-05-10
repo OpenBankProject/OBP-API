@@ -15,7 +15,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
 
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
-
+  logger.debug("Hello from SandboxApiCalls")
   val VERSION = "sandbox"
 
   oauthServe(apiPrefix{

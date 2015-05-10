@@ -127,7 +127,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     println("Hello from verifyBranchCreated")
 
     // Get ids from input
-    val bankId = BankId(branch.bank)
+    val bankId = BankId(branch.bank_id)
     val branchId = BranchId(branch.id)
 
     println(s"bankId is $bankId")
@@ -315,8 +315,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardLicense = SandboxLicenseImport  (name = "PDDL", url = "http://opendatacommons.org/licenses/pddl/")
   val standardMeta = SandboxMetaImport (license = standardLicense)
 
-  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
-  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
+  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
+  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
 
   val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
 

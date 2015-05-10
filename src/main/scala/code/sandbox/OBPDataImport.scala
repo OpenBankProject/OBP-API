@@ -426,6 +426,7 @@ trait OBPDataImport extends Loggable {
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
   def importData(data: SandboxDataImport) : Box[Unit] = {
+    logger.debug("Hello from importData")
     for {
       banks <- createBanks(data)
       users <- createUsers(data.users)
@@ -477,7 +478,7 @@ case class SandboxBankImport(
 
 case class SandboxBranchImport(
   id : String,
-  bank: String,
+  bank_id: String,
   name : String,
   address : SandboxAddressImport,
   location : SandboxLocationImport,
