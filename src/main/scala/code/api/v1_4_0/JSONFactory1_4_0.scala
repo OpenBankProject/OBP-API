@@ -51,7 +51,7 @@ object JSONFactory1_4_0 {
 
   // Accept a license object and return its json representation
   def createLicenseJson(license : License) : LicenseJson = {
-    LicenseJson(license.name, license.url)
+    LicenseJson(license.id, license.name)
   }
 
   def createMetaJson(meta: Meta) : MetaJson = {

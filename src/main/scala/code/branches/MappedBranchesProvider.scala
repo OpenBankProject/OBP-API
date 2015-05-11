@@ -35,14 +35,15 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mLine2 extends DefaultStringField(this)
   object mLine3 extends DefaultStringField(this)
   object mCity extends DefaultStringField(this)
+  object mCounty extends DefaultStringField(this)
   object mState extends DefaultStringField(this)
   object mCountryCode extends MappedString(this, 2)
   object mPostCode extends DefaultStringField(this)
 
 
   // Exposed inside meta.license See below
+  object mLicenseId extends DefaultStringField(this)
   object mLicenseName extends DefaultStringField(this)
-  object mLicenseUrl extends DefaultStringField(this)
 
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
@@ -52,6 +53,7 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     override def line2: String = mLine2.get
     override def line3: String = mLine3.get
     override def city: String = mCity.get
+    override def county: String = mCounty.get
     override def state: String = mState.get
     override def countryCode: String = mCountryCode.get
     override def postCode: String = mPostCode.get
@@ -59,8 +61,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
 
   override def meta: Meta = new Meta {
     override def license: License = new License {
+      override def id: String = mLicenseId.get
       override def name: String = mLicenseName.get
-      override def url: String = mLicenseUrl.get
     }
   }
 

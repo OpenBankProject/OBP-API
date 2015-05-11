@@ -52,8 +52,8 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine3("c")
         .mCity("d")
         .mState("e")
-        .mLicenseName("some-license")
-        .mLicenseUrl("http://www.example.com/license").saveMe()
+        .mLicenseId("some-license")
+        .mLicenseName("Some License").saveMe()
 
       val branch2 = MappedBranch.create
         .mBankId(bankIdX)
@@ -66,8 +66,8 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine3("c2")
         .mCity("d2")
         .mState("e2")
-        .mLicenseName("some-license")
-        .mLicenseUrl("http://www.example.com/license").saveMe()
+        .mLicenseId("some-license")
+        .mLicenseName("Some License").saveMe()
 
     }
 

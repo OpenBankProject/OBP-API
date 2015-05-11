@@ -14,8 +14,8 @@ object Branches extends SimpleInjector {
   case class BranchId(value : String)
 
   trait License {
+    def id : String
     def name : String
-    def url : String
   }
 
   trait Meta {
@@ -28,6 +28,7 @@ object Branches extends SimpleInjector {
     def line2 : String
     def line3 : String
     def city : String
+    def county : String
     def state : String // or county
     def postCode : String
     //ISO_3166-1_alpha-2
@@ -88,7 +89,7 @@ trait BranchesProvider {
    */
   final def getBranch(branchId : BranchId) : Option[Branch] = {
     // Filter out if no license data
-    getBranchFromProvider(branchId).filter(x => x.meta.license.name != "" && x.meta.license.url != "")
+    getBranchFromProvider(branchId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
   }
 
   protected def getBranchFromProvider(branchId : BranchId) : Option[Branch]

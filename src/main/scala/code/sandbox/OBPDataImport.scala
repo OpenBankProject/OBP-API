@@ -485,8 +485,8 @@ case class SandboxBranchImport(
   meta : SandboxMetaImport)
 
 case class SandboxLicenseImport(
-   name : String,
-   url : String)
+   id : String,
+   name : String)
 
 case class SandboxMetaImport(
    license : SandboxLicenseImport
@@ -505,7 +505,8 @@ case class SandboxAddressImport(
    line_2 : String,
    line_3 : String,
    city : String,
-   state : String, // or county / region
+   county : String, // Division of State
+   state : String, // Division of Country
    post_code : String,
    country_code: String)
 

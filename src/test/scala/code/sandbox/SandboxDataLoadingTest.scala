@@ -144,15 +144,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.line2 should equal(branch.address.line_2)
     foundBranch.address.line3 should equal(branch.address.line_3)
     foundBranch.address.city should equal(branch.address.city)
+    foundBranch.address.county should equal(branch.address.county)
     foundBranch.address.state should equal(branch.address.state)
 
     foundBranch.address.postCode should equal(branch.address.post_code)
     foundBranch.address.countryCode should equal(branch.address.country_code)
 
-    println("yo")
-
+    foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
-    foundBranch.meta.license.url should equal(branch.meta.license.url)
 
   }
 
@@ -304,7 +303,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
   val standardAddress1 = SandboxAddressImport(line_1 = "5 Some Street", line_2 = "Rosy Place", line_3 = "Sunny Village",
-    city = "Ashbourne", state = "Derbyshire", post_code = "WHY RU4", country_code = "UK")
+    city = "Ashbourne", county = "Derbyshire",  state = "", post_code = "WHY RU4", country_code = "UK")
 
   val standardLocation1 = SandboxLocationImport(52.556198, 13.384099)
 
@@ -312,7 +311,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   //val standardLicenses = license1AtBank1 :: Nil
 
 
-  val standardLicense = SandboxLicenseImport  (name = "PDDL", url = "http://opendatacommons.org/licenses/pddl/")
+  val standardLicense = SandboxLicenseImport  (id = "pddl", name = "Open Data Commons Public Domain Dedication and License (PDDL)")
   val standardMeta = SandboxMetaImport (license = standardLicense)
 
   val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)

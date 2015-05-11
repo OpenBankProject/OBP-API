@@ -15,24 +15,24 @@ class BranchesTest extends V140ServerSetup {
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta) extends Branch
-  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String,
+  case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
 
 
-  val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "mvmvmv", "C4SF5", "DE")
+  val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "a county", "mvmvmv", "C4SF5", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
   val fakeMeta = new Meta {
     val license = new License {
-      override def name: String = "sample-license"
-      override def url: String = "http://example.com/license"
+      override def id: String = "sample-license"
+      override def name: String = "Sample License"
     }
   }
 
   val fakeMetaNoLicense = new Meta {
     val license = new License {
+      override def id: String = ""
       override def name: String = ""
-      override def url: String = ""
     }
   }
 
