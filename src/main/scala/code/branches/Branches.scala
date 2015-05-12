@@ -4,11 +4,8 @@ package code.branches
 import code.branches.Branches.{Branch, BranchId}
 
 import code.model.{BankId}
-import com.sun.tools.internal.xjc.reader.xmlschema.bindinfo.BIGlobalBinding
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
-
-import scala.util.Try
 
 object Branches extends SimpleInjector {
 
