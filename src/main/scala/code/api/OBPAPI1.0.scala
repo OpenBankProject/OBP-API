@@ -65,6 +65,8 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
+      // NOTE: This function has been pulled out to gitCommit in APIUtil.scala
+      // Not updating this code since its 1.0
       def gitCommit : String = {
         val commit = tryo{
           val properties = new java.util.Properties()

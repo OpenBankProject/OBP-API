@@ -34,7 +34,7 @@ package code.api.util
 
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
-import net.liftweb.common.Full
+import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
@@ -44,7 +44,8 @@ import net.liftweb.util.Helpers._
 
 import scala.collection.JavaConversions.asScalaSet
 
-object APIUtil {
+
+object APIUtil extends Loggable {
 
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
@@ -69,13 +70,25 @@ object APIUtil {
   def logAPICall =
     APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
 
+
+  /*
+  Return the git commit. If we can't for some reason (not a git root etc) then log and return ""
+   */
   def gitCommit : String = {
-    val commit = tryo{
+    val commit = try {
       val properties = new java.util.Properties()
+      logger.debug("Before getResourceAsStream git.properties")
       properties.load(getClass().getClassLoader().getResourceAsStream("git.properties"))
+      logger.debug("Before get Property git.commit.id")
       properties.getProperty("git.commit.id", "")
+    } catch {
+      case e : Throwable => {
+               logger.warn("gitCommit says: Could not return git commit. Does resources/git.properties exist?")
+               logger.error(s"Exception in gitCommit: $e")
+        "" // Return empty string
+      }
     }
-    commit getOrElse ""
+    commit
   }
 
   def noContentJsonResponse : JsonResponse =
