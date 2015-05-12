@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import dispatch._
-import code.branches.Branches.{BranchId, Branch, License, Address, Meta}
+import code.branches.Branches.{BranchId, Branch, License, Address, Meta, Lobby, DriveUp}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.util.Helper.prettyJson
@@ -14,7 +14,7 @@ class BranchesTest extends V140ServerSetup {
   val BankWithoutLicense = BankId("bank-without-license")
 
   // Have to repeat the constructor parameters from the trait
-  case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta) extends Branch
+  case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta, lobby : Lobby, driveUp : DriveUp) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
 
@@ -37,14 +37,21 @@ class BranchesTest extends V140ServerSetup {
   }
 
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta)
-  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeMetaNoLicense) // Should not be returned
+  val fakeLobby = new Lobby {
+   val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
+  }
+
+  val fakeDriveUp = new DriveUp {
+    override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
+  }
+
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeMetaNoLicense, fakeLobby, fakeDriveUp) // Should not be returned
 
   // Note: This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
     override protected def getBranchesFromProvider(bank: BankId): Option[List[Branch]] = {
-      println("heelo from mockConnector getBranchesFromProvider")
       bank match {
         // have it return branches even for the bank without a license so we can test the API does not return them
         case BankWithLicense | BankWithoutLicense=> Some(List(fakeBranch1, fakeBranch2, fakeBranch3))

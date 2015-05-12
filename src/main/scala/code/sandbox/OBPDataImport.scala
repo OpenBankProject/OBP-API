@@ -426,7 +426,6 @@ trait OBPDataImport extends Loggable {
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
   def importData(data: SandboxDataImport) : Box[Unit] = {
-    logger.debug("Hello from importData")
     for {
       banks <- createBanks(data)
       users <- createUsers(data.users)
@@ -476,21 +475,30 @@ case class SandboxBankImport(
   logo : String,
   website : String)
 
+
+// Branches to be imported must match this pattern
 case class SandboxBranchImport(
   id : String,
   bank_id: String,
   name : String,
   address : SandboxAddressImport,
   location : SandboxLocationImport,
-  meta : SandboxMetaImport)
+  meta : SandboxMetaImport,
+  lobby : SandboxLobbyImport,
+  driveUp : SandboxDriveUpImport)
 
 case class SandboxLicenseImport(
    id : String,
    name : String)
 
 case class SandboxMetaImport(
-   license : SandboxLicenseImport
-)
+   license : SandboxLicenseImport)
+
+case class SandboxLobbyImport(
+  hours : String)
+
+case class SandboxDriveUpImport(
+  hours : String)
 
 
 
@@ -512,8 +520,7 @@ case class SandboxAddressImport(
 
 case class SandboxLocationImport(
   latitude : Double,
-  longitude : Double
-)
+  longitude : Double)
 
 case class SandboxUserImport(
   email : String,

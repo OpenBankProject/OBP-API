@@ -59,6 +59,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         .mCountryCode(branch.address.country_code)
         .mLicenseId(branch.meta.license.id)
         .mLicenseName(branch.meta.license.name)
+        .mLobbyHours(branch.lobby.hours)
+        .mDriveUpHours(branch.driveUp.hours)
     })
 
     val validationErrors = mappedBranches.flatMap(_.validate)

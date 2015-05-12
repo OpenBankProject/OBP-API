@@ -4,6 +4,7 @@ package code.branches
 import code.branches.Branches.{Branch, BranchId}
 
 import code.model.{BankId}
+import com.sun.tools.internal.xjc.reader.xmlschema.bindinfo.BIGlobalBinding
 import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
@@ -29,7 +30,7 @@ object Branches extends SimpleInjector {
     def line3 : String
     def city : String
     def county : String
-    def state : String // or county
+    def state : String
     def postCode : String
     //ISO_3166-1_alpha-2
     def countryCode : String
@@ -40,7 +41,25 @@ object Branches extends SimpleInjector {
     def name : String
     def address : Address
     def meta : Meta
+    def lobby : Lobby
+    def driveUp : DriveUp
   }
+
+
+  trait Lobby {
+   def hours : String
+  }
+
+  trait DriveUp {
+    def hours : String
+  }
+
+
+
+
+
+
+
 
   val branchesProvider = new Inject(buildOne _) {}
 

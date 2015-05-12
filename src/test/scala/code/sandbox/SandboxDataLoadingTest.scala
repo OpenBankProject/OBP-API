@@ -153,6 +153,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
 
+    foundBranch.lobby.hours should equal(branch.lobby.hours)
+    foundBranch.driveUp.hours should equal(branch.driveUp.hours)
   }
 
 
@@ -314,8 +316,14 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardLicense = SandboxLicenseImport  (id = "pddl", name = "Open Data Commons Public Domain Dedication and License (PDDL)")
   val standardMeta = SandboxMetaImport (license = standardLicense)
 
-  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
-  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1, location = standardLocation1, meta = standardMeta)
+  val standardLobby = SandboxLobbyImport(hours = "M-TH 8:30-3:30, F 9-5")
+  val standardDriveUp = SandboxDriveUpImport(hours = "M-Th 8:30-5:30, F-8:30-6, Sat 9-12")
+
+
+  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta, lobby = standardLobby, driveUp = standardDriveUp)
+  val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta, lobby = standardLobby, driveUp = standardDriveUp)
 
   val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
 

@@ -5,6 +5,7 @@ import code.model.BankId
 import code.util.DefaultStringField
 import net.liftweb.common.Box
 import net.liftweb.mapper._
+import org.joda.time.Hours
 
 import scala.util.Try
 
@@ -45,6 +46,9 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mLicenseId extends DefaultStringField(this)
   object mLicenseName extends DefaultStringField(this)
 
+  object mLobbyHours extends DefaultStringField(this)
+  object mDriveUpHours extends DefaultStringField(this)
+
   override def branchId: BranchId = BranchId(mBranchId.get)
   override def name: String = mName.get
 
@@ -66,6 +70,13 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     }
   }
 
+  override def lobby: Lobby = new Lobby {
+    override def hours: String = mLobbyHours
+  }
+
+  override def driveUp: DriveUp = new DriveUp {
+    override def hours: String = mDriveUpHours
+  }
 
 
 }
