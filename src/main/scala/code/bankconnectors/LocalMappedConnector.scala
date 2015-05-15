@@ -94,7 +94,9 @@ object LocalMappedConnector extends Connector with Loggable {
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-        val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
+        val outDatedTransactions =
+          if(account.lastUpdate.dbNotNull_?) now after time(account.lastUpdate.get.getTime + hours(1))
+          else true
         if(outDatedTransactions && useMessageQueue) {
           UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
         }
