@@ -30,7 +30,7 @@ limitations under the License.
 package code.snippet
 
 import code.util.Helper
-import net.liftweb.common.{Failure, Full}
+import net.liftweb.common.{Failure, Full, Empty}
 import net.liftweb.http.S
 import code.model.{Nonce, Consumer, Token}
 import net.liftweb.mapper.By
@@ -53,6 +53,7 @@ object OAuthAuthorisation {
   def shouldNotLogUserOut(): Boolean = {
     S.param(LogUserOutParam) match {
       case Full("false") => true
+      case Empty => true
       case _ => false
     }
   }
@@ -64,7 +65,7 @@ object OAuthAuthorisation {
     }
   }
 
-  // this method is specific to the authorization page ( where the user login to grant access
+  // this method is specific to the authorization page ( where the user logs in to grant access
   // to the application (step 2))
   def tokenCheck = {
 
@@ -114,13 +115,14 @@ object OAuthAuthorisation {
         }
       } else {
         val currentUrl = S.uriAndQueryString.getOrElse("/")
-        if (OBPUser.loggedIn_?) {
+        /*if (OBPUser.loggedIn_?) {
           OBPUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
           //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
           //properly and the redirect after login gets messed up. -E.S.
           S.redirectTo(currentUrl)
-        }
+        }*/
+
         //if login succeeds, reload the page with logUserOut=false to process it
         OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
         //if login fails, just reload the page with the login form visible

@@ -48,7 +48,7 @@ import net.liftweb.http.js.JsCmds.FocusOnLoad
 /**
  * An O-R mapped "User" class that includes first name, last name, password
  */
-class OBPUser extends MegaProtoUser[OBPUser] with Logger{
+class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   def getSingleton = OBPUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, APIUser)
@@ -208,8 +208,8 @@ import net.liftweb.util.Helpers._
         case Full(user) if user.validated_? &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
-            info("login redir: " + loginRedirect.is)
-            val redir = loginRedirect.is match {
+            info("login redir: " + loginRedirect.get)
+            val redir = loginRedirect.get match {
               case Full(url) =>
                 loginRedirect(Empty)
               url
@@ -218,13 +218,16 @@ import net.liftweb.util.Helpers._
             }
 
             logUserIn(user, () => {
-              S.notice(S.??("logged.in"))
+              S.notice(S.?("logged.in"))
 
               preLoginState()
 
               S.redirectTo(redir)
             })
           }
+
+        case Full(user) if !user.validated_? =>
+          S.error(S.?("account.validation.error"))
 
         case _ => {
           info("failed: " + failedLoginRedirect.get)
