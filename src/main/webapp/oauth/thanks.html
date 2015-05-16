@@ -39,9 +39,10 @@ Open Bank Project (http://www.openbankproject.com)
 		<div id="manualRedirect">
 			Please click <a id="redirect-link" href="">here</a> to be redirected.</noscript>
 		</div>
-		
-		<p>Thank you, you have been authenticated. If you have already been redirected you may now close this window.</p>
-		
+
+		<p><br>Thank you, you have been authenticated.<br>
+			The requesting application should have received an ok and you may now close this window.</p>
+
 		<script class="redirect-script" type="text/javascript">
 			$('#manualRedirect').hide(); //don't need the manual link if js is enabled
 			window.location.assign($('#redirect-link').attr('href'));

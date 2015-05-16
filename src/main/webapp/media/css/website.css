@@ -1,11 +1,11 @@
 @import url('reset.css');
 
-@media all and (max-width: 320px) {
+@media all and (min-width : 300px) and (max-width : 999px) {
     #signupForm td input{
         width: 150px;
     }
 }
-@media all and (min-width: 321px) {
+@media all and (min-width: 1000px) {
     #signupForm td input{
         width: 200px;
     }
@@ -161,16 +161,17 @@ input.submit {
 
 .account-in-content{
 	height: 100%;
-	padding: 2px 20px 0;
+	padding: 10px 20px 30px 10px;
+    text-align: center;
 }
 
-#account .profile-info {
+.account .profile-info {
 	float: right;
 	margin: 0 10px 0 0;
 	font-size: 12px;
 }
 
-#account .account-info {
+.account .account-info {
 	padding: 7px 15px 8px;
 	border: 1px solid #dddddd;
 	border-radius: 10px;
@@ -179,42 +180,113 @@ input.submit {
 	color: #666666;
 }
 
-#account .logout {
+.account .logout {
 	font-size: 12px;
 }
 
+.account form.login .field {
+	width: 164px;
+}
 
-.account-upper form.login{
+.account form.login .buttons {
+	margin-top: 30px;
+	height: 2em;
+}
+
+.account form.login .field input {
+  clear: left;
+  width: 150px;
+  background: #ffffff;
+  border: 1px solid #999999;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.account form.login .field .signup {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account form.login .button-field {
+    height: 2em;
+    float: left;
+}
+
+.account form.login .button .submit {
+  float: left;
+  background: #c1e7e1;
+  border: 1px solid #22a890;
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: #58988e;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 14px 0 0;
+}
+
+.account form.login .field .forgot {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account-in-content form.login .field input {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #CCC;
+  border-radius: 3px;
+  padding: 2px;
+  height: 1.8em;
+}
+
+.account-in-content form.login .button .signup {
+    border: 1px solid gray;
+    border-radius: 3px;
+    padding: 10px 20px;
+    color: gray;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    float: right;
+    margin: 0;
+}
+
+.account-in-content form.login .button .submit {
+  background: #C1E7E1;
+  border: 1px solid #22a890;
+  border-radius: 3px;
+  padding: 10px 20px;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  height: initial;
+  margin: 0;
+}
+
+.account-in-content form.login .field .forgot {
+	float: right;
+	margin: 1px 8px 0 0;
+	padding: 2px 0 0;
+	font-size: 11px;
+}
+
+.account-upper form.login {
 	float: right;
 }
-
-.account-in-content form.login{
-	width: 555px;
-	margin:0 auto
-}
-
-
 
 .account-upper form.login .field,
 .account-upper form.login .button {
 	float: left;
 }
 
-.account-in-content form.login .field{
-	margin-top: 10px;
-}
-
-#account form.login .field {
-	width: 164px;
-}
-
-
 .account-upper form.login .field label {
 	font-size: 11px;
-}
-
-.account-in-content form.login .field label {
-	font-size: 12px;
 }
 
 .account-upper form.login .field input {
@@ -222,47 +294,29 @@ input.submit {
 	font-size: 12px;
 }
 
+.account-in-content form.login{
+	//width: 555px;
+	margin:0 auto
+}
+
+.account-in-content form.login .field{
+	margin-top: 15px;
+	width: 100%;
+}
+
+.account-in-content form.login .field label {
+	font-size: 12px;
+}
+
 .account-in-content form.login .field input {
 	font-size: 14px;
 }
 
-#account form.login .field input {
-	clear: left;
-	width: 150px;
-	background: #ffffff;
-	border: 1px solid #999999;
-	border-radius: 3px;
-	padding: 2px;
-}
-
-#account form.login .field .forgot {
-	float: right;
-	margin: 1px 8px 0 0;
-	padding: 2px 0 0;
-	font-size: 11px;
-}
-
-#account form.login .field .signup {
-	float: right;
-	margin: 1px 8px 0 0;
-	padding: 2px 0 0;
-	font-size: 11px;
-}
-
-#account form.login .button .submit {
-	float: left;
-	background: #c1e7e1;
-	border: 1px solid #22a890;
-	border-radius: 3px;
-	padding: 2px 5px;
-	color: #58988e;
-	font-size: 12px;
-	cursor: pointer;
-	margin: 14px 0 0;
-}
 
 #content {
 	padding: 20px 0 40px;
+	font-size: 16px;
+    line-height: 1.3em;
 }
 
 table {
@@ -549,7 +603,14 @@ span.alias_indicator_private {
 	line-height: 1.5
 }
 #authorizeSection{
-    margin-bottom: 80px;
+    background-color: #f0f0f0;
+	border-radius: 12px;
+	padding: 10px;
+	color: black;
+	width: 450px;
+	max-width: 80%;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .login-error {
@@ -558,7 +619,8 @@ span.alias_indicator_private {
 }
 
 #authorizeSection form.login {
-	margin-top: 20px;
+	padding-top: 20px;
+	width: 400px;
 }
 span.edit_error_class {
 	color: red;
