@@ -120,12 +120,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
     //used by transaction import api call to check for duplicates
     override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
-
     //used by transaction import api
     override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
-
-    //used by the transaction import api
     override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
+    override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
   }
 
   override def beforeAll() {

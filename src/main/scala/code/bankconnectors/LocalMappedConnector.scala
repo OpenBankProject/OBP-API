@@ -94,7 +94,7 @@ object LocalMappedConnector extends Connector with Loggable {
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-        val outDatedTransactions = Box!!account.lastUpdate.get match {
+        val outDatedTransactions = Box!!account.accountLastUpdate.get match {
           case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
           case _ => true
         }
@@ -368,9 +368,10 @@ object LocalMappedConnector extends Connector with Loggable {
     //this will be Full(true) if everything went well
     val result = for {
       acc <- getBankAccountType(bankId, accountId)
+      bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
-      acc.lastUpdate(now).save;
+      setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
     }
 
     result.getOrElse(false)
@@ -458,10 +459,26 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield transaction
   }
 
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+    val result = for {
+      bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
+      account <- getAccountByNumber(bankId, accountNumber)
+    } yield {
+        val acc = MappedBankAccount.find(
+          By(MappedBankAccount.bank, bankId.value),
+          By(MappedBankAccount.theAccountId, account.accountId.value)
+        )
+        acc match {
+          case Full(a) => a.accountLastUpdate(updateDate).save
+          case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+        }
+    }
+    result.getOrElse(false)
+  }
+
   /*
     End of transaction importer api
    */
-
 
 
   /*

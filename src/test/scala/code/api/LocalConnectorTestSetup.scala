@@ -96,7 +96,7 @@ trait LocalConnectorTestSetup extends TestConnectorSetupWithStandardPermissions 
       obp_transaction(transaction).save
 
     //slightly ugly
-    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).lastUpdate(now).save
+    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).accountLastUpdate(now).save
 
     env.save
   }

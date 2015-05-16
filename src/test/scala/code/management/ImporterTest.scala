@@ -10,6 +10,7 @@ import code.model.{AccountId, Transaction}
 import dispatch._
 import net.liftweb.common.Loggable
 import net.liftweb.util.Props
+import net.liftweb.util.TimeHelpers._
 
 class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSetup {
 
@@ -63,7 +64,7 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       s"""{
         |    "obp_transaction": {
         |        "this_account": {
-        |            "holder": "Alan Holder",
+        |            "holder": "${account.accountHolder}",
         |            "number": "${account.number}",
         |            "kind": "${account.accountType}",
         |            "bank": {
@@ -209,6 +210,10 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
       account.balance.toString should equal(f.t2NewBalance) //t2 has a later completed date than t1
 
+      And("The account should have accountLastUpdate set to the current time")
+      val dt = (now.getTime - account.lastUpdate.getTime)
+      dt < 1000 should equal(true)
+
     }
 
     scenario("Attempting to add 'identical' transactions") {
@@ -239,6 +244,10 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       And("The account should have its balance set to the 'new_balance' value of the most recently completed transaction")
       val account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
       account.balance.toString should equal(f.t1NewBalance)
+
+      And("The account should have accountLastUpdate set to the current time")
+      val dt = (now.getTime - account.lastUpdate.getTime)
+      dt < 1000 should equal(true)
     }
 
     scenario("Adding transactions that have already been imported") {
@@ -255,6 +264,10 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
 
       tsBefore.foreach(checkTransactionOkay)
 
+      //remember lastUpdate time
+      var account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
+      val oldTime = if(account.lastUpdate != null) account.lastUpdate.getTime else 0
+
       When("We try to add those transactions again")
       val response = addTransactions(importJson, Some(secretKeyValue))
 
@@ -266,6 +279,11 @@ class ImporterTest extends ServerSetup with Loggable with DefaultConnectorTestSe
       tsAfter.size should equal(2)
 
       tsAfter.foreach(checkTransactionOkay)
+
+      And("The account should have accountLastUpdate set to the current time (different from first insertion)")
+      account = Connector.connector.vend.getBankAccount(f.account.bankId, f.account.accountId).get
+      val dt = (account.lastUpdate.getTime - oldTime)
+      dt > 0 should equal(true)
     }
 
     scenario("Adding 'identical' transactions, some of which have already been imported") {

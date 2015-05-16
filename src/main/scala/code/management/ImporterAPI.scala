@@ -3,8 +3,9 @@ package code.management
 import java.util.Date
 
 import code.bankconnectors.Connector
-import code.model.Transaction
+import code.model.{Transaction, BankId, AccountId}
 import code.tesobe.ErrorMessage
+import code.util.Helper
 import net.liftweb.common.{Full, Loggable}
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
@@ -41,6 +42,12 @@ object ImporterAPI extends RestHelper with Loggable {
                              label : String)
   case class ImporterDate(`$dt` : Date) //format : "2012-01-04T18:06:22.000Z" (see tests)
   case class ImporterAmount(currency : String, amount : String)
+
+  implicit object ImporterDateOrdering extends Ordering[ImporterDate]{
+    def compare(x: ImporterDate, y: ImporterDate): Int ={
+      x.`$dt`.compareTo(y.`$dt`)
+    }
+  }
 
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), Nil, Nil, httpCode)
@@ -154,6 +161,12 @@ object ImporterAPI extends RestHelper with Loggable {
             val insertedTs = inserted.l
             logger.info("inserted " + insertedTs.size + " transactions")
             updateBankAccountBalance(insertedTs)
+            if (insertedTs.isEmpty && importerTransactions.nonEmpty) {
+              //refresh account lastUpdate in case transactions were posted but they were all duplicates (account was still "refreshed")
+              val mostRecentTransaction = importerTransactions.maxBy(t => t.obp_transaction.details.completed)
+              val account = mostRecentTransaction.obp_transaction.this_account
+              Connector.connector.vend.setBankAccountLastUpdated(account.bank.national_identifier, account.number, now)
+            }
             val jsonList = insertedTs.map(whenAddedJson)
             JsonResponse(JArray(jsonList))
           case _ => {

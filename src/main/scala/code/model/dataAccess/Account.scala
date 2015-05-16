@@ -32,24 +32,20 @@ Berlin 13359, Germany
 
 package code.model.dataAccess
 
+import java.util.Date
 import com.mongodb.QueryBuilder
 import net.liftweb.mongodb.record.MongoMetaRecord
 import net.liftweb.mongodb.record.field.ObjectIdPk
-import net.liftweb.mongodb.record.field.ObjectIdRefListField
 import net.liftweb.mongodb.record.MongoRecord
 import net.liftweb.mongodb.record.field.ObjectIdRefField
 import net.liftweb.mongodb.record.field.DateField
 import net.liftweb.common._
-import net.liftweb.mongodb.record.field.BsonRecordField
-import net.liftweb.mongodb.record.BsonRecord
 import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
 import net.liftweb.mongodb.{Limit, Skip}
 import code.model._
 import net.liftweb.mongodb.BsonDSL._
-import OBPEnvelope._
 import code.bankconnectors._
 import code.bankconnectors.OBPOffset
-import scala.Some
 import code.bankconnectors.OBPLimit
 import code.bankconnectors.OBPOrdering
 import net.liftweb.mongodb.Limit
@@ -87,7 +83,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     //this is the legacy db field name
     override def name = "iban"
   }
-  object lastUpdate extends DateField(this)
+  object accountLastUpdate extends DateField(this)
 
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
@@ -178,6 +174,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def accountType: String = kind.get
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
+  override def lastUpdate: Date = accountLastUpdate.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {

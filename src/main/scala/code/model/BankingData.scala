@@ -184,6 +184,7 @@ trait BankAccount {
   def iban : Option[String]
   def number : String         //the actual number as given by the bank
   def bankId : BankId         //bank identifier, usually short name of
+  def lastUpdate : Date
 
   @deprecated("Get the account holder(s) via owners")
   def accountHolder : String

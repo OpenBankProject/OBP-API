@@ -295,7 +295,7 @@ private object LocalConnector extends Connector with Loggable {
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
     spawn{
       val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-      val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
+      val outDatedTransactions = now after time(account.accountLastUpdate.get.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
       if(outDatedTransactions && useMessageQueue) {
         UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
@@ -350,7 +350,7 @@ private object LocalConnector extends Connector with Loggable {
             .accountLabel("")
             .accountCurrency(currency)
             .accountIban("")
-            .lastUpdate(now)
+            .accountLastUpdate(now)
             .save
         bankAccount
       }
@@ -500,7 +500,7 @@ private object LocalConnector extends Connector with Loggable {
 
     val env = OBPEnvelope.createRecord.
       obp_transaction(transaction)
-    account.accountBalance(account.balance + amount).lastUpdate(now)
+    account.accountBalance(account.balance + amount).accountLastUpdate(now)
     account.save
     env.save
   }
@@ -570,6 +570,16 @@ private object LocalConnector extends Connector with Loggable {
         true
       case _ =>
         false
+    }
+  }
+
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+    Account.find(
+      (Account.accountNumber.name -> accountNumber)~
+        (Account.nationalIdentifier.name -> bankNationalIdentifier)
+    ) match {
+      case Full(acc) => acc.accountLastUpdate(updateDate).saveTheRecord().isDefined
+      case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
     }
   }
 }

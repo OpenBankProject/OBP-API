@@ -1,7 +1,6 @@
 package code.model.dataAccess
 
-import java.math.MathContext
-
+import java.util.Date
 import code.model._
 import code.util.{MappedAccountNumber, MappedUUID, Helper}
 import net.liftweb.mapper._
@@ -31,7 +30,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountLabel extends MappedString(this, 255)
 
   //the last time this account was updated via hbci
-  object lastUpdate extends MappedDateTime(this)
+  object accountLastUpdate extends MappedDateTime(this)
 
   override def uuid = accUUID.get
   override def accountId: AccountId = AccountId(theAccountId.get)
@@ -51,6 +50,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def accountType: String = kind.get
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
+  override def lastUpdate : Date = accountLastUpdate.get
 }
 
 object MappedBankAccount extends MappedBankAccount with LongKeyedMetaMapper[MappedBankAccount] {
