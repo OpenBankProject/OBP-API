@@ -94,9 +94,10 @@ object LocalMappedConnector extends Connector with Loggable {
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-        val outDatedTransactions =
-          if(account.lastUpdate.dbNotNull_?) now after time(account.lastUpdate.get.getTime + hours(1))
-          else true
+        val outDatedTransactions = Box!!account.lastUpdate.get match {
+          case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
+          case _ => true
+        }
         if(outDatedTransactions && useMessageQueue) {
           UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
         }
@@ -369,6 +370,7 @@ object LocalMappedConnector extends Connector with Loggable {
       acc <- getBankAccountType(bankId, accountId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
+      acc.lastUpdate(now).save;
     }
 
     result.getOrElse(false)

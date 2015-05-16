@@ -107,8 +107,7 @@ object ImporterAPI extends RestHelper with Loggable {
     
     case "obp_transactions_saver" :: "api" :: "transactions" :: Nil JsonPost json => {
 
-      def savetransactions ={
-
+      def savetransactions = {
         def updateBankAccountBalance(insertedTransactions : List[Transaction]) = {
           if(insertedTransactions.nonEmpty) {
             //we assume here that all the Envelopes concern only one account
