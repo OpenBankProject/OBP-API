@@ -43,6 +43,10 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
 
   protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]] = {
     val mappedBranches = data.map(branch => {
+
+      val lobbyHours =  if (branch.lobby.isDefined) {branch.lobby.get.hours.toString} else ""
+      val driveUpHours =  if (branch.driveUp.isDefined) {branch.driveUp.get.hours.toString} else ""
+
       MappedBranch.create
         .mBranchId(branch.id)
         .mBankId(branch.bank_id)
@@ -59,8 +63,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         .mCountryCode(branch.address.country_code)
         .mLicenseId(branch.meta.license.id)
         .mLicenseName(branch.meta.license.name)
-        .mLobbyHours(branch.lobby.hours)
-        .mDriveUpHours(branch.driveUp.hours)
+        .mLobbyHours(lobbyHours)
+        .mDriveUpHours(driveUpHours)
     })
 
     val validationErrors = mappedBranches.flatMap(_.validate)

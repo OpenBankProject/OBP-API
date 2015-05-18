@@ -484,8 +484,8 @@ case class SandboxBranchImport(
   address : SandboxAddressImport,
   location : SandboxLocationImport,
   meta : SandboxMetaImport,
-  lobby : SandboxLobbyImport,
-  driveUp : SandboxDriveUpImport)
+  lobby : Option[SandboxLobbyImport],
+  driveUp : Option[SandboxDriveUpImport])
 
 case class SandboxLicenseImport(
    id : String,

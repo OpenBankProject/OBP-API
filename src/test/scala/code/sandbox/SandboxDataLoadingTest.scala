@@ -153,8 +153,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.meta.license.id should equal(branch.meta.license.id)
     foundBranch.meta.license.name should equal(branch.meta.license.name)
 
-    foundBranch.lobby.hours should equal(branch.lobby.hours)
-    foundBranch.driveUp.hours should equal(branch.driveUp.hours)
+    foundBranch.lobby.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
+    foundBranch.driveUp.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
 
 
@@ -321,9 +321,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
   val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1
-    , location = standardLocation1, meta = standardMeta, lobby = standardLobby, driveUp = standardDriveUp)
+    , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
   val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1
-    , location = standardLocation1, meta = standardMeta, lobby = standardLobby, driveUp = standardDriveUp)
+    , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
 
   val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
 
