@@ -61,6 +61,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         .mState(branch.address.state)
         .mPostCode(branch.address.post_code)
         .mCountryCode(branch.address.country_code)
+        .mlocationLatitude(branch.location.latitude)
+        .mlocationLongitude(branch.location.longitude)
         .mLicenseId(branch.meta.license.id)
         .mLicenseName(branch.meta.license.name)
         .mLobbyHours(lobbyHours)

@@ -37,6 +37,7 @@ object Branches extends SimpleInjector {
     def branchId : BranchId
     def name : String
     def address : Address
+    def location : Location
     def meta : Meta
     def lobby : Lobby
     def driveUp : DriveUp
@@ -49,6 +50,12 @@ object Branches extends SimpleInjector {
 
   trait DriveUp {
     def hours : String
+  }
+
+
+  trait Location {
+    def latitude: Double
+    def longitude: Double
   }
 
 

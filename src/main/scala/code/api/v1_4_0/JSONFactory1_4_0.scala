@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.branches.Branches
-import code.branches.Branches.{Branch, Meta, License}
+import code.branches.Branches.{Branch, Meta, License, Location}
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 
 object JSONFactory1_4_0 {
@@ -21,12 +21,13 @@ object JSONFactory1_4_0 {
 
   case class AddCustomerMessageJson(message : String, from_department : String, from_person : String)
 
-  case class LicenseJson(name : String, url : String)
+  case class LicenseJson(id : String, name : String)
 
   case class MetaJson(license : LicenseJson)
 
+  case class LocationJson(latitude : Double, longitude : Double)
 
-  case class BranchJson(id : String, name : String, address : AddressJson, meta : MetaJson)
+  case class BranchJson(id : String, name : String, address : AddressJson, location : LocationJson, meta : MetaJson)
   case class BranchesJson (branches : List[BranchJson])
 
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
@@ -54,6 +55,10 @@ object JSONFactory1_4_0 {
     LicenseJson(license.id, license.name)
   }
 
+  def createLocationJson(location : Location) : LocationJson = {
+    LocationJson(location.latitude, location.latitude)
+  }
+
   def createMetaJson(meta: Meta) : MetaJson = {
     MetaJson(createLicenseJson(meta.license))
   }
@@ -65,7 +70,7 @@ object JSONFactory1_4_0 {
   }
 
   def createBranchJson(branch: Branch) : BranchJson = {
-    BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address), createMetaJson(branch.meta))
+    BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address), createLocationJson(branch.location), createMetaJson(branch.meta))
   }
 
   def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {

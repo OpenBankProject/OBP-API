@@ -2,6 +2,7 @@ package code.branches
 
 import code.api.test.ServerSetup
 import code.model.BankId
+import code.branches.Branches.BranchId
 import net.liftweb.mapper.By
 import code.branches.Branches.Branch
 
@@ -38,8 +39,12 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mLine2("b4")
         .mLine3("c4")
         .mCity("d4")
-        .mState("e4").saveMe()
+        .mState("e4")
+        .mlocationLatitude(2.22)
+        .mlocationLongitude(3.33)
+        .saveMe()
         // Note: The license is not set
+
 
       val branch1 = MappedBranch.create
         .mBankId(bankIdX)
@@ -53,7 +58,9 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mCity("d")
         .mState("e")
         .mLicenseId("some-license")
-        .mLicenseName("Some License").saveMe()
+        .mLicenseName("Some License")
+        .mlocationLatitude(2.22)
+        .mlocationLongitude(3.33).saveMe()
 
       val branch2 = MappedBranch.create
         .mBankId(bankIdX)
@@ -67,7 +74,9 @@ class MappedBranchesProviderTest extends ServerSetup {
         .mCity("d2")
         .mState("e2")
         .mLicenseId("some-license")
-        .mLicenseName("Some License").saveMe()
+        .mLicenseName("Some License")
+        .mlocationLatitude(2.22)
+        .mlocationLongitude(3.33).saveMe()
 
     }
 
@@ -117,6 +126,9 @@ class MappedBranchesProviderTest extends ServerSetup {
       branches.size should equal(0)
 
     }
+
+
+    // TODO add test for individual items
 
   }
 }

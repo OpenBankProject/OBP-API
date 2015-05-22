@@ -147,6 +147,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.county should equal(branch.address.county)
     foundBranch.address.state should equal(branch.address.state)
 
+
+    foundBranch.location.latitude should equal(branch.location.latitude)
+    foundBranch.location.longitude should equal(branch.location.longitude)
+
     foundBranch.address.postCode should equal(branch.address.post_code)
     foundBranch.address.countryCode should equal(branch.address.country_code)
 

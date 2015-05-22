@@ -41,6 +41,8 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
   object mCountryCode extends MappedString(this, 2)
   object mPostCode extends DefaultStringField(this)
 
+  object mlocationLatitude extends MappedDouble(this)
+  object mlocationLongitude extends MappedDouble(this)
 
   // Exposed inside meta.license See below
   object mLicenseId extends DefaultStringField(this)
@@ -78,6 +80,11 @@ class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {
     override def hours: String = mDriveUpHours
   }
 
+
+  override def location: Location = new Location {
+    override def latitude: Double = mlocationLatitude
+    override def longitude: Double = mlocationLongitude
+  }
 
 }
 

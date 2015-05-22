@@ -2,7 +2,7 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import dispatch._
-import code.branches.Branches.{BranchId, Branch, License, Address, Meta, Lobby, DriveUp}
+import code.branches.Branches.{BranchId, Branch, License, Address, Location, Meta, Lobby, DriveUp}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.util.Helper.prettyJson
@@ -14,7 +14,7 @@ class BranchesTest extends V140ServerSetup {
   val BankWithoutLicense = BankId("bank-without-license")
 
   // Have to repeat the constructor parameters from the trait
-  case class BranchImpl(branchId : BranchId, name : String, address : Address, meta : Meta, lobby : Lobby, driveUp : DriveUp) extends Branch
+  case class BranchImpl(branchId : BranchId, name : String, address : Address, location : Location, meta : Meta, lobby : Lobby, driveUp : DriveUp) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
 
@@ -36,6 +36,11 @@ class BranchesTest extends V140ServerSetup {
     }
   }
 
+  val fakeLocation = new Location {
+   override def latitude: Double = 1
+   override def longitude: Double = 2
+  }
+
 
   val fakeLobby = new Lobby {
    val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
@@ -45,9 +50,9 @@ class BranchesTest extends V140ServerSetup {
     override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
   }
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeMetaNoLicense, fakeLobby, fakeDriveUp) // Should not be returned
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp) // Should not be returned
 
   // Note: This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
@@ -80,6 +85,8 @@ class BranchesTest extends V140ServerSetup {
     branch.address.state should equal(branchJson.address.state)
     branch.address.countryCode should equal(branchJson.address.country)
     branch.address.postCode should equal(branchJson.address.postcode)
+    branch.location.latitude should equal(branchJson.location.latitude)
+    branch.location.longitude should equal(branchJson.location.longitude)
   }
 
   override def beforeAll() {
