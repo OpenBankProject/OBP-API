@@ -27,7 +27,19 @@ object JSONFactory1_4_0 {
 
   case class LocationJson(latitude : Double, longitude : Double)
 
-  case class BranchJson(id : String, name : String, address : AddressJson, location : LocationJson, meta : MetaJson)
+  case class DriveUpJson(hours : String)
+  case class LobbyJson(hours : String)
+
+
+
+  case class BranchJson(id : String,
+                        name : String,
+                        address : AddressJson,
+                        location : LocationJson,
+                        lobby : LobbyJson,
+                        drive_up: DriveUpJson,
+                        meta : MetaJson)
+
   case class BranchesJson (branches : List[BranchJson])
 
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
@@ -56,7 +68,16 @@ object JSONFactory1_4_0 {
   }
 
   def createLocationJson(location : Location) : LocationJson = {
-    LocationJson(location.latitude, location.latitude)
+    LocationJson(location.latitude, location.longitude)
+  }
+
+
+  def createDriveUpJson(hours : String) : DriveUpJson = {
+    DriveUpJson(hours)
+  }
+
+  def createLobbyJson(hours : String) : LobbyJson = {
+    LobbyJson(hours)
   }
 
   def createMetaJson(meta: Meta) : MetaJson = {
@@ -70,7 +91,13 @@ object JSONFactory1_4_0 {
   }
 
   def createBranchJson(branch: Branch) : BranchJson = {
-    BranchJson(branch.branchId.value, branch.name, createAddressJson(branch.address), createLocationJson(branch.location), createMetaJson(branch.meta))
+    BranchJson(branch.branchId.value,
+                branch.name,
+                createAddressJson(branch.address),
+                createLocationJson(branch.location),
+                createLobbyJson(branch.lobby.hours),
+                createDriveUpJson(branch.driveUp.hours),
+                createMetaJson(branch.meta))
   }
 
   def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {

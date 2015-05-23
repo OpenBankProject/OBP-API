@@ -14,12 +14,18 @@ class BranchesTest extends V140ServerSetup {
   val BankWithoutLicense = BankId("bank-without-license")
 
   // Have to repeat the constructor parameters from the trait
-  case class BranchImpl(branchId : BranchId, name : String, address : Address, location : Location, meta : Meta, lobby : Lobby, driveUp : DriveUp) extends Branch
+  case class BranchImpl(branchId : BranchId,
+                        name : String,
+                        address : Address,
+                        location : Location,
+                        meta : Meta,
+                        lobby : Lobby,
+                        driveUp : DriveUp) extends Branch
   case class AddressImpl(line1 : String, line2 : String, line3 : String, city : String, county : String,
                          state : String, postCode : String, countryCode : String) extends Address
 
 
-  val fakeAddress1 = AddressImpl("134", "32432", "fff", "fsfsfs", "a county", "mvmvmv", "C4SF5", "DE")
+  val fakeAddress1 = AddressImpl("Duckerstrasse 87", "Prenzlauerberg", "lala", "Berlin", "a county", "Berlin", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
   val fakeMeta = new Meta {
@@ -37,8 +43,14 @@ class BranchesTest extends V140ServerSetup {
   }
 
   val fakeLocation = new Location {
-   override def latitude: Double = 1
-   override def longitude: Double = 2
+   override def latitude: Double = 1.11
+   override def longitude: Double = 2.22
+  }
+
+
+  val fakeLocation2 = new Location {
+    override def latitude: Double = 1.1111
+    override def longitude: Double = 2.2222
   }
 
 
@@ -46,15 +58,25 @@ class BranchesTest extends V140ServerSetup {
    val hours = "M-Th 9-5, Fri 9-6, Sat 9-1"
   }
 
+
+  val fakeLobby2 = new Lobby {
+    val hours = "9-5"
+  }
+
   val fakeDriveUp = new DriveUp {
     override def hours: String = "M-Th 8:30 - 5:30, Fri 8:30 - 6, Sat: 9-12"
   }
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp) // Should not be returned
 
-  // Note: This mock provider is returning same branches for the fake banks
+  val fakeDriveUp2 = new DriveUp {
+    override def hours: String = "M-Th 8:30 - 5:30"
+  }
+
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2)
+  val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2) // Should not be returned
+
+  // This mock provider is returning same branches for the fake banks
   val mockConnector = new BranchesProvider {
     override protected def getBranchesFromProvider(bank: BankId): Option[List[Branch]] = {
       bank match {
@@ -76,6 +98,7 @@ class BranchesTest extends V140ServerSetup {
   }
 
   def verifySameData(branch: Branch, branchJson : BranchJson) = {
+    println("asd")
     branch.name should equal (branchJson.name)
     branch.branchId should equal(BranchId(branchJson.id))
     branch.address.line1 should equal(branchJson.address.line_1)
@@ -87,8 +110,13 @@ class BranchesTest extends V140ServerSetup {
     branch.address.postCode should equal(branchJson.address.postcode)
     branch.location.latitude should equal(branchJson.location.latitude)
     branch.location.longitude should equal(branchJson.location.longitude)
+    branch.lobby.hours should equal(branchJson.lobby.hours)
+    branch.driveUp.hours should equal(branchJson.drive_up.hours)
   }
 
+  /*
+  So we can test the API layer, rather than the connector, use a mock connector.
+   */
   override def beforeAll() {
     super.beforeAll()
     //use the mock connector
