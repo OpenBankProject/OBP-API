@@ -98,7 +98,6 @@ class BranchesTest extends V140ServerSetup {
   }
 
   def verifySameData(branch: Branch, branchJson : BranchJson) = {
-    println("asd")
     branch.name should equal (branchJson.name)
     branch.branchId should equal(BranchId(branchJson.id))
     branch.address.line1 should equal(branchJson.address.line_1)
