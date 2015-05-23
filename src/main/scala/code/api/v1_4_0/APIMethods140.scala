@@ -2,6 +2,7 @@ package code.api.v1_4_0
 
 import code.api.APIFailure
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
+import code.atms.Atms
 import code.branches.Branches
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
@@ -82,6 +83,25 @@ trait APIMethods140 {
         }
       }
     }
+
+
+    lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get atms from the active provider
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No atm data available. License may not be set.", 404)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createAtmsJson(atms)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
 
 
   }

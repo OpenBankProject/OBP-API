@@ -1,7 +1,12 @@
 package code.branches
 
+
+/* For branches and atms */
+
 // Need to import these one by one because in same package!
 import code.branches.Branches.{Branch, BranchId}
+
+import code.common.{Address, License, Location, Meta}
 
 import code.model.{BankId}
 import net.liftweb.common.Logger
@@ -10,28 +15,6 @@ import net.liftweb.util.SimpleInjector
 object Branches extends SimpleInjector {
 
   case class BranchId(value : String)
-
-  trait License {
-    def id : String
-    def name : String
-  }
-
-  trait Meta {
-    def license : License
-  }
-
-
-  trait Address {
-    def line1 : String
-    def line2 : String
-    def line3 : String
-    def city : String
-    def county : String
-    def state : String
-    def postCode : String
-    //ISO_3166-1_alpha-2
-    def countryCode : String
-  }
 
   trait Branch {
     def branchId : BranchId
@@ -43,7 +26,6 @@ object Branches extends SimpleInjector {
     def driveUp : DriveUp
   }
 
-
   trait Lobby {
    def hours : String
   }
@@ -51,13 +33,6 @@ object Branches extends SimpleInjector {
   trait DriveUp {
     def hours : String
   }
-
-
-  trait Location {
-    def latitude: Double
-    def longitude: Double
-  }
-
 
   val branchesProvider = new Inject(buildOne _) {}
 
@@ -93,8 +68,6 @@ trait BranchesProvider {
         val branchesWithLicense = for {
          branch <- branches if branch.meta.license.name.size > 3 && branch.meta.license.name.size > 3
         } yield branch
-
-        //Option(b.filter(x => x.meta.license.name != "" && x.meta.license.url != ""))
         Option(branchesWithLicense)
       }
       case None => None
@@ -114,5 +87,4 @@ trait BranchesProvider {
 
 // End of Trait
 }
-
 

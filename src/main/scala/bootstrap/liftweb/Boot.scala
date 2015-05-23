@@ -42,6 +42,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
 import code.branches.{MappedBranch}
+import code.atms.{MappedAtm}
 import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
 import code.tesobe.CashAccountAPI
 import net.liftweb._
@@ -341,5 +342,5 @@ object ToSchemify {
     MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
     MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
-    MappedBranch)
+    MappedBranch, MappedAtm)
 }

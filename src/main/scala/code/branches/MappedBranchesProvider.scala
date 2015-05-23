@@ -2,6 +2,9 @@ package code.branches
 
 import code.branches.Branches._
 import code.model.BankId
+
+import code.common.{Address, License, Location, Meta}
+
 import code.util.DefaultStringField
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -17,9 +20,6 @@ object MappedBranchesProvider extends BranchesProvider {
   override protected def getBranchesFromProvider(bankId: BankId): Option[List[Branch]] = {
     Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))
   }
-
-//  override protected def branchLicense(bank: BankId): Option[License] =
-//    MappedDataLicense.find(By(MappedDataLicense.mBankId, bank.value))
 }
 
 class MappedBranch extends Branch with LongKeyedMapper[MappedBranch] with IdPK {

@@ -2,8 +2,11 @@ package code.api.v1_4_0
 
 import java.util.Date
 
-import code.branches.Branches
-import code.branches.Branches.{Branch, Meta, License, Location}
+import code.atms.Atms.Atm
+import code.branches.Branches.{Branch}
+import code.common.{Meta, License, Location, Address}
+
+
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 
 object JSONFactory1_4_0 {
@@ -41,6 +44,16 @@ object JSONFactory1_4_0 {
                         meta : MetaJson)
 
   case class BranchesJson (branches : List[BranchJson])
+
+
+  case class AtmJson(id : String,
+                        name : String,
+                        address : AddressJson,
+                        location : LocationJson,
+                        meta : MetaJson)
+
+  case class AtmsJson (atms : List[AtmJson])
+
 
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
@@ -86,9 +99,11 @@ object JSONFactory1_4_0 {
 
 
   // Accept an address object and return its json representation
-  def createAddressJson(address : Branches.Address) : AddressJson = {
+  def createAddressJson(address : Address) : AddressJson = {
     AddressJson(address.line1, address.line2, address.line3, address.city, address.state, address.postCode, address.countryCode)
   }
+
+  // Branches
 
   def createBranchJson(branch: Branch) : BranchJson = {
     BranchJson(branch.branchId.value,
@@ -103,5 +118,32 @@ object JSONFactory1_4_0 {
   def createBranchesJson(branchesList: List[Branch]) : BranchesJson = {
     BranchesJson(branchesList.map(createBranchJson))
   }
+
+  // Atms
+
+  def createAtmJson(atm: Atm) : AtmJson = {
+    AtmJson(atm.atmId.value,
+      atm.name,
+      createAddressJson(atm.address),
+      createLocationJson(atm.location),
+      createMetaJson(atm.meta))
+  }
+
+  def createAtmsJson(AtmsList: List[Atm]) : AtmsJson = {
+    AtmsJson(AtmsList.map(createAtmJson))
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

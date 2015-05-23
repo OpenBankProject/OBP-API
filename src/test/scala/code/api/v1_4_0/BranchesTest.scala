@@ -2,7 +2,8 @@ package code.api.v1_4_0
 
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import dispatch._
-import code.branches.Branches.{BranchId, Branch, License, Address, Location, Meta, Lobby, DriveUp}
+import code.common.{License, Address, Location, Meta}
+import code.branches.Branches.{BranchId, Branch, Lobby, DriveUp}
 import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.util.Helper.prettyJson
@@ -135,6 +136,8 @@ class BranchesTest extends V140ServerSetup {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET
       val response = makeGetRequest(request)
+
+      println("asdf")
 
       Then("We should get a 200")
       response.code should equal(200)
