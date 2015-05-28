@@ -2,10 +2,12 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.UUID
+import code.products.Products.Product
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
 import code.branches.Branches.{Branch}
+import code.atms.Atms.{Atm}
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common.{Loggable, Full, Failure, Box}
@@ -45,6 +47,8 @@ trait OBPDataImport extends Loggable {
   type TransactionType <: TransactionUUID
   type AccountOwnerEmail = String
   type BranchType <: Branch
+  type AtmType <: Atm
+  type ProductType <: Product
   //type DataLicenseType <: DataLicense
 
   /**
@@ -73,11 +77,20 @@ trait OBPDataImport extends Loggable {
    */
   protected def createSaveableBranches(data : List[SandboxBranchImport]) : Box[List[Saveable[BranchType]]]
 
+  /**
+   * Create atms that can be saved.
+   */
+  protected def createSaveableAtms(data : List[SandboxAtmImport]) : Box[List[Saveable[AtmType]]]
+
 
   /**
-   * Create branches that can be saved.
+   * Create Products that can be saved.
    */
-  //protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]]
+  protected def createSaveableProducts(data : List[SandboxProductImport]) : Box[List[Saveable[ProductType]]]
+
+
+
+
 
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
@@ -176,35 +189,8 @@ trait OBPDataImport extends Loggable {
 
   final protected def createDataLicences(data : SandboxDataImport) = {
 
+    throw new Exception ("Not implemented")
 
-    logger.info("Hello from createDataLicences")
-
-
-
-    // TODO Check the data.licenses is OK before calling the following
-
-    //createSaveableDataLicenses(data.licenses)
-
-
-    /*
-    val existing = data.licenses.flatMap(lic => Connector.connector.vend.getDataLicense(BankId(lic.id)))
-
-    val allIds = data.banks.map(_.id)
-    val emptyIds = allIds.filter(_.isEmpty)
-    val uniqueIds = data.banks.map(_.id).distinct
-    val duplicateIds = allIds diff uniqueIds
-
-    if(!existing.isEmpty) {
-      val existingIds = existing.map(_.bankId.value)
-      Failure(s"Bank(s) with id(s) $existingIds already exist (and may have different non-id [e.g. short_name] values).")
-    } else if (!emptyIds.isEmpty){
-      Failure(s"Bank(s) with empty ids are not allowed")
-    } else if(!duplicateIds.isEmpty) {
-      Failure(s"Banks must have unique ids. Duplicates found: $duplicateIds")
-    } else {
-      createSaveableDataLicenses(data.licenses)
-    }
-    */
   }
 
 
@@ -242,9 +228,22 @@ trait OBPDataImport extends Loggable {
   }
 
 
+  final protected def createAtms(data : SandboxDataImport) = {
+
+    logger.info("Hello from createAtms")
+    // TODO Check the data.atms is OK before calling the following
+
+    createSaveableAtms(data.atms)
+  }
 
 
+  final protected def createProducts(data : SandboxDataImport) = {
 
+    logger.info("Hello from createProducts")
+    // TODO Check the data.products is OK before calling the following
+
+    createSaveableProducts(data.products)
+  }
 
 
 
@@ -426,22 +425,32 @@ trait OBPDataImport extends Loggable {
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
   def importData(data: SandboxDataImport) : Box[Unit] = {
+    logger.info(s"Hello from importData")
     for {
       banks <- createBanks(data)
       users <- createUsers(data.users)
       accountResults <- createAccountsAndViews(data, banks.map(_.value))
       transactions <- createTransactions(data, banks.map(_.value), accountResults.map(_._1.value))
-      //licenses <- createDataLicences(data)
       branches <- createBranches(data)
+      atms <- createAtms(data)
+      products <- createProducts(data)
     } yield {
+      logger.info(s"importData is saving ${banks.size} banks..")
       banks.foreach(_.save())
 
+      logger.info(s"importData is saving ${users.size} users..")
       users.foreach(_.save())
 
-      //licenses.foreach(_.save())
-
+      logger.info(s"importData is saving ${branches.size} branches..")
       branches.foreach(_.save())
 
+      logger.info(s"importData is saving ${atms.size} ATMs..")
+      atms.foreach(_.save())
+
+      logger.info(s"importData is saving ${products.size} products..")
+      products.foreach(_.save())
+
+      logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, views, accOwnerEmails) =>
           account.save()
@@ -456,7 +465,7 @@ trait OBPDataImport extends Loggable {
 
           accOwnerEmails.foreach(setAccountOwner(_, account.value, users.map(_.value)))
       }
-
+      logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>
         t.save()
         //load it to force creation of metadata
@@ -464,7 +473,6 @@ trait OBPDataImport extends Loggable {
       }
     }
   }
-
 }
 
 
@@ -564,9 +572,35 @@ case class SandboxAccountDetailsImport(
   new_balance : String,
   value : String)
 
+
+case class SandboxAtmImport(
+   id : String,
+   bank_id: String,
+   name : String,
+   address : SandboxAddressImport,
+   location : SandboxLocationImport,
+   meta : SandboxMetaImport
+   )
+
+
+case class SandboxProductImport(
+   id : String,
+   bank_id : String,
+   code: String,
+   name : String,
+   category : String,
+   family : String,
+   super_family : String,
+   more_info_url : String,
+   meta : SandboxMetaImport
+   )
+
+
 case class SandboxDataImport(
   banks : List[SandboxBankImport],
   users : List[SandboxUserImport],
   accounts : List[SandboxAccountImport],
   transactions : List[SandboxTransactionImport],
-  branches: List[SandboxBranchImport])
+  branches: List[SandboxBranchImport],
+  atms: List[SandboxAtmImport],
+  products: List[SandboxProductImport] )

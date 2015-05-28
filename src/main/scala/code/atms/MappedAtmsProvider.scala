@@ -1,18 +1,10 @@
 package code.atms
 
 import code.atms.Atms._
-import code.model.BankId
-
 import code.common.{Address, License, Location, Meta}
-
-
+import code.model.BankId
 import code.util.DefaultStringField
-
-
 import net.liftweb.mapper._
-
-
-import scala.util.Try
 
 object MappedAtmsProvider extends AtmsProvider {
 

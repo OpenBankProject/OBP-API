@@ -1,9 +1,14 @@
 package code.sandbox
 
+import code.atms.MappedAtm
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
-import code.branches.{MappedBranch} // , MappedDataLicense
+import code.branches.{MappedBranch}
+import code.products.MappedProduct
+import code.products.Products.ProductId
+
+// , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
 import net.liftweb.common.{Full, Failure, Box}
 import net.liftweb.mapper.Mapper
@@ -20,7 +25,8 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   type MetadataType = MappedCounterpartyMetadata
   type TransactionType = MappedTransaction
   type BranchType = MappedBranch
-  //type DataLicenseType = MappedDataLicense
+  type AtmType = MappedAtm
+  type ProductType = MappedProduct
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val mappedBanks = data.map(bank => {
@@ -76,6 +82,71 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     } else {
       Full(mappedBranches.map(MappedSaveable(_)))
     }
+  }
+
+
+
+/////
+
+  protected def createSaveableAtms(data : List[SandboxAtmImport]) : Box[List[Saveable[AtmType]]] = {
+    val mappedAtms = data.map(atm => {
+
+
+      MappedAtm.create
+        .mAtmId(atm.id)
+        .mBankId(atm.bank_id)
+        .mName(atm.name)
+        // Note: address fields are returned in meta.address
+        // but are stored flat as fields / columns in the table
+        .mLine1(atm.address.line_1)
+        .mLine2(atm.address.line_2)
+        .mLine3(atm.address.line_3)
+        .mCity(atm.address.city)
+        .mCounty(atm.address.county)
+        .mState(atm.address.state)
+        .mPostCode(atm.address.post_code)
+        .mCountryCode(atm.address.country_code)
+        .mlocationLatitude(atm.location.latitude)
+        .mlocationLongitude(atm.location.longitude)
+        .mLicenseId(atm.meta.license.id)
+        .mLicenseName(atm.meta.license.name)
+    })
+
+    val validationErrors = mappedAtms.flatMap(_.validate)
+
+    if (validationErrors.nonEmpty) {
+      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+    } else {
+      Full(mappedAtms.map(MappedSaveable(_)))
+    }
+
+  }
+
+
+  protected def createSaveableProducts(data : List[SandboxProductImport]) : Box[List[Saveable[ProductType]]] = {
+    val mappedProducts = data.map(product => {
+      MappedProduct.create
+        .mProductId(product.id)
+        .mBankId(product.bank_id)
+        .mCode(product.code)
+        .mName(product.name)
+        .mCategory(product.category)
+        .mFamily(product.family)
+        .mSuperFamily(product.super_family)
+        .mMoreInfoUrl(product.more_info_url)
+        .mLicenseId(product.meta.license.id)
+        .mLicenseName(product.meta.license.name)
+    })
+
+    val validationErrors = mappedProducts.flatMap(_.validate)
+
+    if (validationErrors.nonEmpty) {
+      logger.error(s"Problem saving ${mappedProducts.flatMap(_.code)}")
+      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+    } else {
+      Full(mappedProducts.map(MappedSaveable(_)))
+    }
+
   }
 
 

@@ -6,6 +6,7 @@ import code.atms.Atms
 import code.branches.Branches
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
+import code.products.Products
 import net.liftweb.common.Box
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
@@ -73,7 +74,7 @@ trait APIMethods140 {
         user => {
           for {
             // Get branches from the active provider
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branch data available. License may not be set.", 404)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branchs available. License may not be set.", 404)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
@@ -90,7 +91,7 @@ trait APIMethods140 {
         user => {
           for {
           // Get atms from the active provider
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No atm data available. License may not be set.", 404)
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 404)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmsJson(atms)
@@ -100,6 +101,24 @@ trait APIMethods140 {
         }
       }
     }
+
+    lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get products from the active provider
+            products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 404)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createProductsJson(products)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
 
 
 

@@ -37,10 +37,17 @@ import bootstrap.liftweb.ToSchemify
 import code.TestServer
 import code.api.test.{SendServerRequests, APIResponse}
 import code.api.v1_2_1.APIMethods121
+import code.atms.Atms
+import code.atms.Atms.{Atm, AtmId, countOfAtms}
 import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, countOfBranches}
+
+import code.products.Products
+import code.products.Products.{Product, ProductId, countOfProducts}
+
 import code.model.dataAccess._
 import code.model.{TransactionId, AccountId, BankId}
+import code.products.Products.ProductId
 import code.users.Users
 import code.views.Views
 import dispatch._
@@ -84,13 +91,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     xs.mkString("[", ",", "]")
   }
 
-  def createImportJson(banks: List[JValue], users: List[JValue], accounts : List[JValue], transactions : List[JValue], branches : List[JValue]) : String = {
+  def createImportJson(banks: List[JValue],
+                       users: List[JValue],
+                       accounts : List[JValue],
+                       transactions : List[JValue],
+                       branches : List[JValue],
+                       atms : List[JValue],
+                       products : List[JValue]) : String = {
     val json =
       ("banks" -> banks) ~
       ("users" -> users) ~
       ("accounts" -> accounts) ~
       ("transactions" -> transactions) ~
-      ("branches" -> branches)
+      ("branches" -> branches) ~
+      ("atms" -> atms) ~
+      ("products" -> products)
     compact(render(json))
   }
 
@@ -160,6 +175,79 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.lobby.hours should equal(branch.lobby.get.hours)     // TODO Check None situation (lobby is None)
     foundBranch.driveUp.hours should equal(branch.driveUp.get.hours) // TODO Check None situation (driveUp is None)
   }
+
+  def verifyAtmCreated(atm : SandboxAtmImport) = {
+    println("Hello from verifyAtmCreated")
+
+    // Get ids from input
+    val bankId = BankId(atm.bank_id)
+    val atmId = AtmId(atm.id)
+
+    println(s"bankId is $bankId")
+    println(s"atmId is $atmId")
+
+
+    // check we have found a branch
+    val foundAtmOpt: Option[Atm] = Atms.atmsProvider.vend.getAtm(atmId)
+    foundAtmOpt.isDefined should equal(true)
+
+    val foundAtm = foundAtmOpt.get
+    foundAtm.name should equal(atm.name)
+    foundAtm.address.line1 should equal(atm.address.line_1)
+    foundAtm.address.line2 should equal(atm.address.line_2)
+    foundAtm.address.line3 should equal(atm.address.line_3)
+    foundAtm.address.city should equal(atm.address.city)
+    foundAtm.address.county should equal(atm.address.county)
+    foundAtm.address.state should equal(atm.address.state)
+
+
+    foundAtm.location.latitude should equal(atm.location.latitude)
+    foundAtm.location.longitude should equal(atm.location.longitude)
+
+    foundAtm.address.postCode should equal(atm.address.post_code)
+    foundAtm.address.countryCode should equal(atm.address.country_code)
+
+    foundAtm.meta.license.id should equal(atm.meta.license.id)
+    foundAtm.meta.license.name should equal(atm.meta.license.name)
+
+  }
+
+
+
+  def verifyProductCreated(product : SandboxProductImport) = {
+    println("Hello from verifyProductCreated")
+
+    // Get ids from input
+    val bankId = BankId(product.bank_id)
+    val productId = ProductId(product.id)
+
+    println(s"bankId is $bankId")
+    println(s"productId is $productId")
+
+
+    // check we have found a branch
+    val foundProductOpt: Option[Product] = Products.productsProvider.vend.getProduct(productId)
+    foundProductOpt.isDefined should equal(true)
+
+    val foundProduct = foundProductOpt.get
+    foundProduct.bankId.toString should equal (product.bank_id)
+    foundProduct.code should equal(product.code)
+    foundProduct.name should equal(product.name)
+    foundProduct.category should equal(product.category)
+    foundProduct.family should equal(product.family)
+    foundProduct.superFamily should equal(product.super_family)
+    foundProduct.moreInfoUrl should equal(product.more_info_url)
+  }
+
+
+
+
+
+
+
+
+
+
 
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -331,6 +419,49 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val standardBranches = branch1AtBank1 :: branch2AtBank1 :: Nil
 
+  val atm1AtBank1 = SandboxAtmImport(id = "atm1", name = "Ashbourne Atm 1", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta)
+  val atm2AtBank1 = SandboxAtmImport(id = "atm2", name = "Manchester Atm 1", bank_id = "bank1", address = standardAddress1
+    , location = standardLocation1, meta = standardMeta)
+
+  val standardAtms = atm1AtBank1 :: atm2AtBank1 :: Nil
+
+
+  val product1AtBank1 = SandboxProductImport(
+    id = "product1",
+    bank_id = "bank1",
+    code = "prd1",
+    name = "product 1",
+    category = "cat1",
+    family = "fam1",
+    super_family = "sup fam 1",
+    more_info_url = "www.example.com/index1",
+    meta = standardMeta
+  )
+
+
+  val product2AtBank1 = SandboxProductImport(
+    id = "product2",
+    bank_id = "bank1",
+    code = "prd2",
+    name = "Product 2",
+    category = "cat2",
+    family = "fam2",
+    super_family = "sup fam 2",
+    more_info_url = "www.example.com/index2",
+    meta = standardMeta
+  )
+
+
+
+
+
+
+  val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
+
+  //
+
+
 
   val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", display_name = "User 1")
   val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", display_name = "User 2")
@@ -431,9 +562,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val accounts = standardAccounts
     val transactions = anotherTransaction :: blankCounterpartyNameTransaction :: blankCounterpartyAccountNumberTransaction :: standardTransactions
     val branches = standardBranches
+    val atms = standardAtms
+    val products = standardProducts
 
 
-    val importJson = SandboxDataImport(banks, users, accounts, transactions, branches)
+    val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products)
     val response = postImportJson(write(importJson))
 
     response.code should equal(SUCCESS)
@@ -445,7 +578,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not allow data to be imported without a secret token" in {
-    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches)
+    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts)
     val response = postImportJson(write(importJson), None)
 
     response.code should equal(403)
@@ -455,7 +588,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   it should "not allow data to be imported with an invalid secret token" in {
-    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches)
+    val importJson = SandboxDataImport(standardBanks, standardUsers, standardAccounts, standardTransactions, standardBranches, standardAtms, standardProducts)
     val badToken = "12345"
     badToken should not equal(theImportToken)
     val response = postImportJson(write(importJson), Some(badToken))
@@ -476,7 +609,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bankWithoutId = removeIdField(bank1Json)
 
     def getResponse(bankJson : JValue) = {
-      val json = createImportJson(List(bankJson), Nil, Nil, Nil, Nil)
+      val json = createImportJson(List(bankJson), Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -525,7 +658,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bankWithSameId = addIdField(baseOtherBank, bank1.id)
 
     def getResponse(bankJsons : List[JValue]) = {
-      val json = createImportJson(bankJsons, Nil, Nil, Nil, Nil)
+      val json = createImportJson(bankJsons, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -543,7 +676,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   it should "fail if a specified bank already exists" in {
     def getResponse(bankJsons : List[JValue]) = {
-      val json = createImportJson(bankJsons, Nil, Nil, Nil, Nil)
+      val json = createImportJson(bankJsons, Nil, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -564,7 +697,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   it should "require users to have valid emails" in {
 
     def getResponse(userJson : JValue) = {
-      val json = createImportJson(Nil, List(userJson), Nil, Nil, Nil)
+      val json = createImportJson(Nil, List(userJson), Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -610,7 +743,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   it should "not allow multiple users with the same email" in {
 
     def getResponse(userJsons : List[JValue]) = {
-      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil)
+      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -656,7 +789,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   it should "fail if a specified user already exists" in {
     def getResponse(userJsons : List[JValue]) = {
-      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil)
+      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -676,7 +809,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   it should "fail if a user's password is missing or empty" in {
     def getResponse(userJsons : List[JValue]) = {
-      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil)
+      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -699,7 +832,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   it should "set user passwords properly" in {
     def getResponse(userJsons : List[JValue]) = {
-      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil)
+      val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -719,7 +852,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
-      val json = createImportJson(banks, users, accountJsons, Nil, Nil)
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -746,7 +879,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
-      val json = createImportJson(banks, users, accountJsons, Nil, Nil)
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -775,7 +908,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     def getResponse(accountJsons : List[JValue]) = {
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
-      val json = createImportJson(banks, users, accountJsons, Nil, Nil)
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
     val account1AtBank1Json = Extraction.decompose(account1AtBank1)
@@ -800,7 +933,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       val banks = standardBanks.map(Extraction.decompose)
 
       val users = standardUsers.map(Extraction.decompose)
-      val json = createImportJson(banks, users, accountJsons, Nil, Nil)
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -817,7 +950,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       val banks = standardBanks.map(Extraction.decompose)
       val users = standardUsers.map(Extraction.decompose)
 
-      val json = createImportJson(banks, users, accountJsons, Nil, Nil)
+      val json = createImportJson(banks, users, accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -838,7 +971,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val banks = standardBanks
 
     def getResponse(accountJsons : List[JValue]) = {
-      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil)
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -866,7 +999,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val banks = standardBanks
 
     def getResponse(accountJsons : List[JValue]) = {
-      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil)
+      val json = createImportJson(banks.map(Extraction.decompose), users.map(Extraction.decompose), accountJsons, Nil, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -895,7 +1028,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
-        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil)
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -926,7 +1059,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
-        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil)
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -967,7 +1100,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   it should "fail if a specified transaction already exists" in {
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(standardBanks.map(Extraction.decompose),
-        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil)
+        standardUsers.map(Extraction.decompose), standardAccounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -994,7 +1127,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1049,7 +1182,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1077,7 +1210,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1105,7 +1238,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1132,7 +1265,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1159,7 +1292,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1193,7 +1326,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1226,7 +1359,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1262,7 +1395,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1296,7 +1429,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1340,7 +1473,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1385,7 +1518,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1438,7 +1571,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1490,7 +1623,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     def getResponse(transactionJsons : List[JValue]) = {
       val json = createImportJson(banks.map(Extraction.decompose),
-        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil)
+        users.map(Extraction.decompose), accounts.map(Extraction.decompose), transactionJsons, Nil, Nil, Nil)
       postImportJson(json)
     }
 
@@ -1521,8 +1654,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Helper function expects banks and branches
     def getResponse(branchList : List[JValue]) = {
-          val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, branchList)
-          println(json)
+          val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, branchList, Nil, Nil)
+          // Posts the Json (token gets added)
           postImportJson(json)
         }
 
@@ -1540,8 +1673,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     existingBranchesCount should equal (0)
 
     // Check creation succeeds
-    val response = getResponse(branchesJson).code
-    response should equal(SUCCESS)
+    val response = getResponse(branchesJson)
+
+    val responseCode = response.code
+    val responseBody = response.body
+    println(s"responseBody is $responseBody")
+
+
+
+    responseCode should equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countBranchesAfter = countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
@@ -1550,4 +1690,83 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     // Check that for each branch we did indeed create something good
     standardBranches.foreach(verifyBranchCreated)
   }
+
+
+
+
+  it should "create ATMs ok" in {
+
+    // Helper function expects banks and branches
+    def getResponse(atmList : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, Nil, atmList, Nil)
+      println(json)
+      postImportJson(json)
+    }
+
+
+    val bankId1 = BankId(bank1.id)
+
+    val atmsJson  = standardAtms.map(Extraction.decompose)
+
+    // Check we are starting from a clean slate (no atms for this bank)
+    // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
+    val existingAtms: Option[List[Atm]] = Atms.atmsProvider.vend.getAtms(bankId1)
+
+    // We want the size of the list inside the Option
+    val existingAtmsCount = countOfAtms(existingAtms)
+    existingAtmsCount should equal (0)
+
+    // Check creation succeeds
+    val response = getResponse(atmsJson).code
+    response should equal(SUCCESS)
+
+    // Check count after creation. Again counting the items in list, not the option
+    val countAtmsAfter = countOfAtms(Atms.atmsProvider.vend.getAtms(bankId1))
+    countAtmsAfter should equal(standardBranches.size) // We expect N branches
+
+    // Check that for each branch we did indeed create something good
+    standardAtms.foreach(verifyAtmCreated)
+  }
+
+
+  it should "create Products ok" in {
+
+    // Helper function expects banks and branches
+    def getResponse(productList : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, Nil, Nil, productList)
+      println(json)
+      postImportJson(json)
+    }
+
+
+    val bankId1 = BankId(bank1.id)
+
+    val productsJson  = standardProducts.map(Extraction.decompose)
+
+    // Check we are starting from a clean slate (no atms for this bank)
+    // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
+    val existingProducts: Option[List[Product]] = Products.productsProvider.vend.getProducts(bankId1)
+
+    // We want the size of the list inside the Option
+    val existingCount = countOfProducts(existingProducts)
+    existingCount should equal (0)
+
+    // Check creation succeeds
+    val response = getResponse(productsJson).code
+    response should equal(SUCCESS)
+
+    // Check count after creation. Again counting the items in list, not the option
+    val countAfter = countOfProducts(Products.productsProvider.vend.getProducts(bankId1))
+    countAfter should equal(standardProducts.size) // We expect N branches
+
+    // Check that for each branch we did indeed create something good
+    standardProducts.foreach(verifyProductCreated)
+  }
+
+
+
+
+
+
+
 }

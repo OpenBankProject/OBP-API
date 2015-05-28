@@ -2,12 +2,15 @@ package code.api.v1_4_0
 
 import java.util.Date
 
+import code.common.{Meta, License, Location, Address}
 import code.atms.Atms.Atm
 import code.branches.Branches.{Branch}
-import code.common.{Meta, License, Location, Address}
+import code.products.Products.{Product}
 
 
 import code.customerinfo.{CustomerMessage, CustomerInfo}
+import code.model.BankId
+import code.products.Products.ProductId
 
 object JSONFactory1_4_0 {
 
@@ -133,15 +136,36 @@ object JSONFactory1_4_0 {
     AtmsJson(AtmsList.map(createAtmJson))
   }
 
+  // Products
+
+
+  case class ProductJson(id : String,
+                        code : String,
+                        name : String,
+                        category: String,
+                        family : String,
+                        super_family : String,
+                        more_info_url: String,
+                        meta : MetaJson)
+
+  case class ProductsJson (products : List[ProductJson])
 
 
 
+  def createProductJson(product: Product) : ProductJson = {
+    ProductJson(product.productId.value,
+      product.code,
+      product.name,
+      product.category,
+      product.family,
+      product.superFamily,
+      product.moreInfoUrl,
+      createMetaJson(product.meta))
+  }
 
-
-
-
-
-
+  def createProductsJson(ProductsList: List[Product]) : ProductsJson = {
+    ProductsJson(ProductsList.map(createProductJson))
+  }
 
 
 
