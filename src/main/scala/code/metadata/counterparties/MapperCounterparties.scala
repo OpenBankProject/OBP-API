@@ -1,6 +1,6 @@
 package code.metadata.counterparties
 
-import java.util.Date
+import java.util.{UUID, Date}
 
 import code.model._
 import code.model.dataAccess.APIUser
@@ -17,8 +17,7 @@ object MapperCounterparties extends Counterparties {
      * for the account in question
      */
     def newPublicAliasName(): String = {
-      import scala.util.Random
-      val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
+      val firstAliasAttempt = "ALIAS_" + UUID.randomUUID.toString.toUpperCase.take(6)
 
       /**
        * Returns true if @publicAlias is already the name of a public alias within @account
@@ -35,7 +34,7 @@ object MapperCounterparties extends Counterparties {
        * Appends things to @publicAlias until it a unique public alias name within @account
        */
       def appendUntilUnique(publicAlias: String): String = {
-        val newAlias = publicAlias + Random.nextLong().toString.take(1)
+        val newAlias = publicAlias + UUID.randomUUID.toString.toUpperCase.take(1)
         if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
         else newAlias
       }
