@@ -439,7 +439,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     meta = standardMeta
   )
 
-
   val product2AtBank1 = SandboxProductImport(
     id = "product2",
     bank_id = "bank1",
@@ -452,15 +451,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     meta = standardMeta
   )
 
-
-
-
-
-
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
-
-  //
-
 
 
   val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", display_name = "User 1")
