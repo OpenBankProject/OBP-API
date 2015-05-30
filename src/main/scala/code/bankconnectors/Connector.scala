@@ -14,6 +14,20 @@ import java.util.Date
 
 import scala.util.Random
 
+
+/*
+So we can switch between different sources of resources e.g.
+- Mapper ORM for connecting to RDBMS (via JDBC) https://www.assembla.com/wiki/show/liftweb/Mapper
+- MongoDB
+etc.
+
+Note: We also have individual providers for resources like Branches and Products.
+Probably makes sense to have more targeted providers like this.
+
+Could consider a Map of ("resourceType" -> "provider") - this could tell us which tables we need to schemify (for list in Boot), whether or not to
+ initialise MongoDB etc. resourceType might be sub devided to allow for different account types coming from different internal APIs, MQs.
+ */
+
 object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}

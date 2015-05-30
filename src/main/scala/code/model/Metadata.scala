@@ -100,6 +100,9 @@ trait TransactionImage {
   def imageUrl : URL
 }
 
+/*
+Counterparty metadata
+ */
 trait OtherBankAccountMetadata {
   def metadataId: String
   def getHolder: String
