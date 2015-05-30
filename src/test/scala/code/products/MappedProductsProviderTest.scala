@@ -82,32 +82,32 @@ class MappedProductsProviderTest extends ServerSetup {
       val expectedProducts =  List(fixture.product1, fixture.product2)
 
 
-      Given("the bank in question has atms")
+      Given("the bank in question has Products")
       MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdX)).isDefined should equal(true)
 
-      When("we try to get the atms for that bank")
+      When("we try to get the Products for that bank")
       val productsOpt: Option[List[Product]] = MappedProductsProvider.getProducts(BankId(fixture.bankIdX))
 
-      Then("We should get a atms list")
+      Then("We should get a Products list")
       productsOpt.isDefined should equal (true)
       val products = productsOpt.get
 
-      And("it should contain two atms")
+      And("it should contain two Products")
       products.size should equal(2)
 
       And("they should be the licensed ones")
       products should equal (expectedProducts)
     }
 
-    scenario("We try to get atms for a bank that doesn't have any") {
+    scenario("We try to get Products for a bank that doesn't have any") {
 
       val fixture = defaultSetup()
 
-      Given("we don't have any atms")
+      Given("we don't have any Products")
 
       MappedProduct.find(By(MappedProduct.mBankId, fixture.bankIdY)).isDefined should equal(false)
 
-      When("we try to get the atms for that bank")
+      When("we try to get the Products for that bank")
       val productsOpt = MappedProductsProvider.getProducts(BankId(fixture.bankIdY))
 
       Then("we should get back an empty list")
