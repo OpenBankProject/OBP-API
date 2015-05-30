@@ -346,11 +346,29 @@ class Boot extends Loggable{
 }
 
 object ToSchemify {
-  val models = List(OBPUser, Admin, Nonce, Token, Consumer,
-    ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
-    MappedComment, MappedNarrative, MappedTag,
-    MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
-    MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
-    MappedBranch, MappedAtm, MappedProduct)
+  val models = List(OBPUser,
+    Admin,
+    Nonce,
+    Token,
+    Consumer,
+    ViewPrivileges,
+    ViewImpl,
+    APIUser,
+    MappedAccountHolder,
+    MappedComment,
+    MappedNarrative,
+    MappedTag,
+    MappedTransactionImage,
+    MappedWhereTag,
+    MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag,
+    MappedBank,
+    MappedBankAccount,
+    MappedTransaction,
+    MappedMetric,
+    MappedCustomerInfo,
+    MappedCustomerMessage,
+    MappedBranch,
+    MappedAtm,
+    MappedProduct)
 }
