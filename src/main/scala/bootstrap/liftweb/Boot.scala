@@ -217,6 +217,15 @@ class Boot extends Loggable{
       }
     }
 
+    // API Metrics (logs of API calls)
+    // If set to try we will write each URL with params to a datastore / log file
+    if (Props.getBool("write_metrics", false)) {
+      logger.info("writeMetrics is true. We will write API metrics")
+    } else {
+      logger.info("writeMetrics is false. We will NOT write API metrics")
+    }
+
+
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",

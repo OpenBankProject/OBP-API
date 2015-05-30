@@ -42,6 +42,9 @@ import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 
+import bootstrap.liftweb.Boot
+import net.liftweb.util.Props
+
 import scala.collection.JavaConversions.asScalaSet
 
 
@@ -67,8 +70,11 @@ object APIUtil extends Loggable {
     }
   }
 
-  def logAPICall =
-    APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+  def logAPICall = {
+    if(Props.getBool("write_metrics", false)) {
+      APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+    }
+  }
 
 
   /*
