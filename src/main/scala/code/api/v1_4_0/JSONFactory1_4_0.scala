@@ -10,7 +10,7 @@ import code.products.Products.{Product}
 
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 import code.model.BankId
-import code.products.Products.ProductId
+import code.products.Products.ProductCode
 
 object JSONFactory1_4_0 {
 
@@ -139,8 +139,7 @@ object JSONFactory1_4_0 {
   // Products
 
 
-  case class ProductJson(id : String,
-                        code : String,
+  case class ProductJson(code : String,
                         name : String,
                         category: String,
                         family : String,
@@ -153,8 +152,7 @@ object JSONFactory1_4_0 {
 
 
   def createProductJson(product: Product) : ProductJson = {
-    ProductJson(product.productId.value,
-      product.code,
+    ProductJson(product.code.value,
       product.name,
       product.category,
       product.family,

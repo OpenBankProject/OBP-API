@@ -43,11 +43,11 @@ import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, countOfBranches}
 
 import code.products.Products
-import code.products.Products.{Product, ProductId, countOfProducts}
+import code.products.Products.{Product, ProductCode, countOfProducts}
 
 import code.model.dataAccess._
 import code.model.{TransactionId, AccountId, BankId}
-import code.products.Products.ProductId
+import code.products.Products.ProductCode
 import code.users.Users
 import code.views.Views
 import dispatch._
@@ -219,19 +219,19 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Get ids from input
     val bankId = BankId(product.bank_id)
-    val productId = ProductId(product.id)
+    val code = ProductCode(product.code)
 
     println(s"bankId is $bankId")
-    println(s"productId is $productId")
+    println(s"code is $code")
 
 
-    // check we have found a branch
-    val foundProductOpt: Option[Product] = Products.productsProvider.vend.getProduct(productId)
+    // check we have found a product
+    val foundProductOpt: Option[Product] = Products.productsProvider.vend.getProduct(bankId, code)
     foundProductOpt.isDefined should equal(true)
 
     val foundProduct = foundProductOpt.get
     foundProduct.bankId.toString should equal (product.bank_id)
-    foundProduct.code should equal(product.code)
+    foundProduct.code.value should equal(product.code)
     foundProduct.name should equal(product.name)
     foundProduct.category should equal(product.category)
     foundProduct.family should equal(product.family)
@@ -428,7 +428,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
 
   val product1AtBank1 = SandboxProductImport(
-    id = "product1",
     bank_id = "bank1",
     code = "prd1",
     name = "product 1",
@@ -440,7 +439,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   )
 
   val product2AtBank1 = SandboxProductImport(
-    id = "product2",
     bank_id = "bank1",
     code = "prd2",
     name = "Product 2",

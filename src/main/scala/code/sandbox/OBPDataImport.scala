@@ -2,7 +2,9 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.UUID
-import code.products.Products.Product
+import code.metadata.counterparties.{Counterparties, MapperCounterparties}
+import code.products.Products
+import code.products.Products.{ProductCode, Product}
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
 import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
 import code.model._
@@ -18,7 +20,6 @@ object OBPDataImport extends SimpleInjector {
 
   val importer =  new Inject(buildOne _) {}
 
-  // TODO put this in props like main connector
   def buildOne : OBPDataImport = LocalMappedConnectorDataImport
 
 }
@@ -242,7 +243,30 @@ trait OBPDataImport extends Loggable {
     logger.info("Hello from createProducts")
     // TODO Check the data.products is OK before calling the following
 
-    createSaveableProducts(data.products)
+    logger.debug("Get existing products that match the bank id and product code")
+    val existing = data.products.flatMap(p => Products.productsProvider.vend.getProduct(BankId(p.bank_id), ProductCode(p.code), true))
+
+    val allNewCodes = data.products.map(_.code)
+    val emptyCodes = allNewCodes.filter(_.isEmpty)
+    val uniqueNewCodes = data.products.map(_.code).distinct
+    val duplicateCodes = allNewCodes diff uniqueNewCodes
+
+    if(!existing.isEmpty) {
+      val existingCodes = existing.map(_.code.value)
+      Failure(s"Existing Product codes were found for the bank $existingCodes")
+    } else if (!emptyCodes.isEmpty){
+      Failure(s"Product(s) with empty codes are not allowed")
+    } else if(!duplicateCodes.isEmpty) {
+
+      val duplicateProducts = duplicateCodes.flatMap(d => data.products.filter(_.code == d))
+
+      duplicateProducts.foreach (dc => logger.error (s"Duplicate products found (duplicate code) in data.products Code: ${dc.code} Name: ${dc.name} Category: ${dc.category}"))
+      Failure(s"Products must have unique codes. Duplicates found: $duplicateCodes")
+    } else {
+      createSaveableProducts(data.products)
+    }
+
+
   }
 
 
@@ -312,6 +336,8 @@ trait OBPDataImport extends Loggable {
 
   final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType])
   : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
+
+    logger.info("Hello from createSaveableAccountResults")
 
     val saveableAccounts =
       for(acc <- accs)
@@ -383,6 +409,7 @@ trait OBPDataImport extends Loggable {
       def randomCounterpartyHolderName(accNumber: Option[String]) : String = {
         val name = s"unknown_${UUID.randomUUID.toString}"
         accNumber.foreach(emptyHoldersAccNums.put(_, name))
+        logger.debug(s"randomCounterpartyHolderName will return $name")
         name
       }
 
@@ -400,7 +427,10 @@ trait OBPDataImport extends Loggable {
               case Some(accNum) if accNum.nonEmpty => {
                 val existing = emptyHoldersAccNums.get(accNum)
                 existing match {
-                  case Some(e) => e //holder already generated for an empty-name counterparty with the same account number
+                  case Some(existingValue) => {
+                    logger.debug (s"counterpartyHolder will be $existingValue")
+                    existingValue
+                  } //holder already generated for an empty-name counterparty with the same account number
                   case None => randomCounterpartyHolderName(Some(accNum)) //generate a new counterparty name
                 }
               }
@@ -468,11 +498,25 @@ trait OBPDataImport extends Loggable {
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>
         t.save()
-        //load it to force creation of metadata
-        Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
+        //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
+        val lt = Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
+
+
+        // Listing counterparties for debugging purposes.
+        val counterParties = Connector.connector.vend.getOtherBankAccounts(lt.map(_.bankId).get,lt.map(_.accountId).get)
+
+        counterParties.foreach {
+          cp => logger.debug(s"Label: ${cp.label} PublicAlias: ${cp.metadata.getPublicAlias} MoreInfo: ${cp.metadata.getMoreInfo}  ImageURL: ${cp.metadata.getImageURL} URL: ${cp.metadata.getUrl}")
+        }
+
+
+
       }
     }
   }
+
+
+  logger.info("Done")
 }
 
 
@@ -557,7 +601,7 @@ case class SandboxTransactionImport(
   details : SandboxAccountDetailsImport)
 
 case class SandboxTransactionCounterparty(
-  name : Option[String],
+  name : Option[String],  // Also known as Label
   account_number : Option[String])
 
 case class SandboxAccountIdImport(
@@ -584,7 +628,6 @@ case class SandboxAtmImport(
 
 
 case class SandboxProductImport(
-   id : String,
    bank_id : String,
    code: String,
    name : String,

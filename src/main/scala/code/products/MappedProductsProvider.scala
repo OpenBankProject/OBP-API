@@ -3,7 +3,7 @@ package code.products
 import code.products.Products._
 import code.common.{License, Meta}
 import code.model.BankId
-import code.products.Products.ProductId
+import code.products.Products.ProductCode
 import code.util.DefaultStringField
 import net.liftweb.mapper._
 
@@ -12,8 +12,11 @@ import code.products.Products.Product
 
 object MappedProductsProvider extends ProductsProvider {
 
-  override protected def getProductFromProvider(productId: ProductId): Option[Product] =
-  MappedProduct.find(By(MappedProduct.mProductId, productId.value))
+  override protected def getProductFromProvider(bankId: BankId, productCode: ProductCode): Option[Product] =
+  MappedProduct.find(
+    By(MappedProduct.mBankId, bankId.value),
+    By(MappedProduct.mCode, productCode.value)
+  )
 
   override protected def getProductsFromProvider(bankId: BankId): Option[List[Product]] = {
     Some(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
@@ -26,11 +29,12 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
   override def getSingleton = MappedProduct
 
-  object mBankId extends DefaultStringField(this)
-  object mCode extends DefaultStringField(this)
+  object mBankId extends DefaultStringField(this) // combination of this
+  object mCode extends DefaultStringField(this)   // and this is unique
+
   object mName extends DefaultStringField(this)
 
-  object mProductId extends DefaultStringField(this)
+  // Note we have an database pk called id but don't expose it
 
   // Exposed inside address. See below
   object mCategory extends DefaultStringField(this)
@@ -42,11 +46,9 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
   object mLicenseId extends DefaultStringField(this)
   object mLicenseName extends DefaultStringField(this)
 
-  override def productId: ProductId = ProductId(mProductId.get)
-
   override def bankId: BankId = BankId(mBankId.get)
 
-  override def code: String = mCode.get
+  override def code: ProductCode = ProductCode(mCode.get)
   override def name: String = mName.get
 
   override def category: String = mCategory.get
@@ -67,6 +69,6 @@ class MappedProduct extends Product with LongKeyedMapper[MappedProduct] with IdP
 
 //
 object MappedProduct extends MappedProduct with LongKeyedMetaMapper[MappedProduct] {
-  override def dbIndexes = UniqueIndex(mBankId, mProductId) :: Index(mBankId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mBankId, mCode) :: Index(mBankId) :: super.dbIndexes
 }
 

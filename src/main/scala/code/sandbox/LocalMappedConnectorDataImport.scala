@@ -6,7 +6,7 @@ import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
 import code.branches.{MappedBranch}
 import code.products.MappedProduct
-import code.products.Products.ProductId
+import code.products.Products.ProductCode
 
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
@@ -126,7 +126,6 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   protected def createSaveableProducts(data : List[SandboxProductImport]) : Box[List[Saveable[ProductType]]] = {
     val mappedProducts = data.map(product => {
       MappedProduct.create
-        .mProductId(product.id)
         .mBankId(product.bank_id)
         .mCode(product.code)
         .mName(product.name)
@@ -141,7 +140,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
     val validationErrors = mappedProducts.flatMap(_.validate)
 
     if (validationErrors.nonEmpty) {
-      logger.error(s"Problem saving ${mappedProducts.flatMap(_.code)}")
+      logger.error(s"Problem saving ${mappedProducts.flatMap(_.code.value)}")
       Failure(s"Errors: ${validationErrors.map(_.msg)}")
     } else {
       Full(mappedProducts.map(MappedSaveable(_)))

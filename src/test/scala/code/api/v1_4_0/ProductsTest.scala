@@ -5,7 +5,7 @@ import java.util.Locale.Category
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import code.common.{License, Meta}
 import code.model.BankId
-import code.products.Products.ProductId
+import code.products.Products.ProductCode
 import code.products.Products.Product
 import code.products.{Products, ProductsProvider}
 import dispatch._
@@ -17,9 +17,8 @@ class ProductsTest extends V140ServerSetup {
   val BankWithoutLicense = BankId("bank-without-license")
 
   // Have to repeat the constructor parameters from the trait
-  case class ProductImpl(productId : ProductId,
-                        bankId: BankId,
-                        code : String,
+  case class ProductImpl(bankId: BankId,
+                        code : ProductCode,
                         name : String,
                         category: String,
                         family : String,
@@ -42,11 +41,11 @@ class ProductsTest extends V140ServerSetup {
   }
 
 
-  val fakeProduct1 = ProductImpl(ProductId("prod1"), BankWithLicense, "code 1", "name 1", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo1.html", fakeMeta)
-  val fakeProduct2 = ProductImpl(ProductId("prod2"), BankWithLicense, "code 2", "name 2", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo2.html", fakeMeta)
+  val fakeProduct1 = ProductImpl(BankWithLicense, ProductCode("prod1"), "name 1", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo1.html", fakeMeta)
+  val fakeProduct2 = ProductImpl(BankWithLicense, ProductCode("prod2"), "name 2", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo2.html", fakeMeta)
 
   // Should not be returned (no license)
-  val fakeProduct3 = ProductImpl(ProductId("prod3"), BankWithoutLicense, "code 3", "name 3", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo3.html", fakeMetaNoLicense)
+  val fakeProduct3 = ProductImpl(BankWithoutLicense, ProductCode("prod3"), "name 3", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo3.html", fakeMetaNoLicense)
 
 
   // This mock provider is returning same branches for the fake banks
@@ -60,8 +59,8 @@ class ProductsTest extends V140ServerSetup {
     }
 
     // Mock a badly behaving connector that returns data that doesn't have license.
-    override protected def getProductFromProvider(productId: ProductId): Option[Product] = {
-      productId match {
+    override protected def getProductFromProvider(bank: BankId, code: ProductCode): Option[Product] = {
+      bank match {
          case BankWithLicense => Some(fakeProduct1)
          case BankWithoutLicense=> Some(fakeProduct3) // In case the connector returns, the API should guard
         case _ => None
@@ -133,10 +132,10 @@ class ProductsTest extends V140ServerSetup {
       // Order of Products in the list is arbitrary
       products.size should equal(2)
       val first = products(0)
-      if (first.id == fakeProduct1.productId.value) {
+      if (first.code == fakeProduct1.code.value) {
         verifySameData(fakeProduct1, first)
         verifySameData(fakeProduct2, products(1))
-      } else if (first.id == fakeProduct2.productId.value) {
+      } else if (first.code == fakeProduct2.code.value) {
         verifySameData(fakeProduct2, first)
         verifySameData(fakeProduct1, products(1))
       } else {

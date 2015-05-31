@@ -4,7 +4,7 @@ package code.products
 
 // Need to import these one by one because in same package!
 
-import code.products.Products.{Product, ProductId}
+import code.products.Products.{Product, ProductCode}
 import code.model.BankId
 import code.common.{Address, Location, Meta}
 import net.liftweb.common.Logger
@@ -12,12 +12,12 @@ import net.liftweb.util.SimpleInjector
 
 object Products extends SimpleInjector {
 
-  case class ProductId(value : String)
+  // Good to have this as a class because when passing as argument, we get compiler error if passing the wrong type.
+  case class ProductCode(value : String)
 
   trait Product {
-    def productId : ProductId
+    def code : ProductCode
     def bankId : BankId
-    def code : String
     def name : String
     def category: String
     def family : String
@@ -51,17 +51,16 @@ trait ProductsProvider {
 
   /*
   Common logic for returning products.
+  Use adminView = true to get all Products, else only ones with license returned.
    */
-  final def getProducts(bankId : BankId) : Option[List[Product]] = {
-    // If we get products filter them
-
+  final def getProducts(bankId : BankId, adminView: Boolean = false) : Option[List[Product]] = {
     logger.info(s"Hello from getProducts bankId is: $bankId")
 
     getProductsFromProvider(bankId) match {
       case Some(products) => {
-
         val productsWithLicense = for {
-          product <- products if product.meta.license.name.size > 3 && product.meta.license.name.size > 3
+          // Only return products that have a license set unless its for an admin view
+          product <- products if (adminView || (product.meta.license.name.size > 3 && product.meta.license.name.size > 3))
         } yield product
         Option(productsWithLicense)
       }
@@ -70,14 +69,14 @@ trait ProductsProvider {
   }
 
   /*
-  Return one Product
+  Return one Product at a bank
    */
-  final def getProduct(productId : ProductId) : Option[Product] = {
+  final def getProduct(bankId : BankId, productCode : ProductCode, adminView: Boolean = false) : Option[Product] = {
     // Filter out if no license data
-    getProductFromProvider(productId).filter(x => x.meta.license.id != "" && x.meta.license.name != "")
+    getProductFromProvider(bankId, productCode).filter(x => (adminView || (x.meta.license.id != "" && x.meta.license.name != "")))
   }
 
-  protected def getProductFromProvider(productId : ProductId) : Option[Product]
+  protected def getProductFromProvider(bankId : BankId, productCode : ProductCode) : Option[Product]
   protected def getProductsFromProvider(bank : BankId) : Option[List[Product]]
 
 // End of Trait
