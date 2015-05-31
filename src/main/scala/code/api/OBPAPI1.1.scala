@@ -1197,7 +1197,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def updateMoreInfoResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateMoreInfoResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[MoreInfoJSON]
           } match {
@@ -1236,13 +1236,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          updateMoreInfoResponce(bankId, accountId, viewId, otherAccountId, user)
+          updateMoreInfoResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        updateMoreInfoResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        updateMoreInfoResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1250,7 +1250,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def postURLResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postURLResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[UrlJSON]
           } match {
@@ -1291,13 +1291,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          postURLResponce(bankId, accountId, viewId, otherAccountId, user)
+          postURLResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        postURLResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        postURLResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
