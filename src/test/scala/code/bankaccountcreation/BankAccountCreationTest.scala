@@ -25,6 +25,31 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     val accountNumber = "12313213"
     val accountHolderName = "Rolf Rolfson"
 
+//    scenario("Creating a duplicate bank should fail") {
+//
+//      val bankNationalIdentifier = "bank-identifier"
+//      val bankName = "A Bank"
+//      Given("A bank that does not exist")
+//      Connector.connector.vend.getBanks.size should equal(0)
+//
+//      val id = "some-bank"
+//
+//      val newBank1 = createBank(id)
+//
+//      Then("A bank should now exist, with the correct parameters")
+//
+//      val allBanks = Connector.connector.vend.getBanks
+//      allBanks.size should equal(1)
+//
+//      val newBank = allBanks(0)
+//      newBank.bankId.value should equal(id)
+//
+//      // TODO Test for duplicate bank should fail. See comments in createBank
+//
+//    }
+
+
+
     scenario("Creating an account for a bank that does not exist yet") {
 
       val bankNationalIdentifier = "bank-identifier"

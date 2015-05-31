@@ -1,5 +1,6 @@
 package code.api
 
+import java.sql.SQLException
 import java.util.Date
 import bootstrap.liftweb.ToSchemify
 import code.model.dataAccess._
@@ -15,12 +16,30 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
   // (same in LocalConnectorTestSetup)
   // Tests should simply use the currently selected connector
   override protected def createBank(id : String) : Bank = {
-    MappedBank.create
-      .fullBankName(randomString(5))
-      .shortBankName(randomString(5))
-      .permalink(id)
-      .national_identifier(randomString(5)).saveMe
+        MappedBank.create
+          .fullBankName(randomString(5))
+          .shortBankName(randomString(5))
+          .permalink(id)
+          .national_identifier(randomString(5)).saveMe
   }
+
+// TODO: Should return an option or box so can test if the insert succeeded
+// or if it failed due to unique exception etc. However, we'll need to modify / lift callers so they can handle an Option
+//  override protected def createBank(id : String) : Option[Bank] = {
+//    val newBankOpt : Option[Bank] = try {
+//      Some(MappedBank.create
+//        .fullBankName(randomString(5))
+//        .shortBankName(randomString(5))
+//        .permalink(id)
+//        .national_identifier(randomString(5)).saveMe)
+//    } catch {
+//      case se : SQLException => None
+//    }
+//    newBankOpt
+//  }
+
+
+
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     MappedBankAccount.create

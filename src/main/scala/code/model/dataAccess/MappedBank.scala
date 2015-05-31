@@ -24,8 +24,9 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {
-  // permalink must be unique
-  override def dbIndexes = UniqueIndex(permalink) :: super.dbIndexes
+  // permalink should be unique
+  // TODO should have UniqueIndex on permalink but need to modify tests see createBank
+  override def dbIndexes = Index(permalink) :: super.dbIndexes
 
   def findByBankId(bankId : BankId) =
     MappedBank.find(By(MappedBank.permalink, bankId.value))
