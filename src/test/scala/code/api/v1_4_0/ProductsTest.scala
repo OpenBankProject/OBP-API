@@ -72,14 +72,13 @@ class ProductsTest extends V140ServerSetup {
   def verifySameData(product: Product, productJson : ProductJson) = {
     product.name should equal (productJson.name)
     // Note: We don't currently return the BankId because its part of the URL, so we don't test for that.
-    product.code should equal (productJson.code)
+    product.code.value should equal (productJson.code)
     product.category should equal (productJson.category)
     product.family should equal (productJson.family)
     product.meta.license.id should equal (productJson.meta.license.id)
     product.meta.license.name should equal (productJson.meta.license.name)
     product.moreInfoUrl should equal (productJson.more_info_url)
     product.name should equal (productJson.name)
-    // TODO Test for product Id
     product.superFamily should equal (productJson.super_family)
   }
 
