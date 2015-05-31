@@ -221,10 +221,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val bankId = BankId(product.bank_id)
     val code = ProductCode(product.code)
 
-    println(s"bankId is $bankId")
-    println(s"code is $code")
-
-
     // check we have found a product
     val foundProductOpt: Option[Product] = Products.productsProvider.vend.getProduct(bankId, code)
     foundProductOpt.isDefined should equal(true)
@@ -238,15 +234,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundProduct.superFamily should equal(product.super_family)
     foundProduct.moreInfoUrl should equal(product.more_info_url)
   }
-
-
-
-
-
-
-
-
-
 
 
 

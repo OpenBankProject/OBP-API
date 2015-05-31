@@ -151,6 +151,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   // Get one counterparty related to a bank account
   override def getOtherBankAccount(bankId: BankId, accountID: AccountId, otherAccountID: String): Box[OtherBankAccount] =
+    // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountID, otherAccountID).flatMap(getOtherBankAccount(bankId, accountID, _))
 
   override def getPhysicalCards(user: User): Set[PhysicalCard] =
@@ -195,7 +196,7 @@ object LocalMappedConnector extends Connector with Loggable {
       .currency(currency)
       .tStartDate(transactionTime)
       .tFinishDate(transactionTime)
-      .description("")
+      .description("") // TODO Populate this
       .counterpartyAccountHolder(counterparty.accountHolder)
       .counterpartyAccountNumber(counterparty.number)
       .counterpartyAccountKind(counterparty.accountType)

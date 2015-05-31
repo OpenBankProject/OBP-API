@@ -487,23 +487,27 @@ object BankAccount {
   }
 }
 
+/*
+The other bank account or counterparty in a transaction
+as see from the perspective of the original party.
+ */
+
 class OtherBankAccount(
   val id : String,
-  val label : String,
-  val nationalIdentifier : String,
-  //the bank international identifier
-  val swift_bic : Option[String],
-  //the international account identifier
-  val iban : Option[String],
-  val number : String,
-  val bankName : String,
-  val kind : String,
+  val label : String,               // Reference given to the counterparty by the original party.
+  val nationalIdentifier : String,  // National identifier for a bank account (how is this different to number below?)
+  val swift_bic : Option[String],   // The international bank identifier
+  val iban : Option[String],        // The international account identifier
+  val number : String,              // Bank account number for the counterparty
+  val bankName : String,            // Bank name of counterparty. What if the counterparty is not a bank? Rename to institution?
+  val kind : String,                // Type of bank account.
   val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
   val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
   val alreadyFoundMetadata : Option[OtherBankAccountMetadata]
   ) {
 
   val metadata : OtherBankAccountMetadata = {
+    // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
         meta
