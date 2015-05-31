@@ -14,7 +14,7 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
   object swiftBIC extends MappedString(this, 255)
   object national_identifier extends MappedString(this, 255)
 
-  override def bankId: BankId = BankId(permalink.get)
+  override def bankId: BankId = BankId(permalink.get) // This is the bank id used in URLs
   override def fullName: String = fullBankName.get
   override def shortName: String = shortBankName.get
   override def logoUrl: String = logoURL.get
@@ -24,7 +24,8 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
 }
 
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {
-  override def dbIndexes = Index(permalink) :: super.dbIndexes
+  // permalink must be unique
+  override def dbIndexes = UniqueIndex(permalink) :: super.dbIndexes
 
   def findByBankId(bankId : BankId) =
     MappedBank.find(By(MappedBank.permalink, bankId.value))
