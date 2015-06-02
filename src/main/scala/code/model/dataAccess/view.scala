@@ -433,7 +433,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canDeleteWhereTag : Boolean = canDeleteWhereTag_.get
 
   def canInitiateTransaction: Boolean = canInitiateTransaction_.get
-  //TODO: if you add new permissions here, remember to set them wherever views are create
+  //TODO: if you add new permissions here, remember to set them wherever views are created
   // (e.g. BankAccountCreationDispatcher)
 }
 
@@ -609,5 +609,172 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     unsavedDefaultPublicView(bankId, accountId, description).saveMe
   }
+
+ /*
+Accountants
+  */
+
+  def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    ViewImpl.create.
+      name_("Accountants").
+      description_(description).
+      permalink_("accountants").
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(true).
+      hideOtherAccountMetadataIfAlias_(true).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true)
+  }
+
+  def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    unsavedDefaultAccountantsView(bankId, accountId, description).saveMe
+  }
+
+
+  /*
+Auditors
+ */
+
+  def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    ViewImpl.create.
+      name_("Auditors").
+      description_(description).
+      permalink_("auditors").
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(true).
+      hideOtherAccountMetadataIfAlias_(true).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true)
+  }
+
+  def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    unsavedDefaultAuditorsView(bankId, accountId, description).saveMe
+  }
+
+
+
+
 
 }

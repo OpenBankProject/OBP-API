@@ -18,4 +18,11 @@ trait CreateViewImpls {
   protected def createSaveablePublicView(bankId : BankId, accountId : AccountId) : Saveable[ViewType] =
     asSaveableViewImpl(ViewImpl.unsavedDefaultPublicView(bankId, accountId, "Public View"))
 
+  protected def createSaveableAccountantsView(bankId : BankId, accountId : AccountId) : Saveable[ViewType] =
+    asSaveableViewImpl(ViewImpl.unsavedDefaultAccountantsView(bankId, accountId, "Accountants View"))
+
+  protected def createSaveableAuditorsView(bankId : BankId, accountId : AccountId) : Saveable[ViewType] =
+    asSaveableViewImpl(ViewImpl.unsavedDefaultAuditorsView(bankId, accountId, "Auditors View"))
+
+
 }

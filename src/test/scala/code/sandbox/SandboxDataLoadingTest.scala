@@ -446,15 +446,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val account1AtBank1 = SandboxAccountImport(id = "account1", bank = "bank1", label = "Account 1 at Bank 1",
     number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.email),
-    balance = SandboxBalanceImport(currency = "EUR", amount = "1000.00"))
+    balance = SandboxBalanceImport(currency = "EUR", amount = "1000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account2AtBank1 = SandboxAccountImport(id = "account2", bank = "bank1", label = "Account 2 at Bank 1",
     number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.email),
-    balance = SandboxBalanceImport(currency = "EUR", amount = "2000.00"))
+    balance = SandboxBalanceImport(currency = "EUR", amount = "2000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account1AtBank2 = SandboxAccountImport(id = "account1", bank = "bank2", label = "Account 1 at Bank 2",
     number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.email, user2.email),
-    balance = SandboxBalanceImport(currency = "EUR", amount = "1500.00"))
+    balance = SandboxBalanceImport(currency = "EUR", amount = "1500.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
 

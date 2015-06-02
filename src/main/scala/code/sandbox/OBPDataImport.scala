@@ -103,6 +103,19 @@ trait OBPDataImport extends Loggable {
    */
   protected def createSaveablePublicView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
 
+
+  /**
+   * Create AccountantsView with BankId @bankId and AccountId @accountId that can be saved.
+   */
+  protected def createSaveableAccountantsView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
+
+
+  /**
+   * Create AuditorsView with BankId @bankId and AccountId @accountId that can be saved.
+   */
+  protected def createSaveableAuditorsView(bankId : BankId, accountId : AccountId) : Saveable[ViewType]
+
+
   /**
    * Creates an account that can be saved. This method assumes that @acc has passed validatoin checks and is allowed
    * to be created as is.
@@ -362,7 +375,15 @@ trait OBPDataImport extends Loggable {
       if(acc.generate_public_view) Some(createSaveablePublicView(bankId, accountId))
       else None
 
-    List(Some(ownerView), publicView).flatten
+    val accountantsView =
+      if(acc.generate_accountants_view) Some(createSaveableAccountantsView(bankId, accountId))
+      else None
+
+    val auditorsView =
+      if(acc.generate_auditors_view) Some(createSaveableAuditorsView(bankId, accountId))
+      else None
+
+    List(Some(ownerView), publicView, accountantsView, auditorsView).flatten
   }
 
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {
@@ -577,7 +598,9 @@ case class SandboxAccountImport(
   balance : SandboxBalanceImport,
   IBAN : String,
   owners : List[String],
-  generate_public_view : Boolean)
+  generate_public_view : Boolean,
+  generate_accountants_view : Boolean,
+  generate_auditors_view : Boolean)
 
 case class SandboxBalanceImport(
   currency : String,
