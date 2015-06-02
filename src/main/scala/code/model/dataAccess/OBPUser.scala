@@ -79,7 +79,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
       user(apiUser)
     }
     else {
-      info("user reference is no null. Tying to update the API User")
+      info("user reference is not null. Trying to update the API User")
       user.obj.map{ u =>{
           info("API User found ")
           u.name_(displayName())

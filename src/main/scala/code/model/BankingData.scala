@@ -231,7 +231,7 @@ trait BankAccount {
     user match {
       case Full(u) => u.permittedViews(this)
       case _ =>{
-        log.info("no user was found in the permittedViews")
+        log.info("No user was passed to permittedViews")
         publicViews
       }
     }

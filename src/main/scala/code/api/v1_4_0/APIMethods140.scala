@@ -74,7 +74,7 @@ trait APIMethods140 {
         user => {
           for {
             // Get branches from the active provider
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branchs available. License may not be set.", 404)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 404)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
