@@ -5,6 +5,12 @@ import java.util.Date
 
 import code.api.test.ServerSetup
 
+
+/*
+TODO. We need to test concurrent / multiple inserts.
+ */
+
+
 class MetricsTest extends ServerSetup with WipeMetrics {
 
   val testUrl1 = "http://example.com/foo"
