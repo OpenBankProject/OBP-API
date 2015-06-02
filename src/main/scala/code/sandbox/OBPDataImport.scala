@@ -500,17 +500,6 @@ trait OBPDataImport extends Loggable {
         t.save()
         //load it to force creation of metadata (If we are using Mapped connector, MappedCounterpartyMetadata.create will be called)
         val lt = Connector.connector.vend.getTransaction(t.value.theBankId, t.value.theAccountId, t.value.theTransactionId)
-
-
-        // Listing counterparties for debugging purposes.
-        val counterParties = Connector.connector.vend.getOtherBankAccounts(lt.map(_.bankId).get,lt.map(_.accountId).get)
-
-        counterParties.foreach {
-          cp => logger.debug(s"Label: ${cp.label} PublicAlias: ${cp.metadata.getPublicAlias} MoreInfo: ${cp.metadata.getMoreInfo}  ImageURL: ${cp.metadata.getImageURL} URL: ${cp.metadata.getUrl}")
-        }
-
-
-
       }
     }
   }
