@@ -26,6 +26,7 @@ class MappedBank extends Bank with LongKeyedMapper[MappedBank] with IdPK with Cr
 object MappedBank extends MappedBank with LongKeyedMetaMapper[MappedBank] {
   // permalink should be unique
   // TODO should have UniqueIndex on permalink but need to modify tests see createBank
+  // TODO Other Models should be able to foreign key to this but would need to expose IdPK then?
   override def dbIndexes = Index(permalink) :: super.dbIndexes
 
   def findByBankId(bankId : BankId) =
