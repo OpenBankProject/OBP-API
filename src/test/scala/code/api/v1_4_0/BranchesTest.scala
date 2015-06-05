@@ -8,6 +8,12 @@ import code.branches.{Branches, BranchesProvider}
 import code.model.BankId
 import code.util.Helper.prettyJson
 
+
+
+/*
+Note This does not test retrieval from a backend.
+We mock the backend so get test the API
+ */
 class BranchesTest extends V140ServerSetup {
 
 
@@ -26,7 +32,7 @@ class BranchesTest extends V140ServerSetup {
                          state : String, postCode : String, countryCode : String) extends Address
 
 
-  val fakeAddress1 = AddressImpl("Duckerstrasse 87", "Prenzlauerberg", "lala", "Berlin", "a county", "Berlin", "10437", "DE")
+  val fakeAddress1 = AddressImpl("Dunckerstraße 73 ApS", "Udemarken", "Hjørring", "Berlin", "Denmark", "Denmark", "10437", "DE")
   val fakeAddress2 = fakeAddress1.copy(line1 = "00000")
 
   val fakeMeta = new Meta {
@@ -73,8 +79,8 @@ class BranchesTest extends V140ServerSetup {
     override def hours: String = "M-Th 8:30 - 5:30"
   }
 
-  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
-  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2)
+  val fakeBranch1 = BranchImpl(BranchId("branch1"), "Branch 1 Müdürlük", fakeAddress1, fakeLocation, fakeMeta, fakeLobby, fakeDriveUp)
+  val fakeBranch2 = BranchImpl(BranchId("branch2"), "Branch 2 Lala", fakeAddress2, fakeLocation2, fakeMeta, fakeLobby2, fakeDriveUp2)
   val fakeBranch3 = BranchImpl(BranchId("branch3"), "Branch 3", fakeAddress2, fakeLocation, fakeMetaNoLicense, fakeLobby, fakeDriveUp2) // Should not be returned
 
   // This mock provider is returning same branches for the fake banks

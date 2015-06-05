@@ -22,7 +22,7 @@ object SandboxApiCalls extends OBPRestHelper with Loggable {
 
     case "v1.0" :: "data-import" :: Nil JsonPost json -> _ => {
       user =>
-
+        logger.info("Hello from v1.0 data-import")
         for{
           correctToken <- Props.get("sandbox_data_import_secret") ~> APIFailure("Data import is disabled for this API instance.", 403)
           providedToken <- S.param("secret_token") ~> APIFailure("secret_token parameter required", 403)

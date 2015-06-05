@@ -62,6 +62,14 @@ import code.bankconnectors.Connector
 import net.liftweb.common.{Full, Empty}
 import net.liftweb.mongodb._
 
+
+
+/*
+This tests:
+
+Posting of json to the sandbox creation API endpoint.
+Checking that the various objects were created OK via calling the Mapper.
+ */
 class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with ShouldMatchers with BeforeAndAfterEach {
 
   val SUCCESS: Int = 201
@@ -118,6 +126,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   def postImportJson(json : String, secretToken : Option[String]) : APIResponse = {
     val base = sandboxApiPrefix / "v1.0" / "data-import"
+
+    // If we have a secretToken add that to the base request
     val request = secretToken match {
       case Some(t) => base <<? Map("secret_token" -> t)
       case None => base
@@ -401,7 +411,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardDriveUp = SandboxDriveUpImport(hours = "M-Th 8:30-5:30, F-8:30-6, Sat 9-12")
 
 
-  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Ashbourne", bank_id = "bank1", address = standardAddress1
+  val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Genel Müdürlük", bank_id = "bank1", address = standardAddress1
     , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
   val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1
     , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
@@ -1665,8 +1675,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val responseCode = response.code
     val responseBody = response.body
     println(s"responseBody is $responseBody")
-
-
 
     responseCode should equal(SUCCESS)
 
