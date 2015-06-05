@@ -1,7 +1,5 @@
 package code.api.v1_4_0
 
-import java.util.Locale.Category
-
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import code.common.{License, Meta}
 import code.model.BankId
