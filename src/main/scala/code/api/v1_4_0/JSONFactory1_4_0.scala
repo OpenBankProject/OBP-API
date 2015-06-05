@@ -60,6 +60,16 @@ object JSONFactory1_4_0 {
 
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
+
+  case class CRMEventJson(scheduled_date : String,
+                          actual_date: String,
+                          result: String,
+                          `type` : String,
+                          detail : String,
+                          channel : String,
+                          user: CustomerInfoJson)
+
+
   def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
 
     CustomerInfoJson(customer_number = cInfo.number,

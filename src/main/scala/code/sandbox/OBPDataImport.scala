@@ -1,7 +1,7 @@
 package code.sandbox
 
 import java.text.SimpleDateFormat
-import java.util.UUID
+import java.util.{Date, UUID}
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{ProductCode, Product}
@@ -658,4 +658,18 @@ case class SandboxDataImport(
   transactions : List[SandboxTransactionImport],
   branches: List[SandboxBranchImport],
   atms: List[SandboxAtmImport],
-  products: List[SandboxProductImport] )
+  products: List[SandboxProductImport],
+  crmEvents: List[SandboxCrmEventImport]
+  )
+
+case class SandboxCrmEventImport (
+  `type`: String,
+  detail: String,
+  channel: String,
+  scheduled_date: String,
+  actual_date: String,
+  result: String,
+  user: SandboxUserImport
+)
+
+
