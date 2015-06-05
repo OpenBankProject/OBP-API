@@ -60,6 +60,9 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
+  object hasCrmAdminRole extends MappedBoolean(this)  // May change. Don't access directly. use isCrmAdmin below
+  object hasCustomerMessageAdminRole extends MappedBoolean(this) // May change. Don't access directly. use isCrmAdmin below
+
   def emailAddress = {
     val e = email.get
     if(e != null) e else ""
@@ -71,6 +74,10 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def name : String = name_.get
   def provider = provider_.get
   def views: List[View] = views_.toList
+
+  // Not sure if this is a good API since the list will grow. May need to use list instead called roles
+  def isCrmAdmin : Boolean = hasCrmAdminRole
+  def isCustomerMessageAdmin : Boolean = hasCustomerMessageAdminRole
 
 }
 
