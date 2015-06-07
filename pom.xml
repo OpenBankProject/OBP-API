@@ -204,10 +204,6 @@
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
-            <args>
-                <arg>-Xmax-classfile-name</arg>
-                <arg>130</arg>
-            </args>
             <scalaVersion>${scala.compiler}</scalaVersion>
             <scalaCompatVersion>${scala.version}</scalaCompatVersion>
             <recompileMode>incremental</recompileMode>
@@ -224,6 +220,8 @@
                   <arg>-make:transitive</arg>
                   <arg>-dependencyfile</arg>
                   <arg>${project.build.directory}/.scala_dependencies</arg>
+                  <arg>-Xmax-classfile-name</arg>
+                  <arg>180</arg>
                 </args>
               </configuration>
             </execution>
