@@ -172,7 +172,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       output
     }
 
-    def suportedOAuthVersion(OAuthVersion : Option[String]) : Boolean = {
+    def supportedOAuthVersion(OAuthVersion : Option[String]) : Boolean = {
       //auth_version is OPTIONAL.  If present, MUST be set to "1.0".
       OAuthVersion match
       {
@@ -180,6 +180,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         case _ => true
       }
     }
+
     def wrongTimestamp(requestTimestamp : Option[String]) : Option[String] = {
       requestTimestamp match {
         case Some(timestamp) => {
@@ -209,8 +210,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       }
     }
 
-    def alReadyUsedNonce(parameters : Map[String, String]) : Boolean = {
-
+    def alreadyUsedNonce(parameters : Map[String, String]) : Boolean = {
       /*
       * The nonce value MUST be unique across all requests with the
       * same timestamp, client credentials, and token combinations.
@@ -307,7 +307,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
 
     //@return the missing parameters depending of the request type
-    def missingOauthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
+    def missingOAuthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
       val parametersBase =
         List(
           "oauth_consumer_key",
@@ -332,13 +332,13 @@ object OAuthHandshake extends RestHelper with Loggable {
       oauthSignatureMethod.toLowerCase == "hmac-sha1"
     }
 
-    var message =""
+    var message = ""
     var httpCode : Int = 500
 
     var parameters = getAllParameters
 
     //does all the OAuth parameters are presents?
-    val missingParams = missingOauthParameters(parameters,requestType)
+    val missingParams = missingOAuthParameters(parameters,requestType)
     if( missingParams.size != 0 )
     {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
@@ -351,7 +351,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //valid OAuth
-    else if(!suportedOAuthVersion(parameters.get("oauth_version")))
+    else if(!supportedOAuthVersion(parameters.get("oauth_version")))
     {
       message = "OAuth version not supported"
       httpCode = 400
@@ -376,7 +376,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //unused nonce
-    else if (alReadyUsedNonce(parameters))
+    else if (alreadyUsedNonce(parameters))
     {
       message = "Nonce already used"
       httpCode = 401
@@ -409,14 +409,16 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     (httpCode, message, parameters)
   }
-    private def generateTokenAndSecret() =
-    {
-      // generate some random strings
-      val token_message = Helpers.randomString(40)
-      val secret_message = Helpers.randomString(40)
 
-      (token_message, secret_message)
-    }
+  private def generateTokenAndSecret() =
+  {
+    // generate some random strings
+    val token_message = Helpers.randomString(40)
+    val secret_message = Helpers.randomString(40)
+
+    (token_message, secret_message)
+  }
+
   private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Nonce, Token, TokenType}
@@ -448,6 +450,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     nonceSaved && tokenSaved
   }
+
   private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Nonce, Token, TokenType}

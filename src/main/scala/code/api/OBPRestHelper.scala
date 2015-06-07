@@ -167,7 +167,10 @@ trait OBPRestHelper extends RestHelper with Loggable {
   Since the URL path matching will fail if there is invalid JsonPost, and this leads to a generic 404 response which is confusing to the developer,
   we want to detect invalid json *before* matching on the url so we can fail with a more specific message.
   See SandboxApiCalls for an example of JsonPost being used.
-  The down side is that we might be validating json more than once per request and we're doing work before authentication is completed (possible DOS vector)
+  The down side is that we might be validating json more than once per request and we're doing work before authentication is completed
+  (possible DOS vector?)
+
+  TODO: should this be moved to def serve() further down? 
    */
 
   def oauthServe(handler : PartialFunction[Req, Box[User] => Box[JsonResponse]]) : Unit = {
@@ -184,8 +187,8 @@ trait OBPRestHelper extends RestHelper with Loggable {
           }
         }
         def isDefinedAt(r : Req) = {
-          //if the content-type is json and json parsing failed, simply accept call but then fail in apply() above
-          //the cases don't match if json failed and don't allow
+          //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
+          //the url cases don't match because json failed
           r.json_? match {
             case true =>
               logger.debug("Try to evaluate the json")

@@ -56,6 +56,7 @@ import mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Schedule
 import net.liftweb.util.Helpers
+import java.util.Locale
 import java.io.FileInputStream
 import java.io.File
 import javax.mail.internet.MimeMessage
@@ -259,11 +260,20 @@ class Boot extends Loggable{
     // What is the function to test if a user is logged in?
     LiftRules.loggedInTest = Full(() => OBPUser.loggedIn_?)
 
+    // Template(/Response?) encoding
+    LiftRules.early.append(_.setCharacterEncoding("utf-8"))
+
     // Use HTML5 for rendering
     LiftRules.htmlProperties.default.set((r: Req) =>
       new Html5Properties(r.userAgent))
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
+
+    //override locale calculated from client request with default (until we have translations)
+    LiftRules.localeCalculator = {
+      case fullReq @ Full(req) => Locale.ENGLISH
+      case _ => Locale.ENGLISH
+    }
 
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
