@@ -15,7 +15,7 @@ import scala.util.Try
 object MappedBranchesProvider extends BranchesProvider {
 
   override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] =
-  MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
+    MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
   override protected def getBranchesFromProvider(bankId: BankId): Option[List[Branch]] = {
     Some(MappedBranch.findAll(By(MappedBranch.mBankId, bankId.value)))

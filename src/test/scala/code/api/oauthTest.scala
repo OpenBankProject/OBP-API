@@ -49,7 +49,7 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import APIUtil.OAuth._
 
-case class OAuhtResponse(
+case class OAuthResponse(
   code: Int,
   body: String
 )
@@ -82,24 +82,24 @@ class OAuthTest extends ServerSetup{
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
-  private def getAPIResponse(req : Req) : OAuhtResponse = {
+  private def getAPIResponse(req : Req) : OAuthResponse = {
     Await.result(
       for(response <- Http(req > as.Response(p => p)))
-        yield OAuhtResponse(response.getStatusCode, response.getResponseBody)
+        yield OAuthResponse(response.getStatusCode, response.getResponseBody)
     , Duration.Inf)
   }
 
-  def sendPostRequest(req: Req): OAuhtResponse = {
+  def sendPostRequest(req: Req): OAuthResponse = {
     val postReq = req.POST
     getAPIResponse(postReq)
   }
 
-  def getRequestToken(consumer: Consumer, callback: String): OAuhtResponse = {
+  def getRequestToken(consumer: Consumer, callback: String): OAuthResponse = {
     val request = (oauthRequest / "initiate").POST <@ (consumer, callback)
     sendPostRequest(request)
   }
 
-  def getAccessToken(consumer: Consumer, requestToken : Token, verifier : String): OAuhtResponse = {
+  def getAccessToken(consumer: Consumer, requestToken : Token, verifier : String): OAuthResponse = {
     val request = (oauthRequest / "token").POST <@ (consumer, requestToken, verifier)
     sendPostRequest(request)
   }

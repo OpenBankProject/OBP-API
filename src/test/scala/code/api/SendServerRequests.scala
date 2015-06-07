@@ -65,6 +65,7 @@ trait SendServerRequests {
     req.addHeader("Content-Type", "application/json")
     req.addHeader("Accept", "application/json")
     req.setBody(json)
+    req.setBodyEncoding("UTF-8")
     val jsonReq = (req).POST
     getAPIResponse(jsonReq)
   }
@@ -72,6 +73,7 @@ trait SendServerRequests {
   def makePutRequest(req: Req, json: String = "") : APIResponse = {
     req.addHeader("Content-Type", "application/json")
     req.setBody(json)
+    req.setBodyEncoding("UTF-8")
     val jsonReq = (req).PUT
     getAPIResponse(jsonReq)
   }

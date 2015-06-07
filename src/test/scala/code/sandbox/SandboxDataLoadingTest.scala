@@ -151,15 +151,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   def verifyBranchCreated(branch : SandboxBranchImport) = {
-    println("Hello from verifyBranchCreated")
+    //compare branches with data retrieved from connector (i.e. the db)
 
     // Get ids from input
     val bankId = BankId(branch.bank_id)
     val branchId = BranchId(branch.id)
-
-    println(s"bankId is $bankId")
-    println(s"branchId is $branchId")
-
 
     // check we have found a branch
     val foundBranchOpt: Option[Branch] = Branches.branchesProvider.vend.getBranch(branchId)
@@ -173,7 +169,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundBranch.address.city should equal(branch.address.city)
     foundBranch.address.county should equal(branch.address.county)
     foundBranch.address.state should equal(branch.address.state)
-
 
     foundBranch.location.latitude should equal(branch.location.latitude)
     foundBranch.location.longitude should equal(branch.location.longitude)
@@ -189,15 +184,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   def verifyAtmCreated(atm : SandboxAtmImport) = {
-    println("Hello from verifyAtmCreated")
-
     // Get ids from input
     val bankId = BankId(atm.bank_id)
     val atmId = AtmId(atm.id)
-
-    println(s"bankId is $bankId")
-    println(s"atmId is $atmId")
-
 
     // check we have found a branch
     val foundAtmOpt: Option[Atm] = Atms.atmsProvider.vend.getAtm(atmId)
@@ -212,7 +201,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundAtm.address.county should equal(atm.address.county)
     foundAtm.address.state should equal(atm.address.state)
 
-
     foundAtm.location.latitude should equal(atm.location.latitude)
     foundAtm.location.longitude should equal(atm.location.longitude)
 
@@ -221,14 +209,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     foundAtm.meta.license.id should equal(atm.meta.license.id)
     foundAtm.meta.license.name should equal(atm.meta.license.name)
-
   }
 
 
-
   def verifyProductCreated(product : SandboxProductImport) = {
-    println("Hello from verifyProductCreated")
-
     // Get ids from input
     val bankId = BankId(product.bank_id)
     val code = ProductCode(product.code)
@@ -246,7 +230,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundProduct.superFamily should equal(product.super_family)
     foundProduct.moreInfoUrl should equal(product.more_info_url)
   }
-
 
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -1656,10 +1639,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
           postImportJson(json)
         }
 
-
     val bankId1 = BankId(bank1.id)
 
-    val branchesJson  = standardBranches.map(Extraction.decompose)
+    val branchesJson = standardBranches.map(Extraction.decompose)
 
     // Check we are starting from a clean slate (no branches for this bank)
     // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
@@ -1671,12 +1653,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check creation succeeds
     val response = getResponse(branchesJson)
-
-    val responseCode = response.code
-    val responseBody = response.body
-    println(s"responseBody is $responseBody")
-
-    responseCode should equal(SUCCESS)
+    response.code should equal(SUCCESS)
 
     // Check count after creation. Again counting the items in list, not the option
     val countBranchesAfter = countOfBranches(Branches.branchesProvider.vend.getBranches(bankId1))
