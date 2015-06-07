@@ -170,7 +170,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
   The down side is that we might be validating json more than once per request and we're doing work before authentication is completed
   (possible DOS vector?)
 
-  TODO: should this be moved to def serve() further down? 
+  TODO: should this be moved to def serve() further down?
    */
 
   def oauthServe(handler : PartialFunction[Req, Box[User] => Box[JsonResponse]]) : Unit = {

@@ -269,6 +269,9 @@ class Boot extends Loggable{
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
+    //set base localization to english (instead of computer default)
+    Locale.setDefault(Locale.ENGLISH)
+
     //override locale calculated from client request with default (until we have translations)
     LiftRules.localeCalculator = {
       case fullReq @ Full(req) => Locale.ENGLISH
