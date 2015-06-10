@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package bootstrap.liftweb
 
 import code.api.sandbox.SandboxApiCalls
+import code.crm.MappedCrmEvent
 import code.management.ImporterAPI
 import code.management.AccountsAPI
 import code.metadata.comments.MappedComment
@@ -383,5 +384,6 @@ object ToSchemify {
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
-    MappedProduct)
+    MappedProduct,
+    MappedCrmEvent)
 }

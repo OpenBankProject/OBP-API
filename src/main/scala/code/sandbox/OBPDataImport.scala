@@ -2,6 +2,7 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
+import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{ProductCode, Product}
@@ -50,7 +51,7 @@ trait OBPDataImport extends Loggable {
   type BranchType <: Branch
   type AtmType <: Atm
   type ProductType <: Product
-  //type DataLicenseType <: DataLicense
+  type CrmEventType <: CrmEvent
 
   /**
    * Takes a list of boxes and returns a list of the content of the boxes if all boxes are Full, or returns
@@ -89,6 +90,10 @@ trait OBPDataImport extends Loggable {
    */
   protected def createSaveableProducts(data : List[SandboxProductImport]) : Box[List[Saveable[ProductType]]]
 
+  /**
+   * Create CRM events that can be saved.
+   */
+  protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]]
 
 
 
@@ -254,7 +259,7 @@ trait OBPDataImport extends Loggable {
   final protected def createProducts(data : SandboxDataImport) = {
 
     logger.info("Hello from createProducts")
-    // TODO Check the data.products is OK before calling the following
+    // Check the data products is OK before calling calling createSaveableProducts
 
     logger.debug("Get existing products that match the bank id and product code")
     val existing = data.products.flatMap(p => Products.productsProvider.vend.getProduct(BankId(p.bank_id), ProductCode(p.code), true))
@@ -278,9 +283,15 @@ trait OBPDataImport extends Loggable {
     } else {
       createSaveableProducts(data.products)
     }
-
-
   }
+
+
+  final protected def createCrmEvents(data : SandboxDataImport) = {
+      createSaveableCrmEvents(data.crm_events)
+  }
+    
+    
+  
 
 
 
@@ -485,6 +496,7 @@ trait OBPDataImport extends Loggable {
       branches <- createBranches(data)
       atms <- createAtms(data)
       products <- createProducts(data)
+      crmEvents <- createCrmEvents(data)
     } yield {
       logger.info(s"importData is saving ${banks.size} banks..")
       banks.foreach(_.save())
@@ -500,6 +512,12 @@ trait OBPDataImport extends Loggable {
 
       logger.info(s"importData is saving ${products.size} products..")
       products.foreach(_.save())
+
+      logger.info(s"importData is saving ${crmEvents.size} crmEvents..")
+      crmEvents.foreach(_.save())
+
+
+
 
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
@@ -561,14 +579,6 @@ case class SandboxLobbyImport(
 
 case class SandboxDriveUpImport(
   hours : String)
-
-
-
-//case class SandboxDataLicenseImport(
-//  id : String,
-//  bank : String,
-//  name : String,
-//  url : String)
 
 case class SandboxAddressImport(
    line_1 : String,
@@ -659,17 +669,22 @@ case class SandboxDataImport(
   branches: List[SandboxBranchImport],
   atms: List[SandboxAtmImport],
   products: List[SandboxProductImport],
-  crmEvents: List[SandboxCrmEventImport]
+  crm_events: List[SandboxCrmEventImport]
   )
 
+//case class SandboxCrmEventImport (
+//  crm_event_id : String, // Should be unique to OBP instance (use uuid)
+//  bank_id : String,
+//  user: SandboxUserImport,
+//  category: String,
+//  detail: String,
+//  channel: String,
+//  scheduled_date: String,
+//  actual_date: String,
+//  result: String
+//)
+
 case class SandboxCrmEventImport (
-  `type`: String,
-  detail: String,
-  channel: String,
-  scheduled_date: String,
-  actual_date: String,
-  result: String,
-  user: SandboxUserImport
+crm_event_id : String,
+bank_id : String
 )
-
-

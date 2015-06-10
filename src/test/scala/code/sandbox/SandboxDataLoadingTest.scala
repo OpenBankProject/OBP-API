@@ -41,6 +41,9 @@ import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, countOfAtms}
 import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, countOfBranches}
+import code.crm.CrmEvent
+import code.crm.CrmEvent
+import code.crm.CrmEvent.{CrmEventId, CrmEvent}
 
 import code.products.Products
 import code.products.Products.{Product, ProductCode, countOfProducts}
@@ -107,6 +110,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
                        atms : List[JValue],
                        products : List[JValue],
                        crm_events : List[JValue]) : String = {
+
+    // Note: These keys must exactly match SandboxDataImport else consumer will get 404 when trying to call sandbox creation url
     val json =
       ("banks" -> banks) ~
       ("users" -> users) ~
@@ -230,6 +235,32 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundProduct.superFamily should equal(product.super_family)
     foundProduct.moreInfoUrl should equal(product.more_info_url)
   }
+
+
+
+  def verifyCrmEventCreated(crmEvent : SandboxCrmEventImport) = {
+    // Get ids from input
+    val bankId = BankId(crmEvent.bank_id)
+    val crmEventId = CrmEventId("bac")
+
+    // check we have found a CrmEvent
+    val foundCrmEventOpt: Option[CrmEvent] = CrmEvent.crmEventProvider.vend.getCrmEvent(crmEventId)
+    foundCrmEventOpt.isDefined should equal(true)
+
+    val foundCrmEvent = foundCrmEventOpt.get
+//    foundCrmEvent.actualDate should equal (crmEvent.actual_date)
+//    foundCrmEvent.category should equal (crmEvent.category)
+//    foundCrmEvent.channel should equal (crmEvent.channel)
+//    foundCrmEvent.detail should equal (crmEvent.detail)
+//    foundCrmEvent.result should equal (crmEvent.result)
+//    foundCrmEvent.scheduledDate should equal (crmEvent.scheduled_date)
+//    foundCrmEvent.user.email should equal (crmEvent.user.email)
+  }
+
+
+
+
+
 
 
   def verifyUserCreated(user : SandboxUserImport) = {
@@ -393,7 +424,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardLobby = SandboxLobbyImport(hours = "M-TH 8:30-3:30, F 9-5")
   val standardDriveUp = SandboxDriveUpImport(hours = "M-Th 8:30-5:30, F-8:30-6, Sat 9-12")
 
-
   val branch1AtBank1 = SandboxBranchImport(id = "branch1", name = "Genel Müdürlük", bank_id = "bank1", address = standardAddress1
     , location = standardLocation1, meta = standardMeta, lobby = Option(standardLobby), driveUp = Option(standardDriveUp))
   val branch2AtBank1 = SandboxBranchImport(id = "branch2", name = "Manchester", bank_id = "bank1", address = standardAddress1
@@ -482,8 +512,16 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardTransactions = transactionWithCounterparty :: transactionWithoutCounterparty :: Nil
 
 
-  val standardCrmEvent1 = SandboxCrmEventImport("Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "2012-04-07T00:00:00.001Z", "no answer", user1)
-  val standardCrmEvent2 = SandboxCrmEventImport("Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "", "", user2)
+//  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id, user1, "Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "2012-04-07T00:00:00.001Z", "no answer")
+//  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id, user1, "Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "", "")
+
+//  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id)
+//  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id)
+
+  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", "bank1")
+  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", "bank1")
+
+
   val standardCrmEvents =  standardCrmEvent1 :: standardCrmEvent2 :: Nil
 
 
@@ -546,7 +584,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val crmEvents = standardCrmEvents
 
 
+    //val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products)
     val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products, crmEvents)
+
     val response = postImportJson(write(importJson))
 
     response.code should equal(SUCCESS)
@@ -1733,6 +1773,43 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     // Check that for each branch we did indeed create something good
     standardProducts.foreach(verifyProductCreated)
+  }
+
+
+
+  it should "create CRM Events ok" in {
+
+    // Helper function expects banks and branches
+    def getResponse(crmEventList : List[JValue]) = {
+      val json = createImportJson(standardBanks.map(Extraction.decompose), Nil, Nil, Nil, Nil, Nil, Nil, crmEventList)
+      println(json)
+      postImportJson(json)
+    }
+
+
+    val bankId1 = BankId(bank1.id)
+
+    // All events are at bank1
+    val crmEventsJson  = standardCrmEvents.map(Extraction.decompose)
+
+    // Check we are starting from a clean slate
+    // Might be better to expect Try[List[Branch]] but then would need to modify the API stack up to the top
+    val existingCrmEvents: Option[List[CrmEvent]] = CrmEvent.crmEventProvider.vend.getCrmEvents(bankId1)
+
+    // We want the size of the list inside the Option
+    val existingCount = CrmEvent.countOfCrmEvents(existingCrmEvents)
+    existingCount should equal (0)
+
+    // Check creation succeeds
+    val response = getResponse(crmEventsJson).code
+    response should equal(SUCCESS)
+
+    // Check count after creation. Again counting the items in list, not the option
+    val countAfter = CrmEvent.countOfCrmEvents(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId1))
+    countAfter should equal(standardCrmEvents.size) // We expect N events
+
+    // Check that for each branch we did indeed create something good
+    standardCrmEvents.foreach(verifyCrmEventCreated)
   }
 
 

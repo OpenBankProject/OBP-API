@@ -1,6 +1,8 @@
 package code.sandbox
 
 import code.atms.MappedAtm
+import code.crm.CrmEvent.CrmEvent
+import code.crm.MappedCrmEvent
 import code.metadata.counterparties.{MappedCounterpartyMetadata}
 import code.model.dataAccess.{MappedBankAccount, MappedBank}
 import code.model.{MappedTransaction, AccountId, BankId}
@@ -20,6 +22,8 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
 
 object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls with CreateOBPUsers {
 
+  // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
+
   type BankType = MappedBank
   type AccountType = MappedBankAccount
   type MetadataType = MappedCounterpartyMetadata
@@ -27,6 +31,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   type BranchType = MappedBranch
   type AtmType = MappedAtm
   type ProductType = MappedProduct
+  type CrmEventType = MappedCrmEvent
 
   protected def createSaveableBanks(data : List[SandboxBankImport]) : Box[List[Saveable[BankType]]] = {
     val mappedBanks = data.map(bank => {
@@ -149,25 +154,40 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
   }
 
 
-
-//  protected def createSaveableDataLicenses(data : List[SandboxDataLicenseImport]) : Box[List[Saveable[DataLicenseType]]] = {
-//    val mappedDataLicenses = data.map(license => {
-//      MappedDataLicense.create
-//        .mBankId(license.bank)
-//        .mName(license.name)
-//        .mUrl(license.url)
-//    })
-//
-//    val validationErrors = mappedDataLicenses.flatMap(_.validate)
-//
-//    if(validationErrors.nonEmpty) {
-//      Failure(s"Errors: ${validationErrors.map(_.msg)}")
-//    } else {
-//      Full(mappedDataLicenses.map(MappedSaveable(_)))
-//    }
-//  }
+  protected def createSaveableCrmEvents(data : List[SandboxCrmEventImport]) : Box[List[Saveable[CrmEventType]]] = {
 
 
+      val mappedEvents = data.map(event => {
+        // TODO Make so we can return any boxed error as below
+        //scheduledDate <- tryo{dateFormat.parse(crmEvent.scheduled_date)} ?~ s"Invalid date format: ${crmEvent.scheduled_date}. Expected pattern $datePattern"
+        //actualDate <- tryo{dateFormat.parse(crmEvent.actual_date)} ?~ s"Invalid date format: ${crmEvent.actual_date}. Expected pattern $datePattern"
+        //val scheduledDate = dateFormat.parse(event.scheduled_date)
+        //val actualDate = dateFormat.parse(event.actual_date)
+
+        MappedCrmEvent.create
+          .mBankId("ABC")
+           // .mBankId(event.bank_id)
+            .mCrmEventId(event.crm_event_id)
+            .mUserId(123) //will fail we need usr id
+            //.mActualDate(actualDate)
+//            .mCategory(event.category)
+//            .mChannel(event.channel)
+//            .mDetail(event.detail)
+//            .mResult(event.result)
+            //.mScheduledDate(scheduledDate)
+        }
+      )
+
+    val validationErrors = mappedEvents.flatMap(_.validate)
+
+    if (validationErrors.nonEmpty) {
+      logger.error(s"Problem saving ${mappedEvents.flatMap(_.category)}")
+      Failure(s"Errors: ${validationErrors.map(_.msg)}")
+    } else {
+      Full(mappedEvents.map(MappedSaveable(_)))
+    }
+
+  }
 
 
   protected def createSaveableAccount(acc : SandboxAccountImport, banks : List[BankType]) : Box[Saveable[AccountType]] = {

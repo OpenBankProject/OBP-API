@@ -60,8 +60,17 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
-  object hasCrmAdminRole extends MappedBoolean(this)  // May change. Don't access directly. use isCrmAdmin below
-  object hasCustomerMessageAdminRole extends MappedBoolean(this) // May change. Don't access directly. use isCrmAdmin below
+  // Roles
+  // Don't access directly. See Roles interface below - use isCrmAdmin etc
+  // May endup storing in ManytoMany
+  object hasCrmAdminRole extends MappedBoolean(this)
+  object hasCrmReaderRole extends MappedBoolean(this)
+  object hasCustomerMessageAdminRole extends MappedBoolean(this)
+
+  object hasBranchReaderRole extends MappedBoolean(this)
+  object hasAtmReaderRole extends MappedBoolean(this)
+  object hasProductReaderRole extends MappedBoolean(this)
+  // End Roles
 
   def emailAddress = {
     val e = email.get
@@ -75,10 +84,16 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def provider = provider_.get
   def views: List[View] = views_.toList
 
-  // Not sure if this is a good API since the list will grow. May need to use list instead called roles
+  // Roles interface
+  // Not sure if this is a good API since the list will grow.
   def isCrmAdmin : Boolean = hasCrmAdminRole
+  def isCrmReader : Boolean = hasCrmReaderRole
   def isCustomerMessageAdmin : Boolean = hasCustomerMessageAdminRole
 
+  def isBranchReader : Boolean = hasBranchReaderRole
+  def isAtmReader : Boolean = hasAtmReaderRole
+  def isProductReader : Boolean = hasProductReaderRole
+  //
 }
 
 object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{

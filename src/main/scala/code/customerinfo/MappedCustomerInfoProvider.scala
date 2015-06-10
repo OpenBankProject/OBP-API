@@ -9,6 +9,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 object MappedCustomerInfoProvider extends CustomerInfoProvider {
+
   override def getInfo(bankId : BankId, user: User): Box[CustomerInfo] = {
     MappedCustomerInfo.find(
       By(MappedCustomerInfo.mUser, user.apiId.value),
