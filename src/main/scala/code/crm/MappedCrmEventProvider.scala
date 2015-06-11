@@ -59,7 +59,10 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   object mScheduledDate extends MappedDateTime(this)
   object mActualDate extends MappedDateTime(this)
   object mResult extends DefaultStringField(this)
+  object mCustomerName extends DefaultStringField(this)
+  object mCustomerNumber extends DefaultStringField(this) // Same as api user id?
 
+  override def bankId: BankId = BankId(mBankId.get)
   override def crmEventId: CrmEventId = CrmEventId(mCrmEventId.get)
   override def category: String = mCategory.get
   override def detail: String = mDetail.get
@@ -68,6 +71,8 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
   override def user: APIUser = mUserId.obj.get
+  override def customerName : String = mCustomerName.get
+  override def customerNumber : String = mCustomerNumber.get
 }
 
 object MappedCrmEvent extends MappedCrmEvent with LongKeyedMetaMapper[MappedCrmEvent] {

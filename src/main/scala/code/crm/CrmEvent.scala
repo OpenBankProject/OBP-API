@@ -8,6 +8,7 @@ import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model.BankId
 import code.common.{Address, Location, Meta}
 import code.model.dataAccess.APIUser
+import code.model.dataAccess.APIUser
 import net.liftweb.common.Logger
 import net.liftweb.util
 import net.liftweb.util.SimpleInjector
@@ -21,7 +22,10 @@ object CrmEvent extends util.SimpleInjector {
 
   trait CrmEvent {
     def crmEventId: CrmEventId
+    def bankId: BankId
     def user: APIUser
+    def customerName : String
+    def customerNumber : String // Is this duplicate of APIUser?
     def category : String
     def detail : String
     def channel : String

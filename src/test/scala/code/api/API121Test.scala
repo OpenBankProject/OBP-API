@@ -55,7 +55,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
-  val viewFileds = List(
+  val viewFields = List(
     "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
     "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
     "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
@@ -250,7 +250,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       is_public = isPublic,
       which_alias_to_use=alias,
       hide_metadata_if_alias_used = false,
-      allowed_actions = viewFileds
+      allowed_actions = viewFields
     )
   }
 

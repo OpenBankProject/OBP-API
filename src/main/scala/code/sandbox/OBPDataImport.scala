@@ -672,19 +672,18 @@ case class SandboxDataImport(
   crm_events: List[SandboxCrmEventImport]
   )
 
-//case class SandboxCrmEventImport (
-//  crm_event_id : String, // Should be unique to OBP instance (use uuid)
-//  bank_id : String,
-//  user: SandboxUserImport,
-//  category: String,
-//  detail: String,
-//  channel: String,
-//  scheduled_date: String,
-//  actual_date: String,
-//  result: String
-//)
 
 case class SandboxCrmEventImport (
-crm_event_id : String,
-bank_id : String
-)
+   id : String, // crmEventId
+   bank_id : String,
+   customer: SandboxCustomerImport,
+   category : String,
+   detail : String,
+   channel : String,
+   actual_date: String
+   )
+
+case class SandboxCustomerImport (
+   name: String,
+   number : String // customer number, also known as ownerId (owner of accounts) aka API User?
+   )

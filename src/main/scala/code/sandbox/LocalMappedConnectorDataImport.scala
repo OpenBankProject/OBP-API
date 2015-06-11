@@ -165,16 +165,15 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         //val actualDate = dateFormat.parse(event.actual_date)
 
         MappedCrmEvent.create
-          .mBankId("ABC")
-           // .mBankId(event.bank_id)
-            .mCrmEventId(event.crm_event_id)
+            .mBankId(event.bank_id)
+            .mCrmEventId(event.id)
             .mUserId(123) //will fail we need usr id
-            //.mActualDate(actualDate)
-//            .mCategory(event.category)
-//            .mChannel(event.channel)
-//            .mDetail(event.detail)
-//            .mResult(event.result)
-            //.mScheduledDate(scheduledDate)
+            //.mActualDate(event.actual_date)
+            .mCategory(event.category)
+            .mChannel(event.channel)
+            .mDetail(event.detail)
+            //.mResult("")
+            //.mScheduledDate(event.scheduled_date)
         }
       )
 

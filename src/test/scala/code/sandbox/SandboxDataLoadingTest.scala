@@ -31,6 +31,7 @@ Berlin 13359, Germany
   */
 package code.sandbox
 
+import java.text.SimpleDateFormat
 import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
@@ -511,16 +512,21 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
   val standardTransactions = transactionWithCounterparty :: transactionWithoutCounterparty :: Nil
 
+  val standardCustomer1 = SandboxCustomerImport("James Brown", "698761728934")
 
-//  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id, user1, "Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "2012-04-07T00:00:00.001Z", "no answer")
-//  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id, user1, "Call", "Check mortgage", "Phone", "2012-03-07T00:00:00.001Z", "", "")
 
-//  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id)
-//  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id)
+  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
+  val standardDate = format.parse("30/03/2015")
 
-  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", "bank1")
-  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", "bank1")
 
+  val dataImportDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+
+  val standardDateString = dataImportDateFormat.format(standardDate)
+
+
+
+  val standardCrmEvent1 = SandboxCrmEventImport("ASDFHJ47YKJH", bank1.id, standardCustomer1, "Call", "Check mortgage", "Phone", standardDateString)
+  val standardCrmEvent2 = SandboxCrmEventImport("KIFJA76876AS", bank1.id, standardCustomer1, "Call", "Check mortgage", "Phone", standardDateString)
 
   val standardCrmEvents =  standardCrmEvent1 :: standardCrmEvent2 :: Nil
 
@@ -584,8 +590,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val crmEvents = standardCrmEvents
 
 
-    //val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products)
+
     val importJson = SandboxDataImport(banks, users, accounts, transactions, branches, atms, products, crmEvents)
+
+
 
     val response = postImportJson(write(importJson))
 
