@@ -4,6 +4,7 @@ import code.api.APIFailure
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
 import code.atms.Atms
 import code.branches.Branches
+import code.crm.CrmEvent
 import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.{BankId, User}
 import code.products.Products
@@ -118,7 +119,21 @@ trait APIMethods140 {
       }
     }
 
-
+    lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get products from the active provider
+            crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 404)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createCrmEventsJson(crmEvents)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
 
 
 

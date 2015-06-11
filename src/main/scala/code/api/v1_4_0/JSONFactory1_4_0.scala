@@ -5,6 +5,7 @@ import java.util.Date
 import code.common.{Meta, License, Location, Address}
 import code.atms.Atms.Atm
 import code.branches.Branches.{Branch}
+import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.products.Products.{Product}
 
 
@@ -171,11 +172,43 @@ object JSONFactory1_4_0 {
       createMetaJson(product.meta))
   }
 
-  def createProductsJson(ProductsList: List[Product]) : ProductsJson = {
-    ProductsJson(ProductsList.map(createProductJson))
+  def createProductsJson(productsList: List[Product]) : ProductsJson = {
+    ProductsJson(productsList.map(createProductJson))
   }
 
 
+  // Crm Events
+  case class CrmEventJson(
+    id: String,
+    bank_id: String,
+    customer_name : String,
+    customer_number : String,
+    category : String,
+    detail : String,
+    channel : String,
+    scheduled_date : Date,
+    actual_date: Date,
+    result: String)
+
+  case class CrmEventsJson (crmEvents : List[CrmEventJson])
+
+  def createCrmEventJson(crmEvent: CrmEvent) : CrmEventJson = {
+    CrmEventJson(
+      crmEvent.crmEventId.value,
+      crmEvent.bankId.value,
+      crmEvent.category,
+      crmEvent.customerName,
+      crmEvent.customerNumber,
+      crmEvent.category,
+      crmEvent.detail,
+      crmEvent.scheduledDate,
+      crmEvent.actualDate,
+      crmEvent.result)
+  }
+
+  def createCrmEventsJson(crmEventList: List[CrmEvent]) : CrmEventsJson = {
+    CrmEventsJson(crmEventList.map(createCrmEventJson))
+  }
 
 
 }
