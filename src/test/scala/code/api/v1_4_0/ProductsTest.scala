@@ -1,5 +1,8 @@
 package code.api.v1_4_0
 
+import code.api.DefaultUsers
+import code.api.test.ServerSetup
+import code.api.util.APIUtil.OAuth._
 import code.api.v1_4_0.JSONFactory1_4_0.{ProductJson, ProductsJson}
 import code.common.{License, Meta}
 import code.model.BankId
@@ -8,8 +11,7 @@ import code.products.Products.Product
 import code.products.{Products, ProductsProvider}
 import dispatch._
 
-class ProductsTest extends V140ServerSetup {
-
+class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
 
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")
@@ -98,9 +100,8 @@ class ProductsTest extends V140ServerSetup {
   feature("Getting bank products") {
 
     scenario("We try to get products for a bank without a data license for product information") {
-
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET
+      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -110,7 +111,7 @@ class ProductsTest extends V140ServerSetup {
 
     scenario("We try to get products for a bank with a data license for product information") {
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET
+      val request = (v1_4Request / "banks" / BankWithLicense.value / "products").GET <@(user1)
       val response = makeGetRequest(request)
 
       Then("We should get a 200")

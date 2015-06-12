@@ -74,6 +74,7 @@ trait APIMethods140 {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
+            u <- user ?~! "User must be logged in to retrieve Branches data"
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 404)
           } yield {
@@ -92,6 +93,7 @@ trait APIMethods140 {
         user => {
           for {
           // Get atms from the active provider
+            u <- user ?~! "User must be logged in to retrieve ATM data"
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 404)
           } yield {
             // Format the data as json
@@ -108,6 +110,7 @@ trait APIMethods140 {
         user => {
           for {
           // Get products from the active provider
+            u <- user ?~! "User must be logged in to retrieve Products data"
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 404)
           } yield {
             // Format the data as json
@@ -123,7 +126,8 @@ trait APIMethods140 {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
         user => {
           for {
-          // Get products from the active provider
+            // Get crm events from the active provider
+            u <- user ?~! "User must be logged in to retrieve CRM Event information"
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 404)
           } yield {
             // Format the data as json

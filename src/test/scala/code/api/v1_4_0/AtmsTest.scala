@@ -1,15 +1,17 @@
 package code.api.v1_4_0
 
+import code.api.DefaultUsers
+import code.api.test.ServerSetup
 import code.api.v1_4_0.JSONFactory1_4_0.{AtmJson, AtmsJson}
+import code.api.util.APIUtil.OAuth._
+
 import code.atms.Atms.{Atm, AtmId}
 import code.atms.{Atms, AtmsProvider}
-
 import code.common.{Address, License, Location, Meta}
-
 import code.model.BankId
 import dispatch._
 
-class AtmsTest extends V140ServerSetup {
+class AtmsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
 
 
   val BankWithLicense = BankId("bank-with-license")
@@ -116,7 +118,7 @@ class AtmsTest extends V140ServerSetup {
     scenario("We try to get ATMs for a bank without a data license for ATM information") {
 
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET
+      val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
 
@@ -132,7 +134,7 @@ class AtmsTest extends V140ServerSetup {
 
     scenario("We try to get ATMs for a bank with a data license for ATM information") {
       When("We make a request")
-      val request = (v1_4Request / "banks" / BankWithLicense.value / "atms").GET
+      val request = (v1_4Request / "banks" / BankWithLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")

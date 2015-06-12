@@ -4,12 +4,10 @@ import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.{AccountsJSON, API1_2_1Test}
 import code.api.{PrivateUser2Accounts, DefaultUsers, User1AllPrivileges}
 import code.api.test.APIResponse
-import code.model.dataAccess.ViewImpl
 import code.model.{BankId, AccountId}
 import dispatch._
 import code.bankconnectors.Connector
 import net.liftweb.common.Empty
-import net.liftweb.mapper.By
 import org.scalatest.Tag
 
 
