@@ -77,6 +77,6 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
 
 object MappedCrmEvent extends MappedCrmEvent with LongKeyedMetaMapper[MappedCrmEvent] {
   // Note: Makes sense for event id to be unique in system
-  override def dbIndexes = UniqueIndex(mCrmEventId) :: Index(mBankId) :: Index(mUserId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mCrmEventId) :: Index(mBankId) :: super.dbIndexes
 }
 
