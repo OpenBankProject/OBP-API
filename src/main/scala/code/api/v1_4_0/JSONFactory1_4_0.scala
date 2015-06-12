@@ -62,13 +62,7 @@ object JSONFactory1_4_0 {
   case class AddressJson(line_1 : String, line_2 : String, line_3 : String, city : String, state : String, postcode : String, country : String)
 
 
-  case class CRMEventJson(scheduled_date : String,
-                          actual_date: String,
-                          result: String,
-                          `type` : String,
-                          detail : String,
-                          channel : String,
-                          user: CustomerInfoJson)
+
 
 
   def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
@@ -175,6 +169,11 @@ object JSONFactory1_4_0 {
   def createProductsJson(productsList: List[Product]) : ProductsJson = {
     ProductsJson(productsList.map(createProductJson))
   }
+
+
+
+
+
 
 
   // Crm Events
