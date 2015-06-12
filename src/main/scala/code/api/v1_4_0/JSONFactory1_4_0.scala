@@ -194,16 +194,16 @@ object JSONFactory1_4_0 {
 
   def createCrmEventJson(crmEvent: CrmEvent) : CrmEventJson = {
     CrmEventJson(
-      crmEvent.crmEventId.value,
-      crmEvent.bankId.value,
-      crmEvent.category,
-      crmEvent.customerName,
-      crmEvent.customerNumber,
-      crmEvent.category,
-      crmEvent.detail,
-      crmEvent.scheduledDate,
-      crmEvent.actualDate,
-      crmEvent.result)
+      id = crmEvent.crmEventId.value,
+      bank_id = crmEvent.bankId.value,
+      customer_name = crmEvent.customerName,
+      customer_number = crmEvent.customerNumber,
+      category = crmEvent.category,
+      detail = crmEvent.detail,
+      channel = crmEvent.channel,
+      scheduled_date = crmEvent.scheduledDate,
+      actual_date = crmEvent.actualDate,
+      result = crmEvent.result)
   }
 
   def createCrmEventsJson(crmEventList: List[CrmEvent]) : CrmEventsJson = {

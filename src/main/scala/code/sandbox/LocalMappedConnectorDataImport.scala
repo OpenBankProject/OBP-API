@@ -162,18 +162,27 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         //scheduledDate <- tryo{dateFormat.parse(crmEvent.scheduled_date)} ?~ s"Invalid date format: ${crmEvent.scheduled_date}. Expected pattern $datePattern"
         //actualDate <- tryo{dateFormat.parse(crmEvent.actual_date)} ?~ s"Invalid date format: ${crmEvent.actual_date}. Expected pattern $datePattern"
         //val scheduledDate = dateFormat.parse(event.scheduled_date)
-        //val actualDate = dateFormat.parse(event.actual_date)
+        val actualDate = dateFormat.parse(event.actual_date)
 
-        MappedCrmEvent.create
+
+        logger.warn(s"Note: We are not saving API User, Result or Schedeuled Date")
+
+        val crmEvent = MappedCrmEvent.create
             .mBankId(event.bank_id)
             .mCrmEventId(event.id)
-            .mUserId(123) //will fail we need usr id
-            //.mActualDate(event.actual_date)
+            //.mUserId(event.customer.number) // UserId is a long
+            .mActualDate(actualDate)
             .mCategory(event.category)
             .mChannel(event.channel)
             .mDetail(event.detail)
+            .mCustomerName(event.customer.name)
+            .mCustomerNumber(event.customer.number)
             //.mResult("")
             //.mScheduledDate(event.scheduled_date)
+
+        logger.debug(s"Saved CrmEvent id: ${crmEvent.crmEventId} customer name: ${crmEvent.customerName}")
+
+        crmEvent
         }
       )
 
