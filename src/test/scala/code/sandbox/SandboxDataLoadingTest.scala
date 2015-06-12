@@ -242,7 +242,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   def verifyCrmEventCreated(crmEvent : SandboxCrmEventImport) = {
     // Get ids from input
     val bankId = BankId(crmEvent.bank_id)
-    val crmEventId = CrmEventId("bac")
+    val crmEventId = CrmEventId(crmEvent.id)
 
     // check we have found a CrmEvent
     val foundCrmEventOpt: Option[CrmEvent] = CrmEvent.crmEventProvider.vend.getCrmEvent(crmEventId)
@@ -250,12 +250,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val foundCrmEvent = foundCrmEventOpt.get
 //    foundCrmEvent.actualDate should equal (crmEvent.actual_date)
-//    foundCrmEvent.category should equal (crmEvent.category)
-//    foundCrmEvent.channel should equal (crmEvent.channel)
-//    foundCrmEvent.detail should equal (crmEvent.detail)
-//    foundCrmEvent.result should equal (crmEvent.result)
-//    foundCrmEvent.scheduledDate should equal (crmEvent.scheduled_date)
-//    foundCrmEvent.user.email should equal (crmEvent.user.email)
+    foundCrmEvent.category should equal (crmEvent.category)
+    foundCrmEvent.channel should equal (crmEvent.channel)
+    foundCrmEvent.detail should equal (crmEvent.detail)
+    foundCrmEvent.customerName should equal (crmEvent.customer.name)
+    foundCrmEvent.customerNumber should equal (crmEvent.customer.number)
+    // TODO check dates
+
   }
 
 
