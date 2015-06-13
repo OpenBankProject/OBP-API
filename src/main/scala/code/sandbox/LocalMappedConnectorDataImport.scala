@@ -165,7 +165,7 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateViewImpls
         val actualDate = dateFormat.parse(event.actual_date)
 
 
-        logger.warn(s"Note: We are not saving API User, Result or Schedeuled Date")
+        logger.warn(s"Note: We are not saving API User, Result or Scheduled Date")
 
         val crmEvent = MappedCrmEvent.create
             .mBankId(event.bank_id)
