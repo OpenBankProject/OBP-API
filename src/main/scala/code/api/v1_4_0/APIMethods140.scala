@@ -6,6 +6,7 @@ import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
 import code.customerinfo.{CustomerMessages, CustomerInfo}
+import code.model.dataAccess.APIUser
 import code.model.{BankId, User}
 import code.products.Products
 import net.liftweb.common.Box
@@ -14,8 +15,9 @@ import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import code.api.util.APIUtil._
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JObject
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
+import net.liftweb.common.Full
 import code.util.Helper._
 
 trait APIMethods140 {
@@ -30,7 +32,7 @@ trait APIMethods140 {
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve customer info"
-            info <- CustomerInfo.customerInfoProvider.vend.getInfo(bankId, u) ~> APIFailure("No customer info found", 404)
+            info <- CustomerInfo.customerInfoProvider.vend.getInfo(bankId, u) ~> APIFailure("No customer info found", 204)
           } yield {
             val json = JSONFactory1_4_0.createCustomerInfoJson(info)
             successJsonResponse(Extraction.decompose(json))
@@ -44,6 +46,8 @@ trait APIMethods140 {
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve customer messages"
+            //au <- APIUser.find(By(APIUser.id, u.apiId))
+            //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)
             val json = JSONFactory1_4_0.createCustomerMessagesJson(messages)
@@ -76,7 +80,7 @@ trait APIMethods140 {
           for {
             u <- user ?~! "User must be logged in to retrieve Branches data"
             // Get branches from the active provider
-            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 404)
+            branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
@@ -94,7 +98,7 @@ trait APIMethods140 {
           for {
           // Get atms from the active provider
             u <- user ?~! "User must be logged in to retrieve ATM data"
-            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 404)
+            atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createAtmsJson(atms)
@@ -111,7 +115,7 @@ trait APIMethods140 {
           for {
           // Get products from the active provider
             u <- user ?~! "User must be logged in to retrieve Products data"
-            products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 404)
+            products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createProductsJson(products)
@@ -128,7 +132,7 @@ trait APIMethods140 {
           for {
             // Get crm events from the active provider
             u <- user ?~! "User must be logged in to retrieve CRM Event information"
-            crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 404)
+            crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createCrmEventsJson(crmEvents)
@@ -138,9 +142,6 @@ trait APIMethods140 {
         }
       }
     }
-
-
-
 
   }
 

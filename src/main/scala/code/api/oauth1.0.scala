@@ -102,7 +102,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
   }
 
-  //Check if the request (access toke or request token) is valid and return a tuple
+  //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
     //return a Map containing the OAuth parameters : oauth_prameter -> value
     def getAllParameters : Map[String,String]= {

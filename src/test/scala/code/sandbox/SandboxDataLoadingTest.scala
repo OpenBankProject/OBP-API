@@ -64,9 +64,6 @@ import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
 import net.liftweb.common.{Full, Empty}
-import net.liftweb.mongodb._
-
-
 
 /*
 This tests:
@@ -258,12 +255,6 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     // TODO check dates
 
   }
-
-
-
-
-
-
 
   def verifyUserCreated(user : SandboxUserImport) = {
     val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.email)

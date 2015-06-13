@@ -72,8 +72,6 @@ import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
  */
 class Boot extends Loggable{
   def boot {
-
-
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
