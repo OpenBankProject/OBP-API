@@ -54,7 +54,7 @@ case class OAuthResponse(
   body: String
 )
 
-class OAuthTest extends ServerSetup{
+class OAuthTest extends ServerSetup {
 
   def oauthRequest = baseRequest / "oauth"
 

@@ -129,7 +129,18 @@
     <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
-      <version>2.35.0</version>
+      <version>2.46.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5</version>
+    </dependency>
+    <dependency>
+        <!-- 2.18-SNAPSHOT needed for selenium webdriver (http://htmlunit.10904.n7.nabble.com/HtmlUnit-htmlunit-bugs-1692-Update-to-HttpComponents-4-5-td36318.html) - potentially update to 2.18 when possible -->
+      <groupId>net.sourceforge.htmlunit</groupId>
+      <artifactId>htmlunit</artifactId>
+      <version>2.18-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>
@@ -140,6 +151,11 @@
       <groupId>net.liftmodules</groupId>
       <artifactId>amqp_2.6_${scala.version}</artifactId>
       <version>1.3</version>
+    </dependency>
+    <dependency>
+        <groupId>oauth.signpost</groupId>
+        <artifactId>signpost-commonshttp4</artifactId>
+        <version>1.2.1.2</version>
     </dependency>
   </dependencies>
 

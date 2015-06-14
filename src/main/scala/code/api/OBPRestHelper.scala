@@ -100,7 +100,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
     }
   }
 
-
   /*
   A method which takes
     a Request r
@@ -117,7 +116,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
    */
   def failIfBadJSON(r: Req, h: (PartialFunction[Req, Box[User] => Box[JsonResponse]])): Box[User] => Box[JsonResponse] = {
     // Check if the content-type is text/json or application/json
-    logger.debug("Hello from failIfBadJSON")
     r.json_? match {
       case true =>
         //logger.info("failIfBadJSON says: Cool, content-type is json")
@@ -182,7 +180,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
           failIfBadOauth {
-            logger.debug("About to call failIfBadJSON to check json in the request")
             failIfBadJSON(r, handler)
           }
         }

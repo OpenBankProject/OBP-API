@@ -57,7 +57,7 @@ object OAuthHandshake extends RestHelper with Loggable {
   serve
   {
     //Handling get request for a "request token"
-    case Req("oauth" :: "initiate" :: Nil,_ ,PostRequest) =>
+    case Req("oauth" :: "initiate" :: Nil,_ , PostRequest) =>
     {
       //Extract the OAuth parameters from the header and test if the request is valid
       var (httpCode, message, oAuthParameters) = validator("requestToken", "POST")
@@ -268,14 +268,14 @@ object OAuthHandshake extends RestHelper with Loggable {
           }
         case _ => secret+= "&"
       }
-      logger.info("base string : " + baseString)
+      logger.info("base string: " + baseString)
       //signing process
         val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
           "HmacSHA256"
         else
           "HmacSHA1"
 
-      logger.info("signing method:" + signingAlgorithm)
+      logger.info("signing method: " + signingAlgorithm)
       logger.info("signing key: " + secret)
       logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
 
@@ -283,9 +283,9 @@ object OAuthHandshake extends RestHelper with Loggable {
       m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
       val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
 
-      logger.info("calculatedSignature:" + calculatedSignature)
-      logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
-      logger.info("received signature after decoding:" + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
+      logger.info("calculatedSignature: " + calculatedSignature)
+      //logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
+      logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
 
       calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
     }
