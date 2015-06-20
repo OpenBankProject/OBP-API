@@ -37,6 +37,30 @@ To compile and run jetty, install Maven 3 and execute:
 
 ./mvn.sh jetty:run
 
+
+
+## To run with IntelliJ IDEA
+
+1) Make sure you have the IntelliJ Scala plugin installed.
+2) Create a new folder e.g. OpenBankProject and cd there
+3) git clone https://github.com/OpenBankProject/OBP-API.git
+4) In IntelliJ IDEA do File -> New -> Project from existing sources
+5) When / if prompted choose Java 1.7 and Scala 2.10 otherwise keep the defaults! Use the Maven options. Do not change the project name etc.
+6) Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.10.5 or so.
+7) Now **Rebuild** the project so everything is compiled.
+8) Now run RunWebApp by right clicking on it or selecting Run. The built in jetty server should start on localhost:8080
+9) Browse to localhost:8080 but don't try anything else there.
+10) Now lets set the connector and run some tests.  
+11) In src/main/resources/props create a test.default.props for tests. Set connector=mapped
+12) In src/main/resources/props create a <yourloginname>.default.props for development. Set connector=mapped
+13) Try to run a single test. For instance right click on test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
+14) Try to run all the tests: 
+    Goto Run / Debug configurations 
+    Select or create  a "ScalaTests in code" configuration, give some more memory: -Xmx1512M -XX:MaxPermSize=512M and put "." in the working driectory 
+    Make sure your test.default.props has the minimum settings (see test.default.props.template)
+    Right click test/scala/code and select the Scala Tests in code to run them all.
+
+
 ----
 
 # Databases:

@@ -1,17 +1,14 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+####################################
+## Minimum Settings
+
 #which data connector to use
 
 #connector=mongodb
 #connector=rest
 connector=mapped
-
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
-#db.driver=org.h2.Driver
-#be sure to create your database and update the line below!
-#db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
-
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
@@ -23,6 +20,18 @@ hostname=http://localhost:8016
 #if you use it, make sure this matches your hostname port!
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
 tests.port=8016
+
+
+End of minimum settings
+####################################
+
+#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+#db.driver=org.h2.Driver
+#be sure to create your database and update the line below!
+#db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+
+
+
 
 #set this to false if you don't want the api payments call to work
 payments_enabled=false
