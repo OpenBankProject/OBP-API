@@ -49,9 +49,15 @@ To compile and run jetty, install Maven 3 and execute:
 
 * In IntelliJ IDEA do File -> New -> Project from existing sources
 
+* (Alternatively you can do File -> New -> Project from VCS and checkout from github)
+
 * When / if prompted, choose Java 1.7 and Scala 2.10 otherwise keep the defaults. Use the Maven options. Do not change the project name etc.
 
 * Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.10.5 or so.
+
+* In src/main/resources/props create a test.default.props for tests. Set connector=mapped
+
+* In src/main/resources/props create a <yourloginname>.default.props for development. Set connector=mapped
 
 * Now **Rebuild** the project so everything is compiled.
 
@@ -61,15 +67,12 @@ To compile and run jetty, install Maven 3 and execute:
 
 ### Run some tests.
   
-* In src/main/resources/props create a test.default.props for tests. Set connector=mapped
-
-* In src/main/resources/props create a <yourloginname>.default.props for development. Set connector=mapped
-
 * Run a single test. For instance right click on test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
 
-* Run all the tests: 
+* Run multiple tests: Right click on code and select Run. If need be:  
     Goto Run / Debug configurations 
-    Select or create  a "ScalaTests in code" configuration, give some more memory: -Xmx1512M -XX:MaxPermSize=512M and put "." in the working driectory 
+    Select or create  a "ScalaTests in code" configuration, give some more memory: -Xmx1512M -XX:MaxPermSize=512M 
+    Important: Put /your-path-to/OBP-API in the "working directory" field 
     
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
     
@@ -80,5 +83,5 @@ To compile and run jetty, install Maven 3 and execute:
 
 # Databases:
 
-The default datastore used is PostgreSQL (user accounts, metadata, transaction cache).
+The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
