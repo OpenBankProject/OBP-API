@@ -177,6 +177,9 @@ class Boot extends Loggable{
     // where to search snippet
     LiftRules.addToPackages("code")
 
+    //OAuth API call
+    LiftRules.statelessDispatch.append(OAuthHandshake)
+
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
@@ -194,12 +197,9 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(BankMockAPI)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
-    //OAuth API call
-    LiftRules.statelessDispatch.append(OAuthHandshake)
 
     //add sandbox api calls only if we're running in sandbox mode
     if(Props.getBool("allow_sandbox_data_import", false)) {
-      logger.info("Adding sandbox api calls")
       LiftRules.statelessDispatch.append(SandboxApiCalls)
     } else {
       logger.info("Not adding sandbox api calls")

@@ -3,7 +3,7 @@ package code.sandbox
 /**
 Open Bank Project
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+Copyright 2011,2015 TESOBE / Music Pictures Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ limitations under the License.
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
-import scala.util.control.Breaks._
 import dispatch._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
@@ -104,9 +103,6 @@ object ImportCounterpartyMetadata extends SendServerRequests {
           val records = counterparties.filter(x => ((x.name equalsIgnoreCase(name.get)) && (x.region equals region)))
           var found = false
           for (cp: CounterpartyJSONRecord <- records) {
-            if (a.label.get equals "Emily U.Q Checking Account ..666")
-              println("hello")
-
             val logoUrl = if(cp.logoUrl.contains("http://www.brandprofiles.com")) cp.homePageUrl else cp.logoUrl
             if (logoUrl.startsWith("http") && t.metadata.get.images.get.isEmpty) {
               val json = ("label" -> "Logo") ~ ("URL" -> logoUrl)
