@@ -550,7 +550,6 @@ object LocalMappedConnector extends Connector with Loggable {
       bank <- getMappedBank(bankId)
     } yield {
         acc.accountLabel(label).save
-        setBankAccountLastUpdated(bank.nationalIdentifier, acc.number, now)
       }
 
     result.getOrElse(false)

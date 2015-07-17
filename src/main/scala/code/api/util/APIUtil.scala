@@ -106,7 +106,7 @@ object APIUtil extends Loggable {
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 
-  def oauthHeaderRequiredJsonResponce : JsonResponse =
+  def oauthHeaderRequiredJsonResponse : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
 
   /** Import this object's methods to add signing operators to dispatch.Request */

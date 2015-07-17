@@ -144,6 +144,13 @@ case class AccountJSON(
   views_available : List[ViewJSON],
   bank_id : String
 )
+
+case class UpdateAccountJSON(
+  id : String,
+  label : String,
+  bank_id : String
+)
+
 case class ModeratedAccountJSON(
   id : String,
   label : String,

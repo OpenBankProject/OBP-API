@@ -1,6 +1,7 @@
 package code.api.v1_2_1
 
 import code.api.util.APIUtil
+import code.api.v1_2_1.SuccessMessage
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.common._
@@ -191,28 +192,15 @@ trait APIMethods121 {
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         user =>
           for {
-          //set
             u <- user ?~ "user not found"
-            json <- tryo { json.extract[AccountJSON] } ?~ "wrong JSON format"
+            json <- tryo { json.extract[UpdateAccountJSON] } ?~ "wrong JSON format"
             account <- BankAccount(bankId, accountId)
-            view <- View.fromUrl(viewId, account)
           } yield {
             account.updateLabel(u, json.label)
-          }
-
-          for {
-            //get changed account data
-            account <- BankAccount(bankId, accountId)
-            availableviews <- Full(account.permittedViews(user))
-            view <- View.fromUrl(viewId, account)
-            moderatedAccount <- account.moderatedBankAccount(view, user)
-          } yield {
-            val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
-            val moderatedAccountJson = JSONFactory.createBankAccountJSON(moderatedAccount, viewsAvailable)
-            successJsonResponse(Extraction.decompose(moderatedAccountJson))
+            successJsonResponse(Extraction.decompose(SuccessMessage("ok")), 200)
           }
       }
     }
