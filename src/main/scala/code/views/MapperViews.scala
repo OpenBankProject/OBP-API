@@ -201,7 +201,7 @@ private object MapperViews extends Views with Loggable {
 
   def removeView(viewId: ViewId, bankAccount: BankAccount): Box[Unit] = {
 
-    if(viewId.value=="owner")
+    if(viewId.value == "owner")
       Failure("you cannot delete the owner view")
     else {
       for {

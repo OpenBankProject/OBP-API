@@ -124,6 +124,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
     override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
     override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
+    override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
   }
 
   override def beforeAll() {

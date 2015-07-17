@@ -2,6 +2,7 @@ package code.api.v1_2_1
 
 import code.api.util.APIUtil
 import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.json.Extraction
 import net.liftweb.common._
 import code.model._
 import net.liftweb.json.JsonAST.JValue
@@ -10,7 +11,6 @@ import net.liftweb.util.Helpers._
 import net.liftweb.http.rest.RestHelper
 import java.net.URL
 import net.liftweb.util.Props
-import net.liftweb.json.Extraction
 import code.bankconnectors._
 import code.bankconnectors.OBPOffset
 import code.bankconnectors.OBPFromDate
@@ -177,6 +177,34 @@ trait APIMethods121 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
+            account <- BankAccount(bankId, accountId)
+            availableviews <- Full(account.permittedViews(user))
+            view <- View.fromUrl(viewId, account)
+            moderatedAccount <- account.moderatedBankAccount(view, user)
+          } yield {
+            val viewsAvailable = availableviews.map(JSONFactory.createViewJSON)
+            val moderatedAccountJson = JSONFactory.createBankAccountJSON(moderatedAccount, viewsAvailable)
+            successJsonResponse(Extraction.decompose(moderatedAccountJson))
+          }
+      }
+    }
+
+    lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //change account label
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+          //set
+            u <- user ?~ "user not found"
+            json <- tryo { json.extract[AccountJSON] } ?~ "wrong JSON format"
+            account <- BankAccount(bankId, accountId)
+            view <- View.fromUrl(viewId, account)
+          } yield {
+            account.updateLabel(u, json.label)
+          }
+
+          for {
+            //get changed account data
             account <- BankAccount(bankId, accountId)
             availableviews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account)

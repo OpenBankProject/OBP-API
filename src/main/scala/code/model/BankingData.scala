@@ -207,6 +207,14 @@ trait BankAccount {
     }
   }
 
+  final def updateLabel(user : User, label : String): Box[Boolean] = {
+    if(user.ownerAccess(this)){
+      Full(Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label))
+    } else {
+      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+    }
+  }
+
   final def owners: Set[User] = {
     val accountHolders = Connector.connector.vend.getAccountHolders(bankId, accountId)
     if(accountHolders.isEmpty) {
@@ -354,6 +362,11 @@ trait BankAccount {
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
+
+  /*
+   views
+  */
+
   final def views(user : User) : Box[List[View]] = {
     //check if the user has access to the owner view in this the account
     if(user.ownerAccess(this))
@@ -394,16 +407,16 @@ trait BankAccount {
 
   final def removeView(userDoingTheRemove : User, viewId: ViewId) : Box[Unit] = {
     if(!userDoingTheRemove.ownerAccess(this)) {
-      Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
+      return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
       val deleted = Views.views.vend.removeView(viewId, this)
-      
-      if(deleted.isDefined) {
-        log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
-            " for account " + accountId + "at bank " + bankId)
+
+      if (deleted.isDefined) {
+          log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
+          " for account " + accountId + "at bank " + bankId)
       }
-      
-      deleted
+
+      return deleted
     }
   }
 
@@ -415,6 +428,10 @@ trait BankAccount {
     else
       viewNotAllowed(view)
   }
+
+  /*
+   end views
+  */
 
   final def getModeratedTransactions(user : Box[User], view : View, queryParams: OBPQueryParam*): Box[List[ModeratedTransaction]] = {
     if(authorizedAccess(view, user)) {

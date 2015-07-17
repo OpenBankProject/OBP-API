@@ -582,4 +582,14 @@ private object LocalConnector extends Connector with Loggable {
       case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
     }
   }
+
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+    getBankAccountType(bankId, accountId) match {
+      case Full(acc) =>
+        acc.accountLabel(label).saveTheRecord().isDefined
+        true
+      case _ =>
+        false
+    }
+  }
 }

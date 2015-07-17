@@ -170,4 +170,7 @@ trait Connector {
   def createImportedTransaction(transaction: ImporterTransaction) : Box[Transaction]
   def updateAccountBalance(bankId : BankId, accountId : AccountId, newBalance : BigDecimal) : Boolean
   def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean
-}
+
+  def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean
+
+  }
