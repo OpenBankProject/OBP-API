@@ -20,12 +20,28 @@ import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Full
 import code.util.Helper._
 
+import collection.mutable.ArrayBuffer
+
+import code.api.util.APIUtil.ResourceDoc
+
+
 trait APIMethods140 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
 
   val Implementations1_4_0 = new Object(){
+
+
+    val resourceDocs = ArrayBuffer[ResourceDoc]()
+
+    def getLocalResourceDocs : Option[List[ResourceDoc]] =
+    {
+      Some(resourceDocs.toList)
+    }
+
+
+    resourceDocs += ResourceDoc(1, "GET", "banks/BANK_ID/customer", "Get customer information about the logged in customer")
 
     lazy val getCustomerInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
@@ -40,6 +56,8 @@ trait APIMethods140 {
         }
       }
     }
+
+    resourceDocs += ResourceDoc(2, "GET", "banks/BANK_ID/customer/messages", "Get messages for the logged in customer")
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -56,6 +74,10 @@ trait APIMethods140 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(3, "POST", "banks/BANK_ID/customer/CUSTOMER_NUMBER", "Add a message for the customer specified by CUSTOMER_NUMBER")
+
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
@@ -136,6 +158,22 @@ trait APIMethods140 {
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createCrmEventsJson(crmEvents)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    // Provides resource documents so that live docs (currently on Sofi) can use to display API documentation
+    lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "resource-docs" :: Nil JsonGet _ => {
+        user => {
+          for {
+            rd <- getLocalResourceDocs
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createResourceDocsJson(rd)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }

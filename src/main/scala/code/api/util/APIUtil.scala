@@ -245,4 +245,12 @@ object APIUtil extends Loggable {
       }
     }
   }
+
+  /*
+  Used to document API calls / resources. correct place for this?
+   */
+  case class ResourceDoc(id: Int,
+                      verb: String,
+                      url: String,
+                      description: String)
 }

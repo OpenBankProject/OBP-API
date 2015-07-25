@@ -2,6 +2,7 @@ package code.api.v1_4_0
 
 import java.util.Date
 
+import code.api.util.APIUtil.ResourceDoc
 import code.common.{Meta, License, Location, Address}
 import code.atms.Atms.Atm
 import code.branches.Branches.{Branch}
@@ -171,11 +172,6 @@ object JSONFactory1_4_0 {
   }
 
 
-
-
-
-
-
   // Crm Events
   case class CrmEventJson(
     id: String,
@@ -189,7 +185,7 @@ object JSONFactory1_4_0 {
     actual_date: Date,
     result: String)
 
-  case class CrmEventsJson (crmEvents : List[CrmEventJson])
+  case class CrmEventsJson (crm_events : List[CrmEventJson])
 
   def createCrmEventJson(crmEvent: CrmEvent) : CrmEventJson = {
     CrmEventJson(
@@ -207,6 +203,28 @@ object JSONFactory1_4_0 {
 
   def createCrmEventsJson(crmEventList: List[CrmEvent]) : CrmEventsJson = {
     CrmEventsJson(crmEventList.map(createCrmEventJson))
+  }
+
+  case class ResourceDocJson(id: Int,
+                         verb: String,
+                         url: String,
+                         description: String)
+
+
+
+  // Creates the json resource_docs : {...}
+  case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
+
+  def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
+    ResourceDocJson(
+      id = resourceDoc.id,
+      verb = resourceDoc.verb,
+      url = resourceDoc.url,
+      description = resourceDoc.description)
+  }
+
+  def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
+    ResourceDocsJson(resourceDocList.map(createResourceDocJson))
   }
 
 
