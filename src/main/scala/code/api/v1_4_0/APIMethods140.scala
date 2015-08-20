@@ -9,15 +9,23 @@ import code.customerinfo.{CustomerMessages, CustomerInfo}
 import code.model.dataAccess.APIUser
 import code.model.{BankId, User}
 import code.products.Products
-import net.liftweb.common.Box
+import net.liftweb.common.{Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import code.api.util.APIUtil._
+import net.liftweb.json
 import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.{JField, JObject, JValue}
+import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.common.Full
+
+
+// This makes the JObject creation work
+import net.liftweb.json.JsonDSL._
+
+
 import code.util.Helper._
 
 import collection.mutable.ArrayBuffer
@@ -25,7 +33,7 @@ import collection.mutable.ArrayBuffer
 import code.api.util.APIUtil.ResourceDoc
 
 
-trait APIMethods140 {
+trait APIMethods140 extends Loggable{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
 
@@ -34,14 +42,23 @@ trait APIMethods140 {
 
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
+    val emptyObjectJson : JValue = Nil
+    val apiVersion : String = "1_4_0"
 
     def getLocalResourceDocs : Option[List[ResourceDoc]] =
     {
       Some(resourceDocs.toList)
     }
 
-
-    resourceDocs += ResourceDoc(1, "GET", "banks/BANK_ID/customer", "Get customer information about the logged in customer")
+    resourceDocs += ResourceDoc(
+      1,
+      apiVersion,
+      "getCustomerInfo",
+      "GET",
+      "/banks/BANK_ID/customer",
+      "Get customer information about the logged in customer",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCustomerInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
@@ -57,7 +74,15 @@ trait APIMethods140 {
       }
     }
 
-    resourceDocs += ResourceDoc(2, "GET", "banks/BANK_ID/customer/messages", "Get messages for the logged in customer")
+    resourceDocs += ResourceDoc(
+      2,
+      apiVersion,
+      "getCustomerMessages",
+      "GET",
+      "/banks/BANK_ID/customer/messages",
+      "Get messages for the logged in customer",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -75,9 +100,16 @@ trait APIMethods140 {
       }
     }
 
-
-    resourceDocs += ResourceDoc(3, "POST", "banks/BANK_ID/customer/CUSTOMER_NUMBER", "Add a message for the customer specified by CUSTOMER_NUMBER")
-
+    resourceDocs += ResourceDoc(
+      3,
+      apiVersion,
+      "addCustomerMessage",
+      "POST",
+      "/banks/BANK_ID/customer/CUSTOMER_NUMBER",
+      "Add a message for the customer specified by CUSTOMER_NUMBER",
+      Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
+      emptyObjectJson
+    )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
@@ -95,6 +127,17 @@ trait APIMethods140 {
         }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      4,
+      apiVersion,
+      "getBranches",
+      "GET",
+      "/banks/BANK_ID/branches",
+      "Get branches for the bank",
+      emptyObjectJson,
+      emptyObjectJson
+    )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
@@ -114,6 +157,18 @@ trait APIMethods140 {
     }
 
 
+
+    resourceDocs += ResourceDoc(
+      5,
+      apiVersion,
+      "getAtms",
+      "GET",
+      "/banks/BANK_ID/atms",
+      "Get ATMS for the bank",
+      emptyObjectJson,
+      emptyObjectJson
+    )
+
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "atms" :: Nil JsonGet _ => {
         user => {
@@ -130,6 +185,18 @@ trait APIMethods140 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+    6,
+      apiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get products offered by the bank",
+      emptyObjectJson,
+      emptyObjectJson
+    )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
@@ -148,6 +215,18 @@ trait APIMethods140 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      7,
+      apiVersion,
+      "getCrmEvents",
+      "GET",
+      "/banks/BANK_ID/crm-events",
+      "Get CRM Events for the logged in user",
+      emptyObjectJson,
+      emptyObjectJson
+    )
+
     lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "crm-events" :: Nil JsonGet _ => {
         user => {
@@ -164,6 +243,17 @@ trait APIMethods140 {
         }
       }
     }
+
+    resourceDocs += ResourceDoc(
+    8,
+      apiVersion,
+      "getResourceDocs",
+      "GET",
+      "/resource-docs",
+      "Get the API calls that are documented on this server. (This call).",
+      emptyObjectJson,
+      emptyObjectJson
+    )
 
     // Provides resource documents so that live docs (currently on Sofi) can use to display API documentation
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

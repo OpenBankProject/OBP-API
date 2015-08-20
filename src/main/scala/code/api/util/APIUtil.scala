@@ -39,7 +39,11 @@ import net.liftweb.http.{JsonResponse, S}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.{JObject, JValue}
+
+
+
+
 import net.liftweb.util.Helpers._
 
 import bootstrap.liftweb.Boot
@@ -249,8 +253,12 @@ object APIUtil extends Loggable {
   /*
   Used to document API calls / resources. correct place for this?
    */
-  case class ResourceDoc(id: Int,
-                      verb: String,
-                      url: String,
-                      description: String)
+  case class ResourceDoc(id: Int, // An id which can be used to refer to this doc internally or externally.
+                      apiVersion: String, // TODO: Constrain to certain strings?
+                      apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
+                      requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
+                      requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+                      description: String, // A description of the call
+                      requestBody: JValue, // The response body
+                      responseBody: JValue) // Any request body required (maybe empty)
 }

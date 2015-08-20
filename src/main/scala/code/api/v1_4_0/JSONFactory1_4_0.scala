@@ -13,6 +13,7 @@ import code.products.Products.{Product}
 import code.customerinfo.{CustomerMessage, CustomerInfo}
 import code.model.BankId
 import code.products.Products.ProductCode
+import net.liftweb.json.JsonAST.{JValue, JObject}
 
 object JSONFactory1_4_0 {
 
@@ -205,22 +206,38 @@ object JSONFactory1_4_0 {
     CrmEventsJson(crmEventList.map(createCrmEventJson))
   }
 
+
+  // Used to describe where an API call is implemented
+  case class ImplementedByJson (
+    version : String, // Short hand for the version e.g. "1_4_0" means Implementations1_4_0
+    function : String // The val / partial function that implements the call e.g. "getBranches"
+  )
+
+
+  // Used to describe the OBP API calls for documentation and API discovery purposes
   case class ResourceDocJson(id: Int,
-                         verb: String,
-                         url: String,
-                         description: String)
+                         request_verb: String,
+                         request_url: String,
+                         description: String,
+                         request_body: JValue,
+                         response_body: JValue,
+                         implemented_by: ImplementedByJson)
 
 
 
-  // Creates the json resource_docs : {...}
+  // Creates the json resource_docs
   case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
 
   def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
     ResourceDocJson(
       id = resourceDoc.id,
-      verb = resourceDoc.verb,
-      url = resourceDoc.url,
-      description = resourceDoc.description)
+      request_verb = resourceDoc.requestVerb,
+      request_url = resourceDoc.requestUrl,
+      description = resourceDoc.description,
+      request_body = resourceDoc.requestBody,
+      response_body = resourceDoc.responseBody,
+      implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)
+      )
   }
 
   def createResourceDocsJson(resourceDocList: List[ResourceDoc]) : ResourceDocsJson = {
