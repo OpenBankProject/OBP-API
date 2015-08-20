@@ -78,6 +78,9 @@ To compile and run jetty, install Maven 3 and execute:
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
     
     Right click test/scala/code and select the Scala Tests in code to run them all.
+    
+    Note: You may want to disable some tests not relevant to your setup e.g.:
+    set bank_account_creation_listener=false in test.default.props 
 
 
 ----
