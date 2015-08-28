@@ -215,7 +215,7 @@ object JSONFactory1_4_0 {
 
 
   // Used to describe the OBP API calls for documentation and API discovery purposes
-  case class ResourceDocJson(id: Int,
+  case class ResourceDocJson(id: String,
                          request_verb: String,
                          request_url: String,
                          description: String,
@@ -230,7 +230,7 @@ object JSONFactory1_4_0 {
 
   def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
     ResourceDocJson(
-      id = resourceDoc.id,
+      id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
       description = resourceDoc.description,

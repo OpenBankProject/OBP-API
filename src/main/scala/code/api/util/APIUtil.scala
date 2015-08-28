@@ -253,7 +253,7 @@ object APIUtil extends Loggable {
   /*
   Used to document API calls / resources. correct place for this?
    */
-  case class ResourceDoc(id: Int, // An id which can be used to refer to this doc internally or externally.
+  case class ResourceDoc(
                       apiVersion: String, // TODO: Constrain to certain strings?
                       apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
                       requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.

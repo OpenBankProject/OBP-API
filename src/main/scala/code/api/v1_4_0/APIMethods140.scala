@@ -51,7 +51,6 @@ trait APIMethods140 extends Loggable{
     }
 
     resourceDocs += ResourceDoc(
-      1,
       apiVersion,
       "getCustomerInfo",
       "GET",
@@ -75,7 +74,6 @@ trait APIMethods140 extends Loggable{
     }
 
     resourceDocs += ResourceDoc(
-      2,
       apiVersion,
       "getCustomerMessages",
       "GET",
@@ -101,12 +99,12 @@ trait APIMethods140 extends Loggable{
     }
 
     resourceDocs += ResourceDoc(
-      3,
       apiVersion,
       "addCustomerMessage",
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_NUMBER",
       "Add a message for the customer specified by CUSTOMER_NUMBER",
+      // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson
     )
@@ -129,7 +127,6 @@ trait APIMethods140 extends Loggable{
     }
 
     resourceDocs += ResourceDoc(
-      4,
       apiVersion,
       "getBranches",
       "GET",
@@ -159,7 +156,6 @@ trait APIMethods140 extends Loggable{
 
 
     resourceDocs += ResourceDoc(
-      5,
       apiVersion,
       "getAtms",
       "GET",
@@ -188,7 +184,6 @@ trait APIMethods140 extends Loggable{
 
 
     resourceDocs += ResourceDoc(
-    6,
       apiVersion,
       "getProducts",
       "GET",
@@ -217,7 +212,6 @@ trait APIMethods140 extends Loggable{
 
 
     resourceDocs += ResourceDoc(
-      7,
       apiVersion,
       "getCrmEvents",
       "GET",
@@ -245,7 +239,6 @@ trait APIMethods140 extends Loggable{
     }
 
     resourceDocs += ResourceDoc(
-    8,
       apiVersion,
       "getResourceDocs",
       "GET",
@@ -255,7 +248,7 @@ trait APIMethods140 extends Loggable{
       emptyObjectJson
     )
 
-    // Provides resource documents so that live docs (currently on Sofi) can use to display API documentation
+    // Provides resource documents so that live docs (currently on Sofi) can display API documentation
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: Nil JsonGet _ => {
         user => {
