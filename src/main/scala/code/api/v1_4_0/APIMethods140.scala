@@ -1,6 +1,8 @@
 package code.api.v1_4_0
 
 import code.api.APIFailure
+import code.api.v1_2_1.APIMethods121
+import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
 import code.atms.Atms
 import code.branches.Branches
@@ -33,10 +35,12 @@ import collection.mutable.ArrayBuffer
 import code.api.util.APIUtil.ResourceDoc
 
 
-trait APIMethods140 extends Loggable{
-  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
-  self: RestHelper =>
 
+
+trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
+  //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
+  // We add previous APIMethods so we have access to the Resource Docs
+  self: RestHelper =>
 
   val Implementations1_4_0 = new Object(){
 
@@ -45,9 +49,11 @@ trait APIMethods140 extends Loggable{
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
 
-    def getLocalResourceDocs : Option[List[ResourceDoc]] =
+    def getResourceDocsList : Option[List[ResourceDoc]] =
     {
-      Some(resourceDocs.toList)
+      // Get the Resource Docs for this and previous versions of the API
+      val cumulativeResourceDocs = resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+      Some(cumulativeResourceDocs.toList)
     }
 
     resourceDocs += ResourceDoc(
@@ -253,7 +259,7 @@ trait APIMethods140 extends Loggable{
       case "resource-docs" :: Nil JsonGet _ => {
         user => {
           for {
-            rd <- getLocalResourceDocs
+            rd <- getResourceDocsList
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createResourceDocsJson(rd)

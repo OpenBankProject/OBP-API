@@ -20,6 +20,11 @@ import code.model.ViewCreationJSON
 import net.liftweb.common.Full
 import code.model.ViewUpdateData
 
+import scala.collection.immutable.Nil
+import scala.collection.mutable.ArrayBuffer
+// Makes JValue assignment to Nil work
+import net.liftweb.json.JsonDSL._
+
 case class MakePaymentJson(bank_id : String, account_id : String, amount : String)
 
 trait APIMethods121 {
@@ -61,6 +66,21 @@ trait APIMethods121 {
   // helper methods end here
 
   val Implementations1_2_1 = new Object(){
+
+    val resourceDocs = ArrayBuffer[ResourceDoc]()
+    val emptyObjectJson : JValue = Nil
+    val apiVersion : String = "1_2_1"
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "root",
+      "GET",
+      "/",
+      "Returns API version, git commit, hosted by etc.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case Nil JsonGet json => {
         user =>
@@ -73,6 +93,16 @@ trait APIMethods121 {
           Full(successJsonResponse(apiDetails, 200))
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "allBanks",
+      "GET",
+      "/banks",
+      "Returns all banks available on this API instance",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val allBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get banks
@@ -89,6 +119,17 @@ trait APIMethods121 {
           Full(successJsonResponse(banksToJson(Bank.all)))
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "bankById",
+      "GET",
+      "/banks/BANK_ID",
+      "Returns the bank specified by BANK_ID",
+      emptyObjectJson,
+      emptyObjectJson)
+
 
     lazy val bankById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get bank by id

@@ -14,7 +14,7 @@ import scala.collection.mutable.ArrayBuffer
 
 import scala.collection.immutable.Nil
 
-// Makes JValue asignment to Nil work
+// Makes JValue assignment to Nil work
 import net.liftweb.json.JsonDSL._
 
 
@@ -28,10 +28,6 @@ trait APIMethods130 {
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_3_0"
 
-    def getLocalResourceDocs : Option[List[ResourceDoc]] =
-    {
-      Some(resourceDocs.toList)
-    }
 
     resourceDocs += ResourceDoc(
       apiVersion,
@@ -57,6 +53,17 @@ trait APIMethods130 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCardsForBank",
+      "GET",
+      "/banks/BANK_ID/cards",
+      "Get cards for the specified bank",
+      emptyObjectJson,
+      emptyObjectJson)
+
 
     def getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {

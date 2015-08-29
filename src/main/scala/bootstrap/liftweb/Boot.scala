@@ -196,7 +196,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(CashAccountAPI)
     LiftRules.statelessDispatch.append(BankMockAPI)
 
-    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
+    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 
     //add sandbox api calls only if we're running in sandbox mode
     if(Props.getBool("allow_sandbox_data_import", false)) {
@@ -218,7 +218,7 @@ class Boot extends Loggable{
     }
 
     // API Metrics (logs of API calls)
-    // If set to try we will write each URL with params to a datastore / log file
+    // If set to true we will write each URL with params to a datastore / log file
     if (Props.getBool("write_metrics", false)) {
       logger.info("writeMetrics is true. We will write API metrics")
     } else {
