@@ -1474,6 +1474,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteTransactionNarrative",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
+      "Delete narrative.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonDelete _ => {
@@ -1488,6 +1497,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCommentsForViewOnTransaction",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
+      "Get comments.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get comments
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments" :: Nil JsonGet json => {
@@ -1501,6 +1519,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCommentForViewOnTransaction",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
+      "Add comment.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add comment
@@ -1518,6 +1545,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteCommentForViewOnTransaction",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
+      "Delete comment.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete comment
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "comments":: commentId :: Nil JsonDelete _ => {
@@ -1531,6 +1567,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTagsForViewOnTransaction",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
+      "Get tags.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get tags
