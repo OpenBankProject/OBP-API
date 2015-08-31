@@ -269,6 +269,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "accountById",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get account by id.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
