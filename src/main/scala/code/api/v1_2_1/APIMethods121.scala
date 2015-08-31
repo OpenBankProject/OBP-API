@@ -603,6 +603,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartyMetadata",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
+      "Get metadata of one other account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: Nil JsonGet json => {
@@ -618,6 +627,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartyPublicAlias",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
+      "Get public alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public alias of other bank account
@@ -635,6 +653,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCounterpartyPublicAlias",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
+      "Add public alias to other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add public alias to other bank account
@@ -654,6 +681,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateCounterpartyPublicAlias",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
+      "Update public alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonPut json -> _ => {
@@ -672,6 +708,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteCounterpartyPublicAlias",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
+      "Delete public alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete public alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "public_alias" :: Nil JsonDelete _ => {
@@ -686,6 +731,15 @@ resourceDocs += ResourceDoc(
           } yield noContentJsonResponse
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartyPrivateAlias",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
+      "Get private alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
@@ -703,6 +757,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCounterpartyPrivateAlias",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
+      "Add private alias to other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
