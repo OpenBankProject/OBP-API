@@ -247,6 +247,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "publicAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts/public",
+      "Get public accounts for a single bank.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
