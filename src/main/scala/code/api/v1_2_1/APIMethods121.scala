@@ -1375,6 +1375,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransactionByIdForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
+      "Get transaction by id.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transaction by id
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "transaction" :: Nil JsonGet json => {
@@ -1390,6 +1399,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransactionNarrative",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
+      "Get narrative.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get narrative
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "narrative" :: Nil JsonGet json => {
@@ -1403,6 +1421,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addTransactionNarrative",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
+      "Add narrative.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add narrative
@@ -1420,6 +1447,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateTransactionNarrative",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
+      "Update narrative.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update narrative
