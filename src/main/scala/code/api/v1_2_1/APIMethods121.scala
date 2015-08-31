@@ -162,6 +162,15 @@ trait APIMethods121 {
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "privateAccountsAllBanks",
+      "GET",
+      "/accounts/private",
+      "Get private accounts for all banks.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for all banks
       case "accounts" :: "private" :: Nil JsonGet json => {
