@@ -924,10 +924,10 @@ trait APIMethods121 {
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "*function val",
-      "*GET or POST or DELETE look for jsonGET etc",
-      "*/path case",
-      "*description after //",
+      "addCounterpartyUrl",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "Add url to other bank account.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -951,6 +951,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateCounterpartyUrl",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "Update url of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
@@ -970,6 +979,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteCounterpartyUrl",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "Delete url of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
@@ -986,6 +1004,15 @@ trait APIMethods121 {
     }
 
     //TODO: get image url of counterparty?
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCounterpartyImageUrl",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
+      "Add image url to other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
@@ -1005,6 +1032,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateCounterpartyImageUrl",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
+      "Update image url of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
