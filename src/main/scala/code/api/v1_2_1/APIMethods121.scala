@@ -1591,6 +1591,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addTagForViewOnTransaction",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
+      "Add a tag.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: Nil JsonPost json -> _ => {
@@ -1608,6 +1617,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteTagForViewOnTransaction",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
+      "Delete a tag.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete a tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "tags" :: tagId :: Nil JsonDelete _ => {
@@ -1623,6 +1641,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getImagesForViewOnTransaction",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
+      "Get images.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get images
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: Nil JsonGet json => {
@@ -1636,6 +1663,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addImageForViewOnTransaction",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
+      "Add an image.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
@@ -1654,6 +1690,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteImageForViewOnTransaction",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
+      "delete an image",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete an image
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "images" :: imageId :: Nil JsonDelete _ => {
@@ -1667,6 +1712,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getWhereTagForViewOnTransaction",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
+      "Get where tag.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get where tag
@@ -1682,6 +1736,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addWhereTagForViewOnTransaction",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
+      "Add where tag.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add where tag
