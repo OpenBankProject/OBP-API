@@ -1765,6 +1765,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateWhereTagForViewOnTransaction",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
+      "Update where tag.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonPut json -> _ => {
@@ -1784,6 +1793,15 @@ trait APIMethods121 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteWhereTagForViewOnTransaction",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
+      "Delete where tag.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete where tag
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: TransactionId(transactionId) :: "metadata" :: "where" :: Nil JsonDelete _ => {
@@ -1801,6 +1819,15 @@ trait APIMethods121 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartyForTransaction",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
+      "Get other account of a transaction.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other account of a transaction
@@ -1820,6 +1847,15 @@ trait APIMethods121 {
     }
 
     case class TransactionIdJson(transaction_id : String)
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "makePayment",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
+      "Make Payment.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
