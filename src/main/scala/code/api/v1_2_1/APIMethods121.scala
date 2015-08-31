@@ -414,6 +414,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "getPermissionsForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
+      "Get access.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
@@ -429,6 +438,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "getPermissionForUserForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
+      "Get access for specific user.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
@@ -443,6 +461,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "addPermissionForUserForBankAccountForMultipleViews",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
+      "Add access for specific user to a list of views.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
