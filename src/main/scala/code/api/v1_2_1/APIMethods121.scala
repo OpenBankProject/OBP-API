@@ -145,7 +145,7 @@ trait APIMethods121 {
     }
 
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "allAccountsAllBanks",
       "GET",
@@ -162,7 +162,7 @@ trait APIMethods121 {
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "privateAccountsAllBanks",
       "GET",
@@ -184,7 +184,7 @@ trait APIMethods121 {
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "publicAccountsAllBanks",
       "GET",
@@ -202,7 +202,7 @@ trait APIMethods121 {
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "allAccountsAtOneBank",
       "GET",
@@ -224,7 +224,7 @@ trait APIMethods121 {
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "privateAccountsAtOneBank",
       "GET",
@@ -247,7 +247,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "publicAccountsAtOneBank",
       "GET",
@@ -269,7 +269,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "accountById",
       "GET",
@@ -295,7 +295,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "updateAccountLabel",
       "POST",
@@ -319,7 +319,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getViewsForBankAccount",
       "GET",
@@ -343,7 +343,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "createViewForBankAccount",
       "POST",
@@ -368,7 +368,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "updateViewForBankAccount",
       "PUT",
@@ -393,7 +393,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "deleteViewForBankAccount",
       "DELETE",
@@ -414,7 +414,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getPermissionsForBankAccount",
       "GET",
@@ -438,7 +438,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getPermissionForUserForBankAccount",
       "GET",
@@ -462,7 +462,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "addPermissionForUserForBankAccountForMultipleViews",
       "POST",
@@ -487,7 +487,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "addPermissionForUserForBankAccountForOneView",
       "POST",
@@ -511,7 +511,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "removePermissionForUserForBankAccountForOneView",
       "DELETE",
@@ -533,7 +533,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "removePermissionForUserForBankAccountForAllViews",
       "DELETE",
@@ -555,7 +555,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getCounterpartiesForBankAccount",
       "GET",
@@ -579,7 +579,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getCounterpartyByIdForBankAccount",
       "GET",
@@ -603,7 +603,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getCounterpartyMetadata",
       "GET",
@@ -628,7 +628,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getCounterpartyPublicAlias",
       "GET",
@@ -654,7 +654,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "addCounterpartyPublicAlias",
       "POST",
@@ -681,7 +681,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "updateCounterpartyPublicAlias",
       "PUT",
@@ -708,7 +708,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "deleteCounterpartyPublicAlias",
       "DELETE",
@@ -732,7 +732,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "getCounterpartyPrivateAlias",
       "GET",
@@ -758,7 +758,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
- resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "addCounterpartyPrivateAlias",
       "POST",
@@ -786,7 +786,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "updateCounterpartyPrivateAlias",
       "PUT",
@@ -814,7 +814,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "deleteCounterpartyPrivateAlias",
       "DELETE",
@@ -840,7 +840,7 @@ resourceDocs += ResourceDoc(
 
     //TODO: get more info of counterparty?
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "addCounterpartyMoreInfo",
       "POST",
@@ -868,7 +868,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "updateCounterpartyMoreInfo",
       "PUT",
@@ -896,7 +896,7 @@ resourceDocs += ResourceDoc(
       }
     }
 
-resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
       apiVersion,
       "deleteCounterpartyMoreInfo",
       "DELETE",
@@ -921,6 +921,16 @@ resourceDocs += ResourceDoc(
     }
 
     //TODO: get url of counterparty?
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "*function val",
+      "*GET or POST or DELETE look for jsonGET etc",
+      "*/path case",
+      "*description after //",
+      emptyObjectJson,
+      emptyObjectJson)
+
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add url to other bank account
