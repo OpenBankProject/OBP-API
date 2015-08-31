@@ -533,6 +533,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "removePermissionForUserForBankAccountForAllViews",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
+      "Delete access for specific user to all the views.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to all the views
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: Nil JsonDelete json => {
@@ -545,6 +554,15 @@ resourceDocs += ResourceDoc(
           } yield noContentJsonResponse
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartiesForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
+      "Get other accounts for one account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
@@ -560,6 +578,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+ resourceDocs += ResourceDoc(
+      apiVersion,
+      "getCounterpartyByIdForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
+      "Get one other account by id.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
