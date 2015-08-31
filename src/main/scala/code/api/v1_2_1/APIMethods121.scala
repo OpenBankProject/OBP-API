@@ -487,6 +487,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "addPermissionForUserForBankAccountForOneView",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
+      "Add access for specific user to a specific view.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: "views" :: ViewId(viewId) :: Nil JsonPost json -> _ => {
@@ -501,6 +510,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "removePermissionForUserForBankAccountForOneView",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
+      "Delete access for specific user to one view.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to one view
