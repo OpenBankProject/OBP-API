@@ -786,6 +786,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateCounterpartyPrivateAlias",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
+      "Update private alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonPut json -> _ => {
@@ -805,6 +814,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteCounterpartyPrivateAlias",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
+      "Delete private alias of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete private alias of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "private_alias" :: Nil JsonDelete _ => {
@@ -821,6 +839,15 @@ resourceDocs += ResourceDoc(
     }
 
     //TODO: get more info of counterparty?
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCounterpartyMoreInfo",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "Add more info to other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
@@ -841,6 +868,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateCounterpartyMoreInfo",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "update more info of other bank account",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
@@ -859,6 +895,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteCounterpartyMoreInfo",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "Delete more info of other bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
