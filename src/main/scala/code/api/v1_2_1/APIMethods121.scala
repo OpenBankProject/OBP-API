@@ -295,6 +295,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateAccountLabel",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID",
+      "Change account label.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
@@ -310,6 +319,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "getViewsForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Get the available views on an bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonGet json => {
@@ -324,6 +342,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "createViewForBankAccount",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
+      "Creates a view on an bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
@@ -341,6 +368,15 @@ resourceDocs += ResourceDoc(
       }
     }
 
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "updateViewForBankAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Updates a view on a bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
+
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: ViewId(viewId) :: Nil JsonPut json -> _ => {
@@ -356,6 +392,15 @@ resourceDocs += ResourceDoc(
           }
       }
     }
+
+resourceDocs += ResourceDoc(
+      apiVersion,
+      "deleteViewForBankAccount",
+      "DELETE",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
+      "Deletes a view on an bank account.",
+      emptyObjectJson,
+      emptyObjectJson)
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //deletes a view on an bank account
