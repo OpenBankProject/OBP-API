@@ -70,8 +70,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve customer info"
-            info <- Customer.customerProvider.vend.getCustomer(bankId, u) ~> APIFailure("No customer found", 204)
+            u <- user ?~! "User must be logged in to retrieve Customer"
+            info <- Customer.customerProvider.vend.getCustomer(bankId, u) ~> APIFailure("No Customer found for current User", 204)
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
             successJsonResponse(Extraction.decompose(json))
