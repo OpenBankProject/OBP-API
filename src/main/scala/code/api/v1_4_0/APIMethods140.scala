@@ -53,7 +53,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     {
       // Get the Resource Docs for this and previous versions of the API
       val cumulativeResourceDocs = resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-      Some(cumulativeResourceDocs.toList)
+      // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
+      Some(cumulativeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
     resourceDocs += ResourceDoc(
