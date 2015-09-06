@@ -5,7 +5,7 @@ import java.util.Date
 import code.crm.CrmEvent._
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 
-import code.customerinfo.CustomerMessage
+import code.customer.CustomerMessage
 import code.model.BankId
 
 import code.common.{Address, License, Location, Meta}

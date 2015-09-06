@@ -84,7 +84,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank,
     // New in 1.4.0
-    Implementations1_4_0.getCustomerInfo,
+    Implementations1_4_0.getCustomer,
     Implementations1_4_0.getCustomerMessages,
     Implementations1_4_0.addCustomerMessage,
     Implementations1_4_0.getBranches,

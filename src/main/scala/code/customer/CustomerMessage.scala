@@ -1,4 +1,4 @@
-package code.customerinfo
+package code.customer
 
 import java.util.Date
 

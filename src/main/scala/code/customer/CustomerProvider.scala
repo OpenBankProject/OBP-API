@@ -1,4 +1,4 @@
-package code.customerinfo
+package code.customer
 
 import java.util.Date
 
@@ -6,21 +6,21 @@ import code.model.{BankId, User}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
-object CustomerInfo extends SimpleInjector {
+object Customer extends SimpleInjector {
 
-  val customerInfoProvider = new Inject(buildOne _) {}
+  val customerProvider = new Inject(buildOne _) {}
 
-  def buildOne: CustomerInfoProvider = MappedCustomerInfoProvider
+  def buildOne: CustomerProvider = MappedCustomerProvider
 
 }
 
-trait CustomerInfoProvider {
-  def getInfo(bankId : BankId, user : User) : Box[CustomerInfo]
+trait CustomerProvider {
+  def getCustomer(bankId : BankId, user : User) : Box[Customer]
 
   def getUser(bankId : BankId, customerId : String) : Box[User]
 }
 
-trait CustomerInfo {
+trait Customer {
   def number : String
   def legalName : String
   def mobileNumber : String

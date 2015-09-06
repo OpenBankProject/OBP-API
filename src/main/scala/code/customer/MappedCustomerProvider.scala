@@ -1,4 +1,4 @@
-package code.customerinfo
+package code.customer
 
 import java.util.Date
 
@@ -8,25 +8,25 @@ import code.util.DefaultStringField
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
-object MappedCustomerInfoProvider extends CustomerInfoProvider {
+object MappedCustomerProvider extends CustomerProvider {
 
-  override def getInfo(bankId : BankId, user: User): Box[CustomerInfo] = {
-    MappedCustomerInfo.find(
-      By(MappedCustomerInfo.mUser, user.apiId.value),
-      By(MappedCustomerInfo.mBank, bankId.value))
+  override def getCustomer(bankId : BankId, user: User): Box[Customer] = {
+    MappedCustomer.find(
+      By(MappedCustomer.mUser, user.apiId.value),
+      By(MappedCustomer.mBank, bankId.value))
   }
 
   override def getUser(bankId: BankId, customerNumber: String): Box[User] = {
-    MappedCustomerInfo.find(
-      By(MappedCustomerInfo.mBank, bankId.value),
-      By(MappedCustomerInfo.mNumber, customerNumber)
+    MappedCustomer.find(
+      By(MappedCustomer.mBank, bankId.value),
+      By(MappedCustomer.mNumber, customerNumber)
     ).flatMap(_.mUser.obj)
   }
 }
 
-class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustomerInfo] with IdPK with CreatedUpdated {
+class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with IdPK with CreatedUpdated {
 
-  def getSingleton = MappedCustomerInfo
+  def getSingleton = MappedCustomer
 
   object mUser extends MappedLongForeignKey(this, APIUser)
   object mBank extends DefaultStringField(this)
@@ -48,7 +48,7 @@ class MappedCustomerInfo extends CustomerInfo with LongKeyedMapper[MappedCustome
   }
 }
 
-object MappedCustomerInfo extends MappedCustomerInfo with LongKeyedMetaMapper[MappedCustomerInfo] {
+object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {
   //one customer info per bank for each api user
   override def dbIndexes = UniqueIndex(mBank, mNumber) :: UniqueIndex(mUser, mBank) :: super.dbIndexes
 }

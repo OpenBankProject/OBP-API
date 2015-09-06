@@ -4,29 +4,29 @@ import java.util.Date
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerInfoJson
-import code.customerinfo.{CustomerFaceImage, CustomerInfo, CustomerInfoProvider}
+import code.api.v1_4_0.JSONFactory1_4_0.CustomerJson
+import code.customer.{CustomerFaceImage, Customer, CustomerProvider}
 import code.model.{User, BankId}
 import net.liftweb.common.{Full, Empty, Box}
 import dispatch._
 import code.api.util.APIUtil.OAuth._
 
-class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
+class CustomerTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("mockbank1")
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
-  case class MockCustomerInfo(number : String, mobileNumber : String,
+  case class MockCustomer(number : String, mobileNumber : String,
                               legalName : String, email : String,
-                              faceImage : MockFaceImage) extends CustomerInfo
+                              faceImage : MockFaceImage) extends Customer
 
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
 
-  val mockCustomerInfo = MockCustomerInfo("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage)
+  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage)
 
-  object MockedCustomerInfoProvider extends CustomerInfoProvider {
-    override def getInfo(bankId: BankId, user: User): Box[CustomerInfo] = {
-      if(bankId == mockBankId) Full(mockCustomerInfo)
+  object MockedCustomerProvider extends CustomerProvider {
+    override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
+      if(bankId == mockBankId) Full(mockCustomer)
       else Empty
     }
 
@@ -36,13 +36,13 @@ class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
   override def beforeAll() {
     super.beforeAll()
     //use the mock connector
-    CustomerInfo.customerInfoProvider.default.set(MockedCustomerInfoProvider)
+    Customer.customerProvider.default.set(MockedCustomerProvider)
   }
 
   override def afterAll() {
     super.afterAll()
     //reset the default connector
-    CustomerInfo.customerInfoProvider.default.set(CustomerInfo.buildOne)
+    Customer.customerProvider.default.set(Customer.buildOne)
   }
 
 
@@ -64,7 +64,7 @@ class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
       val testBank = BankId("test-bank")
       val user = obpuser1
 
-      CustomerInfo.customerInfoProvider.vend.getInfo(testBank, user).isEmpty should equal(true)
+      Customer.customerProvider.vend.getCustomer(testBank, user).isEmpty should equal(true)
 
       When("We make the request")
       //TODO: need stronger link between obpuser1 and user1
@@ -80,7 +80,7 @@ class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
       val testBank = mockBankId
       val user = obpuser1
 
-      CustomerInfo.customerInfoProvider.vend.getInfo(testBank, user).isEmpty should equal(false)
+      Customer.customerProvider.vend.getCustomer(testBank, user).isEmpty should equal(false)
 
       When("We make the request")
       //TODO: need stronger link between obpuser1 and user1
@@ -92,11 +92,11 @@ class CustomerInfoTest extends V140ServerSetup with DefaultUsers {
 
       And("We should get the right information back")
 
-      val info = response.body.extract[CustomerInfoJson]
-      val received = MockCustomerInfo(info.customer_number, info.mobile_phone_number,
+      val info = response.body.extract[CustomerJson]
+      val received = MockCustomer(info.customer_number, info.mobile_phone_number,
         info.legal_name, info.email, MockFaceImage(info.face_image.date, info.face_image.url))
 
-      received should equal(mockCustomerInfo)
+      received should equal(mockCustomer)
     }
 
   }

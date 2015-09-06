@@ -7,7 +7,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
-import code.customerinfo.{CustomerMessages, CustomerInfo}
+import code.customer.{CustomerMessages, Customer}
 import code.model.dataAccess.APIUser
 import code.model.{BankId, User}
 import code.products.Products
@@ -58,21 +58,21 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "getCustomerInfo",
+      "getCustomer",
       "GET",
       "/banks/BANK_ID/customer",
-      "Get customer information about the logged in customer",
+      "Get customer for logged in user",
       emptyObjectJson,
       emptyObjectJson)
 
-    lazy val getCustomerInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve customer info"
-            info <- CustomerInfo.customerInfoProvider.vend.getInfo(bankId, u) ~> APIFailure("No customer info found", 204)
+            info <- Customer.customerProvider.vend.getCustomer(bankId, u) ~> APIFailure("No customer found", 204)
           } yield {
-            val json = JSONFactory1_4_0.createCustomerInfoJson(info)
+            val json = JSONFactory1_4_0.createCustomerJson(info)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -120,7 +120,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            customer <- CustomerInfo.customerInfoProvider.vend.getUser(bankId, customerNumber) ?~! "No customer found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "No customer found"
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
                 customer, bankId, postedData.message, postedData.from_department, postedData.from_person),

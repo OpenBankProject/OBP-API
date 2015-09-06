@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.DefaultUsers
 import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerMessagesJson}
-import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo, CustomerInfo}
+import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
 import code.model.BankId
 import dispatch._
 import code.api.util.APIUtil.OAuth._
@@ -63,7 +63,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     super.beforeAll()
     //TODO: this shouldn't be tied to an implementation
     //need to create a customer info obj since the customer messages call needs to find user by customer number
-    MappedCustomerInfo.create
+    MappedCustomer.create
       .mBank(mockBankId.value)
       .mUser(obpuser1)
       .mNumber(mockCustomerNumber).save()

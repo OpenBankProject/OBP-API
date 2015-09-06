@@ -1,4 +1,4 @@
-package code.customerinfo
+package code.customer
 
 import java.util.Date
 
@@ -7,11 +7,11 @@ import code.api.test.ServerSetup
 import code.model.BankId
 import net.liftweb.mapper.By
 
-class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
+class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
 
   val testBankId = BankId("bank")
 
-  def createCustomerInfo1() = MappedCustomerInfo.create
+  def createCustomer1() = MappedCustomer.create
     .mBank(testBankId.value).mEmail("bob@example.com").mFaceImageTime(new Date(12340000))
     .mFaceImageUrl("http://example.com/image.jpg").mLegalName("John Johnson")
     .mMobileNumber("12343434").mNumber("343").mUser(obpuser1).saveMe()
@@ -19,30 +19,30 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
   feature("Getting customer info") {
 
     scenario("No customer info exists for user and we try to get it") {
-      Given("No MappedCustomerInfo exists for a user")
-      MappedCustomerInfo.find(By(MappedCustomerInfo.mUser, obpuser2)).isDefined should equal(false)
+      Given("No MappedCustomer exists for a user")
+      MappedCustomer.find(By(MappedCustomer.mUser, obpuser2)).isDefined should equal(false)
 
       When("We try to get it")
-      val found = MappedCustomerInfoProvider.getInfo(testBankId, obpuser2)
+      val found = MappedCustomerProvider.getCustomer(testBankId, obpuser2)
 
       Then("We don't")
       found.isDefined should equal(false)
     }
 
-    scenario("Customer info exists and we try to get it") {
-      val customerInfo1 = createCustomerInfo1()
-      Given("MappedCustomerInfo exists for a user")
-      MappedCustomerInfo.find(By(MappedCustomerInfo.mUser, obpuser1.apiId.value)).isDefined should equal(true)
+    scenario("Customer exists and we try to get it") {
+      val customer1 = createCustomer1()
+      Given("MappedCustomer exists for a user")
+      MappedCustomer.find(By(MappedCustomer.mUser, obpuser1.apiId.value)).isDefined should equal(true)
 
       When("We try to get it")
-      val foundOpt = MappedCustomerInfoProvider.getInfo(testBankId, obpuser1)
+      val foundOpt = MappedCustomerProvider.getCustomer(testBankId, obpuser1)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
 
       And("It is the right info")
       val found = foundOpt.get
-      found should equal(customerInfo1)
+      found should equal(customer1)
     }
   }
 
@@ -52,10 +52,10 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
       val customerNumber = "123213213213213"
 
       Given("No customer info exists for a certain customer number")
-      MappedCustomerInfo.find(By(MappedCustomerInfo.mNumber, customerNumber)).isDefined should equal(false)
+      MappedCustomer.find(By(MappedCustomer.mNumber, customerNumber)).isDefined should equal(false)
 
       When("We try to get the user for a bank with that customer number")
-      val found = MappedCustomerInfoProvider.getUser(BankId("some-bank"), customerNumber)
+      val found = MappedCustomerProvider.getUser(BankId("some-bank"), customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(false)
@@ -66,14 +66,14 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
       val bankId = BankId("a-bank")
 
       Given("Customer info exists for a different bank")
-      MappedCustomerInfo.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
-      MappedCustomerInfo.count(By(MappedCustomerInfo.mNumber, customerNumber),
-        By(MappedCustomerInfo.mBank, bankId.value)) should equal({
-        MappedCustomerInfo.count(By(MappedCustomerInfo.mNumber, customerNumber))
+      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
+      MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber),
+        By(MappedCustomer.mBank, bankId.value)) should equal({
+        MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber))
       })
 
       When("We try to get the user for a different bank")
-      val found = MappedCustomerInfoProvider.getUser(BankId(bankId.value + "asdsad"), customerNumber)
+      val found = MappedCustomerProvider.getUser(BankId(bankId.value + "asdsad"), customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(false)
@@ -84,12 +84,12 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
       val bankId = BankId("a-bank")
 
       Given("Customer info exists for that bank")
-      MappedCustomerInfo.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
-      MappedCustomerInfo.count(By(MappedCustomerInfo.mNumber, customerNumber),
-        By(MappedCustomerInfo.mBank, bankId.value)) should equal(1)
+      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
+      MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber),
+        By(MappedCustomer.mBank, bankId.value)) should equal(1)
 
       When("We try to get the user for that bank")
-      val found = MappedCustomerInfoProvider.getUser(bankId, customerNumber)
+      val found = MappedCustomerProvider.getUser(bankId, customerNumber)
 
       Then("We should not find a user")
       found.isDefined should equal(true)
@@ -100,11 +100,11 @@ class MappedCustomerInfoProviderTest extends ServerSetup with DefaultUsers {
 
   override def beforeAll() = {
     super.beforeAll()
-    MappedCustomerInfo.bulkDelete_!!()
+    MappedCustomer.bulkDelete_!!()
   }
 
   override def afterEach() = {
     super.afterEach()
-    MappedCustomerInfo.bulkDelete_!!()
+    MappedCustomer.bulkDelete_!!()
   }
 }

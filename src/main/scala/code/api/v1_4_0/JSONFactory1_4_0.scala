@@ -10,14 +10,14 @@ import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.products.Products.{Product}
 
 
-import code.customerinfo.{CustomerMessage, CustomerInfo}
+import code.customer.{CustomerMessage, Customer}
 import code.model.BankId
 import code.products.Products.ProductCode
 import net.liftweb.json.JsonAST.{JValue, JObject}
 
 object JSONFactory1_4_0 {
 
-  case class CustomerInfoJson(customer_number : String,
+  case class CustomerJson(customer_number : String,
                               legal_name : String,
                               mobile_phone_number : String,
                               email : String,
@@ -67,9 +67,9 @@ object JSONFactory1_4_0 {
 
 
 
-  def createCustomerInfoJson(cInfo : CustomerInfo) : CustomerInfoJson = {
+  def createCustomerJson(cInfo : Customer) : CustomerJson = {
 
-    CustomerInfoJson(customer_number = cInfo.number,
+    CustomerJson(customer_number = cInfo.number,
       legal_name = cInfo.legalName, mobile_phone_number = cInfo.mobileNumber,
       email = cInfo.email, face_image = CustomerFaceImageJson(url = cInfo.faceImage.url, date = cInfo.faceImage.date))
 
