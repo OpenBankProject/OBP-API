@@ -101,6 +101,7 @@ trait APIMethods121 {
       "GET",
       "/banks",
       "Returns all banks available on this API instance",
+      "Returns a list of banks supported on this server:\n\n* ID used as parameter in URLs\n* Short and full name of bank\n* Logo URL\n* Website",
       emptyObjectJson,
       emptyObjectJson)
 

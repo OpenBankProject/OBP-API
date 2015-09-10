@@ -63,6 +63,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer",
       "Get customer for logged in user",
+      "Messages sent to the currently authenticated user.\n\nAuthentication via OAuth is required.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -86,6 +87,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
