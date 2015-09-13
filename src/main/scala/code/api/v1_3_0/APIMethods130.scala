@@ -35,6 +35,7 @@ trait APIMethods130 {
       "GET",
       "/cards",
       "Get cards for the current user",
+      "Returns data about all the physical cards a user has been issued by bank BANK_ID. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
       emptyObjectJson)
 
