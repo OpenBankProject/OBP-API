@@ -283,6 +283,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/resource-docs",
       "Get the API calls that are documented on this server. (This call).",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson
     )
