@@ -433,6 +433,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Deletes a view on an bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
