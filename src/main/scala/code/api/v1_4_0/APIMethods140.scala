@@ -87,7 +87,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
-      "",
+      "empty",
       emptyObjectJson,
       emptyObjectJson)
 
