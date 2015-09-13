@@ -183,6 +183,16 @@ all public accounts.",
       "GET",
       "/accounts/private",
       "Get private accounts for all banks.",
+      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
+The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
+for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
+that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
+(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+
+Returns the list of accounts at BANK_ID that the user has access to.
+For each account the API returns the account ID and the available views.
+
+If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.",
       emptyObjectJson,
       emptyObjectJson)
 
