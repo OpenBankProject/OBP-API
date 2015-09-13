@@ -142,6 +142,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
+      "Returns information about ATMs for a single bank specified by BANK_ID including:
+      * Address
+      * Geo Location
+      * License the data under this endpoint is released under
+      Authentication via OAuth *may* be required.",
       emptyObjectJson,
       emptyObjectJson
     )
