@@ -78,6 +78,11 @@ trait APIMethods121 {
       "GET",
       "/",
       "Returns API version, git commit, hosted by etc.",
+      "Returns a list of banks supported on this server:
+	* ID used as parameter in URLs
+	* Short and full name of bank
+	* Logo URL
+	* Website",
       emptyObjectJson,
       emptyObjectJson)
 
