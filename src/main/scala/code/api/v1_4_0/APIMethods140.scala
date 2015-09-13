@@ -255,6 +255,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/crm-events",
       "Get CRM Events for the logged in user",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson
     )
