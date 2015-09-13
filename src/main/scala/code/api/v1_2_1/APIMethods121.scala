@@ -234,6 +234,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts",
       "Get accounts for a single bank (private + public).",
+      "Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.\n\n Authentication via OAuth is not required.",
       emptyObjectJson,
       emptyObjectJson)
 
