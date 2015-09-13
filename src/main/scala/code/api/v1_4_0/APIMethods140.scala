@@ -113,6 +113,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_NUMBER",
       "Add a message for the customer specified by CUSTOMER_NUMBER",
+      "no such Request in the Wiki!!",
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson
