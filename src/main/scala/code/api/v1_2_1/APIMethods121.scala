@@ -165,6 +165,7 @@ all public accounts.",
       "GET",
       "/accounts",
       "Get accounts for all banks (private + public)",
+      "Returns a list of the public accounts at all banks. For each account the API returns the ID and the available views.\n\n Authentication via OAuth is not required.",
       emptyObjectJson,
       emptyObjectJson)
 
