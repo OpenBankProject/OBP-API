@@ -356,6 +356,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get the available views on an bank account.",
+      "Create a view on bank account\n\n OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
