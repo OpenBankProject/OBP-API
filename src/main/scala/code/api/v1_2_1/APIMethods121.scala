@@ -381,6 +381,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Creates a view on an bank account.",
+      "Update an existing view on a bank account\n\n OAuth authentication is required and the user needs to have access to the owner view.\n\n The json sent is the same as during view creation (above), with one difference: the "name" field\n of a view is not editable (it is only set when a view is created)",
       emptyObjectJson,
       emptyObjectJson)
 
