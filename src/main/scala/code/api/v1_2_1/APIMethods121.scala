@@ -331,6 +331,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Change account label.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
