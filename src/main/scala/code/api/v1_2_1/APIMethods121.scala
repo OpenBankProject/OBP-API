@@ -257,6 +257,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts for a single bank.",
+      "Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):\n\n* Number\n* Owners\n* Type\n* Balance\n* IBAN\n* Available views",
       emptyObjectJson,
       emptyObjectJson)
 
