@@ -455,6 +455,7 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
+      "Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.\n\n OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
