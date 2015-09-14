@@ -1327,6 +1327,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Delete open corporate url of other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1353,6 +1354,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Add corporate location to other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1383,6 +1385,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Update corporate location of other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1413,6 +1416,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Delete corporate location of other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1444,6 +1448,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Add physical location to other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
