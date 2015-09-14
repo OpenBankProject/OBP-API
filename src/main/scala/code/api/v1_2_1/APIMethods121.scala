@@ -1479,6 +1479,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Update physical location to other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1509,6 +1510,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Delete physical location of other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1538,6 +1540,20 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get transactions.",
+      "Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.
+
+Possible custom headers for pagination:
+
+* obp_sort_by=CRITERIA ==> default value: "completed" field
+* obp_sort_direction=ASC/DESC ==> default value: DESC
+* obp_limit=NUMBER ==> default value: 50
+* obp_offset=NUMBER ==> default value: 0
+* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
+* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+
+**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1564,6 +1580,9 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get transaction by id.",
+      "Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1588,6 +1607,9 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get narrative.",
+      "Returns the account owner description of the transaction [moderated](#views) by the view.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
