@@ -664,9 +664,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Delete access for specific user to all the views.",
-      "Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+      "Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
 
-OAuth authentication is required if the view VIEW_ID is not public.",
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -689,9 +689,9 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get other accounts for one account.",
-      "Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view VIEW_ID is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -716,9 +716,9 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get one other account by id.",
-      "Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
 
-Authentication via OAuth is required if the view is not public.",
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -743,9 +743,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
       "Get metadata of one other account.",
-      "Returns the public alias of the other account OTHER_ACCOUNT_ID.
+      "Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
 
-OAuth authentication is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
