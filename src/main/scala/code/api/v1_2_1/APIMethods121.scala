@@ -1633,6 +1633,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add narrative.",
+      "Creates a description of the transaction TRANSACTION_ID.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1659,6 +1662,9 @@ Authentication via OAuth is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Update narrative.",
+      "Updates the description of the transaction TRANSACTION_ID.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1685,6 +1691,9 @@ Authentication via OAuth is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Delete narrative.",
+      "Deletes the description of the transaction TRANSACTION_ID.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1708,6 +1717,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get comments.",
+      "Returns the transaction TRANSACTION_ID comments made on a [view](#views) (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1731,6 +1743,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add comment.",
+      "Posts a comment about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+
+OAuth authentication is required since the comment is linked with the user.",
       emptyObjectJson,
       emptyObjectJson)
 
