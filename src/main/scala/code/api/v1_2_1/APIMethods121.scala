@@ -2050,6 +2050,9 @@ OAuth authentication is required since the geo tag is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Delete where tag.",
+      "Deletes the where tag of the transaction TRANSACTION_ID made on [view](#views).
+
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2077,6 +2080,9 @@ OAuth authentication is required since the geo tag is linked with the user.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
       "Get other account of a transaction.",
+      "Returns details of the other party involved in the transaction, moderated by the [view](#views) (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2105,6 +2111,11 @@ OAuth authentication is required since the geo tag is linked with the user.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Make Payment.",
+      "This is an experimental call, currently only implemented in the OBP sandbox instance. It is currently very minimal, and will almost certainly change.
+
+This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
+
+There are no checks for "sufficient funds" at the moment, so it is possible to go into unlimited overdraft.",
       emptyObjectJson,
       emptyObjectJson)
 
