@@ -771,14 +771,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account.",
-      "Creates the public alias for the other account OTHER_ACCOUNT_ID.
+      "Returns the public alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.
-
-Note: Public aliases are automatically generated for new "other accounts", so this call should only be used if
-the public alias was deleted.
-
-The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.",
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -805,7 +800,14 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account.",
-      "",
+      "Creates the public alias for the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.
+
+Note: Public aliases are automatically generated for new "other accounts", so this call should only be used if
+the public alias was deleted.
+
+The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -833,6 +835,9 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Update public alias of other bank account.",
+      "Updates the public alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -860,6 +865,9 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Delete public alias of other bank account.",
+      "Deletes the public alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -884,6 +892,10 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Get private alias of other bank account.",
+      "Returns the private alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.
+",
       emptyObjectJson,
       emptyObjectJson)
 
