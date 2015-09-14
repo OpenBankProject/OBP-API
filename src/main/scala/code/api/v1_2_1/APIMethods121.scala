@@ -505,6 +505,11 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Add access for specific user to a list of views.",
+      "Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+
+Revoking a user access to a public view will return an error message.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -530,6 +535,9 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Add access for specific user to a specific view.",
+      "Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -554,6 +562,9 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Delete access for specific user to one view.",
+      "Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -576,6 +587,9 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Delete access for specific user to all the views.",
+      "Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+
+OAuth authentication is required if the view VIEW_ID is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
