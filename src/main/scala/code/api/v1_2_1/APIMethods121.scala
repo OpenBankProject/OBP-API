@@ -922,6 +922,9 @@ OAuth authentication is required if the view is not public.
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Add private alias to other bank account.",
+      "Creates a private alias for the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -950,6 +953,9 @@ OAuth authentication is required if the view is not public.
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Update private alias of other bank account.",
+      "Updates the private alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -978,6 +984,9 @@ OAuth authentication is required if the view is not public.
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Delete private alias of other bank account.",
+      "Deletes the private alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1004,6 +1013,7 @@ OAuth authentication is required if the view is not public.
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
       "Add more info to other bank account.",
+      "no such Request in the Wiki!!",
       emptyObjectJson,
       emptyObjectJson)
 
