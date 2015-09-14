@@ -63,7 +63,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer",
       "Get customer for logged in user",
-      "Messages sent to the currently authenticated user.\n\nAuthentication via OAuth is required.",
+      "Information about the currently authenticated user.
+
+Authentication via OAuth is required.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -87,7 +89,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
-      "empty",
+      "Messages sent to the currently authenticated user.
+
+Authentication via OAuth is required.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -142,11 +146,14 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
-      "Returns information about ATMs for a single bank specified by BANK_ID including:
-      * Address
-      * Geo Location
-      * License the data under this endpoint is released under
-      Authentication via OAuth *may* be required.",
+      "Returns information about branches for a single bank specified by BANK_ID including:
+
+* Name
+* Address
+* Geo Location
+* License the data under this endpoint is released under
+
+Authentication via OAuth *may* be required.",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -176,16 +183,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/atms",
       "Get ATMS for the bank",
-      "Returns information about financial products offered by a bank specified by BANK_ID including:
-	* Name
-	* Code
-	* Category
-	* Family
-	* Super Family
-	* More info URL
-	* Description
-	* Terms and Conditions
-	* License the data under this endpoint is released under",
+      "Returns information about ATMs for a single bank specified by BANK_ID including:
+
+* Address
+* Geo Location
+* License the data under this endpoint is released under
+
+Authentication via OAuth *may* be required.",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -214,19 +218,18 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/products",
       "Get products offered by the bank",
-      "Authentication via OAuth *may* be required.
-	IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
-	The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-	for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-	that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-	(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+      "Returns information about financial products offered by a bank specified by BANK_ID including:
 
-	Returns the list of accounts at that the user has access to at all banks.
-	For each account the API returns the account ID and the available views.
-
-	If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-	the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
-	all public accounts.",
+* Name
+* Code
+* Category
+* Family
+* Super Family
+* More info URL
+* Description
+* Terms and Conditions
+* License the data under this endpoint is released under
+",
       emptyObjectJson,
       emptyObjectJson
     )

@@ -728,6 +728,7 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account.",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
