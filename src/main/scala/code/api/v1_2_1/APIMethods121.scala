@@ -1905,6 +1905,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add an image.",
+      "Posts an image about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+
+OAuth authentication is required since the image is linked with the user.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1931,6 +1934,9 @@ Authentication via OAuth is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "delete an image",
+      "Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#views).
+
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1954,6 +1960,10 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get where tag.",
+      "Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#views) (VIEW_ID).
+It represents the location where the transaction has been initiated.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1978,6 +1988,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add where tag.",
+      "Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+
+OAuth authentication is required since the geo tag is linked with the user.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2006,6 +2019,9 @@ Authentication via OAuth is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update where tag.",
+      "Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+
+OAuth authentication is required since the geo tag is linked with the user.",
       emptyObjectJson,
       emptyObjectJson)
 
