@@ -526,7 +526,9 @@ of a view is not editable (it is only set when a view is created)",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
-      "Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.\n\n OAuth authentication is required and the user needs to have access to the owner view.",
+      "Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -551,7 +553,9 @@ of a view is not editable (it is only set when a view is created)",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
-      "Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.\n\n OAuth authentication is required and the user needs to have access to the owner view.\n\n Granting access to a public view will return an error message, as the user already has access.",
+      "Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -576,9 +580,7 @@ of a view is not editable (it is only set when a view is created)",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Add access for specific user to a list of views.",
-      "Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
-
-Revoking a user access to a public view will return an error message.
+      "Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
 
 OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
@@ -606,9 +608,11 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Add access for specific user to a specific view.",
-      "Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      "Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.
+
+Granting access to a public view will return an error message, as the user already has access.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -633,7 +637,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Delete access for specific user to one view.",
-      "Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
+      "Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+
+Revoking a user access to a public view will return an error message.
 
 OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
