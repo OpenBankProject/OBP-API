@@ -195,16 +195,10 @@ all public accounts.",
       "GET",
       "/accounts/private",
       "Get private accounts for all banks.",
-      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
-The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+      "Returns the list of private (non-public) accounts the user has access to at all banks.
+For each account the API returns the ID and the available views.
 
-Returns the list of accounts at BANK_ID that the user has access to.
-For each account the API returns the account ID and the available views.
-
-If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.",
+Authentication via OAuth is required.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -246,7 +240,16 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts",
       "Get accounts for a single bank (private + public).",
-      "Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.\n\n Authentication via OAuth is not required.",
+      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
+The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
+for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
+that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
+(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+
+Returns the list of accounts at BANK_ID that the user has access to.
+For each account the API returns the account ID and the available views.
+
+If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -269,7 +272,10 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts for a single bank.",
-      "Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):\n\n* Number\n* Owners\n* Type\n* Balance\n* IBAN\n* Available views",
+      "Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+For each account the API returns the ID and the available views.
+
+Authentication via OAuth is required.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -293,7 +299,9 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/public",
       "Get public accounts for a single bank.",
-      "Returns the list of private (non-public) accounts at BANK_ID that the user has access to.\n For each account the API returns the ID and the available views.\n\n Authentication via OAuth is required.",
+      "Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
+
+Authentication via OAuth is not required.",
       emptyObjectJson,
       emptyObjectJson)
 
