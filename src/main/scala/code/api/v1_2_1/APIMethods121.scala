@@ -612,6 +612,9 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get other accounts for one account.",
+      "Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -636,6 +639,9 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get one other account by id.",
+      "Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -660,6 +666,9 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
       "Get metadata of one other account.",
+      "Returns the public alias of the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -685,6 +694,14 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account.",
+      "Creates the public alias for the other account OTHER_ACCOUNT_ID.
+
+OAuth authentication is required if the view is not public.
+
+Note: Public aliases are automatically generated for new "other accounts", so this call should only be used if
+the public alias was deleted.
+
+The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.",
       emptyObjectJson,
       emptyObjectJson)
 
