@@ -1771,6 +1771,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete comment.",
+      "Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#views).
+
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1794,6 +1797,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get tags.",
+      "Returns the transaction TRANSACTION_ID tags made on a [view](#views) (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1817,6 +1823,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a tag.",
+      "Posts a tag about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+
+OAuth authentication is required since the tag is linked with the user.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1843,6 +1852,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
       "Delete a tag.",
+      "Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#views).
+
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1867,6 +1879,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get images.",
+      "Returns the transaction TRANSACTION_ID images made on a [view](#views) (VIEW_ID).
+
+Authentication via OAuth is required if the view is not public.",
       emptyObjectJson,
       emptyObjectJson)
 
