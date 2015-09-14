@@ -324,7 +324,18 @@ Authentication via OAuth is not required.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get account by id.",
-      "Returns the list of the views created for account ACCOUNT_ID at BANK_ID.\n\n OAuth authentication is required and the user needs to have access to the owner view.",
+      "Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+
+* Number
+* Owners
+* Type
+* Balance
+* IBAN
+* Available views
+
+More details about the data moderation by the view [here](#views).
+
+OAuth authentication is required if the "is_public" field in view (VIEW_ID) is not set to `true`.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -376,7 +387,29 @@ Authentication via OAuth is not required.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get the available views on an bank account.",
-      "Create a view on bank account\n\n OAuth authentication is required and the user needs to have access to the owner view.",
+      "#Views
+
+### How views work
+
+Views on accounts and transactions filter the underlying data to hide or blur certain fields from certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+
+**data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
+
+There is currently one exception to this rule; the "holder" field in the JSON contains always a value which is either an alias or the real name - indicated by the "is_alias" field.
+
+**action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
+
+**Metadata:**
+Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
+
+The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the "more_info" field in the "team" view, then the view "authorities" will show the new value (if it is allowed to do it).
+
+#### all
+*Optional*
+
+Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
+
+OAuth authentication is required and the user needs to have access to the owner view.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -401,7 +434,20 @@ Authentication via OAuth is not required.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Creates a view on an bank account.",
-      "Update an existing view on a bank account\n\n OAuth authentication is required and the user needs to have access to the owner view.\n\n The json sent is the same as during view creation (above), with one difference: the "name" field\n of a view is not editable (it is only set when a view is created)",
+      "Create a view on bank account
+
+OAuth authentication is required and the user needs to have access to the owner view.
+
+* The "alias" field in the JSON can take one of three values:
+_public_: to use the public alias if there is one specified for the other account.
+_private_: to use the public alias if there is one specified for the other account.
+_""(empty string)_: to use no alias; the view shows the real name of the other account.
+* The "hide_metadata_if_alias_used" field in the JSON can take boolean values.
+If it is set to `true` and there is an alias on the other account then the other accounts'
+metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden.
+Otherwise the metadata will be shown.
+* the "allowed_actions" field is a list containing the name of the actions allowed on this view,
+all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -427,7 +473,12 @@ Authentication via OAuth is not required.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Updates a view on a bank account.",
-      "Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.\n\n OAuth authentication is required and the user needs to have access to the owner view.",
+      "Update an existing view on a bank account
+
+OAuth authentication is required and the user needs to have access to the owner view.
+
+The json sent is the same as during view creation (above), with one difference: the "name" field
+of a view is not editable (it is only set when a view is created)",
       emptyObjectJson,
       emptyObjectJson)
 
