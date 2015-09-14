@@ -78,7 +78,10 @@ trait APIMethods121 {
       "GET",
       "/",
       "Returns API version, git commit, hosted by etc.",
-      "Returns a list of banks supported on this server:\n\n* ID used as parameter in URLs\n* Short and full name of bank\n* Logo URL\n* Website",
+      "Returns information about:
+
+* API version
+* Hosted by information",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -102,7 +105,12 @@ trait APIMethods121 {
       "GET",
       "/banks",
       "Returns all banks available on this API instance",
-      "Returns a list of banks supported on this server:\n\n* ID used as parameter in URLs\n* Short and full name of bank\n* Logo URL\n* Website",
+      "Returns a list of banks supported on this server:
+
+* ID used as parameter in URLs
+* Short and full name of bank
+* Logo URL
+* Website",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -129,18 +137,11 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID",
       "Returns the bank specified by BANK_ID",
-      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
-The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+      "Returns information about a single bank specified by BANK_ID including:
 
-Returns the list of accounts at that the user has access to at all banks.
-For each account the API returns the account ID and the available views.
-
-If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
-all public accounts.",
+* Short and full name of bank
+* Logo URL
+* Website",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -165,7 +166,18 @@ all public accounts.",
       "GET",
       "/accounts",
       "Get accounts for all banks (private + public)",
-      "Returns a list of the public accounts at all banks. For each account the API returns the ID and the available views.\n\n Authentication via OAuth is not required.",
+      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
+The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
+for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
+that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
+(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+
+Returns the list of accounts at that the user has access to at all banks.
+For each account the API returns the account ID and the available views.
+
+If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
+the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
+all public accounts.",
       emptyObjectJson,
       emptyObjectJson)
 
