@@ -219,6 +219,7 @@ object JSONFactory1_4_0 {
                          request_verb: String,
                          request_url: String,
                          description: String,
+                         overview: String,
                          request_body: JValue,
                          response_body: JValue,
                          implemented_by: ImplementedByJson)
@@ -234,6 +235,7 @@ object JSONFactory1_4_0 {
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
       description = resourceDoc.description,
+      overview = resourceDoc.overview,
       request_body = resourceDoc.requestBody,
       response_body = resourceDoc.responseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)
