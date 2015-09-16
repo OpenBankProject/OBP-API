@@ -78,10 +78,10 @@ trait APIMethods121 {
       "GET",
       "/",
       "Returns API version, git commit, hosted by etc.",
-      "Returns information about:
+      """Returns information about:
 
-* API version
-* Hosted by information",
+      * API version
+      * Hosted by information""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -105,12 +105,12 @@ trait APIMethods121 {
       "GET",
       "/banks",
       "Returns all banks available on this API instance",
-      "Returns a list of banks supported on this server:
+      """Returns a list of banks supported on this server:
 
-* ID used as parameter in URLs
-* Short and full name of bank
-* Logo URL
-* Website",
+      * ID used as parameter in URLs
+      * Short and full name of bank
+      * Logo URL
+      * Website""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -137,11 +137,11 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID",
       "Returns the bank specified by BANK_ID",
-      "Returns information about a single bank specified by BANK_ID including:
+      """Returns information about a single bank specified by BANK_ID including:
 
-* Short and full name of bank
-* Logo URL
-* Website",
+        * Short and full name of bank
+        * Logo URL
+        * Website""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -166,7 +166,7 @@ trait APIMethods121 {
       "GET",
       "/accounts",
       "Get accounts for all banks (private + public)",
-      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
+      """IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
 The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
 for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
 that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
@@ -177,7 +177,7 @@ For each account the API returns the account ID and the available views.
 
 If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
 the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
-all public accounts.",
+all public accounts.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -195,10 +195,10 @@ all public accounts.",
       "GET",
       "/accounts/private",
       "Get private accounts for all banks.",
-      "Returns the list of private (non-public) accounts the user has access to at all banks.
+      """Returns the list of private (non-public) accounts the user has access to at all banks.
 For each account the API returns the ID and the available views.
 
-Authentication via OAuth is required.",
+Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -240,7 +240,7 @@ Authentication via OAuth is required.",
       "GET",
       "/banks/BANK_ID/accounts",
       "Get accounts for a single bank (private + public).",
-      "IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
+      """IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
 The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
 for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
 that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
@@ -249,7 +249,7 @@ that is now fixed, so please make note of this change if you were making that as
 Returns the list of accounts at BANK_ID that the user has access to.
 For each account the API returns the account ID and the available views.
 
-If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.",
+If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -272,10 +272,10 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "GET",
       "/banks/BANK_ID/accounts/private",
       "Get private accounts for a single bank.",
-      "Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      """Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
 For each account the API returns the ID and the available views.
 
-Authentication via OAuth is required.",
+Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -299,9 +299,9 @@ Authentication via OAuth is required.",
       "GET",
       "/banks/BANK_ID/accounts/public",
       "Get public accounts for a single bank.",
-      "Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
+      """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
 
-Authentication via OAuth is not required.",
+Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -324,7 +324,7 @@ Authentication via OAuth is not required.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get account by id.",
-      "Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
 
 * Number
 * Owners
@@ -335,7 +335,7 @@ Authentication via OAuth is not required.",
 
 More details about the data moderation by the view [here](#views).
 
-OAuth authentication is required if the "is_public" field in view (VIEW_ID) is not set to `true`.",
+OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -362,7 +362,7 @@ OAuth authentication is required if the "is_public" field in view (VIEW_ID) is n
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Change account label.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -387,7 +387,7 @@ OAuth authentication is required if the "is_public" field in view (VIEW_ID) is n
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Get the available views on an bank account.",
-      "#Views
+      """#Views
 
 ### How views work
 
@@ -395,21 +395,21 @@ Views on accounts and transactions filter the underlying data to hide or blur ce
 
 **data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
 
-There is currently one exception to this rule; the "holder" field in the JSON contains always a value which is either an alias or the real name - indicated by the "is_alias" field.
+There is currently one exception to this rule; the 'holder' field in the JSON contains always a value which is either an alias or the real name - indicated by the 'is_alias' field.
 
 **action:** When a user performs an action like trying to post a comment (with POST API call), if he is not allowed, the body response will contain an error message.
 
 **Metadata:**
 Transaction metadata (like images, tags, comments, etc.) will appears *ONLY* on the view where they have been created e.g. comments posted to the public view only appear on the public view.
 
-The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the "more_info" field in the "team" view, then the view "authorities" will show the new value (if it is allowed to do it).
+The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
 
 #### all
 *Optional*
 
 Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -434,20 +434,20 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Creates a view on an bank account.",
-      "Create a view on bank account
+      """Create a view on bank account
 
 OAuth authentication is required and the user needs to have access to the owner view.
 
 * The "alias" field in the JSON can take one of three values:
 _public_: to use the public alias if there is one specified for the other account.
 _private_: to use the public alias if there is one specified for the other account.
-_""(empty string)_: to use no alias; the view shows the real name of the other account.
-* The "hide_metadata_if_alias_used" field in the JSON can take boolean values.
+_''(empty string)_: to use no alias; the view shows the real name of the other account.
+* The 'hide_metadata_if_alias_used' field in the JSON can take boolean values.
 If it is set to `true` and there is an alias on the other account then the other accounts'
 metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden.
 Otherwise the metadata will be shown.
 * the "allowed_actions" field is a list containing the name of the actions allowed on this view,
-all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.",
+all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -473,12 +473,12 @@ all the actions contained will be set to `true` on the view creation, the rest w
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Updates a view on a bank account.",
-      "Update an existing view on a bank account
+      """Update an existing view on a bank account
 
 OAuth authentication is required and the user needs to have access to the owner view.
 
-The json sent is the same as during view creation (above), with one difference: the "name" field
-of a view is not editable (it is only set when a view is created)",
+The json sent is the same as during view creation (above), with one difference: the 'name' field
+of a view is not editable (it is only set when a view is created)""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -504,7 +504,8 @@ of a view is not editable (it is only set when a view is created)",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Deletes a view on an bank account.",
-      "no such Request in the Wiki!!",
+      "Deletes a view on an bank account.",
+      // 
       emptyObjectJson,
       emptyObjectJson)
 
@@ -526,9 +527,9 @@ of a view is not editable (it is only set when a view is created)",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
-      "Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+      """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -553,9 +554,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
-      "Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -580,9 +581,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Add access for specific user to a list of views.",
-      "Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -608,11 +609,11 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Add access for specific user to a specific view.",
-      "Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+      """Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
 
 OAuth authentication is required and the user needs to have access to the owner view.
 
-Granting access to a public view will return an error message, as the user already has access.",
+Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -637,11 +638,11 @@ Granting access to a public view will return an error message, as the user alrea
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Delete access for specific user to one view.",
-      "Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
+      """Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
 
 Revoking a user access to a public view will return an error message.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -664,9 +665,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Delete access for specific user to all the views.",
-      "Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
+      """Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
 
-OAuth authentication is required and the user needs to have access to the owner view.",
+OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -689,9 +690,9 @@ OAuth authentication is required and the user needs to have access to the owner 
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get other accounts for one account.",
-      "Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+      """Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
 
-OAuth authentication is required if the view VIEW_ID is not public.",
+OAuth authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -716,9 +717,9 @@ OAuth authentication is required if the view VIEW_ID is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get one other account by id.",
-      "Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      """Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -743,9 +744,9 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
       "Get metadata of one other account.",
-      "Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      """Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -771,9 +772,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account.",
-      "Returns the public alias of the other account OTHER_ACCOUNT_ID.
+      """Returns the public alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -800,14 +801,14 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account.",
-      "Creates the public alias for the other account OTHER_ACCOUNT_ID.
+      """Creates the public alias for the other account OTHER_ACCOUNT_ID.
 
 OAuth authentication is required if the view is not public.
 
-Note: Public aliases are automatically generated for new "other accounts", so this call should only be used if
+Note: Public aliases are automatically generated for new 'other accounts', so this call should only be used if
 the public alias was deleted.
 
-The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.",
+The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -835,9 +836,9 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Update public alias of other bank account.",
-      "Updates the public alias of the other account OTHER_ACCOUNT_ID.
+      """Updates the public alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -865,9 +866,9 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Delete public alias of other bank account.",
-      "Deletes the public alias of the other account OTHER_ACCOUNT_ID.
+      """Deletes the public alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -892,10 +893,9 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Get private alias of other bank account.",
-      "Returns the private alias of the other account OTHER_ACCOUNT_ID.
+      """Returns the private alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.
-",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -922,9 +922,9 @@ OAuth authentication is required if the view is not public.
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Add private alias to other bank account.",
-      "Creates a private alias for the other account OTHER_ACCOUNT_ID.
+      """Creates a private alias for the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -953,9 +953,9 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Update private alias of other bank account.",
-      "Updates the private alias of the other account OTHER_ACCOUNT_ID.
+      """Updates the private alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -984,9 +984,9 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Delete private alias of other bank account.",
-      "Deletes the private alias of the other account OTHER_ACCOUNT_ID.
+      """Deletes the private alias of the other account OTHER_ACCOUNT_ID.
 
-OAuth authentication is required if the view is not public.",
+OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1013,7 +1013,8 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
       "Add more info to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
+      // "
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1041,8 +1042,8 @@ OAuth authentication is required if the view is not public.",
       "updateCounterpartyMoreInfo",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
-      "update more info of other bank account",
-      "no such Request in the Wiki!!",
+      "Update more info of other bank account",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1071,7 +1072,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
       "Delete more info of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1098,7 +1099,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
       "Add url to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1128,7 +1129,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
       "Update url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1157,7 +1158,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
       "Delete url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1184,7 +1185,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
       "Add image url to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1213,7 +1214,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
       "Update image url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1242,7 +1243,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
       "Delete image url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1269,7 +1270,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Add open corporate url to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1298,7 +1299,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Update open corporate url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1327,7 +1328,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Delete open corporate url of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1354,7 +1355,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Add corporate location to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1385,7 +1386,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Update corporate location of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1416,7 +1417,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Delete corporate location of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1448,7 +1449,7 @@ OAuth authentication is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Add physical location to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1479,7 +1480,7 @@ OAuth authentication is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Update physical location to other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1510,7 +1511,7 @@ OAuth authentication is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Delete physical location of other bank account.",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1540,7 +1541,7 @@ OAuth authentication is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get transactions.",
-      "Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.
 
@@ -1553,7 +1554,7 @@ Possible custom headers for pagination:
 * obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
 * obp_to_date=DATE => default value: date of the newest transaction registered (format below)
 
-**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.",
+**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1580,9 +1581,9 @@ Possible custom headers for pagination:
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get transaction by id.",
-      "Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1607,9 +1608,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get narrative.",
-      "Returns the account owner description of the transaction [moderated](#views) by the view.
+      """Returns the account owner description of the transaction [moderated](#views) by the view.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1633,9 +1634,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add narrative.",
-      "Creates a description of the transaction TRANSACTION_ID.
+      """Creates a description of the transaction TRANSACTION_ID.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1662,9 +1663,9 @@ Authentication via OAuth is required if the view is not public.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Update narrative.",
-      "Updates the description of the transaction TRANSACTION_ID.
+      """Updates the description of the transaction TRANSACTION_ID.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1691,9 +1692,9 @@ Authentication via OAuth is required if the view is not public.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Delete narrative.",
-      "Deletes the description of the transaction TRANSACTION_ID.
+      """Deletes the description of the transaction TRANSACTION_ID.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1717,9 +1718,9 @@ Authentication via OAuth is required if the view is not public.",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get comments.",
-      "Returns the transaction TRANSACTION_ID comments made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID comments made on a [view](#views) (VIEW_ID).
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1743,9 +1744,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add comment.",
-      "Posts a comment about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts a comment about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
 
-OAuth authentication is required since the comment is linked with the user.",
+OAuth authentication is required since the comment is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1771,9 +1772,9 @@ OAuth authentication is required since the comment is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete comment.",
-      "Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#views).
 
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.",
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1797,9 +1798,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get tags.",
-      "Returns the transaction TRANSACTION_ID tags made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID tags made on a [view](#views) (VIEW_ID).
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1823,9 +1824,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a tag.",
-      "Posts a tag about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts a tag about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
 
-OAuth authentication is required since the tag is linked with the user.",
+OAuth authentication is required since the tag is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1852,9 +1853,9 @@ OAuth authentication is required since the tag is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
       "Delete a tag.",
-      "Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#views).
 
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.",
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1879,9 +1880,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get images.",
-      "Returns the transaction TRANSACTION_ID images made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID images made on a [view](#views) (VIEW_ID).
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1905,9 +1906,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add an image.",
-      "Posts an image about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts an image about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
 
-OAuth authentication is required since the image is linked with the user.",
+OAuth authentication is required since the image is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1934,9 +1935,9 @@ OAuth authentication is required since the image is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "delete an image",
-      "Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#views).
 
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.",
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1960,10 +1961,10 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get where tag.",
-      "Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#views) (VIEW_ID).
+      """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#views) (VIEW_ID).
 It represents the location where the transaction has been initiated.
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1988,9 +1989,9 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add where tag.",
-      "Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+      """Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
 
-OAuth authentication is required since the geo tag is linked with the user.",
+OAuth authentication is required since the geo tag is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2019,9 +2020,9 @@ OAuth authentication is required since the geo tag is linked with the user.",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update where tag.",
-      "Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+      """Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
 
-OAuth authentication is required since the geo tag is linked with the user.",
+OAuth authentication is required since the geo tag is linked with the user.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2050,9 +2051,9 @@ OAuth authentication is required since the geo tag is linked with the user.",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Delete where tag.",
-      "Deletes the where tag of the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the where tag of the transaction TRANSACTION_ID made on [view](#views).
 
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.",
+Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2080,9 +2081,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
       "Get other account of a transaction.",
-      "Returns details of the other party involved in the transaction, moderated by the [view](#views) (VIEW_ID).
+      """Returns details of the other party involved in the transaction, moderated by the [view](#views) (VIEW_ID).
 
-Authentication via OAuth is required if the view is not public.",
+Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -2111,11 +2112,11 @@ Authentication via OAuth is required if the view is not public.",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Make Payment.",
-      "This is an experimental call, currently only implemented in the OBP sandbox instance. It is currently very minimal, and will almost certainly change.
+      """This is an experimental call, currently only implemented in the OBP sandbox instance. It is currently very minimal, and will almost certainly change.
 
 This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
 
-There are no checks for "sufficient funds" at the moment, so it is possible to go into unlimited overdraft.",
+There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
       emptyObjectJson,
       emptyObjectJson)
 
