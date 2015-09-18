@@ -60,7 +60,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))
     }
 
-    if (Props.getBool("bank_account_creation_listener", true) == false) {
+    if (Props.getBool("messageQueue.createBankAccounts", false) == false) {
       ignore("a bank account is created at a bank that does not yet exist", BankAccountCreationListenerTag) {}
       ignore("a bank account is created at a bank that already exists", BankAccountCreationListenerTag) {}
     } else {
