@@ -8,6 +8,8 @@
 #connector=...
 connector=mapped
 
+transfers_connector=mapped
+
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 db.driver=org.postgresql.Driver
 #be sure to create your database and update the line below!

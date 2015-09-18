@@ -1,41 +1,37 @@
 package code.api.v1_4_0
 
-import code.api.APIFailure
-import code.api.v1_2_1.APIMethods121
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
-import code.atms.Atms
-import code.branches.Branches
-import code.crm.CrmEvent
-import code.customer.{CustomerMessages, Customer}
-import code.model.dataAccess.APIUser
-import code.model.{BankId, User}
-import code.products.Products
-import net.liftweb.common.{Loggable, Box, Full}
+import code.bankconnectors.Connector
+import code.transfers.Transfers.{TransferId, TransferBody}
+import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import code.api.util.APIUtil._
-import net.liftweb.json
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-
-
-// This makes the JObject creation work
 import net.liftweb.json.JsonDSL._
+import net.liftweb.util.Props
 
+import scala.collection.immutable.Nil
 
-import code.util.Helper._
-
+// JObject creation
 import collection.mutable.ArrayBuffer
 
+import code.api.APIFailure
+import code.api.v1_2_1.APIMethods121
+import code.api.v1_3_0.APIMethods130
+import code.api.v1_4_0.JSONFactory1_4_0.{TransferJSON, TransferBodyJSON, AddCustomerMessageJson}
+import code.atms.Atms
+import code.branches.Branches
+import code.crm.CrmEvent
+import code.customer.{CustomerMessages, Customer}
+import code.model._
+import code.products.Products
+import code.api.util.APIUtil._
+import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
-
-
-
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -271,6 +267,50 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       }
     }
 
+    //transfers (payments)
+
+    //TODO
+    // GET /banks/BANK_ID/accounts/ACCOUNT_ID/transfer-types
+    // GET /banks/BANK_ID/accounts/ACCOUNT_ID/transfers
+
+
+    // POST /banks/BANK_ID/accounts/ACCOUNT_ID/transfer-types/sandbox/transfers
+
+    case class TransactionIdJson(transaction_id : String)
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "createTransfer",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types/TRANSFER_TYPE/transfers",
+      "Create Transfer.",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val createTransfer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfer-types" ::
+          TransferType(transferType) :: "transfers" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("payments_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              transBodyJson <- tryo{json.extract[TransferBody]} ?~ {"wrong json format"}
+              toBankId <- tryo(BankId(transBodyJson.to.bank_id))
+              toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
+              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"unknown counterparty account"}
+              accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
+              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"amount ${transBodyJson.value.amount} not convertible to number"
+              createdTransferId <- Connector.connector.vend.createTransfer(u, BankAccount(bankId, accountId).get, toAccount, transferType, transBodyJson)
+            } yield {
+              val successJson = Extraction.decompose(createdTransferId)
+              successJsonResponse(successJson)
+            }
+          } else {
+            Failure("Sorry, payments are not enabled in this API instance.")
+          }
+
+      }
+    }
   }
 
 }

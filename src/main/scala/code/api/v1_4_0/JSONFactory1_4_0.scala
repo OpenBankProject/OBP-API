@@ -11,8 +11,9 @@ import code.products.Products.{Product}
 
 
 import code.customer.{CustomerMessage, Customer}
-import code.model.BankId
+import code.model.{BankAccount, AccountId, BankId}
 import code.products.Products.ProductCode
+import code.transfers.Transfers.Transfer
 import net.liftweb.json.JsonAST.{JValue, JObject}
 
 object JSONFactory1_4_0 {
@@ -245,4 +246,35 @@ object JSONFactory1_4_0 {
   }
 
 
+  //payments
+  case class AmountOfMoneyJSON (
+                                currency : String,
+                                amount : String
+                              )
+  case class TransferAccountJSON (
+                             bank_id: String,
+                             account_id : String
+                            )
+
+  case class ChallengeJSON (
+                           id: String,
+                           challenge_type: String,
+                           allowed_attempts : Int
+                          )
+
+  case class TransferBodyJSON(to: TransferAccountJSON,
+                              value : AmountOfMoneyJSON,
+                              description : String
+                             )
+
+  case class TransferJSON(id: String,
+                          `type`: String,
+                          from: TransferAccountJSON,
+                          body: TransferBodyJSON,
+                          transaction_ids: String,
+                          status: String,
+                          start_date: Date,
+                          end_date: Date,
+                          challenge: ChallengeJSON
+                        )
 }

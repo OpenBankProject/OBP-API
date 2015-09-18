@@ -1,7 +1,9 @@
 package code.bankconnectors
 
 import code.management.ImporterAPI.ImporterTransaction
+import code.model.dataAccess.MappedBankAccount
 import code.tesobe.CashTransaction
+import code.transfers.Transfers.{TransferId, TransferBody}
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
@@ -118,6 +120,30 @@ trait Connector {
   }
 
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId]
+
+
+  /*
+    Transfers
+  */
+
+  def createTransfer(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transferType: TransferType, body: TransferBody) : Box[TransferId] = {
+    val status = "CHALLENGES_PENDING"
+
+    for{
+      fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
+        s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+        s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+      })
+      isPositiveAmtToSend <- booleanToBox(BigDecimal(body.value.amount) > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${body.value.amount})")
+      transferId <- createTransferImpl(TransferId(java.util.UUID.randomUUID().toString), transferType, fromAccount, toAccount, body, status)
+    } yield transferId
+  }
+
+  protected def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId]
 
 
   //non-standard calls --do not make sense in the regular context

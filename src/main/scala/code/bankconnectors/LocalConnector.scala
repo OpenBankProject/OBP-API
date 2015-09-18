@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID, TimeZone}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
+import code.transfers.Transfers.{TransferBody, TransferId}
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.Extraction
@@ -300,6 +301,29 @@ private object LocalConnector extends Connector with Loggable {
         UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
     }
+  }
+
+
+  /*
+   Transfers
+ */
+
+  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId] = {
+    /*val mappedTransfer = MappedTransfer.create
+      .mTransferId(transferId.value)
+      .mType(transferType.value)
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mBody_To_BankId(counterparty.bankId.value)
+      .mBody_To_AccountId(counterparty.accountId.value)
+      .mBody_Value_Currency(body.value.currency)
+      .mBody_Value_Amount(body.value.amount)
+      .mBody_Description(body.description)
+      .mStatus(status)
+      //.start_date(now)
+      //.end(now)
+      .saveMe */
+    Full(TransferId("NOT IMPLEMENTED"))
   }
 
 

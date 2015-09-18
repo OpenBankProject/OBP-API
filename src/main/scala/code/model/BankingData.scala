@@ -72,6 +72,23 @@ object TransactionId {
   def unapply(id : String) = Some(TransactionId(id))
 }
 
+/*case class TransferId(val value : String) {
+  override def toString = value
+}
+
+object TransferId {
+  def unapply(id : String) = Some(TransferId(id))
+}*/
+
+case class TransferType(val value : String) {
+  override def toString = value
+}
+
+object TransferType {
+  def unapply(id : String) = Some(TransferType(id))
+}
+
+
 case class AccountId(val value : String) {
   override def toString = value
 }
@@ -592,4 +609,9 @@ class Transaction(
       WhereTags.whereTags.vend.addWhereTag(bankId, accountId, id) _,
       WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
     )
+}
+
+trait AmountOfMoney {
+  def currency: String
+  def amount: String
 }
