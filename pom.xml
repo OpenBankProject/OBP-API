@@ -137,10 +137,9 @@
       <version>4.5</version>
     </dependency>
     <dependency>
-        <!-- 2.18-SNAPSHOT needed for selenium webdriver (http://htmlunit.10904.n7.nabble.com/HtmlUnit-htmlunit-bugs-1692-Update-to-HttpComponents-4-5-td36318.html) - potentially update to 2.18 when possible -->
       <groupId>net.sourceforge.htmlunit</groupId>
       <artifactId>htmlunit</artifactId>
-      <version>2.18-SNAPSHOT</version>
+      <version>2.18</version>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>
