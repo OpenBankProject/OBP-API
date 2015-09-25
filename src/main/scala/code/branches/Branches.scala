@@ -1,7 +1,7 @@
 package code.branches
 
 
-/* For branches and atms */
+/* For branches */
 
 // Need to import these one by one because in same package!
 import code.branches.Branches.{Branch, BranchId}
