@@ -235,7 +235,7 @@ object JSONFactory1_4_0 {
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
       description = resourceDoc.description,
-      overview = resourceDoc.overview,
+      overview = resourceDoc.overview.stripMargin.replaceAll("\n", " "),
       request_body = resourceDoc.requestBody,
       response_body = resourceDoc.responseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)

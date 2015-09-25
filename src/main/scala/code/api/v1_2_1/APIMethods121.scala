@@ -434,20 +434,19 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
       "Creates a view on an bank account.",
-      """Create a view on bank account
-
-OAuth authentication is required and the user needs to have access to the owner view.
-
-* The "alias" field in the JSON can take one of three values:
-_public_: to use the public alias if there is one specified for the other account.
-_private_: to use the public alias if there is one specified for the other account.
-_''(empty string)_: to use no alias; the view shows the real name of the other account.
-* The 'hide_metadata_if_alias_used' field in the JSON can take boolean values.
-If it is set to `true` and there is an alias on the other account then the other accounts'
-metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden.
-Otherwise the metadata will be shown.
-* the "allowed_actions" field is a list containing the name of the actions allowed on this view,
-all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
+      """#Create a view on bank account
+        |
+        | OAuth authentication is required and the user needs to have access to the owner view.
+        | The 'alias' field in the JSON can take one of three values:
+        |
+        | * _public_: to use the public alias if there is one specified for the other account.
+        | * _private_: to use the public alias if there is one specified for the other account.
+        |
+        | * _''(empty string)_: to use no alias; the view shows the real name of the other account.
+        |
+        | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
+        |
+        | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       emptyObjectJson,
       emptyObjectJson)
 
