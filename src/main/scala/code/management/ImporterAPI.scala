@@ -134,7 +134,7 @@ object ImporterAPI extends RestHelper with Loggable {
         logger.info("Received " + rawTransactions.size +
           " json transactions to insert from ip address " + ipAddress)
 
-        //importer api expects lossless dates
+        //importer api expects dates that also include milliseconds (lossless)
         val losslessFormats =  net.liftweb.json.DefaultFormats.lossless
         val mf = implicitly[Manifest[ImporterTransaction]]
         val importerTransactions = rawTransactions.flatMap(j => j.extractOpt[ImporterTransaction](losslessFormats, mf))

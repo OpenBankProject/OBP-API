@@ -174,7 +174,7 @@ class Boot extends Loggable{
 
     logger.info("running mode: " + runningMode)
 
-    // where to search snippet
+    // where to search snippets
     LiftRules.addToPackages("code")
 
     //OAuth API call
