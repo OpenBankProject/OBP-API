@@ -1,7 +1,6 @@
 package code.api.v1_2_1
 
 import code.api.util.APIUtil
-import code.api.v1_2_1.SuccessMessage
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.common._
@@ -1860,7 +1859,6 @@ trait APIMethods121 {
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
         user =>
-
           if (Props.getBool("payments_enabled", false)) {
             for {
               u <- user ?~ "User not found"

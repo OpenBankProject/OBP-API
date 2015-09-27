@@ -1,7 +1,4 @@
 package code.management
-/**
- * Created by Stefan on 16.04.15.
- */
 
 import code.api.{OBPRestHelper, APIFailure}
 import code.api.util.APIUtil._

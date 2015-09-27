@@ -16,7 +16,7 @@ import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAcc
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
 import code.transfers.MappedTransfer
-import code.transfers.Transfers.{TransferBody, TransferId}
+import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
@@ -213,7 +213,7 @@ object LocalMappedConnector extends Connector with Loggable {
     Transfers
   */
 
-  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId] = {
+  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = {
     val mappedTransfer = MappedTransfer.create
       .mTransferId(transferId.value)
       .mType(transferType.value)
@@ -228,7 +228,22 @@ object LocalMappedConnector extends Connector with Loggable {
       //.start_date(now)
       //.end(now)
       .saveMe
-    Full(mappedTransfer.transferId)
+    Full(mappedTransfer).flatMap(_.toTransfer)
+  }
+
+  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
+    val transfers = MappedTransfer.findAll(By(MappedTransfer.mFrom_AccountId, fromAccount.accountId.toString),
+                                           By(MappedTransfer.mFrom_BankId, fromAccount.bankId.toString))
+
+    Full {
+      for (t <- transfers)
+        yield t.transferId
+    }
+  }
+
+  override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
+    //TODO: write logic / data access
+    Full(List(TransferType("SANDBOX")))
   }
 
   /*

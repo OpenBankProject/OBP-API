@@ -184,7 +184,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
           }
         }
         def isDefinedAt(r : Req) = {
-          r.path
           //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
           //the url cases don't match because json failed
           r.json_? match {

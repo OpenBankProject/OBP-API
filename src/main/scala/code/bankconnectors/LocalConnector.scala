@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID, TimeZone}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.transfers.Transfers.{TransferBody, TransferId}
+import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.Extraction
@@ -308,24 +308,16 @@ private object LocalConnector extends Connector with Loggable {
    Transfers
  */
 
-  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId] = {
-    /*val mappedTransfer = MappedTransfer.create
-      .mTransferId(transferId.value)
-      .mType(transferType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
-      .mBody_Value_Currency(body.value.currency)
-      .mBody_Value_Amount(body.value.amount)
-      .mBody_Description(body.description)
-      .mStatus(status)
-      //.start_date(now)
-      //.end(now)
-      .saveMe */
-    Full(TransferId("NOT IMPLEMENTED"))
+  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = ???
+
+  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
+    Full(List(TransferId("NOT IMPLEMENTED")))
   }
 
+  override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
+    //TODO: write logic / data access
+    Full(List(TransferType("SANDBOX")))
+  }
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : OtherBankAccountMetadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {

@@ -3,7 +3,7 @@ package code.bankconnectors
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.MappedBankAccount
 import code.tesobe.CashTransaction
-import code.transfers.Transfers.{TransferId, TransferBody}
+import code.transfers.Transfers.{Transfer, TransferId, TransferBody}
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
@@ -126,7 +126,7 @@ trait Connector {
     Transfers
   */
 
-  def createTransfer(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transferType: TransferType, body: TransferBody) : Box[TransferId] = {
+  def createTransfer(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transferType: TransferType, body: TransferBody) : Box[Transfer] = {
     val status = "CHALLENGES_PENDING"
 
     for{
@@ -139,14 +139,40 @@ trait Connector {
         s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
       })
       isPositiveAmtToSend <- booleanToBox(BigDecimal(body.value.amount) > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${body.value.amount})")
-      transferId <- createTransferImpl(TransferId(java.util.UUID.randomUUID().toString), transferType, fromAccount, toAccount, body, status)
-    } yield transferId
+      transfer <- createTransferImpl(TransferId(java.util.UUID.randomUUID().toString), transferType, fromAccount, toAccount, body, status)
+    } yield transfer
   }
 
-  protected def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId]
+  protected def createTransferImpl(transferId: TransferId, transferType: TransferType, fromAccount : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer]
 
 
-  //non-standard calls --do not make sense in the regular context
+  def getTransfers(initiator : User, fromAccount : BankAccount) : Box[List[TransferId]] = {
+    for {
+      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+            s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      transfers <- getTransfersImpl(fromAccount)
+    } yield transfers
+  }
+
+  protected def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]]
+
+
+  def getTransferTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransferType]] = {
+    for {
+      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      transferTypes <- getTransferTypesImpl(fromAccount)
+    } yield transferTypes
+  }
+
+  protected def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]]
+
+    /*
+      non-standard calls --do not make sense in the regular context but are used for e.g. tests
+     */
+
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)

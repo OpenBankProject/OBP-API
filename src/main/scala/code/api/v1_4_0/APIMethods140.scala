@@ -1,12 +1,12 @@
 package code.api.v1_4_0
 
 import code.bankconnectors.Connector
-import code.transfers.Transfers.{TransferId, TransferBody}
+import code.transfers.Transfers.{TransferId, TransferBody, TransferAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.Extraction
+import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
@@ -22,7 +22,7 @@ import collection.mutable.ArrayBuffer
 import code.api.APIFailure
 import code.api.v1_2_1.APIMethods121
 import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.JSONFactory1_4_0.{TransferJSON, TransferBodyJSON, AddCustomerMessageJson}
+import code.api.v1_4_0.JSONFactory1_4_0._
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
@@ -32,6 +32,7 @@ import code.products.Products
 import code.api.util.APIUtil._
 import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
+import code.transfers.Transfers._
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -40,10 +41,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
   val Implementations1_4_0 = new Object(){
 
-
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
+
+    implicit val formats = DefaultFormats.withHints(
+      ShortTypeHints(List(classOf[TransferBody])))
 
     def getResourceDocsList : Option[List[ResourceDoc]] =
     {
@@ -267,14 +270,72 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       }
     }
 
-    //transfers (payments)
+    /*
+     transfers (new payments since 1.4.0)
+    */
 
-    //TODO
-    // GET /banks/BANK_ID/accounts/ACCOUNT_ID/transfer-types
-    // GET /banks/BANK_ID/accounts/ACCOUNT_ID/transfers
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransferTypes",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types",
+      "Get supported Transfer types.",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val getTransferTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfer-types" ::
+          Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("payments_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"current user does not have access to the view " + viewId}
+              transferTypes <- Connector.connector.vend.getTransferTypes(u, fromAccount)
+            }
+              yield {
+                val successJson = Extraction.decompose(transferTypes)
+                successJsonResponse(successJson)
+              }
+          } else {
+            Failure("Sorry, payments are not enabled in this API instance.")
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransfers",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfers",
+      "Get all Transfers.",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val getTransfers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfers" :: Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("payments_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"current user does not have access to the view " + viewId}
+              transfers <- Connector.connector.vend.getTransfers(u, fromAccount)
+            }
+            yield {
+              val successJson = Extraction.decompose(transfers)
+              successJsonResponse(successJson)
+            }
+          } else {
+            Failure("Sorry, payments are not enabled in this API instance.")
+          }
+      }
+    }
 
 
-    // POST /banks/BANK_ID/accounts/ACCOUNT_ID/transfer-types/sandbox/transfers
 
     case class TransactionIdJson(transaction_id : String)
 
@@ -293,16 +354,23 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
+              /* TODO:
+               * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transfers
+               * test: functionality, error messages if user not given or invalid, if any other value is not existing
+              */
               u <- user ?~ "User not found"
-              transBodyJson <- tryo{json.extract[TransferBody]} ?~ {"wrong json format"}
+              transBodyJson <- tryo{json.extract[TransferBodyJSON]} ?~ {"invalid json format"}
+              transBody <- tryo{getTransferBodyFromJson(transBodyJson)}
+              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"unknown counterparty account"}
               accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"amount ${transBodyJson.value.amount} not convertible to number"
-              createdTransferId <- Connector.connector.vend.createTransfer(u, BankAccount(bankId, accountId).get, toAccount, transferType, transBodyJson)
+              createdTransfer <- Connector.connector.vend.createTransfer(u, fromAccount, toAccount, transferType, transBody)
             } yield {
-              val successJson = Extraction.decompose(createdTransferId)
+              val successJson = Extraction.decompose(createdTransfer)
               successJsonResponse(successJson)
             }
           } else {

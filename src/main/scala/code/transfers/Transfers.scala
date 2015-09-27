@@ -21,10 +21,10 @@ object Transfers extends SimpleInjector {
     def status: String
     def start_date: Date
     def end_date: Date
-    def challenge: Challenge
+    def challenge: TransferChallenge
   }
 
-  trait Challenge {
+  trait TransferChallenge {
     def id: String
     def allowed_attempts : Int
     def challenge_type: String

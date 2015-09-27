@@ -6,7 +6,7 @@ import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.transfers.Transfers.{TransferBody, TransferId}
+import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
@@ -96,9 +96,16 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
     override def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
       Failure("not supported")
-    override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[TransferId] = {
+    override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = {
       Failure("not supported")
     }
+    override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
+      Failure("not supported")
+    }
+    override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
+      Failure("not supported")
+    }
+
     override def createBankAndAccount(bankName : String, bankNationalIdentifier : String,
                                       accountNumber : String, accountHolderName : String): (Bank, BankAccount) = ???
 

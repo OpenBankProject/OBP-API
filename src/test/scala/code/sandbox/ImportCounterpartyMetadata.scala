@@ -18,6 +18,14 @@ See the License for the specific language governing permissions and
 limitations under the License. 
   */
 
+/*
+* To use this one-time script, put e.g.
+* target_api_hostname=https://localhost:8080
+* obp_consumer_key=xxx
+* obp_secret_key=yyy
+*
+* into your props file.
+* */
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
@@ -33,7 +41,6 @@ import code.api.ObpJson.BarebonesAccountsJson
 
 case class CounterpartyJSONRecord(name: String, category: String, superCategory: String, logoUrl: String, homePageUrl: String, region: String)
 case class UserJSONRecord(email: String, password: String, display_name: String)
-
 
 object ImportCounterpartyMetadata extends SendServerRequests {
   def main(args : Array[String]) {

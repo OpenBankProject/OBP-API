@@ -8,8 +8,6 @@
 #connector=...
 connector=mapped
 
-transfers_connector=mapped
-
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 db.driver=org.postgresql.Driver
 #be sure to create your database and update the line below!
@@ -31,18 +29,17 @@ mail.api.consumer.registered.notification.addresses=you@example.com
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
+#oauth token timeout
+token_expiration_weeks=4
+
 #secret key that allows access to api calls to get info about oauth tokens. You should change this
 #to your own secret key
 BankMockKey=change_me
 
-#set this to false if you don't want the api payments call to work
-payments_enabled=true
-
-
-#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+#secret key that allows access to the "add cash transactions" API. You should change this to your own secret key
 cashApplicationKey=change_me
 
-#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+#secret key that allows access to the "add transactions" API. You should change this to your own secret key
 importer_secret=change_me
 
 #set this to true if you want to allow users to create sandbox test accounts with a starting balance
@@ -54,7 +51,16 @@ allow_sandbox_data_import=true
 #secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=change_me
 
-#management modules
+### features
+
+#set this to false if you don't want the api payments call to work (starting with v1.2.1)
+payments_enabled=true
+
+#transfers are replacing payments starting in 1.4.0
+transfers_enabled=true
+transfers_connector=mapped
+
+### management modules
 
 #rabbitMQ settings (used to communicate with HBCI project)
 connection.host=localhost
@@ -69,6 +75,3 @@ messageQueue.createBankAccounts=true
 
 #set this to true if you want to allow users to delete accounts
 allow_account_deletion=true
-
-#TODO: should be used
-#allow_transactions_inserting=true

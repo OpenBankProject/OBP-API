@@ -11,9 +11,9 @@ import code.products.Products.{Product}
 
 
 import code.customer.{CustomerMessage, Customer}
-import code.model.{BankAccount, AccountId, BankId}
+import code.model.{AmountOfMoney, BankAccount, AccountId, BankId}
 import code.products.Products.ProductCode
-import code.transfers.Transfers.Transfer
+import code.transfers.Transfers._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 
 object JSONFactory1_4_0 {
@@ -246,7 +246,47 @@ object JSONFactory1_4_0 {
   }
 
 
-  //payments
+  //payments / transfers
+  def getTransferBodyFromJson(body: TransferBodyJSON) : TransferBody = {
+    val toAcc = new TransferAccount {
+      override def bank_id:String = body.to.bank_id
+      override def account_id:String = body.to.account_id
+    }
+    val amount = new AmountOfMoney {
+      override def currency: String = body.value.currency
+      override def amount: String = body.value.amount
+    }
+    new TransferBody {
+      override def to: TransferAccount = toAcc
+      override def value: AmountOfMoney = amount
+      override def description: String = body.description
+    }
+  }
+
+  def getTransferFromJson(json : TransferJSON) : Transfer = {
+    val fromAcc = new TransferAccount {
+      override def bank_id:String = json.from.bank_id
+      override def account_id:String = json.from.account_id
+    }
+    val challenge = new TransferChallenge {
+      override def id: String = json.challenge.id
+      override def challenge_type: String = json.challenge.challenge_type
+      override def allowed_attempts: Int = json.challenge.allowed_attempts
+    }
+
+    new Transfer {
+      override def transferId: TransferId = TransferId(json.id)
+      override def `type`: String = json.`type`
+      override def from: TransferAccount = fromAcc
+      override def body: TransferBody = getTransferBodyFromJson(json.body)
+      override def status: String = json.status
+      override def end_date: Date = json.end_date
+      override def transaction_ids: String = json.transaction_ids
+      override def start_date: Date = json.start_date
+      override def challenge: TransferChallenge = challenge
+    }
+  }
+
   case class AmountOfMoneyJSON (
                                 currency : String,
                                 amount : String
@@ -255,12 +295,6 @@ object JSONFactory1_4_0 {
                              bank_id: String,
                              account_id : String
                             )
-
-  case class ChallengeJSON (
-                           id: String,
-                           challenge_type: String,
-                           allowed_attempts : Int
-                          )
 
   case class TransferBodyJSON(to: TransferAccountJSON,
                               value : AmountOfMoneyJSON,
@@ -276,5 +310,11 @@ object JSONFactory1_4_0 {
                           start_date: Date,
                           end_date: Date,
                           challenge: ChallengeJSON
-                        )
+                          )
+
+  case class ChallengeJSON (
+                           id: String,
+                           allowed_attempts : Int,
+                           challenge_type: String
+                          )
 }
