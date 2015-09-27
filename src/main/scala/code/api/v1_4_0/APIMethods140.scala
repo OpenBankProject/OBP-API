@@ -62,6 +62,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer",
       "Get customer for logged in user",
+      """Information about the currently authenticated user.
+
+Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -85,6 +88,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
+      """Messages sent to the currently authenticated user.
+
+Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -110,6 +116,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_NUMBER",
       "Add a message for the customer specified by CUSTOMER_NUMBER",
+      "",
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson
@@ -138,6 +145,14 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
+      """Returns information about branches for a single bank specified by BANK_ID including:
+
+* Name
+* Address
+* Geo Location
+* License the data under this endpoint is released under
+
+Authentication via OAuth *may* be required.""",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -167,6 +182,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/atms",
       "Get ATMS for the bank",
+      """Returns information about ATMs for a single bank specified by BANK_ID including:
+
+* Address
+* Geo Location
+* License the data under this endpoint is released under
+
+Authentication via OAuth *may* be required.""",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -195,6 +217,18 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/products",
       "Get products offered by the bank",
+      """Returns information about financial products offered by a bank specified by BANK_ID including:
+
+* Name
+* Code
+* Category
+* Family
+* Super Family
+* More info URL
+* Description
+* Terms and Conditions
+* License the data under this endpoint is released under
+""",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -223,6 +257,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/crm-events",
       "Get CRM Events for the logged in user",
+      "",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -250,6 +285,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/resource-docs",
       "Get the API calls that are documented on this server. (This call).",
+      "",
       emptyObjectJson,
       emptyObjectJson
     )
