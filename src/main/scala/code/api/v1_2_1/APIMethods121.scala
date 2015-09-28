@@ -363,11 +363,12 @@ OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is n
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
       "Change account label.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
       emptyObjectJson)
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
+      // TODO Use PATCH instead? Remove BANK_ID AND ACCOUNT_ID from the body? (duplicated in URL)
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -447,7 +448,7 @@ OAuth authentication is required and the user needs to have access to the owner 
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      emptyObjectJson,
+      Extraction.decompose(ViewCreationJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
       emptyObjectJson)
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
