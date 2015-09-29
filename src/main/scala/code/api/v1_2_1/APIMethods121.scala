@@ -479,7 +479,7 @@ OAuth authentication is required and the user needs to have access to the owner 
 
 The json sent is the same as during view creation (above), with one difference: the 'name' field
 of a view is not editable (it is only set when a view is created)""",
-      emptyObjectJson,
+      Extraction.decompose(ViewUpdateData("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson)
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1271,7 +1271,7 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Add open corporate url to other bank account.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson)
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1300,7 +1300,7 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
       "Update open corporate url of other bank account.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson)
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
