@@ -77,9 +77,12 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getCounterpartyForTransaction,
+    //note: removed 1.2.1 makePayment
+
     // New in 1.3.0
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank,
+
     // New in 1.4.0
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.getCustomerMessages,

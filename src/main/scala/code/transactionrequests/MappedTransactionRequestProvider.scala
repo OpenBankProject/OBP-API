@@ -47,7 +47,6 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mChallenge_ChallengeType extends DefaultStringField(this)
  
   def toTransactionRequest : Option[TransactionRequest] = {
-
     val t_amount = AmountOfMoney (
       currency = mBody_Value_Currency.get,
       amount = mBody_Value_Amount.get

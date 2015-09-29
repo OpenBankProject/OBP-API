@@ -16,7 +16,7 @@ import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAcc
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
 import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestId}
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody, TransactionRequestId}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
@@ -188,7 +188,6 @@ object LocalMappedConnector extends Connector with Loggable {
     val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     account.accountBalance(newAccountBalance).save()
 
-
     val mappedTransaction = MappedTransaction.create
       .bank(account.bankId.value)
       .account(account.accountId.value)
@@ -213,7 +212,9 @@ object LocalMappedConnector extends Connector with Loggable {
     Transaction Requests
   */
 
-  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody, status: String) : Box[TransactionRequest] = {
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                            account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
+                                            status: String) : Box[TransactionRequest] = {
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
@@ -224,18 +225,32 @@ object LocalMappedConnector extends Connector with Loggable {
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
-
-    if (transactionRequestType.value == "SANDBOX" && body.value.currency == "EUR" && BigDecimal(body.value.amount) < 100)
-      mappedTransactionRequest.mStatus(TransactionRequests.STATUS_COMPLETED)
-    else
-      mappedTransactionRequest.mStatus(TransactionRequests.STATUS_INITIATED)
-
-    mappedTransactionRequest
-      //.start_date(now)
-      //.end(now)
-      .saveMe
+      .mStatus(status)
+      .mStartDate(now)
+      .mEndDate(now).saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
+
+  override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.toString))
+      match {
+        case Full(tr: MappedTransactionRequest) => tr.mTransactionIDs(transactionId.value)
+        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      }
+  }
+
+  override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.toString))
+      match {
+        case Full(tr: MappedTransactionRequest) => {
+          tr.mChallenge_Id(challenge.id)
+          tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
+          tr.mChallenge_ChallengeType(challenge.challenge_type)
+        }
+        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      }
+  }
+
 
   override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.toString),

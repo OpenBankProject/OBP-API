@@ -15,6 +15,8 @@ object TransactionRequests extends SimpleInjector {
   val STATUS_FAILED = "FAILED"
   val STATUS_COMPLETED = "COMPLETED"
 
+  val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
+
   case class TransactionRequestId(value : String)
 
   case class TransactionRequest (
