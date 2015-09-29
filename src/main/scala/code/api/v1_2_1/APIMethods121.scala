@@ -1387,7 +1387,7 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Update corporate location of other bank account.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1450,7 +1450,7 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Add physical location to other bank account.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1481,7 +1481,7 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Update physical location to other bank account.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
