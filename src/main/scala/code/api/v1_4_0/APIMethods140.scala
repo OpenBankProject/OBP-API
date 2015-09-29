@@ -41,12 +41,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
   val Implementations1_4_0 = new Object(){
 
+
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
-
-    implicit val formats = DefaultFormats.withHints(
-      ShortTypeHints(List(classOf[TransferBody])))
 
     def getResourceDocsList : Option[List[ResourceDoc]] =
     {
@@ -316,6 +314,7 @@ Authentication via OAuth *may* be required.""",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types",
       "Get supported Transfer types.",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -347,6 +346,7 @@ Authentication via OAuth *may* be required.""",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfers",
       "Get all Transfers.",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -381,6 +381,7 @@ Authentication via OAuth *may* be required.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types/TRANSFER_TYPE/transfers",
       "Create Transfer.",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -395,15 +396,15 @@ Authentication via OAuth *may* be required.""",
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
               u <- user ?~ "User not found"
-              transBodyJson <- tryo{json.extract[TransferBodyJSON]} ?~ {"invalid json format"}
+              transBodyJson <- tryo{json.extract[TransferBodyJSON]} ?~ {"Invalid json format"}
               transBody <- tryo{getTransferBodyFromJson(transBodyJson)}
-              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
-              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"unknown counterparty account"}
+              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"Unknown counterparty account"}
               accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
-              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"amount ${transBodyJson.value.amount} not convertible to number"
+              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
               createdTransfer <- Connector.connector.vend.createTransfer(u, fromAccount, toAccount, transferType, transBody)
             } yield {
               val successJson = Extraction.decompose(createdTransfer)

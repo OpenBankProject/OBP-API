@@ -10,36 +10,41 @@ import Transfers.{Transfer, TransferId}
 
 object Transfers extends SimpleInjector {
 
+  val STATUS_INITIATED = "INITIATED"
+  val STATUS_CHALLENGE_PENDING = "CHALLENGE_PENDING"
+  val STATUS_FAILED = "FAILED"
+  val STATUS_COMPLETED = "COMPLETED"
+
   case class TransferId(value : String)
 
-  trait Transfer {
-    def transferId: TransferId
-    def `type` : String
-    def from: TransferAccount
-    def body: TransferBody
-    def transaction_ids: String
-    def status: String
-    def start_date: Date
-    def end_date: Date
-    def challenge: TransferChallenge
-  }
+  case class Transfer (
+    val transferId: TransferId,
+    val `type` : String,
+    val from: TransferAccount,
+    val body: TransferBody,
+    val transaction_ids: String,
+    val status: String,
+    val start_date: Date,
+    val end_date: Date,
+    val challenge: TransferChallenge
+  )
 
-  trait TransferChallenge {
-    def id: String
-    def allowed_attempts : Int
-    def challenge_type: String
-  }
+  case class TransferChallenge (
+    val id: String,
+    val allowed_attempts : Int,
+    val challenge_type: String
+  )
 
-  trait TransferAccount {
-    def bank_id: String
-    def account_id : String
-  }
+  case class TransferAccount (
+    val bank_id: String,
+    val account_id : String
+  )
 
-  trait TransferBody {
-    def to: TransferAccount
-    def value : AmountOfMoney
-    def description : String
-  }
+  case class TransferBody (
+    val to: TransferAccount,
+    val value : AmountOfMoney,
+    val description : String
+  )
 
   val transfersProvider = new Inject(buildOne _) {}
 

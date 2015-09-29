@@ -612,7 +612,7 @@ class Transaction(
     )
 }
 
-trait AmountOfMoney {
-  def currency: String
-  def amount: String
-}
+case class AmountOfMoney (
+  val currency: String,
+  val amount: String
+)

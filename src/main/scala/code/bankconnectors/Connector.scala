@@ -146,7 +146,7 @@ trait Connector {
   protected def createTransferImpl(transferId: TransferId, transferType: TransferType, fromAccount : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer]
 
 
-  def getTransfers(initiator : User, fromAccount : BankAccount) : Box[List[TransferId]] = {
+  def getTransfers(initiator : User, fromAccount : BankAccount) : Box[List[Transfer]] = {
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
@@ -155,7 +155,7 @@ trait Connector {
     } yield transfers
   }
 
-  protected def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]]
+  protected def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]]
 
 
   def getTransferTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransferType]] = {

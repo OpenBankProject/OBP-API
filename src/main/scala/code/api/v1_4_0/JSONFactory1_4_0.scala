@@ -250,43 +250,44 @@ object JSONFactory1_4_0 {
 
   //payments / transfers
   def getTransferBodyFromJson(body: TransferBodyJSON) : TransferBody = {
-    val toAcc = new TransferAccount {
-      override def bank_id:String = body.to.bank_id
-      override def account_id:String = body.to.account_id
-    }
-    val amount = new AmountOfMoney {
-      override def currency: String = body.value.currency
-      override def amount: String = body.value.amount
-    }
-    new TransferBody {
-      override def to: TransferAccount = toAcc
-      override def value: AmountOfMoney = amount
-      override def description: String = body.description
-    }
+    val toAcc = TransferAccount (
+      bank_id = body.to.bank_id,
+      account_id = body.to.account_id
+    )
+    val amount = AmountOfMoney (
+      currency = body.value.currency,
+      amount = body.value.amount
+    )
+
+    TransferBody (
+      to = toAcc,
+      value = amount,
+      description = body.description
+    )
   }
 
   def getTransferFromJson(json : TransferJSON) : Transfer = {
-    val fromAcc = new TransferAccount {
-      override def bank_id:String = json.from.bank_id
-      override def account_id:String = json.from.account_id
-    }
-    val challenge = new TransferChallenge {
-      override def id: String = json.challenge.id
-      override def challenge_type: String = json.challenge.challenge_type
-      override def allowed_attempts: Int = json.challenge.allowed_attempts
-    }
+    val fromAcc = TransferAccount (
+      json.from.bank_id,
+      json.from.account_id
+    )
+    val challenge = TransferChallenge (
+      id = json.challenge.id,
+      allowed_attempts = json.challenge.allowed_attempts,
+      challenge_type = json.challenge.challenge_type
+    )
 
-    new Transfer {
-      override def transferId: TransferId = TransferId(json.id)
-      override def `type`: String = json.`type`
-      override def from: TransferAccount = fromAcc
-      override def body: TransferBody = getTransferBodyFromJson(json.body)
-      override def status: String = json.status
-      override def end_date: Date = json.end_date
-      override def transaction_ids: String = json.transaction_ids
-      override def start_date: Date = json.start_date
-      override def challenge: TransferChallenge = challenge
-    }
+    Transfer (
+      transferId = TransferId(json.id),
+      `type`= json.`type`,
+      from = fromAcc,
+      body = getTransferBodyFromJson(json.body),
+      transaction_ids = json.transaction_ids,
+      status = json.status,
+      start_date = json.start_date,
+      end_date = json.end_date,
+      challenge = challenge
+    )
   }
 
   case class AmountOfMoneyJSON (

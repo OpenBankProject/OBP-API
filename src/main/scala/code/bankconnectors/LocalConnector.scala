@@ -310,9 +310,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = ???
 
-  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
-    Full(List(TransferId("NOT IMPLEMENTED")))
-  }
+  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]] = ???
 
   override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
     //TODO: write logic / data access

@@ -76,7 +76,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
       info("user reference is null. We will create an API User")
       val apiUser = createUnsavedApiUser()
       apiUser.save()
-      user(apiUser)
+      user(apiUser)   //is this saving apiUser into a user field?
     }
     else {
       info("user reference is not null. Trying to update the API User")

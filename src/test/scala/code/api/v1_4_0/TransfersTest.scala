@@ -60,14 +60,15 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
         val beforeFromBalance = fromAccount.balance
         val beforeToBalance = toAccount.balance
 
-        val amt = BigDecimal("12.50")
-
+        //Create a transaction
         //1. get possible challenge types for from account
         //2. create transfer to to-account with one of the possible challenges
         //3. answer challenge
 
         val transferId = TransferId("__trans1")
         val toAccountJson = TransferAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+
+        val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
         val transferBody = TransferBodyJSON(toAccountJson, bodyValue, "Test transfer description")
 
@@ -86,7 +87,7 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
         response.code should equal(200)
 
         //created a transfer, check some return values. As type is SANDBOX, we expect no challenge
-        val transId: String = (response.body \ "id") match {
+        val transId: String = (response.body \ "transferId" \ "value") match {
           case JString(i) => i
           case _ => ""
         }
@@ -96,7 +97,7 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
           case JString(i) => i
           case _ => ""
         }
-        status should not equal ("")
+        status should equal (code.transfers.Transfers.STATUS_COMPLETED)
 
         val challenge: String = (response.body \ "challenge") match {
           case JString(i) => i
@@ -106,14 +107,14 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
 
         //call getTransfers, check that we really created a transfer
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transfers").POST <@(user1)
+                    "owner" / "transfers").GET <@(user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
-        val transactions = response.body.extract[List[TransferJSON]]
+        val transactions = response.body.children
 
-        transactions.length should not equal(0)
+        transactions.size should not equal(0)
 
 /*      val fromAccountTransAmt = transJson.details.value.amount
         //the from account transaction should have a negative value

@@ -99,9 +99,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = {
       Failure("not supported")
     }
-    override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
-      Failure("not supported")
-    }
+    override def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]] = ???
+
     override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
       Failure("not supported")
     }

@@ -15,7 +15,7 @@ import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
-import code.transfers.MappedTransfer
+import code.transfers.{Transfers, MappedTransfer}
 import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
@@ -224,21 +224,24 @@ object LocalMappedConnector extends Connector with Loggable {
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
-      .mStatus(status)
+
+    if (transferType.value == "SANDBOX" && body.value.currency == "EUR" && ( BigInt(body.value.amount.replace(".", ""))/100 ) < 100)
+      mappedTransfer.mStatus(Transfers.STATUS_COMPLETED)
+    else
+      mappedTransfer.mStatus(Transfers.STATUS_INITIATED)
+
+    mappedTransfer
       //.start_date(now)
       //.end(now)
       .saveMe
     Full(mappedTransfer).flatMap(_.toTransfer)
   }
 
-  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[TransferId]] = {
+  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]] = {
     val transfers = MappedTransfer.findAll(By(MappedTransfer.mFrom_AccountId, fromAccount.accountId.toString),
                                            By(MappedTransfer.mFrom_BankId, fromAccount.bankId.toString))
 
-    Full {
-      for (t <- transfers)
-        yield t.transferId
-    }
+    Full(transfers.flatMap(_.toTransfer))
   }
 
   override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
