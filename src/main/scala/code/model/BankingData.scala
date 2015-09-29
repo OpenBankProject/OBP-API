@@ -203,6 +203,7 @@ trait BankAccount {
     if(user.ownerAccess(this)){
       Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId))
     } else {
+      // TODO Correct English in failure messages (but consider compatibility of messages with older API versions)
       Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
     }
   }
