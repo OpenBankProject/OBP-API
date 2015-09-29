@@ -13,7 +13,7 @@ import code.products.Products.{Product}
 import code.customer.{CustomerMessage, Customer}
 import code.model.{AmountOfMoney, BankAccount, AccountId, BankId}
 import code.products.Products.ProductCode
-import code.transfers.Transfers._
+import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 
 object JSONFactory1_4_0 {
@@ -248,9 +248,9 @@ object JSONFactory1_4_0 {
   }
 
 
-  //payments / transfers
-  def getTransferBodyFromJson(body: TransferBodyJSON) : TransferBody = {
-    val toAcc = TransferAccount (
+  //transaction requests
+  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJSON) : TransactionRequestBody = {
+    val toAcc = TransactionRequestAccount (
       bank_id = body.to.bank_id,
       account_id = body.to.account_id
     )
@@ -259,29 +259,29 @@ object JSONFactory1_4_0 {
       amount = body.value.amount
     )
 
-    TransferBody (
+    TransactionRequestBody (
       to = toAcc,
       value = amount,
       description = body.description
     )
   }
 
-  def getTransferFromJson(json : TransferJSON) : Transfer = {
-    val fromAcc = TransferAccount (
+  def getTransactionRequestFromJson(json : TransactionRequestJSON) : TransactionRequest = {
+    val fromAcc = TransactionRequestAccount (
       json.from.bank_id,
       json.from.account_id
     )
-    val challenge = TransferChallenge (
+    val challenge = TransactionRequestChallenge (
       id = json.challenge.id,
       allowed_attempts = json.challenge.allowed_attempts,
       challenge_type = json.challenge.challenge_type
     )
 
-    Transfer (
-      transferId = TransferId(json.id),
+    TransactionRequest (
+      transactionRequestId = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
-      body = getTransferBodyFromJson(json.body),
+      body = getTransactionRequestBodyFromJson(json.body),
       transaction_ids = json.transaction_ids,
       status = json.status,
       start_date = json.start_date,
@@ -294,20 +294,20 @@ object JSONFactory1_4_0 {
                                 currency : String,
                                 amount : String
                               )
-  case class TransferAccountJSON (
+  case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String
                             )
 
-  case class TransferBodyJSON(to: TransferAccountJSON,
+  case class TransactionRequestBodyJSON(to: TransactionRequestAccountJSON,
                               value : AmountOfMoneyJSON,
                               description : String
                              )
 
-  case class TransferJSON(id: String,
+  case class TransactionRequestJSON(id: String,
                           `type`: String,
-                          from: TransferAccountJSON,
-                          body: TransferBodyJSON,
+                          from: TransactionRequestAccountJSON,
+                          body: TransactionRequestBodyJSON,
                           transaction_ids: String,
                           status: String,
                           start_date: Date,

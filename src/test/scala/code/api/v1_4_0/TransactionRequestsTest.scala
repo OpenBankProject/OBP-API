@@ -7,7 +7,7 @@ import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankAccount}
-import code.transfers.Transfers.TransferId
+import code.transactionrequests.TransactionRequests.TransactionRequestId
 import code.api.util.APIUtil.OAuth._
 import dispatch._
 import net.liftweb.json.JsonAST.JString
@@ -17,11 +17,11 @@ import org.scalatest.Tag
 import java.util.Calendar
 import net.liftweb.json.Serialization.{read, write}
 
-class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140ServerSetup {
+class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V140ServerSetup {
 
-  object Transfers extends Tag("transfers")
+  object TransactionRequest extends Tag("transactionRequests")
 
-  feature("we can make transfers") {
+  feature("we can make transaction requests") {
 
     val view = "owner"
 
@@ -33,11 +33,11 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
       })
     }
 
-    if (Props.getBool("transfers_enabled", false) == false) {
-      ignore("we create a transfer without challenge", Transfers) {}
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
+      ignore("we create a transaction request without challenge", TransactionRequest) {}
     } else {
-      scenario("we create a transfer without challenge", Transfers) {
-        val testBank = createBank("transfers-test-bank")
+      scenario("we create a transaction request without challenge", TransactionRequest) {
+        val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
@@ -60,34 +60,34 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
         val beforeFromBalance = fromAccount.balance
         val beforeToBalance = toAccount.balance
 
-        //Create a transaction
+        //Create a transaction request
         //1. get possible challenge types for from account
-        //2. create transfer to to-account with one of the possible challenges
+        //2. create transaction request to to-account with one of the possible challenges
         //3. answer challenge
 
-        val transferId = TransferId("__trans1")
-        val toAccountJson = TransferAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+        val transactionRequestId = TransactionRequestId("__trans1")
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transferBody = TransferBodyJSON(toAccountJson, bodyValue, "Test transfer description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         /*
-        val fromAccountJson = TransferAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value)
-        val transferChallengeJson = ChallengeJSON("jmlk-0091-mlox-8196", 2, "DUMMY_TAN")
+        val fromAccountJson = TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value)
+        val transactionRequestChallengeJson = ChallengeJSON("jmlk-0091-mlox-8196", 2, "DUMMY_TAN")
         val now = Calendar.getInstance().getTime()
-        val transferJson = TransferJSON(transferId.value, "SANDBOX", fromAccountJson, transferBody, "", "", now, now, transferChallengeJson)
+        val transactionRequestJson = TransactionRequestJSON(transactionRequestId.value, "SANDBOX", fromAccountJson, transactionRequestBody, "", "", now, now, transactionRequestChallengeJson)
         */
 
-        //call createTransfer
+        //call createTransactionRequest
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-                        "owner" / "transfer-types" / "SANDBOX" / "transfers").POST <@(user1)
-        var response = makePostRequest(request, write(transferBody))
+                        "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@(user1)
+        var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 200 ok code")
         response.code should equal(200)
 
-        //created a transfer, check some return values. As type is SANDBOX, we expect no challenge
-        val transId: String = (response.body \ "transferId" \ "value") match {
+        //created a transaction request, check some return values. As type is SANDBOX, we expect no challenge
+        val transId: String = (response.body \ "transactionRequestId" \ "value") match {
           case JString(i) => i
           case _ => ""
         }
@@ -97,7 +97,7 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transfers.Transfers.STATUS_COMPLETED)
+        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
         val challenge: String = (response.body \ "challenge") match {
           case JString(i) => i
@@ -105,16 +105,16 @@ class TransfersTest extends ServerSetupWithTestData with DefaultUsers with V140S
         }
         challenge should equal ("")
 
-        //call getTransfers, check that we really created a transfer
+        //call getTransacionRequest, check that we really created a transaction request
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-                    "owner" / "transfers").GET <@(user1)
+                    "owner" / "transaction-requests").GET <@(user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
-        val transactions = response.body.children
+        val transactionRequests = response.body.children
 
-        transactions.size should not equal(0)
+        transactionRequests.size should not equal(0)
 
 /*      val fromAccountTransAmt = transJson.details.value.amount
         //the from account transaction should have a negative value

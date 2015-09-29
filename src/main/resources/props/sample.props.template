@@ -56,9 +56,10 @@ sandbox_data_import_secret=change_me
 #set this to false if you don't want the api payments call to work (starting with v1.2.1)
 payments_enabled=true
 
-#transfers are replacing payments starting in 1.4.0
-transfers_enabled=true
-transfers_connector=mapped
+#transaction requests are replacing simple payments starting from 1.4.0
+#(and set a connector per feature. Will be expanded to several other features as well)
+transactionRequests_enabled=true
+transactionRequests_connector=mapped
 
 ### management modules
 

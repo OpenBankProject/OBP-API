@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID, TimeZone}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestId}
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.Extraction
@@ -305,16 +305,16 @@ private object LocalConnector extends Connector with Loggable {
 
 
   /*
-   Transfers
+   Transaction Requests
  */
 
-  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = ???
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody, status: String) : Box[TransactionRequest] = ???
 
-  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]] = ???
+  override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
 
-  override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
+  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransferType("SANDBOX")))
+    Full(List(TransactionRequestType("SANDBOX")))
   }
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,

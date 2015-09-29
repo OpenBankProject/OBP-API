@@ -171,7 +171,6 @@ trait View {
   def canSeeWhereTag : Boolean
   def canDeleteWhereTag : Boolean
 
-  // transfer methods
   def canInitiateTransaction: Boolean  
 
   def moderate(transaction : Transaction): Box[ModeratedTransaction] = {

@@ -72,20 +72,12 @@ object TransactionId {
   def unapply(id : String) = Some(TransactionId(id))
 }
 
-/*case class TransferId(val value : String) {
+case class TransactionRequestType(val value : String) {
   override def toString = value
 }
 
-object TransferId {
-  def unapply(id : String) = Some(TransferId(id))
-}*/
-
-case class TransferType(val value : String) {
-  override def toString = value
-}
-
-object TransferType {
-  def unapply(id : String) = Some(TransferType(id))
+object TransactionRequestType {
+  def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
 

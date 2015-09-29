@@ -1,7 +1,7 @@
 package code.api.v1_4_0
 
 import code.bankconnectors.Connector
-import code.transfers.Transfers.{TransferId, TransferBody, TransferAccount}
+import code.transactionrequests.TransactionRequests.{TransactionRequestId, TransactionRequestBody, TransactionRequestAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
@@ -32,7 +32,7 @@ import code.products.Products
 import code.api.util.APIUtil._
 import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
-import code.transfers.Transfers._
+import code.transactionrequests.TransactionRequests._
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -305,33 +305,33 @@ Authentication via OAuth *may* be required.""",
     }
 
     /*
-     transfers (new payments since 1.4.0)
+     transaction requests (new payments since 1.4.0)
     */
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "getTransferTypes",
+      "getTransactionRequestTypes",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types",
-      "Get supported Transfer types.",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types",
+      "Get supported Transaction Request types.",
       "",
       emptyObjectJson,
       emptyObjectJson)
 
-    lazy val getTransferTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfer-types" ::
+    lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
               u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"current user does not have access to the view " + viewId}
-              transferTypes <- Connector.connector.vend.getTransferTypes(u, fromAccount)
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
             }
               yield {
-                val successJson = Extraction.decompose(transferTypes)
+                val successJson = Extraction.decompose(transactionRequestTypes)
                 successJsonResponse(successJson)
               }
           } else {
@@ -342,27 +342,27 @@ Authentication via OAuth *may* be required.""",
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "getTransfers",
+      "getTransactionRequests",
       "GET",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfers",
-      "Get all Transfers.",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
+      "Get all Transaction Requests.",
       "",
       emptyObjectJson,
       emptyObjectJson)
 
-    lazy val getTransfers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfers" :: Nil JsonGet _ => {
+    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
               u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~ {"unknown bank id"}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"unknown bank account"}
-              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"current user does not have access to the view " + viewId}
-              transfers <- Connector.connector.vend.getTransfers(u, fromAccount)
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
-              val successJson = Extraction.decompose(transfers)
+              val successJson = Extraction.decompose(transactionRequests)
               successJsonResponse(successJson)
             }
           } else {
@@ -377,27 +377,27 @@ Authentication via OAuth *may* be required.""",
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "createTransfer",
+      "createTransactionRequest",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transfer-types/TRANSFER_TYPE/transfers",
-      "Create Transfer.",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
+      "Create Transaction Request.",
       "",
       emptyObjectJson,
       emptyObjectJson)
 
-    lazy val createTransfer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transfer-types" ::
-          TransferType(transferType) :: "transfers" :: Nil JsonPost json -> _ => {
+    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+          TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         user =>
           if (Props.getBool("payments_enabled", false)) {
             for {
               /* TODO:
-               * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transfers
+               * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
               u <- user ?~ "User not found"
-              transBodyJson <- tryo{json.extract[TransferBodyJSON]} ?~ {"Invalid json format"}
-              transBody <- tryo{getTransferBodyFromJson(transBodyJson)}
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {"Invalid json format"}
+              transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
@@ -405,9 +405,9 @@ Authentication via OAuth *may* be required.""",
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"Unknown counterparty account"}
               accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
-              createdTransfer <- Connector.connector.vend.createTransfer(u, fromAccount, toAccount, transferType, transBody)
+              createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
-              val successJson = Extraction.decompose(createdTransfer)
+              val successJson = Extraction.decompose(createdTransactionRequest)
               successJsonResponse(successJson)
             }
           } else {

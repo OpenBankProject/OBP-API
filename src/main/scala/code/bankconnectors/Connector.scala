@@ -3,7 +3,7 @@ package code.bankconnectors
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.dataAccess.MappedBankAccount
 import code.tesobe.CashTransaction
-import code.transfers.Transfers.{Transfer, TransferId, TransferBody}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestId, TransactionRequestBody}
 import code.util.Helper._
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.Box
@@ -123,10 +123,10 @@ trait Connector {
 
 
   /*
-    Transfers
+    Transaction Requests
   */
 
-  def createTransfer(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transferType: TransferType, body: TransferBody) : Box[Transfer] = {
+  def createTransactionRequest(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) : Box[TransactionRequest] = {
     val status = "CHALLENGES_PENDING"
 
     for{
@@ -139,40 +139,39 @@ trait Connector {
         s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
       })
       isPositiveAmtToSend <- booleanToBox(BigDecimal(body.value.amount) > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${body.value.amount})")
-      transfer <- createTransferImpl(TransferId(java.util.UUID.randomUUID().toString), transferType, fromAccount, toAccount, body, status)
-    } yield transfer
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
+    } yield transactionRequest
   }
 
-  protected def createTransferImpl(transferId: TransferId, transferType: TransferType, fromAccount : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer]
+  protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody, status: String) : Box[TransactionRequest]
 
 
-  def getTransfers(initiator : User, fromAccount : BankAccount) : Box[List[Transfer]] = {
+  def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
-      transfers <- getTransfersImpl(fromAccount)
-    } yield transfers
+      transactionRequests <- getTransactionRequestImpl(fromAccount)
+    } yield transactionRequests
   }
 
-  protected def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]]
+  protected def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
 
-  def getTransferTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransferType]] = {
+  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
-      transferTypes <- getTransferTypesImpl(fromAccount)
-    } yield transferTypes
+      transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
+    } yield transactionRequestTypes
   }
 
-  protected def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]]
+  protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]]
 
-    /*
-      non-standard calls --do not make sense in the regular context but are used for e.g. tests
-     */
-
+  /*
+    non-standard calls --do not make sense in the regular context but are used for e.g. tests
+  */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)

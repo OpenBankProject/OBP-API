@@ -15,8 +15,8 @@ import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
-import code.transfers.{Transfers, MappedTransfer}
-import code.transfers.Transfers.{Transfer, TransferBody, TransferId}
+import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestId}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
@@ -210,13 +210,13 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   /*
-    Transfers
+    Transaction Requests
   */
 
-  override def createTransferImpl(transferId: TransferId, transferType: TransferType, account : BankAccount, counterparty : BankAccount, body: TransferBody, status: String) : Box[Transfer] = {
-    val mappedTransfer = MappedTransfer.create
-      .mTransferId(transferId.value)
-      .mType(transferType.value)
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody, status: String) : Box[TransactionRequest] = {
+    val mappedTransactionRequest = MappedTransactionRequest.create
+      .mTransactionRequestId(transactionRequestId.value)
+      .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
       .mBody_To_BankId(counterparty.bankId.value)
@@ -225,28 +225,28 @@ object LocalMappedConnector extends Connector with Loggable {
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
 
-    if (transferType.value == "SANDBOX" && body.value.currency == "EUR" && ( BigInt(body.value.amount.replace(".", ""))/100 ) < 100)
-      mappedTransfer.mStatus(Transfers.STATUS_COMPLETED)
+    if (transactionRequestType.value == "SANDBOX" && body.value.currency == "EUR" && BigDecimal(body.value.amount) < 100)
+      mappedTransactionRequest.mStatus(TransactionRequests.STATUS_COMPLETED)
     else
-      mappedTransfer.mStatus(Transfers.STATUS_INITIATED)
+      mappedTransactionRequest.mStatus(TransactionRequests.STATUS_INITIATED)
 
-    mappedTransfer
+    mappedTransactionRequest
       //.start_date(now)
       //.end(now)
       .saveMe
-    Full(mappedTransfer).flatMap(_.toTransfer)
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  override def getTransfersImpl(fromAccount : BankAccount) : Box[List[Transfer]] = {
-    val transfers = MappedTransfer.findAll(By(MappedTransfer.mFrom_AccountId, fromAccount.accountId.toString),
-                                           By(MappedTransfer.mFrom_BankId, fromAccount.bankId.toString))
+  override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.toString),
+                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.toString))
 
-    Full(transfers.flatMap(_.toTransfer))
+    Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
-  override def getTransferTypesImpl(fromAccount : BankAccount) : Box[List[TransferType]] = {
+  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransferType("SANDBOX")))
+    Full(List(TransactionRequestType("SANDBOX")))
   }
 
   /*
