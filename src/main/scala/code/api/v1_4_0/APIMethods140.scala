@@ -307,6 +307,28 @@ Authentication via OAuth *may* be required.""",
       }
     }
 
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "IAmATestResourceDoc",
+      "GET",
+      "/i-do-not-exist-i-will-404",
+      "I am only a test resource Doc",
+      """
+        |
+        | # Hello World
+        |
+        | In which we:
+        |
+        | * Have a list
+        | * Containing two items
+        |
+        | _etc_...""",
+      emptyObjectJson,
+      emptyObjectJson
+    )
+
   }
 
 }
