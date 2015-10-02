@@ -371,19 +371,19 @@ object ToSchemify {
     MappedComment,
     MappedNarrative,
     MappedTag,
-    MappedTransactionImage,
     MappedWhereTag,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
+    MappedTransactionRequest,
+    MappedTransactionImage,
     MappedMetric,
     MappedCustomer,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
     MappedProduct,
-    MappedCrmEvent,
-    MappedTransactionRequest)
+    MappedCrmEvent)
 }

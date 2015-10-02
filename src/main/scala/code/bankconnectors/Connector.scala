@@ -154,8 +154,8 @@ trait Connector {
       transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
     } yield transactionRequest
 
-    //make sure we got something back
-    result = Full(result.openOrThrowException("Exception: Can't get transactionRequest after creating it"))
+    //make sure we get something back
+    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
@@ -169,7 +169,7 @@ trait Connector {
       createdTransactionId match {
         case Full(ti) => {
           if (! createdTransactionId.isEmpty) {
-            Connector.connector.vend.saveTransactionRequestTransaction (result.get.transactionRequestId, ti)
+            saveTransactionRequestTransaction(result.get.transactionRequestId, ti)
             result = Full(result.get.copy(transaction_ids = ti.value))
           }
         }
@@ -179,35 +179,53 @@ trait Connector {
       //if challenge necessary, create a new one
       var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
       saveTransactionRequestChallenge(result.get.transactionRequestId, challenge)
+      result = Full(result.get.copy(challenge = challenge))
     }
 
     result
   }
 
+  //place holder for various connector methods that overwrite methods like these, does the actual data access
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                              status: String) : Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+    //put connector agnostic logic here if necessary
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
   protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
 
   def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+    //put connector agnostic logic here if necessary
     saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
   protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
 
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests =
     for {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
       transactionRequests <- getTransactionRequestImpl(fromAccount)
     } yield transactionRequests
+
+    //make sure we return null if no challenge was saved (instead of empty fields)
+    if (!transactionRequests.isEmpty) {
+      Full(
+        transactionRequests.get.map(tr => if (tr.challenge.id == "") {
+          tr.copy(challenge = null)
+        } else {
+          tr
+        })
+      )
+    } else {
+      transactionRequests
+    }
   }
 
   protected def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]

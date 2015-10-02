@@ -8,10 +8,14 @@
 #connector=...
 connector=mapped
 
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+#if connector is mapped, set a database backend
 db.driver=org.postgresql.Driver
+#you can also use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+
+
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.

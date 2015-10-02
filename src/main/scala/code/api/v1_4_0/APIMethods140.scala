@@ -322,7 +322,7 @@ Authentication via OAuth *may* be required.""",
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           Nil JsonGet _ => {
         user =>
-          if (Props.getBool("payments_enabled", false)) {
+          if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               u <- user ?~ "User not found"
               fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
@@ -335,7 +335,7 @@ Authentication via OAuth *may* be required.""",
                 successJsonResponse(successJson)
               }
           } else {
-            Failure("Sorry, payments are not enabled in this API instance.")
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
           }
       }
     }
@@ -353,7 +353,7 @@ Authentication via OAuth *may* be required.""",
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         user =>
-          if (Props.getBool("payments_enabled", false)) {
+          if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               u <- user ?~ "User not found"
               fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
@@ -366,7 +366,7 @@ Authentication via OAuth *may* be required.""",
               successJsonResponse(successJson)
             }
           } else {
-            Failure("Sorry, payments are not enabled in this API instance.")
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
           }
       }
     }
@@ -389,7 +389,7 @@ Authentication via OAuth *may* be required.""",
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
           TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
         user =>
-          if (Props.getBool("payments_enabled", false)) {
+          if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               /* TODO:
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
@@ -407,11 +407,14 @@ Authentication via OAuth *may* be required.""",
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
-              val successJson = Extraction.decompose(createdTransactionRequest)
-              successJsonResponse(successJson)
+              val json = Extraction.decompose(createdTransactionRequest)
+              if (createdTransactionRequest.transaction_ids == "")
+                acceptedJsonResponse(json)
+              else
+                createdJsonResponse(json)
             }
           } else {
-            Failure("Sorry, payments are not enabled in this API instance.")
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
           }
 
       }

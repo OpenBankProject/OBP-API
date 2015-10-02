@@ -7,6 +7,7 @@ import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankAccount}
+import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.TransactionRequestId
 import code.api.util.APIUtil.OAuth._
 import dispatch._
@@ -60,37 +61,32 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val beforeFromBalance = fromAccount.balance
         val beforeToBalance = toAccount.balance
 
-        //Create a transaction request
+        //Create a transaction (request)
         //1. get possible challenge types for from account
         //2. create transaction request to to-account with one of the possible challenges
         //3. answer challenge
+        //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
         val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
-
-        /*
-        val fromAccountJson = TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value)
-        val transactionRequestChallengeJson = ChallengeJSON("jmlk-0091-mlox-8196", 2, "DUMMY_TAN")
-        val now = Calendar.getInstance().getTime()
-        val transactionRequestJson = TransactionRequestJSON(transactionRequestId.value, "SANDBOX", fromAccountJson, transactionRequestBody, "", "", now, now, transactionRequestChallengeJson)
-        */
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", "")
 
         //call createTransactionRequest
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
                         "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
-        Then("we should get a 200 ok code")
-        response.code should equal(200)
+        Then("we should get a 201 created code")
+        response.code should equal(201)
 
         //created a transaction request, check some return values. As type is SANDBOX, we expect no challenge
         val transId: String = (response.body \ "transactionRequestId" \ "value") match {
           case JString(i) => i
           case _ => ""
         }
+        Then("We should have some new transaction id")
         transId should not equal ("")
 
         val status: String = (response.body \ "status") match {
@@ -99,13 +95,16 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         }
         status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
-        val challenge = (response.body \ "challenge").children
+        var challenge = (response.body \ "challenge").children
         challenge.size should equal(0)
 
-        val transaction_id = (response.body \ "transaction_ids")
+        var transaction_id = (response.body \ "transaction_ids") match {
+          case JString(i) => i
+          case _ => ""
+        }
         transaction_id should not equal("")
 
-        //call getTransactionRequest, check that we really created a transaction request
+        //call getTransactionRequests, check that we really created a transaction request
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
                     "owner" / "transaction-requests").GET <@(user1)
         response = makeGetRequest(request)
@@ -113,10 +112,32 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         Then("we should get a 200 ok code")
         response.code should equal(200)
         val transactionRequests = response.body.children
-
         transactionRequests.size should not equal(0)
 
-        //TODO: check that we now created a new transaction
+        //check transaction_ids again
+        transaction_id = (response.body \ "transaction_ids") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        transaction_id should not equal("")
+
+        //make sure that we also get no challenges back from this url (after getting from db)
+        challenge = (response.body \ "challenge").children
+        challenge.size should equal(0)
+
+        //check that we created a new transaction (since no challenge)
+        request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transactions").GET <@(user1)
+        response = makeGetRequest(request)
+
+        Then("we should get a 200 ok code")
+        response.code should equal(200)
+        val transactions = response.body.children
+
+        transactions.size should equal(1)
+
+        //TODO: check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
+        //(do it here even though the payments test does test makePayment already)
 
 /*      val fromAccountTransAmt = transJson.details.value.amount
         //the from account transaction should have a negative value
@@ -149,6 +170,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
     }
 
     scenario("we create a transaction request with a challenge", TransactionRequest) {
+      //setup accounts
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
@@ -172,34 +194,26 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       val beforeFromBalance = fromAccount.balance
       val beforeToBalance = toAccount.balance
 
-      //Create a transaction request
-      //1. get possible challenge types for from account
-      //2. create transaction request to to-account with one of the possible challenges
-      //3. answer challenge
-
       val transactionRequestId = TransactionRequestId("__trans1")
       val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+
+      //1. TODO: get possible challenge types from account
+
+      //2. create transaction request to to-account with one of the possible challenges
 
       //amount over 100 €, so should trigger challenge request
       val amt = BigDecimal("1250.00")
       val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-      val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+      val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", TransactionRequests.CHALLENGE_SANDBOX_TAN)
 
-      /*
-      val fromAccountJson = TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value)
-      val transactionRequestChallengeJson = ChallengeJSON("jmlk-0091-mlox-8196", 2, "DUMMY_TAN")
-      val now = Calendar.getInstance().getTime()
-      val transactionRequestJson = TransactionRequestJSON(transactionRequestId.value, "SANDBOX", fromAccountJson, transactionRequestBody, "", "", now, now, transactionRequestChallengeJson)
-      */
-
-      //call createTransactionRequest
+      //call createTransactionRequest API method
       var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@ (user1)
       var response = makePostRequest(request, write(transactionRequestBody))
-      Then("we should get a 200 ok code")
-      response.code should equal(200)
+      Then("we should get a 202 accepted code")
+      response.code should equal(202)
 
-      //created a transaction request, check some return values. As type is SANDBOX, we expect no challenge
+      //ok, created a transaction request, check some return values. As type is SANDBOX but over 100€, we expect a challenge
       val transId: String = (response.body \ "transactionRequestId" \ "value") match {
         case JString(i) => i
         case _ => ""
@@ -212,16 +226,22 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       }
       status should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
 
-      val transaction_id = (response.body \ "transaction_ids") match {
+      var transaction_id = (response.body \ "transaction_ids") match {
         case JString(i) => i
         case _ => ""
       }
       transaction_id should equal ("")
 
-      val challenge = (response.body \ "challenge").children
+      var challenge = (response.body \ "challenge").children
       challenge.size should not equal(0)
 
-      //call getTransactionRequest, check that we really created a transaction request
+      val challenge_id = (response.body \ "challenge" \ "id") match {
+        case JString(s) => s
+        case _ => ""
+      }
+      challenge_id should not equal("")
+
+      //call getTransactionRequests, check that we really created a transaction request
       request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         "owner" / "transaction-requests").GET <@ (user1)
       response = makeGetRequest(request)
@@ -230,7 +250,18 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       response.code should equal(200)
       val transactionRequests = response.body.children
 
-      transactionRequests.size should not equal (0)
+      transactionRequests.size should equal(1)
+      transaction_id = (response.body \ "transaction_ids") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      transaction_id should equal ("")
+
+      challenge = (response.body \ "challenge").children
+      challenge.size should not equal(0)
+
+      //3. TODO: answer challenge and check if transaction is being created
+      
     }
 
     /*

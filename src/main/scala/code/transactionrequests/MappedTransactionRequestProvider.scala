@@ -4,6 +4,7 @@ import code.model._
 import code.transactionrequests.TransactionRequests._
 
 import code.util.DefaultStringField
+import net.liftweb.common.Logger
 import net.liftweb.json
 import net.liftweb.mapper._
 import java.util.Date
@@ -19,6 +20,8 @@ object MappedTransactionRequestProvider extends TransactionRequestProvider {
 }
 
 class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest] with IdPK with CreatedUpdated {
+
+  private val logger = Logger(classOf[MappedTransactionRequest])
 
   override def getSingleton = MappedTransactionRequest
 

@@ -107,6 +107,12 @@ object APIUtil extends Loggable {
   def successJsonResponse(json: JsExp, httpCode : Int = 200) : JsonResponse =
     JsonResponse(json, headers, Nil, httpCode)
 
+  def createdJsonResponse(json: JsExp, httpCode : Int = 201) : JsonResponse =
+    JsonResponse(json, headers, Nil, httpCode)
+
+  def acceptedJsonResponse(json: JsExp, httpCode : Int = 202) : JsonResponse =
+    JsonResponse(json, headers, Nil, httpCode)
+
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 

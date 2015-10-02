@@ -232,20 +232,20 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.toString))
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
       match {
-        case Full(tr: MappedTransactionRequest) => tr.mTransactionIDs(transactionId.value)
+        case Full(tr: MappedTransactionRequest) => tr.mTransactionIDs(transactionId.value).save
         case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
       }
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.toString))
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
       match {
         case Full(tr: MappedTransactionRequest) => {
           tr.mChallenge_Id(challenge.id)
           tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-          tr.mChallenge_ChallengeType(challenge.challenge_type)
+          tr.mChallenge_ChallengeType(challenge.challenge_type).save
         }
         case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
       }
@@ -253,8 +253,8 @@ object LocalMappedConnector extends Connector with Loggable {
 
 
   override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
-    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.toString),
-                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.toString))
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
+                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
