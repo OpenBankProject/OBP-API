@@ -221,8 +221,8 @@ object JSONFactory1_4_0 {
                          request_url: String,
                          summary: String,
                          description: String,
-                         request_body: JValue,
-                         response_body: JValue,
+                         example_request_body: JValue,
+                         success_response_body: JValue,
                          implemented_by: ImplementedByJson)
 
 
@@ -248,8 +248,8 @@ object JSONFactory1_4_0 {
       summary = resourceDoc.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
       description = pegDownProcessor.markdownToHtml(resourceDoc.description.stripMargin).replaceAll("\n", ""),
-      request_body = resourceDoc.requestBody,
-      response_body = resourceDoc.responseBody,
+      example_request_body = resourceDoc.exampleRequestBody,
+      success_response_body = resourceDoc.successResponseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)
       )
   }

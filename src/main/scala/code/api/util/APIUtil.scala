@@ -260,6 +260,6 @@ object APIUtil extends Loggable {
                       requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
                       summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                       description: String, // Longer description (originally taken from github wiki)
-                      requestBody: JValue, // The response body
-                      responseBody: JValue) // Any request body required (maybe empty)
+                      exampleRequestBody: JValue, // The response body
+                      successResponseBody: JValue) // Any request body required (maybe empty)
 }
