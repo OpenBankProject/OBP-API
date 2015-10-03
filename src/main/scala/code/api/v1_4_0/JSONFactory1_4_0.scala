@@ -219,8 +219,8 @@ object JSONFactory1_4_0 {
   case class ResourceDocJson(id: String,
                          request_verb: String,
                          request_url: String,
+                         summary: String,
                          description: String,
-                         overview: String,
                          request_body: JValue,
                          response_body: JValue,
                          implemented_by: ImplementedByJson)
@@ -245,9 +245,9 @@ object JSONFactory1_4_0 {
       id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
-      description = resourceDoc.description,
+      summary = resourceDoc.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      overview = pegDownProcessor.markdownToHtml(resourceDoc.overview.stripMargin).replaceAll("\n", ""),
+      description = pegDownProcessor.markdownToHtml(resourceDoc.description.stripMargin).replaceAll("\n", ""),
       request_body = resourceDoc.requestBody,
       response_body = resourceDoc.responseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)

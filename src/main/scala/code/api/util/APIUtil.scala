@@ -258,8 +258,8 @@ object APIUtil extends Loggable {
                       apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
                       requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
                       requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
-                      description: String, // A description of the call (originally taken from code comment)
-                      overview: String, // Overview (originally taken from github wiki)
+                      summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
+                      description: String, // Longer description (originally taken from github wiki)
                       requestBody: JValue, // The response body
                       responseBody: JValue) // Any request body required (maybe empty)
 }
