@@ -333,7 +333,7 @@ Authentication via OAuth is not required.""",
 * IBAN
 * Available views
 
-More details about the data moderation by the view [here](#views).
+More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
 
 OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
@@ -1541,7 +1541,7 @@ OAuth authentication is required if the view is not public.""",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get transactions.",
-      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+      """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.
 
@@ -1581,7 +1581,7 @@ Possible custom headers for pagination:
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get transaction by id.",
-      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#views) by the view (VIEW_ID).
+      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1608,7 +1608,7 @@ Authentication via OAuth is required if the view is not public.""",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get narrative.",
-      """Returns the account owner description of the transaction [moderated](#views) by the view.
+      """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1718,7 +1718,7 @@ Authentication via OAuth is required if the view is not public.""",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get comments.",
-      """Returns the transaction TRANSACTION_ID comments made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1744,7 +1744,7 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add comment.",
-      """Posts a comment about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
 
 OAuth authentication is required since the comment is linked with the user.""",
       emptyObjectJson,
@@ -1772,7 +1772,7 @@ OAuth authentication is required since the comment is linked with the user.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete comment.",
-      """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
@@ -1798,7 +1798,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Get tags.",
-      """Returns the transaction TRANSACTION_ID tags made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID tags made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1824,7 +1824,7 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a tag.",
-      """Posts a tag about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
 
 OAuth authentication is required since the tag is linked with the user.""",
       emptyObjectJson,
@@ -1853,7 +1853,7 @@ OAuth authentication is required since the tag is linked with the user.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags/TAG_ID",
       "Delete a tag.",
-      """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the tag TAG_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
@@ -1880,7 +1880,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Get images.",
-      """Returns the transaction TRANSACTION_ID images made on a [view](#views) (VIEW_ID).
+      """Returns the transaction TRANSACTION_ID images made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1906,7 +1906,7 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add an image.",
-      """Posts an image about a transaction TRANSACTION_ID on a [view](#views) VIEW_ID.
+      """Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
 
 OAuth authentication is required since the image is linked with the user.""",
       emptyObjectJson,
@@ -1935,7 +1935,7 @@ OAuth authentication is required since the image is linked with the user.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "delete an image",
-      """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
@@ -1961,7 +1961,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get where tag.",
-      """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#views) (VIEW_ID).
+      """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 It represents the location where the transaction has been initiated.
 
 Authentication via OAuth is required if the view is not public.""",
@@ -1989,7 +1989,7 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add where tag.",
-      """Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+      """Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
 
 OAuth authentication is required since the geo tag is linked with the user.""",
       emptyObjectJson,
@@ -2020,7 +2020,7 @@ OAuth authentication is required since the geo tag is linked with the user.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update where tag.",
-      """Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#views).
+      """Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
 
 OAuth authentication is required since the geo tag is linked with the user.""",
       emptyObjectJson,
@@ -2051,7 +2051,7 @@ OAuth authentication is required since the geo tag is linked with the user.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Delete where tag.",
-      """Deletes the where tag of the transaction TRANSACTION_ID made on [view](#views).
+      """Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
@@ -2081,7 +2081,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
       "Get other account of a transaction.",
-      """Returns details of the other party involved in the transaction, moderated by the [view](#views) (VIEW_ID).
+      """Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
