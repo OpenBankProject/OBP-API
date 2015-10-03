@@ -82,9 +82,9 @@ trait APIMethods121 {
       "/",
       "Returns API version, git commit, hosted by etc.",
       """Returns information about:
-
-      * API version
-      * Hosted by information""",
+        |
+        |* API version
+        |* Hosted by information""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -169,18 +169,19 @@ trait APIMethods121 {
       "GET",
       "/accounts",
       "Get accounts for all banks (private + public)",
-      """Note for those upgrading from v1.2:
-         |The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-         |for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-         |that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-         |(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
-         |
-         |Returns the list of accounts at that the user has access to at all banks.
+      """Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
          |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
          |the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
-         |all public accounts.""",
+         |all public accounts.
+         |
+         |Note for those upgrading from v1.2:
+         |The behaviour of this call changed from v1.2. The v1.2 call to get all accounts
+         |for a user previously did not include public accounts if an authenticated user made the call. This was a bug in the v1.2 call
+         |that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
+         |(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+         |""",
       emptyObjectJson,
       emptyObjectJson)
 
