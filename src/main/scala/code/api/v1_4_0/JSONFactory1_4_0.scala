@@ -216,7 +216,7 @@ object JSONFactory1_4_0 {
 
 
   // Used to describe the OBP API calls for documentation and API discovery purposes
-  case class ResourceDocJson(id: String,
+  case class ResourceDocJson(operation_id: String,
                          request_verb: String,
                          request_url: String,
                          summary: String,
@@ -242,7 +242,7 @@ object JSONFactory1_4_0 {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     ResourceDocJson(
-      id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
+      operation_id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
       summary = resourceDoc.summary,
