@@ -317,12 +317,20 @@ Authentication via OAuth *may* be required.""",
       "I am only a test resource Doc",
       """
         |
-        | # Hello World
+            |#Hello World
         |
         | In which we:
         |
         | * Have a list
         | * Containing two items
+        |
+        | There are underscores by them selves _
+        |
+        | There are _underscores_ around a word
+        |
+        | There are underscores_in_words
+        |
+        | There are 'underscores_in_words_inside_quotes'
         |
         | _etc_...""",
       emptyObjectJson,

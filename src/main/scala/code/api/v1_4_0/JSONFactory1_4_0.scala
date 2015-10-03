@@ -14,6 +14,7 @@ import code.customer.{CustomerMessage, Customer}
 import code.model.BankId
 import code.products.Products.ProductCode
 import net.liftweb.json.JsonAST.{JValue, JObject}
+import org.pegdown.PegDownProcessor
 
 object JSONFactory1_4_0 {
 
@@ -230,12 +231,23 @@ object JSONFactory1_4_0 {
   case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
 
   def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
+
+    // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+    // But since we don't want to have to escape underscores (\_) in our documentation
+    // Hence we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+    // PegDown seems to be feature rich and ignores underscores in words by default.
+
+    // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+
     ResourceDocJson(
       id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
       description = resourceDoc.description,
-      overview = resourceDoc.overview.stripMargin, //.replaceAll("\n", " "),
+      // Strip the margin character (|) and line breaks and convert from markdown to html
+      overview = pegDownProcessor.markdownToHtml(resourceDoc.overview.stripMargin).replaceAll("\n", ""),
       request_body = resourceDoc.requestBody,
       response_body = resourceDoc.responseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)

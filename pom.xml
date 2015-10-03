@@ -156,6 +156,11 @@
         <artifactId>signpost-commonshttp4</artifactId>
         <version>1.2.1.2</version>
     </dependency>
+    <dependency>
+      <groupId>org.pegdown</groupId>
+      <artifactId>pegdown</artifactId>
+      <version>1.6.0</version>
+    </dependency>
   </dependencies>
 
   <build>
