@@ -285,8 +285,8 @@ Authentication via OAuth *may* be required.""",
       "getResourceDocs",
       "GET",
       "/resource-docs",
-      "Get the API calls that are documented on this server. (This call).",
-      "",
+      "Get the API calls that are documented on this server.",
+      "Returns the documentation about the ",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -317,22 +317,30 @@ Authentication via OAuth *may* be required.""",
       "I am only a test resource Doc",
       """
         |
-            |#Hello World
+        |#This should be H1
         |
-        | In which we:
+        |##This should be H2
         |
-        | * Have a list
-        | * Containing two items
+        |###This should be H3
         |
-        | There are underscores by them selves _
+        |####This should be H4
         |
-        | There are _underscores_ around a word
+        |Here is a list with two items:
         |
-        | There are underscores_in_words
+        |* One
+        |* Two
         |
-        | There are 'underscores_in_words_inside_quotes'
+        |There are underscores by them selves _
         |
-        | _etc_...""",
+        |There are _underscores_ around a word
+        |
+        |There are underscores_in_words
+        |
+        |There are 'underscores_in_words_inside_quotes'
+        |
+        |There are (underscores_in_words_in_brackets)
+        |
+        |_etc_...""",
       emptyObjectJson,
       emptyObjectJson
     )

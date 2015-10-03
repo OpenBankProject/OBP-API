@@ -106,11 +106,11 @@ trait APIMethods121 {
       "/banks",
       "Returns all banks available on this API instance",
       """Returns a list of banks supported on this server:
-
-      * ID used as parameter in URLs
-      * Short and full name of bank
-      * Logo URL
-      * Website""",
+        |
+        |* ID used as parameter in URLs
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -166,18 +166,18 @@ trait APIMethods121 {
       "GET",
       "/accounts",
       "Get accounts for all banks (private + public)",
-      """IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
-The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
-
-Returns the list of accounts at that the user has access to at all banks.
-For each account the API returns the account ID and the available views.
-
-If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
-the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
-all public accounts.""",
+      """Note for those upgrading from v1.2:
+         |The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
+         |for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
+         |that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
+         |(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+         |
+         |Returns the list of accounts at that the user has access to at all banks.
+         |For each account the API returns the account ID and the available views.
+         |
+         |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
+         |the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
+         |all public accounts.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -392,7 +392,7 @@ OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is n
          |
          |### How views work
          |
-         |Views on accounts and transactions filter the underlying data to hide or blur certain fields from certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
+         |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
          |
          |**Data:** When a view moderates a set of data, some fields my contain the value `null` rather than the original value. This indicates either that the user is not allowed to see the original data or the field is empty.
          |
@@ -405,7 +405,7 @@ OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is n
          |
          |The other account metadata fields (like image_URL, more_info, etc.) are unique through all the views. Example, if a user edits the 'more_info' field in the 'team' view, then the view 'authorities' will show the new value (if it is allowed to do it).
          |
-         |#### All
+         |# All
          |*Optional*
          |
          |Returns the list of the views created for account ACCOUNT_ID at BANK_ID.
