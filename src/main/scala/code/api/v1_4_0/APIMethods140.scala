@@ -284,8 +284,8 @@ Authentication via OAuth *may* be required.""",
       apiVersion,
       "getResourceDocs",
       "GET",
-      "/resource-docs",
-      "Get the API calls that are documented on this server.",
+      "/resource-docs/obp",
+      "Get the API calls that are documented on this server in OBP format.",
       "Returns the documentation about the API endpoints including example body for POST or PUT requests.",
       emptyObjectJson,
       emptyObjectJson
@@ -293,7 +293,7 @@ Authentication via OAuth *may* be required.""",
 
     // Provides resource documents so that live docs (currently on Sofi) can display API documentation
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: Nil JsonGet _ => {
+      case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
             rd <- getResourceDocsList
