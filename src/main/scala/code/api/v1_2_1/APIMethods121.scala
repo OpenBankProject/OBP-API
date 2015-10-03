@@ -141,10 +141,10 @@ trait APIMethods121 {
       "/banks/BANK_ID",
       "Returns the bank specified by BANK_ID",
       """Returns information about a single bank specified by BANK_ID including:
-
-        * Short and full name of bank
-        * Logo URL
-        * Website""",
+        |
+        |* Short and full name of bank
+        |* Logo URL
+        |* Website""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -168,7 +168,7 @@ trait APIMethods121 {
       "allAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts for all banks (private + public)",
+      "Get all accounts a user has access to at all banks (private + public)",
       """Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
@@ -177,10 +177,8 @@ trait APIMethods121 {
          |all public accounts.
          |
          |Note for those upgrading from v1.2:
-         |The behaviour of this call changed from v1.2. The v1.2 call to get all accounts
-         |for a user previously did not include public accounts if an authenticated user made the call. This was a bug in the v1.2 call
-         |that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-         |(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
+         |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
+         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
          |""",
       emptyObjectJson,
       emptyObjectJson)
@@ -200,9 +198,9 @@ trait APIMethods121 {
       "/accounts/private",
       "Get private accounts for all banks.",
       """Returns the list of private (non-public) accounts the user has access to at all banks.
-For each account the API returns the ID and the available views.
-
-Authentication via OAuth is required.""",
+        |For each account the API returns the ID and the available views.
+        |
+        |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -225,7 +223,8 @@ Authentication via OAuth is required.""",
       "GET",
       "/accounts/public",
       "Get public accounts for all banks.",
-      "Returns the list of private (non-public) accounts the user has access to at all banks.\n For each account the API returns the ID and the available views.\n\n Authentication via OAuth is required.",
+      """Returns the list of private (non-public) accounts the user has access to at all banks.
+        |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -244,16 +243,15 @@ Authentication via OAuth is required.""",
       "GET",
       "/banks/BANK_ID/accounts",
       "Get accounts for a single bank (private + public).",
-      """IMPORTANT NOTE FOR THOSE UPGRADING FROM V1.2 OF THE API:
-The behaviour of this call is different than that of the similar call in v1.2. The v1.2 call to get all accounts
-for a user does not include public accounts if an authenticated user makes the call. This is a bug in the v1.2 call
-that is now fixed, so please make note of this change if you were making that assumption. If you wish to retain the previous
-(buggy) behaviour, please use the API call for private accounts (..../accounts/private)
-
-Returns the list of accounts at BANK_ID that the user has access to.
-For each account the API returns the account ID and the available views.
-
-If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.""",
+      """Returns the list of accounts at BANK_ID that the user has access to.
+        |For each account the API returns the account ID and the available views.
+        |
+        |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
+        |
+        |Note for those upgrading from v1.2:
+        |The v1.2 version of this call was buggy in that it did not include public accounts if an authenticated user made the call.
+        |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
+      """,
       emptyObjectJson,
       emptyObjectJson)
 
@@ -277,9 +275,9 @@ If the user is not authenticated via OAuth, the list will contain only the accou
       "/banks/BANK_ID/accounts/private",
       "Get private accounts for a single bank.",
       """Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
-For each account the API returns the ID and the available views.
-
-Authentication via OAuth is required.""",
+        |For each account the API returns the ID and the available views.
+        |
+        |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -304,8 +302,8 @@ Authentication via OAuth is required.""",
       "/banks/BANK_ID/accounts/public",
       "Get public accounts for a single bank.",
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
-
-Authentication via OAuth is not required.""",
+        |
+        |Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -329,17 +327,17 @@ Authentication via OAuth is not required.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get account by id.",
       """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
-
-* Number
-* Owners
-* Type
-* Balance
-* IBAN
-* Available views
-
-More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
-
-OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+         |
+         |* Number
+         |* Owners
+         |* Type
+         |* Balance
+         |* IBAN
+         |* Available views
+         |
+         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+         |
+         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -478,11 +476,11 @@ OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is n
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Updates a view on a bank account.",
       """Update an existing view on a bank account
-
-OAuth authentication is required and the user needs to have access to the owner view.
-
-The json sent is the same as during view creation (above), with one difference: the 'name' field
-of a view is not editable (it is only set when a view is created)""",
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.
+        |
+        |The json sent is the same as during view creation (above), with one difference: the 'name' field
+        |of a view is not editable (it is only set when a view is created)""",
       Extraction.decompose(ViewUpdateData("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson)
 
@@ -508,8 +506,7 @@ of a view is not editable (it is only set when a view is created)""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
       "Deletes a view on an bank account.",
-      "Deletes a view on an bank account.",
-      // 
+      "",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -532,8 +529,8 @@ of a view is not editable (it is only set when a view is created)""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
       "Get access.",
       """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
-
-OAuth authentication is required and the user needs to have access to the owner view.""",
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -558,9 +555,10 @@ OAuth authentication is required and the user needs to have access to the owner 
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
       "Get access for specific user.",
-      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-
-OAuth authentication is required and the user needs to have access to the owner view.""",
+      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
+         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+         |
+         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -673,8 +671,8 @@ OAuth authentication is required and the user needs to have access to the owner 
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Delete access for specific user to all the views.",
       """Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
-
-OAuth authentication is required and the user needs to have access to the owner view.""",
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -698,8 +696,8 @@ OAuth authentication is required and the user needs to have access to the owner 
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get other accounts for one account.",
       """Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
-
-OAuth authentication is required if the view VIEW_ID is not public.""",
+        |
+        |OAuth authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -725,8 +723,8 @@ OAuth authentication is required if the view VIEW_ID is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get one other account by id.",
       """Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
-
-OAuth authentication is required if the view is not public.""",
+         |
+         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -752,8 +750,8 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
       "Get metadata of one other account.",
       """Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
-
-Authentication via OAuth is required if the view is not public.""",
+        |
+        |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -780,8 +778,8 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account.",
       """Returns the public alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
+        |
+        |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 

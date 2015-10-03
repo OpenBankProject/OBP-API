@@ -233,8 +233,8 @@ object JSONFactory1_4_0 {
   def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
 
     // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
-    // But since we don't want to have to escape underscores (\_) in our documentation
-    // Hence we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+    // But we don't want to have to escape underscores (\_) in our documentation
+    // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
     // PegDown seems to be feature rich and ignores underscores in words by default.
 
     // We return html rather than markdown to the consumer so they don't have to bother with these questions.
