@@ -25,7 +25,10 @@ import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import net.liftweb.json.JsonDSL._
 
-case class MakePaymentJson(bank_id : String, account_id : String, amount : String)
+case class MakePaymentJson(
+  bank_id : String,
+  account_id : String,
+  amount : String)
 
 trait APIMethods121 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -581,10 +584,12 @@ OAuth authentication is required and the user needs to have access to the owner 
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
       "Add access for specific user to a list of views.",
-      """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-
-OAuth authentication is required and the user needs to have access to the owner view.""",
-      emptyObjectJson,
+      """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
+         |
+         |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+         |
+         |OAuth authentication is required and the user needs to have access to the owner view.""",
+      Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
       emptyObjectJson)
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -610,11 +615,11 @@ OAuth authentication is required and the user needs to have access to the owner 
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Add access for specific user to a specific view.",
       """Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
-
-OAuth authentication is required and the user needs to have access to the owner view.
-
-Granting access to a public view will return an error message, as the user already has access.""",
-      emptyObjectJson,
+          |
+          |OAuth authentication is required and the user needs to have access to the owner view.
+          |
+          |Granting access to a public view will return an error message, as the user already has access.""",
+      emptyObjectJson, // No Json body required
       emptyObjectJson)
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -624,6 +629,7 @@ Granting access to a public view will return an error message, as the user alrea
           for {
             u <- user ?~ "user not found"
             account <- BankAccount(bankId, accountId)
+            // TODO Check Error cases
             addedView <- account addPermission(u, ViewUID(viewId, bankId, accountId), providerId, userId)
           } yield {
             val viewJson = JSONFactory.createViewJSON(addedView)
@@ -639,10 +645,10 @@ Granting access to a public view will return an error message, as the user alrea
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
       "Delete access for specific user to one view.",
       """Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
-
-Revoking a user access to a public view will return an error message.
-
-OAuth authentication is required and the user needs to have access to the owner view.""",
+        |
+        |Revoking a user access to a public view will return an error message.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -802,14 +808,14 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account.",
       """Creates the public alias for the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.
-
-Note: Public aliases are automatically generated for new 'other accounts', so this call should only be used if
-the public alias was deleted.
-
-The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required if the view is not public.
+         |
+         |Note: Public aliases are automatically generated for new 'other accounts', so this call should only be used if
+         |the public alias was deleted.
+         |
+         |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
+      Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson)
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -837,9 +843,9 @@ The VIEW_ID parameter should be a view the caller is permitted to access to and 
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Update public alias of other bank account.",
       """Updates the public alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
-      emptyObjectJson,
+        |
+        |OAuth authentication is required if the view is not public.""",
+      Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson)
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -867,8 +873,8 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Delete public alias of other bank account.",
       """Deletes the public alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
+         |
+         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -894,8 +900,8 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Get private alias of other bank account.",
       """Returns the private alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
+        |
+        |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -923,9 +929,9 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Add private alias to other bank account.",
       """Creates a private alias for the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required if the view is not public.""",
+      Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson)
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -954,9 +960,9 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Update private alias of other bank account.",
       """Updates the private alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
-      emptyObjectJson,
+        |
+        |OAuth authentication is required if the view is not public.""",
+      Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson)
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -985,8 +991,8 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Delete private alias of other bank account.",
       """Deletes the private alias of the other account OTHER_ACCOUNT_ID.
-
-OAuth authentication is required if the view is not public.""",
+        |
+        |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1013,9 +1019,8 @@ OAuth authentication is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
       "Add more info to other bank account.",
-      "",
-      // "
-      emptyObjectJson,
+      "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
+      Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson)
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1043,8 +1048,8 @@ OAuth authentication is required if the view is not public.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
       "Update more info of other bank account",
-      "",
-      emptyObjectJson,
+      "Update the description of the counter party from the perpestive of the account e.g. My dentist.",
+      Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson)
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1099,8 +1104,8 @@ OAuth authentication is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
       "Add url to other bank account.",
-      "",
-      emptyObjectJson,
+      "A url which represents the counterparty (home page url etc.)",
+      Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson)
 
 
@@ -1129,8 +1134,8 @@ OAuth authentication is required if the view is not public.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
       "Update url of other bank account.",
-      "",
-      emptyObjectJson,
+      "A url which represents the counterparty (home page url etc.)",
+      Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson)
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1185,8 +1190,8 @@ OAuth authentication is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
       "Add image url to other bank account.",
-      "",
-      emptyObjectJson,
+      "Add a url that points to the logo of the counterparty",
+      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson)
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1214,8 +1219,8 @@ OAuth authentication is required if the view is not public.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
       "Update image url of other bank account.",
-      "",
-      emptyObjectJson,
+      "Update the url that points to the logo of the counterparty",
+      Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson)
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1355,7 +1360,7 @@ OAuth authentication is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Add corporate location to other bank account.",
-      "",
+      "Add the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
@@ -1386,7 +1391,7 @@ OAuth authentication is required if the view is not public.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Update corporate location of other bank account.",
-      "",
+      "Update the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
@@ -1417,7 +1422,7 @@ OAuth authentication is required if the view is not public.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
       "Delete corporate location of other bank account.",
-      "",
+      "Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1449,7 +1454,7 @@ OAuth authentication is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
       "Add physical location to other bank account.",
-      "",
+      "Add geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
@@ -1479,8 +1484,8 @@ OAuth authentication is required if the view is not public.""",
       "updateCounterpartyPhysicalLocation",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
-      "Update physical location to other bank account.",
-      "",
+      "Update counterparties physical location",
+      "Update geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
@@ -1542,19 +1547,19 @@ OAuth authentication is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Get transactions.",
       """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.
-
-Possible custom headers for pagination:
-
-* obp_sort_by=CRITERIA ==> default value: "completed" field
-* obp_sort_direction=ASC/DESC ==> default value: DESC
-* obp_limit=NUMBER ==> default value: 50
-* obp_offset=NUMBER ==> default value: 0
-* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
-* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
-
-**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+         |
+         |Authentication via OAuth is required if the view is not public.
+         |
+         |Possible custom headers for pagination:
+         |
+         |* obp_sort_by=CRITERIA ==> default value: "completed" field
+         |* obp_sort_direction=ASC/DESC ==> default value: DESC
+         |* obp_limit=NUMBER ==> default value: 50
+         |* obp_offset=NUMBER ==> default value: 0
+         |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
+         |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+         |
+         |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1582,8 +1587,8 @@ Possible custom headers for pagination:
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
       "Get transaction by id.",
       """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         |
+         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1609,8 +1614,8 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Get narrative.",
       """Returns the account owner description of the transaction [moderated](#1_2_1-getViewsForBankAccount) by the view.
-
-Authentication via OAuth is required if the view is not public.""",
+         |
+         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1635,9 +1640,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add narrative.",
       """Creates a description of the transaction TRANSACTION_ID.
-
-Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+         |
+         |Authentication via OAuth is required if the view is not public.""",
+      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson)
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1664,9 +1669,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Update narrative.",
       """Updates the description of the transaction TRANSACTION_ID.
-
-Authentication via OAuth is required if the view is not public.""",
-      emptyObjectJson,
+         |
+         |Authentication via OAuth is required if the view is not public.""",
+      Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson)
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1693,8 +1698,8 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Delete narrative.",
       """Deletes the description of the transaction TRANSACTION_ID.
-
-Authentication via OAuth is required if the view is not public.""",
+         |
+         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1719,8 +1724,8 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Get comments.",
       """Returns the transaction TRANSACTION_ID comments made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-
-Authentication via OAuth is required if the view is not public.""",
+         |
+         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1745,9 +1750,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments",
       "Add comment.",
       """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
-
-OAuth authentication is required since the comment is linked with the user.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required since the comment is linked with the user.""",
+      Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
       emptyObjectJson)
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1766,6 +1771,8 @@ OAuth authentication is required since the comment is linked with the user.""",
       }
     }
 
+    // Not able to update a comment (delete and add another)
+
     resourceDocs += ResourceDoc(
       apiVersion,
       "deleteCommentForViewOnTransaction",
@@ -1773,8 +1780,8 @@ OAuth authentication is required since the comment is linked with the user.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/comments/COMMENT_ID",
       "Delete comment.",
       """Delete the comment COMMENT_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
-
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
+         |
+         |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1825,9 +1832,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a tag.",
       """Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
-
-OAuth authentication is required since the tag is linked with the user.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required since the tag is linked with the user.""",
+      Extraction.decompose(PostTransactionTagJSON("holiday")),
       emptyObjectJson)
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1837,7 +1844,7 @@ OAuth authentication is required since the tag is linked with the user.""",
         user =>
           for {
             u <- user
-            tagJson <- tryo{json.extract[PostTransactionTagJSON]}
+            tagJson <- tryo{json.extract[PostTransactionTagJSON]} // TODO Error handling
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
             postedTag <- addTagFunc(u.apiId, viewId, tagJson.value, now)
@@ -1846,6 +1853,8 @@ OAuth authentication is required since the tag is linked with the user.""",
           }
       }
     }
+
+    // No update tag (delete and add another)
 
     resourceDocs += ResourceDoc(
       apiVersion,
@@ -1907,9 +1916,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add an image.",
       """Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
-
-OAuth authentication is required since the image is linked with the user.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required since the image is linked with the user.""",
+      Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
       emptyObjectJson)
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1936,8 +1945,8 @@ OAuth authentication is required since the image is linked with the user.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
       "delete an image",
       """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
-
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
+         |
+         |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1962,9 +1971,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Get where tag.",
       """Returns the "where" Geo tag added to the transaction TRANSACTION_ID made on a [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
-It represents the location where the transaction has been initiated.
-
-Authentication via OAuth is required if the view is not public.""",
+        |It represents the location where the transaction has been initiated.
+        |
+        |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -1990,9 +1999,9 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add where tag.",
       """Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
-
-OAuth authentication is required since the geo tag is linked with the user.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required since the geo tag is linked with the user.""",
+      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2021,9 +2030,9 @@ OAuth authentication is required since the geo tag is linked with the user.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update where tag.",
       """Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
-
-OAuth authentication is required since the geo tag is linked with the user.""",
-      emptyObjectJson,
+         |
+         |OAuth authentication is required since the geo tag is linked with the user.""",
+      Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson)
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2113,11 +2122,11 @@ Authentication via OAuth is required if the view is not public.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Make Payment.",
       """This is an experimental call, currently only implemented in the OBP sandbox instance. It is currently very minimal, and will almost certainly change.
-
-This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
-
-There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
-      emptyObjectJson,
+         |
+         |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
+         |
+         |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
+      Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
       emptyObjectJson)
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

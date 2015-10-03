@@ -286,7 +286,7 @@ Authentication via OAuth *may* be required.""",
       "GET",
       "/resource-docs",
       "Get the API calls that are documented on this server.",
-      "Returns the documentation about the ",
+      "Returns the documentation about the API endpoints including example body for POST or PUT requests.",
       emptyObjectJson,
       emptyObjectJson
     )
