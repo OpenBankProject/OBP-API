@@ -15,6 +15,7 @@ import code.model.{AmountOfMoney, BankAccount, AccountId, BankId}
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
+import org.pegdown.PegDownProcessor
 
 object JSONFactory1_4_0 {
 
@@ -216,13 +217,13 @@ object JSONFactory1_4_0 {
 
 
   // Used to describe the OBP API calls for documentation and API discovery purposes
-  case class ResourceDocJson(id: String,
+  case class ResourceDocJson(operation_id: String,
                          request_verb: String,
                          request_url: String,
+                         summary: String,
                          description: String,
-                         overview: String,
-                         request_body: JValue,
-                         response_body: JValue,
+                         example_request_body: JValue,
+                         success_response_body: JValue,
                          implemented_by: ImplementedByJson)
 
 
@@ -231,14 +232,25 @@ object JSONFactory1_4_0 {
   case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
 
   def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
+
+    // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
+    // But we don't want to have to escape underscores (\_) in our documentation
+    // Thus we use a flavour of markdown that ignores underscores in words. (Github markdown does this too)
+    // PegDown seems to be feature rich and ignores underscores in words by default.
+
+    // We return html rather than markdown to the consumer so they don't have to bother with these questions.
+
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+
     ResourceDocJson(
-      id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
+      operation_id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
       request_verb = resourceDoc.requestVerb,
       request_url = resourceDoc.requestUrl,
-      description = resourceDoc.description,
-      overview = resourceDoc.overview.stripMargin, //.replaceAll("\n", " "),
-      request_body = resourceDoc.requestBody,
-      response_body = resourceDoc.responseBody,
+      summary = resourceDoc.summary,
+      // Strip the margin character (|) and line breaks and convert from markdown to html
+      description = pegDownProcessor.markdownToHtml(resourceDoc.description.stripMargin).replaceAll("\n", ""),
+      example_request_body = resourceDoc.exampleRequestBody,
+      success_response_body = resourceDoc.successResponseBody,
       implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)
       )
   }

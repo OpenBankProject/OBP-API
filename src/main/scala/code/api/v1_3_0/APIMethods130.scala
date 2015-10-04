@@ -62,7 +62,7 @@ trait APIMethods130 {
       "GET",
       "/banks/BANK_ID/cards",
       "Get cards for the specified bank",
-      "no such Request in the Wiki!!",
+      "",
       emptyObjectJson,
       emptyObjectJson)
 

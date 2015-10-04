@@ -281,16 +281,16 @@ Authentication via OAuth *may* be required.""",
       apiVersion,
       "getResourceDocs",
       "GET",
-      "/resource-docs",
-      "Get the API calls that are documented on this server. (This call).",
-      "",
+      "/resource-docs/obp",
+      "Get the API calls that are documented on this server in OBP format.",
+      "Returns the documentation about the API endpoints including example body for POST or PUT requests.",
       emptyObjectJson,
       emptyObjectJson
     )
 
     // Provides resource documents so that live docs (currently on Sofi) can display API documentation
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: Nil JsonGet _ => {
+      case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
             rd <- getResourceDocsList
@@ -419,6 +419,41 @@ Authentication via OAuth *may* be required.""",
 
       }
     }
-  }
 
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransactionRequests",
+      "GET",
+      "/i-do-not-exist-i-will-404",
+      "I am only a test resource Doc",
+      """
+        |
+        |#This should be H1
+        |
+        |##This should be H2
+        |
+        |###This should be H3
+        |
+        |####This should be H4
+        |
+        |Here is a list with two items:
+        |
+        |* One
+        |* Two
+        |
+        |There are underscores by them selves _
+        |
+        |There are _underscores_ around a word
+        |
+        |There are underscores_in_words
+        |
+        |There are 'underscores_in_words_inside_quotes'
+        |
+        |There are (underscores_in_words_in_brackets)
+        |
+        |_etc_...""",
+      emptyObjectJson,
+      emptyObjectJson)
+  }
 }
