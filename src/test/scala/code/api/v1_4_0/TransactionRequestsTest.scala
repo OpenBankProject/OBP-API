@@ -261,7 +261,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       challenge.size should not equal(0)
 
       //3. TODO: answer challenge and check if transaction is being created
-      
+
     }
 
     /*

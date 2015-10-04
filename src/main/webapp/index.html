@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -29,14 +29,41 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 -->
 
-<div id="main" class="lift:surround?with=default;at=content">
-  <p class="text">
-    Welcome to The Open Bank Project API.
+<div id="main" data-lift="surround?with=default;at=content">
+    <div data-lift="WebUI.aboutBackground">
+      <div id="main-about" data-lift="WebUI.aboutText">
+          <div class="about-text">
+          </div>
+      </div>
+    </div>
+    <div id="main-links">
+        <a href="/consumer-registration">Register for API keys</a>
+        <a href="https://github.com/OpenBankProject/OBP-API/wiki/">API documentation</a>
+    </div>
+    <div id="main-sandbox">
+        <h1>Get Started</h1>
 
-    The Open Bank Project is an open source API and App store for banks that empowers financial
-    institutions to securely and rapidly enhance their digital offerings using an ecosystem of 3rd
-    party applications and services.
+        <p class="about-text">
+            To get started please:
+        <ol>
+            <li>Register as an API user <a href="/user_mgt/sign_up">here</a></li>
+            <li>Register one or more developer keys <a href="/consumer-registration">here</a></li>
+            <li>See the documentation <a href="https://github.com/OpenBankProject/OBP-API/wiki">here</a></li>
+        </ol>
+        </p>
 
-    Find more information about the project at <a href="https://openbankproject.com/">openbankproject.com</a>.
-  </p>
+        <br />
+
+        <h1>Questions?</h1>
+
+        <p class="about-text">
+            Please email: contact AT openbankproject DOT com or tweet <a href="https://twitter.com/openbankproject">@OpenBankProject</a>
+        </p>
+
+    </div>
+
+    <div id="main-partners">
+        <!-- <a href="http://www.bnpparibas-pf.com/en/"><img src="/media/images/bnpp/bnpp-personal.png" alt=""></a> -->
+        <span class="stretch"></span>
+    </div>
 </div>

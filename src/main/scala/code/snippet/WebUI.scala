@@ -28,40 +28,26 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
-package code.model.dataAccess
+*/
 
-import code.metadata.narrative.OBPNarrativeInit
-import code.metadata.wheretags.OBPWhereTagInit
-import net.liftweb.util.ConnectionIdentifier
+package code.snippet
 
-object AdminDb extends ConnectionIdentifier {
-  val jndiName = "admin"
-}
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{CssSel, Props}
 
-object MongoConfig {
-  def init: Unit = {
-    import net.liftweb.mongodb.MongoDB
-    import com.mongodb.{Mongo, ServerAddress}
-    import net.liftweb.util.{Props, DefaultConnectionIdentifier}
+import scala.xml.NodeSeq
 
-
-    val srvr = new ServerAddress(
-       Props.get("mongo.host", "localhost"),
-       Props.getInt("mongo.port", 27017)
-    )
-    val defaultDatabase = Props.mode match {
-        case Props.RunModes.Test  => "test"
-        case _ => "OBP006"
-      }
-
-    MongoDB.defineDb(DefaultConnectionIdentifier, new Mongo(srvr), Props.get("mongo.dbName", defaultDatabase))
-    MongoDB.defineDb(AdminDb, new Mongo(srvr), "admin")
-
-
-    HostedBank.init
-    Account.init
-    OBPNarrativeInit.init
-    OBPWhereTagInit.init
+class WebUI {
+  def headerLogoLeft = {
+    "img [src]" #> Props.get("webui_header_logo_left_url", "")
+  }
+  def headerLogoRight: CssSel = {
+    "img [src]" #> Props.get("webui_header_logo_right_url", "")
+  }
+  def aboutBackground: CssSel = {
+    "#main-about [style]" #> ("background-image: url(" + Props.get("webui_index_page_about_section_background_image_url", "") + ");")
+  }
+  def aboutText: CssSel = {
+    ".about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
   }
 }

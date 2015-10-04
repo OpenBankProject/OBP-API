@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -44,7 +44,7 @@ import code.util.Helper.NOOP_SELECTOR
 class ConsumerRegistration extends Loggable {
 
   //TODO: for security reasons this snippet and the template must be re-factored
-  //to use the lift build in form function(SHtml._) so we can hide to what
+  //to use the lift built-in form function(SHtml._) so we can hide to what
   //the input fields are mapped to in the server side !!
 
   private object nameVar extends RequestVar("")

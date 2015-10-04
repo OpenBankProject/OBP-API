@@ -1,22 +1,23 @@
 #this is a sample props file you should edit and rename
 #see https://www.assembla.com/wiki/show/liftweb/Properties for all the naming options, or just use "default.props" in this same folder
 
+### OBP-API configuration
+
+
+### base configuration
+
 #which data connector to use
-
-#connector=mongodb
-#connector=rest
-#connector=...
 connector=mapped
+#connector=mongodb
+#connector=...
 
-#if connector is mapped, set a database backend
-db.driver=org.postgresql.Driver
-#you can also use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
-
+#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+#db.driver=org.postgresql.Driver
+#db.driver=org.h2.Driver
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
-
-
+#our own remotely accessible URL
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
 # (this needs to be an URL)
@@ -25,9 +26,10 @@ hostname=http://127.0.0.1:8080
 #this is only useful for running the api locally via RunWebApp
 #if you use it, make sure this matches your hostname port!
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
-dev.port=8089
+dev.port=8080
 
-#mail server config: not need in dev mode, but important for production
+#sending mail out
+#not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
 mail.smtp.host=127.0.0.1
@@ -36,15 +38,9 @@ mail.smtp.port=25
 #oauth token timeout
 token_expiration_weeks=4
 
-#secret key that allows access to api calls to get info about oauth tokens. You should change this
-#to your own secret key
-BankMockKey=change_me
 
-#secret key that allows access to the "add cash transactions" API. You should change this to your own secret key
-cashApplicationKey=change_me
 
-#secret key that allows access to the "add transactions" API. You should change this to your own secret key
-importer_secret=change_me
+### sandbox
 
 #set this to true if you want to allow users to create sandbox test accounts with a starting balance
 allow_sandbox_account_creation=true
@@ -55,15 +51,21 @@ allow_sandbox_data_import=true
 #secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=change_me
 
-### features
+
+
+### api features
+
+#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+cashApplicationKey=change_me
 
 #set this to false if you don't want the api payments call to work (starting with v1.2.1)
 payments_enabled=true
 
 #transaction requests are replacing simple payments starting from 1.4.0
-#(and set a connector per feature. Will be expanded to several other features as well)
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
+
+
 
 ### management modules
 
@@ -72,11 +74,32 @@ connection.host=localhost
 connection.user=theusername
 connection.password=thepassword
 
-#set this to true if you want to have the api to send a message to the hbci project to refresh transactions for an account
-messageQueue.updateBankAccountsTransaction=false
+#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+importer_secret=change_me
+
+#set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
+messageQueue.updateBankAccountsTransaction=true
+
+#the minimum time between updates in hours
+messageQueue.updateTransactionsInterval=1
 
 #set this to true if you want to have the api listen for "create account" messages from the hbci project
 messageQueue.createBankAccounts=true
 
-#set this to true if you want to allow users to delete accounts
+#set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
 allow_account_deletion=true
+
+#secret key that allows access to api calls to get info about oauth tokens. You should change this
+#to your own secret key
+BankMockKey=change_me
+
+
+
+### web interface configuration
+webui_header_theme_color = #53C4EF
+webui_header_logo_left_url = /media/images/logo.png
+webui_header_logo_right_url =
+webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
+webui_index_page_about_section_text = <p class="about-text"> \
+                                        Welcome to the API Sandbox powered by the Open Bank Project! <br/> \
+                                      </p>

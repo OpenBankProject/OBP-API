@@ -1,13 +1,10 @@
 package code.bankconnectors
 
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.dataAccess.MappedBankAccount
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestId, TransactionRequestBody}
 import code.util.Helper._
-import com.javafx.tools.doclets.formats.html.markup.DocType
-import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Full, Empty, Box}
 import code.model._
 import net.liftweb.util.Helpers._

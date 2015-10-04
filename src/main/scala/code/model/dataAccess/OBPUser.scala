@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -36,12 +36,7 @@ import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
 import net.liftweb.common._
 import scala.xml.NodeSeq
-import net.liftweb.http.{SessionVar,Templates}
-import code.model.User
-import net.liftweb.json.JsonDSL._
-import net.liftweb.http.SHtml
-import net.liftweb.http.S
-import com.mongodb.DBObject
+import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 
 
@@ -116,23 +111,24 @@ import net.liftweb.util.Helpers._
   override def skipEmailValidation = true
 
   override def loginXhtml = {
-    import net.liftweb.http.js.JsCmds.Noop
     val loginXml = Templates(List("templates-hidden","_login")).map({
         "form [action]" #> {S.uri} &
-        "#loginText * " #> {S.??("log.in")} &
-        "#emailAddressText * " #> {S.??("email.address")} &
-        "#passwordText * " #> {S.??("password")} &
+        "#loginText * " #> {S.?("log.in")} &
+        "#emailAddressText * " #> {S.?("email.address")} &
+        "#passwordText * " #> {S.?("password")} &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
-          "a *" #> {S.??("recover.password")}
+          "a *" #> {S.?("recover.password")}
         } &
         "#SignUpLink * " #> {
           "a [href]" #> {OBPUser.signUpPath.foldLeft("")(_ + "/" + _)} &
-          "a *" #> {S.??("sign.up")}
+          "a *" #> {S.?("sign.up")}
         }
       })
-      SHtml.span(loginXml getOrElse NodeSeq.Empty,Noop)
+
+    <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
+
 
   /**
    * Overriden to use the hostname set in the props file
@@ -161,6 +157,35 @@ import net.liftweb.util.Helpers._
     }
   }
 
+  override def lostPasswordXhtml = {
+    <div id="authorizeSection">
+      <div id="userAccess">
+        <div class="account account-in-content">
+          {S.?("enter.email")}
+          <form class="forgotPassword" action={S.uri} method="post">
+            <div class="field username">
+              <label>{userNameFieldString}</label> <user:email />
+            </div>
+
+            <div class="field buttons">
+              <div class="button button-field">
+                <user:submit />
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+
+  override def lostPassword = {
+    bind("user", lostPasswordXhtml,
+      "email" -> SHtml.text("", sendPasswordReset _),
+      "submit" -> lostPasswordSubmitButton(S.?("submit")))
+  }
+
+  //override def def passwordResetMailBody(user: TheUserType, resetLink: String): Elem = { }
+
   /**
    * Overriden to use the hostname set in the props file
    */
@@ -186,18 +211,23 @@ import net.liftweb.util.Helpers._
   }
 
   override def signupXhtml (user:OBPUser) =  {
-    <form id="signupForm" method="post" action={S.uri}>
-      <table>
-        <tr>
-          <td colspan="2">{ S.?("sign.up") }</td>
-        </tr>
-          {localForm(user, false, signupFields)}
-        <tr>
-          <td>&nbsp;</td>
-          <td><user:submit/></td>
-        </tr>
-      </table>
-    </form>
+    <div id="authorizeSection" class="signupSection">
+      <div class="signup-error"><span class="lift:Msg?id=signup"/></div>
+      <div>
+        <form id="signupForm" method="post" action={S.uri}>
+          <table>
+            <tr>
+              <td colspan="2">{ S.?("sign.up") }</td>
+            </tr>
+              {localForm(user, false, signupFields)}
+            <tr>
+              <td>&nbsp;</td>
+              <td><user:submit/></td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
   }
 
   //overridden to allow a redirection if login fails
@@ -232,6 +262,7 @@ import net.liftweb.util.Helpers._
         case _ => {
           info("failed: " + failedLoginRedirect.get)
           failedLoginRedirect.get.foreach(S.redirectTo(_))
+          S.error("login", S.?("Invalid Username or Password"))
         }
       }
     }
@@ -239,7 +270,7 @@ import net.liftweb.util.Helpers._
     bind("user", loginXhtml,
          "email" -> (FocusOnLoad(<input type="text" name="username"/>)),
          "password" -> (<input type="password" name="password"/>),
-         "submit" -> loginSubmitButton(S.??("log.in")))
+         "submit" -> loginSubmitButton(S.?("log.in")))
   }
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
@@ -268,7 +299,9 @@ import net.liftweb.util.Helpers._
             S.redirectTo(redir)
           })
 
-        case xs => S.error(xs) ; signupFunc(Full(innerSignup _))
+        case xs =>
+          xs.foreach(e => S.error("signup", e.msg))
+          signupFunc(Full(innerSignup _))
       }
     }
 
@@ -278,6 +311,4 @@ import net.liftweb.util.Helpers._
 
     innerSignup
   }
-
-
 }

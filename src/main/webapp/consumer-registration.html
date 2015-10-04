@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,143 +30,117 @@ Berlin 13359, Germany
 -->
 
 <div id="main" class="lift:surround?with=default;at=content">
-	<div class="lift:ConsumerRegistration.registerForm">
-		<div class="registration">
-		<h1 class="register-header">Register your application</h1>
+	<div id="registerAppSection" class="lift:ConsumerRegistration.registerForm">
+		<div class="registration account-in-content">
+		    <h1 class="register-header">Register your application</h1>
 			<div id="registration-errors">
 				<div class="error">
 					<span class="errorContent"></span>
 				</div>
 			</div>
 			<form class="register" method="post">
-				<TABLE>
-					<tbody>
-						<tr>
-							<td colspan="2" >
-								Please register your application to get your OAuth token and secret:
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<label for="appType">Application Type</label>
-							</td>
-							<td>
-								<select name="app-type" id="appType">
-									<option class="app-type-option"></option>
-								</select>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<label for="appName">Application Name</label>
-							</td>
-							<td>
-								<input type="text" name="app-name" id="appName"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<label for="appUserAuthenticationUrl">User authentication URL</label>
-							<img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page."
-								alt="more info" class="moreInfoIcon"/>
-							</td>
-							<td>
-								<input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<label for="appDev">Developer Email</label>
-							</td>
-							<td>
-								<input type="text" name="app-developer" id="appDev"></input>
-							</td>
-						</tr>
-						<tr>
-							<td>
-								<label for="appDesc">App Description</label>
-							</td>
-							<td>
-								<textarea rows="4" name="app-description" id="appDesc"></textarea>
-							</td>
-						</tr>
-						<tr>
-							<td>
-							</td>
-							<td>
-								<input type="submit" value="Register"	/>
-							</td>
-						</tr>
-					</tbody>
-				</TABLE>
+        Please complete the information below so we can create your OAuth token and secret key.
+        <div class="form-column">
+            <div>
+            <label for="appType">Application Type</label>
+            <select name="app-type" id="appType">
+                <option class="app-type-option"></option>
+            </select>
+            </div>
+            <div>
+            <label for="appName">Application Name</label>
+            <input type="text" name="app-name" id="appName">
+            </div>
+            <!-- <div>
+            <label for="appUserAuthenticationUrl">Authentication URL</label>
+            <input type="text" name="app-user-authentication-url" id="appUserAuthenticationUrl">
+            <img src="/media/images/moreInfo.png" title="The user will redirected to that URL during the authentication phase to authenticate. Leave it blank so that the user will see the default login page."
+                 alt="more info" class="moreInfoIcon"/>
+            </div> -->
+            <div>
+            <label for="appDev">Developer Email</label>
+            <input type="text" name="app-developer" id="appDev">
+            </div>
+        </div>
+        <div class="form-column">
+            <div>
+                <label for="appDesc">Description of the application</label>
+                <textarea rows="4" name="app-description" id="appDesc"></textarea>
+            </div>
+            <div class="submit">
+                <input type="submit" value="Send" />
+            </div>
+        </div>
 			</form>
-	</div>
-	<div class="success">
-		<h1 class="success-message"></h1>
-		<TABLE>
-			<tbody>
-				<tr>
-					<td colspan="2" >
-						Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location.
-					</td>
-				</tr>
-				<tr>
-					<td>
-						Application Type</label>
-					</td>
-					<td>
-						<span class="app-type">web</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						Application Name
-					</td>
-					<td>
-						<span class="app-name">ABC</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						User authentication URL
-					</td>
-					<td>
-						<span class="app-user-authentication-url">ABC</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						Developer Email
-					</td>
-					<td>
-						<span class="app-developer">abc@example.com</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						App Description
-					</td>
-					<td>
-						<span class="app-description">ABCDEF</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						Consumer Key
-					</td>
-					<td>
-						<span class="auth-key">23432432432432</span>
-					</td>
-				</tr>
-				<tr>
-					<td>
-						Consumer Secret
-					</td>
-					<td>
-						<span class="secret-key">3334543543543</span>
-					</td>
-				</tr>
-			</tbody>
-		</TABLE>
-	</div>
+	    </div>
+        <div class="success">
+            <h1 class="success-message"></h1>
+            <table>
+                <tbody>
+                    <tr>
+                        <td colspan="2" >
+                            Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Application Type</label>
+                        </td>
+                        <td>
+                            <span class="app-type">web</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Application Name
+                        </td>
+                        <td>
+                            <span class="app-name">ABC</span>
+                        </td>
+                    </tr>
+                    <!-- <tr>
+                        <td>
+                            User authentication URL
+                        </td>
+                        <td>
+                            <span class="app-user-authentication-url">ABC</span>
+                        </td>
+                    </tr>
+                    -->
+                    <tr>
+                        <td>
+                            Developer Email
+                        </td>
+                        <td>
+                            <span class="app-developer">abc@example.com</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            App Description
+                        </td>
+                        <td>
+                            <span class="app-description">ABCDEF</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Consumer Key
+                        </td>
+                        <td>
+                            <span class="auth-key">23432432432432</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Consumer Secret
+                        </td>
+                        <td>
+                            <span class="secret-key">3334543543543</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>

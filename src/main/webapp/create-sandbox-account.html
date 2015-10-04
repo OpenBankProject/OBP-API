@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,27 +30,28 @@ Berlin 13359, Germany
 -->
 
 <div id="main" class="lift:surround?with=default;at=content">
-    <div id="create-account-explanation">
-        This form is designed to allow developers to create test accounts. When an account is created,
-        a view with VIEW_ID "owner" will be created, and access to this view will be granted to the user
-        (you) who created it. If you wish, you may then populate the account with transactions using the
-        <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1#payments">v1.2.1 payments API</a>.
-        If you wish to do this, you will probably want to create some other accounts to send payments to and receive
-        payments from.
-    </div>
-    <div id="create-account-instructions">
-        Create a new test bank account:
-    </div>
-    <div id="create-account-error-message"></div>
-    <div id="account-created-successfully" style="display:none">
-        Thank you, account <span id="created-account-id">ACCOUNT_ID</span> has
-        been created at bank <span id="created-account-bank-id">BANK_ID</span> with
-        an initial balance of <span id="created-account-initial-balance">INITIAL_BALANCE</span>
-        <span id="created-account-currency">CURRENCY</span>.
-    </div>
-    <div id="create-account-form-container">
+    <div id="create-sandbox-account" class="">
+        <div id="create-account-explanation">
+            This form is designed to allow developers to create test accounts. When an account is created,
+            a view with VIEW_ID "owner" will be created, and access to this view will be granted to the user
+            (you) who created it. If you wish, you may then populate the account with transactions using the
+            <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.2.1#payments">v1.2.1 payments API</a>.
+            If you wish to do this, you will probably want to create some other accounts to send payments to and receive
+            payments from.
+        </div>
+        <div id="create-account-instructions">
+            Create a new test bank account:
+        </div>
+        <div id="create-account-error-message"></div>
+        <div id="account-created-successfully" style="display:none">
+            Thank you, account <span id="created-account-id">ACCOUNT_ID</span> has
+            been created at bank <span id="created-account-bank-id">BANK_ID</span> with
+            an initial balance of <span id="created-account-initial-balance">INITIAL_BALANCE</span>
+            <span id="created-account-currency">CURRENCY</span>.
+        </div>
+
         <form data-lift="form.ajax">
-            <div data-lift="CreateTestAccountForm">
+            <div data-lift="CreateTestAccountForm" class="form-column middle">
                 <div>
                     <label for="bank-id">Bank</label>
                     <select id="create-account-bank-selector" name="bank-id">
@@ -69,7 +70,9 @@ Berlin 13359, Germany
                     <label for="account-id">Desired Initial Balance</label>
                     <input type="text" name="initial-balance">
                 </div>
-                <input type="submit">
+                <div class="submit">
+                    <input type="submit">
+                </div>
             </div>
         </form>
     </div>
