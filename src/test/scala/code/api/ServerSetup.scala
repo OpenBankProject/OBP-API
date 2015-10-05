@@ -36,7 +36,7 @@ import code.TestServer
 import code.api.{DefaultConnectorTestSetup, TestConnectorSetup, LocalConnectorTestSetup}
 import org.scalatest._
 import dispatch._
-import net.liftweb.json.{DefaultFormats, Serialization, NoTypeHints}
+import net.liftweb.json.{ShortTypeHints, DefaultFormats, Serialization, NoTypeHints}
 import net.liftweb.common._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
@@ -45,7 +45,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with ShouldMatchers with Loggable {
 
   var server = TestServer
-  implicit val formats = DefaultFormats
+  implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
   val h = Http
   def baseRequest = host(server.host, server.port)
 

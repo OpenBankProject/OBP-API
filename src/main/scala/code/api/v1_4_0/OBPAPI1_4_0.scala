@@ -1,11 +1,9 @@
 package code.api.v1_4_0
 
 import code.api.OBPRestHelper
-import code.api.v1_3_0.OBPAPI1_3_0._
 import net.liftweb.common.Loggable
 
 object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
-
 
   val VERSION = "1.4.0"
 
@@ -79,10 +77,12 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getCounterpartyForTransaction,
-    Implementations1_2_1.makePayment, //TODO: add v1.3.0 "challenges" (to go into 1.4.5 now)
+    //note: removed 1.2.1 makePayment
+
     // New in 1.3.0
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank,
+
     // New in 1.4.0
     Implementations1_4_0.getCustomer,
     Implementations1_4_0.getCustomerMessages,
@@ -91,7 +91,10 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_4_0.getAtms,
     Implementations1_4_0.getProducts,
     Implementations1_4_0.getCrmEvents,
-    Implementations1_4_0.getResourceDocs
+    Implementations1_4_0.getResourceDocs,
+    Implementations1_4_0.createTransactionRequest,
+    Implementations1_4_0.getTransactionRequests,
+    Implementations1_4_0.getTransactionRequestTypes
   )
 
   routes.foreach(route => {

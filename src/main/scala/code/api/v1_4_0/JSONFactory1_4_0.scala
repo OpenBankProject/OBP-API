@@ -11,8 +11,9 @@ import code.products.Products.{Product}
 
 
 import code.customer.{CustomerMessage, Customer}
-import code.model.BankId
+import code.model.{AmountOfMoney, BankAccount, AccountId, BankId}
 import code.products.Products.ProductCode
+import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 import org.pegdown.PegDownProcessor
 
@@ -259,4 +260,77 @@ object JSONFactory1_4_0 {
   }
 
 
+  //transaction requests
+  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJSON) : TransactionRequestBody = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = body.to.bank_id,
+      account_id = body.to.account_id
+    )
+    val amount = AmountOfMoney (
+      currency = body.value.currency,
+      amount = body.value.amount
+    )
+
+    TransactionRequestBody (
+      to = toAcc,
+      value = amount,
+      description = body.description
+    )
+  }
+
+  def getTransactionRequestFromJson(json : TransactionRequestJSON) : TransactionRequest = {
+    val fromAcc = TransactionRequestAccount (
+      json.from.bank_id,
+      json.from.account_id
+    )
+    val challenge = TransactionRequestChallenge (
+      id = json.challenge.id,
+      allowed_attempts = json.challenge.allowed_attempts,
+      challenge_type = json.challenge.challenge_type
+    )
+
+    TransactionRequest (
+      transactionRequestId = TransactionRequestId(json.id),
+      `type`= json.`type`,
+      from = fromAcc,
+      body = getTransactionRequestBodyFromJson(json.body),
+      transaction_ids = json.transaction_ids,
+      status = json.status,
+      start_date = json.start_date,
+      end_date = json.end_date,
+      challenge = challenge
+    )
+  }
+
+  case class AmountOfMoneyJSON (
+                                currency : String,
+                                amount : String
+                              )
+  case class TransactionRequestAccountJSON (
+                             bank_id: String,
+                             account_id : String
+                            )
+
+  case class TransactionRequestBodyJSON(to: TransactionRequestAccountJSON,
+                              value : AmountOfMoneyJSON,
+                              description : String,
+                              challenge_type : String
+                             )
+
+  case class TransactionRequestJSON(id: String,
+                          `type`: String,
+                          from: TransactionRequestAccountJSON,
+                          body: TransactionRequestBodyJSON,
+                          transaction_ids: String,
+                          status: String,
+                          start_date: Date,
+                          end_date: Date,
+                          challenge: ChallengeJSON
+                          )
+
+  case class ChallengeJSON (
+                           id: String,
+                           allowed_attempts : Int,
+                           challenge_type: String
+                          )
 }

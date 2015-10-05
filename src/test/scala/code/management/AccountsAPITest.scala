@@ -10,11 +10,6 @@ import code.bankconnectors.Connector
 import net.liftweb.common.Empty
 import org.scalatest.Tag
 
-
-/**
- * Created by stefan on 16.04.15.
- */
-
 class AccountsAPITest extends API1_2_1Test with User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
   //define Tags

@@ -1,6 +1,6 @@
 package code.bankconnectors
 
-import java.util.{UUID, Date}
+import java.util.{Calendar, UUID, Date}
 
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -15,6 +15,8 @@ import code.model._
 import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
+import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody, TransactionRequestId}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box}
@@ -186,7 +188,6 @@ object LocalMappedConnector extends Connector with Loggable {
     val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     account.accountBalance(newAccountBalance).save()
 
-
     val mappedTransaction = MappedTransaction.create
       .bank(account.bankId.value)
       .account(account.accountId.value)
@@ -207,6 +208,61 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(mappedTransaction.theTransactionId)
   }
 
+  /*
+    Transaction Requests
+  */
+
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                            account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
+                                            status: String) : Box[TransactionRequest] = {
+    val mappedTransactionRequest = MappedTransactionRequest.create
+      .mTransactionRequestId(transactionRequestId.value)
+      .mType(transactionRequestType.value)
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mBody_To_BankId(counterparty.bankId.value)
+      .mBody_To_AccountId(counterparty.accountId.value)
+      .mBody_Value_Currency(body.value.currency)
+      .mBody_Value_Amount(body.value.amount)
+      .mBody_Description(body.description)
+      .mStatus(status)
+      .mStartDate(now)
+      .mEndDate(now).saveMe
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+  }
+
+  override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      match {
+        case Full(tr: MappedTransactionRequest) => tr.mTransactionIDs(transactionId.value).save
+        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      }
+  }
+
+  override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+      match {
+        case Full(tr: MappedTransactionRequest) => {
+          tr.mChallenge_Id(challenge.id)
+          tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
+          tr.mChallenge_ChallengeType(challenge.challenge_type).save
+        }
+        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+      }
+  }
+
+
+  override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
+                                                               By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
+
+    Full(transactionRequests.flatMap(_.toTransactionRequest))
+  }
+
+  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+    //TODO: write logic / data access
+    Full(List(TransactionRequestType("SANDBOX")))
+  }
 
   /*
     Bank account creation

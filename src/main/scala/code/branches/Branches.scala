@@ -66,7 +66,7 @@ trait BranchesProvider {
       case Some(branches) => {
 
         val branchesWithLicense = for {
-         branch <- branches if branch.meta.license.name.size > 3 && branch.meta.license.name.size > 3
+         branch <- branches if branch.meta.license.name.size > 3
         } yield branch
         Option(branchesWithLicense)
       }

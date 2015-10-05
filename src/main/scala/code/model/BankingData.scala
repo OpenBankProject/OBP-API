@@ -72,6 +72,15 @@ object TransactionId {
   def unapply(id : String) = Some(TransactionId(id))
 }
 
+case class TransactionRequestType(val value : String) {
+  override def toString = value
+}
+
+object TransactionRequestType {
+  def unapply(id : String) = Some(TransactionRequestType(id))
+}
+
+
 case class AccountId(val value : String) {
   override def toString = value
 }
@@ -594,3 +603,8 @@ class Transaction(
       WhereTags.whereTags.vend.deleteWhereTag(bankId, accountId, id) _
     )
 }
+
+case class AmountOfMoney (
+  val currency: String,
+  val amount: String
+)

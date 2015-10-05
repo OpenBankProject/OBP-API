@@ -8,10 +8,14 @@
 #connector=...
 connector=mapped
 
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+#if connector is mapped, set a database backend
 db.driver=org.postgresql.Driver
+#you can also use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
+
+
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
@@ -29,18 +33,17 @@ mail.api.consumer.registered.notification.addresses=you@example.com
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
+#oauth token timeout
+token_expiration_weeks=4
+
 #secret key that allows access to api calls to get info about oauth tokens. You should change this
 #to your own secret key
 BankMockKey=change_me
 
-#set this to false if you don't want the api payments call to work
-payments_enabled=true
-
-
-#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+#secret key that allows access to the "add cash transactions" API. You should change this to your own secret key
 cashApplicationKey=change_me
 
-#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+#secret key that allows access to the "add transactions" API. You should change this to your own secret key
 importer_secret=change_me
 
 #set this to true if you want to allow users to create sandbox test accounts with a starting balance
@@ -52,7 +55,17 @@ allow_sandbox_data_import=true
 #secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=change_me
 
-#management modules
+### features
+
+#set this to false if you don't want the api payments call to work (starting with v1.2.1)
+payments_enabled=true
+
+#transaction requests are replacing simple payments starting from 1.4.0
+#(and set a connector per feature. Will be expanded to several other features as well)
+transactionRequests_enabled=true
+transactionRequests_connector=mapped
+
+### management modules
 
 #rabbitMQ settings (used to communicate with HBCI project)
 connection.host=localhost
@@ -67,6 +80,3 @@ messageQueue.createBankAccounts=true
 
 #set this to true if you want to allow users to delete accounts
 allow_account_deletion=true
-
-#TODO: should be used
-#allow_transactions_inserting=true

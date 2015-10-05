@@ -1,41 +1,38 @@
 package code.api.v1_4_0
 
-import code.api.APIFailure
-import code.api.v1_2_1.APIMethods121
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
-import code.atms.Atms
-import code.branches.Branches
-import code.crm.CrmEvent
-import code.customer.{CustomerMessages, Customer}
-import code.model.dataAccess.APIUser
-import code.model.{BankId, User}
-import code.products.Products
-import net.liftweb.common.{Loggable, Box, Full}
+import code.bankconnectors.Connector
+import code.transactionrequests.TransactionRequests.{TransactionRequestId, TransactionRequestBody, TransactionRequestAccount}
+import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import code.api.util.APIUtil._
-import net.liftweb.json
-import net.liftweb.json.Extraction
+import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
-
-
-// This makes the JObject creation work
 import net.liftweb.json.JsonDSL._
+import net.liftweb.util.Props
 
+import scala.collection.immutable.Nil
 
-import code.util.Helper._
-
+// JObject creation
 import collection.mutable.ArrayBuffer
 
+import code.api.APIFailure
+import code.api.v1_2_1.APIMethods121
+import code.api.v1_3_0.APIMethods130
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.atms.Atms
+import code.branches.Branches
+import code.crm.CrmEvent
+import code.customer.{CustomerMessages, Customer}
+import code.model._
+import code.products.Products
+import code.api.util.APIUtil._
+import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
-
-
-
+import code.transactionrequests.TransactionRequests._
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -307,11 +304,126 @@ Authentication via OAuth *may* be required.""",
       }
     }
 
+    /*
+     transaction requests (new payments since 1.4.0)
+    */
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransactionRequestTypes",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types",
+      "Get supported Transaction Request types.",
+      "",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+          Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
+            }
+              yield {
+                val successJson = Extraction.decompose(transactionRequestTypes)
+                successJsonResponse(successJson)
+              }
+          } else {
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getTransactionRequests",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
+      "Get all Transaction Requests.",
+      "",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
+            }
+            yield {
+              val successJson = Extraction.decompose(transactionRequests)
+              successJsonResponse(successJson)
+            }
+          } else {
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+          }
+      }
+    }
+
+
+
+    case class TransactionIdJson(transaction_id : String)
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "createTransactionRequest",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
+      "Create Transaction Request.",
+      "",
+      emptyObjectJson,
+      emptyObjectJson)
+
+    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+          TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              /* TODO:
+               * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
+               * test: functionality, error messages if user not given or invalid, if any other value is not existing
+              */
+              u <- user ?~ "User not found"
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {"Invalid json format"}
+              transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              toBankId <- tryo(BankId(transBodyJson.to.bank_id))
+              toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
+              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~ {"Unknown counterparty account"}
+              accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
+              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
+              createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
+            } yield {
+              val json = Extraction.decompose(createdTransactionRequest)
+              if (createdTransactionRequest.transaction_ids == "")
+                acceptedJsonResponse(json)
+              else
+                createdJsonResponse(json)
+            }
+          } else {
+            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+          }
+
+      }
+    }
 
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "IAmATestResourceDoc",
+      "getTransactionRequests",
       "GET",
       "/i-do-not-exist-i-will-404",
       "I am only a test resource Doc",
@@ -342,9 +454,6 @@ Authentication via OAuth *may* be required.""",
         |
         |_etc_...""",
       emptyObjectJson,
-      emptyObjectJson
-    )
-
+      emptyObjectJson)
   }
-
 }

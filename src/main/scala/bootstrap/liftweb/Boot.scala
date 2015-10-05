@@ -47,6 +47,7 @@ import code.atms.{MappedAtm}
 import code.customer.{MappedCustomerMessage, MappedCustomer}
 import code.products.MappedProduct
 import code.tesobe.CashAccountAPI
+import code.transactionrequests.MappedTransactionRequest
 import net.liftweb._
 import util._
 import common._
@@ -370,13 +371,14 @@ object ToSchemify {
     MappedComment,
     MappedNarrative,
     MappedTag,
-    MappedTransactionImage,
     MappedWhereTag,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
+    MappedTransactionRequest,
+    MappedTransactionImage,
     MappedMetric,
     MappedCustomer,
     MappedCustomerMessage,

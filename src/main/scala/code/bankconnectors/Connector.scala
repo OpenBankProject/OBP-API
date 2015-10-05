@@ -1,11 +1,16 @@
 package code.bankconnectors
 
 import code.management.ImporterAPI.ImporterTransaction
+import code.model.dataAccess.MappedBankAccount
 import code.tesobe.CashTransaction
+import code.transactionrequests.TransactionRequests
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestId, TransactionRequestBody}
 import code.util.Helper._
+import com.javafx.tools.doclets.formats.html.markup.DocType
 import com.tesobe.model.CreateBankAccount
-import net.liftweb.common.Box
+import net.liftweb.common.{Full, Empty, Box}
 import code.model._
+import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.model.User
 import code.model.OtherBankAccount
@@ -120,7 +125,126 @@ trait Connector {
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId]
 
 
-  //non-standard calls --do not make sense in the regular context
+  /*
+    Transaction Requests
+  */
+
+  def createTransactionRequest(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) : Box[TransactionRequest] = {
+    //set initial status
+    //for sandbox / testing: depending on amount, we ask for challenge or not
+    val status =
+      if (transactionRequestType.value == "SANDBOX" && body.value.currency == "EUR" && BigDecimal(body.value.amount) < 100) {
+        TransactionRequests.STATUS_COMPLETED
+      } else {
+        TransactionRequests.STATUS_INITIATED
+      }
+
+    //create a new transaction request
+    var result = for {
+      fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
+        s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
+      sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+        s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+      })
+      isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
+    } yield transactionRequest
+
+    //make sure we get something back
+    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
+
+    //if no challenge necessary, create transaction immediately and put in data store and object to return
+    if (status == TransactionRequests.STATUS_COMPLETED) {
+      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount))
+
+      //set challenge to null
+      result = Full(result.get.copy(challenge = null))
+
+      //save transaction_id if we have one
+      createdTransactionId match {
+        case Full(ti) => {
+          if (! createdTransactionId.isEmpty) {
+            saveTransactionRequestTransaction(result.get.transactionRequestId, ti)
+            result = Full(result.get.copy(transaction_ids = ti.value))
+          }
+        }
+        case _ => None
+      }
+    } else {
+      //if challenge necessary, create a new one
+      var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      saveTransactionRequestChallenge(result.get.transactionRequestId, challenge)
+      result = Full(result.get.copy(challenge = challenge))
+    }
+
+    result
+  }
+
+  //place holder for various connector methods that overwrite methods like these, does the actual data access
+  protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                             fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
+                                             status: String) : Box[TransactionRequest]
+
+
+  def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+    //put connector agnostic logic here if necessary
+    saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
+  }
+
+  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
+
+  def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+    //put connector agnostic logic here if necessary
+    saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
+  }
+
+  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
+
+  def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests =
+    for {
+      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+            s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      transactionRequests <- getTransactionRequestImpl(fromAccount)
+    } yield transactionRequests
+
+    //make sure we return null if no challenge was saved (instead of empty fields)
+    if (!transactionRequests.isEmpty) {
+      Full(
+        transactionRequests.get.map(tr => if (tr.challenge.id == "") {
+          tr.copy(challenge = null)
+        } else {
+          tr
+        })
+      )
+    } else {
+      transactionRequests
+    }
+  }
+
+  protected def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
+
+
+  def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+    for {
+      fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      transactionRequestTypes <- getTransactionRequestTypesImpl(fromAccount)
+    } yield transactionRequestTypes
+  }
+
+  protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]]
+
+  /*
+    non-standard calls --do not make sense in the regular context but are used for e.g. tests
+  */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)
