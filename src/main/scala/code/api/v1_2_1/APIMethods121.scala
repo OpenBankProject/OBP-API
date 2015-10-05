@@ -694,7 +694,7 @@ trait APIMethods121 {
       "getCounterpartiesForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get other accounts for one account.",
+      "Get counterparties of one account.",
       """Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |
         |OAuth authentication is required if the view VIEW_ID is not public.""",
@@ -721,8 +721,8 @@ trait APIMethods121 {
       "getCounterpartyByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get one other account by id.",
-      """Returns data about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Get counterparty by id.",
+      """Returns data about one other counterparty (bank account) (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |
          |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
@@ -748,7 +748,7 @@ trait APIMethods121 {
       "getCounterpartyMetadata",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
-      "Get metadata of one other account.",
+      "Get metadata of one counterpary (other account).",
       """Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
         |Authentication via OAuth is required if the view is not public.""",
