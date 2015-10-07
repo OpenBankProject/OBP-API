@@ -282,8 +282,8 @@ Authentication via OAuth *may* be required.""",
       "getResourceDocs",
       "GET",
       "/resource-docs/obp",
-      "Get the API calls that are documented on this server in OBP format.",
-      "Returns the documentation about the API endpoints including example body for POST or PUT requests.",
+      "Get Resource Documentation in OBP format.",
+      "Returns documentation about the resources on this server including example body for POST or PUT requests.",
       emptyObjectJson,
       emptyObjectJson
     )
