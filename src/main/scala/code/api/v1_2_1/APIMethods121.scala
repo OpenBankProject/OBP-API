@@ -79,11 +79,12 @@ trait APIMethods121 {
       "root",
       "GET",
       "/",
-      "Returns API version, git commit, hosted by etc.",
+      "The root of the API",
       """Returns information about:
         |
         |* API version
-        |* Hosted by information""",
+        |* Hosted by information
+        |* Git Commit""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -138,7 +139,7 @@ trait APIMethods121 {
       "bankById",
       "GET",
       "/banks/BANK_ID",
-      "Returns the bank specified by BANK_ID",
+      "Get the bank specified by BANK_ID",
       """Returns information about a single bank specified by BANK_ID including:
         |
         |* Short and full name of bank
