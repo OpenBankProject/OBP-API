@@ -131,7 +131,7 @@ import net.liftweb.util.Helpers._
 
 
   /**
-   * Overriden to use the hostname set in the props file
+   * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(email: String) {
     findUserByUserName(email) match {

@@ -3,9 +3,9 @@ package code.bankconnectors
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestId, TransactionRequestBody}
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
 import code.util.Helper._
-import net.liftweb.common.{Full, Empty, Box}
+import net.liftweb.common.{Failure, Full, Empty, Box}
 import code.model._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
@@ -14,6 +14,7 @@ import code.model.OtherBankAccount
 import code.model.Transaction
 import java.util.Date
 
+import scala.math.BigInt
 import scala.util.Random
 
 
@@ -193,14 +194,16 @@ trait Connector {
     saveTransactionRequestTransactionImpl(transactionRequestId, transactionId)
   }
 
-  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
+  protected def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean]
 
   def saveTransactionRequestChallenge(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
     //put connector agnostic logic here if necessary
     saveTransactionRequestChallengeImpl(transactionRequestId, challenge)
   }
 
-  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge)
+  protected def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean]
+
+  protected def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean]
 
   def getTransactionRequests(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
@@ -208,7 +211,7 @@ trait Connector {
       fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
             s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
-      transactionRequests <- getTransactionRequestImpl(fromAccount)
+      transactionRequests <- getTransactionRequestsImpl(fromAccount)
     } yield transactionRequests
 
     //make sure we return null if no challenge was saved (instead of empty fields)
@@ -225,8 +228,9 @@ trait Connector {
     }
   }
 
-  protected def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
+  protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
+  protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest]
 
   def getTransactionRequestTypes(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     for {
@@ -238,6 +242,30 @@ trait Connector {
   }
 
   protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]]
+
+
+  def answerTransactionRequestChallenge(answer: String) : Box[Boolean] = {
+    //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
+    for {
+      nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
+      positive <- booleanToBox(BigInt(answer) > 0) ?~ "Need a numeric, positive TAN"
+    } yield true
+  }
+
+  def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      transId <- makePayment(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+          BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount)) ?~ "Couldn't create Transaction"
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //get transaction request again now with updated values
+      tr <- getTransactionRequestImpl(transReqId)
+    } yield {
+      tr
+    }
+  }
+
 
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests

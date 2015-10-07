@@ -16,16 +16,15 @@ import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAcc
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
 import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody, TransactionRequestId}
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Loggable, Full, Box}
+import net.liftweb.common.{Loggable, Full, Box, Failure}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{False, Props}
 
 import scala.concurrent.ops._
-import scala.util.Failure
 
 object LocalMappedConnector extends Connector with Loggable {
 
@@ -231,33 +230,47 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
+  override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-      match {
-        case Full(tr: MappedTransactionRequest) => tr.mTransactionIDs(transactionId.value).save
-        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+    mappedTransactionRequest match {
+        case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
+        case _ => Failure("Couldn't find transaction request ${transactionRequestId}")
       }
   }
 
-  override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = {
+  override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-      match {
-        case Full(tr: MappedTransactionRequest) => {
-          tr.mChallenge_Id(challenge.id)
-          tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
-          tr.mChallenge_ChallengeType(challenge.challenge_type).save
-        }
-        case _ => logger.warn(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+    mappedTransactionRequest match {
+      case Full(tr: MappedTransactionRequest) => Full{
+        tr.mChallenge_Id(challenge.id)
+        tr.mChallenge_AllowedAttempts(challenge.allowed_attempts)
+        tr.mChallenge_ChallengeType(challenge.challenge_type).save
       }
+      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set transactionId")
+    }
+  }
+
+  override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
+    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+    mappedTransactionRequest match {
+      case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
+      case _ => Failure(s"Couldn't find transaction request ${transactionRequestId} to set status")
+    }
   }
 
 
-  override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+  override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
                                                                By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
+
+  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
+    val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
+    transactionRequest.flatMap(_.toTransactionRequest)
+  }
+
 
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access

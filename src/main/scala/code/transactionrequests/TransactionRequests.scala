@@ -6,7 +6,7 @@ import java.util.Date
 import code.model._
 import net.liftweb.common.Logger
 import net.liftweb.util.{Props, SimpleInjector}
-import TransactionRequests.{TransactionRequest, TransactionRequestId}
+import TransactionRequests.TransactionRequest
 
 object TransactionRequests extends SimpleInjector {
 
@@ -16,8 +16,6 @@ object TransactionRequests extends SimpleInjector {
   val STATUS_COMPLETED = "COMPLETED"
 
   val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
-
-  case class TransactionRequestId(value : String)
 
   case class TransactionRequest (
     val transactionRequestId: TransactionRequestId,

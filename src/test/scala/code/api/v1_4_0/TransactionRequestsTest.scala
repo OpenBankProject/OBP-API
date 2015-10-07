@@ -6,9 +6,8 @@ import code.api.util.APIUtil.OAuth.{Token, Consumer}
 import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.model.{AccountId, BankAccount}
+import code.model.{TransactionRequestId, AccountId, BankAccount}
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.TransactionRequestId
 import code.api.util.APIUtil.OAuth._
 import dispatch._
 import net.liftweb.json.JsonAST.JString

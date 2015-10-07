@@ -80,6 +80,13 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
+case class TransactionRequestId(val value : String) {
+  override def toString = value
+}
+
+object TransactionRequestId {
+  def unapply(id : String) = Some(TransactionRequestId(id))
+}
 
 case class AccountId(val value : String) {
   override def toString = value

@@ -1,18 +1,17 @@
 package code.api.v1_4_0
 
 import code.bankconnectors.Connector
-import code.transactionrequests.TransactionRequests.{TransactionRequestId, TransactionRequestBody, TransactionRequestAccount}
+import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
-import net.liftweb.json.Serialization._
-import net.liftweb.mapper.By
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
+import net.liftweb.json.JsonAST.JValue
 
 import scala.collection.immutable.Nil
 
@@ -39,8 +38,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
 
-  val Implementations1_4_0 = new Object(){
-
+  val Implementations1_4_0 = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
@@ -144,13 +142,13 @@ Authentication via OAuth is required.""",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
       """Returns information about branches for a single bank specified by BANK_ID including:
-
-* Name
-* Address
-* Geo Location
-* License the data under this endpoint is released under
-
-Authentication via OAuth *may* be required.""",
+        |
+        |* Name
+        |* Address
+        |* Geo Location
+        |* License the data under this endpoint is released under
+        |
+        |Authentication via OAuth *may* be required.""",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -216,17 +214,16 @@ Authentication via OAuth *may* be required.""",
       "/banks/BANK_ID/products",
       "Get products offered by the bank",
       """Returns information about financial products offered by a bank specified by BANK_ID including:
-
-* Name
-* Code
-* Category
-* Family
-* Super Family
-* More info URL
-* Description
-* Terms and Conditions
-* License the data under this endpoint is released under
-""",
+        |
+        |* Name
+        |* Code
+        |* Category
+        |* Family
+        |* Super Family
+        |* More info URL
+        |* Description
+        |* Terms and Conditions
+        |* License the data under this endpoint is released under""",
       emptyObjectJson,
       emptyObjectJson
     )
@@ -329,13 +326,12 @@ Authentication via OAuth *may* be required.""",
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
-            }
-              yield {
+            } yield {
                 val successJson = Extraction.decompose(transactionRequestTypes)
                 successJsonResponse(successJson)
               }
           } else {
-            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
           }
       }
     }
@@ -366,7 +362,7 @@ Authentication via OAuth *may* be required.""",
               successJsonResponse(successJson)
             }
           } else {
-            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
           }
       }
     }
@@ -414,46 +410,83 @@ Authentication via OAuth *may* be required.""",
                 createdJsonResponse(json)
             }
           } else {
-            Failure("Sorry, Transaction Requests are not enabled in this API instance.")
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
           }
-
       }
     }
 
 
+
     resourceDocs += ResourceDoc(
       apiVersion,
-      "getTransactionRequests",
-      "GET",
-      "/i-do-not-exist-i-will-404",
-      "I am only a test resource Doc",
-      """
-        |
-        |#This should be H1
-        |
-        |##This should be H2
-        |
-        |###This should be H3
-        |
-        |####This should be H4
-        |
-        |Here is a list with two items:
-        |
-        |* One
-        |* Two
-        |
-        |There are underscores by them selves _
-        |
-        |There are _underscores_ around a word
-        |
-        |There are underscores_in_words
-        |
-        |There are 'underscores_in_words_inside_quotes'
-        |
-        |There are (underscores_in_words_in_brackets)
-        |
-        |_etc_...""",
+      "answerTransactionRequestChallenge",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge.",
+      "",
       emptyObjectJson,
       emptyObjectJson)
+
+    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u <- user ?~ "User not found"
+              fromBank <- tryo(Bank(bankId).get) ?~ {"Unknown bank id"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
+              //TODO check more things here
+              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(answerJson.answer)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
+            } yield {
+              //create transaction and insert its id into the transaction request
+              val successJson = Extraction.decompose(transactionRequest)
+              successJsonResponse(successJson)
+            }
+          } else {
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+          }
+      }
+    }
+
+    if (Props.devMode) {
+      resourceDocs += ResourceDoc(
+        apiVersion,
+        "getTransactionRequests",
+        "GET",
+        "/i-do-not-exist-i-will-404",
+        "I am only a test resource Doc",
+        """
+            |
+            |#This should be H1
+            |
+            |##This should be H2
+            |
+            |###This should be H3
+            |
+            |####This should be H4
+            |
+            |Here is a list with two items:
+            |
+            |* One
+            |* Two
+            |
+            |There are underscores by them selves _
+            |
+            |There are _underscores_ around a word
+            |
+            |There are underscores_in_words
+            |
+            |There are 'underscores_in_words_inside_quotes'
+            |
+            |There are (underscores_in_words_in_brackets)
+            |
+            |_etc_...""",
+          emptyObjectJson,
+          emptyObjectJson)
+      }
   }
 }

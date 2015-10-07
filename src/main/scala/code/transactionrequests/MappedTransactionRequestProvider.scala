@@ -11,7 +11,7 @@ import java.util.Date
 
 object MappedTransactionRequestProvider extends TransactionRequestProvider {
 
-  override protected def getTransactionRequestFromProvider(transactionRequestId: code.transactionrequests.TransactionRequests.TransactionRequestId): Option[TransactionRequest] =
+  override protected def getTransactionRequestFromProvider(transactionRequestId: TransactionRequestId): Option[TransactionRequest] =
     MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value)).flatMap(_.toTransactionRequest)
 
   override protected def getTransactionRequestsFromProvider(bankId: BankId, accountId: AccountId, viewId: ViewId): Some[List[TransactionRequest]] = {

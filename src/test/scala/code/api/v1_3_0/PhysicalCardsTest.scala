@@ -6,7 +6,7 @@ import code.api.util.APIUtil
 import code.bankconnectors.{OBPQueryParam, Connector}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody, TransactionRequestId}
+import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
 import com.tesobe.model.CreateBankAccount
 import net.liftweb.common.{Failure, Loggable, Empty, Box}
 import code.model._
@@ -103,8 +103,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
     override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
+    override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = ???
 
-    override def getTransactionRequestImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
+    override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
+    override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
     override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
       Failure("not supported")
     }

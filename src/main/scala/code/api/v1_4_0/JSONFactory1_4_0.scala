@@ -11,7 +11,7 @@ import code.products.Products.{Product}
 
 
 import code.customer.{CustomerMessage, Customer}
-import code.model.{AmountOfMoney, BankAccount, AccountId, BankId}
+import code.model._
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
@@ -333,4 +333,15 @@ object JSONFactory1_4_0 {
                            allowed_attempts : Int,
                            challenge_type: String
                           )
+
+  case class ChallengeAnswerJSON (
+                             id: String,
+                             answer : String
+                           )
+
+  /*case class ChallengeErrorJSON (
+                          code : Int,
+                          message: String
+                        )
+  */
 }
