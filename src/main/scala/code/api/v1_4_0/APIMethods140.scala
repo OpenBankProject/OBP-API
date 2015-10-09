@@ -444,7 +444,7 @@ Authentication via OAuth *may* be required.""",
             } yield {
               //create transaction and insert its id into the transaction request
               val successJson = Extraction.decompose(transactionRequest)
-              successJsonResponse(successJson)
+              successJsonResponse(successJson, 201)
             }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))

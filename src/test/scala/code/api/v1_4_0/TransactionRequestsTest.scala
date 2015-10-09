@@ -209,8 +209,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@ (user1)
       var response = makePostRequest(request, write(transactionRequestBody))
-      Then("we should get a 202 accepted code")
-      response.code should equal(202)
+      Then("we should get a 201 created code")
+      response.code should equal(201)
 
       //ok, created a transaction request, check some return values. As type is SANDBOX but over 100€, we expect a challenge
       val transId: String = (response.body \ "transactionRequestId" \ "value") match {
@@ -275,8 +275,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
         "owner" / "transaction-request-types" / "sandbox" / "transaction-requests" / transId / "challenge").POST <@ (user1)
       response = makePostRequest(request, write(answerJson))
-      Then("we should get a 200 ok code")
-      response.code should equal(200)
+      Then("we should get a 202 accepted code")
+      response.code should equal(202)
 
       //check if returned data includes new transaction's id
       status = (response.body \ "status") match {
