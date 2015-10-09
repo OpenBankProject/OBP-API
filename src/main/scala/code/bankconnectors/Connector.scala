@@ -244,12 +244,26 @@ trait Connector {
   protected def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]]
 
 
-  def answerTransactionRequestChallenge(answer: String) : Box[Boolean] = {
-    //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
-    for {
-      nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
-      positive <- booleanToBox(BigInt(answer) > 0) ?~ "Need a numeric, positive TAN"
-    } yield true
+  def answerTransactionRequestChallenge(transReqId: TransactionRequestId, answer: String) : Box[Boolean] = {
+    val tr = getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+
+    tr match {
+      case Full(tr: TransactionRequest) =>
+        if (tr.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN) {
+          //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
+          for {
+            nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
+            answerToNumber <- tryo(BigInt(answer)) ?~! "Need a numeric TAN"
+            positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
+          } yield true
+        }
+        //else if (...) {}
+        else {
+          Failure("unknown challenge type")
+        }
+      case Failure(f, Empty, Empty) => Failure(f)
+      case _ => Failure("Error getting Transaction Request")
+    }
   }
 
   def createTransactionAfterChallenge(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {

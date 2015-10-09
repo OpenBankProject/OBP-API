@@ -439,7 +439,7 @@ Authentication via OAuth *may* be required.""",
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
               //TODO check more things here
-              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(answerJson.answer)
+              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
             } yield {
               //create transaction and insert its id into the transaction request

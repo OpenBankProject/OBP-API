@@ -94,7 +94,8 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_4_0.getResourceDocs,
     Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
-    Implementations1_4_0.getTransactionRequestTypes
+    Implementations1_4_0.getTransactionRequestTypes,
+    Implementations1_4_0.answerTransactionRequestChallenge
   )
 
   routes.foreach(route => {

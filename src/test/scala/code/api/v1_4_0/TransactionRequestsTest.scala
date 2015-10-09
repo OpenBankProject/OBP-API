@@ -219,7 +219,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       }
       transId should not equal ("")
 
-      val status: String = (response.body \ "status") match {
+      var status: String = (response.body \ "status") match {
         case JString(i) => i
         case _ => ""
       }
@@ -247,7 +247,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
       Then("we should get a 200 ok code")
       response.code should equal(200)
-      val transactionRequests = response.body.children
+      var transactionRequests = response.body.children
 
       transactionRequests.size should equal(1)
       transaction_id = (response.body \ "transaction_ids") match {
@@ -259,8 +259,56 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       challenge = (response.body \ "challenge").children
       challenge.size should not equal(0)
 
-      //3. TODO: answer challenge and check if transaction is being created
+      //3. answer challenge and check if transaction is being created
+      //call answerTransactionRequestChallenge, give a false answer
+      var answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "hello") //wrong answer, not a number
+      request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+        "owner" / "transaction-request-types" / "sandbox" / "transaction-requests" / transId / "challenge").POST <@ (user1)
+      response = makePostRequest(request, write(answerJson))
+      Then("we should get a 400 bad request code")
+      response.code should equal(400)
 
+      //TODO: check if allowed_attempts is decreased
+
+      //call answerTransactionRequestChallenge again, give a good answer
+      answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "12345") //wrong answer, not a number
+      request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+        "owner" / "transaction-request-types" / "sandbox" / "transaction-requests" / transId / "challenge").POST <@ (user1)
+      response = makePostRequest(request, write(answerJson))
+      Then("we should get a 200 ok code")
+      response.code should equal(200)
+
+      //check if returned data includes new transaction's id
+      status = (response.body \ "status") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+
+      transaction_id = (response.body \ "transaction_ids") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      transaction_id should not equal ("")
+
+      //call getTransactionRequests, check that we really created a transaction
+      request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+        "owner" / "transaction-requests").GET <@ (user1)
+      response = makeGetRequest(request)
+
+      Then("we should get a 200 ok code")
+      response.code should equal(200)
+      transactionRequests = response.body.children
+
+      transactionRequests.size should equal(1)
+      transaction_id = (response.body \ "transaction_ids") match {
+        case JString(i) => i
+        case _ => ""
+      }
+      transaction_id should not equal ("")
+
+      challenge = (response.body \ "challenge").children
+      challenge.size should not equal(0)
     }
 
     /*

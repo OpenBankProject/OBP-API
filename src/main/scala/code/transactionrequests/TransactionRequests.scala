@@ -10,8 +10,10 @@ import TransactionRequests.TransactionRequest
 
 object TransactionRequests extends SimpleInjector {
 
+  //TODO: change these to some kind of case class / type thingy (so we can match {} on them)
   val STATUS_INITIATED = "INITIATED"
   val STATUS_CHALLENGE_PENDING = "CHALLENGE_PENDING"
+  //val STATUS_PROCESSING_PENDING = "PROCESSING_PENDING"  //e.g. in case bank needs some time to process transaction request
   val STATUS_FAILED = "FAILED"
   val STATUS_COMPLETED = "COMPLETED"
 
