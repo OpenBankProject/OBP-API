@@ -78,7 +78,7 @@ trait APIMethods121 {
       apiVersion,
       "root",
       "GET",
-      "/",
+      "", // Note this is empty i.e. we call /obp/v1.2.1 not /obp/v1.2.1/
       "The root of the API",
       """Returns information about:
         |
