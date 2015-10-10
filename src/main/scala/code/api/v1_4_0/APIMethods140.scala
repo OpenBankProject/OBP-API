@@ -481,7 +481,7 @@ Authentication via OAuth *may* be required.""",
       emptyObjectJson)
 
 
-    lazy val createCustomerForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonPost json -> _ => {
         user =>
