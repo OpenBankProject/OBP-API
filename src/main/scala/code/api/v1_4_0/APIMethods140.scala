@@ -404,10 +404,7 @@ Authentication via OAuth *may* be required.""",
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
               val json = Extraction.decompose(createdTransactionRequest)
-              if (createdTransactionRequest.transaction_ids == "")
-                acceptedJsonResponse(json)
-              else
-                createdJsonResponse(json)
+              createdJsonResponse(json)
             }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
@@ -440,11 +437,11 @@ Authentication via OAuth *may* be required.""",
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
+              //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallenge(u, transReqId)
             } yield {
-              //create transaction and insert its id into the transaction request
               val successJson = Extraction.decompose(transactionRequest)
-              successJsonResponse(successJson, 201)
+              successJsonResponse(successJson, 202)
             }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
