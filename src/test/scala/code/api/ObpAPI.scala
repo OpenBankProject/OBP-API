@@ -512,7 +512,8 @@ object ObpJson {
     date: Option[Date], //TODO: Check if the default date formatter is okay
     user: Option[UserJson])
 
-  case class OtherAccountMetadataJson(public_alias: Option[String],
+  case class OtherAccountMetadataJson(
+    public_alias: Option[String],
     private_alias: Option[String],
     more_info: Option[String],
     URL: Option[String],
@@ -522,7 +523,8 @@ object ObpJson {
     physical_location: Option[LocationJson])		  					 
 
   //TODO: Why can't an other account have more than one holder?	  					 
-  case class OtherAccountJson(id: Option[String],
+  case class OtherAccountJson(
+    id: Option[String],
     holder: Option[HolderJson],
     number: Option[String],
     kind: Option[String],

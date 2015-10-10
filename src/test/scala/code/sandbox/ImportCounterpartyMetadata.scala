@@ -61,7 +61,7 @@ object ImportCounterpartyMetadata extends SendServerRequests {
     println("Got " + counterparties.length + " counterparty records")
 
     //load sandbox users from json
-    path = "/Users/stefan/Downloads/OBP_sandbox_pretty.json"
+    path = "/Users/stefan/Downloads/OBP_sandbox_pretty_load_002.json"
     records = JsonParser.parse(Source.fromFile(path) mkString)
     val users = (records \ "users").children
     println("got " + users.length + " users")
@@ -86,7 +86,59 @@ object ImportCounterpartyMetadata extends SendServerRequests {
       }
       println(" - ok.")
 
-      println("get transactions for the accounts")
+      println("get other accounts for the accounts")
+      for(a : BarebonesAccountJson <- accounts) {
+        print("account: " + a.label.get + " ")
+        println(a.bank_id.get)
+
+        val headers : List[Header] = List(Header("obp_limit", "9999999"))  //prevent pagination
+        val otherAccountsJson =
+          ObpGet("/v1.2.1/banks/"+a.bank_id.get+"/accounts/"+a.id.get+"/owner/other_accounts", headers).flatMap(_.extractOpt[OtherAccountsJson])
+
+        val otherAccounts : List[OtherAccountJson] = otherAccountsJson match {
+          case Full(oa) => oa.other_accounts.get
+          case _ => List[OtherAccountJson]()
+        }
+
+        //uh, matching very specific to rbs data
+        val bits = a.bank_id.get.split("-")
+        val region = bits(bits.length - 2)
+
+        println("get matching json counterparty data for each transaction's other_account")
+
+        for(oa : OtherAccountJson <- otherAccounts) {
+          val name = oa.holder.get.name.get.trim
+          val records = counterparties.filter(x => ((x.name equalsIgnoreCase(name)) && (x.region equals region)))
+          var found = false
+
+          //loop over all counterparties (from json) and match to other_account (counterparties), update data
+          for (cp: CounterpartyJSONRecord <- records) {
+            val logoUrl = if(cp.logoUrl.contains("http://www.brandprofiles.com")) cp.homePageUrl else cp.logoUrl
+            if (logoUrl.startsWith("http") && oa.metadata.get.image_URL.isEmpty) {
+              val json = ("image_URL" -> logoUrl)
+              ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/image_url", json)
+              println("saved " + logoUrl + " as imageURL for counterparty "+ oa.id.get)
+              found = true
+            }
+
+            if(cp.homePageUrl.startsWith("http") && !cp.homePageUrl.endsWith("jpg") && !cp.homePageUrl.endsWith("png") && oa.metadata.get.URL.isEmpty) {
+              val json = ("URL" -> cp.homePageUrl)
+              ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/url", json)
+              println("saved " + cp.homePageUrl + " as URL for counterparty "+ oa.id.get)
+            }
+
+            if(!cp.category.isEmpty && oa.metadata.get.more_info.isEmpty) {
+              val moreInfo = ("Category: " + cp.category )
+              val json = ("more_info" -> moreInfo)
+              val result = ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/more_info", json)
+              if(!result.isEmpty)
+                println("saved " + moreInfo + " as more_info for counterparty "+ oa.id.get)
+            }
+          }
+
+        }
+
+      /*println("get transactions for the accounts")
       for(a : BarebonesAccountJson <- accounts) {
         print("account: " + a.label.get + " ")
         println(a.bank_id.get)
@@ -100,6 +152,7 @@ object ImportCounterpartyMetadata extends SendServerRequests {
           case _ => List[TransactionJson]()
         }
 
+        //uh, matching very specific to rbs data
         val bits = a.bank_id.get.split("-")
         val region = bits(bits.length - 2)
 
@@ -118,7 +171,7 @@ object ImportCounterpartyMetadata extends SendServerRequests {
               found = true
             }
           }
-        }
+        }*/
       }
 
 

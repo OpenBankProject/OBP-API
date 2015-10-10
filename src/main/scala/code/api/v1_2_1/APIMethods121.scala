@@ -1016,7 +1016,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyMoreInfo",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Add more info to other bank account.",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
@@ -1024,7 +1024,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1045,7 +1045,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyMoreInfo",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Update more info of other bank account",
       "Update the description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
@@ -1053,7 +1053,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1074,7 +1074,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyMoreInfo",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/more_info",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
       "Delete more info of other bank account.",
       "",
       emptyObjectJson,
@@ -1082,7 +1082,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "more_info" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "more_info" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1101,7 +1101,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyUrl",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Add url to other bank account.",
       "A url which represents the counterparty (home page url etc.)",
       Extraction.decompose(UrlJSON("www.example.com")),
@@ -1110,7 +1110,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1131,7 +1131,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyUrl",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Update url of other bank account.",
       "A url which represents the counterparty (home page url etc.)",
       Extraction.decompose(UrlJSON("www.example.com")),
@@ -1139,7 +1139,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1160,7 +1160,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyUrl",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/url",
       "Delete url of other bank account.",
       "",
       emptyObjectJson,
@@ -1168,7 +1168,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1187,7 +1187,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyImageUrl",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Add image url to other bank account.",
       "Add a url that points to the logo of the counterparty",
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
@@ -1195,7 +1195,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1216,7 +1216,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyImageUrl",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Update image url of other bank account.",
       "Update the url that points to the logo of the counterparty",
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
@@ -1224,7 +1224,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1245,7 +1245,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyImageUrl",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/image_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
       "Delete image url of other bank account.",
       "",
       emptyObjectJson,
@@ -1253,7 +1253,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete image url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "image_url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "image_url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1272,7 +1272,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyOpenCorporatesUrl",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Add open corporate url to other bank account.",
       "",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
@@ -1280,7 +1280,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add open corporate url to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPost json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1301,7 +1301,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyOpenCorporatesUrl",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Update open corporate url of other bank account.",
       "",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
@@ -1309,7 +1309,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update open corporate url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1330,7 +1330,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyOpenCorporatesUrl",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/open_corporates_url",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
       "Delete open corporate url of other bank account.",
       "",
       emptyObjectJson,
@@ -1338,7 +1338,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete open corporate url of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "open_corporates_url" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "open_corporates_url" :: Nil JsonDelete _ => {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
@@ -1357,7 +1357,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyCorporateLocation",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Add corporate location to other bank account.",
       "Add the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
@@ -1365,7 +1365,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add corporate location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "corporate_location" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -1388,7 +1388,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyCorporateLocation",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Update corporate location of other bank account.",
       "Update the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
@@ -1396,7 +1396,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update corporate location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -1419,7 +1419,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyCorporateLocation",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/corporate_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
       "Delete corporate location of other bank account.",
       "Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
@@ -1427,7 +1427,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete corporate location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "corporate_location" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "corporate_location" :: Nil JsonDelete _ => {
         user =>
           for {
             u <- user
@@ -1451,7 +1451,7 @@ trait APIMethods121 {
       apiVersion,
       "addCounterpartyPhysicalLocation",
       "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Add physical location to other bank account.",
       "Add geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
@@ -1459,7 +1459,7 @@ trait APIMethods121 {
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add physical location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "physical_location" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts" :: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPost json -> _ => {
         user =>
           for {
             u <- user
@@ -1482,7 +1482,7 @@ trait APIMethods121 {
       apiVersion,
       "updateCounterpartyPhysicalLocation",
       "PUT",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Update counterparties physical location",
       "Update geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
@@ -1490,7 +1490,7 @@ trait APIMethods121 {
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update physical location to other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonPut json -> _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user
@@ -1513,7 +1513,7 @@ trait APIMethods121 {
       apiVersion,
       "deleteCounterpartyPhysicalLocation",
       "DELETE",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/physical_location",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
       "Delete physical location of other bank account.",
       "",
       emptyObjectJson,
@@ -1521,7 +1521,7 @@ trait APIMethods121 {
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete physical location of other bank account
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "physical_location" :: Nil JsonDelete _ => {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "other_accounts":: other_account_id :: "metadata" :: "physical_location" :: Nil JsonDelete _ => {
         user =>
           for {
             u <- user
