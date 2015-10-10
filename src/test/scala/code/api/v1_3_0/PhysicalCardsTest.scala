@@ -94,7 +94,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
     override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
 
-    override def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
+    override def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId] =
       Failure("not supported")
     override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                               account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,

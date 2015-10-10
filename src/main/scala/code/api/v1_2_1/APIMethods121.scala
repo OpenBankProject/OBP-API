@@ -2137,7 +2137,7 @@ Authentication via OAuth is required if the view is not public.""",
               makeTransJson <- tryo{json.extract[MakePaymentJson]} ?~ {"wrong json format"}
               rawAmt <- tryo {BigDecimal(makeTransJson.amount)} ?~! s"amount ${makeTransJson.amount} not convertible to number"
               toAccountUID = BankAccountUID(BankId(makeTransJson.bank_id), AccountId(makeTransJson.account_id))
-              createdPaymentId <- Connector.connector.vend.makePayment(u, BankAccountUID(bankId, accountId), toAccountUID, rawAmt)
+              createdPaymentId <- Connector.connector.vend.makePayment(u, BankAccountUID(bankId, accountId), toAccountUID, rawAmt, "")
             } yield {
               val successJson = Extraction.decompose(TransactionIdJson(createdPaymentId.value))
               successJsonResponse(successJson)

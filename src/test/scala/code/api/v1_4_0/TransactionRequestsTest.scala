@@ -22,7 +22,6 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
   object TransactionRequest extends Tag("transactionRequests")
 
   feature("we can make transaction requests") {
-
     val view = "owner"
 
     def transactionCount(accounts: BankAccount*) : Int = {
@@ -134,6 +133,13 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val transactions = response.body.children
 
         transactions.size should equal(1)
+
+        //check that the description has been set
+        val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        description should not equal ("")
 
         //TODO: check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
@@ -314,6 +320,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         challenge.size should not equal(0)
       }
     }
+
     /*
     scenario("we can't make a payment without access to the owner view", Payments) {
       val testBank = createPaymentTestBank()

@@ -162,13 +162,13 @@ object LocalMappedConnector extends Connector with Loggable {
     Set.empty
 
 
-  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal): Box[TransactionId] = {
+  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal, description : String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt)
-    saveTransaction(toAccount, fromAccount, toTransAmt)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
+    saveTransaction(toAccount, fromAccount, toTransAmt, description)
 
     sentTransactionId
   }
@@ -177,7 +177,7 @@ object LocalMappedConnector extends Connector with Loggable {
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal) : Box[TransactionId] = {
+  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal, description : String) : Box[TransactionId] = {
 
     val transactionTime = now
     val currency = account.currency
@@ -196,7 +196,7 @@ object LocalMappedConnector extends Connector with Loggable {
       .currency(currency)
       .tStartDate(transactionTime)
       .tFinishDate(transactionTime)
-      .description("") // TODO Populate this
+      .description(description)
       .counterpartyAccountHolder(counterparty.accountHolder)
       .counterpartyAccountNumber(counterparty.number)
       .counterpartyAccountKind(counterparty.accountType)

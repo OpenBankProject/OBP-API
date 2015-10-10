@@ -138,15 +138,15 @@ private object LocalConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal) : Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal, description: String) : Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
     //this is the transaction that gets attached to the account of the person making the payment
-    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt)
+    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt, description)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
-    saveNewTransaction(toAccount, fromAccount, toTransAmt)
+    saveNewTransaction(toAccount, fromAccount, toTransAmt, description)
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
@@ -216,7 +216,7 @@ private object LocalConnector extends Connector with Loggable {
       balance)
   }
 
-  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal) : Box[OBPEnvelope] = {
+  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 

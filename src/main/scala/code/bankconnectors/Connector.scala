@@ -104,7 +104,8 @@ trait Connector {
    * @param amt The amount of money to send ( > 0 )
    * @return The id of the sender's new transaction,
    */
-  def makePayment(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID, amt : BigDecimal) : Box[TransactionId] = {
+  def makePayment(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
+                  amt : BigDecimal, description : String) : Box[TransactionId] = {
     for{
       fromAccount <- getBankAccountType(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
@@ -116,11 +117,11 @@ trait Connector {
       })
       isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
       //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
-      transactionId <- makePaymentImpl(fromAccount, toAccount, amt)
+      transactionId <- makePaymentImpl(fromAccount, toAccount, amt, description)
     } yield transactionId
   }
 
-  protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId]
+  protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId]
 
 
   /*
@@ -158,7 +159,7 @@ trait Connector {
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
       val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount))
+        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
       //set challenge to null
       result = Full(result.get.copy(challenge = null))
@@ -249,17 +250,23 @@ trait Connector {
 
     tr match {
       case Full(tr: TransactionRequest) =>
-        if (tr.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN) {
-          //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
-          for {
-            nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
-            answerToNumber <- tryo(BigInt(answer)) ?~! "Need a numeric TAN"
-            positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
-          } yield true
-        }
-        //else if (...) {}
-        else {
-          Failure("unknown challenge type")
+        if (tr.challenge.allowed_attempts > 0) {
+          if (tr.challenge.challenge_type == TransactionRequests.CHALLENGE_SANDBOX_TAN) {
+            //check if answer supplied is correct (i.e. for now, TAN -> some number and not empty)
+            for {
+              nonEmpty <- booleanToBox(answer.nonEmpty) ?~ "Need a non-empty answer"
+              answerToNumber <- tryo(BigInt(answer)) ?~! "Need a numeric TAN"
+              positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
+            } yield true
+
+            //TODO: decrease allowed attempts value
+          }
+          //else if (tr.challenge.challenge_type == ...) {}
+          else {
+            Failure("unknown challenge type")
+          }
+        } else {
+          Failure("Sorry, you've used up your allowed attempts.")
         }
       case Failure(f, Empty, Empty) => Failure(f)
       case _ => Failure("Error getting Transaction Request")
@@ -270,7 +277,7 @@ trait Connector {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
       transId <- makePayment(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-          BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount)) ?~ "Couldn't create Transaction"
+          BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
       //get transaction request again now with updated values
