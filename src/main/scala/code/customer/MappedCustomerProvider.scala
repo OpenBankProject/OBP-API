@@ -22,6 +22,17 @@ object MappedCustomerProvider extends CustomerProvider {
       By(MappedCustomer.mNumber, customerNumber)
     ).flatMap(_.mUser.obj)
   }
+
+  override def addCustomer(bankId: BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) : Box[Customer] = {
+
+    val createdCustomer = MappedCustomer.create
+      .mBank(bankId.value).mEmail(email).mFaceImageTime(faceImage.date)
+      .mFaceImageUrl(faceImage.url).mLegalName(legalName)
+      .mMobileNumber(mobileNumber).mNumber(number).mUser(user.apiId.value).saveMe()
+
+    Some(createdCustomer)
+  }
+
 }
 
 class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with IdPK with CreatedUpdated {

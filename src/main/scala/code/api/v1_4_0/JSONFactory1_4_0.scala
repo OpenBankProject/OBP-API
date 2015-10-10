@@ -71,16 +71,23 @@ object JSONFactory1_4_0 {
 
   def createCustomerJson(cInfo : Customer) : CustomerJson = {
 
-    CustomerJson(customer_number = cInfo.number,
-      legal_name = cInfo.legalName, mobile_phone_number = cInfo.mobileNumber,
-      email = cInfo.email, face_image = CustomerFaceImageJson(url = cInfo.faceImage.url, date = cInfo.faceImage.date))
+    CustomerJson(
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
+                                        date = cInfo.faceImage.date)
+    )
 
   }
 
   def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJson = {
-    CustomerMessageJson(id = cMessage.messageId, date = cMessage.date,
-      message = cMessage.message, from_department = cMessage.fromDepartment,
-      from_person = cMessage.fromPerson)
+    CustomerMessageJson(id = cMessage.messageId,
+                        date = cMessage.date,
+                        message = cMessage.message,
+                        from_department = cMessage.fromDepartment,
+                        from_person = cMessage.fromPerson)
   }
 
   def createCustomerMessagesJson(messages : List[CustomerMessage]) : CustomerMessagesJson = {

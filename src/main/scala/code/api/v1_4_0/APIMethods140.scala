@@ -1,5 +1,7 @@
 package code.api.v1_4_0
 
+import java.text.SimpleDateFormat
+
 import code.bankconnectors.Connector
 import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
@@ -32,6 +34,7 @@ import code.api.util.APIUtil._
 import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
 import code.transactionrequests.TransactionRequests._
+import java.text.SimpleDateFormat
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -43,6 +46,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
+
+    val exampleDateString : String ="22/08/2013"
+    val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+    val exampleDate = simpleDateFormat.parse(exampleDateString)
+
 
     def getResourceDocsList : Option[List[ResourceDoc]] =
     {
@@ -110,7 +118,7 @@ Authentication via OAuth is required.""",
       apiVersion,
       "addCustomerMessage",
       "POST",
-      "/banks/BANK_ID/customer/CUSTOMER_NUMBER",
+      "/banks/BANK_ID/customer/CUSTOMER_NUMBER/messages",
       "Add a message for the customer specified by CUSTOMER_NUMBER",
       "",
       // We use Extraction.decompose to convert to json
@@ -448,6 +456,58 @@ Authentication via OAuth *may* be required.""",
           }
       }
     }
+
+
+
+
+
+
+
+    val faceImage = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate)
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "addCustomer",
+      "POST",
+      "/banks/BANK_ID/customer",
+      "Add a customer.",
+      """Add a customer linked to the currently authenticated user.
+        |This call is experimental and will require additional permissions/role in the future.
+        |For now the authenticated user can create at most one linked customer.
+        |OAuth authentication is required.
+        |""",
+      Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs", "+44 07972 444 876", "person@example.com", faceImage)),
+      emptyObjectJson)
+
+
+    lazy val createCustomerForUser : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //updates a view on a bank account
+      case "banks" :: BankId(bankId) :: "customer" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! "User must be logged in to post Customer"
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ "Customer already exists for this user."
+            postedData <- tryo{json.extract[Customer]} ?~! "Incorrect json format"
+            // Watch Out! Customer vs CustomerJson
+            customer <- Customer.customerProvider.vend.addCustomer(bankId,
+                u,
+                postedData.number,
+                postedData.legalName,
+                postedData.mobileNumber,
+                postedData.email,
+                postedData.faceImage) ?~! "Could not create customer"
+            //customer <- Customer.customerProvider.vend.getCustomer(bankId, u) ~> APIFailure("No Customer found for current User", 204)
+            //updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
+            //updatedView <- account.updateView(u, viewId, updateJson)
+          } yield {
+            val successJson = Extraction.decompose(customer)
+            successJsonResponse(successJson)
+          }
+      }
+    }
+
+
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(

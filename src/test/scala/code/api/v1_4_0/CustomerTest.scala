@@ -31,6 +31,9 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
     }
 
     override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
+
+    override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) :  Box[Customer] = Empty
+
   }
 
   override def beforeAll() {

@@ -18,6 +18,9 @@ trait CustomerProvider {
   def getCustomer(bankId : BankId, user : User) : Box[Customer]
 
   def getUser(bankId : BankId, customerId : String) : Box[User]
+
+  def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) :  Box[Customer]
+
 }
 
 trait Customer {
