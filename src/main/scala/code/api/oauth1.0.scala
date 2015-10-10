@@ -231,6 +231,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         case _ => false
       }
     }
+
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
       //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
       //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
@@ -248,7 +249,6 @@ object OAuthHandshake extends RestHelper with Loggable {
         parameters = parameters.dropRight(3) //remove the "&" encoded sign
         parameters
       }
-
 
       //prepare the base string
       var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri,"UTF-8")+"&"
@@ -270,10 +270,10 @@ object OAuthHandshake extends RestHelper with Loggable {
       }
       logger.info("base string: " + baseString)
       //signing process
-        val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
-          "HmacSHA256"
-        else
-          "HmacSHA1"
+      val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
+        "HmacSHA256"
+      else
+        "HmacSHA1"
 
       logger.info("signing method: " + signingAlgorithm)
       logger.info("signing key: " + secret)
@@ -359,7 +359,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     //supported signature method
     else if (! supportedSignatureMethod(parameters.get("oauth_signature_method").get))
     {
-      message = "Unsupported signature method, please use hmac-sha128 or hmac-sha256"
+      message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
       httpCode = 400
     }
     //check if the application is registered and active
