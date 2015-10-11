@@ -512,7 +512,7 @@ Authentication via OAuth *may* be required.""",
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
         apiVersion,
-        "getTransactionRequests",
+        "dummyResource",
         "GET",
         "/i-do-not-exist-i-will-404",
         "I am only a test resource Doc",
