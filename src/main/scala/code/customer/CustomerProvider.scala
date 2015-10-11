@@ -35,3 +35,5 @@ trait CustomerFaceImage {
   def url : String
   def date : Date
 }
+
+case class MockCustomerFaceImage(date : Date, url : String) extends CustomerFaceImage

@@ -337,7 +337,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     var parameters = getAllParameters
 
-    //does all the OAuth parameters are presents?
+    //are all the necessary OAuth parameters present?
     val missingParams = missingOAuthParameters(parameters,requestType)
     if( missingParams.size != 0 )
     {
@@ -357,7 +357,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //supported signature method
-    else if (! supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+    else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
     {
       message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
       httpCode = 400
