@@ -94,8 +94,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
       """Messages sent to the currently authenticated user.
-
-Authentication via OAuth is required.""",
+      |
+      |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -176,7 +176,6 @@ Authentication via OAuth is required.""",
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
-            // Return
             successJsonResponse(Extraction.decompose(json))
           }
         }

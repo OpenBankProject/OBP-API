@@ -20,10 +20,10 @@ import org.pegdown.PegDownProcessor
 object JSONFactory1_4_0 {
 
   case class CustomerJson(customer_number : String,
-                              legal_name : String,
-                              mobile_phone_number : String,
-                              email : String,
-                              face_image : CustomerFaceImageJson)
+                          legal_name : String,
+                          mobile_phone_number : String,
+                          email : String,
+                          face_image : CustomerFaceImageJson)
 
   case class CustomerFaceImageJson(url : String, date : Date)
 

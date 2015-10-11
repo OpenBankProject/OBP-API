@@ -1,8 +1,10 @@
 package code.api.v1_4_0
 
+import java.text.SimpleDateFormat
+
 import code.api.DefaultUsers
 import code.api.util.APIUtil
-import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerMessagesJson}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, AddCustomerMessageJson, CustomerMessagesJson, CustomerJson}
 import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
 import code.model.BankId
 import dispatch._
@@ -16,6 +18,10 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
   val mockBankId = BankId("testBank1")
   val mockCustomerNumber = "9393490320"
 
+  val exampleDateString : String ="22/08/2013"
+  val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+  val exampleDate = simpleDateFormat.parse(exampleDateString)
+
   //TODO: need better tests
   feature("Customer messages") {
     scenario("Getting messages when none exist") {
@@ -23,7 +29,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       MappedCustomerMessage.count() should equal(0)
 
       When("We get the messages")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET  <@ user1
+      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -35,10 +41,21 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     }
 
     scenario("Adding a message") {
+      //first add a customer to send message to
+      var request = (v1_4Request / "banks" / mockBankId.value / "customer").POST <@ user1
+      var customerJson = CustomerJson(
+              customer_number = mockCustomerNumber,
+              legal_name = "Someone",
+              mobile_phone_number = "125245",
+              email = "hello@hullo.com",
+              face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate)
+      )
+      var response = makePostRequest(request, write(customerJson))
+
       When("We add a message")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST <@ user1
+      request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
-      val response = makePostRequest(request, write(messageJson))
+      response = makePostRequest(request, write(messageJson))
 
       Then("We should get a 201")
       response.code should equal(201)
