@@ -15,10 +15,8 @@ We mock the backend so get test the API
  */
 class BranchesTest extends V140ServerSetup with DefaultUsers {
 
-  val BankWithLicense = BankId("bank-with-license")
-  val BankWithoutLicense = BankId("bank-without-license")
-  createBank(BankWithLicense.value)
-  createBank(BankWithoutLicense.value)
+  val BankWithLicense = BankId("testBank1")
+  val BankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(branchId : BranchId,

@@ -12,8 +12,7 @@ import code.api.util.APIUtil.OAuth._
 
 class CustomerTest extends V140ServerSetup with DefaultUsers {
 
-  val mockBankId = BankId("mockbank1")
-  createBank(mockBankId.value)
+  val mockBankId = BankId("testBank1")
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
   case class MockCustomer(number : String, mobileNumber : String,
