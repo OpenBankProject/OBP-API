@@ -16,9 +16,10 @@ We mock the backend so get test the API
  */
 class BranchesTest extends ServerSetup with DefaultUsers with V140ServerSetup {
 
-
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")
+  createBank(BankWithLicense.value)
+  createBank(BankWithoutLicense.value)
 
   // Have to repeat the constructor parameters from the trait
   case class BranchImpl(branchId : BranchId,
@@ -142,8 +143,6 @@ class BranchesTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "branches").GET <@(user1)
       val response = makeGetRequest(request)
-
-      println("asdf")
 
       Then("We should get a 200")
       response.code should equal(200)

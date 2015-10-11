@@ -297,7 +297,7 @@ object JSONFactory1_4_0 {
     )
 
     TransactionRequest (
-      transactionRequestId = TransactionRequestId(json.id),
+      id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
       body = getTransactionRequestBodyFromJson(json.body),

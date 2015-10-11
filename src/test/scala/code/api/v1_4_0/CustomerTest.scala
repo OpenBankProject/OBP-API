@@ -74,8 +74,8 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / testBank.value / "customer").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 204")
-      response.code should equal(204)
+      Then("We should get a 400")
+      response.code should equal(400)
     }
 
     scenario("There is a user, and the bank in questions has customer info for that user") {

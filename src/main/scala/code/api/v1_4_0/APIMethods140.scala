@@ -67,8 +67,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/customer",
       "Get customer for logged in user",
       """Information about the currently authenticated user.
-
-Authentication via OAuth is required.""",
+      |
+      |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 

@@ -168,7 +168,7 @@ trait Connector {
       createdTransactionId match {
         case Full(ti) => {
           if (! createdTransactionId.isEmpty) {
-            saveTransactionRequestTransaction(result.get.transactionRequestId, ti)
+            saveTransactionRequestTransaction(result.get.id, ti)
             result = Full(result.get.copy(transaction_ids = ti.value))
           }
         }
@@ -177,7 +177,7 @@ trait Connector {
     } else {
       //if challenge necessary, create a new one
       var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
-      saveTransactionRequestChallenge(result.get.transactionRequestId, challenge)
+      saveTransactionRequestChallenge(result.get.id, challenge)
       result = Full(result.get.copy(challenge = challenge))
     }
 

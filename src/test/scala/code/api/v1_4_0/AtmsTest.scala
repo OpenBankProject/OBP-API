@@ -121,12 +121,6 @@ class AtmsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
 
-
-      println("body is")
-      println(response.body)
-      println("lalala")
-
-
       Then("We should get a 200")
       response.code should equal(200)
 
