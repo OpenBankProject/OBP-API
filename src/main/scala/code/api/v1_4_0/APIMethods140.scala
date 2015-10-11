@@ -393,7 +393,13 @@ Authentication via OAuth *may* be required.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(TransactionRequestBodyJSON (
+                                TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
+                                AmountOfMoneyJSON("EUR", "100.53"),
+                                "A description for the transaction to be created",
+                                "one of the transaction types possible for the account"
+                                )
+                          ),
       emptyObjectJson)
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -437,7 +443,7 @@ Authentication via OAuth *may* be required.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson)
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -511,7 +517,7 @@ Authentication via OAuth *may* be required.""",
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
         apiVersion,
-        "getTransactionRequests",
+        "testResourceDoc",
         "GET",
         "/i-do-not-exist-i-will-404",
         "I am only a test resource Doc",

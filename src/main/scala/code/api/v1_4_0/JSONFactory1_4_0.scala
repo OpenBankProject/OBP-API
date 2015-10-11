@@ -318,13 +318,15 @@ object JSONFactory1_4_0 {
                              account_id : String
                             )
 
-  case class TransactionRequestBodyJSON(to: TransactionRequestAccountJSON,
+  case class TransactionRequestBodyJSON (
+                              to: TransactionRequestAccountJSON,
                               value : AmountOfMoneyJSON,
                               description : String,
                               challenge_type : String
                              )
 
-  case class TransactionRequestJSON(id: String,
+  case class TransactionRequestJSON(
+                          id: String,
                           `type`: String,
                           from: TransactionRequestAccountJSON,
                           body: TransactionRequestBodyJSON,

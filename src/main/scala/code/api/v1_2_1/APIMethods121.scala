@@ -2120,7 +2120,8 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
       "Make Payment.",
-      """This is an experimental call, currently only implemented in the OBP sandbox instance. It is currently very minimal, and will almost certainly change.
+      """This is an experimental call, currently only implemented in the OBP sandbox instance up to version 1.3.0. It is very minimal
+         |and was superseded by Transaction Requests in version 1.4.0.
          |
          |This will only work if account to pay exists at the bank specified in the json, and if that account has the same currency as that of the payee.
          |
