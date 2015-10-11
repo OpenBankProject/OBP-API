@@ -36,7 +36,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
     scenario("Adding a message") {
       When("We add a message")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST
+      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       val response = makePostRequest(request, write(messageJson))
 
