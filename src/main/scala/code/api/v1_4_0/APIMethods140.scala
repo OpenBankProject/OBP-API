@@ -77,7 +77,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //TODO: whats wrong with this?? (tests fail)
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             info <- Customer.customerProvider.vend.getCustomer(bankId, u) ?~ "No customer information found for current user"
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
@@ -104,8 +105,8 @@ Authentication via OAuth is required.""",
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve customer messages"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
-          //au <- APIUser.find(By(APIUser.id, u.apiId))
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //au <- APIUser.find(By(APIUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)
@@ -133,7 +134,7 @@ Authentication via OAuth is required.""",
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "No customer found"
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
@@ -169,7 +170,7 @@ Authentication via OAuth is required.""",
         user => {
           for {
             u <- user ?~! "User must be logged in to retrieve Branches data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            // bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
@@ -207,7 +208,7 @@ Authentication via OAuth *may* be required.""",
           for {
           // Get atms from the active provider
             u <- user ?~! "User must be logged in to retrieve ATM data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -247,7 +248,7 @@ Authentication via OAuth *may* be required.""",
           for {
           // Get products from the active provider
             u <- user ?~! "User must be logged in to retrieve Products data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -277,7 +278,7 @@ Authentication via OAuth *may* be required.""",
           for {
             // Get crm events from the active provider
             u <- user ?~! "User must be logged in to retrieve CRM Event information"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            //bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
             // Format the data as json
@@ -414,7 +415,8 @@ Authentication via OAuth *may* be required.""",
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {"Unknown counterparty account"}
-              accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
+              accountsCurrencyEqual <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
+              transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
@@ -498,8 +500,6 @@ Authentication via OAuth *may* be required.""",
                 postedData.mobile_phone_number,
                 postedData.email,
                 MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url)) ?~! "Could not create customer"
-            //updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
-            //updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val successJson = Extraction.decompose(customer)
             successJsonResponse(successJson)

@@ -3,7 +3,6 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.DefaultUsers
-import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerJson
 import code.customer.{CustomerFaceImage, Customer, CustomerProvider}
 import code.model.{User, BankId}
@@ -14,6 +13,7 @@ import code.api.util.APIUtil.OAuth._
 class CustomerTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("mockbank1")
+  createBank(mockBankId.value)
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
   case class MockCustomer(number : String, mobileNumber : String,
@@ -21,7 +21,6 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
                               faceImage : MockFaceImage) extends Customer
 
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-
   val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage)
 
   object MockedCustomerProvider extends CustomerProvider {
@@ -31,9 +30,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
     }
 
     override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
-
     override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) :  Box[Customer] = Empty
-
   }
 
   override def beforeAll() {

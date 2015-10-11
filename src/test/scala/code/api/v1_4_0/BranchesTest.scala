@@ -1,7 +1,6 @@
 package code.api.v1_4_0
 
 import code.api.DefaultUsers
-import code.api.test.ServerSetup
 import code.api.v1_4_0.JSONFactory1_4_0.{BranchJson, BranchesJson}
 import code.api.util.APIUtil.OAuth._
 import dispatch._
@@ -14,7 +13,7 @@ import code.model.BankId
 Note This does not test retrieval from a backend.
 We mock the backend so get test the API
  */
-class BranchesTest extends ServerSetup with DefaultUsers with V140ServerSetup {
+class BranchesTest extends V140ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")

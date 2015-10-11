@@ -11,11 +11,12 @@ import net.liftweb.json.Serialization.{read, write}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
-
   implicit val format = APIUtil.formats
 
   val mockBankId = BankId("mockbank1")
   val mockCustomerNumber = "9393490320"
+
+  createBank(mockBankId.value)
 
   //TODO: need better tests
   feature("Customer messages") {

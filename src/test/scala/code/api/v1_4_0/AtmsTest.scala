@@ -11,11 +11,12 @@ import code.common.{Address, License, Location, Meta}
 import code.model.BankId
 import dispatch._
 
-class AtmsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
-
+class AtmsTest extends V140ServerSetup with DefaultUsers {
 
   val BankWithLicense = BankId("bank-with-license")
   val BankWithoutLicense = BankId("bank-without-license")
+  createBank(BankWithLicense.value)
+  createBank(BankWithoutLicense.value)
 
   // Have to repeat the constructor parameters from the trait
   case class AtmImpl(atmId : AtmId,
