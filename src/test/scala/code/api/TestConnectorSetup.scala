@@ -25,7 +25,7 @@ trait TestConnectorSetup {
 
   final protected def createBanks() : Traversable[Bank] = {
     for{i <- 0 until 3} yield {
-      createBank(randomString(5))
+      createBank("testBank"+i)
     }
   }
 

@@ -318,7 +318,7 @@ private object LocalConnector extends Connector with Loggable {
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransactionRequestType("SANDBOX")))
+    Full(List(TransactionRequestType("SANDBOX_TAN")))
   }
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String) = ???
 

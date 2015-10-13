@@ -20,10 +20,10 @@ import org.pegdown.PegDownProcessor
 object JSONFactory1_4_0 {
 
   case class CustomerJson(customer_number : String,
-                              legal_name : String,
-                              mobile_phone_number : String,
-                              email : String,
-                              face_image : CustomerFaceImageJson)
+                          legal_name : String,
+                          mobile_phone_number : String,
+                          email : String,
+                          face_image : CustomerFaceImageJson)
 
   case class CustomerFaceImageJson(url : String, date : Date)
 
@@ -297,7 +297,7 @@ object JSONFactory1_4_0 {
     )
 
     TransactionRequest (
-      transactionRequestId = TransactionRequestId(json.id),
+      id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
       body = getTransactionRequestBodyFromJson(json.body),
@@ -318,13 +318,15 @@ object JSONFactory1_4_0 {
                              account_id : String
                             )
 
-  case class TransactionRequestBodyJSON(to: TransactionRequestAccountJSON,
+  case class TransactionRequestBodyJSON (
+                              to: TransactionRequestAccountJSON,
                               value : AmountOfMoneyJSON,
                               description : String,
                               challenge_type : String
                              )
 
-  case class TransactionRequestJSON(id: String,
+  case class TransactionRequestJSON(
+                          id: String,
                           `type`: String,
                           from: TransactionRequestAccountJSON,
                           body: TransactionRequestBodyJSON,

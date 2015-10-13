@@ -11,11 +11,10 @@ import code.common.{Address, License, Location, Meta}
 import code.model.BankId
 import dispatch._
 
-class AtmsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
+class AtmsTest extends V140ServerSetup with DefaultUsers {
 
-
-  val BankWithLicense = BankId("bank-with-license")
-  val BankWithoutLicense = BankId("bank-without-license")
+  val BankWithLicense = BankId("testBank1")
+  val BankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
   case class AtmImpl(atmId : AtmId,
@@ -120,12 +119,6 @@ class AtmsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
       When("We make a request")
       val request = (v1_4Request / "banks" / BankWithoutLicense.value / "atms").GET <@ user1
       val response = makeGetRequest(request)
-
-
-      println("body is")
-      println(response.body)
-      println("lalala")
-
 
       Then("We should get a 200")
       response.code should equal(200)

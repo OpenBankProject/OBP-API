@@ -274,7 +274,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransactionRequestType("SANDBOX")))
+    Full(List(TransactionRequestType("SANDBOX_TAN")))
   }
 
   /*

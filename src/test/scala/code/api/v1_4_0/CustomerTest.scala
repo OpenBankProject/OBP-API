@@ -3,7 +3,6 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.DefaultUsers
-import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerJson
 import code.customer.{CustomerFaceImage, Customer, CustomerProvider}
 import code.model.{User, BankId}
@@ -13,7 +12,7 @@ import code.api.util.APIUtil.OAuth._
 
 class CustomerTest extends V140ServerSetup with DefaultUsers {
 
-  val mockBankId = BankId("mockbank1")
+  val mockBankId = BankId("testBank1")
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
   case class MockCustomer(number : String, mobileNumber : String,
@@ -21,7 +20,6 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
                               faceImage : MockFaceImage) extends Customer
 
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-
   val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage)
 
   object MockedCustomerProvider extends CustomerProvider {
@@ -31,9 +29,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
     }
 
     override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
-
     override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) :  Box[Customer] = Empty
-
   }
 
   override def beforeAll() {
@@ -74,8 +70,8 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
       val request = (v1_4Request / "banks" / testBank.value / "customer").GET <@(user1)
       val response = makeGetRequest(request)
 
-      Then("We should get a 204")
-      response.code should equal(204)
+      Then("We should get a 400")
+      response.code should equal(400)
     }
 
     scenario("There is a user, and the bank in questions has customer info for that user") {

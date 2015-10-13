@@ -21,9 +21,9 @@ object Branches extends SimpleInjector {
     def name : String
     def address : Address
     def location : Location
-    def meta : Meta
     def lobby : Lobby
     def driveUp : DriveUp
+    def meta : Meta
   }
 
   trait Lobby {

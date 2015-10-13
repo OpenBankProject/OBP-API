@@ -13,8 +13,8 @@ import dispatch._
 
 class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
 
-  val BankWithLicense = BankId("bank-with-license")
-  val BankWithoutLicense = BankId("bank-without-license")
+  val BankWithLicense = BankId("testBank1")
+  val BankWithoutLicense = BankId("testBank2")
 
   // Have to repeat the constructor parameters from the trait
   case class ProductImpl(bankId: BankId,

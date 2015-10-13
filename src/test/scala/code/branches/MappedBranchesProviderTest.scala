@@ -90,7 +90,6 @@ class MappedBranchesProviderTest extends ServerSetup {
       // Only these have license set
       val expectedBranches =  List(fixture.branch1, fixture.branch2)
 
-
       Given("the bank in question has branches")
       MappedBranch.find(By(MappedBranch.mBankId, fixture.bankIdX)).isDefined should equal(true)
 

@@ -67,8 +67,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/customer",
       "Get customer for logged in user",
       """Information about the currently authenticated user.
-
-Authentication via OAuth is required.""",
+      |
+      |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -94,8 +94,8 @@ Authentication via OAuth is required.""",
       "/banks/BANK_ID/customer/messages",
       "Get messages for the logged in customer",
       """Messages sent to the currently authenticated user.
-
-Authentication via OAuth is required.""",
+      |
+      |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson)
 
@@ -105,7 +105,7 @@ Authentication via OAuth is required.""",
           for {
             u <- user ?~! "User must be logged in to retrieve customer messages"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
-          //au <- APIUser.find(By(APIUser.id, u.apiId))
+            //au <- APIUser.find(By(APIUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)
@@ -130,11 +130,12 @@ Authentication via OAuth is required.""",
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
+        val test = Bank(bankId)
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
-            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "No customer found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
                 customer, bankId, postedData.message, postedData.from_department, postedData.from_person),
@@ -175,7 +176,6 @@ Authentication via OAuth is required.""",
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchesJson(branches)
-            // Return
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -393,7 +393,13 @@ Authentication via OAuth *may* be required.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(TransactionRequestBodyJSON (
+                                TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
+                                AmountOfMoneyJSON("EUR", "100.53"),
+                                "A description for the transaction to be created",
+                                "one of the transaction types possible for the account"
+                                )
+                          ),
       emptyObjectJson)
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -414,7 +420,8 @@ Authentication via OAuth *may* be required.""",
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {"Unknown counterparty account"}
-              accountsCurrencyEqual <- tryo(assert(BankAccount(bankId, accountId).get.currency == toAccount.currency)) ?~ {"Counterparty and holder account have differing currencies."}
+              accountsCurrencyEqual <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
+              transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequest(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
@@ -436,7 +443,7 @@ Authentication via OAuth *may* be required.""",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
       "",
-      emptyObjectJson,
+      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson)
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -498,8 +505,6 @@ Authentication via OAuth *may* be required.""",
                 postedData.mobile_phone_number,
                 postedData.email,
                 MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url)) ?~! "Could not create customer"
-            //updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
-            //updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val successJson = Extraction.decompose(customer)
             successJsonResponse(successJson)
@@ -512,7 +517,7 @@ Authentication via OAuth *may* be required.""",
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
         apiVersion,
-        "dummyResource",
+        "testResourceDoc",
         "GET",
         "/i-do-not-exist-i-will-404",
         "I am only a test resource Doc",

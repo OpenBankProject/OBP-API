@@ -80,7 +80,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         response.code should equal(201)
 
         //created a transaction request, check some return values. As type is SANDBOX, we expect no challenge
-        val transId: String = (response.body \ "transactionRequestId" \ "value") match {
+        val transId: String = (response.body \ "id" \ "value") match {
           case JString(i) => i
           case _ => ""
         }
@@ -222,7 +222,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         response.code should equal(201)
 
         //ok, created a transaction request, check some return values. As type is SANDBOX but over 100€, we expect a challenge
-        val transId: String = (response.body \ "transactionRequestId" \ "value") match {
+        val transId: String = (response.body \ "id" \ "value") match {
           case JString(i) => i
           case _ => ""
         }
