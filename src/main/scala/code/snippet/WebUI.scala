@@ -32,22 +32,79 @@ Berlin 13359, Germany
 
 package code.snippet
 
+import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
+import net.liftweb.common.Loggable
+import net.liftweb.json.Extraction
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
 
 import scala.xml.NodeSeq
 
-class WebUI {
+class WebUI extends Loggable{
   def headerLogoLeft = {
     "img [src]" #> Props.get("webui_header_logo_left_url", "")
   }
+
   def headerLogoRight: CssSel = {
     "img [src]" #> Props.get("webui_header_logo_right_url", "")
   }
+
   def aboutBackground: CssSel = {
     "#main-about [style]" #> ("background-image: url(" + Props.get("webui_index_page_about_section_background_image_url", "") + ");")
   }
+
   def aboutText: CssSel = {
     ".about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
+  }
+
+  def apiExplorerLink: CssSel = {
+    ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", ""))
+  }
+
+  // Used to represent partners or sponsors of this API instance
+  case class Partner(
+      logoUrl: String,
+      homePageUrl: String,
+      altText: String
+      )
+
+  // Builds the grid of images / links for partners on the home page
+  def createMainPartners: CssSel = {
+
+    import net.liftweb.json._
+    implicit val formats = DefaultFormats
+
+
+    val mainPartners: Option[String] = {
+      Props.get("webui_main_partners")
+    }
+
+
+    val partners = mainPartners match {
+      // If we got a value, and can parse the text to Json AST and then extract List[Partner], do that!
+      // We expect the following Json string in the Props
+      // webui_main_partners=[{"logoUrl":"www.example.com/logoA.png", "homePageUrl":"www.example.com/indexA.html", "altText":"Alt Text A"},{"logoUrl":"www.example.com/logoB.png", "homePageUrl":"www.example.com/indexB.html", "altText":"Alt Text B"}]
+
+      case Some(ps) => {
+        try {
+          // Parse the Json string into Json AST and then extract a list of Partners
+          (parse(ps)).extract[List[Partner]]
+        }
+        catch {
+          case e: Exception => {
+            logger.warn(s"You provided a value for webui_main_partners in your Props file but I can't parse it / extract it to a List[Partner]: Exception is: $e")
+            Nil
+          }
+        }
+      }
+      case _ => Nil
+    }
+
+    // Select the "a" tag inside the "main-partners" div and generate a link for each partner
+    "#main-partners a" #> partners.map { i =>
+      "a [href]" #> s"${i.homePageUrl}" &
+      "img [src]" #> s"${i.logoUrl}" &
+      "img [alt]" #> s"${i.altText}"
+    }
   }
 }

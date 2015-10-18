@@ -103,3 +103,12 @@ webui_index_page_about_section_background_image_url = /media/images/about-backgr
 webui_index_page_about_section_text = <p class="about-text"> \
                                         Welcome to the API Sandbox powered by the Open Bank Project! <br/> \
                                       </p>
+
+
+# API Explorer url. For now, this is a page on Sofi e.g. sofi.openbankproject.com/api-explorer
+webui_api_explorer_url = http://localhost:8081/api-explorer
+
+## For partner logos and links
+webui_main_partners=[\
+{"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 1"},\
+{"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 2"}]

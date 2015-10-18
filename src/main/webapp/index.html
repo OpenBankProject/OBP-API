@@ -29,9 +29,9 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 -->
 
-<div id="main" data-lift="surround?with=default;at=content">
-    <div data-lift="WebUI.aboutBackground">
-      <div id="main-about" data-lift="WebUI.aboutText">
+<div id="main" class="lift:surround?with=default;at=content">
+    <div class="lift:WebUI.aboutBackground">
+      <div id="main-about" class="lift:WebUI.aboutText">
           <div class="about-text">
           </div>
       </div>
@@ -44,12 +44,12 @@ Berlin 13359, Germany
         <h1>Get Started</h1>
 
         <p class="about-text">
-            To get started please:
-        <ol>
-            <li>Register as an API user <a href="/user_mgt/sign_up">here</a></li>
-            <li>Register one or more developer keys <a href="/consumer-registration">here</a></li>
-            <li>See the documentation <a href="https://github.com/OpenBankProject/OBP-API/wiki">here</a></li>
-        </ol>
+            <ol start="1">
+                <li>Register / Login as a developer <a href="/user_mgt/sign_up">here</a></li>
+                <li>Get one or more developer keys <a href="/consumer-registration">here</a></li>
+                <li>Read the documentation <a href="https://github.com/OpenBankProject/OBP-API/wiki">here</a></li>
+                <li>Explore the API <a class="api-explorer-link lift:WebUI.apiExplorerLink" href="">here</a></li>
+            </ol>
         </p>
 
         <br />
@@ -57,13 +57,19 @@ Berlin 13359, Germany
         <h1>Questions?</h1>
 
         <p class="about-text">
-            Please email: contact AT openbankproject DOT com or tweet <a href="https://twitter.com/openbankproject">@OpenBankProject</a>
+            <ul>
+                <li>Email <a href="mailto:"contact AT openbankproject DOT com">contact AT openbankproject DOT com</a></li>
+                <li>Twitter <a href="https://twitter.com/openbankproject">@OpenBankProject</a></li>
+                <li>Slack <a href="https://openbankproject.slack.com/">openbankproject.slack</a></li>
+            </ul>
         </p>
 
     </div>
 
-    <div id="main-partners">
-        <!-- <a href="http://www.bnpparibas-pf.com/en/"><img src="/media/images/bnpp/bnpp-personal.png" alt=""></a> -->
+    <div id="main-partners" class="lift:WebUI.createMainPartners">
+        <a href="">
+            <img src="" alt="">
+        </a>
         <span class="stretch"></span>
     </div>
 </div>
