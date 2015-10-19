@@ -105,8 +105,12 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                       </p>
 
 
-# API Explorer url. For now, this is a page on Sofi e.g. sofi.openbankproject.com/api-explorer
-webui_api_explorer_url = http://localhost:8081/api-explorer
+# API Explorer url. Change this to the instance of Sofi linked to this API. e.g. sofi.openbankproject.com/api-explorer
+webui_api_explorer_url = http://sofi.openbankproject.com/api-explorer
+
+# Starting page of documentation. Change this if you have a specific landing page.
+webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+
 
 ## For partner logos and links
 webui_main_partners=[\

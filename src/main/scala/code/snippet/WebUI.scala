@@ -61,6 +61,10 @@ class WebUI extends Loggable{
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", ""))
   }
 
+  def apiDocumentationLink: CssSel = {
+    ".api-documentation-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+  }
+
   // Used to represent partners or sponsors of this API instance
   case class Partner(
       logoUrl: String,
