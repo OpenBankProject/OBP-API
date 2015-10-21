@@ -32,13 +32,15 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.api.v1_4_0.JSONFactory1_4_0.AddCustomerMessageJson
 import net.liftweb.common.Loggable
-import net.liftweb.json.Extraction
-import net.liftweb.util.Helpers._
+
 import net.liftweb.util.{CssSel, Props}
 
-import scala.xml.NodeSeq
+import net.liftweb.util._
+import Helpers._
+
+
+
 
 class WebUI extends Loggable{
   def headerLogoLeft = {
@@ -63,6 +65,15 @@ class WebUI extends Loggable{
 
   def apiDocumentationLink: CssSel = {
     ".api-documentation-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
+  }
+
+
+  def mainStyleSheet: CssSel = {
+    "#main_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_main_style_sheet", "/media/css/website.css"))
+  }
+
+  def overrideStyleSheet: CssSel = {
+    "#override_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_override_style_sheet", ""))
   }
 
   // Used to represent partners or sponsors of this API instance

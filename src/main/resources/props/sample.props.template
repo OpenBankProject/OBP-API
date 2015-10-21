@@ -96,7 +96,6 @@ BankMockKey=change_me
 
 
 ### web interface configuration
-webui_header_theme_color = #53C4EF
 webui_header_logo_left_url = /media/images/logo.png
 webui_header_logo_right_url =
 webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
@@ -116,3 +115,9 @@ webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 webui_main_partners=[\
 {"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 1"},\
 {"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 2"}]
+
+# Main style sheet. Add your own if need be.
+webui_main_style_sheet = /media/css/website.css
+
+# Override certain elements (with important styles)
+webui_override_style_sheet =
