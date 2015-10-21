@@ -94,11 +94,6 @@ input.submit {
     display: none;
 }
 
-#accountShortDiscription {
-	font-size: 20px;
-	display: inline-block;
-}
-
 #social {
 	float: right;
 }
