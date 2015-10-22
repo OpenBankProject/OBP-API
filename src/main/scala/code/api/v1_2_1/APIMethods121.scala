@@ -86,7 +86,8 @@ trait APIMethods121 {
         |* Hosted by information
         |* Git Commit""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case Nil JsonGet json => {
@@ -115,7 +116,8 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val allBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get banks
@@ -146,7 +148,8 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
 
     lazy val bankById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -181,7 +184,8 @@ trait APIMethods121 {
          |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private).
          |""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for all banks (private + public)
@@ -202,7 +206,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for all banks
@@ -226,7 +231,8 @@ trait APIMethods121 {
       """Returns the list of private (non-public) accounts the user has access to at all banks.
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for all banks
@@ -253,7 +259,8 @@ trait APIMethods121 {
         |If you need the previous behaviour, please use the API call for private accounts (..../accounts/private)
       """,
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for a single bank (private + public)
@@ -279,7 +286,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
@@ -305,7 +313,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for a single bank
@@ -339,7 +348,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
@@ -366,7 +376,8 @@ trait APIMethods121 {
       "Change account label.",
       "",
       Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //change account label
@@ -416,7 +427,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get the available views on an bank account
@@ -453,7 +465,8 @@ trait APIMethods121 {
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
       Extraction.decompose(ViewCreationJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //creates a view on an bank account
@@ -484,7 +497,8 @@ trait APIMethods121 {
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
       Extraction.decompose(ViewUpdateData("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
@@ -510,7 +524,8 @@ trait APIMethods121 {
       "Deletes a view on an bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //deletes a view on an bank account
@@ -534,7 +549,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access
@@ -562,7 +578,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
@@ -591,7 +608,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required and the user needs to have access to the owner view.""",
       Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
@@ -621,7 +639,8 @@ trait APIMethods121 {
           |
           |Granting access to a public view will return an error message, as the user already has access.""",
       emptyObjectJson, // No Json body required
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
@@ -651,7 +670,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to one view
@@ -676,7 +696,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to all the views
@@ -701,7 +722,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
@@ -728,7 +750,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get one other account by id
@@ -755,7 +778,8 @@ trait APIMethods121 {
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
@@ -783,7 +807,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public alias of other bank account
@@ -817,7 +842,8 @@ trait APIMethods121 {
          |
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
       Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add public alias to other bank account
@@ -847,7 +873,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update public alias of other bank account
@@ -877,7 +904,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete public alias of other bank account
@@ -904,7 +932,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
@@ -933,7 +962,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
@@ -964,7 +994,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update private alias of other bank account
@@ -995,7 +1026,8 @@ trait APIMethods121 {
         |
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete private alias of other bank account
@@ -1022,7 +1054,8 @@ trait APIMethods121 {
       "Add more info to other bank account.",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
@@ -1051,7 +1084,8 @@ trait APIMethods121 {
       "Update more info of other bank account",
       "Update the description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
@@ -1080,7 +1114,8 @@ trait APIMethods121 {
       "Delete more info of other bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
@@ -1107,7 +1142,8 @@ trait APIMethods121 {
       "Add url to other bank account.",
       "A url which represents the counterparty (home page url etc.)",
       Extraction.decompose(UrlJSON("www.example.com")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1137,7 +1173,8 @@ trait APIMethods121 {
       "Update url of other bank account.",
       "A url which represents the counterparty (home page url etc.)",
       Extraction.decompose(UrlJSON("www.example.com")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
@@ -1166,7 +1203,8 @@ trait APIMethods121 {
       "Delete url of other bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
@@ -1193,7 +1231,8 @@ trait APIMethods121 {
       "Add image url to other bank account.",
       "Add a url that points to the logo of the counterparty",
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
@@ -1222,7 +1261,8 @@ trait APIMethods121 {
       "Update image url of other bank account.",
       "Update the url that points to the logo of the counterparty",
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
@@ -1251,7 +1291,8 @@ trait APIMethods121 {
       "Delete image url of other bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete image url of other bank account
@@ -1278,7 +1319,8 @@ trait APIMethods121 {
       "Add open corporate url to other bank account.",
       "",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add open corporate url to other bank account
@@ -1307,7 +1349,8 @@ trait APIMethods121 {
       "Update open corporate url of other bank account.",
       "",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update open corporate url of other bank account
@@ -1336,7 +1379,8 @@ trait APIMethods121 {
       "Delete open corporate url of other bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete open corporate url of other bank account
@@ -1363,7 +1407,8 @@ trait APIMethods121 {
       "Add corporate location to other bank account.",
       "Add the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add corporate location to other bank account
@@ -1394,7 +1439,8 @@ trait APIMethods121 {
       "Update corporate location of other bank account.",
       "Update the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update corporate location of other bank account
@@ -1425,7 +1471,8 @@ trait APIMethods121 {
       "Delete corporate location of other bank account.",
       "Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete corporate location of other bank account
@@ -1457,7 +1504,8 @@ trait APIMethods121 {
       "Add physical location to other bank account.",
       "Add geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add physical location to other bank account
@@ -1488,7 +1536,8 @@ trait APIMethods121 {
       "Update counterparties physical location",
       "Update geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update physical location to other bank account
@@ -1519,7 +1568,8 @@ trait APIMethods121 {
       "Delete physical location of other bank account.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete physical location of other bank account
@@ -1562,7 +1612,8 @@ trait APIMethods121 {
          |
          |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transactions
@@ -1591,7 +1642,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transaction by id
@@ -1618,7 +1670,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get narrative
@@ -1644,7 +1697,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add narrative
@@ -1673,7 +1727,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update narrative
@@ -1702,7 +1757,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete narrative
@@ -1728,7 +1784,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get comments
@@ -1754,7 +1811,8 @@ trait APIMethods121 {
          |
          |OAuth authentication is required since the comment is linked with the user.""",
       Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add comment
@@ -1784,7 +1842,8 @@ trait APIMethods121 {
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the comment.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete comment
@@ -1810,7 +1869,8 @@ trait APIMethods121 {
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get tags
@@ -1836,7 +1896,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |OAuth authentication is required since the tag is linked with the user.""",
       Extraction.decompose(PostTransactionTagJSON("holiday")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add a tag
@@ -1867,7 +1928,8 @@ Authentication via OAuth is required if the view is not public.""",
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the tag.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete a tag
@@ -1894,7 +1956,8 @@ Authentication via OAuth is required. The user must either have owner privileges
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get images
@@ -1920,7 +1983,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |OAuth authentication is required since the image is linked with the user.""",
       Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
@@ -1949,7 +2013,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete an image
@@ -1976,7 +2041,8 @@ Authentication via OAuth is required if the view is not public.""",
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get where tag
@@ -2003,7 +2069,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |OAuth authentication is required since the geo tag is linked with the user.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add where tag
@@ -2034,7 +2101,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |OAuth authentication is required since the geo tag is linked with the user.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update where tag
@@ -2065,7 +2133,8 @@ Authentication via OAuth is required if the view is not public.""",
 
 Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete where tag
@@ -2095,7 +2164,8 @@ Authentication via OAuth is required. The user must either have owner privileges
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other account of a transaction
@@ -2129,7 +2199,8 @@ Authentication via OAuth is required if the view is not public.""",
          |
          |There are no checks for 'sufficient funds' at the moment, so it is possible to go into unlimited overdraft.""",
       Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {

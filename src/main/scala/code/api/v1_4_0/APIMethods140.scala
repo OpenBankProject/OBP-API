@@ -70,7 +70,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |
       |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
@@ -97,7 +98,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |
       |Authentication via OAuth is required.""",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -125,7 +127,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -162,7 +165,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |
         |Authentication via OAuth *may* be required.""",
       emptyObjectJson,
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -191,14 +195,15 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/atms",
       "Get ATMS for the bank",
       """Returns information about ATMs for a single bank specified by BANK_ID including:
-
-* Address
-* Geo Location
-* License the data under this endpoint is released under
-
-Authentication via OAuth *may* be required.""",
+         |
+         |* Address
+         |* Geo Location
+         |* License the data under this endpoint is released under
+         |
+         |Authentication via OAuth *may* be required.""",
       emptyObjectJson,
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -238,7 +243,8 @@ Authentication via OAuth *may* be required.""",
         |* Terms and Conditions
         |* License the data under this endpoint is released under""",
       emptyObjectJson,
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -268,7 +274,8 @@ Authentication via OAuth *may* be required.""",
       "Get CRM Events for the logged in user",
       "",
       emptyObjectJson,
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -297,7 +304,8 @@ Authentication via OAuth *may* be required.""",
       "Get Resource Documentation in OBP format.",
       "Returns documentation about the resources on this server including example body for POST or PUT requests.",
       emptyObjectJson,
-      emptyObjectJson
+      emptyObjectJson,
+      emptyObjectJson :: Nil
     )
 
     // Provides resource documents so that live docs (currently on Sofi) can display API documentation
@@ -328,7 +336,8 @@ Authentication via OAuth *may* be required.""",
       "Get supported Transaction Request types.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -359,7 +368,8 @@ Authentication via OAuth *may* be required.""",
       "Get all Transaction Requests.",
       "",
       emptyObjectJson,
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -400,7 +410,8 @@ Authentication via OAuth *may* be required.""",
                                 "one of the transaction types possible for the account"
                                 )
                           ),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -444,7 +455,8 @@ Authentication via OAuth *may* be required.""",
       "Answer Transaction Request Challenge.",
       "",
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -487,7 +499,8 @@ Authentication via OAuth *may* be required.""",
         |""",
       Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate))),
-      emptyObjectJson)
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
 
     lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
@@ -548,7 +561,8 @@ Authentication via OAuth *may* be required.""",
             |
             |_etc_...""",
           emptyObjectJson,
-          emptyObjectJson)
+          emptyObjectJson,
+        emptyObjectJson :: Nil)
       }
   }
 }
