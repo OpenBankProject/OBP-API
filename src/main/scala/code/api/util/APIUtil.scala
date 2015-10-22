@@ -116,6 +116,10 @@ object APIUtil extends Loggable {
   def errorJsonResponse(message : String = "error", httpCode : Int = 400) : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
 
+  def notImplementedJsonResponse(message : String = "Not Implemented", httpCode : Int = 501) : JsonResponse =
+    JsonResponse(Extraction.decompose(ErrorMessage(message)), headers, Nil, httpCode)
+
+
   def oauthHeaderRequiredJsonResponse : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
 
@@ -266,6 +270,7 @@ object APIUtil extends Loggable {
                       requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
                       summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
                       description: String, // Longer description (originally taken from github wiki)
-                      exampleRequestBody: JValue, // The response body
-                      successResponseBody: JValue) // Any request body required (maybe empty)
+                      exampleRequestBody: JValue, // An example of the body required (maybe empty)
+                      successResponseBody: JValue, // A successful response body
+                      errorResponseBodies: List[JValue]) // Possible error responses
 }
