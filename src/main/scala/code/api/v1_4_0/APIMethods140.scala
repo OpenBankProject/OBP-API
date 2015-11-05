@@ -302,13 +302,24 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/resource-docs/obp",
       "Get Resource Documentation in OBP format.",
-      "Returns documentation about the resources on this server including example body for POST or PUT requests.",
+      """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
+        | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
+        | In the future this information will be used to create Swagger and RAML files.
+        |<ul>
+        |<li> operation_id is concatenation of version and function and should be unque (the aim of this is to allow links to code) </li>
+        |<li> version references the version that the API call is defined in.</li>
+        |<li> function is the (scala) function.</li>
+        |<li> request_url is empty for the root call, else the path.</li>
+        |<li> summary is a short description inline with the swagger terminology. </li>
+        |<li> description can contain html markup.</li>
+        |</ul>
+        """,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil
     )
 
-    // Provides resource documents so that live docs (currently on Sofi) can display API documentation
+    // Provides resource documents so that API Explorer (or other apps) can display API documentation
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
