@@ -85,6 +85,18 @@ To compile and run jetty, install Maven 3 and execute:
 
 ----
 
+## Ubuntu
+
+If you use Ubuntu (or a derivate) and encrypted home directories (e.g. you have ~/.Private), you might run into the following error when the project is built:
+
+    uncaught exception during compilation: java.io.IOException
+    [ERROR] File name too long
+    [ERROR] two errors found
+    [DEBUG] Compilation failed (CompilerInterface)
+
+The current workaround is to move the project directory onto a different partition, e.g. under /opt/ .
+
+
 # Databases:
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
