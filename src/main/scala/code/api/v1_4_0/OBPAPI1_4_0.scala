@@ -18,6 +18,7 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_2_1.privateAccountsAtOneBank,
     Implementations1_2_1.publicAccountsAtOneBank,
     Implementations1_2_1.accountById,
+    Implementations1_2_1.updateAccountLabel,
     Implementations1_2_1.getViewsForBankAccount,
     Implementations1_2_1.createViewForBankAccount,
     Implementations1_2_1.updateViewForBankAccount,
