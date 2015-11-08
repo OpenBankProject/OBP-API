@@ -320,6 +320,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
+    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple various of markdown.
     lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
