@@ -111,6 +111,11 @@ webui_api_explorer_url = http://sofi.openbankproject.com/api-explorer
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 
 
+# Link for SDKs
+webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
+
+
+
 ## For partner logos and links
 webui_main_partners=[\
 {"logoUrl":"http://www.example.com/images/logo.png", "homePageUrl":"http://www.example.com", "altText":"Example 1"},\

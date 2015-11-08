@@ -63,10 +63,21 @@ class WebUI extends Loggable{
     ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", ""))
   }
 
+  // Points to the documentation. Probably a sandbox specific link is good.
   def apiDocumentationLink: CssSel = {
     ".api-documentation-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "https://github.com/OpenBankProject/OBP-API/wiki"))
   }
 
+  // For example customers and credentials
+  // This relies on the page for sandbox documentation having an anchor called example-customer-logins
+  def exampleSandboxCredentialsLink: CssSel = {
+    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "") + "#example-customer-logins")
+  }
+
+  // For link to OAuth Client SDKs
+  def sdksLink: CssSel = {
+    ".sdks_link a [href]" #> scala.xml.Unparsed(Props.get("webui_sdks_url", ""))
+  }
 
   def mainStyleSheet: CssSel = {
     "#main_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_main_style_sheet", "/media/css/website.css"))
