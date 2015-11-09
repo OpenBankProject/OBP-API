@@ -51,6 +51,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_2.10</artifactId>
+      <version>0.8.2.2</version>
+    </dependency>
+    <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
       <version>${lift.version}</version>
