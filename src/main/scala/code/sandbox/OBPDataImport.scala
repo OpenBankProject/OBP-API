@@ -487,6 +487,7 @@ trait OBPDataImport extends Loggable {
    * @return A full box if the import worked, or else a failure describing what went wrong
    */
   def importData(data: SandboxDataImport) : Box[Unit] = {
+
     logger.info(s"Hello from importData")
     for {
       banks <- createBanks(data)

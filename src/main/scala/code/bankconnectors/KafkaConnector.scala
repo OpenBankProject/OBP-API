@@ -50,17 +50,21 @@ object KafkaConnector extends Connector with Loggable {
 
   import ZooKeeperUtils._
 
+  val ZK_HOST: String = "localhost:2181"
+  val TPC_RESPONSE: String = "Response"
+  val TPC_REQUEST: String = "Request"
+
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    val brokerList: String = getBrokers("localhost:2181").mkString(",")
+    val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     val reqId: String = UUID.randomUUID().toString
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
-    val producer: KafkaProducer = new KafkaProducer("Request", brokerList)
+    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, brokerList)
     producer.send(reqId + "|getBanks", "1")
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer("localhost:2181", "1", "Response", 0)
+    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
     println(consumer.getResponse(reqId))
     val res: List[Bank] = null
     res
@@ -68,15 +72,15 @@ object KafkaConnector extends Connector with Loggable {
 
   //gets bank identified by id
   override def getBank(bankId: BankId): Bank = {
-    val brokerList: String = getBrokers("localhost:2181").mkString(",")
+    val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     val reqId: String = UUID.randomUUID().toString
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
-    val producer: KafkaProducer = new KafkaProducer("Request", brokerList)
+    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, brokerList)
     producer.send(reqId + "|getBank:" + bankId.toString, "1")
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer("localhost:2181", "1", "Response", 0)
+    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
     println(consumer.getResponse(reqId))
     val res: Bank = null
     res
@@ -115,6 +119,7 @@ object KafkaConnector extends Connector with Loggable {
 
 object ZooKeeperUtils {
 
+  // gets brokers tracked by zookeeper
   def getBrokers(zookeeper:String): List[String] = {
     val zkClient = new ZkClient(zookeeper, 30000, 30000, ZKStringSerializer)
     val brokers = for {broker <- ZkUtils.getAllBrokersInCluster(zkClient) } yield {
@@ -124,6 +129,7 @@ object ZooKeeperUtils {
     brokers.toList
   }
 
+  // gets all topics tracked by zookeeper
   def getTopics(zookeeper:String): List[String] = {
     val zkClient = new ZkClient(zookeeper, 30000, 30000, ZKStringSerializer)
     val res = ZkUtils.getAllTopics(zkClient).toList
