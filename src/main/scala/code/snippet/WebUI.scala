@@ -76,7 +76,7 @@ class WebUI extends Loggable{
 
   // For link to OAuth Client SDKs
   def sdksLink: CssSel = {
-    ".sdks_link a [href]" #> scala.xml.Unparsed(Props.get("webui_sdks_url", ""))
+    ".sdks_link a [href]" #> scala.xml.Unparsed(Props.get("webui_sdks_url", "https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS"))
   }
 
   def mainStyleSheet: CssSel = {
