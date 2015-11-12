@@ -27,7 +27,7 @@ Berlin 13359, Germany
 import java.util.{Calendar, UUID, Date}
 
 import code.model._
-import net.liftweb.common.{Loggable, Full, Box, Failure}
+import net.liftweb.common.{Loggable, Empty, Full, Box, Failure}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{False, Props}
@@ -44,7 +44,7 @@ import kafka.consumer.KafkaStream
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 
-
+import code.model.dataAccess.{MappedBank}
 
 object KafkaConnector extends Connector with Loggable {
 
@@ -61,28 +61,46 @@ object KafkaConnector extends Connector with Loggable {
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, brokerList)
-    producer.send(reqId + "|getBanks", "1")
+    producer.send(reqId, "getBanks:{}")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
-    println(consumer.getResponse(reqId))
-    val res: List[Bank] = null
+    val rx = consumer.getResponse(reqId)
+    val p = """"(\w*?)":"(.*?)"""".r
+    val r = (for( p(k, v) <- p.findAllIn(rx) ) yield  (k -> v)).toMap[String, String]
+    val res: List[Bank] = List(
+        MappedBank.create
+        .permalink(r.getOrElse("permalink", ""))
+        .fullBankName(r.getOrElse("fullBankName", ""))
+        .shortBankName(r.getOrElse("shortBankName", ""))
+        .logoURL(r.getOrElse("logoURL", ""))
+        .websiteURL(r.getOrElse("websiteURL", ""))
+    )
     res
   }
 
   //gets bank identified by id
-  override def getBank(bankId: BankId): Bank = {
+  override def getBank(bankId: code.model.BankId): Box[Bank] = {
     val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     val reqId: String = UUID.randomUUID().toString
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, brokerList)
-    producer.send(reqId + "|getBank:" + bankId.toString, "1")
+    producer.send(reqId, "getBank:{bankId:" + bankId.toString + "}")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
-    println(consumer.getResponse(reqId))
-    val res: Bank = null
+    val rx = consumer.getResponse(reqId)
+    val p = """"(\w*?)":"(.*?)"""".r
+    val r = (for( p(k, v) <- p.findAllIn(rx) ) yield  (k -> v)).toMap[String, String]
+    val res: Box[Bank] = Full(
+      MappedBank.create
+        .permalink(r.getOrElse("permalink", ""))
+        .fullBankName(r.getOrElse("fullBankName", ""))
+        .shortBankName(r.getOrElse("shortBankName", ""))
+        .logoURL(r.getOrElse("logoURL", ""))
+        .websiteURL(r.getOrElse("websiteURL", ""))
+    )
     res
   }
 
@@ -159,6 +177,7 @@ class KafkaConsumer(val zookeeper: String,
     props.put("zookeeper.session.timeout.ms", "400")
     props.put("zookeeper.sync.time.ms", "400")
     props.put("auto.commit.interval.ms", "800")
+    props.put("consumer.timeout.ms", "5000")
     val config = new ConsumerConfig(props)
     config
   }
@@ -166,25 +185,27 @@ class KafkaConsumer(val zookeeper: String,
     val topicCountMap = Map(topic -> 1)
     val consumerMap = consumer.createMessageStreams(topicCountMap)
     val streams = consumerMap.get(topic).get
-    val deadline = 5 seconds fromNow
     for (stream <- streams) {
       val it = stream.iterator()
-      while ( deadline.hasTimeLeft ) {
-        /* TODO
-        val m = it.next()
-        if (m != null ) {
-          val msg = new String(m.message())
-          val pattern = """^(.*?)|(.*)$""".r
-          pattern.findAllIn(msg).matchData foreach { m =>
+      try {
+        while (it.hasNext()) {
+          val m = it.next()
+          val msg = new String(m.message(), "UTF8")
+          val key = new String(m.key(), "UTF8")
+          if (key == reqId) {
             shutdown()
-            return m.group(2)
+            return msg;
           }
         }
-         */
+      }
+      catch {
+        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
+        shutdown()
+        return "timeout"
       }
     }
     shutdown()
-    return "timeout"
+    return "none"
   }
 }
 
@@ -198,6 +219,7 @@ case class KafkaProducer(
                           batchSize: Integer = 200,
                           messageSendMaxRetries: Integer = 3,
                           requestRequiredAcks: Integer = -1
+                          //requestRequiredAcks: Integer = 1
                           ) {
 
   val props = new Properties()
@@ -214,19 +236,19 @@ case class KafkaProducer(
 
   val producer = new Producer[AnyRef, AnyRef](new ProducerConfig(props))
 
-  def kafkaMesssage(message: Array[Byte], partition: Array[Byte]): KeyedMessage[AnyRef, AnyRef] = {
+  def kafkaMesssage(key: Array[Byte], message: Array[Byte], partition: Array[Byte]): KeyedMessage[AnyRef, AnyRef] = {
     if (partition == null) {
-      new KeyedMessage(topic, message)
+      new KeyedMessage(topic, key, message)
     } else {
-      new KeyedMessage(topic, partition, message)
+      new KeyedMessage(topic, partition, key, message)
     }
   }
 
-  def send(message: String, partition: String = null): Unit = send(message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
+  def send(key: String, message: String, partition: String = null): Unit = send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
 
-  def send(message: Array[Byte], partition: Array[Byte]): Unit = {
+  def send(key: Array[Byte], message: Array[Byte], partition: Array[Byte]): Unit = {
     try {
-      producer.send(kafkaMesssage(message, partition))
+      producer.send(kafkaMesssage(key, message, partition))
     } catch {
       case e: Exception =>
         e.printStackTrace()
