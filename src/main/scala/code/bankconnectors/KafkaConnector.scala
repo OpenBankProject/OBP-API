@@ -65,9 +65,7 @@ object KafkaConnector extends Connector with Loggable {
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
-    val rx = consumer.getResponse(reqId)
-    val p = """"(\w*?)":"(.*?)"""".r
-    val r = (for( p(k, v) <- p.findAllIn(rx) ) yield  (k -> v)).toMap[String, String]
+    val r = consumer.getResponse(reqId)
     val res: List[Bank] = List(
         MappedBank.create
         .permalink(r.getOrElse("permalink", ""))
@@ -81,27 +79,52 @@ object KafkaConnector extends Connector with Loggable {
 
   //gets bank identified by id
   override def getBank(bankId: code.model.BankId): Box[Bank] = {
+    val reqId: String = UUID.randomUUID().toString
+
+    // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
+    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    producer.send(reqId, "getBank:{bankId:" + bankId.toString + "}")
+
+    // Request sent, now we wait for response with the same reqId
+    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val r = consumer.getResponse(reqId)
+    Full( MappedBank.create
+         .permalink(r.getOrElse("permalink", ""))
+         .fullBankName(r.getOrElse("fullBankName", ""))
+         .shortBankName(r.getOrElse("shortBankName", ""))
+         .logoURL(r.getOrElse("logoURL", ""))
+         .websiteURL(r.getOrElse("websiteURL", ""))
+    )
+  }
+
+  def getTransactions(bankId: BankId,accountID: AccountId,queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     val reqId: String = UUID.randomUUID().toString
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, brokerList)
-    producer.send(reqId, "getBank:{bankId:" + bankId.toString + "}")
+    producer.send(reqId, "getTransactions:{}")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
-    val rx = consumer.getResponse(reqId)
-    val p = """"(\w*?)":"(.*?)"""".r
-    val r = (for( p(k, v) <- p.findAllIn(rx) ) yield  (k -> v)).toMap[String, String]
-    val res: Box[Bank] = Full(
-      MappedBank.create
-        .permalink(r.getOrElse("permalink", ""))
-        .fullBankName(r.getOrElse("fullBankName", ""))
-        .shortBankName(r.getOrElse("shortBankName", ""))
-        .logoURL(r.getOrElse("logoURL", ""))
-        .websiteURL(r.getOrElse("websiteURL", ""))
+    val r = consumer.getResponse(reqId)
+    /*
+    Full( MappedTransaction.create
+          .bank(r.getOrElse("bank", ""))
+          .account(r.getOrElse("account", ""))
+          .transactionId(r.getOrElse("transactionId", ""))
+          .transactionType(r.getOrElse("transactionType", ""))
+          .amount(r.getOrElse("transactionType", "").toLong)
+          .newAccountBalance(r.getOrElse("transactionType", "").toLong)
+          .currency(r.getOrElse("currency", ""))
+          .tStartDate(null) //r.getOrElse("tStartDate", ""))
+          .tFinishDate(null) //r.getOrElse("tFinishDate", ""))
+          .description(r.getOrElse("description", ""))
+          //.counterpartyAccountHolder(null) //r.getOrElse("counterpartyAccountHolder", ""))
+          //.counterpartyAccountNumber(List[Transaction](null)) //r.getOrElse("counterpartyAccountNumber", ""))
     )
-    res
+    */
+    Full(List(MappedTransaction.create, MappedTransaction.create))
   }
 
   def accountExists(bankId: code.model.BankId,accountNumber: String): Boolean = ???
@@ -122,7 +145,6 @@ object KafkaConnector extends Connector with Loggable {
   protected def getTransactionRequestImpl(transactionRequestId: code.model.TransactionRequestId): net.liftweb.common.Box[code.transactionrequests.TransactionRequests.TransactionRequest] = ???
   protected def getTransactionRequestTypesImpl(fromAccount: code.model.BankAccount): net.liftweb.common.Box[List[code.model.TransactionRequestType]] = ???
   protected def getTransactionRequestsImpl(fromAccount: code.model.BankAccount): net.liftweb.common.Box[List[code.transactionrequests.TransactionRequests.TransactionRequest]] = ???
-  def getTransactions(bankId: code.model.BankId,accountID: code.model.AccountId,queryParams: code.bankconnectors.OBPQueryParam*): net.liftweb.common.Box[List[code.model.Transaction]] = ???
   protected def makePaymentImpl(fromAccount: code.bankconnectors.KafkaConnector.AccountType,toAccount: code.bankconnectors.KafkaConnector.AccountType,amt: BigDecimal,description: String): net.liftweb.common.Box[code.model.TransactionId] = ???
   def removeAccount(bankId: code.model.BankId,accountId: code.model.AccountId): Boolean = ???
   protected def saveTransactionRequestChallengeImpl(transactionRequestId: code.model.TransactionRequestId,challenge: code.transactionrequests.TransactionRequests.TransactionRequestChallenge): net.liftweb.common.Box[Boolean] = ???
@@ -181,7 +203,7 @@ class KafkaConsumer(val zookeeper: String,
     val config = new ConsumerConfig(props)
     config
   }
-  def getResponse(reqId: String): String = {
+  def getResponse(reqId: String): Map[String, String] = {
     val topicCountMap = Map(topic -> 1)
     val consumerMap = consumer.createMessageStreams(topicCountMap)
     val streams = consumerMap.get(topic).get
@@ -194,18 +216,20 @@ class KafkaConsumer(val zookeeper: String,
           val key = new String(m.key(), "UTF8")
           if (key == reqId) {
             shutdown()
-            return msg;
+            val p = """"(\w*?)":"(.*?)"""".r
+            val r = (for( p(k, v) <- p.findAllIn(msg) ) yield  (k -> v)).toMap[String, String]
+            return r;
           }
         }
       }
       catch {
         case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
         shutdown()
-        return "timeout"
+        return Map("error" -> "timeout")
       }
     }
     shutdown()
-    return "none"
+    return Map("" -> "")
   }
 }
 
