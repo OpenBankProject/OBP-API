@@ -24,9 +24,11 @@ Berlin 13359, Germany
 */
 
 
-import java.util.{Calendar, UUID, Date}
+import java.text.{SimpleDateFormat, DateFormat}
+import java.util.{Date, UUID, TimeZone, Locale, Properties}
 
 import code.model._
+import code.util.Helper
 import net.liftweb.common.{Loggable, Empty, Full, Box, Failure}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
@@ -37,14 +39,14 @@ import scala.concurrent.duration._
 
 import kafka.utils.{ZkUtils, ZKStringSerializer}
 import org.I0Itec.zkclient.ZkClient
-import java.util.Properties
 import kafka.consumer.Consumer
 import kafka.consumer._
 import kafka.consumer.KafkaStream
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 
-import code.model.dataAccess.{MappedBank}
+import code.model.dataAccess.{Account, MappedBank}
+import code.model.Transaction
 
 object KafkaConnector extends Connector with Loggable {
 
@@ -97,6 +99,11 @@ object KafkaConnector extends Connector with Loggable {
     )
   }
 
+  override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
+    BankAccount(bankId, accountId)
+  }
+
+
   def getTransactions(bankId: BankId,accountID: AccountId,queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     val reqId: String = UUID.randomUUID().toString
@@ -108,25 +115,46 @@ object KafkaConnector extends Connector with Loggable {
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
     val r = consumer.getResponse(reqId)
-    /*
-    Full( MappedTransaction.create
-          .bank(r.getOrElse("bank", ""))
-          .account(r.getOrElse("account", ""))
-          .transactionId(r.getOrElse("transactionId", ""))
-          .transactionType(r.getOrElse("transactionType", ""))
-          .amount(r.getOrElse("transactionType", "").toLong)
-          .newAccountBalance(r.getOrElse("transactionType", "").toLong)
-          .currency(r.getOrElse("currency", ""))
-          .tStartDate(null) //r.getOrElse("tStartDate", ""))
-          .tFinishDate(null) //r.getOrElse("tFinishDate", ""))
-          .description(r.getOrElse("description", ""))
-          //.counterpartyAccountHolder(null) //r.getOrElse("counterpartyAccountHolder", ""))
-          //.counterpartyAccountNumber(List[Transaction](null)) //r.getOrElse("counterpartyAccountNumber", ""))
-    )
-    */
-    Full(List(MappedTransaction.create, MappedTransaction.create))
+
+    def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+      new OtherBankAccount(
+        id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+        label = r.getOrElse("label", ""),
+        nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
+        swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
+        iban = Some(r.getOrElse("iban", "")),
+        number = r.getOrElse("number", ""),
+        bankName = r.getOrElse("bankName", ""),
+        kind = r.getOrElse("accountType", ""),
+        originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
+        originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
+        alreadyFoundMetadata = alreadyFoundMetadata
+      )
+    }
+
+    //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+    val dummyOtherBankAccount = createOtherBankAccount(None)
+    //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+    //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+    val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+
+    Full( List(
+      new Transaction(
+        TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
+        TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
+        getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
+        otherAccount,                                                                                            // otherAccount:OtherBankAccount
+        r.getOrElse("transactionType", ""),                                                                      // transactionType:String
+        BigDecimal(r.getOrElse("amount", "")),                                                                   // val amount:BigDecimal
+        r.getOrElse("currency", ""),                                                                             // currency:String
+        Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
+        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "")),  // startDate:Date
+        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "")), // finishDate:Date
+        BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
+    )))
   }
 
+  def getBankAccountType(bankId: code.model.BankId, accountId: code.model.AccountId): net.liftweb.common.Box[code.bankconnectors.KafkaConnector.AccountType] = ???
   def accountExists(bankId: code.model.BankId,accountNumber: String): Boolean = ???
   def addCashTransactionAndUpdateBalance(account: code.bankconnectors.KafkaConnector.AccountType,cashTransaction: code.tesobe.CashTransaction): Unit = ???
   def createBankAndAccount(bankName: String,bankNationalIdentifier: String,accountNumber: String,accountHolderName: String): (code.model.Bank, code.model.BankAccount) = ???
@@ -135,7 +163,6 @@ object KafkaConnector extends Connector with Loggable {
   protected def createTransactionRequestImpl(transactionRequestId: code.model.TransactionRequestId,transactionRequestType: code.model.TransactionRequestType,fromAccount: code.model.BankAccount,counterparty: code.model.BankAccount,body: code.transactionrequests.TransactionRequests.TransactionRequestBody,status: String): net.liftweb.common.Box[code.transactionrequests.TransactionRequests.TransactionRequest] = ???
   def getAccountByUUID(uuid: String): net.liftweb.common.Box[code.bankconnectors.KafkaConnector.AccountType] = ???
   def getAccountHolders(bankId: code.model.BankId,accountID: code.model.AccountId): Set[code.model.User] = ???
-  protected def getBankAccountType(bankId: code.model.BankId,accountId: code.model.AccountId): net.liftweb.common.Box[code.bankconnectors.KafkaConnector.AccountType] = ???
   def getMatchingTransactionCount(bankNationalIdentifier: String,accountNumber: String,amount: String,completed: java.util.Date,otherAccountHolder: String): Int = ???
   def getOtherBankAccount(bankId: code.model.BankId,accountID: code.model.AccountId,otherAccountID: String): net.liftweb.common.Box[code.model.OtherBankAccount] = ???
   def getOtherBankAccounts(bankId: code.model.BankId,accountID: code.model.AccountId): List[code.model.OtherBankAccount] = ???
