@@ -85,7 +85,7 @@ object KafkaConnector extends Connector with Loggable {
 
     // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
-    producer.send(reqId, "getBank:{bankId:" + bankId.toString + "}")
+    producer.send(reqId, """getBank:{bankId:"""" + bankId.toString + """"}""")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
@@ -100,7 +100,36 @@ object KafkaConnector extends Connector with Loggable {
   }
 
   override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = {
-    BankAccount(bankId, accountId)
+    val reqId: String = UUID.randomUUID().toString
+
+    // Send request to kafka, mark it with reqId so we can fetch the corresponding answer
+    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    producer.send(reqId, """getBankAccount:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """"}""")
+
+    // Request sent, now we wait for response with the same reqId
+    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val r = consumer.getResponse(reqId)
+    val bankAccount = new BankAccount {
+                        val accountId     = AccountId(r.getOrElse("accountId", ""));
+                        val bankId        = BankId(r.getOrElse("bankId", ""));
+                        val uuid          = r.getOrElse("uuid", "");
+                        val accountHolder = r.getOrElse("accountHolder", "");
+                        val accountType   = r.getOrElse("accountType", "");
+                        val currency      = r.getOrElse("currency", "");
+                        val label         = r.getOrElse("label", "");
+                        val name          = r.getOrElse("name", "");
+                        val number        = r.getOrElse("number", "");
+                        val balance       = BigDecimal(r.getOrElse("balance", "0.0"));
+                        val swift_bic     = Some(r.getOrElse("swift_bic", ""));
+                        val iban          = Some(r.getOrElse("iban", ""));
+                        val lastUpdate    = new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("lastUpdate", "Thu Jan  1 00:00:00 UTC 1970"))
+                       }
+    println("==========================>")
+    for { j <- r } yield { println(j) }
+    println("<==========================")
+    println(r.getOrElse("lastUpdate", "Thu Jan  1 00:00:00 UTC 1970"))
+
+    Full(bankAccount)
   }
 
 
@@ -145,11 +174,11 @@ object KafkaConnector extends Connector with Loggable {
         getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
         otherAccount,                                                                                            // otherAccount:OtherBankAccount
         r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-        BigDecimal(r.getOrElse("amount", "")),                                                                   // val amount:BigDecimal
+        BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
         r.getOrElse("currency", ""),                                                                             // currency:String
         Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "")),  // startDate:Date
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "")), // finishDate:Date
+        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "Thu Jan  1 00:00:00 UTC 1970")),  // startDate:Date
+        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "Thu Jan  1 00:00:00 UTC 1970")), // finishDate:Date
         BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
     )))
   }
@@ -243,7 +272,7 @@ class KafkaConsumer(val zookeeper: String,
           val key = new String(m.key(), "UTF8")
           if (key == reqId) {
             shutdown()
-            val p = """"(\w*?)":"(.*?)"""".r
+            val p = """([a-zA-Z0-9_-]*?):"(.*?)"""".r
             val r = (for( p(k, v) <- p.findAllIn(msg) ) yield  (k -> v)).toMap[String, String]
             return r;
           }
