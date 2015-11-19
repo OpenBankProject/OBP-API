@@ -38,8 +38,14 @@ object LiftProjectBuild extends Build {
     }).toMap
 
     private lazy val PropertiesExpr = """.*\$\{(.*?)\}.*""".r
+    private lazy val TwoPropertiesExpr = """.*\$\{(.*?)\}.*\$\{(.*?)\}.*""".r
 
     def populateProps(t: String) = t match {
+      case TwoPropertiesExpr(p, q) => {
+        t
+        .replace("${"+p+"}", pomProperties.get(p).getOrElse(throw new Exception("Cannot find property: '" + p + "' required by: '" + t +  "' in: " + pomFile)))
+        .replace("${"+q+"}", pomProperties.get(q).getOrElse(throw new Exception("Cannot find property: '" + q + "' required by: '" + t +  "' in: " + pomFile)))
+      }
       case PropertiesExpr(p) => {
         val replaceWith = pomProperties.get(p)
         t.replace("${"+p+"}", replaceWith.getOrElse(throw new Exception("Cannot find property: '" + p + "' required by: '" + t +  "' in: " + pomFile)))

@@ -40,7 +40,7 @@ object Connector  extends SimpleInjector {
     Props.get("connector").openOrThrowException("no connector set") match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
-      case "kafka" => KafkaConnector
+      case "kafka" => KafkaMappedConnector
     }
 
 }
