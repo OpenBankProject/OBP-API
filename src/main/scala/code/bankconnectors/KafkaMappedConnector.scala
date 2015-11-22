@@ -148,13 +148,14 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   // Gets transactions identified by bankid, accountid and filtered by queryparams
   def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
-    // so we can fetch the corresponding response 
+    // so we can fetch the corresponding response
+    // TODO Extract the string building into a function and use String Interpolation rather than concatenation
     producer.send(reqId, """getTransactions:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",queryParams:"""" + queryParams.toString + """"}""")
 
     // Request sent, now we wait for response with the same reqId
