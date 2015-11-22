@@ -218,7 +218,8 @@ object KafkaConnector extends Connector with Loggable {
     // Create Kafka producer, using list of brokers from Zookeeper
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
-    // so we can fetch the corresponding response 
+    // so we can fetch the corresponding response
+    // TODO Use function (with string interpolation) to remove duplication (See Trello)
     producer.send(reqId, """getTransactions:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",queryParams:"""" + queryParams.toString + """"}""")
 
     // Request sent, now we wait for response with the same reqId
@@ -231,6 +232,7 @@ object KafkaConnector extends Connector with Loggable {
 
       // helper for creating otherbankaccount
       def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+        // TODO Can we improve this? Remove duplication / have a more direct mapping of objects on the queue?
         new OtherBankAccount(
           id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = r.getOrElse("label", ""),
