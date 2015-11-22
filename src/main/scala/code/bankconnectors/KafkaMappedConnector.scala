@@ -29,7 +29,7 @@ import scala.concurrent.ops._
 
 object KafkaMappedConnector extends Connector with Loggable {
 
-  // TODO: Instead of hardcoding, get the values from conf
+  // TODO: Instead of hardcoding, get the values from Props file
   val ZK_HOST: String = "localhost:2181"
   val TPC_RESPONSE: String = "Response"
   val TPC_REQUEST: String = "Request"
