@@ -158,18 +158,12 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create Kafka producer, using list of brokers from Zookeeper
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
-<<<<<<< HEAD
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
                        "accountId" -> accountId.toString,
                        "queryParams" -> queryParams.toString )
 
     producer.send(reqId, "getTransactions", argList)
-=======
-    // so we can fetch the corresponding response
-    // TODO Extract the string building into a function and use String Interpolation rather than concatenation
-    producer.send(reqId, """getTransactions:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",queryParams:"""" + queryParams.toString + """"}""")
->>>>>>> 2ff090d47429f2973b1462bd83e678a409bda614
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
