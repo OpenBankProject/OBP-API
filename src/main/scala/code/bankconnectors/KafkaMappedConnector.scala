@@ -72,7 +72,11 @@ object KafkaMappedConnector extends Connector with Loggable {
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
-    producer.send(reqId, """getTransaction:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",transactionId:"""" + transactionId.toString + """"}""")
+    val argList = Map( "bankId" -> bankId.toString,
+                       "accountId" -> accountId.toString,
+                       "transactionId" -> transactionId.toString )
+
+    producer.send(reqId, "getTransaction", argList)
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
@@ -155,7 +159,11 @@ object KafkaMappedConnector extends Connector with Loggable {
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
-    producer.send(reqId, """getTransactions:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",queryParams:"""" + queryParams.toString + """"}""")
+    val argList = Map( "bankId" -> bankId.toString,
+                       "accountId" -> accountId.toString,
+                       "queryParams" -> queryParams.toString )
+
+    producer.send(reqId, "getTransactions", argList)
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)

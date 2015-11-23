@@ -146,7 +146,11 @@ case class KafkaProducer(
     }
   }
 
-  def send(key: String, message: String, partition: String = null): Unit = send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
+  def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
+    val args = (for ( (k,v) <- arguments ) yield { s"""$k:"$v",""" }).mkString.replaceAll(",$", "")
+    val message = s"$request:{$args}"
+    send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
+  }
 
   def send(key: Array[Byte], message: Array[Byte], partition: Array[Byte]): Unit = {
     try {
