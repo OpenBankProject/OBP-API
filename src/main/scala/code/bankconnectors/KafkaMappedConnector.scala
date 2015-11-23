@@ -29,7 +29,7 @@ import scala.concurrent.ops._
 
 object KafkaMappedConnector extends Connector with Loggable {
 
-  // TODO: Instead of hardcoding, get the values from conf
+  // TODO: Instead of hardcoding, get the values from Props file
   val ZK_HOST: String = "localhost:2181"
   val TPC_RESPONSE: String = "Response"
   val TPC_REQUEST: String = "Request"
@@ -152,18 +152,24 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   // Gets transactions identified by bankid, accountid and filtered by queryparams
   def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
     val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
     // Send request to Kafka, marked with reqId 
+<<<<<<< HEAD
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
                        "accountId" -> accountId.toString,
                        "queryParams" -> queryParams.toString )
 
     producer.send(reqId, "getTransactions", argList)
+=======
+    // so we can fetch the corresponding response
+    // TODO Extract the string building into a function and use String Interpolation rather than concatenation
+    producer.send(reqId, """getTransactions:{bankId:"""" + bankId.toString + """",accountId:"""" + accountId.toString + """",queryParams:"""" + queryParams.toString + """"}""")
+>>>>>>> 2ff090d47429f2973b1462bd83e678a409bda614
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
