@@ -52,25 +52,13 @@ object KafkaConnector extends Connector with Loggable {
 
 
 
-  // TODO: Instead of hardcoding, get the values from conf
-  val ZK_HOST: String = "localhost:2181"
-  val TPC_RESPONSE: String = "Response"
-  val TPC_REQUEST: String = "Request"
-  ////////////////////////////////////////////////////////
-
-
-
-
-  import ZooKeeperUtils._
-
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    val brokerList: String = getBrokers(ZK_HOST).mkString(",")
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList: Map[String, String] = Map()
@@ -78,7 +66,7 @@ object KafkaConnector extends Connector with Loggable {
     producer.send(reqId, "getBanks", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     val rList = consumer.getResponse(reqId)
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
@@ -101,7 +89,7 @@ object KafkaConnector extends Connector with Loggable {
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString )
@@ -109,7 +97,7 @@ object KafkaConnector extends Connector with Loggable {
     producer.send(reqId, "getBank", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
     val res = MappedBank.create
@@ -130,7 +118,7 @@ object KafkaConnector extends Connector with Loggable {
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
@@ -139,7 +127,7 @@ object KafkaConnector extends Connector with Loggable {
     producer.send(reqId, "getBankAccount", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
     val res = new BankAccount {
@@ -168,7 +156,7 @@ object KafkaConnector extends Connector with Loggable {
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
@@ -178,7 +166,7 @@ object KafkaConnector extends Connector with Loggable {
     producer.send(reqId, "getTransaction", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
 
@@ -227,7 +215,7 @@ object KafkaConnector extends Connector with Loggable {
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
@@ -237,7 +225,7 @@ object KafkaConnector extends Connector with Loggable {
     producer.send(reqId, "getTransactions", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val rList = consumer.getResponse(reqId)
 

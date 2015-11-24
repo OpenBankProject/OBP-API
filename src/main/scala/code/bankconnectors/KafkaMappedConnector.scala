@@ -29,15 +29,6 @@ import scala.concurrent.ops._
 
 object KafkaMappedConnector extends Connector with Loggable {
 
-  // TODO: Instead of hardcoding, get the values from Props file
-  val ZK_HOST: String = "localhost:2181"
-  val TPC_RESPONSE: String = "Response"
-  val TPC_REQUEST: String = "Request"
-  ////////////////////////////////////////////////////////
-
-  import ZooKeeperUtils._
-
-
   type AccountType = MappedBankAccount
 
   //gets a particular bank handled by this connector
@@ -64,24 +55,35 @@ object KafkaMappedConnector extends Connector with Loggable {
 */
 
   // Gets transaction identified by bankid, accountid and transactionId 
-  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
+
+    updateAccountTransactions(bankId, accountID)
+
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
-                       "accountId" -> accountId.toString,
+                       "accountId" -> accountID.toString,
                        "transactionId" -> transactionId.toString )
-
     producer.send(reqId, "getTransaction", argList)
 
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
+
+    // If empty result from Kafka fallback to mapper
+    if (r.getOrElse("accountId", "") == "") {
+      val res = MappedTransaction.find(
+                  By(MappedTransaction.bank, bankId.value),
+                  By(MappedTransaction.account, accountID.value),
+                  By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+      return res
+    }
 
     // helper for creating otherbankaccount
     def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
@@ -99,7 +101,6 @@ object KafkaMappedConnector extends Connector with Loggable {
         alreadyFoundMetadata = alreadyFoundMetadata
       )
     }
-
     //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
     val dummyOtherBankAccount = createOtherBankAccount(None)
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
@@ -151,67 +152,91 @@ object KafkaMappedConnector extends Connector with Loggable {
 */
 
   // Gets transactions identified by bankid, accountid and filtered by queryparams
-  def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
+    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
+    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
+    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
+    val ordering = queryParams.collect {
+      //we don't care about the intended sort field and only sort on finish date for now
+      case OBPOrdering(_, direction) =>
+        direction match {
+          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
+          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
+        }
+    }
+    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
+
+    val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
+
+    updateAccountTransactions(bankId, accountID)
+
+    ////////////////////////////////////////////////////////////
+    //// Populate Transactions with data from from Kafka sandbox
+    //
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
-
     // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer(TPC_REQUEST, getBrokers(ZK_HOST).mkString(","))
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString,
-                       "accountId" -> accountId.toString,
+                       "accountId" -> accountID.toString,
                        "queryParams" -> queryParams.toString )
-
     producer.send(reqId, "getTransactions", argList)
-
     // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer(ZK_HOST, "1", TPC_RESPONSE, 0)
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val rList = consumer.getResponse(reqId)
-
-    // Loop through list of responses and create entry for each
-    val res = { for ( r <- rList ) yield {
-
-      // helper for creating otherbankaccount
-      def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-        new OtherBankAccount(
-          id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-          label = r.getOrElse("label", ""),
-          nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
-          swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
-          iban = Some(r.getOrElse("iban", "")),
-          number = r.getOrElse("number", ""),
-          bankName = r.getOrElse("bankName", ""),
-          kind = r.getOrElse("accountType", ""),
-          originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
-          originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
-          alreadyFoundMetadata = alreadyFoundMetadata
-        )
+    // Check if empty 
+    if (rList(0).getOrElse("accountId", "") != "") {
+      // Loop through list of responses and create entry for each
+      val res = { for ( r <- rList ) yield {
+        // helper for creating otherbankaccount
+        def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+          new OtherBankAccount(
+            id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+            label = r.getOrElse("label", ""),
+            nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
+            swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
+            iban = Some(r.getOrElse("iban", "")),
+            number = r.getOrElse("number", ""),
+            bankName = r.getOrElse("bankName", ""),
+            kind = r.getOrElse("accountType", ""),
+            originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
+            originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
+            alreadyFoundMetadata = alreadyFoundMetadata
+          )
+        }
+        //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+        val dummyOtherBankAccount = createOtherBankAccount(None)
+        //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+        //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+        val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+        new Transaction(
+          TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
+          TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
+          getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
+          otherAccount,                                                                                            // otherAccount:OtherBankAccount
+          r.getOrElse("transactionType", ""),                                                                      // transactionType:String
+          BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
+          r.getOrElse("currency", ""),                                                                             // currency:String
+          Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
+          new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "Thu Jan  1 00:00:00 UTC 1970")),  // startDate:Date
+          new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "Thu Jan  1 00:00:00 UTC 1970")), // finishDate:Date
+          BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
+          )
+        }
       }
-
-      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      val dummyOtherBankAccount = createOtherBankAccount(None)
-      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
-
-      new Transaction(
-        TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
-        TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
-        getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
-        otherAccount,                                                                                            // otherAccount:OtherBankAccount
-        r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-        BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
-        r.getOrElse("currency", ""),                                                                             // currency:String
-        Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "Thu Jan  1 00:00:00 UTC 1970")),  // startDate:Date
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "Thu Jan  1 00:00:00 UTC 1970")), // finishDate:Date
-        BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
-        )
-      }
+      return Full(res)
     }
-    Full(res)
+    //// Populate Transactions with data from from Kafka sandbox
+    ////////////////////////////////////////////////////////////
+
+    for (account <- getBankAccount(bankId, accountID))
+      yield mappedTransactions.flatMap(_.toTransaction(account))
+
   }
 
 
@@ -227,11 +252,11 @@ object KafkaMappedConnector extends Connector with Loggable {
    *  It will be used each time we fetch transactions from the DB. But the test
    *  is performed in a different thread.
    */
-  private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
+  private def updateAccountTransactions(bankId : BankId, accountID : AccountId) = {
 
     for {
       bank <- getMappedBank(bankId)
-      account <- getBankAccountType(bankId, accountId)
+      account <- getBankAccountType(bankId, accountID)
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -246,10 +271,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
   }
 
-  override def getBankAccountType(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+  override def getBankAccountType(bankId: BankId, accountID: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value))
+      By(MappedBankAccount.theAccountId, accountID.value))
   }
 
   //gets the users who are the legal owners/holders of the account
@@ -454,47 +479,47 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountID: AccountId) : Boolean = {
     //delete comments on transactions of this account
     val commentsDeleted = MappedComment.bulkDelete_!!(
       By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountId.value)
+      By(MappedComment.account, accountID.value)
     )
 
     //delete narratives on transactions of this account
     val narrativesDeleted = MappedNarrative.bulkDelete_!!(
       By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountId.value)
+      By(MappedNarrative.account, accountID.value)
     )
 
     //delete narratives on transactions of this account
     val tagsDeleted = MappedTag.bulkDelete_!!(
       By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountId.value)
+      By(MappedTag.account, accountID.value)
     )
 
     //delete WhereTags on transactions of this account
     val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
       By(MappedWhereTag.bank, bankId.value),
-      By(MappedWhereTag.account, accountId.value)
+      By(MappedWhereTag.account, accountID.value)
     )
 
     //delete transaction images on transactions of this account
     val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
       By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
+      By(MappedTransactionImage.account, accountID.value)
     )
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(
       By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountId.value)
+      By(MappedTransaction.account, accountID.value)
     )
 
     //remove view privileges (get views first)
     val views = ViewImpl.findAll(
       By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
+      By(ViewImpl.accountPermalink, accountID.value)
     )
 
     //loop over them and delete
@@ -506,13 +531,13 @@ object KafkaMappedConnector extends Connector with Loggable {
     //delete views of account
     val viewsDeleted = ViewImpl.bulkDelete_!!(
       By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountId.value)
+      By(ViewImpl.accountPermalink, accountID.value)
     )
 
     //delete account
     val account = MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
-      By(MappedBankAccount.theAccountId, accountId.value)
+      By(MappedBankAccount.theAccountId, accountID.value)
     )
 
     val accountDeleted = account match {
@@ -525,7 +550,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+  override def createSandboxBankAccount(bankId: BankId, accountID: AccountId, accountNumber: String,
                                         currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
     for {
@@ -533,7 +558,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountId, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountID, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -547,16 +572,16 @@ object KafkaMappedConnector extends Connector with Loggable {
       .save
   }
 
-  private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
+  private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
                             currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccountType(bankId, accountId) match {
+    getBankAccountType(bankId, accountID) match {
       case Full(a) =>
-        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
+        logger.info(s"account with id $accountID at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ =>
         MappedBankAccount.create
           .bank(bankId.value)
-          .theAccountId(accountId.value)
+          .theAccountId(accountID.value)
           .accountNumber(accountNumber)
           .accountCurrency(currency)
           .accountBalance(balanceInSmallestCurrencyUnits)
@@ -573,7 +598,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       Cash api
      */
 
-  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
+  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountID
   override def getAccountByUUID(uuid: String): Box[AccountType] = {
     MappedBankAccount.find(By(MappedBankAccount.accUUID, uuid))
   }
@@ -634,11 +659,11 @@ object KafkaMappedConnector extends Connector with Loggable {
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountID: AccountId, newBalance: BigDecimal): Boolean = {
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccountType(bankId, accountId)
+      acc <- getBankAccountType(bankId, accountID)
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
@@ -752,10 +777,10 @@ object KafkaMappedConnector extends Connector with Loggable {
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountID: AccountId, label: String): Boolean = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccountType(bankId, accountId)
+      acc <- getBankAccountType(bankId, accountID)
       bank <- getMappedBank(bankId)
     } yield {
         acc.accountLabel(label).save

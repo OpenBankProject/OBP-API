@@ -28,6 +28,8 @@ import java.util.{Properties, UUID}
 import scala.concurrent.ops._
 import scala.concurrent.duration._
 
+import net.liftweb.util.Props
+
 import kafka.utils.{ZkUtils, ZKStringSerializer}
 import org.I0Itec.zkclient.ZkClient
 import kafka.consumer.Consumer
@@ -57,10 +59,10 @@ object ZooKeeperUtils {
 }
 
 
-class KafkaConsumer(val zookeeper: String,
-                    val groupId: String,
-                    val topic: String,
-                    val delay: Long) {
+class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")openOr("localhost:2181"),
+                    val groupId: String   = Props.get("kafka.group_id").openOrThrowException("no kafka.group_id set"),
+                    val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
+                    val delay: Long       = 0) {
 
   val config = createConsumerConfig(zookeeper, groupId)
   val consumer = Consumer.create(config)
@@ -112,16 +114,17 @@ class KafkaConsumer(val zookeeper: String,
   }
 }
 
+import ZooKeeperUtils._
 
 case class KafkaProducer(
-                          topic: String,
-                          brokerList: String,
-                          clientId: String = UUID.randomUUID().toString,
+                          topic: String          = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set"),
+                          brokerList: String     = getBrokers(Props.get("kafka.zookeeper_host")openOr("localhost:2181")).mkString(","),
+                          clientId: String       = UUID.randomUUID().toString,
                           synchronously: Boolean = true,
-                          compress: Boolean = true,
-                          batchSize: Integer = 200,
+                          compress: Boolean      = true,
+                          batchSize: Integer     = 200,
                           messageSendMaxRetries: Integer = 3,
-                          requestRequiredAcks: Integer = -1
+                          requestRequiredAcks: Integer   = -1
                           ) {
 
   val props = new Properties()

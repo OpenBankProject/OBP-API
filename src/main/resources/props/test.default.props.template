@@ -8,7 +8,17 @@
 
 #connector=mongodb
 #connector=rest
+#connector=kafka
 connector=mapped
+
+#if using kafka connector, set zookeeper and kafka hosts.
+##if not set, will default to network gateway ip address
+##which is preffered when using as Docker container
+#kafka.zookeeper_host=localhost:2181
+#kafka.kafka_host=localhost:9092
+##if using kafka connector, the following is mandatory
+#kafka.request_topic="Request"
+#kafka.response_topic="Response"
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
