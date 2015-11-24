@@ -334,8 +334,19 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           }
         }
       }
+      case "resource-docs" :: "swagger" :: Nil JsonGet _ => {
+        user => {
+          for {
+            rd <- getResourceDocsList
+          } yield {
+            // Format the data as json
+            val json = SwaggerJSONFactory1_4_0.createSwaggerResourceDoc(rd)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
     }
-
     /*
      transaction requests (new payments since 1.4.0)
     */
