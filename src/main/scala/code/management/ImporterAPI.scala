@@ -184,7 +184,7 @@ object ImporterAPI extends RestHelper with Loggable {
                 savetransactions
               else
                 errorJsonResponse("wrong secret", 401)
-            case _ => errorJsonResponse("importer_secret not set")
+            case _ => errorJsonResponse("importer_secret not set on the server.")
           }
         }
         case _ => errorJsonResponse("secret missing")
