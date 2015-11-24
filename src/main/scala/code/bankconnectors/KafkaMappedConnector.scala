@@ -42,6 +42,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   override def getBanks: List[Bank] =
     MappedBank.findAll
 
+/*
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
     updateAccountTransactions(bankId, accountID)
@@ -51,8 +52,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       By(MappedTransaction.account, accountID.value),
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
   }
+*/
 
-/*
   // Gets transaction identified by bankid, accountid and transactionId 
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
@@ -75,8 +76,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
 
+    println("--------------------> got response from kafka") //PERA
     // If empty result from Kafka fallback to mapper
     if (r.getOrElse("accountId", "") == "") {
+      println("====================> fallback to mapper") //PERA
       val res = MappedTransaction.find(
                   By(MappedTransaction.bank, bankId.value),
                   By(MappedTransaction.account, accountID.value),
@@ -105,6 +108,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
     //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
     val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+    println("--------------------> created dymmy bank account") //PERA
 
     Full(
       new Transaction(
@@ -121,7 +125,6 @@ object KafkaMappedConnector extends Connector with Loggable {
         BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
     ))
   }
-*/
 
 
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
