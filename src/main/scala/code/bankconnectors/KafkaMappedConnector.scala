@@ -42,7 +42,6 @@ object KafkaMappedConnector extends Connector with Loggable {
   override def getBanks: List[Bank] =
     MappedBank.findAll
 
-/*
   override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
     updateAccountTransactions(bankId, accountID)
@@ -52,8 +51,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       By(MappedTransaction.account, accountID.value),
       By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
   }
-*/
 
+/*
   // Gets transaction identified by bankid, accountid and transactionId 
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
 
@@ -122,9 +121,9 @@ object KafkaMappedConnector extends Connector with Loggable {
         BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
     ))
   }
+*/
 
 
-/*
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
@@ -149,8 +148,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     for (account <- getBankAccount(bankId, accountID))
       yield mappedTransactions.flatMap(_.toTransaction(account))
   }
-*/
 
+/*
   // Gets transactions identified by bankid, accountid and filtered by queryparams
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
@@ -238,7 +237,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       yield mappedTransactions.flatMap(_.toTransaction(account))
 
   }
-
+*/
 
 
   /**
