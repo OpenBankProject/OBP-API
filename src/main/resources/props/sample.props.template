@@ -17,9 +17,9 @@ connector=mapped
 #kafka.zookeeper_host=123.45.67.89:2181
 
 #if using kafka connector, the following is mandatory
-#kafka.group_id="obp"
-#kafka.request_topic="Request"
-#kafka.response_topic="Response"
+#kafka.group_id=0
+#kafka.request_topic=Request
+#kafka.response_topic=Response
 
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver
