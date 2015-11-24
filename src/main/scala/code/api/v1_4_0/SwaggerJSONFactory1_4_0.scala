@@ -54,8 +54,8 @@ object SwaggerJSONFactory1_4_0 {
     implicit val formats = DefaultFormats
     val contact = ContactJson("OBP", "https://openbankproject.com/")
     val appVersion = "v1.4.0"
-    val title = "Open Bank Project API Explorer"
-    val description = "Use the API in the context of your login. Use the select boxes below to auto populate url parameters such as BANK_ID, ACCOUNT_ID and VIEW_ID. Some options and calls require login. "
+    val title = "Open Bank Project API"
+    val description = "An open source API for banks."
     val info = InfoJson(title, description, contact, appVersion)
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "")
     val basePath = "/obp/" + appVersion

@@ -298,13 +298,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     resourceDocs += ResourceDoc(
       apiVersion,
-      "getResourceDocs",
+      "getResourceDocsObp",
       "GET",
       "/resource-docs/obp",
       "Get Resource Documentation in OBP format.",
       """Returns documentation about the RESTful resources on this server including example body for POST or PUT requests.
         | Thus the OBP API Explorer (and other apps) can display and work with the API documentation.
-        | In the future this information will be used to create Swagger and RAML files.
+        | In the future this information will be used to create Swagger (WIP) and RAML files.
         |<ul>
         |<li> operation_id is concatenation of version and function and should be unque (the aim of this is to allow links to code) </li>
         |<li> version references the version that the API call is defined in.</li>
@@ -321,7 +321,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple various of markdown.
-    lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
@@ -334,6 +334,24 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           }
         }
       }
+    }
+
+
+    resourceDocs += ResourceDoc(
+      apiVersion,
+      "getResourceDocsSwagger",
+      "GET",
+      "/resource-docs/swagger",
+      "Get Resource Documentation in Swagger format. Work In Progress!",
+      """Returns documentation about the RESTful resources on this server in Swagger format.
+         | Currently this is incomplete.
+      """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil
+    )
+
+    lazy val getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "swagger" :: Nil JsonGet _ => {
         user => {
           for {
@@ -347,6 +365,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         }
       }
     }
+
+
+
     /*
      transaction requests (new payments since 1.4.0)
     */
