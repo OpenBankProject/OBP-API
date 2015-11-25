@@ -69,7 +69,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val argList = Map( "bankId" -> bankId.toString,
                        "accountId" -> accountID.toString,
                        "transactionId" -> transactionId.toString )
-    producer.send(reqId, "getTransaction", argList)
+    producer.send(reqId, "getTransaction", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
@@ -189,7 +189,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val argList = Map( "bankId" -> bankId.toString,
                        "accountId" -> accountID.toString,
                        "queryParams" -> queryParams.toString )
-    producer.send(reqId, "getTransactions", argList)
+    producer.send(reqId, "getTransactions", argList, "1")
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 

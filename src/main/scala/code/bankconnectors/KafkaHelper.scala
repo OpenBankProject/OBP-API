@@ -91,10 +91,8 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     val topicCountMap = Map(topic -> 1)
     val consumerMap = consumer.createMessageStreams(topicCountMap)
     val streams = consumerMap.get(topic).get
-    println("topic=" + topic + ".")  //PERA
     // process streams
     for (stream <- streams) {
-      println("stream in..")  //PERA
       val it = stream.iterator()
       try {
         // wait for message

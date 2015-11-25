@@ -63,7 +63,7 @@ object KafkaConnector extends Connector with Loggable {
     // so we can fetch the corresponding response 
     val argList: Map[String, String] = Map()
 
-    producer.send(reqId, "getBanks", argList)
+    producer.send(reqId, "getBanks", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
@@ -94,7 +94,7 @@ object KafkaConnector extends Connector with Loggable {
     // so we can fetch the corresponding response 
     val argList = Map( "bankId" -> bankId.toString )
 
-    producer.send(reqId, "getBank", argList)
+    producer.send(reqId, "getBank", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
@@ -124,7 +124,7 @@ object KafkaConnector extends Connector with Loggable {
     val argList = Map( "bankId" -> bankId.toString,
                        "accountId" -> accountId.toString )
 
-    producer.send(reqId, "getBankAccount", argList)
+    producer.send(reqId, "getBankAccount", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
@@ -163,7 +163,7 @@ object KafkaConnector extends Connector with Loggable {
                        "accountId" -> accountId.toString,
                        "transactionId" -> transactionId.toString )
 
-    producer.send(reqId, "getTransaction", argList)
+    producer.send(reqId, "getTransaction", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
@@ -222,7 +222,7 @@ object KafkaConnector extends Connector with Loggable {
                        "accountId" -> accountId.toString,
                        "queryParams" -> queryParams.toString )
 
-    producer.send(reqId, "getTransactions", argList)
+    producer.send(reqId, "getTransactions", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()

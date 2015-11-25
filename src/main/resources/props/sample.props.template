@@ -17,7 +17,7 @@ connector=mapped
 #kafka.zookeeper_host=123.45.67.89:2181
 
 #if using kafka connector, the following is mandatory
-#kafka.group_id=0
+#kafka.group_id=1
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
