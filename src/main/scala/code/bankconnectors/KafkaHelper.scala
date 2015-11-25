@@ -105,9 +105,9 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
             // disconnect from kafka
             shutdown()
             // split result if it contains multiple answers
-            val msgList = msg.split("},\\s*?{") 
+            val msgList = msg.split("},{") 
             // match '"<key>":"<value>"', with possible space after colon 
-            val p = """"([a-zA-Z0-9_-]*?)":\\s*?"(.*?)""""".r
+            val p = """"([a-zA-Z0-9_-]*?)":"(.*?)"""".r
             val r = (for( m <- msgList) yield (for( p(k, v) <- p.findAllIn(m) ) yield  (k -> v)).toMap[String, String]).toList
             return r;
           }
