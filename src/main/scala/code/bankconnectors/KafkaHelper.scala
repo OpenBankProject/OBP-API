@@ -97,7 +97,6 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
       try {
         // wait for message
         while (it.hasNext()) {
-          println("processing stream..")  //PERA
           val mIt = it.next()
           val msg = new String(mIt.message(), "UTF8")
           val key = new String(mIt.key(), "UTF8")
@@ -106,7 +105,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
             // disconnect from kafka
             shutdown()
             // split result if it contains multiple answers
-            val msgList = msg.split("},{") 
+            val msgList = msg.split("\\},\\{") 
             // match '"<key>":"<value>"', with possible space after colon 
             val p = """"([a-zA-Z0-9_-]*?)":"(.*?)"""".r
             val r = (for( m <- msgList) yield (for( p(k, v) <- p.findAllIn(m) ) yield  (k -> v)).toMap[String, String]).toList
