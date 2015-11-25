@@ -82,7 +82,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     props.put("zookeeper.session.timeout.ms", "400")
     props.put("zookeeper.sync.time.ms", "400")
     props.put("auto.commit.interval.ms", "800")
-    props.put("consumer.timeout.ms", "15000")
+    props.put("consumer.timeout.ms", "8000")
     val config = new ConsumerConfig(props)
     config
   }
@@ -91,17 +91,19 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     val topicCountMap = Map(topic -> 1)
     val consumerMap = consumer.createMessageStreams(topicCountMap)
     val streams = consumerMap.get(topic).get
+    println("topic=" + topic + ".")  //PERA
     // process streams
     for (stream <- streams) {
+      println("stream in..")  //PERA
       val it = stream.iterator()
       try {
         // wait for message
         while (it.hasNext()) {
+          println("processing stream..")  //PERA
           val mIt = it.next()
           val msg = new String(mIt.message(), "UTF8")
           val key = new String(mIt.key(), "UTF8")
           // check if the id matches
-          println("key=" + key + ", msg=" + msg + ".")  //PERA
           if (key == reqId) {
             // disconnect from kafka
             shutdown()
