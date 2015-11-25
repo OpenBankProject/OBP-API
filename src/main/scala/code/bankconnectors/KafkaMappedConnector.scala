@@ -123,8 +123,8 @@ object KafkaMappedConnector extends Connector with Loggable {
         BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
         r.getOrElse("currency", ""),                                                                             // currency:String
         Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "Thu Jan  1 00:00:00 UTC 1970")),  // startDate:Date
-        new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "Thu Jan  1 00:00:00 UTC 1970")), // finishDate:Date
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ENGLISH).parse(r.getOrElse("finishDate", "1970-01-01T00:00:00.000Z")), // finishDate:Date
         BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
     ))
   }
@@ -228,8 +228,8 @@ object KafkaMappedConnector extends Connector with Loggable {
           BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
           r.getOrElse("currency", ""),                                                                             // currency:String
           Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-          new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("startDate", "Thu Jan  1 00:00:00 UTC 1970")),  // startDate:Date
-          new SimpleDateFormat("EEE MMMM d HH:mm:ss z yyyy", Locale.ENGLISH).parse(r.getOrElse("finishDate", "Thu Jan  1 00:00:00 UTC 1970")), // finishDate:Date
+          new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
+          new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ENGLISH).parse(r.getOrElse("finishDate", "1970-01-01T00:00:00.000Z")), // finishDate:Date
           BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
           )
         }
