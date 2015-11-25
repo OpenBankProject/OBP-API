@@ -77,9 +77,12 @@ object KafkaMappedConnector extends Connector with Loggable {
     val r = consumer.getResponse(reqId).head
 
     println("--------------------> got response from kafka") //PERA
+    for ( (k,v) <- r) yield{                                 //PERA
+      println("---> " + k + "=" + v + ".")                   //PERA
+    }                                                        //PERA
     // If empty result from Kafka fallback to mapper
     if (r.getOrElse("accountId", "") == "") {
-      println("====================> fallback to mapper") //PERA
+      println("====================> fallback to mapper")    //PERA
       val res = MappedTransaction.find(
                   By(MappedTransaction.bank, bankId.value),
                   By(MappedTransaction.account, accountID.value),
