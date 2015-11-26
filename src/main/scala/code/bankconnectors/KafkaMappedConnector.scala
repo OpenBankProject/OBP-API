@@ -43,14 +43,57 @@ object KafkaMappedConnector extends Connector with Loggable {
     MappedBank.findAll
 
 /*
-  override def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  //gets banks handled by this connector
+  override def getBanks: List[Bank] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create Kafka producer
+    val producer: KafkaProducer = new KafkaProducer()
+    // Create empty argument list
+    val argList: Map[String, String] = Map()
+    // Send request to Kafka, marked with reqId 
+    // so we can fetch the corresponding response 
+    producer.send(reqId, "getBanks", argList, "1")
+    // Request sent, now we wait for response with the same reqId
+    val consumer = new KafkaConsumer()
+    val rList = consumer.getResponse(reqId)
+    // Loop through list of responses and create entry for each
+    val res = { for ( r <- rList ) yield {
+        MappedBank.create
+        .permalink(r.getOrElse("BankId", ""))
+        .shortBankName(r.getOrElse("shortBankName", ""))
+        .fullBankName(r.getOrElse("fullBankName", ""))
+        .logoURL(r.getOrElse("logoURL", ""))
+        .websiteURL(r.getOrElse("websiteURL", ""))
+      }
+    }
+    // Return list of results
+    res
+  }
 
-    updateAccountTransactions(bankId, accountID)
-
-    MappedTransaction.find(
-      By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountID.value),
-      By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+  // Gets bank identified by bankId
+  override def getBank(bankId: code.model.BankId): Box[Bank] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create Kafka producer
+    val producer: KafkaProducer = new KafkaProducer()
+    // Create argument list
+    val argList = Map( "bankId" -> bankId.toString )
+    // Send request to Kafka, marked with reqId 
+    // so we can fetch the corresponding response 
+    producer.send(reqId, "getBank", argList, "1")
+    // Request sent, now we wait for response with the same reqId
+    val consumer = new KafkaConsumer()
+    // Create entry only for the first item on returned list 
+    val r = consumer.getResponse(reqId).head
+    val res = MappedBank.create
+             .permalink(r.getOrElse("bankId", ""))
+             .shortBankName(r.getOrElse("shortBankName", ""))
+             .fullBankName(r.getOrElse("fullBankName", ""))
+             .logoURL(r.getOrElse("logoURL", ""))
+             .websiteURL(r.getOrElse("websiteURL", ""))
+    // Return result
+    Full(res)
   }
 */
 
@@ -89,7 +132,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
         label = r.getOrElse("label", ""),
         nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
-        swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
+        swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model?
         iban = Some(r.getOrElse("iban", "")),
         number = r.getOrElse("number", ""),
         bankName = r.getOrElse("bankName", ""),
@@ -200,7 +243,6 @@ object KafkaMappedConnector extends Connector with Loggable {
         )
       }
     }
-    ////////////////////////////////////////////////////////////
 
     updateAccountTransactions(bankId, accountID)
 
