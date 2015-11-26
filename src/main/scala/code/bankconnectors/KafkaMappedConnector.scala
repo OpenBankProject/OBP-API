@@ -160,11 +160,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val rList = consumer.getResponse(reqId)
     // Return blank if empty 
     if (rList(0).getOrElse("accountId", "") == "") {
-      val mappedTransactions = MappedTransaction.findAll()
-      updateAccountTransactions(bankId, accountID)
-      val res = for (account <- getBankAccount(bankId, accountID))
-                  yield mappedTransactions.flatMap(_.toTransaction(account))
-      return res
+      return Full(List())
     }
     // Populate fields and generate result
     val res = { for ( r <- rList ) yield {
@@ -190,12 +186,12 @@ object KafkaMappedConnector extends Connector with Loggable {
       //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
       val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
       new Transaction(
-        TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
-        TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
+        TransactionId(r.getOrElse("transactionId", "")).value,                                                   // uuid:String
+        TransactionId(r.getOrElse("transactionId", "")),                                                         // id:TransactionId
         getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
         otherAccount,                                                                                            // otherAccount:OtherBankAccount
         r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-        BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
+        BigDecimal(r.getOrElse("amount", "0.0")),                                                                // val amount:BigDecimal
         r.getOrElse("currency", ""),                                                                             // currency:String
         Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
         new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
