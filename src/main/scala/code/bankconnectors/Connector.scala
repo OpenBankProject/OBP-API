@@ -299,7 +299,6 @@ trait Connector {
 
   //generates an unused account number and then creates the sandbox account using that number
   def createSandboxBankAccount(bankId : BankId, accountId : AccountId, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
-println("----------------------------------------------------> PERA")
     val uniqueAccountNumber = {
       def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
 

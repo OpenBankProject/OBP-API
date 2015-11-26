@@ -76,17 +76,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create entry only for the first item on returned list 
     val r = consumer.getResponse(reqId).head
 
-    println("--------------------> got response from kafka") //PERA
-    for ( (k,v) <- r) yield{                                 //PERA
-      println("---> " + k + "=" + v + ".")                   //PERA
-    }                                                        //PERA
-    // If empty result from Kafka fallback to mapper
+    // If empty result from Kafka return empty data 
     if (r.getOrElse("accountId", "") == "") {
-      println("====================> fallback to mapper")    //PERA
       val res = MappedTransaction.find(
-                  By(MappedTransaction.bank, bankId.value),
-                  By(MappedTransaction.account, accountID.value),
-                  By(MappedTransaction.transactionId, transactionId.value)).flatMap(_.toTransaction)
+                  By(MappedTransaction.transactionId, "EMPTY")).flatMap(_.toTransaction)
       return res
     }
 
@@ -111,16 +104,15 @@ object KafkaMappedConnector extends Connector with Loggable {
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
     //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
     val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
-    println("--------------------> created dymmy bank account") //PERA
 
     Full(
       new Transaction(
-        TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
+        TransactionId(r.getOrElse("accountId", "")).value,                                                       // uuid:String
         TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
         getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
         otherAccount,                                                                                            // otherAccount:OtherBankAccount
         r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-        BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
+        BigDecimal(r.getOrElse("amount", "0.0")),                                                                // val amount:BigDecimal
         r.getOrElse("currency", ""),                                                                             // currency:String
         Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
         new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
@@ -147,35 +139,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
 
-    val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
-
-    updateAccountTransactions(bankId, accountID)
-
-    for (account <- getBankAccount(bankId, accountID))
-      yield mappedTransactions.flatMap(_.toTransaction(account))
-  }
-
-/*
-  // Gets transactions identified by bankid, accountid and filtered by queryparams
-  def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
-    val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
-    val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
-    val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
-    val toDate = queryParams.collect { case OBPToDate(date) => By_<=(MappedTransaction.tFinishDate, date) }.headOption
-    val ordering = queryParams.collect {
-      //we don't care about the intended sort field and only sort on finish date for now
-      case OBPOrdering(_, direction) =>
-        direction match {
-          case OBPAscending => OrderBy(MappedTransaction.tFinishDate, Ascending)
-          case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
-        }
-    }
-    val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
-
-    val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
-
-    updateAccountTransactions(bankId, accountID)
+    //val mappedTransactions = MappedTransaction.findAll(mapperParams: _*)
 
     ////////////////////////////////////////////////////////////
     //// Populate Transactions with data from from Kafka sandbox
@@ -194,56 +158,58 @@ object KafkaMappedConnector extends Connector with Loggable {
     val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list 
     val rList = consumer.getResponse(reqId)
-    // Check if empty 
-    if (rList(0).getOrElse("accountId", "") != "") {
-      // Loop through list of responses and create entry for each
-      val res = { for ( r <- rList ) yield {
-        // helper for creating otherbankaccount
-        def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-          new OtherBankAccount(
-            id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-            label = r.getOrElse("label", ""),
-            nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
-            swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
-            iban = Some(r.getOrElse("iban", "")),
-            number = r.getOrElse("number", ""),
-            bankName = r.getOrElse("bankName", ""),
-            kind = r.getOrElse("accountType", ""),
-            originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
-            originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
-            alreadyFoundMetadata = alreadyFoundMetadata
-          )
-        }
-        //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-        val dummyOtherBankAccount = createOtherBankAccount(None)
-        //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-        //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-        val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
-        new Transaction(
-          TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
-          TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
-          getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
-          otherAccount,                                                                                            // otherAccount:OtherBankAccount
-          r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-          BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
-          r.getOrElse("currency", ""),                                                                             // currency:String
-          Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-          new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
-          new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("finishDate", "1970-01-01T00:00:00.000Z")), // finishDate:Date
-          BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
-          )
-        }
-      }
-      return Full(res)
+    // Return blank if empty 
+    if (rList(0).getOrElse("accountId", "") == "") {
+      val mappedTransactions = MappedTransaction.findAll()
+      updateAccountTransactions(bankId, accountID)
+      val res = for (account <- getBankAccount(bankId, accountID))
+                  yield mappedTransactions.flatMap(_.toTransaction(account))
+      return res
     }
-    //// Populate Transactions with data from from Kafka sandbox
+    // Populate fields and generate result
+    val res = { for ( r <- rList ) yield {
+      // helper for creating otherbankaccount
+      def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+        new OtherBankAccount(
+          id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+          label = r.getOrElse("label", ""),
+          nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
+          swift_bic = Some(r.getOrElse("swift_bic", "")), //TODO: need to add this to the json/model
+          iban = Some(r.getOrElse("iban", "")),
+          number = r.getOrElse("number", ""),
+          bankName = r.getOrElse("bankName", ""),
+          kind = r.getOrElse("accountType", ""),
+          originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
+          originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
+          alreadyFoundMetadata = alreadyFoundMetadata
+        )
+      }
+      //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+      val dummyOtherBankAccount = createOtherBankAccount(None)
+      //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+      //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+      val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+      new Transaction(
+        TransactionId(r.getOrElse("accountId", "")).value,                                                                      // uuid:String
+        TransactionId(r.getOrElse("accountId", "")),                                                             // id:TransactionId
+        getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
+        otherAccount,                                                                                            // otherAccount:OtherBankAccount
+        r.getOrElse("transactionType", ""),                                                                      // transactionType:String
+        BigDecimal(r.getOrElse("amount", "0.0")),                                                                   // val amount:BigDecimal
+        r.getOrElse("currency", ""),                                                                             // currency:String
+        Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("finishDate", "1970-01-01T00:00:00.000Z")), // finishDate:Date
+        BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
+        )
+      }
+    }
     ////////////////////////////////////////////////////////////
 
-    for (account <- getBankAccount(bankId, accountID))
-      yield mappedTransactions.flatMap(_.toTransaction(account))
+    updateAccountTransactions(bankId, accountID)
 
+    return Full(res)
   }
-*/
 
 
   /**
