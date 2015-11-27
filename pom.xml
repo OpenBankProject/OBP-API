@@ -226,8 +226,8 @@
             </jvmArgs>
             <scalaVersion>${scala.version}</scalaVersion>
             <scalaCompatVersion>${scala.version}</scalaCompatVersion>
-            <recompileMode>modified-only</recompileMode>
-            <useZincServer>false</useZincServer>
+            <recompileMode>incremental</recompileMode>
+            <useZincServer>true</useZincServer>
           </configuration>
           <executions>
             <execution>
@@ -371,8 +371,8 @@
           </jvmArgs>
           <scalaCompatVersion>${scala.version}</scalaCompatVersion>
           <scalaVersion>${scala.compiler}</scalaVersion>
-          <recompileMode>modified-only</recompileMode>
-          <useZincServer>false</useZincServer>
+          <recompileMode>incremental</recompileMode>
+          <useZincServer>true</useZincServer>
         </configuration>
       </plugin>
     </plugins>
