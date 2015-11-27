@@ -79,10 +79,12 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     props.put("zookeeper.connect", zookeeper)
     props.put("group.id", groupId)
     props.put("auto.offset.reset", "largest")
-    props.put("zookeeper.session.timeout.ms", "800")
-    props.put("zookeeper.sync.time.ms", "400")
-    props.put("auto.commit.interval.ms", "800")
-    props.put("consumer.timeout.ms", "8000")
+    props.put("zookeeper.session.timeout.ms", "1000")
+    props.put("session.timeout.ms", "1000");
+    props.put("zookeeper.sync.time.ms", "1000")
+    props.put("consumer.timeout.ms", "6000")
+    props.put("auto.commit.enable", "true");
+    props.put("auto.commit.interval.ms", "1000")
     val config = new ConsumerConfig(props)
     config
   }
@@ -151,6 +153,7 @@ case class KafkaProducer(
   props.put("message.send.max.retries", messageSendMaxRetries.toString)
   props.put("request.required.acks", requestRequiredAcks.toString)
   props.put("client.id", clientId.toString)
+  props.put("session.timeout.ms", "1000");
 
   // create producer
   val producer = new Producer[AnyRef, AnyRef](new ProducerConfig(props))
