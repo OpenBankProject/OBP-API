@@ -26,8 +26,7 @@ Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to s
 
 ## LICENSE
 
-This project is dual licensed under the AGPL V3 (see NOTICE) and a commercial license from TESOBE
-Some files (OAuth related) are licensed under the Apache 2 license.
+This project is dual licensed under the AGPL V3 (see NOTICE) and commercial licenses from TESOBE Ltd.
 
 ## SETUP
 
