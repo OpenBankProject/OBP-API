@@ -9,7 +9,17 @@
 #which data connector to use
 connector=mapped
 #connector=mongodb
+#connector=kafka
 #connector=...
+
+#if using kafka connector, set zookeeper host
+#defaults to "localhost:2181" if not set
+#kafka.zookeeper_host=123.45.67.89:2181
+
+#if using kafka connector, the following is mandatory
+#kafka.group_id=1
+#kafka.request_topic=Request
+#kafka.response_topic=Response
 
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver

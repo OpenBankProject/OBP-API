@@ -22,6 +22,7 @@ import scala.util.Random
 So we can switch between different sources of resources e.g.
 - Mapper ORM for connecting to RDBMS (via JDBC) https://www.assembla.com/wiki/show/liftweb/Mapper
 - MongoDB
+- KafkaMQ 
 etc.
 
 Note: We also have individual providers for resources like Branches and Products.
@@ -39,6 +40,7 @@ object Connector  extends SimpleInjector {
     Props.get("connector").openOrThrowException("no connector set") match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
+      case "kafka" => KafkaMappedConnector
     }
 
 }

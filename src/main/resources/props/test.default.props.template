@@ -8,7 +8,17 @@
 
 #connector=mongodb
 #connector=rest
+#connector=kafka
 connector=mapped
+
+#if using kafka connector, set zookeeper host
+#defaults to "localhost:2181" if not set
+#kafka.zookeeper_host=123.45.67.89:2181
+
+#if using kafka connector, the following is mandatory
+#kafka.group_id=1
+#kafka.request_topic=Request
+#kafka.response_topic=Response
 
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
