@@ -66,9 +66,9 @@
       <version>0.10.1</version>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.0.9</version>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka_2.10</artifactId>
+      <version>0.8.2.2</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
