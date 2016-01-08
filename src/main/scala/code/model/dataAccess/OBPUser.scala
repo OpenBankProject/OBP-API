@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.bankconnectors.{KafkaConsumer, KafkaProducer}
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
@@ -38,7 +39,8 @@ import net.liftweb.common._
 import scala.xml.NodeSeq
 import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
-
+import code.sandbox.{SandboxUserImport, OBPDataImport}
+import java.util.UUID
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -230,6 +232,31 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
+  def getUserViaKafka( username: String, password: String ): Box[SandboxUserImport] = {
+    // Generate random uuid to be used as request-respose match id
+//    val reqId: String = UUID.randomUUID().toString
+
+    // Create Kafka producer, using list of brokers from Zookeeper
+//    val producer: KafkaProducer = new KafkaProducer()
+    // Send request to Kafka, marked with reqId
+    // so we can fetch the corresponding response
+//    val argList = Map( "email" -> username )
+//    producer.send(reqId, "getUser", argList, "1")
+
+    // Request sent, now we wait for response with the same reqId
+//    val consumer = new KafkaConsumer()
+    // Create entry only for the first item on returned list
+//    val r = consumer.getResponse(reqId).head
+
+    val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
+    // If empty result from Kafka return empty data
+    if (r.getOrElse("email", "") == username && r.getOrElse("password", "") == password) {
+      Full(new SandboxUserImport( r.getOrElse("email", ""), r.getOrElse("password", ""), r.getOrElse("display_name", "")))
+    } else {
+      Empty
+    }
+  }
+
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {
@@ -260,9 +287,20 @@ import net.liftweb.util.Helpers._
           S.error(S.?("account.validation.error"))
 
         case _ => {
-          info("failed: " + failedLoginRedirect.get)
-          failedLoginRedirect.get.foreach(S.redirectTo(_))
-          S.error("login", S.?("Invalid Username or Password"))
+          S.param("username").
+          flatMap(username => getUserViaKafka(username, S.param("password").toString)) match {
+            case Full(SandboxUserImport(email, password, display_name)) => {
+              println("--------------------> " + email + ":" + password  + ":" + display_name)
+              info("-------------> testing: " + email + ":" + password  + ":" + display_name)
+              failedLoginRedirect.get.foreach(S.redirectTo(_))
+              S.error("login", S.?("Invalid Username or Password"))
+            }
+            case _ => {
+              info("failed: " + failedLoginRedirect.get)
+              failedLoginRedirect.get.foreach(S.redirectTo(_))
+              S.error("login", S.?("Invalid Username or Password"))
+            }
+          }
         }
       }
     }
