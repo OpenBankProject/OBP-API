@@ -290,7 +290,7 @@ import net.liftweb.util.Helpers._
         case _ => {
           info("=================================> testing,testing!!!")
           S.param("username").
-          flatMap(username => getUserViaKafka(username.toString, S.param("password").toString)) match {
+          flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
             case Full(SandboxUserImport(email, password, display_name)) => {
               println("--------------------> " + email + ":" + password  + ":" + display_name)
               info("-------------> testing: " + email + ":" + password  + ":" + display_name)
