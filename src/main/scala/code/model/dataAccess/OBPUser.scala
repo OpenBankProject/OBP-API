@@ -253,7 +253,7 @@ import net.liftweb.util.Helpers._
     if (r.getOrElse("email", "") == username && r.getOrElse("password", "") == password) {
       Full(new SandboxUserImport( r.getOrElse("email", ""), r.getOrElse("password", ""), r.getOrElse("display_name", "")))
     } else {
-      Empty
+      Full(new SandboxUserImport("EMAIL", "PASSWORD", "DISPLAY_NAME"))
     }
   }
 
@@ -287,6 +287,7 @@ import net.liftweb.util.Helpers._
           S.error(S.?("account.validation.error"))
 
         case _ => {
+          info("=================================> testing,testing!!!")
           S.param("username").
           flatMap(username => getUserViaKafka(username, S.param("password").toString)) match {
             case Full(SandboxUserImport(email, password, display_name)) => {
