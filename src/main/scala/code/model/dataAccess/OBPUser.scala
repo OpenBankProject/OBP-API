@@ -302,6 +302,7 @@ import net.liftweb.util.Helpers._
               val user = OBPUser.create
                          .firstName(displayName())
                          .email(email)
+
                          //.(Props.get("hostname",""))
               user.validated(true)
               user.firstNameDisplayName(1)
@@ -311,7 +312,7 @@ import net.liftweb.util.Helpers._
 
                 preLoginState()
 
-                S.redirectTo(redir)
+                S.redirectTo(homePage)
               })
 
             }
