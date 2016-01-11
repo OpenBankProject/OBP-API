@@ -31,16 +31,15 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
-import code.bankconnectors.{KafkaConsumer, KafkaProducer}
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, To, Subject, From}
-import net.liftweb.util._
+import code.sandbox.SandboxUserImport
 import net.liftweb.common._
-import scala.xml.NodeSeq
-import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
-import code.sandbox.{SandboxUserImport, OBPDataImport}
-import java.util.UUID
+import net.liftweb.http.{S, SHtml, SessionVar, Templates}
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, From, Subject, To}
+import net.liftweb.util._
+
+import scala.xml.NodeSeq
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -288,14 +287,34 @@ import net.liftweb.util.Helpers._
           S.error(S.?("account.validation.error"))
 
         case _ => {
-          info("=================================> testing,testing!!!")
           S.param("username").
           flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
             case Full(SandboxUserImport(email, password, display_name)) => {
-              println("--------------------> " + email + ":" + password  + ":" + display_name)
-              info("-------------> testing: " + email + ":" + password  + ":" + display_name)
-              failedLoginRedirect.get.foreach(S.redirectTo(_))
-              S.error("login", S.?("Invalid Username or Password"))
+              val preLoginState = capturePreLoginState()
+              info("login redir: " + loginRedirect.get)
+              val redir = loginRedirect.get match {
+                case Full(url) =>
+                  loginRedirect(Empty)
+                  url
+                case _ =>
+                  homePage
+              }
+
+              val user = OBPUser.create
+                         .firstName(displayName())
+                         .email(email)
+                         //.(Props.get("hostname",""))
+              user.validated(1)
+              user.firstNameDisplayName(1)
+
+              logUserIn(user, () => {
+                S.notice(S.?("logged.in"))
+
+                preLoginState()
+
+                S.redirectTo(redir)
+              })
+
             }
             case _ => {
               info("failed: " + failedLoginRedirect.get)
