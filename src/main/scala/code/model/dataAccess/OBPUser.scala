@@ -247,13 +247,12 @@ import net.liftweb.util.Helpers._
     // Create entry only for the first item on returned list
 //    val r = consumer.getResponse(reqId).head
 
-    println("---------+++-----------> " + username + ":" + password)
     val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
     // If empty result from Kafka return empty data
     if (r.getOrElse("email", "").toString == username.toString && r.getOrElse("password", "").toString == password.toString) {
       Full(new SandboxUserImport( r.getOrElse("email", ""), r.getOrElse("password", ""), r.getOrElse("display_name", "")))
     } else {
-      Full(new SandboxUserImport(username, password, "DISPLAY_NAME"))
+      Empty
     }
   }
 
