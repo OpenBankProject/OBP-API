@@ -302,10 +302,10 @@ import net.liftweb.util.Helpers._
               val user = OBPUser.create
                          .firstName(displayName())
                          .email(email)
-
                          //.(Props.get("hostname",""))
               user.validated(true)
               user.firstNameDisplayName(1)
+              user.save()
 
               logUserIn(user, () => {
                 S.notice(S.?("logged.in"))
