@@ -304,7 +304,7 @@ import net.liftweb.util.Helpers._
                          .firstName(displayName())
                          .email(email)
                          //.(Props.get("hostname",""))
-              user.validated(1)
+              user.validated(true)
               user.firstNameDisplayName(1)
 
               logUserIn(user, () => {
