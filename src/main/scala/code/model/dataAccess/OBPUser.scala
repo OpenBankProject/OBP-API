@@ -256,10 +256,11 @@ import net.liftweb.util.Helpers._
     // For testing without Kafka
     //val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
 
-    val display_name = r.getOrElse("display_name", "Not Found")
+    var display_name = r.getOrElse("display_name", "Not Found")
 
     // If empty result from Kafka return empty data
     if (display_name != "Not Found") {
+      if (display_name == "") { display_name = username }
       Full(new SandboxUserImport( username, password, display_name))
     } else {
       Empty
@@ -326,7 +327,6 @@ import net.liftweb.util.Helpers._
 
                   // Check if the external user is already created locally
                   case Full(user) if user.validated_? &&
-                    user.testPassword(Full(dummyPassword)) &&
                     user.provider == extProvider => {
                     // Return existing user if found
                     info("external user already exists locally, using that one")
