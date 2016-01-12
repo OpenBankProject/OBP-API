@@ -302,6 +302,7 @@ import net.liftweb.util.Helpers._
               val user = OBPUser.create
                          .firstName(displayName())
                          .email(email)
+                         .password(password)
                          //.(Props.get("hostname",""))
               user.validated(true)
               user.firstNameDisplayName(1)
