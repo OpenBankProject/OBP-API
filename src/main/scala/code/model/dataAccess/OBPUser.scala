@@ -31,6 +31,9 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import java.util.UUID
+
+import code.bankconnectors.{KafkaProducer, KafkaConsumer}
 import code.sandbox.SandboxUserImport
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
@@ -49,6 +52,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 
   object user extends MappedLongForeignKey(this, APIUser)
 
+  var provider = Props.get("hostname","")
+
   def displayName() = {
     if(firstName.get.isEmpty) {
       lastName.get
@@ -63,7 +68,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     APIUser.create
       .name_(displayName())
       .email(email)
-      .provider_(Props.get("hostname",""))
+      .provider_(provider)
       .providerId(email)
   }
 
@@ -233,27 +238,35 @@ import net.liftweb.util.Helpers._
 
   def getUserViaKafka( username: String, password: String ): Box[SandboxUserImport] = {
     // Generate random uuid to be used as request-respose match id
-//    val reqId: String = UUID.randomUUID().toString
+    val reqId: String = UUID.randomUUID().toString
 
     // Create Kafka producer, using list of brokers from Zookeeper
-//    val producer: KafkaProducer = new KafkaProducer()
+    val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
-//    val argList = Map( "email" -> username )
-//    producer.send(reqId, "getUser", argList, "1")
+    val argList = Map( "email" -> username )
+    producer.send(reqId, "getUser", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
-//    val consumer = new KafkaConsumer()
+    val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list
-//    val r = consumer.getResponse(reqId).head
+    val r = consumer.getResponse(reqId).head
 
-    val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
+    // For testing without Kafka
+    //val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
+
     // If empty result from Kafka return empty data
-    if (r.getOrElse("email", "").toString == username.toString && r.getOrElse("password", "").toString == password.toString) {
+    if (r.getOrElse("email", "") == username.toString && r.getOrElse("password", "") == password.toString) {
       Full(new SandboxUserImport( r.getOrElse("email", ""), r.getOrElse("password", ""), r.getOrElse("display_name", "")))
     } else {
       Empty
     }
+  }
+
+  def userLoginFailed = {
+    info("failed: " + failedLoginRedirect.get)
+    failedLoginRedirect.get.foreach(S.redirectTo(_))
+    S.error("login", S.?("Invalid Username or Password"))
   }
 
   //overridden to allow a redirection if login fails
@@ -262,6 +275,7 @@ import net.liftweb.util.Helpers._
       S.param("username").
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
+          user.provider == Props.get("hostname","") &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
@@ -285,47 +299,54 @@ import net.liftweb.util.Helpers._
         case Full(user) if !user.validated_? =>
           S.error(S.?("account.validation.error"))
 
-        // If not found locally, try to authenticate user via Kafka, if enabled in props
         case _ => {
-          S.param("username").
-          flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
-            case Full(SandboxUserImport(email, password, display_name)) => {
-              val preLoginState = capturePreLoginState()
-              info("login redir: " + loginRedirect.get)
-              val redir = loginRedirect.get match {
-                case Full(url) =>
-                  loginRedirect(Empty)
-                  url
-                case _ =>
-                  homePage
+          // If not found locally, try to authenticate user via Kafka, if enabled in props
+          if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+            S.param("username").
+              flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
+              case Full(SandboxUserImport(email, password, display_name)) => {
+                val preLoginState = capturePreLoginState()
+                info("login redir: " + loginRedirect.get)
+                val redir = loginRedirect.get match {
+                  case Full(url) =>
+                    loginRedirect(Empty)
+                    url
+                  case _ =>
+                    homePage
+                }
+                // Create OBPUser using fetched data from Kafka
+                val user = OBPUser.create
+                  .firstName(displayName())
+                  .email(email)
+                  .password(password)
+
+                // Assume that user's email is always validated if coming from Kafka
+                user.validated(true)
+
+                // Using email as display name
+                user.firstNameDisplayName(1)
+
+                // Set provider in order to differentiate from users stored locally
+                user.provider = Props.get("connector").openOrThrowException("no connector set")
+
+                // Save the user in order to be able to log in
+                user.save()
+
+                logUserIn(user, () => {
+                  S.notice(S.?("logged.in"))
+
+                  preLoginState()
+
+                  S.redirectTo(homePage)
+                })
+
               }
-
-              val user = OBPUser.create
-                         .firstName(displayName())
-                         .email(email)
-                         .password(password)
-                         //.(Props.get("hostname",""))
-
-
-              // Assuming user's email is always validated if coming from Kafka
-              user.validated(true)
-              user.firstNameDisplayName(1)
-              //user.save()
-
-              logUserIn(user, () => {
-                S.notice(S.?("logged.in"))
-
-                preLoginState()
-
-                S.redirectTo(homePage)
-              })
-
+              case _ => {
+                userLoginFailed
+              }
             }
-            case _ => {
-              info("failed: " + failedLoginRedirect.get)
-              failedLoginRedirect.get.foreach(S.redirectTo(_))
-              S.error("login", S.?("Invalid Username or Password"))
-            }
+          } else {
+              userLoginFailed
           }
         }
       }
