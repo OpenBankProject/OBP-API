@@ -304,7 +304,7 @@ import net.liftweb.util.Helpers._
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             S.param("username").
               flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
-              case Full(SandboxUserImport(email, password, display_name)) => {
+              case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
                 val preLoginState = capturePreLoginState()
                 info("login redir: " + loginRedirect.get)
                 val redir = loginRedirect.get match {
@@ -316,9 +316,9 @@ import net.liftweb.util.Helpers._
                 }
                 // Create OBPUser using fetched data from Kafka
                 val user = OBPUser.create
-                  .firstName(displayName())
-                  .email(email)
-                  .password(password)
+                  .firstName(extDisplayName)
+                  .email(extEmail)
+                  .password(extPassword)
 
                 // Assume that user's email is always validated if coming from Kafka
                 user.validated(true)
