@@ -244,7 +244,8 @@ import net.liftweb.util.Helpers._
     val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
-    val argList = Map( "email" -> username )
+    val argList = Map( "email" -> username,
+                        "password" -> password )
     producer.send(reqId, "getUser", argList, "1")
 
     // Request sent, now we wait for response with the same reqId
@@ -255,9 +256,11 @@ import net.liftweb.util.Helpers._
     // For testing without Kafka
     //val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
 
+    val display_name = r.getOrElse("display_name", "Not Found")
+
     // If empty result from Kafka return empty data
-    if (r.getOrElse("email", "") == username.toString && r.getOrElse("password", "") == password.toString) {
-      Full(new SandboxUserImport( r.getOrElse("email", ""), r.getOrElse("password", ""), r.getOrElse("display_name", "")))
+    if (display_name != "Not Found") {
+      Full(new SandboxUserImport( username, password, display_name))
     } else {
       Empty
     }
@@ -318,7 +321,7 @@ import net.liftweb.util.Helpers._
                 val user = OBPUser.create
                   .firstName(extDisplayName)
                   .email(extEmail)
-                  .password(extPassword)
+                  .password("nothingreallyjustdummypass")
 
                 // Assume that user's email is always validated if coming from Kafka
                 user.validated(true)
