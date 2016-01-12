@@ -285,6 +285,7 @@ import net.liftweb.util.Helpers._
         case Full(user) if !user.validated_? =>
           S.error(S.?("account.validation.error"))
 
+        // If not found locally, try to authenticate user via Kafka, if enabled in props
         case _ => {
           S.param("username").
           flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
@@ -304,9 +305,12 @@ import net.liftweb.util.Helpers._
                          .email(email)
                          .password(password)
                          //.(Props.get("hostname",""))
+
+
+              // Assuming user's email is always validated if coming from Kafka
               user.validated(true)
               user.firstNameDisplayName(1)
-              user.save()
+              //user.save()
 
               logUserIn(user, () => {
                 S.notice(S.?("logged.in"))
