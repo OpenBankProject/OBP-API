@@ -342,7 +342,7 @@ import net.liftweb.util.Helpers._
                     val newUser = OBPUser.create
                       .firstName(extDisplayName)
                       .email(extEmail)
-                      .password(dummyPassword)
+                      .password(extPassword)
                     // Assume that user's email is always validated if coming from Kafka
                     newUser.validated(true)
                     // Using email as display name
