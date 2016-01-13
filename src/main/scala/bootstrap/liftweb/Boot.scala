@@ -158,7 +158,8 @@ class Boot extends Loggable{
     }
 
     // ensure our relational database's tables are created/fit the schema
-    if(Props.get("connector").getOrElse("") == "mapped")
+    if(Props.get("connector").getOrElse("") == "mapped" ||
+       Props.get("connector").getOrElse("") == "kafka" )
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
@@ -277,14 +278,10 @@ class Boot extends Loggable{
       case fullReq @ Full(req) => Locale.ENGLISH
       case _ => Locale.ENGLISH
     }
-    logger.info("PERA dbg 2")
+
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
-    logger.info("PERA dbg 3")
-    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
-    if(useMessageQueue)
-      BankAccountCreationListener.startListen
-    logger.info("PERA dbg 4")
+
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
@@ -303,11 +300,14 @@ class Boot extends Loggable{
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
     }
-    logger.info("PERA dbg 5")
+
+    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+    if(useMessageQueue)
+      BankAccountCreationListener.startListen
+
   }
 
   def schemifyAll() = {
-    logger.info("PERA dbg schemifyAll")
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
   }
 
