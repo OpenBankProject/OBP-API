@@ -42,7 +42,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
 
-import scala.xml.NodeSeq
+import scala.xml.{Text, NodeSeq}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -52,7 +52,20 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 
   object user extends MappedLongForeignKey(this, APIUser)
 
-  var provider = Props.get("hostname","")
+  /**
+   * The provider field for the User.
+   */
+  lazy val provider = new MyProvider(this, 32)
+  protected class MyProvider(obj: OBPUser, size: Int) extends MappedString(obj, size) {
+    override def displayName = fieldOwner.providerDisplayName
+    override val fieldId = Some(Text("txtProvider"))
+  }
+  /**
+   * The string for the provider field
+   */
+  def providerDisplayName = S.?("provider")
+
+  //var provider = Props.get("hostname","")
 
   def displayName() = {
     if(firstName.get.isEmpty) {
@@ -337,18 +350,15 @@ import net.liftweb.util.Helpers._
 
                   // If not found, create new user
                   case _ => {
-                    //create OBPUser using fetched data from Kafka
+                    // Create OBPUser using fetched data from Kafka
+                    // assuming that user's email is always validated
                     info("external user does not exist locally, creating one")
                     val newUser = OBPUser.create
                       .firstName(extDisplayName)
                       .email(extEmail)
-                      .password(extPassword)
-                    // Assume that user's email is always validated if coming from Kafka
-                    newUser.validated(true)
-                    // Using email as display name
-                    newUser.firstNameDisplayName(1)
-                    // Set provider in order to differentiate from users stored locally
-                    newUser.provider = extProvider
+                      .password(dummyPassword)
+                      .provider(extProvider)
+                      .validated(true)
                     // Save the user in order to be able to log in
                     newUser.save()
                     // Return created user
