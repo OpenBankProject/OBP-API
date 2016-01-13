@@ -65,8 +65,6 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
    */
   def providerDisplayName = S.?("provider")
 
-  //var provider = Props.get("hostname","")
-
   def displayName() = {
     if(firstName.get.isEmpty) {
       lastName.get
@@ -77,13 +75,21 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     }
   }
 
+  def getProvider() = {
+    if(provider.get.isEmpty) {
+      Props.get("hostname","")
+    } else {
+      provider.get
+    }
+  }
+
   def createUnsavedApiUser() : APIUser = {
     info("[createUnsavedApiUser]===> displayName=" + displayName() + " email=" + email + " provider=" + provider)
     APIUser.create
       .name_(displayName())
-      .email(email)
-      .provider_(provider)
-      .providerId(email)
+      .email(email.get)
+      .provider_(getProvider())
+      .providerId(email.get)
   }
 
   override def save(): Boolean = {
