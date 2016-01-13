@@ -306,7 +306,7 @@ class Boot extends Loggable{
       try {
         BankAccountCreationListener.startListen
       } catch {
-        case e: java.lang.ExceptionInInitializerError => showException(e)
+        case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
       }
 
   }
