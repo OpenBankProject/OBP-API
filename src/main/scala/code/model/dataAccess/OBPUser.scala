@@ -65,6 +65,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   }
 
   def createUnsavedApiUser() : APIUser = {
+    info("[createUnsavedApiUser]===> displayName=" + displayName() + " email=" + email + " provider=" + provider)
     APIUser.create
       .name_(displayName())
       .email(email)
@@ -281,6 +282,7 @@ import net.liftweb.util.Helpers._
         case Full(user) if user.validated_? &&
           user.provider == Props.get("hostname","") &&
           user.testPassword(S.param("password")) => {
+            info("[findUserByUserName]===> provider=" + user.provider + " email=" + user.getEmail + " firstName=" + user.getFirstName )
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -340,7 +342,7 @@ import net.liftweb.util.Helpers._
                     val newUser = OBPUser.create
                       .firstName(extDisplayName)
                       .email(extEmail)
-                      .password(extPassword) //dummyPassword)
+                      .password(dummyPassword)
                     // Assume that user's email is always validated if coming from Kafka
                     newUser.validated(true)
                     // Using email as display name
