@@ -237,7 +237,7 @@ class Boot extends Loggable{
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
     ) ++ accountCreation ++ Admin.menus
-logger.info("PERA dbg 1")
+
     def sitemapMutators = OBPUser.sitemapMutator
 
     // set the sitemap.  Note if you don't want access control for
@@ -280,11 +280,11 @@ logger.info("PERA dbg 1")
     logger.info("PERA dbg 2")
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
-
+    logger.info("PERA dbg 3")
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
       BankAccountCreationListener.startListen
-    logger.info("PERA dbg 3")
+    logger.info("PERA dbg 4")
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
@@ -303,7 +303,7 @@ logger.info("PERA dbg 1")
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
     }
-    logger.info("PERA dbg 4")
+    logger.info("PERA dbg 5")
   }
 
   def schemifyAll() = {
