@@ -55,15 +55,10 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   /**
    * The provider field for the User.
    */
-  lazy val provider = new MyProvider(this, 32)
-  protected class MyProvider(obj: OBPUser, size: Int) extends MappedString(obj, size) {
-    override def displayName = fieldOwner.providerDisplayName
+  object provider extends MappedString(this, 32) {
+    override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
   }
-  /**
-   * The string for the provider field
-   */
-  def providerDisplayName = S.?("provider")
 
   def displayName() = {
     if(firstName.get.isEmpty) {
