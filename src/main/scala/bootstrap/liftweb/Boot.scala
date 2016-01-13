@@ -303,7 +303,11 @@ class Boot extends Loggable{
 
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
-      BankAccountCreationListener.startListen
+      try {
+        BankAccountCreationListener.startListen
+      } catch {
+        case e: java.lang.ExceptionInInitializerError => showException(e)
+      }
 
   }
 
