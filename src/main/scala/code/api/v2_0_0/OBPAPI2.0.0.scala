@@ -1,29 +1,60 @@
-package code.api.v1_3_0
+/**
+Open Bank Project - API
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
-import code.api.OBPRestHelper
-import code.api.v1_2_1.APIMethods121
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+
+  */
+package code.api.v2_0_0
+
+import code.api.v1_3_0.APIMethods130
+import code.api.v1_4_0.APIMethods140
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST._
 import net.liftweb.common.Loggable
+import code.api.OBPRestHelper
 
-import code.api.v1_4_0.APIMethods140 // Added so we can add resource docs for this version of the API
+object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
-//has APIMethods121 as all api calls that went unchanged from 1.2.1 to 1.3.0 will use the old
-//implementation
-object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with Loggable with APIMethods140 {
 
-  val VERSION = "1.3.0"
+  val VERSION = "2.0.0"
 
-  //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
   val routes = List(
     Implementations1_2_1.root(VERSION),
     Implementations1_2_1.allBanks,
     Implementations1_2_1.bankById,
-    Implementations1_2_1.allAccountsAllBanks,
+    // now in v2.0.0  Implementations2_0_0.allAccountsAllBanks
     Implementations1_2_1.privateAccountsAllBanks,
     Implementations1_2_1.publicAccountsAllBanks,
     Implementations1_2_1.allAccountsAtOneBank,
     Implementations1_2_1.privateAccountsAtOneBank,
     Implementations1_2_1.publicAccountsAtOneBank,
     Implementations1_2_1.accountById,
+    Implementations1_2_1.updateAccountLabel,
     Implementations1_2_1.getViewsForBankAccount,
     Implementations1_2_1.createViewForBankAccount,
     Implementations1_2_1.updateViewForBankAccount,
@@ -84,15 +115,42 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getCounterpartyForTransaction,
     Implementations1_2_1.makePayment,
+
+    // New in 1.3.0
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank,
-    // For Resource Docs on this (1.3.0) version of the API
+
+    // New in 1.4.0
+    Implementations1_4_0.getCustomer,
+    Implementations1_4_0.addCustomer,
+    Implementations1_4_0.getCustomerMessages,
+    Implementations1_4_0.addCustomerMessage,
+    Implementations1_4_0.getBranches,
+    Implementations1_4_0.getAtms,
+    Implementations1_4_0.getProducts,
+    Implementations1_4_0.getCrmEvents,
     Implementations1_4_0.getResourceDocsObp(VERSION),
-    Implementations1_4_0.getResourceDocsSwagger(VERSION)
+    Implementations1_4_0.getResourceDocsSwagger(VERSION),
+    Implementations1_4_0.createTransactionRequest,
+    Implementations1_4_0.getTransactionRequests,
+    Implementations1_4_0.getTransactionRequestTypes,
+    Implementations1_4_0.answerTransactionRequestChallenge,
+
+    // Modified in 2.0.0
+
+    Implementations2_0_0.allAccountsAllBanks
+//    Implementations1_2_1.privateAccountsAllBanks,
+//    Implementations1_2_1.publicAccountsAllBanks,
+//    Implementations1_2_1.allAccountsAtOneBank,
+//    Implementations1_2_1.privateAccountsAtOneBank,
+//    Implementations1_2_1.publicAccountsAtOneBank,
+//    Implementations1_2_1.accountById
   )
 
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
   })
+
+
 
 }

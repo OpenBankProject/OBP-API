@@ -36,7 +36,10 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.common.Loggable
 import code.api.OBPRestHelper
 
-object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
+
+import code.api.v1_4_0.APIMethods140 // Added so we can add resource docs for this version of the API
+
+object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable with APIMethods140 {
 
 
   val VERSION = "1.2.1"
@@ -112,7 +115,10 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getCounterpartyForTransaction,
-    Implementations1_2_1.makePayment
+    Implementations1_2_1.makePayment,
+      // For Resource Docs on this (1.2.1) version of the API
+    Implementations1_4_0.getResourceDocsObp(VERSION),
+    Implementations1_4_0.getResourceDocsSwagger(VERSION)
   )
 
   routes.foreach(route => {

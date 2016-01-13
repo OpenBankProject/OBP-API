@@ -24,6 +24,7 @@ import collection.mutable.ArrayBuffer
 import code.api.APIFailure
 import code.api.v1_2_1.APIMethods121
 import code.api.v1_3_0.APIMethods130
+import code.api.v2_0_0.APIMethods200 // So we can include resource docs from future versions
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.atms.Atms
 import code.branches.Branches
@@ -36,7 +37,9 @@ import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
 import java.text.SimpleDateFormat
 
-trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
+import net.liftweb.http.CurrentReq
+
+trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
@@ -52,11 +55,39 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     val exampleDate = simpleDateFormat.parse(exampleDateString)
 
 
-    def getResourceDocsList : Option[List[ResourceDoc]] =
+
+
+    def getResourceDocsList(requestedApiVersion : String) : Option[List[ResourceDoc]] =
     {
-      // Get the Resource Docs for this and previous versions of the API
-      val cumulativeResourceDocs = resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-      // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
+
+      // We'll have a different list of resource docs depending on the version being called.
+      // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs)
+
+      val path = CurrentReq.value.path
+
+      logger.info(s"path is $path")
+
+      val activeVersion = CurrentReq.value.path(1)
+
+      logger.info(s"ver in path is $activeVersion")
+
+      val resourceDocs2_0_0 = Implementations2_0_0.resourceDocs ++ resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+
+      val cumulativeResourceDocs =  requestedApiVersion match {
+        case "2.0.0" => resourceDocs2_0_0
+        case "1.4.0" => resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case "1.2.1" => Implementations1_2_1.resourceDocs
+        case _ => resourceDocs2_0_0 // Not sure if we should have a default here.
+      }
+
+      // TODO Filter out non available APIs for the active version
+      // e.g. For each version we should only include those resourceDocs that are listed in the routes List
+      // (e.g. OBPAPI1_2_1 routes) unless we are in dev mode (Props.devMode is true) otherwise developers will see a huge list of APIs and get a bunch of 404s
+
+
+
+        // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
       Some(cumulativeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
@@ -321,11 +352,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple various of markdown.
-    lazy val getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getResourceDocsObp(requestedApiVersion: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
-            rd <- getResourceDocsList
+            rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createResourceDocsJson(rd)
@@ -351,11 +382,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil
     )
 
-    lazy val getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def getResourceDocsSwagger(requestedApiVersion: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "swagger" :: Nil JsonGet _ => {
         user => {
           for {
-            rd <- getResourceDocsList
+            rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Format the data as json
             val json = SwaggerJSONFactory1_4_0.createSwaggerResourceDoc(rd)

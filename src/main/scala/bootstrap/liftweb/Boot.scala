@@ -188,6 +188,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+    LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
