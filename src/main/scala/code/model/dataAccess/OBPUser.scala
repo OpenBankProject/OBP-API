@@ -55,10 +55,13 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   /**
    * The provider field for the User.
    */
-  object provider extends MappedString(this, 32) {
+  lazy val provider: userProvider = new userProvider()
+  class userProvider extends MappedString(this, 64) {
     override def displayName = S.?("provider")
     override val fieldId = Some(Text("txtProvider"))
   }
+
+
 
   def displayName() = {
     if(firstName.get.isEmpty) {
@@ -126,7 +129,7 @@ import net.liftweb.util.Helpers._
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email, password, provider)
-  override def signupFields = List(firstName, lastName, email, password)
+  override def signupFields = List(firstName, lastName, email, password, provider)
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
@@ -358,8 +361,8 @@ import net.liftweb.util.Helpers._
                       .firstName(extDisplayName)
                       .email(extEmail)
                       .password(dummyPassword)
-                      .provider(extProvider)
                       .validated(true)
+                      //.provider.set(extProvider)
                     // Save the user in order to be able to log in
                     newUser.save()
                     // Return created user
