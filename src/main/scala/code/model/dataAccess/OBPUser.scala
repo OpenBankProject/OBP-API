@@ -61,8 +61,6 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     override val fieldId = Some(Text("txtProvider"))
   }
 
-
-
   def displayName() = {
     if(firstName.get.isEmpty) {
       lastName.get
@@ -361,8 +359,8 @@ import net.liftweb.util.Helpers._
                       .firstName(extDisplayName)
                       .email(extEmail)
                       .password(dummyPassword)
+                      .provider(extProvider)
                       .validated(true)
-                      //.provider.set(extProvider)
                     // Save the user in order to be able to log in
                     newUser.save()
                     // Return created user
