@@ -72,7 +72,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   }
 
   def getProvider() = {
-    if(provider.get == "") {
+    if(provider.get == null || provider.get == "" || provider.get == Props.get("hostname","") ) {
       Props.get("hostname","")
     } else {
       provider.get
@@ -295,6 +295,7 @@ import net.liftweb.util.Helpers._
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {
+      info("===================> " + findUserByUserName(S.param("username").openOrThrowException("ERROR:S.param")).openOrThrowException("ERROR:...").getProvider())
       S.param("username").
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
