@@ -270,15 +270,18 @@ import net.liftweb.util.Helpers._
     val r = consumer.getResponse(reqId).head
 
     // For testing without Kafka
-    //val r = Map("email" -> "test@email.me", "password" -> "secret", "display_name" -> "Test Name")
+    //val r = Map("email"->"test@email.me","password"->"secret","display_name"->"DN")
 
-    var display_name = r.getOrElse("display_name", "Not Found")
+    var recDisplayName = r.getOrElse("display_name", "Not Found")
+    var recEmail = r.getOrElse("email", "Not Found")
 
-    // If empty result from Kafka return empty data
-    if (display_name != "Not Found") {
-      if (display_name == "") { display_name = username }
-      Full(new SandboxUserImport( username, password, display_name))
+    if (recEmail == username && recEmail != "Not Found") {
+      if (recDisplayName == "")
+        Full(new SandboxUserImport( username, password, recEmail))
+      else
+        Full(new SandboxUserImport( username, password, recDisplayName))
     } else {
+      // If empty result from Kafka return empty data
       Empty
     }
   }
@@ -295,9 +298,11 @@ import net.liftweb.util.Helpers._
       S.param("username").
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
-          user.provider == Props.get("hostname","") &&
+          // Check if user came from localhost
+          (user.provider.get == Props.get("hostname","") ||
+            // User from localhost can also have empty provider field
+            user.provider.get == "") &&
           user.testPassword(S.param("password")) => {
-            info("[findUserByUserName]===> provider=" + user.provider + " email=" + user.getEmail + " firstName=" + user.getFirstName )
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -358,6 +363,7 @@ import net.liftweb.util.Helpers._
                     val newUser = OBPUser.create
                       .firstName(extDisplayName)
                       .email(extEmail)
+                      // No need to store password, so store dummy string instead
                       .password(dummyPassword)
                       .provider(extProvider)
                       .validated(true)
