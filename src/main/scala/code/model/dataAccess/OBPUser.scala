@@ -299,9 +299,7 @@ import net.liftweb.util.Helpers._
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
           // Check if user came from localhost
-          (user.provider.get == Props.get("hostname","") ||
-            // User from localhost can also have empty provider field
-            user.provider.get == "") &&
+          user.getProvider() == Props.get("hostname","") &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
