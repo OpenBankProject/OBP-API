@@ -283,7 +283,7 @@ class Boot extends Loggable{
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
-    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts") openOr false
     if(useMessageQueue)
       try {
         BankAccountCreationListener.startListen
