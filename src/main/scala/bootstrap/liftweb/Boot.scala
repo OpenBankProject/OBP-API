@@ -158,7 +158,8 @@ class Boot extends Loggable{
     }
 
     // ensure our relational database's tables are created/fit the schema
-    if(Props.get("connector").getOrElse("") == "mapped")
+    if(Props.get("connector").getOrElse("") == "mapped" ||
+       Props.get("connector").getOrElse("") == "kafka" )
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
@@ -284,7 +285,11 @@ class Boot extends Loggable{
 
     val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
     if(useMessageQueue)
-      BankAccountCreationListener.startListen
+      try {
+        BankAccountCreationListener.startListen
+      } catch {
+        case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+      }
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)

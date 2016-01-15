@@ -35,10 +35,13 @@ import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
 import net.liftweb.common._
-import scala.xml.NodeSeq
+import scala.xml.{Text, NodeSeq}
 import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 
+import java.util.UUID
+import code.bankconnectors.{KafkaProducer, KafkaConsumer}
+import code.sandbox.SandboxUserImport
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -47,6 +50,15 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   def getSingleton = OBPUser // what's the "meta" server
 
   object user extends MappedLongForeignKey(this, APIUser)
+
+  /**
+   * The provider field for the User.
+   */
+  lazy val provider: userProvider = new userProvider()
+  class userProvider extends MappedString(this, 64) {
+    override def displayName = S.?("provider")
+    override val fieldId = Some(Text("txtProvider"))
+  }
 
   def displayName() = {
     if(firstName.get.isEmpty) {
@@ -58,11 +70,21 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     }
   }
 
+  def getProvider() = {
+    if(provider.get == null) {
+      Props.get("hostname","")
+    } else if ( provider.get == "" || provider.get == Props.get("hostname","") ) {
+      Props.get("hostname","")
+    } else {
+      provider.get
+    }
+  }
+
   def createUnsavedApiUser() : APIUser = {
     APIUser.create
       .name_(displayName())
       .email(email)
-      .provider_(Props.get("hostname",""))
+      .provider_(getProvider())
       .providerId(email)
   }
 
@@ -104,7 +126,7 @@ import net.liftweb.util.Helpers._
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, password)
+  override def fieldOrder = List(id, firstName, lastName, email, password, provider)
   override def signupFields = List(firstName, lastName, email, password)
 
   // comment this line out to require email validations
@@ -230,12 +252,54 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
+  def getUserViaKafka( username: String, password: String ): Box[SandboxUserImport] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+
+    // Create Kafka producer, using list of brokers from Zookeeper
+    val producer: KafkaProducer = new KafkaProducer()
+    // Send request to Kafka, marked with reqId
+    // so we can fetch the corresponding response
+    val argList = Map( "email" -> username,
+                        "password" -> password )
+    producer.send(reqId, "getUser", argList, "1")
+
+    // Request sent, now we wait for response with the same reqId
+    val consumer = new KafkaConsumer()
+    // Create entry only for the first item on returned list
+    val r = consumer.getResponse(reqId).head
+
+    // For testing without Kafka
+    //val r = Map("email"->"test@email.me","password"->"secret","display_name"->"DN")
+
+    var recDisplayName = r.getOrElse("display_name", "Not Found")
+    var recEmail = r.getOrElse("email", "Not Found")
+
+    if (recEmail == username && recEmail != "Not Found") {
+      if (recDisplayName == "")
+        Full(new SandboxUserImport( username, password, recEmail))
+      else
+        Full(new SandboxUserImport( username, password, recDisplayName))
+    } else {
+      // If empty result from Kafka return empty data
+      Empty
+    }
+  }
+
+  def userLoginFailed = {
+    info("failed: " + failedLoginRedirect.get)
+    failedLoginRedirect.get.foreach(S.redirectTo(_))
+    S.error("login", S.?("Invalid Username or Password"))
+  }
+
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {
       S.param("username").
       flatMap(username => findUserByUserName(username)) match {
         case Full(user) if user.validated_? &&
+          // Check if user came from localhost
+          user.getProvider() == Props.get("hostname","") &&
           user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
@@ -260,9 +324,70 @@ import net.liftweb.util.Helpers._
           S.error(S.?("account.validation.error"))
 
         case _ => {
-          info("failed: " + failedLoginRedirect.get)
-          failedLoginRedirect.get.foreach(S.redirectTo(_))
-          S.error("login", S.?("Invalid Username or Password"))
+          // If not found locally, try to authenticate user via Kafka, if enabled in props
+          if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+            S.param("username").
+              flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
+              case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
+                val preLoginState = capturePreLoginState()
+                info("external user authenticated. login redir: " + loginRedirect.get)
+                val redir = loginRedirect.get match {
+                  case Full(url) =>
+                    loginRedirect(Empty)
+                    url
+                  case _ =>
+                    homePage
+                }
+
+                val dummyPassword = "nothingreallyjustdummypass"
+                val extProvider = Props.get("connector").openOrThrowException("no connector set")
+
+                val user = S.param("username").
+                  flatMap(username => findUserByUserName(username)) match {
+
+                  // Check if the external user is already created locally
+                  case Full(user) if user.validated_? &&
+                    user.provider == extProvider => {
+                    // Return existing user if found
+                    info("external user already exists locally, using that one")
+                    user
+                  }
+
+                  // If not found, create new user
+                  case _ => {
+                    // Create OBPUser using fetched data from Kafka
+                    // assuming that user's email is always validated
+                    info("external user does not exist locally, creating one")
+                    val newUser = OBPUser.create
+                      .firstName(extDisplayName)
+                      .email(extEmail)
+                      // No need to store password, so store dummy string instead
+                      .password(dummyPassword)
+                      .provider(extProvider)
+                      .validated(true)
+                    // Save the user in order to be able to log in
+                    newUser.save()
+                    // Return created user
+                    newUser
+                  }
+                }
+
+                logUserIn(user, () => {
+                  S.notice(S.?("logged.in"))
+
+                  preLoginState()
+
+                  S.redirectTo(homePage)
+                })
+
+              }
+              case _ => {
+                userLoginFailed
+              }
+            }
+          } else {
+              userLoginFailed
+          }
         }
       }
     }
