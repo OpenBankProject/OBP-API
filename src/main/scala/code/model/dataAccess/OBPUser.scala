@@ -31,18 +31,17 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
-import java.util.UUID
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, To, Subject, From}
+import net.liftweb.util._
+import net.liftweb.common._
+import scala.xml.{Text, NodeSeq}
+import net.liftweb.http.{SHtml, SessionVar, Templates, S}
+import net.liftweb.http.js.JsCmds.FocusOnLoad
 
+import java.util.UUID
 import code.bankconnectors.{KafkaProducer, KafkaConsumer}
 import code.sandbox.SandboxUserImport
-import net.liftweb.common._
-import net.liftweb.http.js.JsCmds.FocusOnLoad
-import net.liftweb.http.{S, SHtml, SessionVar, Templates}
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, From, Subject, To}
-import net.liftweb.util._
-
-import scala.xml.{Text, NodeSeq}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -72,9 +71,12 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   }
 
   def getProvider() = {
+    info("-----------------------> " + provider.get.toString + ":" + provider.get + ":" + Props.get("hostname",""))
     if(provider.get == null || provider.get == "" || provider.get == Props.get("hostname","") ) {
+      info ("---------> IF")
       Props.get("hostname","")
     } else {
+      info ("---------> ELSE")
       provider.get
     }
   }
@@ -83,9 +85,9 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     info("[createUnsavedApiUser]===> displayName=" + displayName() + " email=" + email + " provider=" + provider)
     APIUser.create
       .name_(displayName())
-      .email(email.get)
+      .email(email)
       .provider_(getProvider())
-      .providerId(email.get)
+      .providerId(email)
   }
 
   override def save(): Boolean = {
