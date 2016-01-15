@@ -71,12 +71,14 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   }
 
   def getProvider() = {
-    info("-----------------------> " + provider.get.toString + ":" + provider.get + ":" + Props.get("hostname",""))
-    if(provider.get == null || provider.get == "" || provider.get == Props.get("hostname","") ) {
-      info ("---------> IF")
+    if(provider.get == null) {
+      info ("-------------------------------------------------------> NULL")
+      Props.get("hostname","")
+    } else if ( provider.get == "" || provider.get == Props.get("hostname","") ) {
+      info ("-------------------------------------------------------> HOST")
       Props.get("hostname","")
     } else {
-      info ("---------> ELSE")
+      info ("-------------------------------------------------------> EXTERNAL")
       provider.get
     }
   }
