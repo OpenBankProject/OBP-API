@@ -282,6 +282,14 @@ class Boot extends Loggable{
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
+    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+    if(useMessageQueue)
+      try {
+        BankAccountCreationListener.startListen
+      } catch {
+        case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+      }
+
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
     })
@@ -300,15 +308,6 @@ class Boot extends Loggable{
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
     }
-
-    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
-    if(useMessageQueue)
-      try {
-        BankAccountCreationListener.startListen
-      } catch {
-        case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
-      }
-
   }
 
   def schemifyAll() = {

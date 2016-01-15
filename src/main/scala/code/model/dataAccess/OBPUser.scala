@@ -72,19 +72,15 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 
   def getProvider() = {
     if(provider.get == null) {
-      info ("-------------------------------------------------------> NULL")
       Props.get("hostname","")
     } else if ( provider.get == "" || provider.get == Props.get("hostname","") ) {
-      info ("-------------------------------------------------------> HOST")
       Props.get("hostname","")
     } else {
-      info ("-------------------------------------------------------> EXTERNAL")
       provider.get
     }
   }
 
   def createUnsavedApiUser() : APIUser = {
-    info("[createUnsavedApiUser]===> displayName=" + displayName() + " email=" + email + " provider=" + provider)
     APIUser.create
       .name_(displayName())
       .email(email)
