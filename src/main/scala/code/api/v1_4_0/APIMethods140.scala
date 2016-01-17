@@ -92,6 +92,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      getCustomer,
       apiVersion,
       "getCustomer",
       "GET",
@@ -120,6 +121,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      getCustomerMessages,
       apiVersion,
       "getCustomerMessages",
       "GET",
@@ -150,6 +152,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      addCustomerMessage,
       apiVersion,
       "addCustomerMessage",
       "POST",
@@ -182,6 +185,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      getBranches,
       apiVersion,
       "getBranches",
       "GET",
@@ -220,6 +224,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      getAtms,
       apiVersion,
       "getAtms",
       "GET",
@@ -257,6 +262,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      getProducts,
       apiVersion,
       "getProducts",
       "GET",
@@ -298,6 +304,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      getCrmEvents,
       apiVersion,
       "getCrmEvents",
       "GET",
@@ -328,6 +335,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      getResourceDocsObp(apiVersion),
       apiVersion,
       "getResourceDocsObp",
       "GET",
@@ -369,6 +377,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      getResourceDocsSwagger(apiVersion),
       apiVersion,
       "getResourceDocsSwagger",
       "GET",
@@ -404,6 +413,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     */
 
     resourceDocs += ResourceDoc(
+      getTransactionRequestTypes,
       apiVersion,
       "getTransactionRequestTypes",
       "GET",
@@ -436,6 +446,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     }
 
     resourceDocs += ResourceDoc(
+      getTransactionRequests,
       apiVersion,
       "getTransactionRequests",
       "GET",
@@ -472,6 +483,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     case class TransactionIdJson(transaction_id : String)
 
     resourceDocs += ResourceDoc(
+      createTransactionRequest,
       apiVersion,
       "createTransactionRequest",
       "POST",
@@ -523,6 +535,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
       apiVersion,
       "answerTransactionRequestChallenge",
       "POST",
@@ -562,6 +575,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
     resourceDocs += ResourceDoc(
+      addCustomer,
       apiVersion,
       "addCustomer",
       "POST",
@@ -602,42 +616,43 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
 
-    if (Props.devMode) {
-      resourceDocs += ResourceDoc(
-        apiVersion,
-        "testResourceDoc",
-        "GET",
-        "/i-do-not-exist-i-will-404",
-        "I am only a test resource Doc",
-        """
-            |
-            |#This should be H1
-            |
-            |##This should be H2
-            |
-            |###This should be H3
-            |
-            |####This should be H4
-            |
-            |Here is a list with two items:
-            |
-            |* One
-            |* Two
-            |
-            |There are underscores by them selves _
-            |
-            |There are _underscores_ around a word
-            |
-            |There are underscores_in_words
-            |
-            |There are 'underscores_in_words_inside_quotes'
-            |
-            |There are (underscores_in_words_in_brackets)
-            |
-            |_etc_...""",
-          emptyObjectJson,
-          emptyObjectJson,
-        emptyObjectJson :: Nil)
-      }
+//    if (Props.devMode) {
+//      resourceDocs += ResourceDoc(
+//        what-to-use-here?,
+//        apiVersion,
+//        "testResourceDoc",
+//        "GET",
+//        "/i-do-not-exist-i-will-404",
+//        "I am only a test resource Doc",
+//        """
+//            |
+//            |#This should be H1
+//            |
+//            |##This should be H2
+//            |
+//            |###This should be H3
+//            |
+//            |####This should be H4
+//            |
+//            |Here is a list with two items:
+//            |
+//            |* One
+//            |* Two
+//            |
+//            |There are underscores by them selves _
+//            |
+//            |There are _underscores_ around a word
+//            |
+//            |There are underscores_in_words
+//            |
+//            |There are 'underscores_in_words_inside_quotes'
+//            |
+//            |There are (underscores_in_words_in_brackets)
+//            |
+//            |_etc_...""",
+//          emptyObjectJson,
+//          emptyObjectJson,
+//        emptyObjectJson :: Nil)
+//      }
   }
 }

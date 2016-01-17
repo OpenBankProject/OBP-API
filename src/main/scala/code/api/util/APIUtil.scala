@@ -34,8 +34,9 @@ package code.api.util
 
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
-import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{JsonResponse, S}
+import code.model.User
+import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.http.{Req, JsonResponse, S}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.json.Extraction
@@ -264,6 +265,7 @@ object APIUtil extends Loggable {
   Used to document API calls / resources. correct place for this?
    */
   case class ResourceDoc(
+                      partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
                       apiVersion: String, // TODO: Constrain to certain strings?
                       apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
                       requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.

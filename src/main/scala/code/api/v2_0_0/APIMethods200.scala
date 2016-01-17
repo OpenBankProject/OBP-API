@@ -59,6 +59,7 @@ trait APIMethods200 {
     val apiVersion : String = "2_0_0"
 
     resourceDocs += ResourceDoc(
+      allAccountsAllBanks,
       apiVersion,
       "allAccountsAllBanks",
       "GET",

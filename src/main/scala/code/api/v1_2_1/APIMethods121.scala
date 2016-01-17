@@ -75,6 +75,7 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
+      root(apiVersion),
       apiVersion,
       "root",
       "GET",
@@ -104,6 +105,7 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
+      allBanks,
       apiVersion,
       "allBanks",
       "GET",
@@ -137,6 +139,7 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
+      bankById,
       apiVersion,
       "bankById",
       "GET",
@@ -167,6 +170,7 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
+      allAccountsAllBanks,
       apiVersion,
       "allAccountsAllBanks",
       "GET",
@@ -196,6 +200,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      privateAccountsAllBanks,
       apiVersion,
       "privateAccountsAllBanks",
       "GET",
@@ -223,6 +228,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      publicAccountsAllBanks,
       apiVersion,
       "publicAccountsAllBanks",
       "GET",
@@ -244,6 +250,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      allAccountsAtOneBank,
       apiVersion,
       "allAccountsAtOneBank",
       "GET",
@@ -276,6 +283,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      privateAccountsAtOneBank,
       apiVersion,
       "privateAccountsAtOneBank",
       "GET",
@@ -304,6 +312,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      publicAccountsAtOneBank,
       apiVersion,
       "publicAccountsAtOneBank",
       "GET",
@@ -330,6 +339,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      accountById,
       apiVersion,
       "accountById",
       "GET",
@@ -369,6 +379,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateAccountLabel,
       apiVersion,
       "updateAccountLabel",
       "POST",
@@ -396,6 +407,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getViewsForBankAccount,
       apiVersion,
       "getViewsForBankAccount",
       "GET",
@@ -446,6 +458,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      createViewForBankAccount,
       apiVersion,
       "createViewForBankAccount",
       "POST",
@@ -485,6 +498,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateViewForBankAccount,
       apiVersion,
       "updateViewForBankAccount",
       "PUT",
@@ -517,6 +531,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteViewForBankAccount,
       apiVersion,
       "deleteViewForBankAccount",
       "DELETE",
@@ -540,6 +555,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getPermissionsForBankAccount,
       apiVersion,
       "getPermissionsForBankAccount",
       "GET",
@@ -568,6 +584,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getPermissionForUserForBankAccount,
       apiVersion,
       "getPermissionForUserForBankAccount",
       "GET",
@@ -597,6 +614,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addPermissionForUserForBankAccountForMultipleViews,
       apiVersion,
       "addPermissionForUserForBankAccountForMultipleViews",
       "POST",
@@ -628,6 +646,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addPermissionForUserForBankAccountForOneView,
       apiVersion,
       "addPermissionForUserForBankAccountForOneView",
       "POST",
@@ -659,6 +678,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      removePermissionForUserForBankAccountForOneView,
       apiVersion,
       "removePermissionForUserForBankAccountForOneView",
       "DELETE",
@@ -687,6 +707,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      removePermissionForUserForBankAccountForAllViews,
       apiVersion,
       "removePermissionForUserForBankAccountForAllViews",
       "DELETE",
@@ -713,6 +734,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartiesForBankAccount,
       apiVersion,
       "getCounterpartiesForBankAccount",
       "GET",
@@ -741,6 +763,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartyByIdForBankAccount,
       apiVersion,
       "getCounterpartyByIdForBankAccount",
       "GET",
@@ -769,6 +792,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartyMetadata,
       apiVersion,
       "getCounterpartyMetadata",
       "GET",
@@ -798,6 +822,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartyPublicAlias,
       apiVersion,
       "getCounterpartyPublicAlias",
       "GET",
@@ -828,6 +853,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addCounterpartyPublicAlias,
       apiVersion,
       "addCounterpartyPublicAlias",
       "POST",
@@ -864,6 +890,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyPublicAlias,
       apiVersion,
       "updateCounterpartyPublicAlias",
       "PUT",
@@ -895,6 +922,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyPublicAlias,
       apiVersion,
       "deleteCounterpartyPublicAlias",
       "DELETE",
@@ -923,6 +951,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartyPrivateAlias,
       apiVersion,
       "getCounterpartyPrivateAlias",
       "GET",
@@ -953,6 +982,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addCounterpartyPrivateAlias,
       apiVersion,
       "addCounterpartyPrivateAlias",
       "POST",
@@ -985,6 +1015,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyPrivateAlias,
       apiVersion,
       "updateCounterpartyPrivateAlias",
       "PUT",
@@ -1017,6 +1048,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyPrivateAlias,
       apiVersion,
       "deleteCounterpartyPrivateAlias",
       "DELETE",
@@ -1047,6 +1079,7 @@ trait APIMethods121 {
     //TODO: get more info of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyMoreInfo,
       apiVersion,
       "addCounterpartyMoreInfo",
       "POST",
@@ -1077,6 +1110,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyMoreInfo,
       apiVersion,
       "updateCounterpartyMoreInfo",
       "PUT",
@@ -1107,6 +1141,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyMoreInfo,
       apiVersion,
       "deleteCounterpartyMoreInfo",
       "DELETE",
@@ -1135,6 +1170,7 @@ trait APIMethods121 {
     //TODO: get url of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyUrl,
       apiVersion,
       "addCounterpartyUrl",
       "POST",
@@ -1166,6 +1202,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyUrl,
       apiVersion,
       "updateCounterpartyUrl",
       "PUT",
@@ -1196,6 +1233,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyUrl,
       apiVersion,
       "deleteCounterpartyUrl",
       "DELETE",
@@ -1224,6 +1262,7 @@ trait APIMethods121 {
     //TODO: get image url of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyImageUrl,
       apiVersion,
       "addCounterpartyImageUrl",
       "POST",
@@ -1254,6 +1293,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyImageUrl,
       apiVersion,
       "updateCounterpartyImageUrl",
       "PUT",
@@ -1284,6 +1324,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyImageUrl,
       apiVersion,
       "deleteCounterpartyImageUrl",
       "DELETE",
@@ -1312,6 +1353,7 @@ trait APIMethods121 {
     //TODO: get open corporates url of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyOpenCorporatesUrl,
       apiVersion,
       "addCounterpartyOpenCorporatesUrl",
       "POST",
@@ -1342,6 +1384,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyOpenCorporatesUrl,
       apiVersion,
       "updateCounterpartyOpenCorporatesUrl",
       "PUT",
@@ -1372,6 +1415,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyOpenCorporatesUrl,
       apiVersion,
       "deleteCounterpartyOpenCorporatesUrl",
       "DELETE",
@@ -1400,6 +1444,7 @@ trait APIMethods121 {
     //TODO: get corporate location of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyCorporateLocation,
       apiVersion,
       "addCounterpartyCorporateLocation",
       "POST",
@@ -1432,6 +1477,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyCorporateLocation,
       apiVersion,
       "updateCounterpartyCorporateLocation",
       "PUT",
@@ -1464,6 +1510,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyCorporateLocation,
       apiVersion,
       "deleteCounterpartyCorporateLocation",
       "DELETE",
@@ -1497,6 +1544,7 @@ trait APIMethods121 {
     //TODO: get physical location of counterparty?
 
     resourceDocs += ResourceDoc(
+      addCounterpartyPhysicalLocation,
       apiVersion,
       "addCounterpartyPhysicalLocation",
       "POST",
@@ -1529,6 +1577,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateCounterpartyPhysicalLocation,
       apiVersion,
       "updateCounterpartyPhysicalLocation",
       "PUT",
@@ -1561,6 +1610,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteCounterpartyPhysicalLocation,
       apiVersion,
       "deleteCounterpartyPhysicalLocation",
       "DELETE",
@@ -1592,6 +1642,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getTransactionsForBankAccount,
       apiVersion,
       "getTransactionsForBankAccount",
       "GET",
@@ -1633,6 +1684,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getTransactionByIdForBankAccount,
       apiVersion,
       "getTransactionByIdForBankAccount",
       "GET",
@@ -1661,6 +1713,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getTransactionNarrative,
       apiVersion,
       "getTransactionNarrative",
       "GET",
@@ -1688,6 +1741,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addTransactionNarrative,
       apiVersion,
       "addTransactionNarrative",
       "POST",
@@ -1718,6 +1772,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      updateTransactionNarrative,
       apiVersion,
       "updateTransactionNarrative",
       "PUT",
@@ -1748,6 +1803,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      deleteTransactionNarrative,
       apiVersion,
       "deleteTransactionNarrative",
       "DELETE",
@@ -1775,6 +1831,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getCommentsForViewOnTransaction,
       apiVersion,
       "getCommentsForViewOnTransaction",
       "GET",
@@ -1802,6 +1859,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      addCommentForViewOnTransaction,
       apiVersion,
       "addCommentForViewOnTransaction",
       "POST",
@@ -1833,6 +1891,7 @@ trait APIMethods121 {
     // Not able to update a comment (delete and add another)
 
     resourceDocs += ResourceDoc(
+      deleteCommentForViewOnTransaction,
       apiVersion,
       "deleteCommentForViewOnTransaction",
       "DELETE",
@@ -1860,6 +1919,7 @@ trait APIMethods121 {
     }
 
     resourceDocs += ResourceDoc(
+      getTagsForViewOnTransaction,
       apiVersion,
       "getTagsForViewOnTransaction",
       "GET",
@@ -1887,6 +1947,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      addTagForViewOnTransaction,
       apiVersion,
       "addTagForViewOnTransaction",
       "POST",
@@ -1919,6 +1980,7 @@ Authentication via OAuth is required if the view is not public.""",
     // No update tag (delete and add another)
 
     resourceDocs += ResourceDoc(
+      deleteTagForViewOnTransaction,
       apiVersion,
       "deleteTagForViewOnTransaction",
       "DELETE",
@@ -1947,6 +2009,7 @@ Authentication via OAuth is required. The user must either have owner privileges
     }
 
     resourceDocs += ResourceDoc(
+      getImagesForViewOnTransaction,
       apiVersion,
       "getImagesForViewOnTransaction",
       "GET",
@@ -1974,6 +2037,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      addImageForViewOnTransaction,
       apiVersion,
       "addImageForViewOnTransaction",
       "POST",
@@ -2004,6 +2068,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      deleteImageForViewOnTransaction,
       apiVersion,
       "deleteImageForViewOnTransaction",
       "DELETE",
@@ -2031,6 +2096,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      getWhereTagForViewOnTransaction,
       apiVersion,
       "getWhereTagForViewOnTransaction",
       "GET",
@@ -2060,6 +2126,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      addWhereTagForViewOnTransaction,
       apiVersion,
       "addWhereTagForViewOnTransaction",
       "POST",
@@ -2092,6 +2159,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      updateWhereTagForViewOnTransaction,
       apiVersion,
       "updateWhereTagForViewOnTransaction",
       "PUT",
@@ -2124,6 +2192,7 @@ Authentication via OAuth is required if the view is not public.""",
     }
 
     resourceDocs += ResourceDoc(
+      deleteWhereTagForViewOnTransaction,
       apiVersion,
       "deleteWhereTagForViewOnTransaction",
       "DELETE",
@@ -2155,6 +2224,7 @@ Authentication via OAuth is required. The user must either have owner privileges
     }
 
     resourceDocs += ResourceDoc(
+      getCounterpartyForTransaction,
       apiVersion,
       "getCounterpartyForTransaction",
       "GET",
@@ -2187,6 +2257,7 @@ Authentication via OAuth is required if the view is not public.""",
     case class TransactionIdJson(transaction_id : String)
 
     resourceDocs += ResourceDoc(
+      makePayment,
       apiVersion,
       "makePayment",
       "POST",

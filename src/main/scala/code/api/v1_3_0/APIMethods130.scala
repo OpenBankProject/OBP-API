@@ -30,6 +30,7 @@ trait APIMethods130 {
 
 
     resourceDocs += ResourceDoc(
+      getCards,
       apiVersion,
       "getCards",
       "GET",
@@ -58,6 +59,7 @@ trait APIMethods130 {
 
 
     resourceDocs += ResourceDoc(
+      getCardsForBank,
       apiVersion,
       "getCardsForBank",
       "GET",
