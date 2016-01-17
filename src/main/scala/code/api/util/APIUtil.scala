@@ -262,7 +262,10 @@ object APIUtil extends Loggable {
   }
 
   /*
-  Used to document API calls / resources. correct place for this?
+  Used to document API calls / resources.
+
+  TODO Can we extract apiVersion, apiFunction, requestVerb and requestUrl from partialFunction?
+
    */
   case class ResourceDoc(
                       partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],

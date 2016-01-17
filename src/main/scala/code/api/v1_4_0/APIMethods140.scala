@@ -22,9 +22,11 @@ import scala.collection.immutable.Nil
 import collection.mutable.ArrayBuffer
 
 import code.api.APIFailure
-import code.api.v1_2_1.APIMethods121
-import code.api.v1_3_0.APIMethods130
-import code.api.v2_0_0.APIMethods200 // So we can include resource docs from future versions
+import code.api.v1_2_1.{OBPAPI1_2_1, APIInfoJSON, HostedBy, APIMethods121}
+import code.api.v1_3_0.{OBPAPI1_3_0, APIMethods130}
+import code.api.v2_0_0.{OBPAPI2_0_0, APIMethods200}
+
+// So we can include resource docs from future versions
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.atms.Atms
 import code.branches.Branches
@@ -55,39 +57,35 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     val exampleDate = simpleDateFormat.parse(exampleDateString)
 
 
-
-
     def getResourceDocsList(requestedApiVersion : String) : Option[List[ResourceDoc]] =
     {
 
-      // We'll have a different list of resource docs depending on the version being called.
-      // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs)
-
-      val path = CurrentReq.value.path
-
-      logger.info(s"path is $path")
-
-      val activeVersion = CurrentReq.value.path(1)
-
-      logger.info(s"ver in path is $activeVersion")
+      // Return a different list of resource docs depending on the version being called.
+      // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
 
       val resourceDocs2_0_0 = Implementations2_0_0.resourceDocs ++ resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+
+      // When we add a new version, update this.
+      val resourceDocsAll = resourceDocs2_0_0
 
       val cumulativeResourceDocs =  requestedApiVersion match {
         case "2.0.0" => resourceDocs2_0_0
         case "1.4.0" => resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.2.1" => Implementations1_2_1.resourceDocs
-        case _ => resourceDocs2_0_0 // Not sure if we should have a default here.
+        case _ => resourceDocsAll
       }
 
-      // TODO Filter out non available APIs for the active version
-      // e.g. For each version we should only include those resourceDocs that are listed in the routes List
-      // (e.g. OBPAPI1_2_1 routes) unless we are in dev mode (Props.devMode is true) otherwise developers will see a huge list of APIs and get a bunch of 404s
+      // Only return APIs that are present in the list of routes for the version called
+      val liveResourceDocs =  requestedApiVersion match {
+        case "2.0.0" => cumulativeResourceDocs.filter(rd => OBPAPI2_0_0.routes.contains(rd.partialFunction))
+        case "1.4.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_4_0.routes.contains(rd.partialFunction))
+        case "1.3.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_3_0.routes.contains(rd.partialFunction))
+        case "1.2.1" => cumulativeResourceDocs.filter(rd => OBPAPI1_2_1.routes.contains(rd.partialFunction))
+        case _ => cumulativeResourceDocs // Will be all ResourceDocs across all versions
+      }
 
-
-
-        // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
+      // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
       Some(cumulativeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
@@ -359,7 +357,7 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
-    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple various of markdown.
+    // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
     def getResourceDocsObp(requestedApiVersion: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: "obp" :: Nil JsonGet _ => {
         user => {
@@ -616,43 +614,59 @@ trait APIMethods140 extends Loggable with APIMethods200 with APIMethods130 with 
 
 
 
-//    if (Props.devMode) {
-//      resourceDocs += ResourceDoc(
-//        what-to-use-here?,
-//        apiVersion,
-//        "testResourceDoc",
-//        "GET",
-//        "/i-do-not-exist-i-will-404",
-//        "I am only a test resource Doc",
-//        """
-//            |
-//            |#This should be H1
-//            |
-//            |##This should be H2
-//            |
-//            |###This should be H3
-//            |
-//            |####This should be H4
-//            |
-//            |Here is a list with two items:
-//            |
-//            |* One
-//            |* Two
-//            |
-//            |There are underscores by them selves _
-//            |
-//            |There are _underscores_ around a word
-//            |
-//            |There are underscores_in_words
-//            |
-//            |There are 'underscores_in_words_inside_quotes'
-//            |
-//            |There are (underscores_in_words_in_brackets)
-//            |
-//            |_etc_...""",
-//          emptyObjectJson,
-//          emptyObjectJson,
-//        emptyObjectJson :: Nil)
-//      }
+    if (Props.devMode) {
+      resourceDocs += ResourceDoc(
+        dummy(apiVersion),
+        apiVersion,
+        "testResourceDoc",
+        "GET",
+        "/dummy",
+        "I am only a test resource Doc",
+        """
+            |
+            |#This should be H1
+            |
+            |##This should be H2
+            |
+            |###This should be H3
+            |
+            |####This should be H4
+            |
+            |Here is a list with two items:
+            |
+            |* One
+            |* Two
+            |
+            |There are underscores by them selves _
+            |
+            |There are _underscores_ around a word
+            |
+            |There are underscores_in_words
+            |
+            |There are 'underscores_in_words_inside_quotes'
+            |
+            |There are (underscores_in_words_in_brackets)
+            |
+            |_etc_...""",
+          emptyObjectJson,
+          emptyObjectJson,
+        emptyObjectJson :: Nil)
+      }
+
+
+
+    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "dummy" :: Nil JsonGet json => {
+        user =>
+          val apiDetails: JValue = {
+            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            Extraction.decompose(apiInfoJSON)
+          }
+
+          Full(successJsonResponse(apiDetails, 200))
+      }
+    }
+
   }
 }
