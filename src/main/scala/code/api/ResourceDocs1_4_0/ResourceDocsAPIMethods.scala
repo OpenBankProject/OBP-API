@@ -1,4 +1,4 @@
-package code.api.ResourceDocsRD1
+package code.api.ResourceDocs1_4_0
 
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import net.liftweb.common.{Box, Full, Loggable}

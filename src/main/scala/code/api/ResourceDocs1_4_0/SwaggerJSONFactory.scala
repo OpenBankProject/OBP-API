@@ -1,4 +1,4 @@
-package code.api.ResourceDocsRD1
+package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil.ResourceDoc
 import net.liftweb.json._
