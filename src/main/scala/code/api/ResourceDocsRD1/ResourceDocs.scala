@@ -8,7 +8,7 @@ import net.liftweb.common.Loggable
 
 object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with Loggable {
 
-  val VERSION = "rd1"
+  val VERSION = "1.4.0"
 
 
   val routes = List(

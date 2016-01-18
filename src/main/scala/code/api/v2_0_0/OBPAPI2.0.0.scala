@@ -47,7 +47,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.root(VERSION),
     Implementations1_2_1.allBanks,
     Implementations1_2_1.bankById,
-    // now in v2.0.0  Implementations2_0_0.allAccountsAllBanks
+    // now in v2.0.0  Implementations1_2_1.allAccountsAllBanks
     Implementations1_2_1.privateAccountsAllBanks,
     Implementations1_2_1.publicAccountsAllBanks,
     Implementations1_2_1.allAccountsAtOneBank,
@@ -129,8 +129,6 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_4_0.getAtms,
     Implementations1_4_0.getProducts,
     Implementations1_4_0.getCrmEvents,
-    //ImplementationsResourceDocs1_4_0.getResourceDocsObp(VERSION),
-    //ImplementationsResourceDocs1_4_0.getResourceDocsSwagger(VERSION),
     Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
     Implementations1_4_0.getTransactionRequestTypes,
