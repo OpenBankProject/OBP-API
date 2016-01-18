@@ -56,7 +56,11 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
         case "1.4.0" => resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.2.1" => Implementations1_2_1.resourceDocs
-        case _ => resourceDocsAll
+        case "all" => resourceDocsAll
+        case _ => {
+          logger.info("requestedApiVersion not specified. Returning all available ResourceDocs")
+          resourceDocsAll
+        }
       }
 
       // Only return APIs that are present in the list of routes for the version called
@@ -65,7 +69,11 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
         case "1.4.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_4_0.routes.contains(rd.partialFunction))
         case "1.3.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_3_0.routes.contains(rd.partialFunction))
         case "1.2.1" => cumulativeResourceDocs.filter(rd => OBPAPI1_2_1.routes.contains(rd.partialFunction))
-        case _ => cumulativeResourceDocs // Will be all ResourceDocs across all versions
+        case "all" => cumulativeResourceDocs
+        case _ => {
+          logger.info("requestedApiVersion not specified. Not filtering by version")
+          cumulativeResourceDocs
+        }
       }
 
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
@@ -100,11 +108,17 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
+
+
+    // TODO constrain version?
+    // strip the leading v
+    def cleanApiVersionString (version: String) : String = {version.stripPrefix("v").stripPrefix("V")}
+
     def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
-            rd <- getResourceDocsList(requestedApiVersion)
+            rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createResourceDocsJson(rd)
@@ -135,7 +149,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
         user => {
           for {
-            rd <- getResourceDocsList(requestedApiVersion)
+            rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
           } yield {
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rd)
