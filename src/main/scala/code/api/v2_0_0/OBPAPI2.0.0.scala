@@ -43,12 +43,15 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val VERSION = "2.0.0"
 
+
+  // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
+
   val routes = List(
     Implementations1_2_1.root(VERSION),
     Implementations1_2_1.allBanks,
     Implementations1_2_1.bankById,
-    // now in v2.0.0  Implementations1_2_1.allAccountsAllBanks
-    Implementations1_2_1.privateAccountsAllBanks,
+//  Now implemented by 2.0.0  Implementations1_2_1.allAccountsAllBanks,
+//  Now implemented by 2.0.0  Implementations1_2_1.privateAccountsAllBanks,
     Implementations1_2_1.publicAccountsAllBanks,
     Implementations1_2_1.allAccountsAtOneBank,
     Implementations1_2_1.privateAccountsAtOneBank,
@@ -136,8 +139,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // Modified in 2.0.0
 
-    Implementations2_0_0.allAccountsAllBanks
-//    Implementations1_2_1.privateAccountsAllBanks,
+    Implementations2_0_0.allAccountsAllBanks,
+    Implementations2_0_0.privateAccountsAllBanks
 //    Implementations1_2_1.publicAccountsAllBanks,
 //    Implementations1_2_1.allAccountsAtOneBank,
 //    Implementations1_2_1.privateAccountsAtOneBank,

@@ -46,14 +46,16 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       // Return a different list of resource docs depending on the version being called.
       // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
 
-      val resourceDocs2_0_0 = Implementations2_0_0.resourceDocs ++ resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+      logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
+
+      val resourceDocs2_0_0 = Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
 
       // When we add a new version, update this.
       val resourceDocsAll = resourceDocs2_0_0
 
       val cumulativeResourceDocs =  requestedApiVersion match {
         case "2.0.0" => resourceDocs2_0_0
-        case "1.4.0" => resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
+        case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.2.1" => Implementations1_2_1.resourceDocs
         case "all" => resourceDocsAll
@@ -77,7 +79,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       }
 
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
-      Some(cumulativeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
+      Some(liveResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
 

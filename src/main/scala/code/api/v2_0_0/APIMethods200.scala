@@ -84,6 +84,33 @@ trait APIMethods200 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      privateAccountsAllBanks,
+      apiVersion,
+      "privateAccountsAllBanks",
+      "GET",
+      "/accounts/private",
+      "Get private accounts for all banks.",
+      """Returns the list of private (non-public) accounts the user has access to at all banks.
+        |For each account the API returns the ID and the available views.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
+
+    lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for all banks
+      case "accounts" :: "private" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ "user not found"
+          } yield {
+            val availableAccounts = BankAccount.nonPublicAccounts(u)
+            successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
+          }
+      }
+    }
 
 
   }
