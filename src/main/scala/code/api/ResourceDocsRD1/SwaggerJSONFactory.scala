@@ -1,4 +1,4 @@
-package code.api.ResourceDocs
+package code.api.ResourceDocsRD1
 
 import code.api.util.APIUtil.ResourceDoc
 import net.liftweb.json._
@@ -6,7 +6,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.ListMap
 
-object SwaggerJSONFactory1_4_0 {
+object SwaggerJSONFactory {
 
   case class ContactJson(
                           name: String,

@@ -1,4 +1,4 @@
-package code.api.ResourceDocs
+package code.api.ResourceDocsRD1
 
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
 import net.liftweb.common.{Box, Full, Loggable}
@@ -75,7 +75,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
 
     resourceDocs += ResourceDoc(
-      getResourceDocsObp(apiVersion),
+      getResourceDocsObp,
       apiVersion,
       "getResourceDocsObp",
       "GET",
@@ -100,8 +100,8 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
     // Note: description uses html markup because original markdown doesn't easily support "_" and there are multiple versions of markdown.
-    def getResourceDocsObp(requestedApiVersion: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: "obp" :: Nil JsonGet _ => {
+    def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
             rd <- getResourceDocsList(requestedApiVersion)
@@ -117,7 +117,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
 
     resourceDocs += ResourceDoc(
-      getResourceDocsSwagger(apiVersion),
+      getResourceDocsSwagger,
       apiVersion,
       "getResourceDocsSwagger",
       "GET",
@@ -131,14 +131,14 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       emptyObjectJson :: Nil
     )
 
-    def getResourceDocsSwagger(requestedApiVersion: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: "swagger" :: Nil JsonGet _ => {
+    def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
         user => {
           for {
             rd <- getResourceDocsList(requestedApiVersion)
           } yield {
             // Format the data as json
-            val json = SwaggerJSONFactory1_4_0.createSwaggerResourceDoc(rd)
+            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rd)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }

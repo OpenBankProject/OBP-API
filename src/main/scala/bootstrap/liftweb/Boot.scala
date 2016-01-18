@@ -31,7 +31,7 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
-import code.api.ResourceDocs.ResourceDocs
+import code.api.ResourceDocsRD1.ResourceDocs
 import code.api.sandbox.SandboxApiCalls
 import code.crm.MappedCrmEvent
 import code.management.ImporterAPI
@@ -67,7 +67,7 @@ import code.model._
 import code.model.dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.api.ResourceDocs.{ResourceDocsAPIMethods}
+import code.api.ResourceDocsRD1.{ResourceDocsAPIMethods}
 
 
 

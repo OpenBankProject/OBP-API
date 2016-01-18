@@ -1,4 +1,4 @@
-package code.api.ResourceDocs
+package code.api.ResourceDocsRD1
 
 import code.api.OBPRestHelper
 
@@ -8,11 +8,12 @@ import net.liftweb.common.Loggable
 
 object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with Loggable {
 
-  val VERSION = "1.3.0"
+  val VERSION = "rd1"
+
 
   val routes = List(
-    ImplementationsResourceDocs.getResourceDocsObp(VERSION),
-    ImplementationsResourceDocs.getResourceDocsSwagger(VERSION)
+    ImplementationsResourceDocs.getResourceDocsObp,
+    ImplementationsResourceDocs.getResourceDocsSwagger
   )
 
   routes.foreach(route => {
