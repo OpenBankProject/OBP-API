@@ -93,8 +93,6 @@ object OBPAPI1_4_0 extends OBPRestHelper with APIMethods140 with Loggable {
     Implementations1_4_0.getAtms,
     Implementations1_4_0.getProducts,
     Implementations1_4_0.getCrmEvents,
-    Implementations1_4_0.getResourceDocsObp(VERSION),
-    Implementations1_4_0.getResourceDocsSwagger(VERSION),
     Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
     Implementations1_4_0.getTransactionRequestTypes,

@@ -1,9 +1,8 @@
-package code.api.v1_4_0
+package code.api.ResourceDocs
 
 import code.api.util.APIUtil.ResourceDoc
-import net.liftweb.util.Props
 import net.liftweb.json._
-
+import net.liftweb.util.Props
 
 import scala.collection.immutable.ListMap
 

@@ -309,6 +309,7 @@ object JSONFactory1_4_0 {
     )
   }
 
+  // TODO Check if this is duplicated across versions?
   case class AmountOfMoneyJSON (
                                 currency : String,
                                 amount : String

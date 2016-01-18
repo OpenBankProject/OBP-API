@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import code.api.ResourceDocs.ResourceDocs
 import code.api.sandbox.SandboxApiCalls
 import code.crm.MappedCrmEvent
 import code.management.ImporterAPI
@@ -66,6 +67,9 @@ import code.model._
 import code.model.dataAccess._
 import code.api._
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.api.ResourceDocs.{ResourceDocsAPIMethods}
+
+
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -186,6 +190,7 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    // Can we depreciate the above?
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
@@ -198,6 +203,11 @@ class Boot extends Loggable{
     // add other apis
     LiftRules.statelessDispatch.append(CashAccountAPI)
     LiftRules.statelessDispatch.append(BankMockAPI)
+
+
+
+    // Add Resource Docs
+    LiftRules.statelessDispatch.append(ResourceDocs)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 

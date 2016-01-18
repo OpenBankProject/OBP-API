@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.api.v2_0_0
 
 import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.APIMethods140
+import code.api.v1_4_0.{APIMethods140}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST._
 import net.liftweb.common.Loggable
@@ -129,8 +129,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_4_0.getAtms,
     Implementations1_4_0.getProducts,
     Implementations1_4_0.getCrmEvents,
-    Implementations1_4_0.getResourceDocsObp(VERSION),
-    Implementations1_4_0.getResourceDocsSwagger(VERSION),
+    //ImplementationsResourceDocs1_4_0.getResourceDocsObp(VERSION),
+    //ImplementationsResourceDocs1_4_0.getResourceDocsSwagger(VERSION),
     Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
     Implementations1_4_0.getTransactionRequestTypes,
