@@ -110,7 +110,7 @@ trait APIMethods121 {
       "allBanks",
       "GET",
       "/banks",
-      "Returns all banks available on this API instance",
+      "Get banks on this API instance",
       """Returns a list of banks supported on this server:
         |
         |* ID used as parameter in URLs

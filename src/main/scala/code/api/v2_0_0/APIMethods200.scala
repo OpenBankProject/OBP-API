@@ -64,7 +64,7 @@ trait APIMethods200 {
       "allAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get all accounts a user has access to at all banks (private + public)",
+      "Get accounts a user can view (all banks).",
       """Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
@@ -90,8 +90,8 @@ trait APIMethods200 {
       "privateAccountsAllBanks",
       "GET",
       "/accounts/private",
-      "Get private accounts for all banks.",
-      """Returns the list of private (non-public) accounts the user has access to at all banks.
+      "Get accounts a user has privileged access to (all banks).",
+      """Returns the list of accounts containing private (non-public) views for the user at all banks.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -111,6 +111,122 @@ trait APIMethods200 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      publicAccountsAllBanks,
+      apiVersion,
+      "publicAccountsAllBanks",
+      "GET",
+      "/accounts/public",
+      "Get accounts that have public views (all banks).",
+      """Returns the list of accounts containing public views at all banks
+        |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
+
+    lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get public accounts for all banks
+      case "accounts" :: "public" :: Nil JsonGet json => {
+        user =>
+          val publicAccountsJson = bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)
+          Full(successJsonResponse(publicAccountsJson))
+      }
+    }
+
+
+
+
+    resourceDocs += ResourceDoc(
+      allAccountsAtOneBank,
+      apiVersion,
+      "allAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts",
+      "Get accounts for a single bank the user has either private or public access to.",
+      """Returns the list of accounts at BANK_ID that the user has access to.
+        |For each account the API returns the account ID and the available views.
+        |
+        |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
+      """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
+
+    lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get accounts for a single bank (private + public)
+      case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
+        user =>
+          for{
+            bank <- Bank(bankId)
+          } yield {
+            val availableAccounts = bank.accounts(user)
+            successJsonResponse(bankAccountBasicListToJson(availableAccounts, user))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      privateAccountsAtOneBank,
+      apiVersion,
+      "privateAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts/private",
+      "Get accounts at one bank where the user has private access.",
+      """Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+        |For each account the API returns the ID and the available views.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
+
+    lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get private accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ "user not found"
+            bank <- Bank(bankId)
+          } yield {
+            val availableAccounts = bank.nonPublicAccounts(u)
+            successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      publicAccountsAtOneBank,
+      apiVersion,
+      "publicAccountsAtOneBank",
+      "GET",
+      "/banks/BANK_ID/accounts/public",
+      "Get accounts (public) for a single bank.",
+      """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
+        |
+        |Authentication via OAuth is not required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil)
+
+    lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get public accounts for a single bank
+      case "banks" :: BankId(bankId) :: "accounts" :: "public" :: Nil JsonGet json => {
+        user =>
+          for {
+            bank <- Bank(bankId)
+          } yield {
+            val publicAccountsJson = bankAccountBasicListToJson(bank.publicAccounts, Empty)
+            successJsonResponse(publicAccountsJson)
+          }
+      }
+    }
+
+
+
+
+
 
 
   }

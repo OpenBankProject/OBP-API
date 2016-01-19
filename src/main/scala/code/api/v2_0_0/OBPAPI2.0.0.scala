@@ -50,12 +50,13 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.root(VERSION),
     Implementations1_2_1.allBanks,
     Implementations1_2_1.bankById,
-//  Now implemented by 2.0.0  Implementations1_2_1.allAccountsAllBanks,
-//  Now implemented by 2.0.0  Implementations1_2_1.privateAccountsAllBanks,
-    Implementations1_2_1.publicAccountsAllBanks,
-    Implementations1_2_1.allAccountsAtOneBank,
-    Implementations1_2_1.privateAccountsAtOneBank,
-    Implementations1_2_1.publicAccountsAtOneBank,
+    // Now in 2_0_0
+//  Implementations1_2_1.allAccountsAllBanks,
+//  Implementations1_2_1.privateAccountsAllBanks,
+//  Implementations1_2_1.publicAccountsAllBanks,
+//  Implementations1_2_1.allAccountsAtOneBank,
+//  Implementations1_2_1.privateAccountsAtOneBank,
+//  Implementations1_2_1.publicAccountsAtOneBank,
     Implementations1_2_1.accountById,
     Implementations1_2_1.updateAccountLabel,
     Implementations1_2_1.getViewsForBankAccount,
@@ -137,15 +138,13 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_4_0.getTransactionRequestTypes,
     Implementations1_4_0.answerTransactionRequestChallenge,
 
-    // Modified in 2.0.0
-
+    // Modified in 2.0.0 (less info about the views)
     Implementations2_0_0.allAccountsAllBanks,
-    Implementations2_0_0.privateAccountsAllBanks
-//    Implementations1_2_1.publicAccountsAllBanks,
-//    Implementations1_2_1.allAccountsAtOneBank,
-//    Implementations1_2_1.privateAccountsAtOneBank,
-//    Implementations1_2_1.publicAccountsAtOneBank,
-//    Implementations1_2_1.accountById
+    Implementations2_0_0.privateAccountsAllBanks,
+    Implementations2_0_0.publicAccountsAllBanks,
+    Implementations2_0_0.allAccountsAtOneBank,
+    Implementations2_0_0.privateAccountsAtOneBank,
+    Implementations2_0_0.publicAccountsAtOneBank
   )
 
   routes.foreach(route => {
