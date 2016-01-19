@@ -105,6 +105,7 @@ The default database for testing etc is H2. PostgreSQL is used for the sandboxes
 
 If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper have to be installed, as well as OBP-Kafka-Python (which can be either running from command-propmpt or from inside Docker container):
 
-    Kafka and Zookeeper can be installed using system's default installer or by unpacking the archives (http://apache.mirrors.spacedump.net/kafka/ and http://apache.mirrors.spacedump.net/zookeeper/)
-    OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
+* Kafka and Zookeeper can be installed using system's default installer or by unpacking the archives (http://apache.mirrors.spacedump.net/kafka/ and http://apache.mirrors.spacedump.net/zookeeper/)
+
+* OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
