@@ -65,10 +65,12 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
       logger.info(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
 
-      // Filter out the resource docs whose partialFunction is not contained in the list of routes
-      // i.e. we only want the resource docs for which a API route exists else users will see 404s
-      // filter/contains not working.
+
+      // We only want the resource docs for which a API route exists else users will see 404s
+      // Get a list of the partial function classes represented in the routes available to this version.
       val versionRoutesClasses = versionRoutes.map { vr => vr.getClass }
+
+      // Only return the resource docs that have available routes
       val activeResourceDocs = resourceDocs.filter(rd => versionRoutesClasses.contains(rd.partialFunction.getClass))
 
       logger.info(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
