@@ -42,44 +42,40 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
     def getResourceDocsList(requestedApiVersion : String) : Option[List[ResourceDoc]] =
     {
-
       // Return a different list of resource docs depending on the version being called.
       // For instance 1_3_0 will have the docs for 1_3_0 and 1_2_1 (when we started adding resource docs) etc.
 
       logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
-      val resourceDocs2_0_0 = Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-
-      // When we add a new version, update this.
-      val resourceDocsAll = resourceDocs2_0_0
-
-      val cumulativeResourceDocs =  requestedApiVersion match {
-        case "2.0.0" => resourceDocs2_0_0
+      val resourceDocs = requestedApiVersion match {
+        case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.2.1" => Implementations1_2_1.resourceDocs
-        case "all" => resourceDocsAll
-        case _ => {
-          logger.info("requestedApiVersion not specified. Returning all available ResourceDocs")
-          resourceDocsAll
-        }
       }
 
-      // Only return APIs that are present in the list of routes for the version called
-      val liveResourceDocs =  requestedApiVersion match {
-        case "2.0.0" => cumulativeResourceDocs.filter(rd => OBPAPI2_0_0.routes.contains(rd.partialFunction))
-        case "1.4.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_4_0.routes.contains(rd.partialFunction))
-        case "1.3.0" => cumulativeResourceDocs.filter(rd => OBPAPI1_3_0.routes.contains(rd.partialFunction))
-        case "1.2.1" => cumulativeResourceDocs.filter(rd => OBPAPI1_2_1.routes.contains(rd.partialFunction))
-        case "all" => cumulativeResourceDocs
-        case _ => {
-          logger.info("requestedApiVersion not specified. Not filtering by version")
-          cumulativeResourceDocs
-        }
+      logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
+
+      val versionRoutes = requestedApiVersion match {
+        case "2.0.0" => OBPAPI2_0_0.routes
+        case "1.4.0" => OBPAPI1_4_0.routes
+        case "1.3.0" => OBPAPI1_3_0.routes
+        case "1.2.1" => OBPAPI1_2_1.routes
       }
+
+      logger.info(s"There are ${versionRoutes.length} routes available to $requestedApiVersion")
+
+      // Filter out the resource docs whose partialFunction is not contained in the list of routes
+      // i.e. we only want the resource docs for which a API route exists else users will see 404s
+      // filter/contains not working.
+      //val activeResourceDocs = resourceDocs.filter(rd => versionRoutes.contains(rd.partialFunction))
+
+      val activeResourceDocs = resourceDocs
+
+      logger.info(s"There are ${activeResourceDocs.length} resource docs available to $requestedApiVersion")
 
       // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
-      Some(liveResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
+      Some(activeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
     }
 
 
