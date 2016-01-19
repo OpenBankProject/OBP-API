@@ -64,7 +64,7 @@ trait APIMethods200 {
       "allAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts a user can view (all banks).",
+      "Get accounts for a user. Includes public accounts. All banks.",
       """Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
@@ -90,8 +90,8 @@ trait APIMethods200 {
       "privateAccountsAllBanks",
       "GET",
       "/accounts/private",
-      "Get accounts a user has privileged access to (all banks).",
-      """Returns the list of accounts containing private (non-public) views for the user at all banks.
+      "Get accounts for a user. All banks.",
+      """Returns the list of accounts containing private views for the user at all banks.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -144,7 +144,7 @@ trait APIMethods200 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts for a single bank the user has either private or public access to.",
+      "Get accounts for a user. Includes public accounts at one bank.",
       """Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
@@ -173,8 +173,8 @@ trait APIMethods200 {
       "privateAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/private",
-      "Get accounts at one bank where the user has private access.",
-      """Returns the list of private (non-public) accounts at BANK_ID that the user has access to.
+      "Get accounts that grant access to a user (one bank).",
+      """Returns the list of accounts containing private views for the user at BANK_ID.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -202,7 +202,7 @@ trait APIMethods200 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get accounts (public) for a single bank.",
+      "Get accounts that have public views for a single bank.",
       """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.""",
