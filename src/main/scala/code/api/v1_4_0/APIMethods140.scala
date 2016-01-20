@@ -178,7 +178,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
             u <- if(getBranchesIsPublic)
-              user
+              Box(Some(1))
             else
               user ?~! "User must be logged in to retrieve Branches data"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
