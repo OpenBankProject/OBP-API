@@ -42,6 +42,9 @@ import java.text.SimpleDateFormat
 
 import net.liftweb.http.CurrentReq
 
+
+import code.api.util.APIUtil.authenticationRequiredMessage
+
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
@@ -151,6 +154,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       }
     }
 
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
     resourceDocs += ResourceDoc(
       getBranches,
       apiVersion,
@@ -158,26 +163,26 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
-      """Returns information about branches for a single bank specified by BANK_ID including:
+      s"""Returns information about branches for a single bank specified by BANK_ID including:
         |
         |* Name
         |* Address
         |* Geo Location
         |* License the data under this endpoint is released under
         |
-        |Authentication via OAuth *may* be required.""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil
     )
 
-    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- if(getBranchesIsPublic)
+            u <- if(getBranchesIsPublic) // If the call is public, don't worry about the user.
               user
             else
               user ?~! "User must be logged in to retrieve Branches data"
@@ -193,7 +198,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       }
     }
 
-
+    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
       getAtms,
@@ -202,13 +207,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/atms",
       "Get ATMS for the bank",
-      """Returns information about ATMs for a single bank specified by BANK_ID including:
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
          |
          |* Address
          |* Geo Location
          |* License the data under this endpoint is released under
          |
-         |Authentication via OAuth *may* be required.""",
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil
@@ -219,7 +224,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
           // Get atms from the active provider
-            u <- user ?~! "User must be logged in to retrieve ATM data"
+            u <- if(getAtmsIsPublic) // If the call is public, don't worry about the user.
+              user
+            else
+              user ?~! "User must be logged in to retrieve ATM data"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
@@ -233,6 +241,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
 
+    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+
     resourceDocs += ResourceDoc(
       getProducts,
       apiVersion,
@@ -240,7 +250,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "GET",
       "/banks/BANK_ID/products",
       "Get products offered by the bank",
-      """Returns information about financial products offered by a bank specified by BANK_ID including:
+      s"""Returns information about financial products offered by a bank specified by BANK_ID including:
         |
         |* Name
         |* Code
@@ -250,7 +260,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |* More info URL
         |* Description
         |* Terms and Conditions
-        |* License the data under this endpoint is released under""",
+        |* License the data under this endpoint is released under
+        |${authenticationRequiredMessage(!getProductsIsPublic)}
+        |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil
@@ -261,7 +273,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
           // Get products from the active provider
-            u <- user ?~! "User must be logged in to retrieve Products data"
+            u <- if(getProductsIsPublic) // If the call is public, don't worry about the user.
+              user
+            else
+              user ?~! "User must be logged in to retrieve Products data"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
