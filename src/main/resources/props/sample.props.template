@@ -136,3 +136,9 @@ webui_main_style_sheet = /media/css/website.css
 
 # Override certain elements (with important styles)
 webui_override_style_sheet =
+
+
+## API Options
+apiOptions.getBranchesIsPublic = true
+apiOptions.getAtmsIsPublic = true
+apiOptions.getProductsIsPublic = true

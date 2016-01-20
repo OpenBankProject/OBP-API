@@ -171,6 +171,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil
     )
 
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
