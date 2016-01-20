@@ -177,7 +177,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve Branches data"
+            u <- if(getBranchesIsPublic)
+              user
+            else
+              user ?~! "User must be logged in to retrieve Branches data"
             bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
