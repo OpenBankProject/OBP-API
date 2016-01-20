@@ -278,4 +278,16 @@ object APIUtil extends Loggable {
                       exampleRequestBody: JValue, // An example of the body required (maybe empty)
                       successResponseBody: JValue, // A successful response body
                       errorResponseBodies: List[JValue]) // Possible error responses
+
+  def authenticationRequiredMessage(authRequired: Boolean) : String =
+    authRequired match {
+      case true => "Authentication IS required"
+      case false => "Authentication is NOT required"
+    }
+
+
+
+
+
+
 }
