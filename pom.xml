@@ -161,6 +161,11 @@
       <artifactId>pegdown</artifactId>
       <version>1.6.0</version>
     </dependency>
+    <dependency>
+        <groupId>io.igl</groupId>
+        <artifactId>jwt_2.11</artifactId>
+        <version>1.2.0</version>
+    </dependency>
   </dependencies>
 
   <build>
