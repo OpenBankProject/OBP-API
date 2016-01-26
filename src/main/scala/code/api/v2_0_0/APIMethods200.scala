@@ -182,6 +182,14 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil)
 
+
+    def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
+      val availableAccounts = bank.nonPublicAccounts(u)
+      successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
+    }
+
+    // This contains an approach to surface the same resource via different end point in case of "one" bank.
+    // Experimental and might be removed.
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
       case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
@@ -190,10 +198,19 @@ trait APIMethods200 {
             u <- user ?~ "user not found"
             bank <- Bank(bankId)
           } yield {
-            val availableAccounts = bank.nonPublicAccounts(u)
-            successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
+            privateAccountsAtOneBankResult(bank, u)
           }
       }
+      case "one" :: "accounts" :: "private" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ "user not found"
+            bank <- Bank(BankId("abc"))
+          } yield {
+            privateAccountsAtOneBankResult(bank, u)
+          }
+      }
+
     }
 
     resourceDocs += ResourceDoc(
