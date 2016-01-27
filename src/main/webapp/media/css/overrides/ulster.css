@@ -1,4 +1,11 @@
+.about-text ul
+{
+	list-style-type: initial;
+}
+
 .about-text li
 {
 	color: white;
+	text-align: left;
+	margin-left: 10%;
 }
