@@ -31,43 +31,38 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import java.io.{File, FileInputStream}
+import java.util.Locale
+import javax.mail.internet.MimeMessage
+
 import code.api.ResourceDocs1_4_0.ResourceDocs
+import code.api._
 import code.api.sandbox.SandboxApiCalls
+import code.atms.MappedAtm
+import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
-import code.management.ImporterAPI
-import code.management.AccountsAPI
+import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.branches.{MappedBranch}
-import code.atms.{MappedAtm}
-import code.customer.{MappedCustomerMessage, MappedCustomer}
-import code.products.MappedProduct
-import code.tesobe.CashAccountAPI
-import code.transactionrequests.MappedTransactionRequest
-import net.liftweb._
-import util._
-import common._
-import http._
-import sitemap._
-import Loc._
-import mapper._
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Schedule
-import net.liftweb.util.Helpers
-import java.util.Locale
-import java.io.FileInputStream
-import java.io.File
-import javax.mail.internet.MimeMessage
 import code.model._
 import code.model.dataAccess._
-import code.api._
+import code.products.MappedProduct
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.api.ResourceDocs1_4_0.{ResourceDocsAPIMethods}
+import code.tesobe.CashAccountAPI
+import code.transactionrequests.MappedTransactionRequest
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.mapper._
+import net.liftweb.sitemap.Loc._
+import net.liftweb.sitemap._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Schedule, _}
 
 
 
@@ -185,6 +180,11 @@ class Boot extends Loggable{
 
     //OAuth API call
     LiftRules.statelessDispatch.append(OAuthHandshake)
+
+    // JWT auth endpoints
+    if(Props.getBool("allow_jwt_auth", true)) {
+      LiftRules.statelessDispatch.append(JWTAuth)
+    }
 
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
@@ -338,8 +338,8 @@ class Boot extends Loggable{
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
+    import Mailer.{From, PlainMailBodyType, Subject, To}
     import net.liftweb.util.Helpers.now
-    import Mailer.{From, To, Subject, PlainMailBodyType}
 
     val outputStream = new java.io.ByteArrayOutputStream
     val printStream = new java.io.PrintStream(outputStream)
