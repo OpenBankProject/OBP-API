@@ -5,6 +5,7 @@ import java.util.Date
 
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
+import code.metadata.comments.MappedComment
 import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
@@ -498,7 +499,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |OAuth authentication is required.
         |""",
       Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs",
-        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate))),
+        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+        exampleDate, "Single", 1, Array(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil)
 
@@ -517,7 +519,15 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.legal_name,
                 postedData.mobile_phone_number,
                 postedData.email,
-                MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url)) ?~! "Could not create customer"
+                MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+                postedData.date_of_birth,
+                postedData.relationship_status,
+                postedData.dependants,
+                postedData.dob_of_dependants,
+                postedData.highest_education_attained,
+                postedData.employment_status,
+                postedData.kyc_status,
+                postedData.last_ok_date) ?~! "Could not create customer"
           } yield {
             val successJson = Extraction.decompose(customer)
             successJsonResponse(successJson)
