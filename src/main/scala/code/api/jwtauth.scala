@@ -136,7 +136,7 @@ object JWTAuth extends RestHelper with Loggable {
             case Full(parameters) => toMapFromBasicAuth(parameters)
             case _ => toMap(a.params)
           }
-          case _ => Map(("",""))
+          case _ => toMap(S.request.openTheBox.params)
       }
     }
 
@@ -232,7 +232,7 @@ object JWTAuth extends RestHelper with Loggable {
       logger.info("signing key: " + secret)
       logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
 
-      var m = Mac.getInstance(signingAlgorithm);
+      var m = Mac.getInstance(signingAlgorithm)
       m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
       val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
 
@@ -266,6 +266,7 @@ object JWTAuth extends RestHelper with Loggable {
       //    "password",
       //    "token"
       //  )
+      println(parameters.toString)
       if(requestType == "requestToken")
         ("username" :: "password" :: parametersBase).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
