@@ -27,7 +27,7 @@ object JSONFactory1_4_0 {
                           date_of_birth: Date,
                           relationship_status: String,
                           dependants: Int,
-                          dob_of_dependants: Array[Date],
+                          dob_of_dependants: List[Date],
                           highest_education_attained: String,
                           employment_status: String,
                           kyc_status: Boolean,

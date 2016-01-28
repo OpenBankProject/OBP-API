@@ -500,7 +500,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |""",
       Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        exampleDate, "Single", 1, Array(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
+        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil)
 

@@ -52,7 +52,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
               date_of_birth = exampleDate,
               relationship_status = "Single",
               dependants = 1,
-              dob_of_dependants = Array(exampleDate),
+              dob_of_dependants = List(exampleDate),
               highest_education_attained = "Bachelor’s Degree",
               employment_status = "Employed",
               kyc_status = true,
