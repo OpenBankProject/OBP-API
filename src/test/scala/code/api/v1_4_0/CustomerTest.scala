@@ -15,12 +15,16 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
   val mockBankId = BankId("testBank1")
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
-  case class MockCustomer(number : String, mobileNumber : String,
-                              legalName : String, email : String,
-                              faceImage : MockFaceImage) extends Customer
+
+  case class MockCustomer(number: String, mobileNumber: String,
+                          legalName: String, email: String,
+                          faceImage: MockFaceImage, dateOfBirth: Date,
+                          relationshipStatus: String, dependents: Int,
+                          dobOfDependents: Array[Date], highestEducationAttained: String,
+                          employmentStatus: String, kycStatus: Boolean, lastOkDate: Date) extends Customer
 
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage)
+  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, Array(new Date(1234000)), "Bachelor’s Degree", "Employed", true, new Date(1234000))
 
   object MockedCustomerProvider extends CustomerProvider {
     override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
@@ -29,7 +33,15 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
     }
 
     override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
-    override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) :  Box[Customer] = Empty
+    override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage,
+                             dateOfBirth: Date,
+                             relationshipStatus: String,
+                             dependents: Int,
+                             dobOfDependents: Array[Date],
+                             highestEducationAttained: String,
+                             employmentStatus: String,
+                             kycStatus: Boolean,
+                             lastOkDate: Date) :  Box[Customer] = Empty
   }
 
   override def beforeAll() {
@@ -92,8 +104,19 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
       And("We should get the right information back")
 
       val info = response.body.extract[CustomerJson]
-      val received = MockCustomer(info.customer_number, info.mobile_phone_number,
-        info.legal_name, info.email, MockFaceImage(info.face_image.date, info.face_image.url))
+      val received = MockCustomer(info.customer_number,
+        info.mobile_phone_number,
+        info.legal_name,
+        info.email,
+        MockFaceImage(info.face_image.date, info.face_image.url),
+        info.date_of_birth,
+        info.relationship_status,
+        info.dependants,
+        info.dob_of_dependants,
+        info.highest_education_attained,
+        info.employment_status,
+        info.kyc_status,
+        info.last_ok_date)
 
       received should equal(mockCustomer)
     }
