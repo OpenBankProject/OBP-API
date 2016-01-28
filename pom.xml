@@ -161,6 +161,11 @@
       <artifactId>pegdown</artifactId>
       <version>1.6.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.jason-goodwin</groupId>
+      <artifactId>authentikat-jwt_2.10</artifactId>
+      <version>0.4.1</version>
+    </dependency>
   </dependencies>
 
   <build>
