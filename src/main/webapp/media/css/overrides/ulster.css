@@ -1,0 +1,29 @@
+#main-about h1 {
+	color: white;
+	font-size: 35px;
+	margin-bottom: 15px;
+	margin-left: -5px;
+}
+
+#main-about p {
+	color: white;
+	font-weight: bold;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+#main-about ul
+{
+	list-style-type: initial;
+}
+
+#main-about li
+{
+	color: white;
+	text-align: left;
+	margin-left: 100px;
+}
+
+#main-about img {
+	margin-top: 30px;
+}
