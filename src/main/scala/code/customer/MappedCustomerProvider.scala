@@ -23,12 +23,25 @@ object MappedCustomerProvider extends CustomerProvider {
     ).flatMap(_.mUser.obj)
   }
 
-  override def addCustomer(bankId: BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage) : Box[Customer] = {
+  override def addCustomer(bankId: BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage,
+                           dateOfBirth: Date,
+                           relationshipStatus: String,
+                           dependents: Int,
+                           dobOfDependents: Array[Date],
+                           highestEducationAttained: String,
+                           employmentStatus: String,
+                           kycStatus: Boolean,
+                           lastOkDate: Date) : Box[Customer] = {
 
     val createdCustomer = MappedCustomer.create
       .mBank(bankId.value).mEmail(email).mFaceImageTime(faceImage.date)
       .mFaceImageUrl(faceImage.url).mLegalName(legalName)
-      .mMobileNumber(mobileNumber).mNumber(number).mUser(user.apiId.value).saveMe()
+      .mMobileNumber(mobileNumber).mNumber(number).mUser(user.apiId.value)
+      .mDateOfBirth(dateOfBirth).mRelationshipStatus(relationshipStatus)
+      .mDependents(dependents)
+      .mHighestEducationAttained(highestEducationAttained)
+      .mEmploymentStatus(employmentStatus).mKycStatus(kycStatus)
+      .mLastOkDate(lastOkDate).saveMe()
 
     Some(createdCustomer)
   }
@@ -48,6 +61,13 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mEmail extends MappedEmail(this, 200)
   object mFaceImageUrl extends DefaultStringField(this)
   object mFaceImageTime extends MappedDateTime(this)
+  object mDateOfBirth extends MappedDateTime(this)
+  object mRelationshipStatus extends DefaultStringField(this)
+  object mDependents extends MappedInt(this)
+  object mHighestEducationAttained  extends DefaultStringField(this)
+  object mEmploymentStatus extends DefaultStringField(this)
+  object mKycStatus extends MappedBoolean(this)
+  object mLastOkDate extends MappedDateTime(this)
 
   override def number: String = mNumber.get
   override def mobileNumber: String = mMobileNumber.get
@@ -57,6 +77,14 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
     override def date: Date = mFaceImageTime.get
     override def url: String = mFaceImageUrl.get
   }
+  override def dateOfBirth: Date = mDateOfBirth.get
+  override def relationshipStatus: String = mRelationshipStatus.get
+  override def dependents: Int = mDependents
+  override def dobOfDependents: Array[Date] = Array(createdAt.get)
+  override def highestEducationAttained: String = mHighestEducationAttained.get
+  override def employmentStatus: String = mEmploymentStatus.get
+  override def kycStatus: Boolean = mKycStatus
+  override def lastOkDate: Date = mLastOkDate.get
 }
 
 object MappedCustomer extends MappedCustomer with LongKeyedMetaMapper[MappedCustomer] {

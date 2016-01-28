@@ -23,7 +23,15 @@ object JSONFactory1_4_0 {
                           legal_name : String,
                           mobile_phone_number : String,
                           email : String,
-                          face_image : CustomerFaceImageJson)
+                          face_image : CustomerFaceImageJson,
+                          date_of_birth: Date,
+                          relationship_status: String,
+                          dependants: Int,
+                          dob_of_dependants: Array[Date],
+                          highest_education_attained: String,
+                          employment_status: String,
+                          kyc_status: Boolean,
+                          last_ok_date: Date)
 
   case class CustomerFaceImageJson(url : String, date : Date)
 
@@ -77,7 +85,15 @@ object JSONFactory1_4_0 {
       mobile_phone_number = cInfo.mobileNumber,
       email = cInfo.email,
       face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
-                                        date = cInfo.faceImage.date)
+        date = cInfo.faceImage.date),
+      date_of_birth = cInfo.dateOfBirth,
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate
     )
 
   }
