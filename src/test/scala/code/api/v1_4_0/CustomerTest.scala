@@ -20,11 +20,11 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
                           legalName: String, email: String,
                           faceImage: MockFaceImage, dateOfBirth: Date,
                           relationshipStatus: String, dependents: Int,
-                          dobOfDependents: Array[Date], highestEducationAttained: String,
+                          dobOfDependents: List[Date], highestEducationAttained: String,
                           employmentStatus: String, kycStatus: Boolean, lastOkDate: Date) extends Customer
 
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, Array(new Date(1234000)), "Bachelor’s Degree", "Employed", true, new Date(1234000))
+  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(new Date(1234000), new Date(1234000), new Date(1234000)), "Bachelor’s Degree", "Employed", true, new Date(1234000))
 
   object MockedCustomerProvider extends CustomerProvider {
     override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
@@ -37,7 +37,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
                              dateOfBirth: Date,
                              relationshipStatus: String,
                              dependents: Int,
-                             dobOfDependents: Array[Date],
+                             dobOfDependents: List[Date],
                              highestEducationAttained: String,
                              employmentStatus: String,
                              kycStatus: Boolean,
@@ -112,7 +112,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
         info.date_of_birth,
         info.relationship_status,
         info.dependants,
-        info.dob_of_dependants,
+        info.dob_of_dependants.sortBy(_.getTime),
         info.highest_education_attained,
         info.employment_status,
         info.kyc_status,

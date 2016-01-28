@@ -23,7 +23,7 @@ trait CustomerProvider {
                   dateOfBirth: Date,
                   relationshipStatus: String,
                   dependents: Int,
-                  dobOfDependents: Array[Date],
+                  dobOfDependents: List[Date],
                   highestEducationAttained: String,
                   employmentStatus: String,
                   kycStatus: Boolean,
@@ -40,7 +40,7 @@ trait Customer {
   def dateOfBirth: Date
   def relationshipStatus: String
   def dependents: Int
-  def dobOfDependents: Array[Date]
+  def dobOfDependents: List[Date]
   def highestEducationAttained: String
   def employmentStatus: String
   def kycStatus: Boolean
