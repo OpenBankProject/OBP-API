@@ -28,7 +28,7 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
+  */
 
 package code.api
 
@@ -61,7 +61,7 @@ object APIFailure {
 //that all stable versions retain the same behavior
 case class UserNotFound(providerId : String, userId: String) extends APIFailure {
   val responseCode = 400 //TODO: better as 404? -> would break some backwards compatibility (or at least the tests!)
-  
+
   //to reiterate the comment about preserving backwards compatibility:
   //consider the case that an app may be parsing this string to decide what message to show their users
   //e.g. when granting view permissions, an app may not give their users a choice of provider and only
@@ -94,7 +94,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
       }
       case Failure(msg, _, _) => {
         logger.info("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
-        //throw(new Throwable("""INTENTIONAL EXCEPTION"""))
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
@@ -119,7 +118,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        logger.info("failIfBadJSON says: Cool, content-type is json")
+        //logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
           case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Error: Invalid JSON: $msg"))
           case _ => h(r)
@@ -136,23 +135,16 @@ trait OBPRestHelper extends RestHelper with Loggable {
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else {
-      val user = JWTAuth.getUser
-      if (user.isDefined) {
-        fn(user)
-      } else {
-        fn(Empty)
-      }
-    }
+    } else fn(Empty)
   }
 
   class RichStringList(list: List[String]) {
     val listLen = list.length
 
     /**
-     * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
-     * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
-     */
+      * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
+      * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
+      */
     def oPrefix(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): PartialFunction[Req, Box[User] => Box[JsonResponse]] =
       new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
         def isDefinedAt(req: Req): Boolean =
@@ -160,9 +152,8 @@ trait OBPRestHelper extends RestHelper with Loggable {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): Box[User] => Box[JsonResponse] = {
+        def apply(req: Req): Box[User] => Box[JsonResponse] =
           pf.apply(req.withNewPath(req.path.drop(listLen)))
-        }
       }
   }
 
@@ -188,16 +179,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
           //if request is correct json
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
-          val res = failIfBadOauth {
+          failIfBadOauth {
             failIfBadJSON(r, handler)
           }
-          if (res.code == 200) {
-            res
-          }
-          else {
-            res
-          }
-          //throw(new Throwable("""INTENTIONAL EXCEPTION"""))
         }
         def isDefinedAt(r : Req) = {
           //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
@@ -230,5 +214,6 @@ trait OBPRestHelper extends RestHelper with Loggable {
     }
     super.serve(obpHandler)
   }
+
 
 }
