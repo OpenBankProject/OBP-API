@@ -23,8 +23,9 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
                           dobOfDependents: List[Date], highestEducationAttained: String,
                           employmentStatus: String, kycStatus: Boolean, lastOkDate: Date) extends Customer
 
+  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(new Date(1234000), new Date(1234000), new Date(1234000)), "Bachelor’s Degree", "Employed", true, new Date(1234000))
+  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(format.parse("30/03/2012"), format.parse("30/03/2012"), format.parse("30/03/2014")), "Bachelor’s Degree", "Employed", true, new Date(1234000))
 
   object MockedCustomerProvider extends CustomerProvider {
     override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
@@ -112,7 +113,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
         info.date_of_birth,
         info.relationship_status,
         info.dependants,
-        info.dob_of_dependants.sortBy(_.getTime),
+        info.dob_of_dependants,
         info.highest_education_attained,
         info.employment_status,
         info.kyc_status,
