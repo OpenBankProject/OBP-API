@@ -29,9 +29,10 @@ package code.api
 
 import java.util.Date
 
-import authentikat.jwt.{JwtHeader, JsonWebToken, JwtClaimsSet}
+import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
+import code.model.dataAccess.OBPUser
 import code.model.{Consumer, Token, TokenType, User}
-import net.liftweb.common.{Box, Empty, Full, Loggable, ParamFailure}
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.mapper.By
@@ -48,11 +49,11 @@ import scala.compat.Platform
 object JWTAuth extends RestHelper with Loggable {
   serve
   {
-    //Handling get request for a "request token"
+    //Handling get request for an "authorization token"
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) =>
     {
       //Extract the jwtauth parameters from the header and test if the request is valid
-      var (httpCode, message, jwtAuthParameters) = validator("requestToken", "POST")
+      var (httpCode, message, jwtAuthParameters) = validator("authorizationToken", "POST")
       //Test if the request is valid
       if(httpCode==200)
       {
@@ -60,43 +61,13 @@ object JWTAuth extends RestHelper with Loggable {
         val (token,secret) = generateTokenAndSecret(claims)
 
         //Save the token that we have generated
-        if(saveRequestToken(jwtAuthParameters,token, secret))
+        if(saveAuthorizationToken(jwtAuthParameters,token, secret))
           message="token="+token
       }
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
         //return an HTTP response
       Full(InMemoryResponse(message.getBytes,headers,Nil,httpCode))
     }
-
-    case Req("my" :: "logins" :: "authorize" :: Nil,_, PostRequest) => authorize()
-    case Req("my" :: "logins" :: "authorize" :: Nil,_, GetRequest) => authorize()
-
-  }
-
-  def authorize() =
-  {
-    //Extract the jwtauth parameters from the header and test if the request is valid
-    var (httpCode, message, jwtAuthParameters) = validator("authorizationToken", "POST")
-    //Test if the request is valid
-    if(httpCode==200)
-    {
-      //Generate the token and secret/token
-      val claims = Map("app" -> "key")
-      val (token,secret) = generateTokenAndSecret(claims)
-      //Save the token that we have generated
-      if(saveAuthorizationToken(jwtAuthParameters,token, secret))
-      //remove the request token so the application could not exchange it
-      //again to get an other access token
-        Token.find(By(Token.key,jwtAuthParameters.get("token").get)) match {
-          case Full(requestToken) => requestToken.delete_!
-          case _ => None
-        }
-
-      message="token="+token+"&token_secret="+secret
-    }
-    val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-    //return an HTTP response
-    Full(InMemoryResponse(message.getBytes,headers,Nil,httpCode))
   }
 
   //Check if the request (access token or request token) is valid and return a tuple
@@ -105,7 +76,7 @@ object JWTAuth extends RestHelper with Loggable {
     def getAllParameters : Map[String,String]= {
 
       def toMapFromBasicAuth(paramsEncoded : String) = {
-        println("basic=" + paramsEncoded )
+        //println("basic=" + paramsEncoded )
         val params = new String(base64Decode(paramsEncoded.replaceAll("Basic ", "")))
         params.toString.split(":") match {
           case Array(str1, str2) => Map("username" -> str1, "password" -> str2)
@@ -166,11 +137,11 @@ object JWTAuth extends RestHelper with Loggable {
 
     //@return the missing parameters depending of the request type
     def missingjwtauthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
-      println(parameters.toString)
+      //println(parameters.toString)
       if(requestType == "requestToken")
         ("username" :: "password" :: List()).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
-        ("token" :: List()).toSet diff parameters.keySet
+        ("username" :: "password" :: List()).toSet diff parameters.keySet
       else if(requestType=="protectedResource")
         ("token" :: List()).toSet diff parameters.keySet
       else
@@ -191,11 +162,11 @@ object JWTAuth extends RestHelper with Loggable {
     }
 
     //In the case jwtauth authorization token request, check if the token is still valid and the verifier is correct
-    else if(requestType=="authorizationToken" && !validRequestToken(parameters.get("token").get))
-    {
-      message = "Invalid or expired request token: " + parameters.get("token").get
-      httpCode = 401
-    }
+    //else if(requestType=="authorizationToken" && !validRequestToken(parameters.get("token").get))
+    //{
+    //  message = "Invalid or expired request token: " + parameters.get("token").get
+    //  httpCode = 401
+    //}
     //In the case protected resource access request, check if the token is still valid
     else if (
         requestType=="protectedResource" &&
@@ -231,40 +202,6 @@ object JWTAuth extends RestHelper with Loggable {
     (token_message, secret_message)
   }
 
-  private def saveRequestToken(jwtauthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
-  {
-    import code.model.{Token, TokenType}
-
-    //val nonce = Nonce.create
-    //nonce.consumerkey(jwtauthParameters.get("consumer_key").get)
-    //nonce.timestamp(new Date(jwtauthParameters.get("timestamp").get.toLong))
-    //nonce.value(jwtauthParameters.get("nonce").get)
-    //val nonceSaved = nonce.save()
-
-    val token = Token.create
-    token.tokenType(TokenType.Request)
-    //if(! jwtauthParameters.get("consumer_key").get.isEmpty)
-    //  Consumer.find(By(Consumer.key,jwtauthParameters.get("consumer_key").get)) match {
-    //    case Full(consumer) => token.consumerId(consumer.id)
-    //    case _ => None
-    //}
-    token.key(tokenKey)
-    token.secret(tokenSecret)
-    //if(! jwtauthParameters.get("callback").get.isEmpty)
-    //  token.callbackURL(URLDecoder.decode(jwtauthParameters.get("callback").get,"UTF-8"))
-    //else
-      token.callbackURL("oob")
-    val currentTime = Platform.currentTime
-    val tokenDuration : Long = Helpers.minutes(30)
-    token.duration(tokenDuration)
-    token.expirationDate(new Date(currentTime+tokenDuration))
-    token.insertDate(new Date(currentTime))
-    val tokenSaved = token.save()
-
-    // nonceSaved && tokenSaved
-    true && tokenSaved
-  }
-
   private def saveAuthorizationToken(jwtauthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Token, TokenType}
@@ -282,10 +219,15 @@ object JWTAuth extends RestHelper with Loggable {
     //  case Full(consumer) => token.consumerId(consumer.id)
     //  case _ => None
     //}
-    Token.find(By(Token.key, jwtauthParameters.get("token").get)) match {
-      case Full(requestToken) => token.userForeignKey(requestToken.userForeignKey)
-      case _ => None
-    }
+    //Token.find(By(Token.key, jwtauthParameters.get("token").get)) match {
+    val userId = OBPUser.getUserId(jwtauthParameters.get("username").get, jwtauthParameters.get("password").get)
+    //Token.find(By(Token.key, tokenKey)) match {
+    //  case Full(requestToken) => token.userForeignKey(requestToken.userForeignKey)
+    //  case _ => None
+    //}
+    token.verifier("verifier")
+    token.consumerId(1) //TESTING ONLY
+    token.userForeignKey(userId)
     token.key(tokenKey)
     token.secret(tokenSecret)
     val currentTime = Platform.currentTime
@@ -296,7 +238,7 @@ object JWTAuth extends RestHelper with Loggable {
     val tokenSaved = token.save()
 
     //nonceSaved &&
-    tokenSaved
+    true && tokenSaved
   }
 
   def getUser : Box[User] = {
@@ -306,8 +248,13 @@ object JWTAuth extends RestHelper with Loggable {
     }
     val (httpCode, message, jwtauthParameters) = validator("protectedResource", httpMethod)
 
-    if(httpCode== 200) getUser(httpCode, jwtauthParameters.get("token"))
-    else ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
+    val user = getUser(200, jwtauthParameters.get("token"))
+    if (user != Empty ) {
+      val res = Full(user.get)
+      res
+    } else {
+      ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
+    }
   }
 
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =

@@ -28,7 +28,7 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
+  */
 
 package code.api
 
@@ -61,7 +61,7 @@ object APIFailure {
 //that all stable versions retain the same behavior
 case class UserNotFound(providerId : String, userId: String) extends APIFailure {
   val responseCode = 400 //TODO: better as 404? -> would break some backwards compatibility (or at least the tests!)
-  
+
   //to reiterate the comment about preserving backwards compatibility:
   //consider the case that an app may be parsing this string to decide what message to show their users
   //e.g. when granting view permissions, an app may not give their users a choice of provider and only
@@ -142,9 +142,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
     val listLen = list.length
 
     /**
-     * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
-     * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
-     */
+      * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
+      * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
+      */
     def oPrefix(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): PartialFunction[Req, Box[User] => Box[JsonResponse]] =
       new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
         def isDefinedAt(req: Req): Boolean =
