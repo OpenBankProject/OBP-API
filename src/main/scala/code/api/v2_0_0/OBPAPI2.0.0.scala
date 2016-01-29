@@ -144,7 +144,17 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.publicAccountsAllBanks,
     Implementations2_0_0.allAccountsAtOneBank,
     Implementations2_0_0.privateAccountsAtOneBank,
-    Implementations2_0_0.publicAccountsAtOneBank
+    Implementations2_0_0.publicAccountsAtOneBank,
+    Implementations2_0_0.getKycDocuments,
+    Implementations2_0_0.getKycMedias,
+    Implementations2_0_0.getKycStatuses,
+    Implementations2_0_0.getKycCheck,
+    Implementations2_0_0.getSocialMedia,
+    Implementations2_0_0.addKycDocument,
+    Implementations2_0_0.addKycMedia,
+    Implementations2_0_0.addKycStatus,
+    Implementations2_0_0.addKycCheck,
+    Implementations2_0_0.addSocialMedia
   )
 
   routes.foreach(route => {

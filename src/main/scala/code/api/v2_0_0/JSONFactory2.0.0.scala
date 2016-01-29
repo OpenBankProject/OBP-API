@@ -32,6 +32,11 @@ Berlin 13359, Germany
 package code.api.v2_0_0
 
 import java.util.Date
+import code.kycdocuments.KycDocument
+import code.kycmedias.KycMedia
+import code.kycstatuses.KycStatus
+import code.kycchecks.KycCheck
+import code.socialmedia.SocialMedia
 import net.liftweb.common.{Box, Full}
 import code.model._
 
@@ -58,6 +63,55 @@ case class AccountBasicJSON(
   bank_id : String
 )
 
+case class KycDocumentJSON(
+  id: String,
+  customer_number: String,
+  `type`: String,
+  number: String,
+  issue_date: Date,
+  issue_place: String,
+  expiry_date: Date
+)
+case class KycDocumentsJSON(documents: List[KycDocumentJSON])
+
+case class KycMediaJSON(
+  id: String,
+  customer_number: String,
+  `type`: String,
+  url: String,
+  date: Date,
+  relates_to_kyc_document_id: String,
+  relates_to_kyc_check_id: String
+)
+case class KycMediasJSON(medias: List[KycMediaJSON])
+
+case class KycCheckJSON(
+  id: String,
+  customer_number: String,
+  date: Date,
+  how: String,
+  staff_user_id: String,
+  staff_name: String,
+  satisfied: Boolean,
+  comments: String
+)
+case class KycChecksJSON(checks: List[KycCheckJSON])
+
+case class KycStatusJSON(
+   customer_number: String,
+   ok: Boolean,
+   date: Date
+)
+case class KycStatusesJSON(statuses: List[KycStatusJSON])
+
+case class SocialMediaJSON(
+   customer_number: String,
+   `type`: String,
+   handle: String,
+   date_added: Date,
+   date_activated: Date
+)
+case class SocialMediasJSON(checks: List[SocialMediaJSON])
 
 object JSONFactory{
 
@@ -89,7 +143,77 @@ object JSONFactory{
       account.bankId.value
     )
   }
-  
+
+  def createKycDocumentJSON(kycDocument : KycDocument) : KycDocumentJSON = {
+    new KycDocumentJSON(
+      id = kycDocument.idKycDocument,
+      customer_number = kycDocument.customerNumber,
+      `type` = kycDocument.`type`,
+      number = kycDocument.number,
+      issue_date = kycDocument.issueDate,
+      issue_place = kycDocument.issuePlace,
+      expiry_date = kycDocument.expiryDate
+    )
+  }
+
+  def createKycDocumentsJSON(messages : List[KycDocument]) : KycDocumentsJSON = {
+    KycDocumentsJSON(messages.map(createKycDocumentJSON))
+  }
+
+  def createKycMediaJSON(kycMedia : KycMedia) : KycMediaJSON = {
+    new KycMediaJSON(
+      id = kycMedia.idKycMedia,
+      customer_number = kycMedia.customerNumber,
+      `type` = kycMedia.`type`,
+      url = kycMedia.url,
+      date = kycMedia.date,
+      relates_to_kyc_document_id = kycMedia.relatesToKycDocumentId,
+      relates_to_kyc_check_id = kycMedia.relatesToKycCheckId
+    )
+  }
+  def createKycMediasJSON(messages : List[KycMedia]) : KycMediasJSON = {
+    KycMediasJSON(messages.map(createKycMediaJSON))
+  }
+
+  def createKycCheckJSON(kycCheck : KycCheck) : KycCheckJSON = {
+    new KycCheckJSON(
+      id = kycCheck.idKycCheck,
+      customer_number = kycCheck.customerNumber,
+      date = kycCheck.date,
+      how = kycCheck.how,
+      staff_user_id = kycCheck.staffUserId,
+      staff_name = kycCheck.staffName,
+      satisfied = kycCheck.satisfied,
+      comments = kycCheck.comments
+    )
+  }
+  def createKycChecksJSON(messages : List[KycCheck]) : KycChecksJSON = {
+    KycChecksJSON(messages.map(createKycCheckJSON))
+  }
+
+  def createKycStatusJSON(kycStatus : KycStatus) : KycStatusJSON = {
+    new KycStatusJSON(
+      customer_number = kycStatus.customerNumber,
+      ok = kycStatus.ok,
+      date = kycStatus.date
+    )
+  }
+  def createKycStatusesJSON(messages : List[KycStatus]) : KycStatusesJSON = {
+    KycStatusesJSON(messages.map(createKycStatusJSON))
+  }
+
+  def createSocialMediaJSON(socialMedia : SocialMedia) : SocialMediaJSON = {
+    new SocialMediaJSON(
+      customer_number = socialMedia.customerNumber,
+      `type` = socialMedia.`type`,
+      handle = socialMedia.handle,
+      date_added = socialMedia.dateAdded,
+      date_activated = socialMedia.dateActivated
+    )
+  }
+  def createSocialMediasJSON(messages : List[SocialMedia]) : SocialMediasJSON = {
+    SocialMediasJSON(messages.map(createSocialMediaJSON))
+  }
   // From 1.2.1
 
   def stringOrNull(text : String) =

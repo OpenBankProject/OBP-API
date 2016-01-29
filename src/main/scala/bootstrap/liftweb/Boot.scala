@@ -42,6 +42,11 @@ import code.atms.MappedAtm
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.kycdocuments.MappedKycDocument
+import code.kycmedias.MappedKycMedia
+import code.kycchecks.MappedKycCheck
+import code.kycstatuses.MappedKycStatus
+import code.socialmedia.MappedSocialMedia
 import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
@@ -401,5 +406,10 @@ object ToSchemify {
     MappedBranch,
     MappedAtm,
     MappedProduct,
-    MappedCrmEvent)
+    MappedCrmEvent,
+    MappedKycDocument,
+    MappedKycMedia,
+    MappedKycCheck,
+    MappedKycStatus,
+    MappedSocialMedia)
 }
