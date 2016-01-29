@@ -94,6 +94,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
       }
       case Failure(msg, _, _) => {
         logger.info("jsonResponseBoxToJsonResponse case Failure API Failure: " + msg)
+        //throw(new Throwable("""INTENTIONAL EXCEPTION"""))
         errorJsonResponse(msg)
       }
       case _ => errorJsonResponse()
@@ -118,7 +119,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
     // Check if the content-type is text/json or application/json
     r.json_? match {
       case true =>
-        //logger.info("failIfBadJSON says: Cool, content-type is json")
+        logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
           case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Error: Invalid JSON: $msg"))
           case _ => h(r)
@@ -135,7 +136,14 @@ trait OBPRestHelper extends RestHelper with Loggable {
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else fn(Empty)
+    } else {
+      val user = JWTAuth.getUser
+      if (user.isDefined) {
+        fn(user)
+      } else {
+        fn(Empty)
+      }
+    }
   }
 
   class RichStringList(list: List[String]) {
@@ -152,8 +160,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
             pf.isDefinedAt(req.withNewPath(req.path.drop(listLen)))
           }
 
-        def apply(req: Req): Box[User] => Box[JsonResponse] =
+        def apply(req: Req): Box[User] => Box[JsonResponse] = {
           pf.apply(req.withNewPath(req.path.drop(listLen)))
+        }
       }
   }
 
@@ -179,9 +188,16 @@ trait OBPRestHelper extends RestHelper with Loggable {
           //if request is correct json
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
-          failIfBadOauth {
+          val res = failIfBadOauth {
             failIfBadJSON(r, handler)
           }
+          if (res.code == 200) {
+            res
+          }
+          else {
+            res
+          }
+          //throw(new Throwable("""INTENTIONAL EXCEPTION"""))
         }
         def isDefinedAt(r : Req) = {
           //if the content-type is json and json parsing failed, simply accept call but then fail in apply() before
@@ -214,6 +230,5 @@ trait OBPRestHelper extends RestHelper with Loggable {
     }
     super.serve(obpHandler)
   }
-
 
 }
