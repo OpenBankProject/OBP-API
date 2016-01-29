@@ -292,6 +292,74 @@ import net.liftweb.util.Helpers._
     S.error("login", S.?("Invalid Username or Password"))
   }
 
+  def getUserId(username: String, password: String): Long = {
+    findUserByUserName(username) match {
+      case Full(user) => {
+        if (user.validated_? &&
+          user.getProvider() == Props.get("hostname","") &&
+          user.testPassword(Full(password)))
+        {
+          user.id.toLong
+        }
+        else {
+          getExternalUser(username, password).get.id.toLong
+        }
+      }
+      case _ => 0
+    }
+  }
+
+  def getExternalUser(username: String, password: String):Box[OBPUser] = {
+    getUserViaKafka(username, password) match {
+      case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
+        val preLoginState = capturePreLoginState()
+        info("external user authenticated. login redir: " + loginRedirect.get)
+        val redir = loginRedirect.get match {
+          case Full(url) =>
+            loginRedirect(Empty)
+            url
+          case _ =>
+            homePage
+        }
+
+        val dummyPassword = "nothingreallyjustdummypass"
+        val extProvider = Props.get("connector").openOrThrowException("no connector set")
+
+        val user = findUserByUserName(username) match {
+          // Check if the external user is already created locally
+          case Full(user) if user.validated_? &&
+            user.provider == extProvider => {
+            // Return existing user if found
+            info("external user already exists locally, using that one")
+            user
+          }
+
+          // If not found, create new user
+          case _ => {
+            // Create OBPUser using fetched data from Kafka
+            // assuming that user's email is always validated
+            info("external user does not exist locally, creating one")
+            val newUser = OBPUser.create
+              .firstName(extDisplayName)
+              .email(extEmail)
+              // No need to store password, so store dummy string instead
+              .password(dummyPassword)
+              .provider(extProvider)
+              .validated(true)
+            // Save the user in order to be able to log in
+            newUser.save()
+            // Return created user
+            newUser
+          }
+        }
+        Full(user)
+      }
+      case _ => {
+        Empty
+      }
+    }
+  }
+
   //overridden to allow a redirection if login fails
   override def login = {
     if (S.post_?) {
@@ -326,67 +394,22 @@ import net.liftweb.util.Helpers._
         case _ => {
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
-            S.param("username").
-              flatMap(username => getUserViaKafka(username, S.param("password").openOr(""))) match {
-              case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
-                val preLoginState = capturePreLoginState()
-                info("external user authenticated. login redir: " + loginRedirect.get)
-                val redir = loginRedirect.get match {
-                  case Full(url) =>
-                    loginRedirect(Empty)
-                    url
-                  case _ =>
-                    homePage
-                }
+            val preLoginState = capturePreLoginState()
+            val user = getExternalUser(S.param("username").get, S.param("password").get)
 
-                val dummyPassword = "nothingreallyjustdummypass"
-                val extProvider = Props.get("connector").openOrThrowException("no connector set")
+            if (!user.isEmpty) {
+              logUserIn(user.get, () => {
+                S.notice(S.?("logged.in"))
 
-                val user = S.param("username").
-                  flatMap(username => findUserByUserName(username)) match {
+                preLoginState()
 
-                  // Check if the external user is already created locally
-                  case Full(user) if user.validated_? &&
-                    user.provider == extProvider => {
-                    // Return existing user if found
-                    info("external user already exists locally, using that one")
-                    user
-                  }
-
-                  // If not found, create new user
-                  case _ => {
-                    // Create OBPUser using fetched data from Kafka
-                    // assuming that user's email is always validated
-                    info("external user does not exist locally, creating one")
-                    val newUser = OBPUser.create
-                      .firstName(extDisplayName)
-                      .email(extEmail)
-                      // No need to store password, so store dummy string instead
-                      .password(dummyPassword)
-                      .provider(extProvider)
-                      .validated(true)
-                    // Save the user in order to be able to log in
-                    newUser.save()
-                    // Return created user
-                    newUser
-                  }
-                }
-
-                logUserIn(user, () => {
-                  S.notice(S.?("logged.in"))
-
-                  preLoginState()
-
-                  S.redirectTo(homePage)
-                })
-
-              }
-              case _ => {
-                userLoginFailed
-              }
+                S.redirectTo(homePage)
+              })
+            } else {
+              userLoginFailed
             }
           } else {
-              userLoginFailed
+            userLoginFailed
           }
         }
       }
