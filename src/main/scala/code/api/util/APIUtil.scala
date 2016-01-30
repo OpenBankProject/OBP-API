@@ -36,18 +36,12 @@ import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
 import code.model.User
 import net.liftweb.common.{Box, Full, Loggable}
-import net.liftweb.http.{Req, JsonResponse, S}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JObject, JValue}
-
-
-
-
+import net.liftweb.json.JsonAST.{JNothing, JValue}
 import net.liftweb.util.Helpers._
-
-import bootstrap.liftweb.Boot
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions.asScalaSet
@@ -64,6 +58,25 @@ object APIUtil extends Loggable {
       case Full(r) => r.request.method
       case _ => "GET"
     }
+
+  def isItDirectLoginRequest : Boolean = {
+    S.request match {
+      case Full(a) => a.json match {
+        case Full(json) => {
+          if ((json \\ "dl_token") != JNothing &&
+            (json \\ "dl_token").toString.matches( """^\w.*\.\w.*\.\w.*$"""))
+            true
+          else if ((json \\ "dl_password") != JNothing &&
+            (json \\ "dl_username") != JNothing)
+            false
+          else
+            false
+        }
+        case _ => false
+      }
+      case _ => false
+    }
+  }
 
   def isThereAnOAuthHeader : Boolean = {
     S.request match {
@@ -133,7 +146,7 @@ object APIUtil extends Loggable {
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{TreeMap, Map => IMap}
+    import scala.collection.immutable.{Map => IMap, TreeMap}
     import scala.collection.mutable.Set
 
     case class Consumer(key: String, secret: String)
