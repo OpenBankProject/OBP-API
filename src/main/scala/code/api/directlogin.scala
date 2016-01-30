@@ -170,7 +170,8 @@ object DirectLogin extends RestHelper with Loggable {
       if(requestType == "requestToken")
         ("dl_username" :: "dl_password" :: List()).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
-        ("dl_username" :: "dl_password" :: "dl_consumer_key" :: List()).toSet diff parameters.keySet
+//        ("dl_username" :: "dl_password" :: "dl_consumer_key" :: List()).toSet diff parameters.keySet
+        ("dl_username" :: "dl_password" :: List()).toSet diff parameters.keySet
       else if(requestType=="protectedResource")
         ("dl_token" :: List()).toSet diff parameters.keySet
       else
@@ -229,10 +230,10 @@ object DirectLogin extends RestHelper with Loggable {
 
     val token = Token.create
     token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key,directloginParameters.get("dl_consumer_key").get)) match {
-      case Full(consumer) => token.consumerId(consumer.id)
-      case _ => None
-    }
+    //Consumer.find(By(Consumer.key,directloginParameters.get("dl_consumer_key").get)) match {
+    //  case Full(consumer) => token.consumerId(consumer.id)
+    //  case _ => None
+    //}
     val userId = OBPUser.getUserId(directloginParameters.get("dl_username").get, directloginParameters.get("dl_password").get)
     token.userForeignKey(userId)
     token.key(tokenKey)
