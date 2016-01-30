@@ -5,7 +5,7 @@ import code.model.dataAccess.APIUser
 import code.util.{DefaultStringField}
 import net.liftweb.mapper._
 
-object MappedSocialMediasProvider extends SocialMediaProvider {
+object MappedSocialMediasProvider extends SocialMediaHandleProvider {
 
   override def getSocialMedias(customerNumber: String): List[MappedSocialMedia] = {
     MappedSocialMedia.findAll(

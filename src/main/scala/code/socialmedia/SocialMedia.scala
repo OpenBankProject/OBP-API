@@ -4,15 +4,18 @@ import java.util.Date
 import net.liftweb.util.SimpleInjector
 
 
-object SocialMedias extends SimpleInjector {
+// TODO Rename to SocialMediaHandle
+object SocialMediaHandle extends SimpleInjector {
 
-  val socialMediaProvider = new Inject(buildOne _) {}
+  val socialMediaHandleProvider = new Inject(buildOne _) {}
 
-  def buildOne: SocialMediaProvider = MappedSocialMediasProvider
+  def buildOne: SocialMediaHandleProvider = MappedSocialMediasProvider
 
 }
 
-trait SocialMediaProvider {
+
+// TODO Rename to SocialMediaHandlesProvider etc.
+trait SocialMediaHandleProvider {
 
   def getSocialMedias(customerNumber: String) : List[SocialMedia]
 
@@ -20,6 +23,8 @@ trait SocialMediaProvider {
 
 }
 
+
+// TODO Rename to SocialMediaHandle
 trait SocialMedia {
   def customerNumber : String
   def `type` : String
