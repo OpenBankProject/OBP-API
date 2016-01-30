@@ -282,7 +282,7 @@ trait APIMethods200 {
       "GET",
       "/customers/CUSTOMER_NUMBER/kyc_media",
       "Get KYC Media for a customer",
-      """Get media (scans, pictures, videos) that affirms the identity of the customer.
+      """Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
         |Authentication is required.""",
       emptyObjectJson,
@@ -309,8 +309,8 @@ trait APIMethods200 {
       apiVersion,
       "getKycChecks",
       "GET",
-      "/customers/CUSTOMER_NUMBER/kyc_check",
-      "Get checks for the logged in customer",
+      "/customers/CUSTOMER_NUMBER/kyc_checks",
+      "Get KYC checks for the logged in customer",
       """Messages sent to the currently authenticated user.
         |
         |Authentication via OAuth is required.""",
@@ -399,7 +399,7 @@ trait APIMethods200 {
       "addKycDocument",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_documents",
-      "Add a kyc_document for the customer specified by CUSTOMER_NUMBER",
+      "Add a KYC document for the customer specified by CUSTOMER_NUMBER",
       "",
       Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
@@ -440,7 +440,7 @@ trait APIMethods200 {
       "addKycMedia",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_media",
-      "Add a kyc_media for the customer specified by CUSTOMER_NUMBER",
+      "Add some KYC media for the customer specified by CUSTOMER_NUMBER",
       "",
       Extraction.decompose(KycMediaJSON("73hyfgayt6ywerwerasd", "1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
       emptyObjectJson,
@@ -479,7 +479,7 @@ trait APIMethods200 {
       "addKycCheck",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_check",
-      "Add a kyc_check for the customer specified by CUSTOMER_NUMBER",
+      "Add a KYC check for the customer specified by CUSTOMER_NUMBER",
       "",
       Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
@@ -554,7 +554,7 @@ trait APIMethods200 {
       "addSocialMediaHandle",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media",
-      "Add a social_media_handle for the customer specified by CUSTOMER_NUMBER",
+      "Add a social media handle for the customer specified by CUSTOMER_NUMBER",
       "",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
