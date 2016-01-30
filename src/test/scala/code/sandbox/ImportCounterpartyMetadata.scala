@@ -42,17 +42,25 @@ import code.api.ObpJson.BarebonesAccountsJson
 case class CounterpartyJSONRecord(name: String, category: String, superCategory: String, logoUrl: String, homePageUrl: String, region: String)
 case class UserJSONRecord(email: String, password: String, display_name: String)
 
+
+// Import counterparty metadata
+// Instructions for using this:
+// Run a copy of the API somewhere (else)
+// Set the paths for users and counterparties. (remove the outer [] from the json)
+
+
 object ImportCounterpartyMetadata extends SendServerRequests {
   def main(args : Array[String]) {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    var path = "/Users/stefan/Downloads/OBP_sandbox_counterparties_pretty.json"
+    var path = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/ulster_bank_2016/OBP_sandbox_counterparties_pretty_MOD.json"
     var records = JsonParser.parse(Source.fromFile(path) mkString)
     var counterparties = ListBuffer[CounterpartyJSONRecord]()
 
     //collect counterparties records
     for(r <- records.children){
+      //logger.info(s" extract counterparty records")
       val rec = r.extract[CounterpartyJSONRecord]
       //println (rec.name + "in region " + rec.region)
       counterparties.append(rec)
@@ -61,7 +69,7 @@ object ImportCounterpartyMetadata extends SendServerRequests {
     println("Got " + counterparties.length + " counterparty records")
 
     //load sandbox users from json
-    path = "/Users/stefan/Downloads/OBP_sandbox_pretty_load_002.json"
+    path = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/ulster_bank_2016/loaded_30_jan_UB_OBP_sandbox_pretty.json"
     records = JsonParser.parse(Source.fromFile(path) mkString)
     val users = (records \ "users").children
     println("got " + users.length + " users")
