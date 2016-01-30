@@ -187,8 +187,8 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(OAuthHandshake)
 
     // JWT auth endpoints
-    if(Props.getBool("allow_jwt_auth", true)) {
-      LiftRules.statelessDispatch.append(JWTAuth)
+    if(Props.getBool("allow_direct_login", true)) {
+      LiftRules.statelessDispatch.append(DirectLogin)
     }
 
     // Add the various API versions

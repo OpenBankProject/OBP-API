@@ -43,6 +43,7 @@ import code.model.User
 import code.api.OAuthHandshake._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
+import net.liftweb.util.Props
 
 trait APIFailure{
   val msg : String
@@ -135,7 +136,16 @@ trait OBPRestHelper extends RestHelper with Loggable {
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else fn(Empty)
+    } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+      val user = DirectLogin.getUser
+      if (user.isDefined) {
+        fn(user)
+      } else {
+        fn(Empty)
+      }
+    } else {
+      fn(Empty)
+    }
   }
 
   class RichStringList(list: List[String]) {

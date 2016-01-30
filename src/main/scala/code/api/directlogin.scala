@@ -46,22 +46,22 @@ import scala.compat.Platform
 * so they could authenticate their users.
 */
 
-object JWTAuth extends RestHelper with Loggable {
+object DirectLogin extends RestHelper with Loggable {
   serve
   {
     //Handling get request for an "authorization token"
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest) =>
     {
-      //Extract the jwtauth parameters from the header and test if the request is valid
-      var (httpCode, message, jwtAuthParameters) = validator("authorizationToken", "POST")
+      //Extract the directlogin parameters from the header and test if the request is valid
+      var (httpCode, message, directLoginParameters) = validator("authorizationToken", "POST")
       //Test if the request is valid
       if(httpCode==200)
       {
-        val claims = Map("app" -> "key")
+        val claims = Map("" -> "")
         val (token,secret) = generateTokenAndSecret(claims)
 
         //Save the token that we have generated
-        if(saveAuthorizationToken(jwtAuthParameters,token, secret))
+        if(saveAuthorizationToken(directLoginParameters,token, secret))
           message="token="+token
       }
       val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
@@ -72,25 +72,26 @@ object JWTAuth extends RestHelper with Loggable {
 
   //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
-    //return a Map containing the jwtauth parameters : prameter -> value
+    //return a Map containing the directlogin parameters : prameter -> value
     def getAllParameters : Map[String,String]= {
 
       def toMapFromBasicAuth(paramsEncoded : String) = {
         //println("basic=" + paramsEncoded )
         val params = new String(base64Decode(paramsEncoded.replaceAll("Basic ", "")))
         params.toString.split(":") match {
-          case Array(str1, str2) => Map("username" -> str1, "password" -> str2)
+          case Array(str1, str2) => Map("dl_username" -> str1, "dl_password" -> str2)
           case _ => Map("error" -> "error")
         }
       }
 
-      //Convert the list of jwtauth parameters to a Map
+      //Convert the list of directlogin parameters to a Map
       def toMapFromReq(parametersList : Req ) = {
-        val jwtauthPossibleParameters =
+        val directloginPossibleParameters =
           List(
-            "username",
-            "password",
-            "token"
+            "dl_username",
+            "dl_password",
+            "dl_consumer_key",
+            "dl_token"
           )
 
         if (parametersList.json_?) {
@@ -120,14 +121,6 @@ object JWTAuth extends RestHelper with Loggable {
       }
     }
 
-    //check if the token exists and is still valid
-    def validRequestToken(tokenKey : String) ={
-      Token.find(By(Token.key, tokenKey),By(Token.tokenType,TokenType.Request)) match {
-        case Full(token) => token.isValid
-        case _ => false
-      }
-    }
-
     def validAccessToken(tokenKey : String) = {
       Token.find(By(Token.key, tokenKey),By(Token.tokenType,TokenType.Access)) match {
         case Full(token) => token.isValid
@@ -136,14 +129,14 @@ object JWTAuth extends RestHelper with Loggable {
     }
 
     //@return the missing parameters depending of the request type
-    def missingjwtauthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
+    def missingdirectloginParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
       //println(parameters.toString)
       if(requestType == "requestToken")
-        ("username" :: "password" :: List()).toSet diff parameters.keySet
+        ("dl_username" :: "dl_password" :: List()).toSet diff parameters.keySet
       else if(requestType=="authorizationToken")
-        ("username" :: "password" :: List()).toSet diff parameters.keySet
+        ("dl_username" :: "dl_password" :: "dl_consumer_key" :: List()).toSet diff parameters.keySet
       else if(requestType=="protectedResource")
-        ("token" :: List()).toSet diff parameters.keySet
+        ("dl_token" :: List()).toSet diff parameters.keySet
       else
         parameters.keySet
     }
@@ -153,27 +146,19 @@ object JWTAuth extends RestHelper with Loggable {
 
     var parameters = getAllParameters
 
-    //are all the necessary jwtauth parameters present?
-    val missingParams = missingjwtauthParameters(parameters,requestType)
+    //are all the necessary directlogin parameters present?
+    val missingParams = missingdirectloginParameters(parameters,requestType)
     if( missingParams.size != 0 )
     {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
       httpCode = 400
     }
-
-    //In the case jwtauth authorization token request, check if the token is still valid and the verifier is correct
-    //else if(requestType=="authorizationToken" && !validRequestToken(parameters.get("token").get))
-    //{
-    //  message = "Invalid or expired request token: " + parameters.get("token").get
-    //  httpCode = 401
-    //}
-    //In the case protected resource access request, check if the token is still valid
     else if (
         requestType=="protectedResource" &&
-      ! validAccessToken(parameters.get("token").get)
+      ! validAccessToken(parameters.get("dl_token").get)
     )
     {
-      message = "Invalid or expired access token: " + parameters.get("token").get
+      message = "Invalid or expired access token: " + parameters.get("dl_token").get
       httpCode = 401
     }
     //checking if the signature is correct
@@ -202,31 +187,17 @@ object JWTAuth extends RestHelper with Loggable {
     (token_message, secret_message)
   }
 
-  private def saveAuthorizationToken(jwtauthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
+  private def saveAuthorizationToken(directloginParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Token, TokenType}
 
-    //val nonce = Nonce.create
-    //nonce.consumerkey(jwtauthParameters.get("consumer_key").get)
-    //nonce.timestamp(new Date(jwtauthParameters.get("timestamp").get.toLong))
-    //nonce.tokenKey(jwtauthParameters.get("token").get)
-    //nonce.value(jwtauthParameters.get("nonce").get)
-    //val nonceSaved = nonce.save()
-
     val token = Token.create
     token.tokenType(TokenType.Access)
-    //Consumer.find(By(Consumer.key,jwtauthParameters.get("consumer_key").get)) match {
-    //  case Full(consumer) => token.consumerId(consumer.id)
-    //  case _ => None
-    //}
-    //Token.find(By(Token.key, jwtauthParameters.get("token").get)) match {
-    val userId = OBPUser.getUserId(jwtauthParameters.get("username").get, jwtauthParameters.get("password").get)
-    //Token.find(By(Token.key, tokenKey)) match {
-    //  case Full(requestToken) => token.userForeignKey(requestToken.userForeignKey)
-    //  case _ => None
-    //}
-    token.verifier("verifier")
-    token.consumerId(1) //TESTING ONLY
+    Consumer.find(By(Consumer.key,directloginParameters.get("dl_consumer_key").get)) match {
+      case Full(consumer) => token.consumerId(consumer.id)
+      case _ => None
+    }
+    val userId = OBPUser.getUserId(directloginParameters.get("dl_username").get, directloginParameters.get("dl_password").get)
     token.userForeignKey(userId)
     token.key(tokenKey)
     token.secret(tokenSecret)
@@ -237,8 +208,7 @@ object JWTAuth extends RestHelper with Loggable {
     token.insertDate(new Date(currentTime))
     val tokenSaved = token.save()
 
-    //nonceSaved &&
-    true && tokenSaved
+    tokenSaved
   }
 
   def getUser : Box[User] = {
@@ -246,9 +216,9 @@ object JWTAuth extends RestHelper with Loggable {
       case Full(r) => r.request.method
       case _ => "GET"
     }
-    val (httpCode, message, jwtauthParameters) = validator("protectedResource", httpMethod)
+    val (httpCode, message, directloginParameters) = validator("protectedResource", httpMethod)
 
-    val user = getUser(200, jwtauthParameters.get("token"))
+    val user = getUser(200, directloginParameters.get("dl_token"))
     if (user != Empty ) {
       val res = Full(user.get)
       res
@@ -261,15 +231,15 @@ object JWTAuth extends RestHelper with Loggable {
     if(httpCode==200)
     {
       import code.model.Token
-      logger.info("jwtauth header correct ")
-      Token.find(By(Token.key, tokenID.get)) match {
+      logger.info("directlogin header correct ")
+      Token.find(By(Token.key, tokenID.getOrElse(""))) match {
         case Full(token) => {
           logger.info("access token: "+ token + " found")
           val user = token.user
           //just a log
           user match {
-            case Full(u) => logger.info("user " + u.emailAddress + " was found from the jwtauth token")
-            case _ => logger.info("no user was found for the jwtauth token")
+            case Full(u) => logger.info("user " + u.emailAddress + " was found from the directlogin token")
+            case _ => logger.info("no user was found for the directlogin token")
           }
           user
         }
