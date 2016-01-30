@@ -40,7 +40,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JNothing, JValue}
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
@@ -59,19 +59,10 @@ object APIUtil extends Loggable {
       case _ => "GET"
     }
 
-  def isItDirectLoginRequest : Boolean = {
+  def isThereDirectLoginHeader : Boolean = {
     S.request match {
-      case Full(a) => a.json match {
-        case Full(json) => {
-          if ((json \\ "dl_token") != JNothing &&
-            (json \\ "dl_token").toString.matches( """^\w.*\.\w.*\.\w.*$"""))
-            true
-          else if ((json \\ "dl_password") != JNothing &&
-            (json \\ "dl_username") != JNothing)
-            false
-          else
-            false
-        }
+      case Full(a) =>  a.header("Authorization") match {
+        case Full(parameters) => parameters.contains("DirectLogin")
         case _ => false
       }
       case _ => false
