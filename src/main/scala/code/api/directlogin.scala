@@ -84,6 +84,36 @@ object DirectLogin extends RestHelper with Loggable {
         }
       }
 
+      def toMap(parametersList : String) = {
+        //transform the string "directlogin_prameter="value""
+        //to a tuple (directlogin_parameter,Decoded(value))
+        def dynamicListExtract(input: String)  = {
+          val directloginPossibleParameters =
+            List(
+              "dl_consumer_key",
+              "dl_token",
+              "dl_username",
+              "dl_password"
+            )
+
+          if (input contains "=") {
+            val split = input.split("=",2)
+            val parameterValue = split(1).replace("\"","")
+            //add only OAuth parameters and not empty
+            if(directloginPossibleParameters.contains(split(0)) && ! parameterValue.isEmpty)
+              Some(split(0),parameterValue)  // return key , value
+            else
+              None
+          }
+          else
+            None
+        }
+        //we delete the "Oauth" prefix and all the white spaces that may exist in the string
+        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s","")
+        val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
+        params
+      }
+      
       //Convert the list of directlogin parameters to a Map
       def toMapFromReq(parametersList : Req ) = {
         val directloginPossibleParameters =
@@ -106,12 +136,18 @@ object DirectLogin extends RestHelper with Loggable {
       }
 
       S.request match {
-          case Full(a) =>  a.header("Authorization") match {
-            case Full(parameters) => toMapFromBasicAuth(parameters)
-            case _ => toMapFromReq(a)
+        case Full(a) =>  a.header("Authorization") match {
+          case Full(header) => {
+            if (header.contains("DirectLogin"))
+              toMap(header)
+            else
+              toMapFromBasicAuth(header)
           }
-          case _ => Map("error" -> "request incorrect")
+          case _ => toMapFromReq(a)
+        }
+        case _ => Map("error" -> "request incorrect")
       }
+
     }
 
     def registeredApplication(consumerKey : String ) : Boolean = {
