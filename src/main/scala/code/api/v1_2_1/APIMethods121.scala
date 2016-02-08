@@ -2073,7 +2073,7 @@ Authentication via OAuth is required if the view is not public.""",
       "deleteImageForViewOnTransaction",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images/IMAGE_ID",
-      "delete an image",
+      "Delete an image",
       """Deletes the image IMAGE_ID about the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
          |
          |Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the image.""",
