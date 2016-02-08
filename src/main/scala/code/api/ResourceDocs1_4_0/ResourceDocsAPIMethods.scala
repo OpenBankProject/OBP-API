@@ -102,7 +102,10 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagApiInfo)
     )
 
     // Provides resource documents so that API Explorer (or other apps) can display API documentation
@@ -141,7 +144,10 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagApiInfo)
     )
 
     def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -200,7 +206,10 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
           |_etc_...""",
         emptyObjectJson,
         emptyObjectJson,
-        emptyObjectJson :: Nil)
+        emptyObjectJson :: Nil,
+        false,
+        false,
+        List(apiTagApiInfo))
     }
 
 

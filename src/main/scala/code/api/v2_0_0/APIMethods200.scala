@@ -3,6 +3,8 @@ package code.api.v2_0_0
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil
+
+
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.common._
@@ -79,7 +81,10 @@ trait APIMethods200 {
          |""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagPrivateData, apiTagPublicData))
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for all banks (private + public)
@@ -102,7 +107,10 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagAccounts, apiTagPrivateData))
 
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for all banks
@@ -129,7 +137,10 @@ trait APIMethods200 {
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagPublicData))
 
     lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for all banks
@@ -157,7 +168,11 @@ trait APIMethods200 {
       """,
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagPrivateData, apiTagPublicData)
+    )
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for a single bank (private + public)
@@ -185,7 +200,10 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagAccounts, apiTagPrivateData))
 
 
     def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
@@ -230,7 +248,10 @@ trait APIMethods200 {
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for a single bank
@@ -257,7 +278,10 @@ trait APIMethods200 {
         |Authentication is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycDocuments  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerNumber :: "kyc_documents" :: Nil JsonGet _ => {
@@ -287,7 +311,10 @@ trait APIMethods200 {
         |Authentication is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+    false,
+    false,
+    List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerNumber :: "kyc_media" :: Nil JsonGet _ => {
@@ -316,7 +343,10 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerNumber :: "kyc_checks" :: Nil JsonGet _ => {
@@ -344,7 +374,10 @@ trait APIMethods200 {
         |Authentication is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycStatuses  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerNumber :: "kyc_statuses" :: Nil JsonGet _ => {
@@ -373,7 +406,10 @@ trait APIMethods200 {
         |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "customers" :: customerNumber :: "social_media_handles" :: Nil JsonGet _ => {
@@ -403,7 +439,10 @@ trait APIMethods200 {
       "",
       Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc)
     )
 
     // TODO customerNumber should be in the url but not also in the postedData
@@ -444,7 +483,10 @@ trait APIMethods200 {
       "",
       Extraction.decompose(KycMediaJSON("73hyfgayt6ywerwerasd", "1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycMedia : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -483,7 +525,10 @@ trait APIMethods200 {
       "",
       Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -523,7 +568,10 @@ trait APIMethods200 {
       "",
       Extraction.decompose(KycStatusJSON("8762893876", true, exampleDate)),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycStatus : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -558,7 +606,10 @@ trait APIMethods200 {
       "",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer)
     )
 
     lazy val addSocialMediaHandle : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

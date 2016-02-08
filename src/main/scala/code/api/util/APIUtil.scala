@@ -271,6 +271,26 @@ object APIUtil extends Loggable {
   TODO Can we extract apiVersion, apiFunction, requestVerb and requestUrl from partialFunction?
 
    */
+
+  case class ResourceDocTag(tag: String)
+
+  val apiTagPayment = ResourceDocTag("Payments")
+  val apiTagApiInfo = ResourceDocTag("API Info")
+  val apiTagBanks = ResourceDocTag("Banks")
+  val apiTagAccounts = ResourceDocTag("Accounts")
+  val apiTagPublicData = ResourceDocTag("Public Data")
+  val apiTagPrivateData = ResourceDocTag("Private Data")
+  val apiTagTransactions = ResourceDocTag("Transactions")
+  val apiTagMetaData = ResourceDocTag("Meta Data")
+  val apiTagViews = ResourceDocTag("Views")
+  val apiTagEntitlements = ResourceDocTag("Entitlements")
+  val apiTagOwnerRequired = ResourceDocTag("Owner View Required")
+  val apiTagCounterparties = ResourceDocTag("Counterparties")
+  val apiTagKyc = ResourceDocTag("KYC")
+  val apiTagCustomer = ResourceDocTag("Customer")
+
+
+
   case class ResourceDoc(
                       partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
                       apiVersion: String, // TODO: Constrain to certain strings?
@@ -281,7 +301,10 @@ object APIUtil extends Loggable {
                       description: String, // Longer description (originally taken from github wiki)
                       exampleRequestBody: JValue, // An example of the body required (maybe empty)
                       successResponseBody: JValue, // A successful response body
-                      errorResponseBodies: List[JValue]) // Possible error responses
+                      errorResponseBodies: List[JValue], // Possible error responses
+                      isCore: Boolean,
+                      isPSD2: Boolean,
+                      tags: List[ResourceDocTag])
 
   def authenticationRequiredMessage(authRequired: Boolean) : String =
     authRequired match {
