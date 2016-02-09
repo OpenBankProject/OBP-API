@@ -88,7 +88,7 @@ connection.password=thepassword
 importer_secret=change_me
 
 #set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
-messageQueue.updateBankAccountsTransaction=true
+messageQueue.updateBankAccountsTransaction=false
 
 #the minimum time between updates in hours
 messageQueue.updateTransactionsInterval=1
