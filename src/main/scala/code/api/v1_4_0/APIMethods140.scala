@@ -72,7 +72,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
@@ -101,7 +104,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -131,7 +137,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer)
     )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -173,7 +182,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -215,7 +227,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -265,7 +280,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -300,7 +318,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer)
     )
 
     lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -334,7 +355,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -367,7 +391,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -410,7 +437,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                                 )
                           ),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -456,7 +486,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -502,7 +535,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
@@ -573,7 +609,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             |_etc_...""",
           emptyObjectJson,
           emptyObjectJson,
-        emptyObjectJson :: Nil)
+        emptyObjectJson :: Nil,
+        false,
+        false,
+        Nil)
       }
 
 
