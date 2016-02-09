@@ -44,10 +44,9 @@ import net.liftweb.util.Helpers._
 import scala.compat.Platform
 
 /**
-* This object provides the API calls necessary to third party applications
-* so they could authenticate their users.
+* This object provides the API calls necessary to
+* authenticate users using JSON Web Tokens (http://jwt.io).
 */
-
 
 object JSONFactory {
   case class TokenJSON( token : String )
@@ -73,6 +72,7 @@ object JSONFactory {
 
 object DirectLogin extends RestHelper with Loggable {
 
+  // Our version of serve
   def dlServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {
     val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
       new PartialFunction[Req, () => Box[LiftResponse]] {
