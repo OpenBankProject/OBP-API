@@ -38,7 +38,7 @@ import net.liftweb.http._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.Extraction
 import net.liftweb.mapper.By
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Props, Helpers}
 import net.liftweb.util.Helpers._
 
 import scala.compat.Platform
@@ -87,7 +87,7 @@ object DirectLogin extends RestHelper with Loggable {
 
   dlServe
   {
-    //Handling get request for an "authorization token"
+    //Handling get request for a token
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest|GetRequest) => {
       //Extract the directLogin parameters from the header and test if the request is valid
       var (httpCode, message, directLoginParameters) = validator("authorizationToken", getHttpMethod)
@@ -109,15 +109,9 @@ object DirectLogin extends RestHelper with Loggable {
   }
 
   def getHttpMethod = S.request match {
-    case Full(s) => {
-      if (s.post_?)
-        "POST"
-      else if (s.get_?)
-        "GET"
-      else if (s.put_?)
-        "PUT"
-      else
-        "UNKNOWN"
+    case Full(s) => s.post_? match {
+      case true => "POST"
+      case _    => "GET"
     }
     case _ => "ERROR"
   }
@@ -125,11 +119,11 @@ object DirectLogin extends RestHelper with Loggable {
   //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
     //return a Map containing the directLogin parameters : prameter -> value
-    def getAllParameters : Map[String,String]= {
-      def toMap(parametersList : String) = {
+    def getAllParameters: Map[String, String] = {
+      def toMap(parametersList: String) = {
         //transform the string "directLogin_prameter="value""
         //to a tuple (directLogin_parameter,Decoded(value))
-        def dynamicListExtract(input: String)  = {
+        def dynamicListExtract(input: String) = {
           val directLoginPossibleParameters =
             List(
               "consumer_key",
@@ -138,25 +132,25 @@ object DirectLogin extends RestHelper with Loggable {
               "password"
             )
           if (input contains "=") {
-            val split = input.split("=",2)
-            val parameterValue = split(1).replace("\"","")
+            val split = input.split("=", 2)
+            val parameterValue = split(1).replace("\"", "")
             //add only OAuth parameters and not empty
-            if(directLoginPossibleParameters.contains(split(0)) && ! parameterValue.isEmpty)
-              Some(split(0),parameterValue)  // return key , value
+            if (directLoginPossibleParameters.contains(split(0)) && !parameterValue.isEmpty)
+              Some(split(0), parameterValue) // return key , value
             else
               None
           }
           else
             None
         }
-        //we delete the "Oauth" prefix and all the white spaces that may exist in the string
-        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s","")
+        //we delete the "DirectLogin" prefix and all the white spaces that may exist in the string
+        val cleanedParameterList = parametersList.stripPrefix("DirectLogin").replaceAll("\\s", "")
         val params = Map(cleanedParameterList.split(",").flatMap(dynamicListExtract _): _*)
         params
       }
 
       S.request match {
-        case Full(a) =>  a.header("Authorization") match {
+        case Full(a) => a.header("Authorization") match {
           case Full(header) => {
             if (header.contains("DirectLogin"))
               toMap(header)
@@ -170,49 +164,58 @@ object DirectLogin extends RestHelper with Loggable {
 
     }
 
-    def registeredApplication(consumerKey : String ) : Boolean = {
-      Consumer.find(By(Consumer.key,consumerKey)) match {
+    def registeredApplication(consumerKey: String): Boolean = {
+      Consumer.find(By(Consumer.key, consumerKey)) match {
         case Full(application) => application.isActive
         case _ => false
       }
     }
 
-    def validAccessToken(tokenKey : String) = {
-      Token.find(By(Token.key, tokenKey),By(Token.tokenType,TokenType.Access)) match {
+    def validAccessToken(tokenKey: String) = {
+      Token.find(By(Token.key, tokenKey), By(Token.tokenType, TokenType.Access)) match {
         case Full(token) => token.isValid
-          case _ => false
+        case _ => false
       }
     }
 
     //@return the missing parameters depending of the request type
-    def missingDirectLoginParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
-      //println(parameters.toString)
-      if(requestType=="authorizationToken")
-        ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
-      else if(requestType=="protectedResource")
-        ("token" :: List()).toSet diff parameters.keySet
-      else
-        parameters.keySet
+    def missingDirectLoginParameters(parameters: Map[String, String], requestType: String): Set[String] = {
+      requestType match {
+        case "authorizationToken" =>
+          ("username" :: "password" :: "consumer_key" :: List()).toSet diff parameters.keySet
+        case "protectedResource" =>
+          ("token" :: List()).toSet diff parameters.keySet
+        case _ =>
+          parameters.keySet
+      }
     }
 
     var message = ""
-    var httpCode : Int = 500
+    var httpCode: Int = 500
 
     val parameters = getAllParameters
 
     //are all the necessary directLogin parameters present?
-    val missingParams = missingDirectLoginParameters(parameters,requestType)
-    if( missingParams.nonEmpty )
-    {
+    val missingParams = missingDirectLoginParameters(parameters, requestType)
+    if (missingParams.nonEmpty) {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
       httpCode = 400
     }
     else if (
-        requestType=="protectedResource" &&
-      ! validAccessToken(parameters.get("token").get)
-    )
-    {
+      requestType == "protectedResource" &&
+        !validAccessToken(parameters.get("token").get)
+    ) {
       message = "Invalid or expired access token: " + parameters.get("token").get
+      httpCode = 401
+    }
+    //check if the application is registered and active
+    else if (
+      requestType == "authorizationToken" &&
+        Props.getBool("direct_login_consumer_key_mandatory", true) &&
+        !registeredApplication(parameters.get("consumer_key").get)) {
+
+      logger.error("application: " + parameters.get("consumer_key").get + " not found")
+      message = "Invalid consumer credentials"
       httpCode = 401
     }
     //checking if the signature is correct
@@ -244,7 +247,7 @@ object DirectLogin extends RestHelper with Loggable {
     import code.model.{Token, TokenType}
     val token = Token.create
     token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key,directLoginParameters.get("consumer_key").get)) match {
+    Consumer.find(By(Consumer.key, directLoginParameters.get("consumer_key").get)) match {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }
