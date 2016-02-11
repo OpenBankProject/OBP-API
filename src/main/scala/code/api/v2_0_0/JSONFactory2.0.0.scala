@@ -40,6 +40,14 @@ import code.socialmedia.SocialMedia
 import net.liftweb.common.{Box, Full}
 import code.model._
 
+// Import explicitly and rename so its clear.
+import code.api.v1_2_1.{
+  AmountOfMoneyJSON,
+  UserJSON,
+  ViewJSON,
+  JSONFactory => JSONFactory121
+}
+
 
 
 
@@ -62,6 +70,14 @@ case class AccountBasicJSON(
   views_available : List[ViewBasicJSON],
   bank_id : String
 )
+
+
+
+
+
+
+
+
 
 case class KycDocumentJSON(
   id: String,
@@ -113,7 +129,7 @@ case class SocialMediaJSON(
 )
 case class SocialMediasJSON(checks: List[SocialMediaJSON])
 
-object JSONFactory{
+object JSONFactory200{
 
 
   // New in 2.0.0
@@ -143,6 +159,47 @@ object JSONFactory{
       account.bankId.value
     )
   }
+
+
+
+
+
+
+  case class ModeratedCoreAccountJSON(
+                                   id : String,
+                                   label : String,
+                                   number : String,
+                                   owners : List[UserJSON],
+                                   `type` : String,
+                                   balance : AmountOfMoneyJSON,
+                                   IBAN : String,
+                                   swift_bic: String,
+                                   bank_id : String
+                                 )
+
+
+
+
+
+  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON]) : ModeratedCoreAccountJSON =  {
+    val bankName = account.bankName.getOrElse("")
+    new ModeratedCoreAccountJSON (
+      account.accountId.value,
+      JSONFactory121.stringOptionOrNull(account.label),
+      JSONFactory121.stringOptionOrNull(account.number),
+      JSONFactory121.createOwnersJSON(account.owners.getOrElse(Set()), bankName),
+      JSONFactory121.stringOptionOrNull(account.accountType),
+      JSONFactory121.createAmountOfMoneyJSON(account.currency.getOrElse(""), account.balance),
+      JSONFactory121.stringOptionOrNull(account.iban),
+      JSONFactory121.stringOptionOrNull(account.swift_bic),
+      stringOrNull(account.bankId.value)
+    )
+  }
+
+
+
+
+
 
   def createKycDocumentJSON(kycDocument : KycDocument) : KycDocumentJSON = {
     new KycDocumentJSON(
@@ -214,13 +271,23 @@ object JSONFactory{
   def createSocialMediasJSON(messages : List[SocialMedia]) : SocialMediasJSON = {
     SocialMediasJSON(messages.map(createSocialMediaJSON))
   }
-  // From 1.2.1
 
+  // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =
     if(text == null || text.isEmpty)
       null
     else
       text
+
+  // Copied from 1.2.1 (import just this def instead?)
+  def stringOptionOrNull(text : Option[String]) =
+    text match {
+      case Some(t) => stringOrNull(t)
+      case _ => null
+    }
+
+
+
 
 
 

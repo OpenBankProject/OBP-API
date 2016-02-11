@@ -4,6 +4,12 @@ import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil
 
+import code.api.v1_2_1.{
+  JSONFactory => JSONFactory121
+}
+
+
+
 
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
@@ -45,9 +51,9 @@ trait APIMethods200 {
       val views = account.permittedViews(user)
       val viewsAvailable : List[ViewBasicJSON] =
         views.map( v => {
-          JSONFactory.createViewBasicJSON(v)
+          JSONFactory200.createViewBasicJSON(v)
         })
-      JSONFactory.createAccountBasicJSON(account,viewsAvailable)
+      JSONFactory200.createAccountBasicJSON(account,viewsAvailable)
     })
     accJson
   }
@@ -291,7 +297,7 @@ trait APIMethods200 {
             cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
           } yield {
             val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(cNumber)
-            val json = JSONFactory.createKycDocumentsJSON(kycDocuments)
+            val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -324,7 +330,7 @@ trait APIMethods200 {
             cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
           } yield {
             val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(cNumber)
-            val json = JSONFactory.createKycMediasJSON(kycMedias)
+            val json = JSONFactory200.createKycMediasJSON(kycMedias)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -356,7 +362,7 @@ trait APIMethods200 {
             cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
           } yield {
             val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(cNumber)
-            val json = JSONFactory.createKycChecksJSON(kycChecks)
+            val json = JSONFactory200.createKycChecksJSON(kycChecks)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -387,7 +393,7 @@ trait APIMethods200 {
             cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
           } yield {
             val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(cNumber)
-            val json = JSONFactory.createKycStatusesJSON(kycStatuses)
+            val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -419,7 +425,7 @@ trait APIMethods200 {
             cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(cNumber)
-            val json = JSONFactory.createSocialMediasJSON(kycSocialMedias)
+            val json = JSONFactory200.createSocialMediasJSON(kycSocialMedias)
             successJsonResponse(Extraction.decompose(json))
           }
         }
@@ -635,6 +641,68 @@ trait APIMethods200 {
         }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      coreAccountById,
+      apiVersion,
+      "accountById",
+      "GET",
+      "/core/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "Get account by id.",
+      """Information returned about an account specified by ACCOUNT_ID:
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |
+        |
+        |OAuth authentication is required""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      apiTagAccounts ::  Nil)
+
+    lazy val coreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get account by id (assume owner view requested)
+      case "core" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
+
+        println("in core")
+        user =>
+          // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
+          // Should be a generic guard we can use for all calls (also for userId etc.)
+          for {
+            account <- BankAccount(bankId, accountId)
+            availableviews <- Full(account.permittedViews(user))
+            //view <- View.fromUrl(viewId, account)
+            view <- View.fromUrl( ViewId("owner"), account)
+            moderatedAccount <- account.moderatedBankAccount(view, user)
+          } yield {
+            val viewsAvailable = availableviews.map(JSONFactory121.createViewJSON)
+            val moderatedAccountJson = JSONFactory200.createCoreBankAccountJSON(moderatedAccount, viewsAvailable)
+            val response = successJsonResponse(Extraction.decompose(moderatedAccountJson))
+            response
+          }
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
