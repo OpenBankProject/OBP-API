@@ -1,0 +1,81 @@
+body {
+	background-color: white;
+	font-family: "sans-serif";
+	margin: 0;
+	padding: 0;
+}
+
+h1 {
+	color: white;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+
+.container {
+	background-color: #f4f4f4;
+	margin: 0 auto;
+	max-width: 1170px;
+	overflow: hidden;
+	padding: 0;
+}
+
+.top {
+	background-color: #31b8cd;
+	padding: 40px;
+}
+
+.intro {
+	margin: 0 20px;
+	text-align: center;
+}
+
+.content-big {
+	margin: 30px 200px;
+	text-align: center;
+}
+
+.buttons {
+	margin: 40px 0;
+	text-align: center;
+}
+.buttons a {
+	border: 2px solid white;
+	color: white;
+	margin-bottom: 10px;
+	font-weight: bold;
+	font-size: x-large;
+	padding: 10px 50px;
+	text-decoration: none;
+	text-transform: uppercase;
+}
+
+.content-small {
+	background-color: white;
+	margin: 20px 20px 0 20px;
+	padding: 30px;
+	text-align: center;
+}
+
+.newsletter {
+	background-color: black;
+	margin: 0 20px;
+	padding: 30px;
+	text-align: center;
+}
+.newsletter input {
+	border: 1px solid black;
+	border-top-left-radius: 24px;
+	border-bottom-left-radius: 24px;
+	padding: 10px 20px;
+}
+.newsletter button {
+	border: 1px solid black;
+	border-left: 0px;
+	border-top-right-radius: 24px;
+	border-bottom-right-radius: 24px;
+	background-color: #50b165;
+	color: white;
+	margin-left: -6px;
+	padding: 10px 30px 10px 10px;
+}
