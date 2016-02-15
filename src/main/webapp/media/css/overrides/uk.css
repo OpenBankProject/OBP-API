@@ -1,3 +1,7 @@
+#main-about {
+	padding-top: 0;
+}
+
 h1 {
 	color: white;
 	text-align: center;
@@ -49,9 +53,9 @@ h1 {
 	text-align: center;
 }
 .newsletter input {
-	border: 1px solid black;
 	border-top-left-radius: 24px;
 	border-bottom-left-radius: 24px;
+	height: auto;
 	padding: 10px 20px;
 }
 .newsletter button {
@@ -60,6 +64,7 @@ h1 {
 	border-top-right-radius: 24px;
 	border-bottom-right-radius: 24px;
 	background-color: #50b165;
+	font-size: 17px;
 	color: white;
 	margin-left: -6px;
 	padding: 10px 30px 10px 10px;
