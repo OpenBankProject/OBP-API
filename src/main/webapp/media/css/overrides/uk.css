@@ -1,24 +1,9 @@
-body {
-	background-color: white;
-	font-family: "sans-serif";
-	margin: 0;
-	padding: 0;
-}
-
 h1 {
 	color: white;
 	text-align: center;
 	text-transform: uppercase;
 }
 
-
-.container {
-	background-color: #f4f4f4;
-	margin: 0 auto;
-	max-width: 1170px;
-	overflow: hidden;
-	padding: 0;
-}
 
 .top {
 	background-color: #31b8cd;
