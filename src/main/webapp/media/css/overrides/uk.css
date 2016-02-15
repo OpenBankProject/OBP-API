@@ -4,6 +4,8 @@
 
 h1 {
 	color: white;
+	font-size: 36px;
+	margin-bottom: 10px;
 	text-align: center;
 	text-transform: uppercase;
 }
