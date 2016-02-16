@@ -36,6 +36,7 @@ h1 {
 }
 .buttons a {
 	border: 2px solid white;
+	border-radius: 24px;
 	color: white;
 	margin-bottom: 10px;
 	font-family: "Nunito", "sans-serif";
