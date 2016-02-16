@@ -7,6 +7,9 @@ h1 {
 	text-transform: uppercase;
 }
 
+#main #main-about {
+	padding-top: 0 !important;
+}
 
 .top {
 	background-color: #53C4EF;
