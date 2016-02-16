@@ -1,9 +1,6 @@
-#main-about {
-	padding-top: 0;
-}
-
 h1 {
 	color: white;
+	font-family: "Nunito", "sans-serif";
 	font-size: 36px;
 	margin-bottom: 10px;
 	text-align: center;
@@ -12,21 +9,25 @@ h1 {
 
 
 .top {
-	background-color: #31b8cd;
+	background-color: #53C4EF;
+	font-family: "Nunito", "sans-serif";
 	padding: 40px;
 }
 
 .intro {
+	font-family: "Nunito", "sans-serif";
 	margin: 0 20px;
 	text-align: center;
 }
 
 .content-big {
+	font-family: "Nunito", "sans-serif";
 	margin: 30px 200px;
 	text-align: center;
 }
 
 .buttons {
+	font-family: "Nunito", "sans-serif";
 	margin: 40px 0;
 	text-align: center;
 }
@@ -34,8 +35,9 @@ h1 {
 	border: 2px solid white;
 	color: white;
 	margin-bottom: 10px;
-	font-weight: bold;
+	font-family: "Nunito", "sans-serif";
 	font-size: x-large;
+	font-weight: bold;
 	padding: 10px 50px;
 	text-decoration: none;
 	text-transform: uppercase;
@@ -43,6 +45,7 @@ h1 {
 
 .content-small {
 	background-color: white;
+	font-family: "Nunito", "sans-serif";
 	margin: 20px 20px 0 20px;
 	padding: 30px;
 	text-align: center;
@@ -50,13 +53,16 @@ h1 {
 
 .newsletter {
 	background-color: black;
+	font-family: "Nunito", "sans-serif";
 	margin: 0 20px;
 	padding: 30px;
 	text-align: center;
 }
 .newsletter input {
+	border: 1px solid black;
 	border-top-left-radius: 24px;
 	border-bottom-left-radius: 24px;
+	font-family: "Nunito", "sans-serif";
 	height: auto;
 	padding: 10px 20px;
 }
@@ -66,8 +72,9 @@ h1 {
 	border-top-right-radius: 24px;
 	border-bottom-right-radius: 24px;
 	background-color: #50b165;
-	font-size: 17px;
 	color: white;
+	font-family: "Nunito", "sans-serif";
+	font-size: 17px;
 	margin-left: -6px;
 	padding: 10px 30px 10px 10px;
 }
