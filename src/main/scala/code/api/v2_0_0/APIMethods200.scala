@@ -4,11 +4,7 @@ import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil
 
-import code.api.v1_2_1.{
-  JSONFactory => JSONFactory121
-}
-
-
+import code.api.v1_2_1.{JSONFactory => JSONFactory121, APIMethods121}
 
 
 import net.liftweb.http.{JsonResponse, Req}
@@ -25,6 +21,7 @@ import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
 import code.kycchecks.KycChecks
 import code.socialmedia.{SocialMediaHandle, SocialMedia}
+import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -40,6 +37,10 @@ trait APIMethods200 {
   self: RestHelper =>
 
   // helper methods begin here
+
+
+  val defaultBankId = Props.get("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
+
 
   // New 2.0.0
   private def bankAccountBasicListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
@@ -105,7 +106,7 @@ trait APIMethods200 {
       apiVersion,
       "privateAccountsAllBanks",
       "GET",
-      "/accounts/private",
+      "/my/accounts",
       "Get private accounts at all banks (Authenticated access).",
       """Returns the list of accounts containing private views for the user at all banks.
         |For each account the API returns the ID and the available views.
@@ -118,9 +119,12 @@ trait APIMethods200 {
       true,
       List(apiTagAccounts, apiTagPrivateData))
 
+
+    // TODO This should be more "core" i.e. don't return views.
+
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for all banks
-      case "accounts" :: "private" :: Nil JsonGet json => {
+      case "my" :: "accounts" :: Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -198,7 +202,7 @@ trait APIMethods200 {
       apiVersion,
       "privateAccountsAtOneBank",
       "GET",
-      "/banks/BANK_ID/accounts/private",
+      "/my/banks/BANK_ID/accounts",
       "Get private accounts at one bank (Authenticated access).",
       """Returns the list of accounts containing private views for the user at BANK_ID.
         |For each account the API returns the ID and the available views.
@@ -217,11 +221,11 @@ trait APIMethods200 {
       successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
     }
 
-    // This contains an approach to surface the same resource via different end point in case of "one" bank.
-    // The "one" path is experimental and might be removed.
+    // This contains an approach to surface a resource via different end points in case of a default bank.
+    // The second path is experimental
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private accounts for a single bank
-      case "banks" :: BankId(bankId) :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
@@ -230,11 +234,11 @@ trait APIMethods200 {
             privateAccountsAtOneBankResult(bank, u)
           }
       }
-      case "one" :: "accounts" :: "private" :: Nil JsonGet json => {
+      case "accounts" :: Nil JsonGet json => {
         user =>
           for {
             u <- user ?~ "user not found"
-            bank <- Bank(BankId("abc"))
+            bank <- Bank(BankId(defaultBankId))
           } yield {
             privateAccountsAtOneBankResult(bank, u)
           }
@@ -643,11 +647,11 @@ trait APIMethods200 {
     }
 
     resourceDocs += ResourceDoc(
-      coreAccountById,
+      getCoreAccountById,
       apiVersion,
-      "accountById",
+      "coreAccountById",
       "GET",
-      "/core/banks/BANK_ID/accounts/ACCOUNT_ID/account",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get account by id.",
       """Information returned about an account specified by ACCOUNT_ID:
         |
@@ -666,9 +670,9 @@ trait APIMethods200 {
       true,
       apiTagAccounts ::  Nil)
 
-    lazy val coreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id (assume owner view requested)
-      case "core" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
 
         println("in core")
         user =>
@@ -677,7 +681,7 @@ trait APIMethods200 {
           for {
             account <- BankAccount(bankId, accountId)
             availableviews <- Full(account.permittedViews(user))
-            //view <- View.fromUrl(viewId, account)
+            // Assume owner view was requested
             view <- View.fromUrl( ViewId("owner"), account)
             moderatedAccount <- account.moderatedBankAccount(view, user)
           } yield {
@@ -691,17 +695,51 @@ trait APIMethods200 {
 
 
 
+    resourceDocs += ResourceDoc(
+      getCoreTransactionsForBankAccount,
+      apiVersion,
+      "getCoreTransactionsForBankAccount",
+      "GET",
+      "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
+      "Get transactions.",
+      """Returns transactions list of the account specified by ACCOUNT_ID.
+        |
+        |Authentication is required.
+        |
+        |Possible custom headers for pagination:
+        |
+        |* obp_sort_by=CRITERIA ==> default value: "completed" field
+        |* obp_sort_direction=ASC/DESC ==> default value: DESC
+        |* obp_limit=NUMBER ==> default value: 50
+        |* obp_offset=NUMBER ==> default value: 0
+        |* obp_from_date=DATE => default value: date of the oldest transaction registered (format below)
+        |* obp_to_date=DATE => default value: date of the newest transaction registered (format below)
+        |
+        |**Date format parameter**: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" (2014-07-01T00:00:00.000Z) ==> time zone is UTC.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagAccounts, apiTagTransactions))
 
+    lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get transactions
+      case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "transactions" :: Nil JsonGet json => {
+        user =>
 
-
-
-
-
-
-
-
-
-
+          for {
+            params <- APIMethods121.getTransactionParams(json)
+            bankAccount <- BankAccount(bankId, accountId)
+            // Assume owner view was requested
+            view <- View.fromUrl( ViewId("owner"), bankAccount)
+            transactions <- bankAccount.getModeratedTransactions(user, view, params : _*)
+          } yield {
+            val json = JSONFactory200.createCoreTransactionsJSON(transactions)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
 
 
 

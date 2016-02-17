@@ -155,7 +155,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.addKycStatus,
     Implementations2_0_0.addKycCheck,
     Implementations2_0_0.addSocialMediaHandle,
-    Implementations2_0_0.coreAccountById
+    Implementations2_0_0.getCoreAccountById,
+    Implementations2_0_0.getCoreTransactionsForBankAccount
   )
 
   routes.foreach(route => {

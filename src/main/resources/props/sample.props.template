@@ -142,3 +142,7 @@ webui_override_style_sheet =
 apiOptions.getBranchesIsPublic = true
 apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
+
+# Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
+# e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
+defaultBank.bank_id=THE_DEFAULT_BANK_ID
