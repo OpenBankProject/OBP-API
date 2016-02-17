@@ -899,3 +899,9 @@ span#accountsMsg {
 	border: 2px solid;
 	border-color: #FF0000;
 }
+
+
+
+#login_special_instructions {
+    text-align: left;
+}
