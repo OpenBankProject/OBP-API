@@ -33,9 +33,10 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.model.dataAccess.OBPUser
+import net.liftweb.common.Loggable
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
-import net.liftweb.util.CssSel
+import net.liftweb.util.{Props, CssSel}
 import net.liftweb.http.S
 import code.model.dataAccess.Admin
 import net.liftweb.http.SHtml
@@ -70,7 +71,7 @@ class Login {
       }
     }
   }
-  
+
   def adminLogout : CssSel = {
     if(Admin.loggedIn_?) {
       val current = Admin.currentUser
@@ -84,4 +85,19 @@ class Login {
     }
   }
 
+
+  // Used to display custom message to users when they login.
+  // For instance we can use it to display example login on a sandbox
+    def customiseLogin = {
+      val specialLoginInstructions = Props.get("webui_login_page_special_instructions", "")
+      // In case we use Extraction.decompose
+      implicit val formats = net.liftweb.json.DefaultFormats
+      "#login_special_instructions" #> specialLoginInstructions
+    }
+
+
+
+
+
+// End of class
 }
