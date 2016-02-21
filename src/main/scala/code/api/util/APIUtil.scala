@@ -48,8 +48,25 @@ import scala.collection.JavaConversions.asScalaSet
 
 
 object APIStrings {
-  val UserNotLoggedIn = "OBP-10000: User is not authenticated. Please log in!"
-  val UnknownBank = "OBP-10001: Unknown Bank. Please specify a correct value for BANK_ID."
+
+  // Infrastructure messages
+  // OBP-00001 and up.
+
+ // General messages
+  val JsonInvalidFormat = "OBP-10001: Incorrect json format"
+
+
+  // Authentication / Authorisation messages
+  val UserNotLoggedIn = "OBP-20001: User is not authenticated. Please log in!"
+
+
+  // Resource related messages
+  val BankNotFound = "OBP-30001: Bank Not Found. Please specify a correct value for BANK_ID."
+  val CustomerNotFound = "OBP-30002: Customer Not Found. Please specify a correct value for CUSTOMER_NUMBER."
+
+  val AccountNotFound = "OBP-30003: Account Not Found. Please specify a correct value for ACCOUNT_ID."
+  val CounterpartyNotFound = "OBP-30004: Counterparty Not Found."
+
 }
 
 
