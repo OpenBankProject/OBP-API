@@ -57,7 +57,7 @@ object ErrorMessages {
 
 
   // Authentication / Authorisation messages
-  val UserNotLoggedIn = "OBP-20001: User is not authenticated. Please log in!"
+  val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
 
 
   // Resource related messages

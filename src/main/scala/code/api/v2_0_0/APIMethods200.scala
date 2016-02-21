@@ -51,7 +51,7 @@ trait APIMethods200 {
 
   // Shows accounts without view
   private def coreBankAccountListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(basicBankAccountList(bankAccounts, user))
+    Extraction.decompose(coreBankAccountList(bankAccounts, user))
   }
 
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
@@ -67,14 +67,14 @@ trait APIMethods200 {
   }
 
 
-  private def coreBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
-    val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
+  private def coreBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
+    val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
       val viewsAvailable : List[BasicViewJSON] =
         views.map( v => {
           JSONFactory200.createViewBasicJSON(v)
         })
-      JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
+      JSONFactory200.createCoreAccountJSON(account,viewsAvailable)
     })
     accJson
   }
@@ -151,7 +151,7 @@ trait APIMethods200 {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
           } yield {
             val availableAccounts = BankAccount.nonPublicAccounts(u)
-            successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
+            successJsonResponse(coreBankAccountListToJson(availableAccounts, Full(u)))
           }
       }
     }
