@@ -47,7 +47,7 @@ import net.liftweb.util.Props
 import scala.collection.JavaConversions.asScalaSet
 
 
-object APIStrings {
+object ErrorMessages {
 
   // Infrastructure messages
   // OBP-00001 and up.
