@@ -53,7 +53,7 @@ object APIStrings {
   // OBP-00001 and up.
 
  // General messages
-  val JsonInvalidFormat = "OBP-10001: Incorrect json format"
+  val InvalidJsonFormat = "OBP-10001: Incorrect json format"
 
 
   // Authentication / Authorisation messages

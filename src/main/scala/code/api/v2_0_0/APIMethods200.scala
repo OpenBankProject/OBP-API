@@ -325,8 +325,8 @@ trait APIMethods200 {
       case "customers" :: customerNumber :: "kyc_documents" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in"
-            cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            cNumber <- tryo(customerNumber) ?~! {APIStrings.CustomerNotFound}
           } yield {
             val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(cNumber)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
@@ -358,8 +358,8 @@ trait APIMethods200 {
       case "customers" :: customerNumber :: "kyc_media" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in"
-            cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            cNumber <- tryo(customerNumber) ?~! {APIStrings.CustomerNotFound}
           } yield {
             val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(cNumber)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
@@ -390,8 +390,8 @@ trait APIMethods200 {
       case "customers" :: customerNumber :: "kyc_checks" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in."
-            cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            cNumber <- tryo(customerNumber) ?~! {APIStrings.CustomerNotFound}
           } yield {
             val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(cNumber)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
@@ -421,8 +421,8 @@ trait APIMethods200 {
       case "customers" :: customerNumber :: "kyc_statuses" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in"
-            cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            cNumber <- tryo(customerNumber) ?~! {APIStrings.CustomerNotFound}
           } yield {
             val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(cNumber)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
@@ -453,8 +453,8 @@ trait APIMethods200 {
       case "customers" :: customerNumber :: "social_media_handles" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in"
-            cNumber <- tryo(customerNumber) ?~! {"Unknown customer"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            cNumber <- tryo(customerNumber) ?~! {APIStrings.CustomerNotFound}
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(cNumber)
             val json = JSONFactory200.createSocialMediasJSON(kycSocialMedias)
@@ -490,10 +490,10 @@ trait APIMethods200 {
         // customerNumber is duplicated in postedData. remove from that?
         user => {
           for {
-            u <- user ?~! "User must be logged in to post Document"
-            postedData <- tryo{json.extract[KycDocumentJSON]} ?~! "Incorrect json format"
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            postedData <- tryo{json.extract[KycDocumentJSON]} ?~! APIStrings.InvalidJsonFormat
             bank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! APIStrings.CustomerNotFound
             kycDocumentCreated <- booleanToBox(
               KycDocuments.kycDocumentProvider.vend.addKycDocuments(
                 postedData.id,
@@ -532,10 +532,10 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
-            u <- user ?~! "User must be logged in to post Document"
-            postedData <- tryo{json.extract[KycMediaJSON]} ?~! "Incorrect json format"
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            postedData <- tryo{json.extract[KycMediaJSON]} ?~! APIStrings.InvalidJsonFormat
             bank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! APIStrings.CustomerNotFound
             kycDocumentCreated <- booleanToBox(
               KycMedias.kycMediaProvider.vend.addKycMedias(
                 postedData.id,
@@ -574,10 +574,10 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
-            u <- user ?~! "User must be logged in to post Document"
-            postedData <- tryo{json.extract[KycCheckJSON]} ?~! "Incorrect json format"
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            postedData <- tryo{json.extract[KycCheckJSON]} ?~! APIStrings.InvalidJsonFormat
             bank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! APIStrings.CustomerNotFound
             kycCheckCreated <- booleanToBox(
               KycChecks.kycCheckProvider.vend.addKycChecks(
                 postedData.id,
@@ -617,10 +617,10 @@ trait APIMethods200 {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
-            u <- user ?~! "User must be logged"
-            postedData <- tryo{json.extract[KycStatusJSON]} ?~! "Incorrect json format"
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            postedData <- tryo{json.extract[KycStatusJSON]} ?~! APIStrings.InvalidJsonFormat
             bank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
+            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! APIStrings.CustomerNotFound
             kycStatusCreated <- booleanToBox(
               KycStatuses.kycStatusProvider.vend.addKycStatus(
                 postedData.customer_number,
@@ -656,7 +656,7 @@ trait APIMethods200 {
         user => {
           for {
             u <- user ?~! APIStrings.UserNotLoggedIn
-            postedData <- tryo{json.extract[SocialMediaJSON]} ?~! "Incorrect json format"
+            postedData <- tryo{json.extract[SocialMediaJSON]} ?~! APIStrings.InvalidJsonFormat
             bank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! APIStrings.CustomerNotFound
             kycSocialMediaCreated <- booleanToBox(

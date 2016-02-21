@@ -455,7 +455,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
               u <- user ?~ APIStrings.UserNotLoggedIn
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {APIStrings.JsonInvalidFormat}
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {APIStrings.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
               fromBank <- tryo(Bank(bankId).get) ?~! {APIStrings.BankNotFound}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {APIStrings.AccountNotFound}
