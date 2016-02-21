@@ -49,24 +49,30 @@ import code.api.v1_2_1.{AccountHolderJSON => AccountHolderJSON121, AmountOfMoney
 
 // New in 2.0.0
 
-class ViewBasicJSON(
+class BasicViewJSON(
   val id: String,
   val short_name: String,
   val is_public: Boolean
 )
 
-case class AccountsBasicJSON(
-  accounts : List[AccountBasicJSON]
+case class BasicAccountsJSON(
+  accounts : List[BasicAccountJSON]
 )
 
-case class AccountBasicJSON(
-  id : String,
-  label : String,
-  views_available : List[ViewBasicJSON],
-  bank_id : String
+// Basic Account has basic View
+case class BasicAccountJSON(
+                             id : String,
+                             label : String,
+                             views_available : List[BasicViewJSON],
+                             bank_id : String
 )
 
-
+// No view in core
+case class CoreAccountJSON(
+                             id : String,
+                             label : String,
+                             bank_id : String
+                           )
 
 
 
@@ -129,7 +135,7 @@ object JSONFactory200{
 
   // New in 2.0.0
 
-  def createViewBasicJSON(view : View) : ViewBasicJSON = {
+  def createViewBasicJSON(view : View) : BasicViewJSON = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -138,7 +144,7 @@ object JSONFactory200{
       else
         ""
 
-    new ViewBasicJSON(
+    new BasicViewJSON(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       is_public = view.isPublic
@@ -146,16 +152,23 @@ object JSONFactory200{
   }
 
 
-  def createAccountBasicJSON(account : BankAccount, viewsBasicAvailable : List[ViewBasicJSON] ) : AccountBasicJSON = {
-    new AccountBasicJSON(
+  def createBasicAccountJSON(account : BankAccount, basicViewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
+    new BasicAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
-      viewsBasicAvailable,
+      basicViewsAvailable,
       account.bankId.value
     )
   }
 
-
+  // TODO This should include some more account info as long as the user has access to the owner view.
+  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON] ) : CoreAccountJSON = {
+    new CoreAccountJSON(
+      account.accountId.value,
+      stringOrNull(account.label),
+      account.bankId.value
+    )
+  }
 
 
 

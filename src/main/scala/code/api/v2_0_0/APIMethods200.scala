@@ -3,6 +3,7 @@ package code.api.v2_0_0
 import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil
+import code.api.util.APIStrings
 
 import code.api.v1_2_1.{JSONFactory => JSONFactory121, APIMethods121}
 
@@ -43,21 +44,41 @@ trait APIMethods200 {
 
 
   // New 2.0.0
+  // shows a small representation of View
   private def bankAccountBasicListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(bankAccountBasicList(bankAccounts, user))
+    Extraction.decompose(basicBankAccountList(bankAccounts, user))
   }
 
-  private def bankAccountBasicList(bankAccounts: List[BankAccount], user : Box[User]): List[AccountBasicJSON] = {
-    val accJson : List[AccountBasicJSON] = bankAccounts.map( account => {
+  // Shows accounts without view
+  private def coreBankAccountListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
+    Extraction.decompose(basicBankAccountList(bankAccounts, user))
+  }
+
+  private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
+    val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
-      val viewsAvailable : List[ViewBasicJSON] =
+      val viewsAvailable : List[BasicViewJSON] =
         views.map( v => {
           JSONFactory200.createViewBasicJSON(v)
         })
-      JSONFactory200.createAccountBasicJSON(account,viewsAvailable)
+      JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
     })
     accJson
   }
+
+
+  private def coreBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
+    val accJson : List[BasicAccountJSON] = bankAccounts.map(account => {
+      val views = account.permittedViews(user)
+      val viewsAvailable : List[BasicViewJSON] =
+        views.map( v => {
+          JSONFactory200.createViewBasicJSON(v)
+        })
+      JSONFactory200.createBasicAccountJSON(account,viewsAvailable)
+    })
+    accJson
+  }
+
 
 
   // helper methods end here
@@ -127,7 +148,7 @@ trait APIMethods200 {
       case "my" :: "accounts" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~ APIStrings.UserNotLoggedIn
           } yield {
             val availableAccounts = BankAccount.nonPublicAccounts(u)
             successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
@@ -221,6 +242,12 @@ trait APIMethods200 {
       successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
     }
 
+    def corePrivateAccountsAtOneBankResult (bank: Bank, u: User) = {
+      val availableAccounts = bank.nonPublicAccounts(u)
+      successJsonResponse(coreBankAccountListToJson(availableAccounts, Full(u)))
+    }
+
+
     // This contains an approach to surface a resource via different end points in case of a default bank.
     // The second path is experimental
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -228,19 +255,20 @@ trait APIMethods200 {
       case "my" :: "banks" :: BankId(bankId) :: "accounts" ::  Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~ APIStrings.UserNotLoggedIn
             bank <- Bank(bankId)
           } yield {
-            privateAccountsAtOneBankResult(bank, u)
+            corePrivateAccountsAtOneBankResult(bank, u)
           }
       }
-      case "accounts" :: Nil JsonGet json => {
+      case "bank" :: "accounts" :: Nil JsonGet json => {
+        println("in accounts")
         user =>
           for {
-            u <- user ?~ "user not found"
+            u <- user ?~ APIStrings.UserNotLoggedIn
             bank <- Bank(BankId(defaultBankId))
           } yield {
-            privateAccountsAtOneBankResult(bank, u)
+            corePrivateAccountsAtOneBankResult(bank, u)
           }
       }
 
@@ -464,7 +492,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Document"
             postedData <- tryo{json.extract[KycDocumentJSON]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
             kycDocumentCreated <- booleanToBox(
               KycDocuments.kycDocumentProvider.vend.addKycDocuments(
@@ -506,7 +534,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Document"
             postedData <- tryo{json.extract[KycMediaJSON]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
             kycDocumentCreated <- booleanToBox(
               KycMedias.kycMediaProvider.vend.addKycMedias(
@@ -548,7 +576,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Document"
             postedData <- tryo{json.extract[KycCheckJSON]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
             kycCheckCreated <- booleanToBox(
               KycChecks.kycCheckProvider.vend.addKycChecks(
@@ -591,7 +619,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged"
             postedData <- tryo{json.extract[KycStatusJSON]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
             kycStatusCreated <- booleanToBox(
               KycStatuses.kycStatusProvider.vend.addKycStatus(
@@ -629,7 +657,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in"
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! "Customer not found"
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -674,7 +702,6 @@ trait APIMethods200 {
       //get account by id (assume owner view requested)
       case "my" :: "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "account" :: Nil JsonGet json => {
 
-        println("in core")
         user =>
           // TODO return specific error if bankId == "BANK_ID" or accountID == "ACCOUNT_ID"
           // Should be a generic guard we can use for all calls (also for userId etc.)

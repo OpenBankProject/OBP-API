@@ -37,6 +37,8 @@ import code.customer.{MockCustomerFaceImage, CustomerMessages, Customer}
 import code.model._
 import code.products.Products
 import code.api.util.APIUtil._
+import code.api.util.APIStrings
+
 import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
 import java.text.SimpleDateFormat
@@ -81,8 +83,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             info <- Customer.customerProvider.vend.getCustomer(bankId, u) ?~ "No customer information found for current user"
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
@@ -113,8 +115,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve customer messages"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- user ?~! APIStrings.UserNotLoggedIn
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             //au <- APIUser.find(By(APIUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
@@ -149,7 +151,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
@@ -196,7 +198,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               user ?~! "User must be logged in to retrieve Branches data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
@@ -243,7 +245,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               user ?~! "User must be logged in to retrieve ATM data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -295,7 +297,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               Box(Some(1))
             else
               user ?~! "User must be logged in to retrieve Products data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -330,7 +332,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             // Get crm events from the active provider
             u <- user ?~! "User must be logged in to retrieve CRM Event information"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
             // Format the data as json
@@ -366,8 +368,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              u <- user ?~ APIStrings.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
@@ -401,8 +403,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              u <- user ?~ APIStrings.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
@@ -452,10 +454,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
-              u <- user ?~ "User not found"
+              u <- user ?~ APIStrings.UserNotLoggedIn
               transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {"Invalid json format"}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              fromBank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
@@ -497,8 +499,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              u <- user ?~ APIStrings.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
@@ -546,7 +548,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           for {
             u <- user ?~! "User must be logged in to post Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {APIStrings.UnknownBank}
             customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ "Customer already exists for this user."
             postedData <- tryo{json.extract[CustomerJson]} ?~! "Incorrect json format"
             customer <- Customer.customerProvider.vend.addCustomer(bankId,

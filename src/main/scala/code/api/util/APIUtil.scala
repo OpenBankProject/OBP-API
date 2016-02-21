@@ -47,6 +47,14 @@ import net.liftweb.util.Props
 import scala.collection.JavaConversions.asScalaSet
 
 
+object APIStrings {
+  val UserNotLoggedIn = "OBP-10000: User is not authenticated. Please log in!"
+  val UnknownBank = "OBP-10001: Unknown Bank. Please specify a correct value for BANK_ID."
+}
+
+
+
+
 object APIUtil extends Loggable {
 
   implicit val formats = net.liftweb.json.DefaultFormats
