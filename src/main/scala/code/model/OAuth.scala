@@ -142,15 +142,10 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   //overridden to display extra stats above the table
   override def _showAllTemplate =
   <lift:crud.all>
-    <div>
-      <p>
-         Total of {Consumer.count} applications from {recordsWithUniqueEmails.getOrElse("ERROR")} unique email addresses. 
-         {recordsWithUniqueAppNames.getOrElse("ERROR")} unique app names.
-      </p>
-      <br/>
-      <br/>
-      <br/>
-    </div>
+    <p id="admin-consumer-summary">
+      Total of {Consumer.count} applications from {recordsWithUniqueEmails.getOrElse("ERROR")} unique email addresses. <br />
+      {recordsWithUniqueAppNames.getOrElse("ERROR")} unique app names.
+    </p>
     <table id={showAllId} class={showAllClass}>
       <thead>
         <tr>
