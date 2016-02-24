@@ -894,8 +894,21 @@ span#accountsMsg {
 }
 
 #admin-logout {
-	margin: 20px;
-	padding: 10px;
+	padding-left: 10px;
 	border: 2px solid;
 	border-color: #FF0000;
+	margin-top:-6px;
+	padding: 4px 0 3px 10px;
 }
+
+#admin-consumer-summary {
+	color: black;
+	margin: 20px 0;
+}
+
+#login_special_instructions {
+    text-align: left;
+}
+
+
+

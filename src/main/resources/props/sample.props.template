@@ -121,6 +121,10 @@ webui_api_explorer_url = http://sofi.openbankproject.com/api-explorer
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
 
 
+# To display a custom message above the username / password box
+# We currently use this to display example customer login in sandbox etc.
+webui_login_page_special_instructions=
+
 # Link for SDKs
 webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
 
@@ -142,3 +146,7 @@ webui_override_style_sheet =
 apiOptions.getBranchesIsPublic = true
 apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
+
+# Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
+# e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
+defaultBank.bank_id=THE_DEFAULT_BANK_ID

@@ -41,12 +41,7 @@ import net.liftweb.common.{Box, Full}
 import code.model._
 
 // Import explicitly and rename so its clear.
-import code.api.v1_2_1.{
-  AmountOfMoneyJSON,
-  UserJSON,
-  ViewJSON,
-  JSONFactory => JSONFactory121
-}
+import code.api.v1_2_1.{AccountHolderJSON => AccountHolderJSON121, AmountOfMoneyJSON => AmountOfMoneyJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121, ThisAccountJSON => ThisAccountJSON121, OtherAccountJSON => OtherAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121}
 
 
 
@@ -54,24 +49,30 @@ import code.api.v1_2_1.{
 
 // New in 2.0.0
 
-class ViewBasicJSON(
+class BasicViewJSON(
   val id: String,
   val short_name: String,
   val is_public: Boolean
 )
 
-case class AccountsBasicJSON(
-  accounts : List[AccountBasicJSON]
+case class BasicAccountsJSON(
+  accounts : List[BasicAccountJSON]
 )
 
-case class AccountBasicJSON(
-  id : String,
-  label : String,
-  views_available : List[ViewBasicJSON],
-  bank_id : String
+// Basic Account has basic View
+case class BasicAccountJSON(
+                             id : String,
+                             label : String,
+                             views_available : List[BasicViewJSON],
+                             bank_id : String
 )
 
-
+// No view in core
+case class CoreAccountJSON(
+                             id : String,
+                             label : String,
+                             bank_id : String
+                           )
 
 
 
@@ -134,7 +135,7 @@ object JSONFactory200{
 
   // New in 2.0.0
 
-  def createViewBasicJSON(view : View) : ViewBasicJSON = {
+  def createViewBasicJSON(view : View) : BasicViewJSON = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -143,7 +144,7 @@ object JSONFactory200{
       else
         ""
 
-    new ViewBasicJSON(
+    new BasicViewJSON(
       id = view.viewId.value,
       short_name = stringOrNull(view.name),
       is_public = view.isPublic
@@ -151,16 +152,23 @@ object JSONFactory200{
   }
 
 
-  def createAccountBasicJSON(account : BankAccount, viewsBasicAvailable : List[ViewBasicJSON] ) : AccountBasicJSON = {
-    new AccountBasicJSON(
+  def createBasicAccountJSON(account : BankAccount, basicViewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
+    new BasicAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
-      viewsBasicAvailable,
+      basicViewsAvailable,
       account.bankId.value
     )
   }
 
-
+  // TODO This should include some more account info as long as the user has access to the owner view.
+  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON] ) : CoreAccountJSON = {
+    new CoreAccountJSON(
+      account.accountId.value,
+      stringOrNull(account.label),
+      account.bankId.value
+    )
+  }
 
 
 
@@ -169,19 +177,125 @@ object JSONFactory200{
                                    id : String,
                                    label : String,
                                    number : String,
-                                   owners : List[UserJSON],
+                                   owners : List[UserJSON121],
                                    `type` : String,
-                                   balance : AmountOfMoneyJSON,
+                                   balance : AmountOfMoneyJSON121,
                                    IBAN : String,
                                    swift_bic: String,
                                    bank_id : String
                                  )
 
 
+  ////
+
+
+  case class CoreTransactionsJSON(
+                               transactions: List[CoreTransactionJSON]
+                             )
+
+  case class CoreTransactionJSON(
+                              id : String,
+                              account : ThisAccountJSON121,
+                              counterparty : CoreCounterpartyJSON,
+                              details : CoreTransactionDetailsJSON
+                            )
 
 
 
-  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON]) : ModeratedCoreAccountJSON =  {
+  case class CoreAccountHolderJSON(
+                                name : String
+                              )
+
+
+  case class CoreCounterpartyJSON(
+                                   id : String,
+                                   holder : CoreAccountHolderJSON,
+                                   number : String,
+                                   kind : String,
+                                   IBAN : String,
+                                   swift_bic: String,
+                                   bank : MinimalBankJSON121
+                             )
+
+
+
+
+  def createCoreTransactionsJSON(transactions: List[ModeratedTransaction]) : CoreTransactionsJSON = {
+    new CoreTransactionsJSON(transactions.map(createCoreTransactionJSON))
+  }
+
+  case class CoreTransactionDetailsJSON(
+                                     `type` : String,
+                                     description : String,
+                                     posted : Date,
+                                     completed : Date,
+                                     new_balance : AmountOfMoneyJSON121,
+                                     value : AmountOfMoneyJSON121
+                                   )
+
+
+
+  def createCoreTransactionDetailsJSON(transaction : ModeratedTransaction) : CoreTransactionDetailsJSON = {
+    new CoreTransactionDetailsJSON(
+      `type` = stringOptionOrNull(transaction.transactionType),
+      description = stringOptionOrNull(transaction.description),
+      posted = transaction.startDate.getOrElse(null),
+      completed = transaction.finishDate.getOrElse(null),
+      new_balance = JSONFactory121.createAmountOfMoneyJSON(transaction.currency, transaction.balance),
+      value= JSONFactory121.createAmountOfMoneyJSON(transaction.currency, transaction.amount.map(_.toString))
+    )
+  }
+
+
+  def createCoreTransactionJSON(transaction : ModeratedTransaction) : CoreTransactionJSON = {
+    new CoreTransactionJSON(
+      id = transaction.id.value,
+      account = transaction.bankAccount.map(JSONFactory121.createThisAccountJSON).getOrElse(null),
+      counterparty = transaction.otherBankAccount.map(createCoreCounterparty).getOrElse(null),
+      details = createCoreTransactionDetailsJSON(transaction)
+    )
+  }
+
+
+
+
+
+  case class CounterpartiesJSON(
+                                 counterparties : List[CoreCounterpartyJSON]
+                              )
+
+
+  def createCoreCounterparty(bankAccount : ModeratedOtherBankAccount) : CoreCounterpartyJSON = {
+    new CoreCounterpartyJSON(
+      id = bankAccount.id,
+      number = stringOptionOrNull(bankAccount.number),
+      kind = stringOptionOrNull(bankAccount.kind),
+      IBAN = stringOptionOrNull(bankAccount.iban),
+      swift_bic = stringOptionOrNull(bankAccount.swift_bic),
+      bank = JSONFactory121.createMinimalBankJSON(bankAccount),
+      holder = createAccountHolderJSON(bankAccount.label.display, bankAccount.isAlias)
+    )
+  }
+
+
+
+  def createAccountHolderJSON(owner : User, isAlias : Boolean) : CoreAccountHolderJSON = {
+    // Note we are not using isAlias
+    new CoreAccountHolderJSON(
+      name = owner.name
+    )
+  }
+
+  def createAccountHolderJSON(name : String, isAlias : Boolean) : CoreAccountHolderJSON = {
+    // Note we are not using isAlias
+    new CoreAccountHolderJSON(
+      name = name
+    )
+  }
+
+
+
+  def createCoreBankAccountJSON(account : ModeratedBankAccount, viewsAvailable : List[ViewJSON121]) : ModeratedCoreAccountJSON =  {
     val bankName = account.bankName.getOrElse("")
     new ModeratedCoreAccountJSON (
       account.accountId.value,

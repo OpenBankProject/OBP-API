@@ -47,6 +47,31 @@ import net.liftweb.util.Props
 import scala.collection.JavaConversions.asScalaSet
 
 
+object ErrorMessages {
+
+  // Infrastructure messages
+  // OBP-00001 and up.
+
+ // General messages
+  val InvalidJsonFormat = "OBP-10001: Incorrect json format"
+
+
+  // Authentication / Authorisation messages
+  val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
+
+
+  // Resource related messages
+  val BankNotFound = "OBP-30001: Bank Not Found. Please specify a correct value for BANK_ID."
+  val CustomerNotFound = "OBP-30002: Customer Not Found. Please specify a correct value for CUSTOMER_NUMBER."
+
+  val AccountNotFound = "OBP-30003: Account Not Found. Please specify a correct value for ACCOUNT_ID."
+  val CounterpartyNotFound = "OBP-30004: Counterparty Not Found."
+
+}
+
+
+
+
 object APIUtil extends Loggable {
 
   implicit val formats = net.liftweb.json.DefaultFormats
