@@ -29,6 +29,7 @@ import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.utils.{Json, ZKStringSerializer, ZkUtils}
+import net.liftweb.json.DefaultFormats
 import net.liftweb.util.Props
 import org.I0Itec.zkclient.ZkClient
 
@@ -166,11 +167,23 @@ case class KafkaProducer(
     }
   }
 
+  //case class Argument(name: String, value: String)
+
+
+  case class Tweet(
+    username: String,
+    tweet: String,
+    date: String
+)
+
+
+  implicit val formats = DefaultFormats
+
   def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
-    // create string from named map of arguments
-    val args = for ( (k,v) <- arguments ) yield Json.encode(Map(k -> v) )
     // create message using request and arguments strings
-    val message = Json.encode(Map(request -> args))
+    val reqArguments = arguments.map { args => Map(args._1 ->  args._2) }
+    val reqCommand   = Map(request -> reqArguments)
+    val message      = Json.encode(reqCommand)
     // translate strings to utf8 before sending to kafka
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
   }
@@ -185,4 +198,3 @@ case class KafkaProducer(
     }
   }
 }
-
