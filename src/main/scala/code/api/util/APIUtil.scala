@@ -34,7 +34,7 @@ package code.api.util
 
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
-import code.model.User
+import code.model._
 import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
@@ -45,6 +45,8 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions.asScalaSet
+
+import scala.collection.mutable.ArrayBuffer
 
 
 object ErrorMessages {
@@ -297,6 +299,7 @@ object APIUtil extends Loggable {
 
    */
 
+  // Used to tag Resource Docs
   case class ResourceDocTag(tag: String)
 
   val apiTagPayment = ResourceDocTag("Payments")
@@ -315,21 +318,83 @@ object APIUtil extends Loggable {
   val apiTagCustomer = ResourceDocTag("Customer")
 
 
-
+  // Used to document the API calls
   case class ResourceDoc(
-                      partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-                      apiVersion: String, // TODO: Constrain to certain strings?
-                      apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
-                      requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                      requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
-                      summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
-                      description: String, // Longer description (originally taken from github wiki)
-                      exampleRequestBody: JValue, // An example of the body required (maybe empty)
-                      successResponseBody: JValue, // A successful response body
-                      errorResponseBodies: List[JValue], // Possible error responses
-                      isCore: Boolean,
-                      isPSD2: Boolean,
-                      tags: List[ResourceDocTag])
+    partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    apiVersion: String, // TODO: Constrain to certain strings?
+    apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
+    requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
+    requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+    summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
+    description: String, // Longer description (originally taken from github wiki)
+    exampleRequestBody: JValue, // An example of the body required (maybe empty)
+    successResponseBody: JValue, // A successful response body
+    errorResponseBodies: List[JValue], // Possible error responses
+    isCore: Boolean,
+    isPSD2: Boolean,
+    tags: List[ResourceDocTag]
+  )
+
+  // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
+  case class ApiRelation(
+    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    rel : String
+  )
+
+  // Populated from Resource Doc and ApiRelation
+  case class InternalApiLink(
+    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    rel : String,
+    requestUrl: String
+    )
+
+  // Used to pass context of current API call to the function that generates links for related Api calls.
+  case class DataContext(
+    user : Box[User],
+    bankId :  Option[BankId],
+    accountId: Option[AccountId],
+    viewId: Option[ViewId],
+    counterpartyId: Option[CounterpartyId],
+    transactionId: Option[TransactionId]
+)
+
+
+
+  case class CodeContext(
+  caller : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+  resourceDocsArrayBuffer : ArrayBuffer[ResourceDoc],
+  relationsArrayBuffer : ArrayBuffer[ApiRelation]
+  )
+
+
+
+
+  case class ApiLink(
+    href: String,
+    rel: String
+  )
+
+  case class LinksJSON(
+   _links: List[ApiLink]
+ )
+
+  case class ResultAndLinksJSON(
+    result : JValue,
+    _links: List[ApiLink]
+  )
+
+
+
+  def createResultAndLinksJSON(result : JValue, links : List[ApiLink] ) : ResultAndLinksJSON = {
+    new ResultAndLinksJSON(
+      result,
+      links
+    )
+  }
+
+
 
   def authenticationRequiredMessage(authRequired: Boolean) : String =
     authRequired match {
@@ -337,6 +402,68 @@ object APIUtil extends Loggable {
       case false => "Authentication is NOT required"
     }
 
+
+// Modify URL replacing placeholders for Ids
+  def contextModifiedUrl(url: String, context: DataContext) = {
+    // Potentially replace BANK_ID
+    val url2: String = context.bankId match {
+      case Some(x) => url.replaceAll("BANK_ID", x.value)
+      case _ => url
+    }
+
+    val url3: String = context.accountId match {
+      // Take care *not* to change OTHER_ACCOUNT_ID HERE
+      case Some(x) => url2.replaceAll("/ACCOUNT_ID", s"/${x.value}").replaceAll("COUNTERPARTY_ID", x.value)
+      case _ => url2
+    }
+
+    val url4: String = context.viewId match {
+      case Some(x) => url3.replaceAll("VIEW_ID", {x.value})
+      case _ => url3
+    }
+
+    val url5: String = context.counterpartyId match {
+      // Change OTHER_ACCOUNT_ID or COUNTERPARTY_ID
+      case Some(x) => url4.replaceAll("OTHER_ACCOUNT_ID", x.value).replaceAll("COUNTERPARTY_ID", x.value)
+      case _ => url4
+    }
+
+    val url6: String = context.transactionId match {
+      case Some(x) => url5.replaceAll("TRANSACTION_ID", x.value)
+      case _ => url5
+    }
+
+    url6
+  }
+
+
+  def getApiLinkTemplates(codeContext: CodeContext
+                         ) : List[InternalApiLink] = {
+
+    val relations =  codeContext.relationsArrayBuffer.toList
+    val resourceDocs =  codeContext.resourceDocsArrayBuffer
+
+    val pf = codeContext.caller
+
+    val internalApiLinks: List[InternalApiLink] = for {
+      relation <- relations.filter(r => r.fromPF == pf)
+      toResourceDoc <- resourceDocs.find(rd => rd.partialFunction == relation.toPF)
+    }
+      yield new InternalApiLink(
+        pf,
+        toResourceDoc.partialFunction,
+        relation.rel,
+        toResourceDoc.requestUrl
+      )
+    internalApiLinks
+  }
+
+
+
+  def getApiLinks(codeContext: CodeContext, dataContext: DataContext) : List[ApiLink]  = {
+    // Replace place holders in the urls like BANK_ID with the current value e.g. 'ulster-bank' and return as ApiLinks for external consumption
+      getApiLinkTemplates(codeContext).map(i => ApiLink(contextModifiedUrl(i.requestUrl, dataContext), i.rel))
+  }
 
 
 

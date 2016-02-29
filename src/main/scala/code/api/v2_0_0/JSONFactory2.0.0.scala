@@ -31,7 +31,9 @@ Berlin 13359, Germany
  */
 package code.api.v2_0_0
 
+import java.net.URL
 import java.util.Date
+import code.api.util.APIUtil.ApiLink
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
@@ -39,6 +41,7 @@ import code.kycchecks.KycCheck
 import code.socialmedia.SocialMedia
 import net.liftweb.common.{Box, Full}
 import code.model._
+import net.liftweb.json.JsonAST.JValue
 
 // Import explicitly and rename so its clear.
 import code.api.v1_2_1.{AccountHolderJSON => AccountHolderJSON121, AmountOfMoneyJSON => AmountOfMoneyJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121, ThisAccountJSON => ThisAccountJSON121, OtherAccountJSON => OtherAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121}
@@ -48,6 +51,23 @@ import code.api.v1_2_1.{AccountHolderJSON => AccountHolderJSON121, AmountOfMoney
 
 
 // New in 2.0.0
+
+class LinkJSON(
+  val href: URL,
+  val rel: String,
+  val method: String
+)
+
+class LinksJSON(
+  val _links: List[LinkJSON]
+)
+
+class ResultAndLinksJSON(
+  val result : JValue,
+  val links: LinksJSON
+)
+
+
 
 class BasicViewJSON(
   val id: String,
@@ -71,7 +91,8 @@ case class BasicAccountJSON(
 case class CoreAccountJSON(
                              id : String,
                              label : String,
-                             bank_id : String
+                             bank_id : String,
+                             _links: List[ApiLink]
                            )
 
 
@@ -135,6 +156,12 @@ object JSONFactory200{
 
   // New in 2.0.0
 
+
+
+
+
+
+
   def createViewBasicJSON(view : View) : BasicViewJSON = {
     val alias =
       if(view.usePublicAliasIfOneExists)
@@ -162,12 +189,14 @@ object JSONFactory200{
   }
 
   // TODO This should include some more account info as long as the user has access to the owner view.
-  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON] ) : CoreAccountJSON = {
-    new CoreAccountJSON(
+  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON], links: List[ApiLink] ) : CoreAccountJSON = {
+    val x = new CoreAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
-      account.bankId.value
+      account.bankId.value,
+      links
     )
+    x
   }
 
 
