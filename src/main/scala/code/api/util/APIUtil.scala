@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.api.util
 
+import code.api.util.APIUtil.ApiLink
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
 import code.model._
@@ -40,6 +41,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
+import net.liftweb.json._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
@@ -47,6 +49,11 @@ import net.liftweb.util.Props
 import scala.collection.JavaConversions.asScalaSet
 
 import scala.collection.mutable.ArrayBuffer
+
+
+
+
+
 
 
 object ErrorMessages {
@@ -360,20 +367,20 @@ object APIUtil extends Loggable {
     transactionId: Option[TransactionId]
 )
 
-
+  case class CallerContext(
+    caller : PartialFunction[Req, Box[User] => Box[JsonResponse]]
+  )
 
   case class CodeContext(
-  caller : PartialFunction[Req, Box[User] => Box[JsonResponse]],
-  resourceDocsArrayBuffer : ArrayBuffer[ResourceDoc],
-  relationsArrayBuffer : ArrayBuffer[ApiRelation]
+    resourceDocsArrayBuffer : ArrayBuffer[ResourceDoc],
+    relationsArrayBuffer : ArrayBuffer[ApiRelation]
   )
 
 
-
-
+  
   case class ApiLink(
-    href: String,
-    rel: String
+    rel: String,
+    href: String
   )
 
   case class LinksJSON(
@@ -384,7 +391,6 @@ object APIUtil extends Loggable {
     result : JValue,
     _links: List[ApiLink]
   )
-
 
 
   def createResultAndLinksJSON(result : JValue, links : List[ApiLink] ) : ResultAndLinksJSON = {
@@ -437,13 +443,14 @@ object APIUtil extends Loggable {
   }
 
 
-  def getApiLinkTemplates(codeContext: CodeContext
+  def getApiLinkTemplates(callerContext: CallerContext,
+                           codeContext: CodeContext
                          ) : List[InternalApiLink] = {
 
     val relations =  codeContext.relationsArrayBuffer.toList
     val resourceDocs =  codeContext.resourceDocsArrayBuffer
 
-    val pf = codeContext.caller
+    val pf = callerContext.caller
 
     val internalApiLinks: List[InternalApiLink] = for {
       relation <- relations.filter(r => r.fromPF == pf)
@@ -460,13 +467,45 @@ object APIUtil extends Loggable {
 
 
 
-  def getApiLinks(codeContext: CodeContext, dataContext: DataContext) : List[ApiLink]  = {
+  // This is not currently including "templated" attribute
+  def halLinkFragment (link: ApiLink) : String = {
+    "\"" + link.rel +"\": { \"href\": \"" +link.href + "\" }"
+  }
+
+
+  // Since HAL links can't be represented via a case class, (they have dynamic attributes rather than a list) we need to generate them here.
+  def buildHalLinks(links: List[ApiLink]): JValue = {
+
+    val halLinksString = links match {
+      case head :: tail => tail.foldLeft("{"){(r: String, c: ApiLink) => ( r + " " + halLinkFragment(c) + " ,"  ) } + halLinkFragment(head) + "}"
+      case Nil => "{}"
+    }
+    parse(halLinksString)
+  }
+
+
+  // Returns API links (a list of them) that have placeholders (e.g. BANK_ID) replaced by values (e.g. ulster-bank)
+  def getApiLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : List[ApiLink]  = {
+    val templates = getApiLinkTemplates(callerContext, codeContext)
     // Replace place holders in the urls like BANK_ID with the current value e.g. 'ulster-bank' and return as ApiLinks for external consumption
-      getApiLinkTemplates(codeContext).map(i => ApiLink(contextModifiedUrl(i.requestUrl, dataContext), i.rel))
+    val links = templates.map(i => ApiLink(i.rel,
+      contextModifiedUrl(i.requestUrl, dataContext) )
+    )
+    links
+  }
+
+
+  // Returns links formatted at objects.
+  def getHalLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : JValue  = {
+    val links = getApiLinks(callerContext, codeContext, dataContext)
+    getHalLinksFromApiLinks(links)
   }
 
 
 
-
+  def getHalLinksFromApiLinks(links: List[ApiLink]) : JValue = {
+    val halLinksJson = buildHalLinks(links)
+    halLinksJson
+  }
 
 }

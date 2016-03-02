@@ -92,14 +92,8 @@ case class CoreAccountJSON(
                              id : String,
                              label : String,
                              bank_id : String,
-                             _links: List[ApiLink]
+                             _links: JValue
                            )
-
-
-
-
-
-
 
 case class KycDocumentJSON(
   id: String,
@@ -188,15 +182,15 @@ object JSONFactory200{
     )
   }
 
-  // TODO This should include some more account info as long as the user has access to the owner view.
-  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON], links: List[ApiLink] ) : CoreAccountJSON = {
-    val x = new CoreAccountJSON(
+  // Contains only minimal info (could have more if owner) plus links
+  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON], links: JValue ) : CoreAccountJSON = {
+    val coreAccountJson = new CoreAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
       account.bankId.value,
       links
     )
-    x
+    coreAccountJson
   }
 
 

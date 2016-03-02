@@ -45,14 +45,15 @@ trait APIMethods200 {
   val defaultBankId = Props.get("defaultBank.bank_id", "DEFAULT_BANK_ID_NOT_SET")
 
 
+
   // shows a small representation of View
   private def bankAccountBasicListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
     Extraction.decompose(basicBankAccountList(bankAccounts, user))
   }
 
   // Shows accounts without view
-  private def coreBankAccountListToJson(endPointContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): JValue = {
-    Extraction.decompose(coreBankAccountList(endPointContext: CodeContext, bankAccounts, user))
+  private def coreBankAccountListToJson(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): JValue = {
+    Extraction.decompose(coreBankAccountList(callerContext, codeContext, bankAccounts, user))
   }
 
   private def basicBankAccountList(bankAccounts: List[BankAccount], user : Box[User]): List[BasicAccountJSON] = {
@@ -67,7 +68,7 @@ trait APIMethods200 {
     accJson
   }
 
-  private def coreBankAccountList(codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
+  private def coreBankAccountList(callerContext: CallerContext, codeContext: CodeContext, bankAccounts: List[BankAccount], user : Box[User]): List[CoreAccountJSON] = {
     val accJson : List[CoreAccountJSON] = bankAccounts.map(account => {
       val views = account.permittedViews(user)
       val viewsAvailable : List[BasicViewJSON] =
@@ -77,7 +78,10 @@ trait APIMethods200 {
 
       val dataContext = DataContext(user, Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
 
-     val links = code.api.util.APIUtil.getApiLinks(codeContext, dataContext)
+     //val links = code.api.util.APIUtil.getApiLinks(callerContext, codeContext, dataContext)
+
+      val links = code.api.util.APIUtil.getHalLinks(callerContext, codeContext, dataContext)
+
       JSONFactory200.createCoreAccountJSON(account,viewsAvailable, links)
     })
     accJson
@@ -98,6 +102,11 @@ trait APIMethods200 {
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
     val exampleDate = simpleDateFormat.parse(exampleDateString)
+
+    val codeContext = CodeContext(resourceDocs, apiRelations)
+
+
+
 
 
     resourceDocs += ResourceDoc(
@@ -120,6 +129,7 @@ trait APIMethods200 {
       false,
       false,
       List(apiTagAccounts, apiTagPrivateData, apiTagPublicData))
+    
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for all banks (private + public)
@@ -128,7 +138,7 @@ trait APIMethods200 {
           Full(successJsonResponse(bankAccountBasicListToJson(BankAccount.accounts(user), user)))
       }
     }
-    
+
     resourceDocs += ResourceDoc(
       privateAccountsAllBanks,
       apiVersion,
@@ -149,17 +159,20 @@ trait APIMethods200 {
 
 
     apiRelations += ApiRelation(privateAccountsAllBanks, getCoreAccountById, "detail")
+    apiRelations += ApiRelation(privateAccountsAllBanks, privateAccountsAllBanks, "self")
+
+
 
         lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
           //get private accounts for all banks
           case "my" :: "accounts" :: Nil JsonGet json => {
             user =>
-              val endPointContext = CodeContext(privateAccountsAllBanks, resourceDocs, apiRelations)
+
               for {
                 u <- user ?~ ErrorMessages.UserNotLoggedIn
               } yield {
                 val availableAccounts = BankAccount.nonPublicAccounts(u)
-                val coreBankAccountListJson = coreBankAccountListToJson(endPointContext, availableAccounts, Full(u))
+                val coreBankAccountListJson = coreBankAccountListToJson(CallerContext(privateAccountsAllBanks), codeContext, availableAccounts, Full(u))
                 val response = successJsonResponse(coreBankAccountListJson)
                 response
               }
@@ -183,6 +196,11 @@ trait APIMethods200 {
       false,
       false,
       List(apiTagAccounts, apiTagPublicData))
+
+
+
+
+
 
     lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for all banks
@@ -253,16 +271,16 @@ trait APIMethods200 {
       successJsonResponse(bankAccountBasicListToJson(availableAccounts, Full(u)))
     }
 
-    def corePrivateAccountsAtOneBankResult (endPointContext: CodeContext, bank: Bank, u: User) = {
+    def corePrivateAccountsAtOneBankResult (callerContext: CallerContext, codeContext: CodeContext, bank: Bank, u: User) = {
       val availableAccounts = bank.nonPublicAccounts(u)
-      successJsonResponse(coreBankAccountListToJson(endPointContext, availableAccounts, Full(u)))
+      successJsonResponse(coreBankAccountListToJson(callerContext, codeContext, availableAccounts, Full(u)))
     }
+
 
 
     // This contains an approach to surface a resource via different end points in case of a default bank.
     // The second path is experimental
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-
 
 
       //get private accounts for a single bank
@@ -271,9 +289,9 @@ trait APIMethods200 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)
-            endPointContext = CodeContext(privateAccountsAtOneBank, resourceDocs, apiRelations)
+
           } yield {
-            corePrivateAccountsAtOneBankResult(endPointContext, bank, u)
+            corePrivateAccountsAtOneBankResult(CallerContext(privateAccountsAtOneBank), codeContext, bank, u)
           }
       }
       case "bank" :: "accounts" :: Nil JsonGet json => {
@@ -282,9 +300,8 @@ trait APIMethods200 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(BankId(defaultBankId))
-            endPointContext = CodeContext(privateAccountsAtOneBank, resourceDocs, apiRelations)
           } yield {
-            corePrivateAccountsAtOneBankResult(endPointContext, bank, u)
+            corePrivateAccountsAtOneBankResult(CallerContext(privateAccountsAtOneBank), codeContext, bank, u)
           }
       }
 
