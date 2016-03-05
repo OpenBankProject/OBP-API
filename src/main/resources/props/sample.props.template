@@ -30,13 +30,21 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 #our own remotely accessible URL
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
-# (this needs to be an URL)
+# (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
 #this is only useful for running the api locally via RunWebApp
 #if you use it, make sure this matches your hostname port!
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
 dev.port=8080
+
+
+#The start of the api path (before the version)
+#It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
+#Including it here so we have a canonical source of the value
+#This was introduced March 2016, some code might use hardcoded value instead.
+#Default value is obp (highly recomended)
+apiPathZero=obp
 
 #sending mail out
 #not need in dev mode, but important for production

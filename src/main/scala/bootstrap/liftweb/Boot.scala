@@ -68,7 +68,7 @@ import net.liftweb.sitemap.Loc._
 import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
-
+import code.api.Constant._
 
 
 /**
@@ -179,6 +179,7 @@ class Boot extends Loggable{
     }
 
     logger.info("running mode: " + runningMode)
+    logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
     // where to search snippets
     LiftRules.addToPackages("code")

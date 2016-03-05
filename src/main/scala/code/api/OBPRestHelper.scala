@@ -44,6 +44,7 @@ import code.api.OAuthHandshake._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
 import net.liftweb.util.Props
+import code.api.Constant._
 
 trait APIFailure{
   val msg : String
@@ -80,7 +81,8 @@ trait OBPRestHelper extends RestHelper with Loggable {
 
   val VERSION : String
   def vPlusVersion = "v" + VERSION
-  def apiPrefix = ("obp" / vPlusVersion).oPrefix(_)
+
+  def apiPrefix = (ApiPathZero / vPlusVersion).oPrefix(_)
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse

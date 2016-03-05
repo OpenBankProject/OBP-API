@@ -1,6 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.util.APIUtil.ResourceDoc
+import code.api.Constant._
 import net.liftweb.json._
 import net.liftweb.util.Props
 
@@ -51,13 +52,15 @@ object SwaggerJSONFactory {
 
   def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc]): SwaggerResourceDoc = {
     implicit val formats = DefaultFormats
+
     val contact = ContactJson("OBP", "https://openbankproject.com/")
-    val appVersion = "v1.4.0"
+    val apiVersion = "v1.4.0"
     val title = "Open Bank Project API"
     val description = "An open source API for banks."
-    val info = InfoJson(title, description, contact, appVersion)
+    val info = InfoJson(title, description, contact, apiVersion)
+    // TODO check / improve host, basePath and version
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "")
-    val basePath = "/obp/" + appVersion
+    val basePath = s"/$ApiPathZero/" + apiVersion
     val schemas = List("http")
     val paths: ListMap[String, Map[String, MethodJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       val methods: Map[String, MethodJson] = mrd._2.map(rd =>
