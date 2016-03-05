@@ -250,7 +250,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         parameters
       }
 
-      //prepare the base string
+      //prepare the base string (should we really have openOr here?)
       var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri,"UTF-8")+"&"
       baseString+= generateOAuthParametersString(OAuthparameters)
 
