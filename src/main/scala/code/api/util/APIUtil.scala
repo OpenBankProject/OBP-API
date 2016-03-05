@@ -50,7 +50,8 @@ import scala.collection.JavaConversions.asScalaSet
 
 import scala.collection.mutable.ArrayBuffer
 
-
+import net.liftweb.http.CurrentReq
+import code.api.Constant._
 
 
 
@@ -58,10 +59,10 @@ import scala.collection.mutable.ArrayBuffer
 
 object ErrorMessages {
 
-  // Infrastructure messages
-  // OBP-00001 and up.
+  // Infrastructure / config messages
+  val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
 
- // General messages
+  // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format"
 
 
@@ -86,7 +87,7 @@ object APIUtil extends Loggable {
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
-
+  
   def httpMethod : String =
     S.request match {
       case Full(r) => r.request.method
@@ -115,6 +116,7 @@ object APIUtil extends Loggable {
 
   def logAPICall = {
     if(Props.getBool("write_metrics", false)) {
+      // TODO This should use Elastic Search or Kafka not an RDBMS
       APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
     }
   }
@@ -377,7 +379,7 @@ object APIUtil extends Loggable {
   )
 
 
-  
+
   case class ApiLink(
     rel: String,
     href: String
@@ -409,9 +411,27 @@ object APIUtil extends Loggable {
     }
 
 
+
+  def apiVersionWithV(apiVersion : String) : String = {
+    // TODO Define a list of supported versions (put in Constant) and constrain the input
+    // Append v and replace _ with .
+    s"v${apiVersion.replaceAll("_",".")}"
+  }
+
+  def fullBaseUrl : String = {
+    val crv = CurrentReq.value
+    val apiPathZeroFromRequest = crv.path.partPath(0)
+    if (apiPathZeroFromRequest != ApiPathZero) throw new Exception("Configured ApiPathZero is not the same as the actual.")
+
+    val path = s"$HostName/$ApiPathZero"
+    path
+  }
+
+
 // Modify URL replacing placeholders for Ids
   def contextModifiedUrl(url: String, context: DataContext) = {
-    // Potentially replace BANK_ID
+
+  // Potentially replace BANK_ID
     val url2: String = context.bankId match {
       case Some(x) => url.replaceAll("BANK_ID", x.value)
       case _ => url
@@ -439,7 +459,12 @@ object APIUtil extends Loggable {
       case _ => url5
     }
 
-    url6
+  // Add host, port, prefix, version.
+
+  // not correct because call could be in other version
+    val fullUrl = s"$fullBaseUrl$url6"
+
+  fullUrl
   }
 
 
@@ -460,7 +485,8 @@ object APIUtil extends Loggable {
         pf,
         toResourceDoc.partialFunction,
         relation.rel,
-        toResourceDoc.requestUrl
+        // Add the vVersion to the documented url
+        s"/${apiVersionWithV(toResourceDoc.apiVersion)}${toResourceDoc.requestUrl}"
       )
     internalApiLinks
   }
