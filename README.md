@@ -109,3 +109,8 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
+
+# Lift
+# We use liftweb http://www.liftweb.net/
+# Advanced architecture: http://exploring.liftweb.net/master/index-9.html
+
