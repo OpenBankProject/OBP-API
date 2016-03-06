@@ -71,11 +71,13 @@ object ErrorMessages {
 
 
   // Resource related messages
-  val BankNotFound = "OBP-30001: Bank Not Found. Please specify a correct value for BANK_ID."
-  val CustomerNotFound = "OBP-30002: Customer Not Found. Please specify a correct value for CUSTOMER_NUMBER."
+  val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
+  val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
 
-  val AccountNotFound = "OBP-30003: Account Not Found. Please specify a correct value for ACCOUNT_ID."
-  val CounterpartyNotFound = "OBP-30004: Counterparty Not Found."
+  val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
+  val CounterpartyNotFound = "OBP-30004: Counterparty not found."
+
+  val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
 }
 
@@ -87,7 +89,7 @@ object APIUtil extends Loggable {
   implicit val formats = net.liftweb.json.DefaultFormats
   implicit def errorToJson(error: ErrorMessage): JValue = Extraction.decompose(error)
   val headers = ("Access-Control-Allow-Origin","*") :: Nil
-  
+
   def httpMethod : String =
     S.request match {
       case Full(r) => r.request.method

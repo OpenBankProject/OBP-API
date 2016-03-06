@@ -802,6 +802,53 @@ trait APIMethods200 {
     }
 
 
+    // Copied from 1.2.1 and modified
+
+    resourceDocs += ResourceDoc(
+      accountById,
+      apiVersion,
+      "accountById",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
+      "Get account by id.",
+      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+        |
+        |* Number
+        |* Owners
+        |* Type
+        |* Balance
+        |* IBAN
+        |* Available views (sorted by short_name)
+        |
+        |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
+        |
+        |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      true,
+      apiTagAccounts ::  Nil)
+
+    lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get account by id
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            account <- tryo(BankAccount(bank.bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            availableViews <- Full(account.permittedViews(user))
+            //availbleViewsSorted <- availableViews.toSeq.sortWith()
+            view <- tryo(View.fromUrl(viewId, account).get) ?~! {ErrorMessages.ViewNotFound}
+            moderatedAccount <- account.moderatedBankAccount(view, user)
+          } yield {
+            val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
+            val moderatedAccountJson = JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
+            successJsonResponse(Extraction.decompose(moderatedAccountJson))
+          }
+      }
+    }
 
 
   }

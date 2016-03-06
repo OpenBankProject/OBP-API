@@ -57,7 +57,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 //  Implementations1_2_1.allAccountsAtOneBank,
 //  Implementations1_2_1.privateAccountsAtOneBank,
 //  Implementations1_2_1.publicAccountsAtOneBank,
-    Implementations1_2_1.accountById,
+//  Implementations1_2_1.accountById,
     Implementations1_2_1.updateAccountLabel,
     Implementations1_2_1.getViewsForBankAccount,
     Implementations1_2_1.createViewForBankAccount,
@@ -145,6 +145,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.allAccountsAtOneBank,
     Implementations2_0_0.privateAccountsAtOneBank,
     Implementations2_0_0.publicAccountsAtOneBank,
+    // Modified in 2.0.0 (added sorting and better guards / error messages)
+    Implementations2_0_0.accountById,
     // New in 2.0.0
     Implementations2_0_0.getKycDocuments,
     Implementations2_0_0.getKycMedia,
