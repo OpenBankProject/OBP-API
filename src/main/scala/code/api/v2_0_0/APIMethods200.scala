@@ -839,13 +839,84 @@ trait APIMethods200 {
             bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
             account <- tryo(BankAccount(bank.bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
-            //availbleViewsSorted <- availableViews.toSeq.sortWith()
             view <- tryo(View.fromUrl(viewId, account).get) ?~! {ErrorMessages.ViewNotFound}
             moderatedAccount <- account.moderatedBankAccount(view, user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
             val moderatedAccountJson = JSONFactory121.createBankAccountJSON(moderatedAccount, viewsAvailable)
             successJsonResponse(Extraction.decompose(moderatedAccountJson))
+          }
+      }
+    }
+
+
+    /////
+
+
+    resourceDocs += ResourceDoc(
+      getPermissionsForBankAccount,
+      apiVersion,
+      "getPermissionsForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions",
+      "Get access.",
+      """Returns the list of the permissions at BANK_ID for account ACCOUNT_ID, with each time a pair composed of the user and the views that he has access to.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagViews, apiTagEntitlements)
+    )
+
+    lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get access
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            account <- tryo(BankAccount(bank.bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            permissions <- account permissions u
+          } yield {
+            val permissionsJSON = JSONFactory121.createPermissionsJSON(permissions.sortBy(_.user.emailAddress))
+            successJsonResponse(Extraction.decompose(permissionsJSON))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getPermissionForUserForBankAccount,
+      apiVersion,
+      "getPermissionForUserForBankAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID",
+      "Get access for specific user.",
+      """Returns the list of the views at BANK_ID for account ACCOUNT_ID that a USER_ID at their provider PROVIDER_ID has access to.
+        |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts, apiTagViews, apiTagEntitlements))
+
+    lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get access for specific user
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "permissions" :: providerId :: userId :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
+            account <- tryo(BankAccount(bank.bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
+            permission <- account permission(u, providerId, userId)
+          } yield {
+            val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
+            successJsonResponse(Extraction.decompose(views))
           }
       }
     }

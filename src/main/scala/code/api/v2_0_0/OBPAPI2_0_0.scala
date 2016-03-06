@@ -63,8 +63,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations1_2_1.createViewForBankAccount,
     Implementations1_2_1.updateViewForBankAccount,
     Implementations1_2_1.deleteViewForBankAccount,
-    Implementations1_2_1.getPermissionsForBankAccount,
-    Implementations1_2_1.getPermissionForUserForBankAccount,
+//    Implementations1_2_1.getPermissionsForBankAccount,
+//    Implementations1_2_1.getPermissionForUserForBankAccount,
     Implementations1_2_1.addPermissionForUserForBankAccountForMultipleViews,
     Implementations1_2_1.addPermissionForUserForBankAccountForOneView,
     Implementations1_2_1.removePermissionForUserForBankAccountForOneView,
@@ -147,6 +147,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.publicAccountsAtOneBank,
     // Modified in 2.0.0 (added sorting and better guards / error messages)
     Implementations2_0_0.accountById,
+    Implementations2_0_0.getPermissionsForBankAccount,
+    Implementations2_0_0.getPermissionForUserForBankAccount,
     // New in 2.0.0
     Implementations2_0_0.getKycDocuments,
     Implementations2_0_0.getKycMedia,
