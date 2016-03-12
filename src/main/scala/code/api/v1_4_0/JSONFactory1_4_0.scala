@@ -17,6 +17,10 @@ import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 import org.pegdown.PegDownProcessor
 
+// Use this so we don't duplicate it
+import code.api.v1_2_1.{AmountOfMoneyJSON}
+
+
 object JSONFactory1_4_0 {
 
   case class CustomerJson(customer_number : String,
@@ -333,11 +337,6 @@ object JSONFactory1_4_0 {
     )
   }
 
-  // TODO Check if this is duplicated across versions?
-  case class AmountOfMoneyJSON (
-                                currency : String,
-                                amount : String
-                              )
   case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String

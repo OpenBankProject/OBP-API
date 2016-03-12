@@ -63,7 +63,10 @@ object ErrorMessages {
   val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
 
   // General messages
-  val InvalidJsonFormat = "OBP-10001: Incorrect json format"
+  val InvalidJsonFormat = "OBP-10001: Incorrect json format."
+  val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
+  val InvalidInitalBalance = "OBP-10003: Invalid Number. Initial balance must be a number, e.g 1000.00"
+
 
 
   // Authentication / Authorisation messages
@@ -474,7 +477,14 @@ object APIUtil extends Loggable {
                            codeContext: CodeContext
                          ) : List[InternalApiLink] = {
 
+
+
+    // Relations of the API version where the caller is defined.
     val relations =  codeContext.relationsArrayBuffer.toList
+
+    // Resource Docs
+    // Note: This doesn't allow linking to calls in earlier versions of the API
+    // TODO: Fix me
     val resourceDocs =  codeContext.resourceDocsArrayBuffer
 
     val pf = callerContext.caller

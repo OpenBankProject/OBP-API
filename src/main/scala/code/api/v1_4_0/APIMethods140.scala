@@ -18,6 +18,9 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
 
+
+import code.api.v1_2_1.{AmountOfMoneyJSON}
+
 import scala.collection.immutable.Nil
 
 // JObject creation
@@ -147,7 +150,6 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
-        val test = Bank(bankId)
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"

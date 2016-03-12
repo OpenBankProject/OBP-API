@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.DefaultUsers
 import code.api.test.{APIResponse, ServerSetupWithTestData, ServerSetup}
 import code.api.util.APIUtil.OAuth.{Token, Consumer}
-import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson}
+import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{TransactionRequestId, AccountId, BankAccount}

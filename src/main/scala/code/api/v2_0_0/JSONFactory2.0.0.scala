@@ -87,6 +87,13 @@ case class BasicAccountJSON(
                              bank_id : String
 )
 
+
+// Json used in account creation
+case class CreateAccountJSON(
+                             `type` : String,
+                             balance : AmountOfMoneyJSON121
+                           )
+
 // No view in core
 case class CoreAccountJSON(
                              id : String,
@@ -183,7 +190,7 @@ object JSONFactory200{
   }
 
   // Contains only minimal info (could have more if owner) plus links
-  def createCoreAccountJSON(account : BankAccount, viewsBasicAvailable : List[BasicViewJSON], links: JValue ) : CoreAccountJSON = {
+  def createCoreAccountJSON(account : BankAccount, links: JValue ) : CoreAccountJSON = {
     val coreAccountJson = new CoreAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),

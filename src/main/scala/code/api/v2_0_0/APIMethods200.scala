@@ -4,11 +4,21 @@ import java.text.SimpleDateFormat
 
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages
+import code.api.v1_2_1.OBPAPI1_2_1._
 
 import code.api.v1_2_1.{JSONFactory => JSONFactory121, APIMethods121}
 
+import code.api.v1_2_1.{AmountOfMoneyJSON => AmountOfMoneyJSON121}
+
+
+import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson}
+
+import code.bankconnectors.Connector
+import code.model.dataAccess.{BankAccountCreation}
+
 
 import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.json
 import net.liftweb.json.Extraction
 import net.liftweb.common._
 import code.model._
@@ -28,11 +38,11 @@ import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
 import net.liftweb.json.JsonDSL._
-import code.customer.{Customer}
+import code.customer.{CustomerMessages, Customer}
 import code.util.Helper._
 import net.liftweb.http.js.JE.JsRaw
 
-import code.api.util.APIUtil.ApiLink
+import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
 
 
 trait APIMethods200 {
@@ -78,11 +88,9 @@ trait APIMethods200 {
 
       val dataContext = DataContext(user, Some(account.bankId), Some(account.accountId), Empty, Empty, Empty)
 
-     //val links = code.api.util.APIUtil.getApiLinks(callerContext, codeContext, dataContext)
-
       val links = code.api.util.APIUtil.getHalLinks(callerContext, codeContext, dataContext)
 
-      JSONFactory200.createCoreAccountJSON(account,viewsAvailable, links)
+      JSONFactory200.createCoreAccountJSON(account, links)
     })
     accJson
   }
@@ -921,6 +929,83 @@ trait APIMethods200 {
       }
     }
 
+    //
+
+    lazy val tempTemp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
+        user => {
+          for {
+            postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
+            messageCreated <- booleanToBox(
+              CustomerMessages.customerMessageProvider.vend.addMessage(
+                customer, bankId, postedData.message, postedData.from_department, postedData.from_person),
+              "Server error: could not add message")
+          } yield {
+            successJsonResponse(JsRaw("{}"), 201)
+          }
+        }
+      }
+    }
+
+    ////
+
+
+
+    resourceDocs += ResourceDoc(
+      createAccount,
+      apiVersion,
+      "createAccount",
+      "PUT",
+      "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
+      "Create an Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
+      "Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)",
+      Extraction.decompose(CreateAccountJSON("CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagAccounts)
+    )
+
+    apiRelations += ApiRelation(createAccount, createAccount, "self")
+    apiRelations += ApiRelation(createAccount, getCoreAccountById, "detail")
+
+    // Note: This doesn't currently work (links only have access to same version resource docs). TODO fix me.
+    apiRelations += ApiRelation(createAccount, Implementations1_2_1.updateAccountLabel, "update_label")
+
+
+    lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      // TODO document this code (make the extract work): "JsonPut json -> _ =>"
+      // Create a new account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
+        user => {
+
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
+            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ s"Problem getting balance amount"
+            accountType <- tryo(jsonBody.`type`) ?~ s"Problem getting type"
+            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidInitalBalance
+            isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
+            currency <- tryo (jsonBody.balance.currency) ?~ s"Problem getting balance currency"
+            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
+              s"Account with id $accountId already exists at bank $bankId")
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, u.name)
+          } yield {
+            BankAccountCreation.setAsOwner(bankId, accountId, u)
+
+            val dataContext = DataContext(user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
+            val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
+            val json = JSONFactory200.createCoreAccountJSON(bankAccount, links)
+
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
 
   }
 }

@@ -161,7 +161,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.addKycCheck,
     Implementations2_0_0.addSocialMediaHandle,
     Implementations2_0_0.getCoreAccountById,
-    Implementations2_0_0.getCoreTransactionsForBankAccount//,
+    Implementations2_0_0.getCoreTransactionsForBankAccount,
+    Implementations2_0_0.createAccount
     //Implementations2_0_0.testLinks
   )
 
