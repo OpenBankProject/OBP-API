@@ -203,18 +203,18 @@ object DirectLogin extends RestHelper with Loggable {
     }
     else if (
       requestType == "protectedResource" &&
-        !validAccessToken(parameters.get("token").get)
+        !validAccessToken(parameters.get("token").getOrElse(""))
     ) {
-      message = "Invalid or expired access token: " + parameters.get("token").get
+      message = "Invalid or expired access token: " + parameters.get("token").getOrElse("")
       httpCode = 401
     }
     //check if the application is registered and active
     else if (
       requestType == "authorizationToken" &&
         Props.getBool("direct_login_consumer_key_mandatory", true) &&
-        !registeredApplication(parameters.get("consumer_key").get)) {
+        !registeredApplication(parameters.get("consumer_key").getOrElse(""))) {
 
-      logger.error("application: " + parameters.get("consumer_key").get + " not found")
+      logger.error("application: " + parameters.get("consumer_key").getOrElse("") + " not found")
       message = "Invalid consumer credentials"
       httpCode = 401
     }
@@ -247,12 +247,12 @@ object DirectLogin extends RestHelper with Loggable {
     import code.model.{Token, TokenType}
     val token = Token.create
     token.tokenType(TokenType.Access)
-    Consumer.find(By(Consumer.key, directLoginParameters.get("consumer_key").get)) match {
+    Consumer.find(By(Consumer.key, directLoginParameters.get("consumer_key").getOrElse(""))) match {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }
-    val username = directLoginParameters.get("username").get.toString
-    val password = directLoginParameters.get("password").get match {
+    val username = directLoginParameters.get("username").getOrElse("").toString
+    val password = directLoginParameters.get("password").getOrElse("") match {
       case p: String => p
       case _ => "error"
     }
@@ -301,7 +301,7 @@ object DirectLogin extends RestHelper with Loggable {
           user
         }
         case _ =>{
-          logger.warn("no token " + tokenID.get + " found")
+          logger.warn("no token " + tokenID.getOrElse("") + " found")
           Empty
         }
       }
