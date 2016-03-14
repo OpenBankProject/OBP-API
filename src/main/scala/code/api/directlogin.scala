@@ -42,6 +42,7 @@ import net.liftweb.util.{Props, Helpers}
 import net.liftweb.util.Helpers._
 
 import scala.compat.Platform
+import code.api.util.ErrorMessages
 
 /**
 * This object provides the API calls necessary to
@@ -89,6 +90,7 @@ object DirectLogin extends RestHelper with Loggable {
   {
     //Handling get request for a token
     case Req("my" :: "logins" :: "direct" :: Nil,_ , PostRequest|GetRequest) => {
+
       //Extract the directLogin parameters from the header and test if the request is valid
       var (httpCode, message, directLoginParameters) = validator("authorizationToken", getHttpMethod)
       //Test if the request is valid
@@ -198,14 +200,14 @@ object DirectLogin extends RestHelper with Loggable {
     //are all the necessary directLogin parameters present?
     val missingParams = missingDirectLoginParameters(parameters, requestType)
     if (missingParams.nonEmpty) {
-      message = "the following parameters are missing : " + missingParams.mkString(", ")
+      message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
       httpCode = 400
     }
     else if (
       requestType == "protectedResource" &&
         !validAccessToken(parameters.get("token").getOrElse(""))
     ) {
-      message = "Invalid or expired access token: " + parameters.get("token").getOrElse("")
+      message = ErrorMessages.DirectLoginInvalidToken + parameters.get("token").getOrElse("")
       httpCode = 401
     }
     //check if the application is registered and active
@@ -215,7 +217,7 @@ object DirectLogin extends RestHelper with Loggable {
         !registeredApplication(parameters.get("consumer_key").getOrElse(""))) {
 
       logger.error("application: " + parameters.get("consumer_key").getOrElse("") + " not found")
-      message = "Invalid consumer credentials"
+      message = ErrorMessages.InvalidLoginCredentials
       httpCode = 401
     }
     //checking if the signature is correct
@@ -288,15 +290,15 @@ object DirectLogin extends RestHelper with Loggable {
     if(httpCode==200)
     {
       import code.model.Token
-      logger.info("directLogin header correct ")
+      logger.info("DirectLogin header correct ")
       Token.find(By(Token.key, tokenID.getOrElse(""))) match {
         case Full(token) => {
           logger.info("access token: "+ token + " found")
           val user = token.user
           //just a log
           user match {
-            case Full(u) => logger.info("user " + u.emailAddress + " was found from the directLogin token")
-            case _ => logger.info("no user was found for the directLogin token")
+            case Full(u) => logger.info("user " + u.emailAddress + " was found from the DirectLogin token")
+            case _ => logger.info("no user was found for the DirectLogin token")
           }
           user
         }
