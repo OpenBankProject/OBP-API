@@ -531,7 +531,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "/banks/BANK_ID/customer",
       "Add a customer.",
       """Add a customer linked to the currently authenticated user.
-        |This call is experimental and will require additional permissions/role in the future.
+        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+        |This call may require additional permissions/role in the future.
         |For now the authenticated user can create at most one linked customer.
         |OAuth authentication is required.
         |""",
