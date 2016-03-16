@@ -76,7 +76,7 @@ object ErrorMessages {
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
 
 
-  val InvalidLoginCredentials = "OBP-20004: Invalid login credentials."
+  val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
 
 
 
