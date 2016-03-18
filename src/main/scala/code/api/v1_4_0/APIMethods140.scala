@@ -432,7 +432,13 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
-      "In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.",
+      """Initiate a Payment via a Transaction Request.
+        |
+        |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+        |
+        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+        |
+        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
       Extraction.decompose(TransactionRequestBodyJSON (
                                 TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
                                 AmountOfMoneyJSON("EUR", "100.53"),

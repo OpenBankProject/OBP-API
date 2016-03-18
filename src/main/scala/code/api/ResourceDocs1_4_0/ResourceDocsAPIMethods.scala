@@ -97,7 +97,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
         |<li> function is the (scala) function.</li>
         |<li> request_url is empty for the root call, else the path.</li>
         |<li> summary is a short description inline with the swagger terminology. </li>
-        |<li> description can contain html markup.</li>
+        |<li> description may contain html markup (generated from markdown on the server).</li>
         |</ul>
       """,
       emptyObjectJson,
