@@ -432,7 +432,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
-      "",
+      "In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.",
       Extraction.decompose(TransactionRequestBodyJSON (
                                 TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
                                 AmountOfMoneyJSON("EUR", "100.53"),
@@ -487,7 +487,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "",
+      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
