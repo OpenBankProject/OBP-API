@@ -122,8 +122,11 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                       </p>
 
 
-# API Explorer url. Change this to the instance of Sofi linked to this API. e.g. sofi.openbankproject.com/api-explorer
-webui_api_explorer_url = http://sofi.openbankproject.com/api-explorer
+# API Explorer url. Change to your instance
+webui_api_explorer_url = http://apiexplorer.openbankproject.com
+
+# Sofi url. (AKA Social Finance) Change to your instance
+webui_sofi_url = http://sofi.openbankproject.com
 
 # Starting page of documentation. Change this if you have a specific landing page.
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
