@@ -36,7 +36,7 @@ import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
 import net.liftweb.common._
 import scala.xml.{Text, NodeSeq}
-import net.liftweb.http.{SHtml, SessionVar, Templates, S}
+import net.liftweb.http._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 
 import java.util.UUID
@@ -48,6 +48,45 @@ import code.sandbox.SandboxUserImport
  */
 class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   def getSingleton = OBPUser // what's the "meta" server
+
+  /* Roles START */
+
+  /*
+   * String representing the User ID
+   */
+  override def userIdAsString: String = id.toString
+
+  /*
+   * A list of this user's permissions
+   */
+  object userRoles extends MappedRole(this)
+  lazy val authPermissions: Set[APermission] = (MappedPermission.userPermissions(id.get) ::: userRoles.permissions).toSet
+
+  /*
+   * A list of this user's roles
+   */
+  lazy val authRoles: Set[String] = userRoles.names.toSet
+
+  // Request var that holds the User instance
+  //private object curUserId extends SessionVar[Box[String]](Empty)
+  //def currentUserId: Box[String] = curUserId.is
+  //private object curUser extends RequestVar[Box[OBPUser]](currentUserId.flatMap(findByStringId))
+  //with CleanRequestVarOnSessionTransition {
+  //  override lazy val __nameSalt = Helpers.nextFuncName
+  //}
+  //def currentUser: Box[OBPUser] = curUser.is
+
+  import net.liftweb.mapper._
+
+  def findByStringId(strId: String): Box[OBPUser] =
+    try {
+      OBPUser.find(By(id, strId.toLong))
+    } catch {
+      case e: Exception => Empty
+    }
+
+  /* Roles END */
+
 
   object user extends MappedLongForeignKey(this, APIUser)
 
@@ -126,8 +165,8 @@ import net.liftweb.util.Helpers._
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, password, provider)
-  override def signupFields = List(firstName, lastName, email, password)
+  //override def fieldOrder = List(id, firstName, lastName, email, password, provider)
+  //override def signupFields = List(firstName, lastName, email, password)
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
@@ -260,26 +299,40 @@ import net.liftweb.util.Helpers._
     val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
-    val argList = Map( "email" -> username,
-                        "password" -> password )
-    producer.send(reqId, "getUser", argList, "1")
+    val isTemenos = username.endsWith("@TEMENOS")
 
+    val argList = if (isTemenos) {
+      Map("username" -> username.replaceAll("@TEMENOS", ""),
+          "password" -> password)
+    } else {
+      Map("email" -> username,
+          "password" -> password)
+    }
+
+    producer.send(reqId, "getUser", argList, "1")
     // Request sent, now we wait for response with the same reqId
     val consumer = new KafkaConsumer()
     // Create entry only for the first item on returned list
     val r = consumer.getResponse(reqId).head
 
+    println("-------------------> " + r)
     // For testing without Kafka
     //val r = Map("email"->"test@email.me","password"->"secret","display_name"->"DN")
 
-    var recDisplayName = r.getOrElse("display_name", "Not Found")
-    var recEmail = r.getOrElse("email", "Not Found")
+    val recDisplayName = if (isTemenos) r.getOrElse("Name", "Not Found")
+                         else r.getOrElse("display_name", "Not Found")
+
+    val recEmail = if (isTemenos) r.getOrElse("Id", "Not Found") + "@TEMENOS"
+                   else r.getOrElse("email", "Not Found")
+
+    val recRoles = if (isTemenos) List(r.getOrElse("UserType", "Not Found"))
+                   else r.getOrElse("roles", List()).asInstanceOf[List[String]]
 
     if (recEmail == username && recEmail != "Not Found") {
       if (recDisplayName == "")
-        Full(new SandboxUserImport( username, password, recEmail))
+        Full(new SandboxUserImport( username, password, recRoles, recEmail))
       else
-        Full(new SandboxUserImport( username, password, recDisplayName))
+        Full(new SandboxUserImport( username, password, recRoles, recDisplayName))
     } else {
       // If empty result from Kafka return empty data
       Empty
@@ -308,10 +361,13 @@ import net.liftweb.util.Helpers._
       case _ => 0
     }
   }
+  def hasRole(role: String): Boolean = currentUser.map(u => hasRole(u, role)).openOr(false)
+
+  def hasRole(user: OBPUser, role: String): Boolean = user.authRoles.exists(_ == role)
 
   def getExternalUser(username: String, password: String):Box[OBPUser] = {
     getUserViaKafka(username, password) match {
-      case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
+      case Full(SandboxUserImport(extEmail, extPassword, extRoles, extDisplayName)) => {
         val preLoginState = capturePreLoginState()
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
@@ -346,6 +402,16 @@ import net.liftweb.util.Helpers._
               .password(dummyPassword)
               .provider(extProvider)
               .validated(true)
+
+            for ( r <- extRoles ) {
+              info("adding role (" + r + ") to new user")
+              if (Role.find(r).openOr("") != "") {
+                newUser.userRoles.addRole(r).saveMe
+                info("role (" + r + ") added")
+              }
+              else
+                info("role (" + r + ") not defined")
+            }
             // Save the user in order to be able to log in
             newUser.save()
             // Return created user
@@ -398,6 +464,8 @@ import net.liftweb.util.Helpers._
             val user = getExternalUser(S.param("username").get, S.param("password").get)
 
             if (!user.isEmpty) {
+              println ("-----------------> admin: " + hasRole(user.get, "admin") )
+              println ("-----------------> test: " + hasRole(user.get, "test") )
               logUserIn(user.get, () => {
                 S.notice(S.?("logged.in"))
 
@@ -460,3 +528,6 @@ import net.liftweb.util.Helpers._
     innerSignup
   }
 }
+
+
+

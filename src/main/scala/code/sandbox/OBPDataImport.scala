@@ -597,6 +597,7 @@ case class SandboxLocationImport(
 case class SandboxUserImport(
   email : String,
   password : String,
+  roles: List[String],
   display_name : String)
 
 case class SandboxAccountImport(

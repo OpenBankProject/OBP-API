@@ -166,6 +166,8 @@ class Boot extends Loggable{
        Props.get("connector").getOrElse("") == "kafka" )
       schemifyAll()
 
+    val superuser = Role.findOrCreateAndSave("superuser", "a category", code.model.dataAccess.MappedPermission.fromAPermission(APermission.all))
+
     // This sets up MongoDB config (for the mongodb connector)
     if(Props.get("connector").getOrElse("") == "mongodb")
       MongoConfig.init
@@ -382,6 +384,8 @@ class Boot extends Loggable{
 
 object ToSchemify {
   val models = List(OBPUser,
+    Role,
+    MappedPermission,
     Admin,
     Nonce,
     Token,
