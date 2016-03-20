@@ -161,6 +161,11 @@
       <artifactId>pegdown</artifactId>
       <version>1.6.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.jason-goodwin</groupId>
+      <artifactId>authentikat-jwt_2.10</artifactId>
+      <version>0.4.1</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -224,7 +229,7 @@
             <jvmArgs>
               <jvmArg>-DpackageLinkDefs=file://${project.build.directory}/packageLinkDefs.properties</jvmArg>
             </jvmArgs>
-            <scalaVersion>${scala.version}</scalaVersion>
+            <scalaVersion>${scala.compiler}</scalaVersion>
             <scalaCompatVersion>${scala.version}</scalaCompatVersion>
             <recompileMode>incremental</recompileMode>
             <useZincServer>true</useZincServer>

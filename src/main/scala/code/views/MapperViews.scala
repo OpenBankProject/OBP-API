@@ -243,6 +243,8 @@ private object MapperViews extends Views with Loggable {
   def getAllPublicAccounts() : List[BankAccount] = {
     //TODO: do this more efficiently
 
+    // An account is considered public if it contains a public view
+
     val bankAndAccountIds : List[(BankId, AccountId)] =
       ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
         (v.bankId, v.accountId)

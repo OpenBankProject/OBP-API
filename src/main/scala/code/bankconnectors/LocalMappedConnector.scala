@@ -106,6 +106,7 @@ object LocalMappedConnector extends Connector with Loggable {
     }
   }
 
+  // Question: Why is this called getBankAccountType? Why not getBankAccount?
   override def getBankAccountType(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),

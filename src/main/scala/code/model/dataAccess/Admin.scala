@@ -59,6 +59,7 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
   locale, timezone, password)
 
   // comment this line out to require email validations
+  // TODO Get this from Props
   override def skipEmailValidation = true
 
   //Keep track of the referer on login

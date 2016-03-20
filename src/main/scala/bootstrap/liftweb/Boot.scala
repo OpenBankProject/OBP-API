@@ -31,41 +31,45 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import java.io.{File, FileInputStream}
+import java.util.Locale
+import javax.mail.internet.MimeMessage
+
+import code.api.ResourceDocs1_4_0.ResourceDocs
+import code.api._
 import code.api.sandbox.SandboxApiCalls
+import code.atms.MappedAtm
+import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
-import code.management.ImporterAPI
-import code.management.AccountsAPI
+import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.kycdocuments.MappedKycDocument
+import code.kycmedias.MappedKycMedia
+import code.kycchecks.MappedKycCheck
+import code.kycstatuses.MappedKycStatus
+import code.socialmedia.MappedSocialMedia
+import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.branches.{MappedBranch}
-import code.atms.{MappedAtm}
-import code.customer.{MappedCustomerMessage, MappedCustomer}
-import code.products.MappedProduct
-import code.tesobe.CashAccountAPI
-import code.transactionrequests.MappedTransactionRequest
-import net.liftweb._
-import util._
-import common._
-import http._
-import sitemap._
-import Loc._
-import mapper._
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Schedule
-import net.liftweb.util.Helpers
-import java.util.Locale
-import java.io.FileInputStream
-import java.io.File
-import javax.mail.internet.MimeMessage
 import code.model._
 import code.model.dataAccess._
-import code.api._
+import code.products.MappedProduct
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.tesobe.CashAccountAPI
+import code.transactionrequests.MappedTransactionRequest
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.mapper._
+import net.liftweb.sitemap.Loc._
+import net.liftweb.sitemap._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Schedule, _}
+import code.api.Constant._
+
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -175,6 +179,7 @@ class Boot extends Loggable{
     }
 
     logger.info("running mode: " + runningMode)
+    logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -182,13 +187,20 @@ class Boot extends Loggable{
     //OAuth API call
     LiftRules.statelessDispatch.append(OAuthHandshake)
 
+    // JWT auth endpoints
+    if(Props.getBool("allow_direct_login", true)) {
+      LiftRules.statelessDispatch.append(DirectLogin)
+    }
+
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    // Can we depreciate the above?
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+    LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
@@ -197,6 +209,11 @@ class Boot extends Loggable{
     // add other apis
     LiftRules.statelessDispatch.append(CashAccountAPI)
     LiftRules.statelessDispatch.append(BankMockAPI)
+
+
+
+    // Add Resource Docs
+    LiftRules.statelessDispatch.append(ResourceDocs)
 
     // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
 
@@ -282,13 +299,13 @@ class Boot extends Loggable{
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
-    val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
-    if(useMessageQueue)
-      try {
+    try {
+      val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+      if(useMessageQueue)
         BankAccountCreationListener.startListen
-      } catch {
-        case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
-      }
+    } catch {
+      case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+    }
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
@@ -327,8 +344,8 @@ class Boot extends Loggable{
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
+    import Mailer.{From, PlainMailBodyType, Subject, To}
     import net.liftweb.util.Helpers.now
-    import Mailer.{From, To, Subject, PlainMailBodyType}
 
     val outputStream = new java.io.ByteArrayOutputStream
     val printStream = new java.io.PrintStream(outputStream)
@@ -390,5 +407,10 @@ object ToSchemify {
     MappedBranch,
     MappedAtm,
     MappedProduct,
-    MappedCrmEvent)
+    MappedCrmEvent,
+    MappedKycDocument,
+    MappedKycMedia,
+    MappedKycCheck,
+    MappedKycStatus,
+    MappedSocialMedia)
 }

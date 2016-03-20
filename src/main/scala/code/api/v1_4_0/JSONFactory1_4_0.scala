@@ -17,13 +17,25 @@ import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 import org.pegdown.PegDownProcessor
 
+// Use this so we don't duplicate it
+import code.api.v1_2_1.{AmountOfMoneyJSON}
+
+
 object JSONFactory1_4_0 {
 
   case class CustomerJson(customer_number : String,
                           legal_name : String,
                           mobile_phone_number : String,
                           email : String,
-                          face_image : CustomerFaceImageJson)
+                          face_image : CustomerFaceImageJson,
+                          date_of_birth: Date,
+                          relationship_status: String,
+                          dependants: Int,
+                          dob_of_dependants: List[Date],
+                          highest_education_attained: String,
+                          employment_status: String,
+                          kyc_status: Boolean,
+                          last_ok_date: Date)
 
   case class CustomerFaceImageJson(url : String, date : Date)
 
@@ -77,7 +89,15 @@ object JSONFactory1_4_0 {
       mobile_phone_number = cInfo.mobileNumber,
       email = cInfo.email,
       face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
-                                        date = cInfo.faceImage.date)
+        date = cInfo.faceImage.date),
+      date_of_birth = cInfo.dateOfBirth,
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate
     )
 
   }
@@ -231,14 +251,18 @@ object JSONFactory1_4_0 {
                          description: String,
                          example_request_body: JValue,
                          success_response_body: JValue,
-                         implemented_by: ImplementedByJson)
+                         implemented_by: ImplementedByJson,
+                         is_core: Boolean,
+                         is_psd2: Boolean,
+                         is_obwg: Boolean,
+                         tags: List[String])
 
 
 
   // Creates the json resource_docs
   case class ResourceDocsJson (resource_docs : List[ResourceDocJson])
 
-  def createResourceDocJson(resourceDoc: ResourceDoc) : ResourceDocJson = {
+  def createResourceDocJson(rd: ResourceDoc) : ResourceDocJson = {
 
     // There are multiple flavours of markdown. For instance, original markdown emphasises underscores (surrounds _ with (<em>))
     // But we don't want to have to escape underscores (\_) in our documentation
@@ -250,15 +274,19 @@ object JSONFactory1_4_0 {
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
 
     ResourceDocJson(
-      operation_id = s"${resourceDoc.apiVersion.toString}-${resourceDoc.apiFunction.toString}",
-      request_verb = resourceDoc.requestVerb,
-      request_url = resourceDoc.requestUrl,
-      summary = resourceDoc.summary,
+      operation_id = s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
+      request_verb = rd.requestVerb,
+      request_url = rd.requestUrl,
+      summary = rd.summary,
       // Strip the margin character (|) and line breaks and convert from markdown to html
-      description = pegDownProcessor.markdownToHtml(resourceDoc.description.stripMargin).replaceAll("\n", ""),
-      example_request_body = resourceDoc.exampleRequestBody,
-      success_response_body = resourceDoc.successResponseBody,
-      implemented_by = ImplementedByJson(resourceDoc.apiVersion, resourceDoc.apiFunction)
+      description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
+      example_request_body = rd.exampleRequestBody,
+      success_response_body = rd.successResponseBody,
+      implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
+      is_core = rd.isCore,
+      is_psd2 = rd.isPSD2,
+      is_obwg = rd.isCore, // For now, track isCore
+      tags = rd.tags.map(i => i.tag)
       )
   }
 
@@ -309,10 +337,6 @@ object JSONFactory1_4_0 {
     )
   }
 
-  case class AmountOfMoneyJSON (
-                                currency : String,
-                                amount : String
-                              )
   case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String

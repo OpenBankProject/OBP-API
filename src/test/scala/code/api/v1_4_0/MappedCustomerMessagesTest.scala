@@ -48,7 +48,15 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
               legal_name = "Someone",
               mobile_phone_number = "125245",
               email = "hello@hullo.com",
-              face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate)
+              face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+              date_of_birth = exampleDate,
+              relationship_status = "Single",
+              dependants = 1,
+              dob_of_dependants = List(exampleDate),
+              highest_education_attained = "Bachelor’s Degree",
+              employment_status = "Employed",
+              kyc_status = true,
+              last_ok_date = exampleDate
       )
       var response = makePostRequest(request, write(customerJson))
 

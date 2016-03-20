@@ -28,7 +28,7 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
+  */
 
 package code.api
 
@@ -43,6 +43,8 @@ import code.model.User
 import code.api.OAuthHandshake._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Extraction
+import net.liftweb.util.Props
+import code.api.Constant._
 
 trait APIFailure{
   val msg : String
@@ -61,7 +63,7 @@ object APIFailure {
 //that all stable versions retain the same behavior
 case class UserNotFound(providerId : String, userId: String) extends APIFailure {
   val responseCode = 400 //TODO: better as 404? -> would break some backwards compatibility (or at least the tests!)
-  
+
   //to reiterate the comment about preserving backwards compatibility:
   //consider the case that an app may be parsing this string to decide what message to show their users
   //e.g. when granting view permissions, an app may not give their users a choice of provider and only
@@ -79,7 +81,8 @@ trait OBPRestHelper extends RestHelper with Loggable {
 
   val VERSION : String
   def vPlusVersion = "v" + VERSION
-  def apiPrefix = ("obp" / vPlusVersion).oPrefix(_)
+
+  def apiPrefix = (ApiPathZero / vPlusVersion).oPrefix(_)
 
   /*
   An implicit function to convert magically between a Boxed JsonResponse and a JsonResponse
@@ -135,16 +138,25 @@ trait OBPRestHelper extends RestHelper with Loggable {
         case Failure(msg, _, _) => errorJsonResponse(msg)
         case _ => errorJsonResponse("oauth error")
       }
-    } else fn(Empty)
+    } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+      val user = DirectLogin.getUser
+      if (user.isDefined) {
+        fn(user)
+      } else {
+        fn(Empty)
+      }
+    } else {
+      fn(Empty)
+    }
   }
 
   class RichStringList(list: List[String]) {
     val listLen = list.length
 
     /**
-     * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
-     * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
-     */
+      * Normally we would use ListServeMagic's prefix function, but it works with PartialFunction[Req, () => Box[LiftResponse]]
+      * instead of the PartialFunction[Req, Box[User] => Box[JsonResponse]] that we need. This function does the same thing, really.
+      */
     def oPrefix(pf: PartialFunction[Req, Box[User] => Box[JsonResponse]]): PartialFunction[Req, Box[User] => Box[JsonResponse]] =
       new PartialFunction[Req, Box[User] => Box[JsonResponse]] {
         def isDefinedAt(req: Req): Boolean =

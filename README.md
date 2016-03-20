@@ -26,8 +26,7 @@ Please refer to the [wiki](https://github.com/OpenBankProject/OBP-API/wiki) to s
 
 ## LICENSE
 
-This project is dual licensed under the AGPL V3 (see NOTICE) and a commercial license from TESOBE
-Some files (OAuth related) are licensed under the Apache 2 license.
+This project is dual licensed under the AGPL V3 (see NOTICE) and commercial licenses from TESOBE Ltd.
 
 ## SETUP
 
@@ -85,7 +84,33 @@ To compile and run jetty, install Maven 3 and execute:
 
 ----
 
+## Ubuntu
+
+If you use Ubuntu (or a derivate) and encrypted home directories (e.g. you have ~/.Private), you might run into the following error when the project is built:
+
+    uncaught exception during compilation: java.io.IOException
+    [ERROR] File name too long
+    [ERROR] two errors found
+    [DEBUG] Compilation failed (CompilerInterface)
+
+The current workaround is to move the project directory onto a different partition, e.g. under /opt/ .
+
+
 # Databases:
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
+
+
+# Kafka (optional):
+
+If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper have to be installed, as well as OBP-Kafka-Python (which can be either running from command-propmpt or from inside Docker container):
+
+* Kafka and Zookeeper can be installed using system's default installer or by unpacking the archives (http://apache.mirrors.spacedump.net/kafka/ and http://apache.mirrors.spacedump.net/zookeeper/)
+
+* OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
+
+
+# Lift
+# We use liftweb http://www.liftweb.net/
+# Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 

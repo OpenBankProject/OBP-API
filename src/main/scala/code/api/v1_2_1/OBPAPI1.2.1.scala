@@ -36,6 +36,8 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.common.Loggable
 import code.api.OBPRestHelper
 
+// Added so we can add resource docs for this version of the API
+
 object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
 
 

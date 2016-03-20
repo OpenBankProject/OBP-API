@@ -3,7 +3,7 @@ package code.api.v1_4_0
 import code.api.DefaultUsers
 import code.api.test.{APIResponse, ServerSetupWithTestData, ServerSetup}
 import code.api.util.APIUtil.OAuth.{Token, Consumer}
-import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson}
+import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.model.{TransactionRequestId, AccountId, BankAccount}
@@ -74,12 +74,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //call createTransactionRequest
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-                        "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@(user1)
+                        "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is SANDBOX, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
         val transId: String = (response.body \ "id" \ "value") match {
           case JString(i) => i
           case _ => ""
@@ -141,36 +141,24 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         }
         description should not equal ("")
 
-        //TODO: check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
 
-/*      val fromAccountTransAmt = transJson.details.value.amount
-        //the from account transaction should have a negative value
-        //since money left the account
-        And("the json we receive back should have a transaction amount equal to the amount specified to pay")
-        fromAccountTransAmt should equal((-amt).toString)
+        val fromAccountBalance = getFromAccount.balance
+        And("the from account should have a balance smaller by the amount specified to pay")
+        fromAccountBalance should equal((beforeFromBalance - amt))
 
-        val expectedNewFromBalance = beforeFromBalance - amt
-        And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
-        transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
-        getFromAccount.balance should equal(expectedNewFromBalance)
-        val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
-        toAccountTransactionsReq.code should equal(200)
-        val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
-        val newestToAccountTransaction = toAccountTransactions.transactions(0)
-
-        //here amt should be positive (unlike in the transaction in the "from" account")
+        /*
         And("the newest transaction for the account receiving the payment should have the proper amount")
         newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        */
 
-        And("the account receiving the payment should have the proper balance")
-        val expectedNewToBalance = beforeToBalance + amt
-        newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
-        getToAccount.balance should equal(expectedNewToBalance)
+        And("the account receiving the payment should have a new balance plus the amount paid")
+        val toAccountBalance = getToAccount.balance
+        toAccountBalance should equal(beforeToBalance + amt)
 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
-        */
       }
     }
 
@@ -216,12 +204,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //call createTransactionRequest API method
         var request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "SANDBOX" / "transaction-requests").POST <@ (user1)
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //ok, created a transaction request, check some return values. As type is SANDBOX but over 100€, we expect a challenge
+        //ok, created a transaction request, check some return values. As type is SANDBOX_TAN but over 100€, we expect a challenge
         val transId: String = (response.body \ "id" \ "value") match {
           case JString(i) => i
           case _ => ""
@@ -272,7 +260,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //call answerTransactionRequestChallenge, give a false answer
         var answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "hello") //wrong answer, not a number
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "sandbox" / "transaction-requests" / transId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 400 bad request code")
         response.code should equal(400)
@@ -282,7 +270,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //call answerTransactionRequestChallenge again, give a good answer
         answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "12345") //wrong answer, not a number
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / "sandbox" / "transaction-requests" / transId / "challenge").POST <@ (user1)
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests" / transId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
         Then("we should get a 202 accepted code")
         response.code should equal(202)
@@ -318,6 +306,25 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         challenge = (response.body \ "challenge").children
         challenge.size should not equal(0)
+
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
+        //(do it here even though the payments test does test makePayment already)
+
+        val fromAccountBalance = getFromAccount.balance
+        And("the from account should have a balance smaller by the amount specified to pay")
+        fromAccountBalance should equal((beforeFromBalance - amt))
+
+        /*
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        */
+
+        And("the account receiving the payment should have a new balance plus the amount paid")
+        val toAccountBalance = getToAccount.balance
+        toAccountBalance should equal(beforeToBalance + amt)
+
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+        transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
       }
     }
 

@@ -32,24 +32,66 @@ Berlin 13359, Germany
 
 package code.api.util
 
+import code.api.util.APIUtil.ApiLink
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
-import net.liftweb.common.{Full, Loggable}
-import net.liftweb.http.{JsonResponse, S}
+import code.model._
+import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.{JObject, JValue}
-
-
-
-
+import net.liftweb.json._
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Helpers._
-
-import bootstrap.liftweb.Boot
 import net.liftweb.util.Props
 
 import scala.collection.JavaConversions.asScalaSet
+
+import scala.collection.mutable.ArrayBuffer
+
+import net.liftweb.http.CurrentReq
+import code.api.Constant._
+
+
+
+
+
+object ErrorMessages {
+
+  // Infrastructure / config messages
+  val HostnameNotSpecified = "OBP-00001: Hostname not specified. Could not get hostname from Props. Please edit your props file. Here are some example settings: hostname=http://127.0.0.1:8080 or hostname=https://www.example.com"
+
+  // General messages
+  val InvalidJsonFormat = "OBP-10001: Incorrect json format."
+  val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
+  val InvalidInitalBalance = "OBP-10003: Invalid Number. Initial balance must be a number, e.g 1000.00"
+
+
+
+  // Authentication / Authorisation messages
+  val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
+
+  val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
+  val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
+
+
+  val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
+
+
+
+  // Resource related messages
+  val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
+  val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
+
+  val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
+  val CounterpartyNotFound = "OBP-30004: Counterparty not found."
+
+  val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
+
+}
+
+
 
 
 object APIUtil extends Loggable {
@@ -64,6 +106,16 @@ object APIUtil extends Loggable {
       case _ => "GET"
     }
 
+  def isThereDirectLoginHeader : Boolean = {
+    S.request match {
+      case Full(a) =>  a.header("Authorization") match {
+        case Full(parameters) => parameters.contains("DirectLogin")
+        case _ => false
+      }
+      case _ => false
+    }
+  }
+
   def isThereAnOAuthHeader : Boolean = {
     S.request match {
       case Full(a) =>  a.header("Authorization") match {
@@ -76,6 +128,7 @@ object APIUtil extends Loggable {
 
   def logAPICall = {
     if(Props.getBool("write_metrics", false)) {
+      // TODO This should use Elastic Search or Kafka not an RDBMS
       APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
     }
   }
@@ -132,7 +185,7 @@ object APIUtil extends Loggable {
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{TreeMap, Map => IMap}
+    import scala.collection.immutable.{Map => IMap, TreeMap}
     import scala.collection.mutable.Set
 
     case class Consumer(key: String, secret: String)
@@ -261,16 +314,243 @@ object APIUtil extends Loggable {
   }
 
   /*
-  Used to document API calls / resources. correct place for this?
+  Used to document API calls / resources.
+
+  TODO Can we extract apiVersion, apiFunction, requestVerb and requestUrl from partialFunction?
+
    */
+
+  // Used to tag Resource Docs
+  case class ResourceDocTag(tag: String)
+
+  val apiTagPayment = ResourceDocTag("Payments")
+  val apiTagApiInfo = ResourceDocTag("APIInfo")
+  val apiTagBanks = ResourceDocTag("Banks")
+  val apiTagAccounts = ResourceDocTag("Accounts")
+  val apiTagPublicData = ResourceDocTag("PublicData")
+  val apiTagPrivateData = ResourceDocTag("PrivateData")
+  val apiTagTransactions = ResourceDocTag("Transactions")
+  val apiTagMetaData = ResourceDocTag("Meta Data")
+  val apiTagViews = ResourceDocTag("Views")
+  val apiTagEntitlements = ResourceDocTag("Entitlements")
+  val apiTagOwnerRequired = ResourceDocTag("OwnerViewRequired")
+  val apiTagCounterparties = ResourceDocTag("Counterparties")
+  val apiTagKyc = ResourceDocTag("KYC")
+  val apiTagCustomer = ResourceDocTag("Customer")
+
+
+  // Used to document the API calls
   case class ResourceDoc(
-                      apiVersion: String, // TODO: Constrain to certain strings?
-                      apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
-                      requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
-                      requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
-                      summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
-                      description: String, // Longer description (originally taken from github wiki)
-                      exampleRequestBody: JValue, // An example of the body required (maybe empty)
-                      successResponseBody: JValue, // A successful response body
-                      errorResponseBodies: List[JValue]) // Possible error responses
+    partialFunction : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    apiVersion: String, // TODO: Constrain to certain strings?
+    apiFunction: String, // The partial function that implements this resource. Could use it to link to the source code that implements the call
+    requestVerb: String, // GET, POST etc. TODO: Constrain to GET, POST etc.
+    requestUrl: String, // The URL (not including /obp/vX.X). Starts with / No trailing slash. TODO Constrain the string?
+    summary: String, // A summary of the call (originally taken from code comment) SHOULD be under 120 chars to be inline with Swagger
+    description: String, // Longer description (originally taken from github wiki)
+    exampleRequestBody: JValue, // An example of the body required (maybe empty)
+    successResponseBody: JValue, // A successful response body
+    errorResponseBodies: List[JValue], // Possible error responses
+    isCore: Boolean,
+    isPSD2: Boolean,
+    tags: List[ResourceDocTag]
+  )
+
+  // Define relations between API end points. Used to create _links in the JSON and maybe later for API Explorer browsing
+  case class ApiRelation(
+    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    rel : String
+  )
+
+  // Populated from Resource Doc and ApiRelation
+  case class InternalApiLink(
+    fromPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    toPF : PartialFunction[Req, Box[User] => Box[JsonResponse]],
+    rel : String,
+    requestUrl: String
+    )
+
+  // Used to pass context of current API call to the function that generates links for related Api calls.
+  case class DataContext(
+    user : Box[User],
+    bankId :  Option[BankId],
+    accountId: Option[AccountId],
+    viewId: Option[ViewId],
+    counterpartyId: Option[CounterpartyId],
+    transactionId: Option[TransactionId]
+)
+
+  case class CallerContext(
+    caller : PartialFunction[Req, Box[User] => Box[JsonResponse]]
+  )
+
+  case class CodeContext(
+    resourceDocsArrayBuffer : ArrayBuffer[ResourceDoc],
+    relationsArrayBuffer : ArrayBuffer[ApiRelation]
+  )
+
+
+
+  case class ApiLink(
+    rel: String,
+    href: String
+  )
+
+  case class LinksJSON(
+   _links: List[ApiLink]
+ )
+
+  case class ResultAndLinksJSON(
+    result : JValue,
+    _links: List[ApiLink]
+  )
+
+
+  def createResultAndLinksJSON(result : JValue, links : List[ApiLink] ) : ResultAndLinksJSON = {
+    new ResultAndLinksJSON(
+      result,
+      links
+    )
+  }
+
+
+
+  def authenticationRequiredMessage(authRequired: Boolean) : String =
+    authRequired match {
+      case true => "Authentication IS required"
+      case false => "Authentication is NOT required"
+    }
+
+
+
+  def apiVersionWithV(apiVersion : String) : String = {
+    // TODO Define a list of supported versions (put in Constant) and constrain the input
+    // Append v and replace _ with .
+    s"v${apiVersion.replaceAll("_",".")}"
+  }
+
+  def fullBaseUrl : String = {
+    val crv = CurrentReq.value
+    val apiPathZeroFromRequest = crv.path.partPath(0)
+    if (apiPathZeroFromRequest != ApiPathZero) throw new Exception("Configured ApiPathZero is not the same as the actual.")
+
+    val path = s"$HostName/$ApiPathZero"
+    path
+  }
+
+
+// Modify URL replacing placeholders for Ids
+  def contextModifiedUrl(url: String, context: DataContext) = {
+
+  // Potentially replace BANK_ID
+    val url2: String = context.bankId match {
+      case Some(x) => url.replaceAll("BANK_ID", x.value)
+      case _ => url
+    }
+
+    val url3: String = context.accountId match {
+      // Take care *not* to change OTHER_ACCOUNT_ID HERE
+      case Some(x) => url2.replaceAll("/ACCOUNT_ID", s"/${x.value}").replaceAll("COUNTERPARTY_ID", x.value)
+      case _ => url2
+    }
+
+    val url4: String = context.viewId match {
+      case Some(x) => url3.replaceAll("VIEW_ID", {x.value})
+      case _ => url3
+    }
+
+    val url5: String = context.counterpartyId match {
+      // Change OTHER_ACCOUNT_ID or COUNTERPARTY_ID
+      case Some(x) => url4.replaceAll("OTHER_ACCOUNT_ID", x.value).replaceAll("COUNTERPARTY_ID", x.value)
+      case _ => url4
+    }
+
+    val url6: String = context.transactionId match {
+      case Some(x) => url5.replaceAll("TRANSACTION_ID", x.value)
+      case _ => url5
+    }
+
+  // Add host, port, prefix, version.
+
+  // not correct because call could be in other version
+    val fullUrl = s"$fullBaseUrl$url6"
+
+  fullUrl
+  }
+
+
+  def getApiLinkTemplates(callerContext: CallerContext,
+                           codeContext: CodeContext
+                         ) : List[InternalApiLink] = {
+
+
+
+    // Relations of the API version where the caller is defined.
+    val relations =  codeContext.relationsArrayBuffer.toList
+
+    // Resource Docs
+    // Note: This doesn't allow linking to calls in earlier versions of the API
+    // TODO: Fix me
+    val resourceDocs =  codeContext.resourceDocsArrayBuffer
+
+    val pf = callerContext.caller
+
+    val internalApiLinks: List[InternalApiLink] = for {
+      relation <- relations.filter(r => r.fromPF == pf)
+      toResourceDoc <- resourceDocs.find(rd => rd.partialFunction == relation.toPF)
+    }
+      yield new InternalApiLink(
+        pf,
+        toResourceDoc.partialFunction,
+        relation.rel,
+        // Add the vVersion to the documented url
+        s"/${apiVersionWithV(toResourceDoc.apiVersion)}${toResourceDoc.requestUrl}"
+      )
+    internalApiLinks
+  }
+
+
+
+  // This is not currently including "templated" attribute
+  def halLinkFragment (link: ApiLink) : String = {
+    "\"" + link.rel +"\": { \"href\": \"" +link.href + "\" }"
+  }
+
+
+  // Since HAL links can't be represented via a case class, (they have dynamic attributes rather than a list) we need to generate them here.
+  def buildHalLinks(links: List[ApiLink]): JValue = {
+
+    val halLinksString = links match {
+      case head :: tail => tail.foldLeft("{"){(r: String, c: ApiLink) => ( r + " " + halLinkFragment(c) + " ,"  ) } + halLinkFragment(head) + "}"
+      case Nil => "{}"
+    }
+    parse(halLinksString)
+  }
+
+
+  // Returns API links (a list of them) that have placeholders (e.g. BANK_ID) replaced by values (e.g. ulster-bank)
+  def getApiLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : List[ApiLink]  = {
+    val templates = getApiLinkTemplates(callerContext, codeContext)
+    // Replace place holders in the urls like BANK_ID with the current value e.g. 'ulster-bank' and return as ApiLinks for external consumption
+    val links = templates.map(i => ApiLink(i.rel,
+      contextModifiedUrl(i.requestUrl, dataContext) )
+    )
+    links
+  }
+
+
+  // Returns links formatted at objects.
+  def getHalLinks(callerContext: CallerContext, codeContext: CodeContext, dataContext: DataContext) : JValue  = {
+    val links = getApiLinks(callerContext, codeContext, dataContext)
+    getHalLinksFromApiLinks(links)
+  }
+
+
+
+  def getHalLinksFromApiLinks(links: List[ApiLink]) : JValue = {
+    val halLinksJson = buildHalLinks(links)
+    halLinksJson
+  }
+
 }

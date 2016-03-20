@@ -30,13 +30,21 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 #our own remotely accessible URL
 #this is needed for oauth to work. it's important to access the api over this url, e.g.
 # if this is 127.0.0.1 don't use localhost to access it.
-# (this needs to be an URL)
+# (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
 #this is only useful for running the api locally via RunWebApp
 #if you use it, make sure this matches your hostname port!
 #if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
 dev.port=8080
+
+
+#The start of the api path (before the version)
+#It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
+#Including it here so we have a canonical source of the value
+#This was introduced March 2016, some code might use hardcoded value instead.
+#Default value is obp (highly recomended)
+apiPathZero=obp
 
 #sending mail out
 #not need in dev mode, but important for production
@@ -88,7 +96,7 @@ connection.password=thepassword
 importer_secret=change_me
 
 #set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
-messageQueue.updateBankAccountsTransaction=true
+messageQueue.updateBankAccountsTransaction=false
 
 #the minimum time between updates in hours
 messageQueue.updateTransactionsInterval=1
@@ -114,11 +122,23 @@ webui_index_page_about_section_text = <p class="about-text"> \
                                       </p>
 
 
-# API Explorer url. Change this to the instance of Sofi linked to this API. e.g. sofi.openbankproject.com/api-explorer
-webui_api_explorer_url = http://sofi.openbankproject.com/api-explorer
+# API Explorer url. Change to your instance
+webui_api_explorer_url = http://apiexplorer.openbankproject.com
+
+# Sofi url. (AKA Social Finance) Change to your instance
+webui_sofi_url = http://sofi.openbankproject.com
 
 # Starting page of documentation. Change this if you have a specific landing page.
 webui_api_documentation_url = https://github.com/OpenBankProject/OBP-API/wiki
+
+
+# To display a custom message above the username / password box
+# We currently use this to display example customer login in sandbox etc.
+webui_login_page_special_instructions=
+
+# Link for SDKs
+webui_sdks_url = https://github.com/OpenBankProject/OBP-API/wiki/OAuth-Client-SDKS
+
 
 
 ## For partner logos and links
@@ -131,3 +151,13 @@ webui_main_style_sheet = /media/css/website.css
 
 # Override certain elements (with important styles)
 webui_override_style_sheet =
+
+
+## API Options
+apiOptions.getBranchesIsPublic = true
+apiOptions.getAtmsIsPublic = true
+apiOptions.getProductsIsPublic = true
+
+# Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
+# e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
+defaultBank.bank_id=THE_DEFAULT_BANK_ID

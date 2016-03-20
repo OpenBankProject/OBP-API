@@ -104,6 +104,15 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+// In preparation for use in Context (api links) To replace OtherAccountId
+case class CounterpartyId(val value : String) {
+  override def toString = value
+}
+
+object CounterpartyId {
+  def unapply(id : String) = Some(CounterpartyId(id))
+}
+
 trait Bank {
   def bankId: BankId
   def shortName : String

@@ -25,19 +25,13 @@ Berlin 13359, Germany
 
 import java.util.{Properties, UUID}
 
-import scala.concurrent.ops._
-import scala.concurrent.duration._
-
-import net.liftweb.util.Props
-
-import kafka.utils.{ZkUtils, ZKStringSerializer}
-import org.I0Itec.zkclient.ZkClient
-import kafka.consumer.Consumer
-import kafka.consumer._
-import kafka.consumer.KafkaStream
+import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
-
+import kafka.utils.{Json, ZKStringSerializer, ZkUtils}
+import net.liftweb.json.DefaultFormats
+import net.liftweb.util.Props
+import org.I0Itec.zkclient.ZkClient
 
 object ZooKeeperUtils {
   // gets brokers tracked by zookeeper
@@ -89,6 +83,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     val config = new ConsumerConfig(props)
     config
   }
+
   def getResponse(reqId: String): List[Map[String, String]] = {
     // create single stream for topic 
     val topicCountMap = Map(topic -> 1)
@@ -107,12 +102,14 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
           if (key == reqId) {
             // disconnect from kafka
             shutdown()
-            // split result if it contains multiple answers
-            val msgList = msg.split("\\},\\{") 
-            // match '"<key>":"<value>"', with possible space after colon 
-            val p = """"([a-zA-Z0-9_-]*?)":"(.*?)"""".r
-            val r = (for( m <- msgList) yield (for( p(k, v) <- p.findAllIn(m) ) yield  (k -> v)).toMap[String, String]).toList
-            return r;
+            // Parse JSON message
+            val json = Json.parseFull(msg)
+            val r = json.get match {
+              case l: List[Map[String,String]] => l.asInstanceOf[List[Map[String, String]]]
+              case m: Map[String,String] => List(m.asInstanceOf[Map[String, String]])
+              case _ => List(Map("error" -> "incorrect JSON format"))
+            }
+            return r
           }
         }
       }
@@ -129,7 +126,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
   }
 }
 
-import ZooKeeperUtils._
+import code.bankconnectors.ZooKeeperUtils._
 
 case class KafkaProducer(
                           topic: String          = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set"),
@@ -170,11 +167,23 @@ case class KafkaProducer(
     }
   }
 
+  //case class Argument(name: String, value: String)
+
+
+  case class Tweet(
+    username: String,
+    tweet: String,
+    date: String
+)
+
+
+  implicit val formats = DefaultFormats
+
   def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
-    // create string from named map of arguments
-    val args = (for ( (k,v) <- arguments ) yield { s""""$k":"$v",""" }).mkString.replaceAll(",$", "")
     // create message using request and arguments strings
-    val message = s"$request:{$args}"
+    val reqArguments = arguments.map { args => Map(args._1 ->  args._2) }
+    val reqCommand   = Map(request -> reqArguments)
+    val message      = Json.encode(reqCommand)
     // translate strings to utf8 before sending to kafka
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
   }
@@ -189,4 +198,3 @@ case class KafkaProducer(
     }
   }
 }
-

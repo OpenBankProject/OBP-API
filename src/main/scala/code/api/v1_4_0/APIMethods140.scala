@@ -3,7 +3,9 @@ package code.api.v1_4_0
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
+import code.metadata.comments.MappedComment
 import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
@@ -16,15 +18,21 @@ import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
 
+
+import code.api.v1_2_1.{AmountOfMoneyJSON}
+
 import scala.collection.immutable.Nil
 
 // JObject creation
 import collection.mutable.ArrayBuffer
 
 import code.api.APIFailure
-import code.api.v1_2_1.APIMethods121
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_2_1.{OBPAPI1_2_1, APIInfoJSON, HostedBy, APIMethods121}
+import code.api.v1_3_0.{OBPAPI1_3_0, APIMethods130}
+//import code.api.v2_0_0.{OBPAPI2_0_0, APIMethods200}
+
+// So we can include resource docs from future versions
+//import code.api.v1_4_0.JSONFactory1_4_0._
 import code.atms.Atms
 import code.branches.Branches
 import code.crm.CrmEvent
@@ -32,9 +40,14 @@ import code.customer.{MockCustomerFaceImage, CustomerMessages, Customer}
 import code.model._
 import code.products.Products
 import code.api.util.APIUtil._
+import code.api.util.ErrorMessages
+
 import code.util.Helper._
 import code.api.util.APIUtil.ResourceDoc
 import java.text.SimpleDateFormat
+
+import code.api.util.APIUtil.authenticationRequiredMessage
+
 
 trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
@@ -52,15 +65,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     val exampleDate = simpleDateFormat.parse(exampleDateString)
 
 
-    def getResourceDocsList : Option[List[ResourceDoc]] =
-    {
-      // Get the Resource Docs for this and previous versions of the API
-      val cumulativeResourceDocs = resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
-      // Sort by endpoint, verb. Thus / is shown first then /accounts and /banks etc. Seems to read quite well like that.
-      Some(cumulativeResourceDocs.toList.sortBy(rd => (rd.requestUrl, rd.requestVerb)))
-    }
-
     resourceDocs += ResourceDoc(
+      getCustomer,
       apiVersion,
       "getCustomer",
       "GET",
@@ -71,14 +77,17 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             info <- Customer.customerProvider.vend.getCustomer(bankId, u) ?~ "No customer information found for current user"
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
@@ -89,6 +98,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
     resourceDocs += ResourceDoc(
+      getCustomerMessages,
       apiVersion,
       "getCustomerMessages",
       "GET",
@@ -99,14 +109,17 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       |Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve customer messages"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             //au <- APIUser.find(By(APIUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
@@ -119,6 +132,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
     resourceDocs += ResourceDoc(
+      addCustomerMessage,
       apiVersion,
       "addCustomerMessage",
       "POST",
@@ -128,16 +142,18 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer)
     )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
-        val test = Bank(bankId)
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
@@ -150,31 +166,41 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       }
     }
 
+
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
     resourceDocs += ResourceDoc(
+      getBranches,
       apiVersion,
       "getBranches",
       "GET",
       "/banks/BANK_ID/branches",
       "Get branches for the bank",
-      """Returns information about branches for a single bank specified by BANK_ID including:
+      s"""Returns information about branches for a single bank specified by BANK_ID including:
         |
         |* Name
         |* Address
         |* Geo Location
         |* License the data under this endpoint is released under
         |
-        |Authentication via OAuth *may* be required.""",
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "branches" :: Nil JsonGet _ => {
         user => {
           for {
-            u <- user ?~! "User must be logged in to retrieve Branches data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- if(getBranchesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! "User must be logged in to retrieve Branches data"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             // Get branches from the active provider
             branches <- Box(Branches.branchesProvider.vend.getBranches(bankId)) ~> APIFailure("No branches available. License may not be set.", 204)
           } yield {
@@ -187,23 +213,28 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
 
+    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
 
     resourceDocs += ResourceDoc(
+      getAtms,
       apiVersion,
       "getAtms",
       "GET",
       "/banks/BANK_ID/atms",
       "Get ATMS for the bank",
-      """Returns information about ATMs for a single bank specified by BANK_ID including:
+      s"""Returns information about ATMs for a single bank specified by BANK_ID including:
          |
          |* Address
          |* Geo Location
          |* License the data under this endpoint is released under
          |
-         |Authentication via OAuth *may* be required.""",
+         |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -211,8 +242,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
           // Get atms from the active provider
-            u <- user ?~! "User must be logged in to retrieve ATM data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+
+            u <- if(getAtmsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! "User must be logged in to retrieve ATM data"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             atms <- Box(Atms.atmsProvider.vend.getAtms(bankId)) ~> APIFailure("No ATMs available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -225,13 +260,17 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
 
+    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+
+
     resourceDocs += ResourceDoc(
+      getProducts,
       apiVersion,
       "getProducts",
       "GET",
       "/banks/BANK_ID/products",
       "Get products offered by the bank",
-      """Returns information about financial products offered by a bank specified by BANK_ID including:
+      s"""Returns information about financial products offered by a bank specified by BANK_ID including:
         |
         |* Name
         |* Code
@@ -241,10 +280,14 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |* More info URL
         |* Description
         |* Terms and Conditions
-        |* License the data under this endpoint is released under""",
+        |* License the data under this endpoint is released under
+        |${authenticationRequiredMessage(!getProductsIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -252,8 +295,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user => {
           for {
           // Get products from the active provider
-            u <- user ?~! "User must be logged in to retrieve Products data"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            u <- if(getProductsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! "User must be logged in to retrieve Products data"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             products <- Box(Products.productsProvider.vend.getProducts(bankId)) ~> APIFailure("No products available. License may not be set.", 204)
           } yield {
             // Format the data as json
@@ -267,6 +313,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
 
     resourceDocs += ResourceDoc(
+      getCrmEvents,
       apiVersion,
       "getCrmEvents",
       "GET",
@@ -275,7 +322,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer)
     )
 
     lazy val getCrmEvents : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -284,7 +334,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             // Get crm events from the active provider
             u <- user ?~! "User must be logged in to retrieve CRM Event information"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             crmEvents <- Box(CrmEvent.crmEventProvider.vend.getCrmEvents(bankId)) ~> APIFailure("No CRM Events available.", 204)
           } yield {
             // Format the data as json
@@ -295,40 +345,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         }
       }
     }
-
-    resourceDocs += ResourceDoc(
-      apiVersion,
-      "getResourceDocs",
-      "GET",
-      "/resource-docs/obp",
-      "Get Resource Documentation in OBP format.",
-      "Returns documentation about the resources on this server including example body for POST or PUT requests.",
-      emptyObjectJson,
-      emptyObjectJson,
-      emptyObjectJson :: Nil
-    )
-
-    // Provides resource documents so that live docs (currently on Sofi) can display API documentation
-    lazy val getResourceDocs : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "resource-docs" :: "obp" :: Nil JsonGet _ => {
-        user => {
-          for {
-            rd <- getResourceDocsList
-          } yield {
-            // Format the data as json
-            val json = JSONFactory1_4_0.createResourceDocsJson(rd)
-            // Return
-            successJsonResponse(Extraction.decompose(json))
-          }
-        }
-      }
-    }
-
     /*
      transaction requests (new payments since 1.4.0)
     */
 
     resourceDocs += ResourceDoc(
+      getTransactionRequestTypes,
       apiVersion,
       "getTransactionRequestTypes",
       "GET",
@@ -337,7 +359,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -345,8 +370,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
@@ -361,6 +386,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     }
 
     resourceDocs += ResourceDoc(
+      getTransactionRequests,
       apiVersion,
       "getTransactionRequests",
       "GET",
@@ -369,16 +395,19 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
@@ -397,12 +426,19 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     case class TransactionIdJson(transaction_id : String)
 
     resourceDocs += ResourceDoc(
+      createTransactionRequest,
       apiVersion,
       "createTransactionRequest",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
-      "",
+      """Initiate a Payment via a Transaction Request.
+        |
+        |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+        |
+        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+        |
+        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
       Extraction.decompose(TransactionRequestBodyJSON (
                                 TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
                                 AmountOfMoneyJSON("EUR", "100.53"),
@@ -411,7 +447,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                                 )
                           ),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -423,14 +462,14 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
                * test: functionality, error messages if user not given or invalid, if any other value is not existing
               */
-              u <- user ?~ "User not found"
-              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {"Invalid json format"}
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
               transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound}
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
-              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {"Unknown counterparty account"}
+              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {ErrorMessages.CounterpartyNotFound}
               accountsCurrencyEqual <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
               transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
               rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
@@ -448,15 +487,19 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
 
     resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
       apiVersion,
       "answerTransactionRequestChallenge",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "",
+      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -464,8 +507,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-              u <- user ?~ "User not found"
-              fromBank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
@@ -487,20 +530,26 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
 
     resourceDocs += ResourceDoc(
+      addCustomer,
       apiVersion,
       "addCustomer",
       "POST",
       "/banks/BANK_ID/customer",
       "Add a customer.",
       """Add a customer linked to the currently authenticated user.
-        |This call is experimental and will require additional permissions/role in the future.
+        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+        |This call may require additional permissions/role in the future.
         |For now the authenticated user can create at most one linked customer.
         |OAuth authentication is required.
         |""",
       Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs",
-        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate))),
+        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      List(apiTagCustomer))
 
     lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //updates a view on a bank account
@@ -508,7 +557,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         user =>
           for {
             u <- user ?~! "User must be logged in to post Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {"Unknown bank id"}
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
             customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ "Customer already exists for this user."
             postedData <- tryo{json.extract[CustomerJson]} ?~! "Incorrect json format"
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
@@ -517,7 +566,15 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.legal_name,
                 postedData.mobile_phone_number,
                 postedData.email,
-                MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url)) ?~! "Could not create customer"
+                MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+                postedData.date_of_birth,
+                postedData.relationship_status,
+                postedData.dependants,
+                postedData.dob_of_dependants,
+                postedData.highest_education_attained,
+                postedData.employment_status,
+                postedData.kyc_status,
+                postedData.last_ok_date) ?~! "Could not create customer"
           } yield {
             val successJson = Extraction.decompose(customer)
             successJsonResponse(successJson)
@@ -529,10 +586,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
+        dummy(apiVersion),
         apiVersion,
         "testResourceDoc",
         "GET",
-        "/i-do-not-exist-i-will-404",
+        "/dummy",
         "I am only a test resource Doc",
         """
             |
@@ -562,7 +620,26 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             |_etc_...""",
           emptyObjectJson,
           emptyObjectJson,
-        emptyObjectJson :: Nil)
+        emptyObjectJson :: Nil,
+        false,
+        false,
+        Nil)
       }
+
+
+
+    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "dummy" :: Nil JsonGet json => {
+        user =>
+          val apiDetails: JValue = {
+            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            Extraction.decompose(apiInfoJSON)
+          }
+
+          Full(successJsonResponse(apiDetails, 200))
+      }
+    }
+
   }
 }

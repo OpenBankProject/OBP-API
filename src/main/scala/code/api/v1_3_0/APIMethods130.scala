@@ -30,6 +30,7 @@ trait APIMethods130 {
 
 
     resourceDocs += ResourceDoc(
+      getCards,
       apiVersion,
       "getCards",
       "GET",
@@ -38,7 +39,10 @@ trait APIMethods130 {
       "Returns data about all the physical cards a user has been issued. These could be debit cards, credit cards, etc.",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      Nil)
 
     lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "cards" :: Nil JsonGet _ => {
@@ -58,6 +62,7 @@ trait APIMethods130 {
 
 
     resourceDocs += ResourceDoc(
+      getCardsForBank,
       apiVersion,
       "getCardsForBank",
       "GET",
@@ -66,7 +71,10 @@ trait APIMethods130 {
       "",
       emptyObjectJson,
       emptyObjectJson,
-      emptyObjectJson :: Nil)
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      Nil)
 
 
     def getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
