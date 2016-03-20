@@ -29,7 +29,8 @@ import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.utils.{Json, ZKStringSerializer, ZkUtils}
-import net.liftweb.json.DefaultFormats
+import net.liftweb.json
+import net.liftweb.json._
 import net.liftweb.util.Props
 import org.I0Itec.zkclient.ZkClient
 
@@ -73,15 +74,21 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     props.put("zookeeper.connect", zookeeper)
     props.put("group.id", groupId)
     props.put("auto.offset.reset", "smallest")
-    props.put("zookeeper.session.timeout.ms", "6000")
-    props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("session.timeout.ms", "6000");
-    props.put("zookeeper.sync.time.ms", "1000")
-    props.put("consumer.timeout.ms", "6000")
+    props.put("zookeeper.session.timeout.ms", "16000")
+    props.put("zookeeper.connection.timeout.ms", "16000")
+    props.put("session.timeout.ms", "16000");
+    props.put("zookeeper.sync.time.ms", "16000")
+    props.put("consumer.timeout.ms", "16000")
     props.put("auto.commit.enable", "true");
     props.put("auto.commit.interval.ms", "1000")
     val config = new ConsumerConfig(props)
     config
+  }
+
+  implicit var formats = DefaultFormats
+
+  def customParser(in: List[Map[String,String]]): List[Map[String,String]] = {
+    in
   }
 
   def getResponse(reqId: String): List[Map[String, String]] = {
@@ -103,13 +110,11 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
             // disconnect from kafka
             shutdown()
             // Parse JSON message
-            val json = Json.parseFull(msg)
-            val r = json.get match {
-              case l: List[Map[String,String]] => l.asInstanceOf[List[Map[String, String]]]
-              case m: Map[String,String] => List(m.asInstanceOf[Map[String, String]])
+            val j = json.parse(msg)
+            return j.extractOpt[List[Map[String, String]]].getOrElse() match {
+              case l: List[Map[String, String]] => customParser(l)
               case _ => List(Map("error" -> "incorrect JSON format"))
             }
-            return r
           }
         }
       }
@@ -181,8 +186,7 @@ case class KafkaProducer(
 
   def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
     // create message using request and arguments strings
-    val reqArguments = arguments.map { args => Map(args._1 ->  args._2) }
-    val reqCommand   = Map(request -> reqArguments)
+    val reqCommand   = Map(request -> arguments)
     val message      = Json.encode(reqCommand)
     // translate strings to utf8 before sending to kafka
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
