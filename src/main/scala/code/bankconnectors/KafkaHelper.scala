@@ -65,22 +65,25 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
   val config = createConsumerConfig(zookeeper, groupId)
   val consumer = Consumer.create(config)
 
+  // create single stream for topic
+  var consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+
   def shutdown() = {
     if (consumer != null)
       consumer.shutdown()
   }
+
   def createConsumerConfig(zookeeper: String, groupId: String): ConsumerConfig = {
     val props = new Properties()
     props.put("zookeeper.connect", zookeeper)
     props.put("group.id", groupId)
     props.put("auto.offset.reset", "smallest")
-    props.put("zookeeper.session.timeout.ms", "16000")
-    props.put("zookeeper.connection.timeout.ms", "16000")
-    props.put("session.timeout.ms", "16000");
-    props.put("zookeeper.sync.time.ms", "16000")
-    props.put("consumer.timeout.ms", "16000")
-    props.put("auto.commit.enable", "true");
+    props.put("auto.commit.enable", "true")
+    props.put("zookeeper.sync.time.ms", "2000")
     props.put("auto.commit.interval.ms", "1000")
+    props.put("zookeeper.session.timeout.ms", "6000")
+    props.put("zookeeper.connection.timeout.ms", "6000")
+    props.put("consumer.timeout.ms", "10000")
     val config = new ConsumerConfig(props)
     config
   }
@@ -92,9 +95,10 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
   }
 
   def getResponse(reqId: String): List[Map[String, String]] = {
-    // create single stream for topic 
-    val topicCountMap = Map(topic -> 1)
-    val consumerMap = consumer.createMessageStreams(topicCountMap)
+    // recreate stream for topic if not existing
+    if ( consumerMap == null ) {
+      consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+    }
     val streams = consumerMap.get(topic).get
     // process streams
     for (stream <- streams) {
@@ -107,8 +111,6 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
           val key = new String(mIt.key(), "UTF8")
           // check if the id matches
           if (key == reqId) {
-            // disconnect from kafka
-            shutdown()
             // Parse JSON message
             val j = json.parse(msg)
             return j.extractOpt[List[Map[String, String]]].getOrElse() match {
@@ -120,8 +122,6 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
       }
       catch {
         case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
-        // disconnect from kafka
-        shutdown()
         return List(Map("error" -> "timeout"))
       }
     }
@@ -144,6 +144,7 @@ case class KafkaProducer(
                           requestRequiredAcks: Integer   = -1
                           ) {
 
+
   // determine compression codec
   val codec = if (compress) DefaultCompressionCodec.codec else NoCompressionCodec.codec
 
@@ -156,7 +157,6 @@ case class KafkaProducer(
   props.put("message.send.max.retries", messageSendMaxRetries.toString)
   props.put("request.required.acks", requestRequiredAcks.toString)
   props.put("client.id", clientId.toString)
-  props.put("session.timeout.ms", "4000");
 
   // create producer
   val producer = new Producer[AnyRef, AnyRef](new ProducerConfig(props))
@@ -171,16 +171,6 @@ case class KafkaProducer(
       new KeyedMessage(topic, key, partition, message)
     }
   }
-
-  //case class Argument(name: String, value: String)
-
-
-  case class Tweet(
-    username: String,
-    tweet: String,
-    date: String
-)
-
 
   implicit val formats = DefaultFormats
 
@@ -201,4 +191,5 @@ case class KafkaProducer(
         e.printStackTrace()
     }
   }
+
 }
