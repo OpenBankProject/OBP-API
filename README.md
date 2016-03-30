@@ -96,12 +96,12 @@ If you use Ubuntu (or a derivate) and encrypted home directories (e.g. you have 
 The current workaround is to move the project directory onto a different partition, e.g. under /opt/ .
 
 
-# Databases:
+## Databases:
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
 
-# Kafka (optional):
+## Kafka (optional):
 
 If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper have to be installed, as well as OBP-Kafka-Python (which can be either running from command-propmpt or from inside Docker container):
 
@@ -110,7 +110,9 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 * OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
 
-# Lift
-# We use liftweb http://www.liftweb.net/
-# Advanced architecture: http://exploring.liftweb.net/master/index-9.html
+## Scala / Lift
+
+* We use scala and liftweb http://www.liftweb.net/
+
+* Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 
