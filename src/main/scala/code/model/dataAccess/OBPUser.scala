@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.api.{DirectLogin, OAuthHandshake}
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, To, Subject, From}
 import net.liftweb.util._
@@ -151,6 +152,16 @@ import net.liftweb.util.Helpers._
     <div>{loginXml getOrElse NodeSeq.Empty}</div>
   }
 
+  /**
+   * Find current user
+   */
+  def getCurrentUserUsername: String = {
+    if (OAuthHandshake.getUser.getOrElse(None) != None )
+      return OAuthHandshake.getUser.get.emailAddress
+    if (DirectLogin.getUser.getOrElse(None) != None)
+      return DirectLogin.getUser.get.emailAddress
+    return ""
+  }
 
   /**
    * Overridden to use the hostname set in the props file
@@ -260,7 +271,7 @@ import net.liftweb.util.Helpers._
     val producer: KafkaProducer = new KafkaProducer()
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
-    val argList = Map( "email" -> username,
+    val argList = Map( "email" -> username.toLowerCase,
                         "password" -> password )
     producer.send(reqId, "getUser", argList, "1")
 
@@ -275,11 +286,11 @@ import net.liftweb.util.Helpers._
     var recDisplayName = r.getOrElse("display_name", "Not Found")
     var recEmail = r.getOrElse("email", "Not Found")
 
-    if (recEmail == username && recEmail != "Not Found") {
+    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
       if (recDisplayName == "")
-        Full(new SandboxUserImport( username, password, recEmail))
+        Full(new SandboxUserImport( recEmail, password, recEmail))
       else
-        Full(new SandboxUserImport( username, password, recDisplayName))
+        Full(new SandboxUserImport( recEmail, password, recDisplayName))
     } else {
       // If empty result from Kafka return empty data
       Empty
@@ -338,7 +349,7 @@ import net.liftweb.util.Helpers._
           case _ => {
             // Create OBPUser using fetched data from Kafka
             // assuming that user's email is always validated
-            info("external user does not exist locally, creating one")
+            info("external user "+ extEmail +" does not exist locally, creating one")
             val newUser = OBPUser.create
               .firstName(extDisplayName)
               .email(extEmail)

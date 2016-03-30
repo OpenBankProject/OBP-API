@@ -277,7 +277,12 @@ object DirectLogin extends RestHelper with Loggable {
       case _ => "GET"
     }
     val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
-    val user = getUser(200, directLoginParameters.get("token"))
+    val user = getUser(200, if (directLoginParameters.isDefinedAt("token"))
+                              directLoginParameters.get("token")
+                            else
+                              Empty
+    )
+
     if (user != Empty ) {
       val res = Full(user.get)
       res

@@ -29,7 +29,8 @@ import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.utils.{Json, ZKStringSerializer, ZkUtils}
-import net.liftweb.json.DefaultFormats
+import net.liftweb.json
+import net.liftweb.json._
 import net.liftweb.util.Props
 import org.I0Itec.zkclient.ZkClient
 
@@ -64,30 +65,40 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
   val config = createConsumerConfig(zookeeper, groupId)
   val consumer = Consumer.create(config)
 
+  // create single stream for topic
+  var consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+
   def shutdown() = {
     if (consumer != null)
       consumer.shutdown()
   }
+
   def createConsumerConfig(zookeeper: String, groupId: String): ConsumerConfig = {
     val props = new Properties()
     props.put("zookeeper.connect", zookeeper)
     props.put("group.id", groupId)
     props.put("auto.offset.reset", "smallest")
+    props.put("auto.commit.enable", "true")
+    props.put("zookeeper.sync.time.ms", "2000")
+    props.put("auto.commit.interval.ms", "1000")
     props.put("zookeeper.session.timeout.ms", "6000")
     props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("session.timeout.ms", "6000");
-    props.put("zookeeper.sync.time.ms", "1000")
-    props.put("consumer.timeout.ms", "6000")
-    props.put("auto.commit.enable", "true");
-    props.put("auto.commit.interval.ms", "1000")
+    props.put("consumer.timeout.ms", "10000")
     val config = new ConsumerConfig(props)
     config
   }
 
+  implicit var formats = DefaultFormats
+
+  def customParser(in: List[Map[String,String]]): List[Map[String,String]] = {
+    in
+  }
+
   def getResponse(reqId: String): List[Map[String, String]] = {
-    // create single stream for topic 
-    val topicCountMap = Map(topic -> 1)
-    val consumerMap = consumer.createMessageStreams(topicCountMap)
+    // recreate stream for topic if not existing
+    if ( consumerMap == null ) {
+      consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+    }
     val streams = consumerMap.get(topic).get
     // process streams
     for (stream <- streams) {
@@ -100,23 +111,17 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
           val key = new String(mIt.key(), "UTF8")
           // check if the id matches
           if (key == reqId) {
-            // disconnect from kafka
-            shutdown()
             // Parse JSON message
-            val json = Json.parseFull(msg)
-            val r = json.get match {
-              case l: List[Map[String,String]] => l.asInstanceOf[List[Map[String, String]]]
-              case m: Map[String,String] => List(m.asInstanceOf[Map[String, String]])
+            val j = json.parse(msg)
+            return j.extractOpt[List[Map[String, String]]].getOrElse() match {
+              case l: List[Map[String, String]] => customParser(l)
               case _ => List(Map("error" -> "incorrect JSON format"))
             }
-            return r
           }
         }
       }
       catch {
         case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
-        // disconnect from kafka
-        shutdown()
         return List(Map("error" -> "timeout"))
       }
     }
@@ -139,6 +144,7 @@ case class KafkaProducer(
                           requestRequiredAcks: Integer   = -1
                           ) {
 
+
   // determine compression codec
   val codec = if (compress) DefaultCompressionCodec.codec else NoCompressionCodec.codec
 
@@ -151,7 +157,6 @@ case class KafkaProducer(
   props.put("message.send.max.retries", messageSendMaxRetries.toString)
   props.put("request.required.acks", requestRequiredAcks.toString)
   props.put("client.id", clientId.toString)
-  props.put("session.timeout.ms", "4000");
 
   // create producer
   val producer = new Producer[AnyRef, AnyRef](new ProducerConfig(props))
@@ -167,22 +172,11 @@ case class KafkaProducer(
     }
   }
 
-  //case class Argument(name: String, value: String)
-
-
-  case class Tweet(
-    username: String,
-    tweet: String,
-    date: String
-)
-
-
   implicit val formats = DefaultFormats
 
   def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
     // create message using request and arguments strings
-    val reqArguments = arguments.map { args => Map(args._1 ->  args._2) }
-    val reqCommand   = Map(request -> reqArguments)
+    val reqCommand   = Map(request -> arguments)
     val message      = Json.encode(reqCommand)
     // translate strings to utf8 before sending to kafka
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
@@ -197,4 +191,5 @@ case class KafkaProducer(
         e.printStackTrace()
     }
   }
+
 }
