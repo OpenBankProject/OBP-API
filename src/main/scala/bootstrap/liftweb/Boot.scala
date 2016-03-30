@@ -58,6 +58,7 @@ import code.metrics.MappedMetric
 import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
+import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.tesobe.CashAccountAPI
 import code.transactionrequests.MappedTransactionRequest
@@ -412,5 +413,6 @@ object ToSchemify {
     MappedKycMedia,
     MappedKycCheck,
     MappedKycStatus,
-    MappedSocialMedia)
+    MappedSocialMedia,
+    MappedTransactionType)
 }

@@ -2,6 +2,8 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 
+import code.TransactionTypes.TransactionType
+import code.api.APIFailure
 import code.api.util.APIUtil
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
@@ -929,28 +931,6 @@ trait APIMethods200 {
       }
     }
 
-    //
-
-    lazy val tempTemp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
-        user => {
-          for {
-            postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
-            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
-            messageCreated <- booleanToBox(
-              CustomerMessages.customerMessageProvider.vend.addMessage(
-                customer, bankId, postedData.message, postedData.from_department, postedData.from_person),
-              "Server error: could not add message")
-          } yield {
-            successJsonResponse(JsRaw("{}"), 201)
-          }
-        }
-      }
-    }
-
-    ////
-
 
 
     resourceDocs += ResourceDoc(
@@ -991,6 +971,7 @@ trait APIMethods200 {
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~ s"Problem getting balance currency"
             bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
             bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, u.name)
@@ -1006,6 +987,59 @@ trait APIMethods200 {
         }
       }
     }
+
+
+
+    val getTransactionTypesIsPublic = Props.getBool("apiOptions.getTransactionTypesIsPublic", true)
+
+
+    resourceDocs += ResourceDoc(
+      getTransactionTypes,
+      apiVersion,
+      "getTransactionTypes",
+      "GET",
+      "/banks/BANK_ID/transaction-types",
+      "Get transaction-types offered by the bank",
+      // TODO get the documentation of the parameters from the scala doc of the case class we return
+      s"""Returns transaction types for the bank specified by BANK_ID:
+          |
+          |  * id : Unique transaction type id across the API instance. Ideally a UUID
+          |  * bank_id : The bank that supports this TransactionType
+          |  * short_code : A short code (ideally-no-spaces) which is unique across the bank. Could be stored with Transactions to link here
+          |  * summary : A succinct summary
+          |  * description : A longer description
+          |  * customer_fee : The fee to the customer for each one of these
+          |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      List(apiTagBanks)
+    )
+
+    lazy val getTransactionTypes : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "transaction-types" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get Transaction Types from the active provider
+            u <- if(getTransactionTypesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! "User must be logged in to retrieve Transaction Types data"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+            transactionTypes <- TransactionType.TransactionTypeProvider.vend.getTransactionTypesForBank(bank.bankId) // ~> APIFailure("No transation types available. License may not be set.", 204)
+          } yield {
+            // Format the data as json
+            val json = JSONFactory200.createTransactionTypeJSON(transactionTypes)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
 
   }
 }

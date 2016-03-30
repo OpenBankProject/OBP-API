@@ -33,6 +33,7 @@ package code.api.v2_0_0
 
 import java.net.URL
 import java.util.Date
+import code.TransactionTypes.TransactionType.TransactionType
 import code.api.util.APIUtil.ApiLink
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
@@ -152,6 +153,42 @@ case class SocialMediaJSON(
 )
 case class SocialMediasJSON(checks: List[SocialMediaJSON])
 
+
+
+// TODO Use the scala doc of a case class in the Resource Doc if a case class is given as a return type
+
+
+/** A TransactionType categorises a transaction on a bank statement.
+  *
+  * i.e. it justifies the reason for a transaction on a bank statement to exist
+  * e.g. a bill-payment, ATM-withdrawal, interest-payment or some kind of fee to the customer.
+  *
+  * This is the JSON respresentation (v2.0.0) of the object
+  *
+  * @param id Unique id across the API instance. Ideally a UUID
+  * @param bank_id The bank that supports this TransactionType
+  * @param short_code A short code (ideally-no-spaces) which is unique across the bank. Should map to transaction.details.types
+  * @param summary A succinct summary
+  * @param description A longer description
+  * @param customer_fee The fee to the customer for each one of these
+  */
+
+case class TransactionTypeJSON (
+   id: TransactionTypeId,
+   bank_id : String,
+   short_code : String,
+   summary: String,
+   description: String,
+   customer_fee: AmountOfMoneyJSON121
+ )
+
+
+
+case class TransactionTypesJSON(transaction_types: List[TransactionTypeJSON])
+
+
+
+
 object JSONFactory200{
 
 
@@ -201,8 +238,6 @@ object JSONFactory200{
   }
 
 
-
-
   case class ModeratedCoreAccountJSON(
                                    id : String,
                                    label : String,
@@ -214,10 +249,6 @@ object JSONFactory200{
                                    swift_bic: String,
                                    bank_id : String
                                  )
-
-
-  ////
-
 
   case class CoreTransactionsJSON(
                                transactions: List[CoreTransactionJSON]
@@ -414,6 +445,28 @@ object JSONFactory200{
   }
   def createSocialMediasJSON(messages : List[SocialMedia]) : SocialMediasJSON = {
     SocialMediasJSON(messages.map(createSocialMediaJSON))
+  }
+
+
+  /** Creates v2.0.0 representation of a TransactionType
+    *
+    *
+    * @param transactionType An internal TransactionType instance
+    * @return a v2.0.0 representation of a TransactionType
+    */
+
+def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTypeJSON = {
+    new TransactionTypeJSON(
+      id = transactionType.id,
+      bank_id = transactionType.bankId.toString,
+      short_code = transactionType.shortCode,
+      summary = transactionType.summary,
+      description = transactionType.description,
+      customer_fee = new AmountOfMoneyJSON121(currency = transactionType.customerFee.currency, amount = transactionType.customerFee.amount)
+    )
+  }
+  def createTransactionTypeJSON(transactionTypes : List[TransactionType]) : TransactionTypesJSON = {
+    TransactionTypesJSON(transactionTypes.map(createTransactionTypeJSON))
   }
 
   // Copied from 1.2.1 (import just this def instead?)

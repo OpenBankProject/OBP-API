@@ -27,7 +27,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object amount extends MappedLong(this)
   object newAccountBalance extends MappedLong(this)
 
-  object currency extends MappedString(this, 10)
+  object currency extends MappedString(this, 10) // This should probably be 3 only characters long
 
   object tStartDate extends MappedDateTime(this)
   object tFinishDate extends MappedDateTime(this)
