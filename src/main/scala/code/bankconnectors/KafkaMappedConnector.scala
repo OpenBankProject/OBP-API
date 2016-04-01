@@ -29,7 +29,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create empty argument list
     val argList: Map[String, String] = Map()
@@ -763,6 +763,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     def uuid : String               = r.getOrElse("accountId", "")
     def accountId : AccountId       = AccountId(r.getOrElse("accountId", ""))
     def accountType : String        = r.getOrElse("accountType", "")
+    //def productCode : String        = r.getOrElse("productCode", "")
     def balance : BigDecimal        = BigDecimal(r.getOrElse("balance", "0.0"))
     def currency : String           = r.getOrElse("currency", "")
     def name : String               = r.getOrElse("owners", "")

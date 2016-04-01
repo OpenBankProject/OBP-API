@@ -65,6 +65,9 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     override def name = "number"
   }
   object kind extends StringField(this, 255)
+
+  // object productCode extends StringField(this, 255)
+
   object accountName extends StringField(this, 255){
     //this is the legacy db field name
     override def name = "name"

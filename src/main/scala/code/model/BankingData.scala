@@ -200,6 +200,21 @@ class AccountOwner(
 
 case class BankAccountUID(bankId : BankId, accountId : AccountId)
 
+
+
+/** Internal model of a Bank Account
+  * @define accountType The account type / product name: Customer friendly text that identifies the financial product this account is based on, as given by the bank
+  * @define accountId An identifier (no spaces, url friendly, should be a UUID) that hides the actual account number (obp identifier)
+  * @define number The actual bank account number as given by the bank to the customer
+  * @define bankId The short bank identifier that holds this account (url friendly, usually short name of bank with hyphens)
+  * @define label A string that helps identify the account to a customer or the public. Can be updated by the account owner. Default would typically include the owner display name (should be legal entity owner) + accountType + few characters of number
+  * @define iban The IBAN (could be empty)
+  * @define currency The currency (3 letter code)
+  * @define balance The current balance on the account
+  */
+
+// TODO Add: @define productCode A code (no spaces, url friendly) that identifies the financial product this account is based on.
+
 trait BankAccount {
 
   @transient protected val log = Logger(this.getClass)
@@ -207,16 +222,17 @@ trait BankAccount {
   @deprecated
   def uuid : String
 
-  def accountId : AccountId    //an identifier that hides the actual account number (obp identifier)
-  def accountType : String
+  def accountId : AccountId
+  def accountType : String // This is the productName
+  //def productCode : String
   def balance : BigDecimal
   def currency : String
-  def name : String
+  def name : String // Is this used?
   def label : String
   def swift_bic : Option[String]   //TODO: deduplication, bank field should not be in account fields
   def iban : Option[String]
-  def number : String         //the actual number as given by the bank
-  def bankId : BankId         //bank identifier, usually short name of
+  def number : String
+  def bankId : BankId
   def lastUpdate : Date
 
   @deprecated("Get the account holder(s) via owners")

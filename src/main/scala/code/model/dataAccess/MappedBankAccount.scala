@@ -27,6 +27,9 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
 
   object accountName extends MappedString(this, 255)
   object kind extends MappedString(this, 40) // This is the account type
+
+  //object productCode extends MappedString(this, 255)
+
   object accountLabel extends MappedString(this, 255)
 
   //the last time this account was updated via hbci
@@ -48,6 +51,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def balance: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(accountBalance.get, currency)
   override def name: String = accountName.get
   override def accountType: String = kind.get
+
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
   override def lastUpdate : Date = accountLastUpdate.get
