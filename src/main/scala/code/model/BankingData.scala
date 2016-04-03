@@ -203,7 +203,7 @@ case class BankAccountUID(bankId : BankId, accountId : AccountId)
 
 
 /** Internal model of a Bank Account
-  * @define accountType The account type / product name: Customer friendly text that identifies the financial product this account is based on, as given by the bank
+  * @define accountType The account type aka financial product name. The customer friendly text that identifies the financial product this account is based on, as given by the bank
   * @define accountId An identifier (no spaces, url friendly, should be a UUID) that hides the actual account number (obp identifier)
   * @define number The actual bank account number as given by the bank to the customer
   * @define bankId The short bank identifier that holds this account (url friendly, usually short name of bank with hyphens)
@@ -223,8 +223,8 @@ trait BankAccount {
   def uuid : String
 
   def accountId : AccountId
-  def accountType : String // This is the productName
-  //def productCode : String
+  def accountType : String // (stored in the field "kind" on Mapper)
+  //def productCode : String // TODO Add this shorter code.
   def balance : BigDecimal
   def currency : String
   def name : String // Is this used?

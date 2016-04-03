@@ -616,9 +616,9 @@ Accountants
 
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     ViewImpl.create.
-      name_("Accountants").
+      name_("Accountant"). // Use the singular form
       description_(description).
-      permalink_("accountants").
+      permalink_("accountant"). // Use the singular form
       isPublic_(false).
       bankPermalink(bankId.value).
       accountPermalink(accountId.value).
@@ -698,9 +698,9 @@ Auditors
 
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     ViewImpl.create.
-      name_("Auditors").
+      name_("Auditor"). // Use the singular form
       description_(description).
-      permalink_("auditors").
+      permalink_("auditor"). // Use the singular form
       isPublic_(false).
       bankPermalink(bankId.value).
       accountPermalink(accountId.value).

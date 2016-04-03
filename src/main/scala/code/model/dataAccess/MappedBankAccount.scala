@@ -26,7 +26,7 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   object accountBalance extends MappedLong(this)
 
   object accountName extends MappedString(this, 255)
-  object kind extends MappedString(this, 40) // This is the account type
+  object kind extends MappedString(this, 255) // This is the account type aka financial product name
 
   //object productCode extends MappedString(this, 255)
 
