@@ -231,7 +231,8 @@ class Boot extends Loggable{
     val accountCreation = {
       if(Props.getBool("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
-        List(Menu("Sandbox Account Creation", "Create Sandbox Test Account") / "create-sandbox-account" >> OBPUser.loginFirst)
+        // Not mentioning test and sandbox for App store purposes right now.
+        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> OBPUser.loginFirst)
       } else {
         Nil
       }
