@@ -48,13 +48,15 @@ case class UserJSONRecord(email: String, password: String, display_name: String)
 // Run a copy of the API somewhere (else)
 // Set the paths for users and counterparties. (remove the outer [] from the json)
 
+// TODO Extract this into a separate application.
 
 object ImportCounterpartyMetadata extends SendServerRequests {
   def main(args : Array[String]) {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    var path = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/ulster_bank_2016/OBP_sandbox_counterparties_pretty_MOD.json"
+    var path = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_005/OBP_sandbox_counterparties_pretty.json"
+
     var records = JsonParser.parse(Source.fromFile(path) mkString)
     var counterparties = ListBuffer[CounterpartyJSONRecord]()
 
@@ -69,7 +71,9 @@ object ImportCounterpartyMetadata extends SendServerRequests {
     println("Got " + counterparties.length + " counterparty records")
 
     //load sandbox users from json
-    path = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/ulster_bank_2016/loaded_30_jan_UB_OBP_sandbox_pretty.json"
+
+    path = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_005/OBP_sandbox_pretty.json"
+
     records = JsonParser.parse(Source.fromFile(path) mkString)
     val users = (records \ "users").children
     println("got " + users.length + " users")
@@ -108,39 +112,66 @@ object ImportCounterpartyMetadata extends SendServerRequests {
           case _ => List[OtherAccountJson]()
         }
 
-        //uh, matching very specific to rbs data
-        val bits = a.bank_id.get.split("-")
-        val region = bits(bits.length - 2)
+
+        // In the counterparty json, counterparties have a region (aka bank)
+        // However in sandboxes, the bank_id might also contain a suffix (version of the load).
+        // By convention use bank_id like region~version so we can split on ~ to get the region
+
+        val bankId = a.bank_id.get
+
+        println(s"bankId is ${bankId}")
+
+        // Convention: lets say that in a bank_id the part before -- is the region and after the -- is just a version
+        // e.g. given enbd-uae--g we would want to extract enbd-uae as the region
+        // Note we don' use ~ because it messes with OAuth signatures
+        val bits = bankId.split("--")
+        val region = bits(0)
+
+        println(s"region is ${region}")
+
 
         println("get matching json counterparty data for each transaction's other_account")
 
         for(oa : OtherAccountJson <- otherAccounts) {
           val name = oa.holder.get.name.get.trim
+
+
+          println(s"Filtering counterparties by region ${region} and counterparty name ${name}")
+
           val records = counterparties.filter(x => ((x.name equalsIgnoreCase(name)) && (x.region equals region)))
           var found = false
 
+          println(s"Found ${records.size} records")
+
           //loop over all counterparties (from json) and match to other_account (counterparties), update data
           for (cp: CounterpartyJSONRecord <- records) {
+            println(s"cp is Region ${cp.region} Name ${cp.name} Home Page ${cp.homePageUrl}")
             val logoUrl = if(cp.logoUrl.contains("http://www.brandprofiles.com")) cp.homePageUrl else cp.logoUrl
             if (logoUrl.startsWith("http") && oa.metadata.get.image_URL.isEmpty) {
               val json = ("image_URL" -> logoUrl)
               ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/image_url", json)
               println("saved " + logoUrl + " as imageURL for counterparty "+ oa.id.get)
               found = true
-            }
+            } else {
+              println("did NOT save " + logoUrl + " as imageURL for counterparty "+ oa.id.get)
+          }
 
             if(cp.homePageUrl.startsWith("http") && !cp.homePageUrl.endsWith("jpg") && !cp.homePageUrl.endsWith("png") && oa.metadata.get.URL.isEmpty) {
               val json = ("URL" -> cp.homePageUrl)
               ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/url", json)
               println("saved " + cp.homePageUrl + " as URL for counterparty "+ oa.id.get)
+            } else {
+              println("did NOT save " + cp.homePageUrl + " as URL for counterparty "+ oa.id.get)
             }
 
             if(!cp.category.isEmpty && oa.metadata.get.more_info.isEmpty) {
-              val moreInfo = ("Category: " + cp.category )
+              val moreInfo = (cp.category ) // ("Category: " + cp.category )
               val json = ("more_info" -> moreInfo)
               val result = ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/more_info", json)
               if(!result.isEmpty)
                 println("saved " + moreInfo + " as more_info for counterparty "+ oa.id.get)
+            } else {
+              println("did NOT save more_info for counterparty "+ oa.id.get)
             }
           }
 
