@@ -50,32 +50,60 @@ case class UserJSONRecord(email: String, password: String, display_name: String)
 
 // TODO Extract this into a separate application.
 
-object ImportCounterpartyMetadata extends SendServerRequests {
+object PostCounterpartyMetadata extends SendServerRequests {
+
+
+  def debugBreak() {
+    println("Breakpoint hit!") // Manually set a breakpoint here
+  }
+
+
+
+
   def main(args : Array[String]) {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    var path = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_005/OBP_sandbox_counterparties_pretty.json"
+    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_009/OBP_sandbox_counterparties_pretty.json"
 
-    var records = JsonParser.parse(Source.fromFile(path) mkString)
+    // This contains a list of counterparty lists. one list for each region
+    val counerpartyListData = JsonParser.parse(Source.fromFile(counterpartyDataPath) mkString)
     var counterparties = ListBuffer[CounterpartyJSONRecord]()
 
-    //collect counterparties records
-    for(r <- records.children){
-      //logger.info(s" extract counterparty records")
-      val rec = r.extract[CounterpartyJSONRecord]
-      //println (rec.name + "in region " + rec.region)
-      counterparties.append(rec)
+    // Loop through the lists
+    for(l <- counerpartyListData.children){
+
+      // For each list, loop through the counterparties
+      for(c <- l.children) {
+        //logger.info(s" extract counterparty records")
+        val rec = c.extract[CounterpartyJSONRecord]
+        println(rec.name + "in region " + rec.region)
+        counterparties.append(rec)
+      }
     }
+
+
+
+    //collect counterparties records
+//    for(r <- counerpartyData.children){
+//      //logger.info(s" extract counterparty records")
+//      val rec = r.extract[CounterpartyJSONRecord]
+//      println (rec.name + "in region " + rec.region)
+//      counterparties.append(rec)
+//    }
+//
+
+
+
 
     println("Got " + counterparties.length + " counterparty records")
 
     //load sandbox users from json
 
-    path = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_005/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_009/OBP_sandbox_pretty.json"
 
-    records = JsonParser.parse(Source.fromFile(path) mkString)
-    val users = (records \ "users").children
+    val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
+    val users = (mainData \ "users").children
     println("got " + users.length + " users")
 
     //loop over users from json
@@ -138,8 +166,14 @@ object ImportCounterpartyMetadata extends SendServerRequests {
 
           println(s"Filtering counterparties by region ${region} and counterparty name ${name}")
 
-          val records = counterparties.filter(x => ((x.name equalsIgnoreCase(name)) && (x.region equals region)))
+          val regionCounterparties = counterparties.filter(x => ( x.region == region))
+
+          val records = regionCounterparties.filter(x => (x.name equalsIgnoreCase(name)) )
+
+
           var found = false
+
+          if (region == "enbd-lon" && records.size == 0 && name.toLowerCase().indexOf("police") > 0) debugBreak() else println(s"Condition not met. region is ${region} name is ${name}")
 
           println(s"Found ${records.size} records")
 
