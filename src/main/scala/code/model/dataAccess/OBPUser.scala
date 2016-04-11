@@ -32,17 +32,16 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import code.api.{DirectLogin, OAuthHandshake}
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, To, Subject, From}
-import net.liftweb.util._
+import code.bankconnectors.KafkaMappedConnector
+import code.bankconnectors.KafkaMappedConnector.KafkaUserImport
 import net.liftweb.common._
-import scala.xml.{Text, NodeSeq}
-import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
+import net.liftweb.http.{S, SHtml, SessionVar, Templates}
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, From, Subject, To}
+import net.liftweb.util._
 
-import java.util.UUID
-import code.bankconnectors.{KafkaProducer, KafkaConsumer}
-import code.sandbox.SandboxUserImport
+import scala.xml.{NodeSeq, Text}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -263,40 +262,6 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
-  def getUserViaKafka( username: String, password: String ): Box[SandboxUserImport] = {
-    // Generate random uuid to be used as request-respose match id
-    val reqId: String = UUID.randomUUID().toString
-
-    // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer()
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    val argList = Map( "email" -> username.toLowerCase,
-                        "password" -> password )
-    producer.send(reqId, "getUser", argList, "1")
-
-    // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer()
-    // Create entry only for the first item on returned list
-    val r = consumer.getResponse(reqId).head
-
-    // For testing without Kafka
-    //val r = Map("email"->"test@email.me","password"->"secret","display_name"->"DN")
-
-    var recDisplayName = r.getOrElse("display_name", "Not Found")
-    var recEmail = r.getOrElse("email", "Not Found")
-
-    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
-      if (recDisplayName == "")
-        Full(new SandboxUserImport( recEmail, password, recEmail))
-      else
-        Full(new SandboxUserImport( recEmail, password, recDisplayName))
-    } else {
-      // If empty result from Kafka return empty data
-      Empty
-    }
-  }
-
   def userLoginFailed = {
     info("failed: " + failedLoginRedirect.get)
     failedLoginRedirect.get.foreach(S.redirectTo(_))
@@ -321,8 +286,8 @@ import net.liftweb.util.Helpers._
   }
 
   def getExternalUser(username: String, password: String):Box[OBPUser] = {
-    getUserViaKafka(username, password) match {
-      case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
+    KafkaMappedConnector.getUser(username, password) match {
+      case Full(KafkaUserImport(extEmail, extPassword, extDisplayName)) => {
         val preLoginState = capturePreLoginState()
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
@@ -359,6 +324,7 @@ import net.liftweb.util.Helpers._
               .validated(true)
             // Save the user in order to be able to log in
             newUser.save()
+            KafkaMappedConnector.saveUserAccountViews(newUser)
             // Return created user
             newUser
           }

@@ -12,20 +12,91 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
+import code.sandbox.{CreateViewImpls, Saveable}
 import code.tesobe.CashTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.Helper
-import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.common._
+import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 
 
-object KafkaMappedConnector extends Connector with Loggable {
+object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
+
+  def getUser( username: String, password: String ): Box[KafkaUserImport] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Send request to Kafka, marked with reqId
+    // so we can fetch the corresponding response
+    val argList = Map( "email"    -> username.toLowerCase,
+                       "password" -> password )
+    implicit val formats = net.liftweb.json.DefaultFormats
+
+    val r = KafkaMappedConnector.process(reqId, "getUser", argList).extract[KafkaValidatedUserImport]
+    val recDisplayName = r.display_name
+    val recEmail = r.email
+    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
+      if (recDisplayName == "") {
+        val user = new KafkaUserImport( recEmail, password, recEmail)
+        Full(user)
+      }
+      else {
+        val user = new KafkaUserImport(recEmail, password, recDisplayName)
+        Full(user)
+      }
+    } else {
+      // If empty result from Kafka return empty data
+      Empty
+    }
+  }
+
+  def saveUserAccountViews( user: OBPUser ) = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create argument list with reqId
+    // in order to fetch corresponding response
+    val argList = Map("email"  -> user.email.get)
+    // Since result is single account, we need only first list entry
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val rList = process(reqId, "getUserAccounts", argList).extract[List[KafkaAccountImport]]
+    val res = {
+      for (r <- rList) yield {
+        val views = createSaveableViews(r)
+        MappedAccountHolder.create
+          .user(user.id.get)
+          .accountBankPermalink(r.bank)
+          .accountPermalink(r.id).save
+        views.foreach(_.save())
+      }
+    }
+  }
+
+  def createSaveableViews(acc : KafkaAccountImport) : List[Saveable[ViewType]] = {
+    val bankId = BankId(acc.bank)
+    val accountId = AccountId(acc.id)
+
+    val ownerView = createSaveableOwnerView(bankId, accountId)
+
+    val publicView =
+      if(acc.generate_public_view) Some(createSaveablePublicView(bankId, accountId))
+      else None
+
+    val accountantsView =
+      if(acc.generate_accountants_view) Some(createSaveableAccountantsView(bankId, accountId))
+      else None
+
+    val auditorsView =
+      if(acc.generate_auditors_view) Some(createSaveableAuditorsView(bankId, accountId))
+      else None
+
+    List(Some(ownerView), publicView, accountantsView, auditorsView).flatten
+  }
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
@@ -34,8 +105,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create empty argument list
     val argList: Map[String, String] = Map()
     // Send request to Kafka, marked with reqId 
-    // so we can fetch the corresponding response 
-    val rList = process(reqId, "getBanks", argList)
+    // so we can fetch the corresponding response
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val rList = process(reqId, "getBanks", argList).extract[List[KafkaBankImport]]
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
         new KafkaBank(r)
@@ -55,11 +127,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     val argList = Map( "bankId" -> id.toString )
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response
-    val r = process(reqId, "getBank", argList)
-    // Create entry only for the first item on returned list
-    val res = new KafkaBank(r.head)
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getBank", argList).extract[KafkaBankImport]
     // Return result
-    Full(res)
+    Full(new KafkaBank(r))
   }
 
   // Gets transaction identified by bankid, accountid and transactionId 
@@ -73,9 +144,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                        "accountId" -> accountID.toString,
                        "transactionId" -> transactionId.toString )
     // Since result is single account, we need only first list entry
-    val r = process(reqId, "getTransaction", argList).head
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getTransaction", argList).extract[KafkaTransactionImport]
     // If empty result from Kafka return empty data 
-    if (r.getOrElse("accountId", "") == "") {
+    if (r.id == "") {
       return Failure(null)
     }
     //updateAccountTransactions(bankId, accountID)
@@ -103,9 +175,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                        "username" -> OBPUser.getCurrentUserUsername,
                        "accountId" -> accountID.toString,
                        "queryParams" -> queryParams.toString )
-    val rList = process(reqId, "getTransactions", argList)
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val rList = process(reqId, "getTransactions", argList).extract[List[KafkaTransactionImport]]
     // Return blank if empty 
-    if (rList.head.getOrElse("accountId", "") == "") {
+    if (rList.head.id == "") {
       return Failure(null)
     }
     // Populate fields and generate result
@@ -127,11 +200,11 @@ object KafkaMappedConnector extends Connector with Loggable {
                       "username"  -> OBPUser.getCurrentUserUsername,
                       "accountId" -> accountID.toString)
     // Since result is single account, we need only first list entry
-    val r = process(reqId, "getBankAccount", argList).head
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getBankAccount", argList).extract[KafkaAccountImport]
     val res = new KafkaBankAccount(r)
     Full(res)
   }
-
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
@@ -139,10 +212,11 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create argument list with reqId
     // in order to fetch corresponding response
     val argList = Map("bankId" -> bankId.toString,
-      "username" -> OBPUser.getCurrentUserUsername,
-      "number" -> number)
+                      "username" -> OBPUser.getCurrentUserUsername,
+                      "number" -> number)
     // Since result is single account, we need only first list entry
-    val r = process(reqId, "getBankAccount", argList).head
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getBankAccount", argList).extract[KafkaAccountImport]
     val res = new KafkaBankAccount(r)
     Full(res)
   }
@@ -689,8 +763,9 @@ object KafkaMappedConnector extends Connector with Loggable {
   /////////////////////////////////////////////////////////////////////////////
 
 
-  def process(reqId: String, command: String, argList: Map[String,String]): List[Map[String,String]] = {
-    var retries:Int = 3
+
+  def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
+  var retries:Int = 3
     while (consumer == null && retries > 0 ) {
       retries-=1
       consumer = new KafkaConsumer()
@@ -701,7 +776,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       producer = new KafkaProducer()
     }
     if (producer == null || consumer == null)
-      return List(Map("error" -> "connection failed. try again later."))
+      return json.parse("""{"error":"connection failed. try again later."}""")
     // Send request to Kafka
     producer.send(reqId, command, argList, "1")
     // Request sent, now we wait for response with the same reqId
@@ -709,73 +784,227 @@ object KafkaMappedConnector extends Connector with Loggable {
     res
   }
 
+
   // Helper for creating a transaction
-  def createNewTransaction(r: Map[String,String]) = {
+  def createNewTransaction(r: KafkaTransactionImport) = {
+    val o = getBankAccountType(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).get
     //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-    val dummyOtherBankAccount = createOtherBankAccount(r, None)
+    val dummyOtherBankAccount = createOtherBankAccount(o, None)
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
     //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-    val otherAccount = createOtherBankAccount(r, Some(dummyOtherBankAccount.metadata))
+    val otherAccount = createOtherBankAccount(o, Some(dummyOtherBankAccount.metadata))
     // Create new transaction
     new Transaction(
-      TransactionId(r.getOrElse("transactionId", "")).value,                                                       // uuid:String
-      TransactionId(r.getOrElse("transactionId", "")),                                                             // id:TransactionId
-      getBankAccount(BankId(r.getOrElse("bankId", "")), AccountId(r.getOrElse("accountId", ""))).openOr(null), // thisAccount:BankAccount
-      otherAccount,                                                                                            // otherAccount:OtherBankAccount
-      r.getOrElse("transactionType", ""),                                                                      // transactionType:String
-      BigDecimal(r.getOrElse("amount", "0.0")),                                                                // val amount:BigDecimal
-      r.getOrElse("currency", ""),                                                                             // currency:String
-      Some(r.getOrElse("description", "")),                                                                    // description:Option[String]
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("startDate", "1970-01-01T00:00:00.000Z")),  // startDate:Date
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.getOrElse("finishDate", "1970-01-01T00:00:00.000Z")), // finishDate:Date
-      BigDecimal(r.getOrElse("balance", "0.0"))                                                                // balance:BigDecimal
+      r.id,                                                                             // uuid:String
+      TransactionId(r.id),                                                              // id:TransactionId
+      getBankAccountType(BankId(r.this_account.bank), AccountId(r.this_account.id)).get,// thisAccount:BankAccount
+      otherAccount,                                                                     // otherAccount:OtherBankAccount
+      r.details.`type`,                                                                 // transactionType:String
+      BigDecimal(r.details.value),                                                      // val amount:BigDecimal
+      "GBP",                                                                            // currency:String
+      Some(r.details.description),                                                      // description:Option[String]
+      //new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse("1970-01-01T00:00:00.000Z"),  // startDate:Date
+      //new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse("1970-01-01T00:00:00.000Z"), // finishDate:Date
+      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted),  // startDate:Date
+      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed), // finishDate:Date
+      BigDecimal(r.details.new_balance)                                                 // balance:BigDecimal
     )
   }
 
+
+  case class KafkaBank(r: KafkaBankImport) extends Bank {
+    def fullName           = r.full_name
+    def shortName          = r.short_name
+    def logoUrl            = r.logo
+    def bankId             = BankId(r.id)
+    def nationalIdentifier = "None"  //TODO
+    def swiftBic           = "None"  //TODO
+    def websiteUrl         = r.website
+  }
+
   // Helper for creating other bank account
-  def createOtherBankAccount(r: Map[String,String], alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+  def createOtherBankAccount(r: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = r.getOrElse("label", ""),
-      nationalIdentifier = r.getOrElse("nationalIdentifier ", ""),
-      swift_bic = Some(r.getOrElse("swift_bic", "")),
-      iban = Some(r.getOrElse("iban", "")),
-      number = r.getOrElse("number", ""),
-      bankName = r.getOrElse("bankName", ""),
-      kind = r.getOrElse("accountType", ""),
-      originalPartyBankId = new BankId(r.getOrElse("bankId", "")),
-      originalPartyAccountId = new AccountId(r.getOrElse("accountId", "")),
+      label = r.label,
+      nationalIdentifier = r.nationalIdentifier, //TODO
+      swift_bic = Some(r.swift_bic.get),              //TODO
+      iban = Some(r.iban.get),
+      number = r.number,
+      bankName = r.bankName,
+      kind = r.accountType,
+      originalPartyBankId = new BankId(r.bankId.value),
+      originalPartyAccountId = new AccountId(r.accountId.value),
       alreadyFoundMetadata = alreadyFoundMetadata
     )
   }
 
-  case class KafkaBank(r: Map[String,String]) extends Bank {
-     def fullName           = r.getOrElse("fullBankName", "")
-     def shortName          = r.getOrElse("shortBankName", "")
-     def logoUrl            = r.getOrElse("logoURL", "")
-     def bankId             = BankId(r.getOrElse("bankId", ""))
-     def nationalIdentifier = r.getOrElse("nationalIdentifier", "")
-     def swiftBic           = r.getOrElse("swiftBic", "")
-     def websiteUrl         = r.getOrElse("websiteURL", "")
-   }
-
-  case class KafkaBankAccount(r: Map[String,String]) extends BankAccount {
-    def uuid : String               = r.getOrElse("accountId", "")
-    def accountId : AccountId       = AccountId(r.getOrElse("accountId", ""))
-    def accountType : String        = r.getOrElse("accountType", "")
-    //def productCode : String        = r.getOrElse("productCode", "")
-    def balance : BigDecimal        = BigDecimal(r.getOrElse("balance", "0.0"))
-    def currency : String           = r.getOrElse("currency", "")
-    def name : String               = r.getOrElse("owners", "")
-    def label : String              = r.getOrElse("label", "")
-    def swift_bic : Option[String]  = Some(r.getOrElse("swift_bic", ""))
-    def iban : Option[String]       = Some(r.getOrElse("IBAN", ""))
-    def number : String             = r.getOrElse("number", "")
-    def bankId : BankId             = BankId(r.getOrElse("bankId", ""))
-    def lastUpdate : Date           = new Date(r.getOrElse("lastUpdate", ""))
-    def accountHolder : String      = r.getOrElse("accountHolder", "")
+  case class KafkaBankAccount(r: KafkaAccountImport) extends BankAccount {
+    def uuid : String               = r.id
+    def accountId : AccountId       = AccountId(r.id)
+    def accountType : String        = r.`type`
+    def balance : BigDecimal        = BigDecimal(r.balance.amount)
+    def currency : String           = r.balance.currency
+    def name : String               = r.owners.head
+    def label : String              = r.label
+    def swift_bic : Option[String]  = Some("swift_bic") //TODO
+    def iban : Option[String]       = Some(r.IBAN)
+    def number : String             = r.number
+    def bankId : BankId             = BankId(r.bank)
+    def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+    def accountHolder : String      = r.owners.head
   }
 
+
+  case class KafkaBankImport(
+                              id : String,
+                              short_name : String,
+                              full_name : String,
+                              logo : String,
+                              website : String)
+
+
+  // Branches to be imported must match this pattern
+  case class KafkaBranchImport(
+                                id : String,
+                                bank_id: String,
+                                name : String,
+                                address : KafkaAddressImport,
+                                location : KafkaLocationImport,
+                                meta : KafkaMetaImport,
+                                lobby : Option[KafkaLobbyImport],
+                                driveUp : Option[KafkaDriveUpImport])
+
+  case class KafkaLicenseImport(
+                                 id : String,
+                                 name : String)
+
+  case class KafkaMetaImport(
+                              license : KafkaLicenseImport)
+
+  case class KafkaLobbyImport(
+                               hours : String)
+
+  case class KafkaDriveUpImport(
+                                 hours : String)
+
+  case class KafkaAddressImport(
+                                 line_1 : String,
+                                 line_2 : String,
+                                 line_3 : String,
+                                 city : String,
+                                 county : String, // Division of State
+                                 state : String, // Division of Country
+                                 post_code : String,
+                                 country_code: String)
+
+  case class KafkaLocationImport(
+                                  latitude : Double,
+                                  longitude : Double)
+
+  case class KafkaUserImport(
+                              email : String,
+                              password : String,
+                              display_name : String)
+
+  case class KafkaValidatedUserImport(
+                                       email : String,
+                                       display_name : String)
+
+  case class KafkaAccountImport(
+                                 id : String,
+                                 bank : String,
+                                 label : String,
+                                 number : String,
+                                 `type` : String,
+                                 balance : KafkaBalanceImport,
+                                 IBAN : String,
+                                 owners : List[String],
+                                 generate_public_view : Boolean,
+                                 generate_accountants_view : Boolean,
+                                 generate_auditors_view : Boolean)
+
+  case class KafkaBalanceImport(
+                                 currency : String,
+                                 amount : String)
+
+  case class KafkaTransactionImport(
+                                     id : String,
+                                     this_account : KafkaAccountIdImport,
+                                     counterparty : Option[KafkaTransactionCounterparty],
+                                     details : KafkaAccountDetailsImport)
+
+  case class KafkaTransactionCounterparty(
+                                           name : Option[String],  // Also known as Label
+                                           account_number : Option[String])
+
+  case class KafkaAccountIdImport(
+                                   id : String,
+                                   bank : String)
+
+  case class KafkaAccountDetailsImport(
+                                        `type` : String,
+                                        description : String,
+                                        posted : String,
+                                        completed : String,
+                                        new_balance : String,
+                                        value : String)
+
+
+  case class KafkaAtmImport(
+                             id : String,
+                             bank_id: String,
+                             name : String,
+                             address : KafkaAddressImport,
+                             location : KafkaLocationImport,
+                             meta : KafkaMetaImport
+                           )
+
+
+  case class KafkaProductImport(
+                                 bank_id : String,
+                                 code: String,
+                                 name : String,
+                                 category : String,
+                                 family : String,
+                                 super_family : String,
+                                 more_info_url : String,
+                                 meta : KafkaMetaImport
+                               )
+
+
+  case class KafkaAccountDataImport(
+                                     banks : List[KafkaBankImport],
+                                     users : List[KafkaUserImport],
+                                     accounts : List[KafkaAccountImport]
+                                   )
+
+  case class KafkaDataImport(
+                              banks : List[KafkaBankImport],
+                              users : List[KafkaUserImport],
+                              accounts : List[KafkaAccountImport],
+                              transactions : List[KafkaTransactionImport],
+                              branches: List[KafkaBranchImport],
+                              atms: List[KafkaAtmImport],
+                              products: List[KafkaProductImport],
+                              crm_events: List[KafkaCrmEventImport]
+                            )
+
+
+  case class KafkaCrmEventImport (
+                                   id : String, // crmEventId
+                                   bank_id : String,
+                                   customer: KafkaCustomerImport,
+                                   category : String,
+                                   detail : String,
+                                   channel : String,
+                                   actual_date: String
+                                 )
+
+  case class KafkaCustomerImport (
+                                   name: String,
+                                   number : String // customer number, also known as ownerId (owner of accounts) aka API User?
+                                 )
 
 }
 
