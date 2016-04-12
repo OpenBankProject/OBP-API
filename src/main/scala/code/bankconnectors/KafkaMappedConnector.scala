@@ -17,6 +17,7 @@ import code.tesobe.CashTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.Helper
+import code.views.Views
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
@@ -56,25 +57,59 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def saveUserAccountViews( user: OBPUser ) = {
+  def setAccountOwner(owner : String, account: KafkaAccountImport) : Unit = {
+    val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+    apiUserOwner match {
+      case Some(o) => {
+        MappedAccountHolder.create
+          .user(o)
+          .accountBankPermalink(account.bank)
+          .accountPermalink(account.id).save
+      }
+      case None => {
+        //This shouldn't happen as OBPUser should generate the APIUsers when saved
+        logger.error(s"api user(s) with email $owner not found.")
+      }
+    }
+  }
+
+  def updateUserAccountViews( apiUser: APIUser ) = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map("email"  -> user.email.get)
+    val argList = Map("username"  -> apiUser.email.get)
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(reqId, "getUserAccounts", argList).extract[List[KafkaAccountImport]]
     val res = {
       for (r <- rList) yield {
         val views = createSaveableViews(r)
-        MappedAccountHolder.create
-          .user(user.id.get)
-          .accountBankPermalink(r.bank)
-          .accountPermalink(r.id).save
         views.foreach(_.save())
+        views.map(_.value).filterNot(_.isPublic).foreach(v => {
+          Views.views.vend.addPermission(v.uid, apiUser)
+        })
+        setAccountOwner(apiUser.email.get, r)
       }
     }
+  }
+
+  def updatePublicAccountViews( user: APIUser ): List[List[Saveable[ViewType]]] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create argument list with reqId
+    // in order to fetch corresponding response
+    val argList = Map("username"  -> user.email.get )
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val rList = process(reqId, "getPublicAccounts", argList).extract[List[KafkaAccountImport]]
+    val res = {
+      for (r <- rList) yield {
+        val views = createSaveableViews(r)
+        views.foreach(_.save())
+        views
+      }
+    }
+    res
   }
 
   def createSaveableViews(acc : KafkaAccountImport) : List[Saveable[ViewType]] = {
@@ -103,7 +138,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create empty argument list
-    val argList: Map[String, String] = Map()
+    val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -124,7 +159,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Create Kafka producer
     val producer: KafkaProducer = new KafkaProducer()
     // Create argument list
-    val argList = Map( "bankId" -> id.toString )
+    val argList = Map(  "bankId" -> id.toString,
+                        "username" -> OBPUser.getCurrentUserUsername )
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -198,7 +234,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // in order to fetch corresponding response
     val argList = Map("bankId" -> bankId.toString,
                       "username"  -> OBPUser.getCurrentUserUsername,
-                      "accountId" -> accountID.toString)
+                      "accountId" -> accountID.value)
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = process(reqId, "getBankAccount", argList).extract[KafkaAccountImport]
