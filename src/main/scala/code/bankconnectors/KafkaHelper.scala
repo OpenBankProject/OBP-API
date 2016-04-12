@@ -86,7 +86,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
     props.put("auto.commit.interval.ms", "1000")
     props.put("zookeeper.session.timeout.ms", "6000")
     props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("consumer.timeout.ms", "10000")
+    props.put("consumer.timeout.ms", "20000")
     val config = new ConsumerConfig(props)
     config
   }
