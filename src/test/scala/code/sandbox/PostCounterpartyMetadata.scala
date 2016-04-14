@@ -3,7 +3,7 @@ package code.sandbox
 /**
 Open Bank Project
 
-Copyright 2011,2015 TESOBE / Music Pictures Ltd.
+Copyright 2011,2016 TESOBE Ltd.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,10 @@ limitations under the License.
   */
 
 /*
+* This is a utility script that can be used to POST data via the API as a logged-in User.
+* It requires the credentials of the user and logs in via OAuth using selenium.
+* TODO Move out of test - or into a separate project
+*
 * To use this one-time script, put e.g.
 * target_api_hostname=https://localhost:8080
 * obp_consumer_key=xxx
@@ -46,7 +50,7 @@ case class UserJSONRecord(email: String, password: String, display_name: String)
 // Import counterparty metadata
 // Instructions for using this:
 // Run a copy of the API somewhere (else)
-// Set the paths for users and counterparties. (remove the outer [] from the json)
+// Set the paths for users and counterparties.
 
 // TODO Extract this into a separate application.
 
@@ -64,7 +68,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_011/OBP_sandbox_counterparties_pretty.json"
+    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_012/OBP_sandbox_counterparties_pretty.json"
 
     // This contains a list of counterparty lists. one list for each region
     val counerpartyListData = JsonParser.parse(Source.fromFile(counterpartyDataPath) mkString)
@@ -100,7 +104,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_011/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_012/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
