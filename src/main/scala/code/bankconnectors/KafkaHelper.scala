@@ -56,11 +56,14 @@ object ZooKeeperUtils {
   }
 }
 
-
-class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")openOr("localhost:2181"),
+class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").openOrThrowException("no kafka.zookeeper_host set"),
                     val groupId: String   = Props.get("kafka.group_id").openOrThrowException("no kafka.group_id set"),
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
                     val delay: Long       = 0) {
+
+  val zkProps = new Properties()
+  zkProps.put("log4j.logger.org.apache.zookeeper", "ERROR")
+  org.apache.log4j.PropertyConfigurator.configure(zkProps)
 
   val config = createConsumerConfig(zookeeper, groupId)
   val consumer = Consumer.create(config)
@@ -83,18 +86,12 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
     props.put("auto.commit.interval.ms", "1000")
     props.put("zookeeper.session.timeout.ms", "6000")
     props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("consumer.timeout.ms", "10000")
+    props.put("consumer.timeout.ms", "20000")
     val config = new ConsumerConfig(props)
     config
   }
 
-  implicit var formats = DefaultFormats
-
-  def customParser(in: List[Map[String,String]]): List[Map[String,String]] = {
-    in
-  }
-
-  def getResponse(reqId: String): List[Map[String, String]] = {
+  def getResponse(reqId: String): json.JValue = { //List[Map[String, String]] = {
     // recreate stream for topic if not existing
     if ( consumerMap == null ) {
       consumerMap = consumer.createMessageStreams(Map(topic -> 1))
@@ -113,21 +110,19 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host")ope
           if (key == reqId) {
             // Parse JSON message
             val j = json.parse(msg)
-            return j.extractOpt[List[Map[String, String]]].getOrElse() match {
-              case l: List[Map[String, String]] => customParser(l)
-              case _ => List(Map("error" -> "incorrect JSON format"))
-            }
+            // return as JSON
+            return j
           }
         }
       }
       catch {
         case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
-        return List(Map("error" -> "timeout"))
+        return json.parse("""{"error":"timeout"}""") //TODO: replace with standard message
       }
     }
     // disconnect from kafka
     shutdown()
-    return List(Map("" -> ""))
+    return json.parse("""{"info":"disconnected"}""") //TODO: replace with standard message
   }
 }
 

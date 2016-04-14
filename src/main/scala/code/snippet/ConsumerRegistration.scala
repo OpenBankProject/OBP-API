@@ -84,6 +84,7 @@ class ConsumerRegistration extends Loggable {
     }
 
     def showResults(consumer : Consumer) = {
+      val urlOAuthEndpoint = Props.get("hostname", "") + "/oauth/initiate"
       //thanks for registering, here's your key, etc.
       ".app-name *" #> consumer.name.get &
       ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
@@ -92,7 +93,9 @@ class ConsumerRegistration extends Loggable {
       ".app-developer *" #> consumer.developerEmail.get &
       ".auth-key *" #> consumer.key.get &
       ".secret-key *" #> consumer.secret.get &
-      ".registration" #> ""
+      ".registration" #> "" &
+      ".oauth-endpoint a *" #> urlOAuthEndpoint &
+      ".oauth-endpoint a [href]" #> urlOAuthEndpoint
     }
 
     def saveAndShowResults(consumer : Consumer) = {

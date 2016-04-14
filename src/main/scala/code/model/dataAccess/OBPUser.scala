@@ -1,48 +1,47 @@
 /**
-Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
-Osloerstrasse 16/17
-Berlin 13359, Germany
-
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
-
+  * Open Bank Project - API
+  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  **
+  *This program is free software: you can redistribute it and/or modify
+  *it under the terms of the GNU Affero General Public License as published by
+  *the Free Software Foundation, either version 3 of the License, or
+  *(at your option) any later version.
+  **
+  *This program is distributed in the hope that it will be useful,
+  *but WITHOUT ANY WARRANTY; without even the implied warranty of
+  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  *GNU Affero General Public License for more details.
+  **
+  *You should have received a copy of the GNU Affero General Public License
+*along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  **
+ *Email: contact@tesobe.com
+*TESOBE / Music Pictures Ltd
+*Osloerstrasse 16/17
+*Berlin 13359, Germany
+  **
+ *This product includes software developed at
+  *TESOBE (http://www.tesobe.com/)
+  * by
+  *Simon Redfern : simon AT tesobe DOT com
+  *Stefan Bethge : stefan AT tesobe DOT com
+  *Everett Sochowski : everett AT tesobe DOT com
+  *Ayoub Benali: ayoub AT tesobe DOT com
+  *
  */
 package code.model.dataAccess
 
 import code.api.{DirectLogin, OAuthHandshake}
-import net.liftweb.mapper._
-import net.liftweb.util.Mailer.{BCC, To, Subject, From}
-import net.liftweb.util._
+import code.bankconnectors.KafkaMappedConnector
+import code.bankconnectors.KafkaMappedConnector.KafkaUserImport
 import net.liftweb.common._
-import scala.xml.{Text, NodeSeq}
-import net.liftweb.http.{SHtml, SessionVar, Templates, S}
 import net.liftweb.http.js.JsCmds.FocusOnLoad
+import net.liftweb.http.{S, SHtml, SessionVar, Templates}
+import net.liftweb.mapper._
+import net.liftweb.util.Mailer.{BCC, From, Subject, To}
+import net.liftweb.util._
 
-import java.util.UUID
-import code.bankconnectors.{KafkaProducer, KafkaConsumer}
-import code.sandbox.SandboxUserImport
+import scala.xml.{NodeSeq, Text}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -263,40 +262,6 @@ import net.liftweb.util.Helpers._
     </div>
   }
 
-  def getUserViaKafka( username: String, password: String ): Box[SandboxUserImport] = {
-    // Generate random uuid to be used as request-respose match id
-    val reqId: String = UUID.randomUUID().toString
-
-    // Create Kafka producer, using list of brokers from Zookeeper
-    val producer: KafkaProducer = new KafkaProducer()
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    val argList = Map( "email" -> username.toLowerCase,
-                        "password" -> password )
-    producer.send(reqId, "getUser", argList, "1")
-
-    // Request sent, now we wait for response with the same reqId
-    val consumer = new KafkaConsumer()
-    // Create entry only for the first item on returned list
-    val r = consumer.getResponse(reqId).head
-
-    // For testing without Kafka
-    //val r = Map("email"->"test@email.me","password"->"secret","display_name"->"DN")
-
-    var recDisplayName = r.getOrElse("display_name", "Not Found")
-    var recEmail = r.getOrElse("email", "Not Found")
-
-    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
-      if (recDisplayName == "")
-        Full(new SandboxUserImport( recEmail, password, recEmail))
-      else
-        Full(new SandboxUserImport( recEmail, password, recDisplayName))
-    } else {
-      // If empty result from Kafka return empty data
-      Empty
-    }
-  }
-
   def userLoginFailed = {
     info("failed: " + failedLoginRedirect.get)
     failedLoginRedirect.get.foreach(S.redirectTo(_))
@@ -321,8 +286,8 @@ import net.liftweb.util.Helpers._
   }
 
   def getExternalUser(username: String, password: String):Box[OBPUser] = {
-    getUserViaKafka(username, password) match {
-      case Full(SandboxUserImport(extEmail, extPassword, extDisplayName)) => {
+    KafkaMappedConnector.getUser(username, password) match {
+      case Full(KafkaUserImport(extEmail, extPassword, extDisplayName)) => {
         val preLoginState = capturePreLoginState()
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
@@ -406,10 +371,16 @@ import net.liftweb.util.Helpers._
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             val preLoginState = capturePreLoginState()
-            val user = getExternalUser(S.param("username").get, S.param("password").get)
+            val extUser = getExternalUser(S.param("username").orNull, S.param("password").orNull)
 
-            if (!user.isEmpty) {
-              logUserIn(user.get, () => {
+            if (!extUser.isEmpty) {
+              val u = APIUser.find(By(APIUser.email, extUser.getOrElse(null).email)).getOrElse(null)
+              if (u != null) {
+                KafkaMappedConnector.updatePublicAccountViews(u)
+                KafkaMappedConnector.updateUserAccountViews(u)
+              }
+
+              logUserIn(extUser.orNull, () => {
                 S.notice(S.?("logged.in"))
 
                 preLoginState()
