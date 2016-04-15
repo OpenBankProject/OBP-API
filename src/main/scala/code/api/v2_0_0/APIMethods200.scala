@@ -8,12 +8,10 @@ import code.api.util.APIUtil
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
 
-import code.api.v1_2_1.{JSONFactory => JSONFactory121, APIMethods121}
-
-import code.api.v1_2_1.{AmountOfMoneyJSON => AmountOfMoneyJSON121}
+import code.api.v1_2_1.{JSONFactory => JSONFactory121, AmountOfMoneyJSON => AmountOfMoneyJSON121, APIMethods121}
 
 
-import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson}
+import code.api.v1_4_0.JSONFactory1_4_0._
 
 import code.bankconnectors.Connector
 import code.model.dataAccess.{BankAccountCreation}
@@ -1039,6 +1037,76 @@ trait APIMethods200 {
       }
     }
 
+    ///
+
+    resourceDocs += ResourceDoc(
+      createTransactionRequest,
+      apiVersion,
+      "createTransactionRequest",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
+      "Create Transaction Request.",
+      """Initiate a Payment via a Transaction Request.
+        |
+        |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+        |
+        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+        |
+        |In sandbox mode, if the amount is less than 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
+      Extraction.decompose(TransactionRequestBodyJSON (
+        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
+        AmountOfMoneyJSON121("EUR", "100.53"),
+        "A description for the transaction to be created",
+        "one of the transaction types possible for the account"
+      )
+      ),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
+
+    import code.fx.fx
+
+    lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+            /* TODO:
+             * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
+             * test: functionality, error messages if user not given or invalid, if any other value is not existing
+            */
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              transBodyJson <- tryo{json.extract[TransactionRequestBodyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+              transBody <- tryo{getTransactionRequestBodyFromJson(transBodyJson)}
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound}
+              toBankId <- tryo(BankId(transBodyJson.to.bank_id))
+              toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
+              toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {ErrorMessages.CounterpartyNotFound}
+              //accountsCurrencyEqual <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
+              //transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
+              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
+              rate <- tryo{fx.exchangeRate (fromAccount.currency, toAccount.currency)} ?~! {"This currency convertion not supported."}
+              convertedAmount <- rate.map(r => r * rawAmt)
+              createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
+            } yield {
+              val json = Extraction.decompose(createdTransactionRequest)
+              createdJsonResponse(json)
+            }
+          } else {
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+          }
+      }
+    }
+
+
+
+
+
+///
 
 
   }

@@ -17,7 +17,6 @@ import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JsonAST.{JValue, JObject}
 import org.pegdown.PegDownProcessor
 
-// Use this so we don't duplicate it
 import code.api.v1_2_1.{AmountOfMoneyJSON}
 
 

@@ -186,6 +186,67 @@ trait Connector {
     result
   }
 
+
+  def createTransactionRequestv200(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) : Box[TransactionRequest] = {
+    //set initial status
+    //for sandbox / testing: depending on amount, we ask for challenge or not
+    val status =
+      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 100) {
+        TransactionRequests.STATUS_COMPLETED
+      } else {
+        TransactionRequests.STATUS_INITIATED
+      }
+
+    //create a new transaction request
+    var result = for {
+      fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
+        s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
+      rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
+//      sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+//        s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+//      })
+      isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
+    } yield transactionRequest
+
+    //make sure we get something back
+    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
+
+    //if no challenge necessary, create transaction immediately and put in data store and object to return
+    if (status == TransactionRequests.STATUS_COMPLETED) {
+      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+        BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
+
+      //set challenge to null
+      result = Full(result.get.copy(challenge = null))
+
+      //save transaction_id if we have one
+      createdTransactionId match {
+        case Full(ti) => {
+          if (! createdTransactionId.isEmpty) {
+            saveTransactionRequestTransaction(result.get.id, ti)
+            result = Full(result.get.copy(transaction_ids = ti.value))
+          }
+        }
+        case _ => None
+      }
+    } else {
+      //if challenge necessary, create a new one
+      var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      saveTransactionRequestChallenge(result.get.id, challenge)
+      result = Full(result.get.copy(challenge = challenge))
+    }
+
+    result
+  }
+
+
+
+
+
   //place holder for various connector methods that overwrite methods like these, does the actual data access
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,

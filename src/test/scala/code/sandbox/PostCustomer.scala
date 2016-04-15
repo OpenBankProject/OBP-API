@@ -105,7 +105,7 @@ object PostCustomer extends SendServerRequests {
 
 
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_013/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_customers_pretty.json"
 
     // This contains a list of customers.
     val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
@@ -130,7 +130,7 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_013/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
@@ -145,7 +145,7 @@ object PostCustomer extends SendServerRequests {
 
       if(!OAuthClient.loggedIn) {
         OAuthClient.authenticateWithOBPCredentials(user.email, user.password)
-        println(" - ok.")
+        //println(" - ok.")
       }
 
 
@@ -161,11 +161,18 @@ object PostCustomer extends SendServerRequests {
 //        if(!cp.category.isEmpty && oa.metadata.get.more_info.isEmpty) {
 
 
-        val bankId = "enbd-uae--p"
+        val bankId = "enbd-egy--p3"
 
 
           val json = Extraction.decompose(c)
-          val result = ObpPut(s"/v2.0.0/banks/$bankId/customer", json)
+
+        val jsonString = compact(JsonAST.render(json))
+
+
+        val myJsonString = "{\"customer_number\":\"enbd-uae-441130311\",\"legal_name\":\"Abdulrahman UP Uae\",\"mobile_phone_number\":\"00 44 12345\",\"email\":\"abdulrahman.up.uae@example.com\",\"face_image\":{\"url\":\"www.example.com\",\"date\":\"2016-04-11T12:39:02.574Z\"},\"date_of_birth\":\"2016-04-11T12:39:02.574Z\",\"relationship_status\":\"Single\",\"dependants\":0,\"dob_of_dependants\":[\"2016-04-11T12:39:02.574Z\",\"2016-04-11T12:39:02.574Z\"],\"highest_education_attained\":\"Phd.\",\"employment_status\":\"Employed\",\"kyc_status\":true,\"last_ok_date\":\"2016-04-11T12:39:02.574Z\"}"
+
+        val url = s"/v2.0.0/banks/$bankId/customer"
+          val result = ObpPost(url, myJsonString)
           if(!result.isEmpty){
             println("saved " + c.customer_number + " as customer " + result)
         } else {
