@@ -61,14 +61,11 @@ input, input[type="submit"] {
 }
 @media all and (max-width: 767px) {
   #logo-left, #logo-right {
-	margin-left: 15px;
-	margin-right: 0;
-	width: auto;
 	max-width: 500px;
   }
   #logo-left img, #logo-right img {
-	  max-width: 440px;
-	  height: auto;
+	max-width: 500px;
+	height: auto;
   }
   #nav {
     padding: 4px 15px 0;
@@ -185,14 +182,11 @@ input, input[type="submit"] {
 }
 @media all and (max-width: 500px) {
   #logo-left, #logo-right {
-	margin-left: 15px;
-	margin-right: 0;
-	width: auto;
-	max-width: 500px;
+	max-width: 320px;
   }
   #logo-left img, #logo-right img {
-	  max-width: 440px;
-	  height: auto;
+	max-width: 320px;
+	height: auto;
   }
   .navitem {
 	  display: none;
