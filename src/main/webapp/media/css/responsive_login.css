@@ -40,15 +40,36 @@ input, input[type="submit"] {
 }
 
 @media all and (max-width: 1070px) {
+  #logo-left, #logo-right {
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+	float: none;
+	width: 611px;
+  }
+  #logo-right {
+	margin-left: auto;
+	margin-right: auto;
+	display: block;
+	float: none;
+	width: 156px;
+  }
+
   #wrapper {
     padding: 0;
   }
 }
 @media all and (max-width: 767px) {
-  #logo-left {
-    margin-left: 15px;
+  #logo-left, #logo-right {
+	margin-left: 15px;
+	margin-right: 0;
+	width: auto;
+	max-width: 500px;
   }
-
+  #logo-left img, #logo-right img {
+	  max-width: 440px;
+	  height: auto;
+  }
   #nav {
     padding: 4px 15px 0;
     float: left;
@@ -163,6 +184,22 @@ input, input[type="submit"] {
   }
 }
 @media all and (max-width: 500px) {
+  #logo-left, #logo-right {
+	margin-left: 15px;
+	margin-right: 0;
+	width: auto;
+	max-width: 500px;
+  }
+  #logo-left img, #logo-right img {
+	  max-width: 440px;
+	  height: auto;
+  }
+  .navitem {
+	  display: none;
+  }
+  .navitem.navitem-home {
+	  display: block;
+  }
   .account {
     max-width: 100%;
     width: 100%;
