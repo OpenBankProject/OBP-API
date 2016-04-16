@@ -171,8 +171,17 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1fx")
         val accountId2 = AccountId("__acc2fx")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "AED")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "INR")
+
+        val fromCurrency = "AED"
+        val toCurrency = "INR"
+
+        val amt = BigDecimal("10.00") // This is money going out. We want to transfer this away from the From account.
+
+
+        val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
+
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -188,7 +197,18 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
         val beforeFromBalance = fromAccount.balance
+        val beforeFromCurrency = fromAccount.currency
+
+
         val beforeToBalance = toAccount.balance
+        val beforeToCurrency = toAccount.currency
+
+        // We debit the From
+        val expectedFromNewBalance = beforeFromBalance - amt
+
+        // We credit the To
+        val expectedToNewBalance = beforeToBalance + expectedAmtTo
+
 
         //Create a transaction (request)
         //1. get possible challenge types for from account
@@ -199,8 +219,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val transactionRequestId = TransactionRequestId("__trans1")
         val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
-        val amt = BigDecimal("1.23")
-        val bodyValue = AmountOfMoneyJSON("AED", amt.toString())
+
+        val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
         val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", "")
 
         //call createTransactionRequest
@@ -255,15 +275,16 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         challenge.size should equal(0)
 
         //check that we created a new transaction (since no challenge)
-        request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+        request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transactions").GET <@(user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
-        val transactions = response.body.children
 
-        transactions.size should equal(1)
+        val fromTransactions = response.body.children
+
+        fromTransactions.size should equal(1)
 
         //check that the description has been set
         val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
@@ -272,13 +293,61 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         }
         description should not equal ("")
 
-        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
-        //(do it here even though the payments test does test makePayment already)
+        // Transaction Value
+        val actualFromAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+          case JString(i) => i
+          case _ => ""
+        }
+
+        // We are debiting the amount
+        amt should equal (-1 * BigDecimal(actualFromAmount))
+
+        // New Balance
+        val actualFromBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        expectedFromNewBalance should equal (BigDecimal(actualFromBalance))
+
+        //check that we created a new transaction (since no challenge)
+        request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
+          "owner" / "transactions").GET <@(user1)
+        response = makeGetRequest(request)
+
+        Then("we should get a 200 ok code")
+        response.code should equal(200)
+
+        val toTransactions = response.body.children
+
+        toTransactions.size should equal(1)
+
+        //check that the description has been set
+        val toDescription = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        description should not equal ("")
+
+        // Transaction Value
+        val actualToAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        expectedAmtTo should equal (BigDecimal(actualToAmount))
+
+        // New Balance
+        val actualToBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        expectedToNewBalance should equal (BigDecimal(actualToBalance))
+
+
         val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
-        And("the from account should have a balance smaller by the amount specified to pay")
-        fromAccountBalance should equal(beforeFromBalance - convertedAmount)
+        And("the from account should have a balance smaller by the original amount specified to pay")
+        fromAccountBalance should equal(beforeFromBalance - amt)
 
 
         //val fromAccountBalance = getFromAccount.balance
@@ -299,12 +368,6 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       }
     }
 
-
-
-
-
-
-    //
 
     if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a challenge", TransactionRequest) {}

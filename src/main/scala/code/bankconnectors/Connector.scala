@@ -145,19 +145,23 @@ trait Connector {
       //sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
       //  s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
       //})
+
+    // Note: These are guards. Values are calculated in makePaymentImpl
       rate <- tryo {
         fx.exchangeRate(fromAccount.currency, toAccount.currency)
       } ?~! {
-        "This currency convertion not supported."
+        s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
       }
-      convertedAmount <- tryo {
+      notUsedHereConvertedAmount <- tryo {
         fx.convert(amt, rate)
       } ?~! {
-        "Currency convertion failed."
+        "Currency conversion failed."
       }
       isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
       //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
-      transactionId <- makePaymentImpl(fromAccount, toAccount, convertedAmount, description)
+
+
+      transactionId <- makePaymentImpl(fromAccount, toAccount, amt, description)
     } yield transactionId
   }
 

@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.{Calendar, UUID, Date}
 
+import code.fx.fx
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.MappedNarrative
@@ -164,13 +165,28 @@ object LocalMappedConnector extends Connector with Loggable {
 
 
   override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal, description : String): Box[TransactionId] = {
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = amt //to account balance should increase
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
-    saveTransaction(toAccount, fromAccount, toTransAmt, description)
 
+
+
+    val rate = tryo {
+      fx.exchangeRate(fromAccount.currency, toAccount.currency)
+    } ?~! {
+      s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."
+    }
+
+    // Is it better to pass these into this function ?
+    val fromTransAmt = -amt //from account balance should decrease
+    val toTransAmt = fx.convert(amt, rate.get)
+
+    // From
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
+
+    // To
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toTransAmt, description)
+
+    // Return the sent transaction id
     sentTransactionId
   }
 
