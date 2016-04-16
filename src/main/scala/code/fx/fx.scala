@@ -1,7 +1,6 @@
 package code.fx
 
-import code.model.AmountOfMoney
-import net.liftweb.common.{Full, Loggable}
+import net.liftweb.common.Loggable
 
 /**
   * Created by simonredfern on 14/04/2016.
@@ -32,6 +31,10 @@ object fx extends Loggable {
     )
   }
 
+  def convert(amount: BigDecimal, exchangeRate: Option[Double]): BigDecimal = {
+    val result = amount + exchangeRate.get
+    result.setScale(2, BigDecimal.RoundingMode.HALF_UP)
+  }
 
 
   def exchangeRate(fromCurrency: String, toCurrency: String): Option[Double] = {

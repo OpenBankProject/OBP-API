@@ -3,9 +3,9 @@ package code.bankconnectors
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.Helper._
-import net.liftweb.common.{Failure, Full, Empty, Box}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import code.model._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
@@ -13,6 +13,8 @@ import code.model.User
 import code.model.OtherBankAccount
 import code.model.Transaction
 import java.util.Date
+
+import code.fx.fx
 
 import scala.math.BigInt
 import scala.util.Random
@@ -123,6 +125,42 @@ trait Connector {
     } yield transactionId
   }
 
+  /**
+    * \
+    *
+    * @param initiator The user attempting to make the payment
+    * @param fromAccountUID The unique identifier of the account sending money
+    * @param toAccountUID The unique identifier of the account receiving money
+    * @param amt The amount of money to send ( > 0 )
+    * @return The id of the sender's new transaction,
+    */
+  def makePaymentv200(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
+                      amt : BigDecimal, description : String) : Box[TransactionId] = {
+    for {
+      fromAccount <- getBankAccountType(fromAccountUID.bankId, fromAccountUID.accountId) ?~
+        s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      toAccount <- getBankAccountType(toAccountUID.bankId, toAccountUID.accountId) ?~
+        s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
+      //sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
+      //  s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
+      //})
+      rate <- tryo {
+        fx.exchangeRate(fromAccount.currency, toAccount.currency)
+      } ?~! {
+        "This currency convertion not supported."
+      }
+      convertedAmount <- tryo {
+        fx.convert(amt, rate)
+      } ?~! {
+        "Currency convertion failed."
+      }
+      isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
+      //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
+      transactionId <- makePaymentImpl(fromAccount, toAccount, convertedAmount, description)
+    } yield transactionId
+  }
+
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId]
 
 
@@ -217,7 +255,7 @@ trait Connector {
 
     //if no challenge necessary, create transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
-      val createdTransactionId = Connector.connector.vend.makePayment(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+      val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
         BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
 
       //set challenge to null

@@ -1,21 +1,19 @@
 package code.api.v2_0_0
 
 import code.api.DefaultUsers
-import code.api.test.{APIResponse, ServerSetupWithTestData, ServerSetup}
-import code.api.util.APIUtil.OAuth.{Token, Consumer}
-import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson, AmountOfMoneyJSON}
+import code.api.test.ServerSetupWithTestData
+import code.api.util.APIUtil.OAuth._
+import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.model.{TransactionRequestId, AccountId, BankAccount}
+import code.fx.fx
+import code.model.{AccountId, BankAccount, TransactionRequestId}
 import code.transactionrequests.TransactionRequests
-import code.api.util.APIUtil.OAuth._
 import dispatch._
 import net.liftweb.json.JsonAST.JString
-import net.liftweb.json._
+import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
-import java.util.Calendar
-import net.liftweb.json.Serialization.{read, write}
 
 class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V200ServerSetup {
 
@@ -143,10 +141,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
-
+        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the amount specified to pay")
-        fromAccountBalance should equal((beforeFromBalance - amt))
+        fromAccountBalance should equal((beforeFromBalance - convertedAmount))
 
         /*
         And("the newest transaction for the account receiving the payment should have the proper amount")
@@ -155,7 +154,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
-        toAccountBalance should equal(beforeToBalance + amt)
+        toAccountBalance should equal(beforeToBalance + convertedAmount)
 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
@@ -275,10 +274,16 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
-
+        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the amount specified to pay")
-        fromAccountBalance should equal((beforeFromBalance - amt))
+        fromAccountBalance should equal(beforeFromBalance - convertedAmount)
+
+
+        //val fromAccountBalance = getFromAccount.balance
+        //And("the from account should have a balance smaller by the amount specified to pay")
+        //fromAccountBalance should equal((beforeFromBalance - amt))
 
         /*
         And("the newest transaction for the account receiving the payment should have the proper amount")
@@ -287,7 +292,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
-        toAccountBalance should equal(beforeToBalance + amt)
+        toAccountBalance should equal(beforeToBalance + convertedAmount)
 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)

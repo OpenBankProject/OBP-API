@@ -3,46 +3,34 @@ package code.api.v2_0_0
 import java.text.SimpleDateFormat
 
 import code.TransactionTypes.TransactionType
-import code.api.APIFailure
-import code.api.util.APIUtil
+import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
-
-import code.api.v1_2_1.{JSONFactory => JSONFactory121, AmountOfMoneyJSON => AmountOfMoneyJSON121, APIMethods121}
-
-
+import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0._
-
 import code.bankconnectors.Connector
-import code.model.dataAccess.{BankAccountCreation}
-
-
-import net.liftweb.http.{JsonResponse, Req}
-import net.liftweb.json
-import net.liftweb.json.Extraction
-import net.liftweb.common._
-import code.model._
-import net.liftweb.json.JsonAST.JValue
-import APIUtil._
-import net.liftweb.util.Helpers._
-import net.liftweb.http.rest.RestHelper
-import net.liftweb.common.Full
+import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
 import code.kycstatuses.KycStatuses
-import code.kycchecks.KycChecks
-import code.socialmedia.{SocialMediaHandle, SocialMedia}
+import code.model._
+import code.model.dataAccess.BankAccountCreation
+import code.socialmedia.SocialMediaHandle
+import net.liftweb.common.{Full, _}
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
-import net.liftweb.json.JsonDSL._
-import code.customer.{CustomerMessages, Customer}
+import code.customer.Customer
 import code.util.Helper._
 import net.liftweb.http.js.JE.JsRaw
-
-import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonDSL._
 
 
 trait APIMethods200 {
@@ -1066,8 +1054,6 @@ trait APIMethods200 {
       true,
       List(apiTagPayment))
 
-    import code.fx.fx
-
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
         TransactionRequestType(transactionRequestType) :: "transaction-requests" :: Nil JsonPost json -> _ => {
@@ -1086,11 +1072,6 @@ trait APIMethods200 {
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {ErrorMessages.CounterpartyNotFound}
-              //accountsCurrencyEqual <- tryo(assert(fromAccount.currency == toAccount.currency)) ?~! {"Counterparty and holder accounts have differing currencies."}
-              //transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Request currency and holder account currency can't be different."}
-              rawAmt <- tryo {BigDecimal(transBodyJson.value.amount)} ?~! s"Amount ${transBodyJson.value.amount} not convertible to number"
-              rate <- tryo{fx.exchangeRate (fromAccount.currency, toAccount.currency)} ?~! {"This currency convertion not supported."}
-              convertedAmount <- rate.map(r => r * rawAmt)
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
               val json = Extraction.decompose(createdTransactionRequest)
