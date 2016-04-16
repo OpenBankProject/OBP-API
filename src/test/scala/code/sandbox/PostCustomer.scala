@@ -31,22 +31,19 @@ limitations under the License.
 * into your props file.
 * */
 
-import java.text.SimpleDateFormat
 import java.util.Date
+
+import net.liftweb.http.RequestVar
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 import dispatch._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Full
+import net.liftweb.common.{Empty, Box, Full}
 import code.api.test.SendServerRequests
 import code.api.ObpJson._
-import code.api.util.APIUtil._
 import code.api._
-import code.api.ObpJson.BarebonesAccountsJson
-
-
 
 case class CustomerFullJson(customer_number : String,
                         legal_name : String,
@@ -75,7 +72,7 @@ case class CustomerFaceImageJson(url : String, date : Date)
 
 // Post customer data
 // Instructions for using this:
-// Run a copy of the API somewhere (else)
+// Run a copy of the API (here or somewhere else)
 // Set the paths for users and counterparties.
 
 // TODO Extract this into a separate application.
@@ -92,28 +89,17 @@ object PostCustomer extends SendServerRequests {
 
   def main(args : Array[String]) {
 
-// Use this so we can extract dates from the json which are like this: 2016-04-11T12:39:02.605Z
 
-    implicit val formats = new Formats {
-      val dateFormat = DefaultFormats.lossless.dateFormat
-    }
-
-
-
-
-
+    // this sets the date format to "yyyy-MM-dd'T'HH:mm:ss'Z'" i.e. ISO 8601 No milliseconds UTC
+    implicit val formats = DefaultFormats // Brings in default date formats etc.
 
 
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_019/OBP_sandbox_customers_pretty.json"
 
     // This contains a list of customers.
     val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
     var customers = ListBuffer[CustomerFullJson]()
-
-
-
-
 
 
     // Get customers from json
@@ -130,25 +116,55 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_019/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
     println("got " + users.length + " users")
+
+    object allBanksVar extends RequestVar[Box[BanksJson]] (Empty)
+
+    def allBanks : Box[BanksJson]= {
+      allBanksVar.get match {
+        case Full(a) => Full(a)
+        case _ => ObpGet("/v1.2/banks").flatMap(_.extractOpt[BanksJson]) // TODO use more recent API version
+      }
+    }
+
+    case class SimpleBank(
+                     id : String,
+                     shortName : String,
+                     fullName : String,
+                     logo : String,
+                     website : String)
+
+
+    val banks = for {
+      a <- allBanks.toList
+      b <- a.bankJsons
+    // This filtering could be turned on/off by Props setting
+    // Filter out banks if we have a list of ones to use, else use all of them.
+    // Also, show all if requested by url parameter
+    // if featuredBankIds.length == 0  || featuredBankIds.contains(b.id.get)  || listAllBanks
+    } yield SimpleBank (b.id.get,
+        b.short_name.getOrElse(""),
+        b.full_name.getOrElse(""),
+        b.logo.getOrElse(""),
+        b.website.getOrElse("")) // Add a flag to say if this bank is featured.
+
 
     //loop over users from json
     for (u <- users) {
       val user = u.extract[UserJSONRecord]
       println(" ")
       print("login as user: ")
+
       println (user.email + " - " + user.password)
 
       if(!OAuthClient.loggedIn) {
         OAuthClient.authenticateWithOBPCredentials(user.email, user.password)
         //println(" - ok.")
       }
-
-
 
       val customer = customers.filter(x => ( x.email == user.email))
 
@@ -157,53 +173,21 @@ object PostCustomer extends SendServerRequests {
       customer.map(c =>  {
         println (s"email is ${c.email} has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
 
+        // We are able to post this (no need to convert to string explicitly)
+        val json = Extraction.decompose(c)
 
-//        if(!cp.category.isEmpty && oa.metadata.get.more_info.isEmpty) {
-
-
-        val bankId = "enbd-egy--p3"
-
-
-          val json = Extraction.decompose(c)
-
-        val jsonString = compact(JsonAST.render(json))
-
-
-        val myJsonString = "{\"customer_number\":\"enbd-uae-441130311\",\"legal_name\":\"Abdulrahman UP Uae\",\"mobile_phone_number\":\"00 44 12345\",\"email\":\"abdulrahman.up.uae@example.com\",\"face_image\":{\"url\":\"www.example.com\",\"date\":\"2016-04-11T12:39:02.574Z\"},\"date_of_birth\":\"2016-04-11T12:39:02.574Z\",\"relationship_status\":\"Single\",\"dependants\":0,\"dob_of_dependants\":[\"2016-04-11T12:39:02.574Z\",\"2016-04-11T12:39:02.574Z\"],\"highest_education_attained\":\"Phd.\",\"employment_status\":\"Employed\",\"kyc_status\":true,\"last_ok_date\":\"2016-04-11T12:39:02.574Z\"}"
-
-        val url = s"/v2.0.0/banks/$bankId/customer"
-          val result = ObpPost(url, myJsonString)
-          if(!result.isEmpty){
+        // For now, create a customer
+        for (b <- banks) {
+          val url = s"/v2.0.0/banks/${b.id}/customer"
+          val result = ObpPost(url, json)
+          if (!result.isEmpty) {
             println("saved " + c.customer_number + " as customer " + result)
-        } else {
-          println("did NOT save customer "+ result )
+          } else {
+            println("did NOT save customer " + result)
+          }
         }
 
-
       })
-
-
-   // {  "customer_number":"687687678",  "legal_name":"Joe David Bloggs",  "mobile_phone_number":"+44 07972 444 876",  "email":"person@example.com",  "face_image":{    "url":"www.example.com/person/123/image.png",    "date":"2013-01-22T00:08:00Z"  },  "date_of_birth":"2013-01-22T00:08:00Z",  "relationship_status":"Single",  "dependants":1,  "dob_of_dependants":["2013-01-22T00:08:00Z"],  "highest_education_attained":"Bachelor’s Degree",  "employment_status":"Employed",  "kyc_status":true,  "last_ok_date":"2013-01-22T00:08:00Z"}
-
-
-
-
-
-
-
-//              val json = ("image_URL" -> logoUrl)
-//              ObpPost("/v1.2.1/banks/" + a.bank_id.get + "/accounts/" + a.id.get + "/owner/other_accounts/" + oa.id.get + "/metadata/image_url", json)
-//              println("saved " + logoUrl + " as imageURL for counterparty "+ oa.id.get)
-//              found = true
-//            } else {
-//              println("did NOT save " + logoUrl + " as imageURL for counterparty "+ oa.id.get)
-//          }
-
-
-
-
-
-
 
       OAuthClient.logoutAll()
     }

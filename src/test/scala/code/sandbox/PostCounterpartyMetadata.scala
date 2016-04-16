@@ -68,7 +68,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_counterparties_pretty.json"
+    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_020/OBP_sandbox_counterparties_pretty.json"
 
     // This contains a list of counterparty lists. one list for each region
     val counerpartyListData = JsonParser.parse(Source.fromFile(counterpartyDataPath) mkString)
@@ -104,7 +104,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_016/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_020/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
