@@ -32,7 +32,7 @@ object fx extends Loggable {
   }
 
   def convert(amount: BigDecimal, exchangeRate: Option[Double]): BigDecimal = {
-    val result = amount + exchangeRate.get
+    val result = amount * exchangeRate.get
     result.setScale(2, BigDecimal.RoundingMode.HALF_UP)
   }
 
