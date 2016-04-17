@@ -85,7 +85,7 @@ object ErrorMessages {
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
 
   val AccountNotFound = "OBP-30003: Account not found. Please specify a valid value for ACCOUNT_ID."
-  val CounterpartyNotFound = "OBP-30004: Counterparty not found."
+  val CounterpartyNotFound = "OBP-30004: Counterparty not found. The BANK_ID / ACCOUNT_ID specified does not exist on this server."
 
   val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
