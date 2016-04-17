@@ -363,7 +363,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val toAccountBalance = getToAccount.balance
         toAccountBalance should equal(beforeToBalance + convertedAmount)
 
-        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver)")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
       }
     }
