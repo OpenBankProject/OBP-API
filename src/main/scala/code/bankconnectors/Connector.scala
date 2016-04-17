@@ -233,7 +233,7 @@ trait Connector {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 100) {
+      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(body.value.amount) < 1000) {
         TransactionRequests.STATUS_COMPLETED
       } else {
         TransactionRequests.STATUS_INITIATED

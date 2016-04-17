@@ -9,6 +9,7 @@ import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
+import code.fx.fx
 import code.kycchecks.KycChecks
 import code.kycdocuments.KycDocuments
 import code.kycmedias.KycMedias
@@ -1027,6 +1028,13 @@ trait APIMethods200 {
 
     ///
 
+
+
+    import net.liftweb.json.JsonAST._
+    import net.liftweb.json.Extraction._
+    import net.liftweb.json.Printer._
+    val exchangeRates = compact(render(decompose(fx.exchangeRates)))
+
     resourceDocs += ResourceDoc(
       createTransactionRequest,
       apiVersion,
@@ -1034,13 +1042,21 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
-      """Initiate a Payment via a Transaction Request.
+      s"""Initiate a Payment via a Transaction Request.
         |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
         |
         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
         |
-        |In sandbox mode, if the amount is less than 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
+        |In sandbox mode, if the amount is less than 100 (any currency), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |
+        |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
+        |
+        |Currenctly TRANSACTION_REQUEST_TYPE must be set to SANDBOX_TAN
+        |
+        |The following static FX rates are available in sandbox mode:
+        |
+        |${exchangeRates}""",
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
@@ -1072,6 +1088,7 @@ trait APIMethods200 {
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {ErrorMessages.CounterpartyNotFound}
+              transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency music be the same."}
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
               val json = Extraction.decompose(createdTransactionRequest)
@@ -1082,7 +1099,7 @@ trait APIMethods200 {
           }
       }
     }
-    
+
 
 
   }

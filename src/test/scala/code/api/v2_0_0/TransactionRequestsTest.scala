@@ -404,7 +404,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //2. create transaction request to to-account with one of the possible challenges
 
-        //amount over 100 €, so should trigger challenge request
+        //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
         val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description", TransactionRequests.CHALLENGE_SANDBOX_TAN)
