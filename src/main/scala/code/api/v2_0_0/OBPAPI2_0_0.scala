@@ -31,12 +31,10 @@ Berlin 13359, Germany
   */
 package code.api.v2_0_0
 
-import code.api.v1_3_0.APIMethods130
-import code.api.v1_4_0.{APIMethods140}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST._
-import net.liftweb.common.Loggable
 import code.api.OBPRestHelper
+import code.api.v1_3_0.APIMethods130
+import code.api.v1_4_0.APIMethods140
+import net.liftweb.common.Loggable
 
 object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
@@ -136,7 +134,6 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     // Now in 2.0.0 Implementations1_4_0.createTransactionRequest,
     Implementations1_4_0.getTransactionRequests,
     Implementations1_4_0.getTransactionRequestTypes,
-    Implementations1_4_0.answerTransactionRequestChallenge,
 
     // Modified in 2.0.0 (less info about the views)
     Implementations2_0_0.allAccountsAllBanks,
@@ -146,6 +143,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.privateAccountsAtOneBank,
     Implementations2_0_0.publicAccountsAtOneBank,
     Implementations2_0_0.createTransactionRequest,
+    Implementations2_0_0.answerTransactionRequestChallenge,
     // Modified in 2.0.0 (added sorting and better guards / error messages)
     Implementations2_0_0.accountById,
     Implementations2_0_0.getPermissionsForBankAccount,

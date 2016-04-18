@@ -392,7 +392,19 @@ trait Connector {
     }
   }
 
-
+  def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+        BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //get transaction request again now with updated values
+      tr <- getTransactionRequestImpl(transReqId)
+    } yield {
+      tr
+    }
+  }
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
