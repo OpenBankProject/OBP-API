@@ -1,18 +1,13 @@
 package code.views
 
-import scala.collection.immutable.List
-import code.model._
-import code.model.dataAccess.ViewImpl
-import code.model.dataAccess.ViewPrivileges
-import net.liftweb.common.Loggable
-import net.liftweb.mapper.{QueryParam, By}
-import net.liftweb.common.{Box, Full, Empty, Failure}
 import code.api.APIFailure
-import code.model.ViewCreationJSON
-import net.liftweb.common.Full
-import code.model.Permission
-import code.model.ViewUpdateData
 import code.bankconnectors.Connector
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.{Permission, ViewCreationJSON, ViewUpdateData, _}
+import net.liftweb.common._
+import net.liftweb.mapper.By
+
+import scala.collection.immutable.List
 
 
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
@@ -250,11 +245,12 @@ private object MapperViews extends Views with Loggable {
         (v.bankId, v.accountId)
       ).distinct //we remove duplicates here
 
-    bankAndAccountIds.map {
+    val accountsList = bankAndAccountIds.map {
       case (bankId, accountId) => {
-        Connector.connector.vend.getBankAccount(bankId, accountId)
+        (bankId, accountId)
       }
-    }.flatten
+    }
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
@@ -265,9 +261,10 @@ private object MapperViews extends Views with Loggable {
         v.accountId
       }).distinct //we remove duplicates here
 
-    accountIds.map(accountId => {
-      Connector.connector.vend.getBankAccount(bank.bankId, accountId)
-    }).flatten
+    val accountsList = accountIds.map(accountId => {
+      (bank.bankId, accountId)
+    })
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   /**
@@ -293,11 +290,12 @@ private object MapperViews extends Views with Loggable {
         val visibleBankAndAccountIds =
           (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-        visibleBankAndAccountIds.map {
-          case(bankId, accountId) => {
-            Connector.connector.vend.getBankAccount(bankId, accountId)
+        val accountsList = visibleBankAndAccountIds.map {
+          case (bankId, accountId) => {
+            (bankId, accountId)
           }
-        }.flatten
+        }
+        Connector.connector.vend.getBankAccounts(accountsList)
       }
       case _ => getAllPublicAccounts()
     }
@@ -329,11 +327,12 @@ private object MapperViews extends Views with Loggable {
         val visibleBankAndAccountIds =
           (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-        visibleBankAndAccountIds.map {
-          case(bankId, accountId) => {
-            Connector.connector.vend.getBankAccount(bankId, accountId)
+        val accountsList = visibleBankAndAccountIds.map {
+          case (bankId, accountId) => {
+            (bankId, accountId)
           }
-        }.flatten
+        }
+        Connector.connector.vend.getBankAccounts(accountsList)
       }
       case _ => getPublicBankAccounts(bank)
     }
@@ -353,11 +352,10 @@ private object MapperViews extends Views with Loggable {
 
     val accountsList = nonPublicViewBankAndAccountIds.map {
       case(bankId, accountId) => {
-        Connector.connector.vend.getBankAccount(bankId, accountId)
+        (bankId, accountId)
       }
     }
-
-    accountsList.flatten
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   /**
@@ -371,9 +369,10 @@ private object MapperViews extends Views with Loggable {
     val nonPublicViewAccountIds = userNonPublicViewsForBank.
       map(_.accountId).distinct //we remove duplicates here
 
-    nonPublicViewAccountIds.map( accountId =>
-      Connector.connector.vend.getBankAccount(bankId, accountId)
-    ).flatten
+    val accountsList = nonPublicViewAccountIds.map { accountId =>
+        (bankId, accountId)
+    }
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
 }

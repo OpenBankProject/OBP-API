@@ -80,6 +80,12 @@ trait Connector {
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] =
     getBankAccountType(bankId, accountId)
 
+  def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
+    for ( acc <- accounts ) yield {
+      getBankAccount(acc._1, acc._2).orNull
+    }
+  }
+
   protected def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
   def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]

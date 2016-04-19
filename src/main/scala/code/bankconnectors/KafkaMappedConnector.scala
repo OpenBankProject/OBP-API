@@ -242,6 +242,21 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(res)
   }
 
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create argument list with reqId
+    // in order to fetch corresponding response
+    val argList = Map("bankIds" -> accts.map(a => a._1).mkString(","),
+      "username"  -> OBPUser.getCurrentUserUsername,
+      "accountIds" -> accts.map(a => a._2).mkString(","))
+    // Since result is single account, we need only first list entry
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getBankAccounts", argList).extract[List[KafkaAccountImport]]
+    val res = r.map ( t => new KafkaBankAccount(t) )
+    res
+  }
+
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
