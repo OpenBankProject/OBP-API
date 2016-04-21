@@ -1052,7 +1052,7 @@ trait APIMethods200 {
         |
         |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
         |
-        |Currenctly TRANSACTION_REQUEST_TYPE must be set to SANDBOX_TAN
+        |Currently TRANSACTION_REQUEST_TYPE must be set to SANDBOX_TAN
         |
         |The following static FX rates are available in sandbox mode:
         |
