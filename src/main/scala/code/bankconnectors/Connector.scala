@@ -80,6 +80,12 @@ trait Connector {
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] =
     getBankAccountType(bankId, accountId)
 
+  def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
+    for ( acc <- accounts ) yield {
+      getBankAccount(acc._1, acc._2).orNull
+    }
+  }
+
   protected def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
   def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]
@@ -392,7 +398,19 @@ trait Connector {
     }
   }
 
-
+  def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+        BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //get transaction request again now with updated values
+      tr <- getTransactionRequestImpl(transReqId)
+    } yield {
+      tr
+    }
+  }
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */

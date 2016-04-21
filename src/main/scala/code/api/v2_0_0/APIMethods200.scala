@@ -1100,6 +1100,45 @@ trait APIMethods200 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
+      apiVersion,
+      "answerTransactionRequestChallenge",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge.",
+      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
+      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      List(apiTagPayment))
+
+    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
+              //TODO check more things here
+              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
+              //create transaction and insert its id into the transaction request
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId)
+            } yield {
+              val successJson = Extraction.decompose(transactionRequest)
+              successJsonResponse(successJson, 202)
+            }
+          } else {
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+          }
+      }
+    }
 
 
   }

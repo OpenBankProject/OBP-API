@@ -242,6 +242,21 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(res)
   }
 
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
+    // Generate random uuid to be used as request-respose match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create argument list with reqId
+    // in order to fetch corresponding response
+    val argList = Map("bankIds" -> accts.map(a => a._1).mkString(","),
+      "username"  -> OBPUser.getCurrentUserUsername,
+      "accountIds" -> accts.map(a => a._2).mkString(","))
+    // Since result is single account, we need only first list entry
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "getBankAccounts", argList).extract[List[KafkaAccountImport]]
+    val res = r.map ( t => new KafkaBankAccount(t) )
+    res
+  }
+
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
@@ -823,6 +838,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   // Helper for creating a transaction
   def createNewTransaction(r: KafkaTransactionImport) = {
+    var datePosted: Date = null
+    if (r.details.posted != null && r.details.posted.matches("^[0-9]{8}$"))
+      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
+
+    var dateCompleted: Date = null
+    if (r.details.completed != null && r.details.completed.matches("^[0-9]{8}$"))
+      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
+
     val o = getBankAccountType(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).get
     //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
     val dummyOtherBankAccount = createOtherBankAccount(o, None)
@@ -831,19 +854,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val otherAccount = createOtherBankAccount(o, Some(dummyOtherBankAccount.metadata))
     // Create new transaction
     new Transaction(
-      r.id,                                                                             // uuid:String
-      TransactionId(r.id),                                                              // id:TransactionId
-      getBankAccountType(BankId(r.this_account.bank), AccountId(r.this_account.id)).get,// thisAccount:BankAccount
-      otherAccount,                                                                     // otherAccount:OtherBankAccount
-      r.details.`type`,                                                                 // transactionType:String
-      BigDecimal(r.details.value),                                                      // val amount:BigDecimal
-      "GBP",                                                                            // currency:String
-      Some(r.details.description),                                                      // description:Option[String]
-      //new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse("1970-01-01T00:00:00.000Z"),  // startDate:Date
-      //new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse("1970-01-01T00:00:00.000Z"), // finishDate:Date
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted),  // startDate:Date
-      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed), // finishDate:Date
-      BigDecimal(r.details.new_balance)                                                 // balance:BigDecimal
+      r.id,                                                   // uuid:String
+      TransactionId(r.id),                                    // id:TransactionId
+      getBankAccountType( BankId(r.this_account.bank),
+                          AccountId(r.this_account.id)).get,  // thisAccount:BankAccount
+      otherAccount,                                           // otherAccount:OtherBankAccount
+      r.details.`type`,                                       // transactionType:String
+      BigDecimal(r.details.value),                            // val amount:BigDecimal
+      "GBP",                                                  // currency:String
+      Some(r.details.description),                            // description:Option[String]
+      datePosted,                                             // startDate:Date
+      dateCompleted,                                          // finishDate:Date
+      BigDecimal(r.details.new_balance)                       // balance:BigDecimal
     )
   }
 
