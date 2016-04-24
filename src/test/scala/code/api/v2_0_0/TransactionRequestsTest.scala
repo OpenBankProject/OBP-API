@@ -30,10 +30,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       })
     }
 
+
+    // No challenge, No FX (same currencies)
     if (Props.getBool("transactionRequests_enabled", false) == false) {
-      ignore("we create a transaction request without challenge", TransactionRequest) {}
+      ignore("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {}
     } else {
-      scenario("we create a transaction request without challenge", TransactionRequest) {
+      scenario("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {
         val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
@@ -161,12 +163,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       }
     }
 
-    // With FX
-
+    // No challenge, with FX
     if (Props.getBool("transactionRequests_enabled", false) == false) {
-      ignore("we create an FX transaction request without challenge", TransactionRequest) {}
+      ignore("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {}
     } else {
-      scenario("we create an FX transaction request without challenge", TransactionRequest) {
+      scenario("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {
         val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1fx")
@@ -369,8 +370,9 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
     }
 
 
+    // With challenge, No FX (Same currencies)
     if (Props.getBool("transactionRequests_enabled", false) == false) {
-      ignore("we create a transaction request with a challenge", TransactionRequest) {}
+      ignore("we create a transaction request with a challenge, same currencies", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a challenge", TransactionRequest) {
         //setup accounts
@@ -536,8 +538,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
     }
 
 
-    // With FX
-
+    // With Challenge, with FX
     if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request with challenge", TransactionRequest) {}
     } else {
@@ -550,6 +551,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         val fromCurrency = "AED"
         val toCurrency = "INR"
 
+        // This value is over the "challenge threshold" i.e. a security challenge will need to be answered.
         val amt = BigDecimal("1250.00") // This is money going out. We want to transfer this away from the From account.
 
 
@@ -742,7 +744,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         }
         expectedFromNewBalance should equal (BigDecimal(actualFromBalance))
 
-        //check that we created a new transaction (since no challenge)
+        //check that we created a new transaction
         request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
           "owner" / "transactions").GET <@(user1)
         response = makeGetRequest(request)

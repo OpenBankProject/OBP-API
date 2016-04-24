@@ -53,10 +53,10 @@ object SwaggerJSONFactory {
   def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc]): SwaggerResourceDoc = {
     implicit val formats = DefaultFormats
 
-    val contact = ContactJson("OBP", "https://openbankproject.com/")
+    val contact = ContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com/")
     val apiVersion = "v1.4.0"
     val title = "Open Bank Project API"
-    val description = "An open source API for banks."
+    val description = "An Open Source API for Banks."
     val info = InfoJson(title, description, contact, apiVersion)
     // TODO check / improve host, basePath and version
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "")
