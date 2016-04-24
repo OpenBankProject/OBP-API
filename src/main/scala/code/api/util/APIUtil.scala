@@ -353,6 +353,7 @@ object APIUtil extends Loggable {
     errorResponseBodies: List[JValue], // Possible error responses
     isCore: Boolean,
     isPSD2: Boolean,
+    isOBWG: Boolean,
     tags: List[ResourceDocTag]
   )
 

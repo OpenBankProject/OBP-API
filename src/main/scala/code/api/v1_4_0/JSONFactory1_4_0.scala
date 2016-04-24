@@ -284,7 +284,7 @@ object JSONFactory1_4_0 {
       implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
       is_core = rd.isCore,
       is_psd2 = rd.isPSD2,
-      is_obwg = rd.isCore, // For now, track isCore
+      is_obwg = rd.isOBWG, // No longer tracking isCore
       tags = rd.tags.map(i => i.tag)
       )
   }

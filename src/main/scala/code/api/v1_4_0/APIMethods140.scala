@@ -80,6 +80,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -110,6 +111,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer))
@@ -143,6 +145,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer)
@@ -189,6 +192,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       List(apiTagBanks)
     )
 
@@ -234,6 +238,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       List(apiTagBanks)
     )
 
@@ -287,6 +292,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       List(apiTagBanks)
     )
 
@@ -323,6 +329,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer)
@@ -362,6 +369,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       List(apiTagPayment))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -396,6 +404,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       List(apiTagPayment))
@@ -450,6 +459,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       List(apiTagPayment))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -497,6 +507,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       List(apiTagPayment))
@@ -548,6 +559,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer))
@@ -622,6 +634,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           emptyObjectJson,
           emptyObjectJson,
         emptyObjectJson :: Nil,
+        false,
         false,
         false,
         Nil)

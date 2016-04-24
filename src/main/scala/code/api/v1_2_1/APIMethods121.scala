@@ -95,6 +95,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       apiTagApiInfo :: Nil)
 
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -129,6 +130,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       apiTagBanks :: Nil)
 
     lazy val allBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -165,6 +167,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       true,
       false,
+      true,
       apiTagBanks :: Nil)
 
 
@@ -205,6 +208,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       apiTagAccounts :: Nil)
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -229,6 +233,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       apiTagAccounts :: Nil)
@@ -258,6 +263,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       apiTagAccounts :: Nil)
@@ -292,6 +298,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       apiTagAccounts :: Nil)
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -323,6 +330,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       apiTagAccounts :: Nil)
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -352,6 +360,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       apiTagAccounts :: apiTagPublicData ::  Nil)
@@ -393,6 +402,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       true,
+      false,
       apiTagAccounts ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -423,6 +433,7 @@ trait APIMethods121 {
       Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagAccounts, apiTagMetaData))
@@ -480,6 +491,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews))
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -522,6 +534,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews))
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -558,6 +571,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews))
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -589,6 +603,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews))
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -616,6 +631,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements)
@@ -652,6 +668,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -684,6 +701,7 @@ trait APIMethods121 {
       Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements, apiTagOwnerRequired))
@@ -721,6 +739,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -756,6 +775,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -786,6 +806,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -814,6 +835,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagAccounts, apiTagCounterparties))
@@ -848,6 +870,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagCounterparties))
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -878,6 +901,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -911,6 +935,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -952,6 +977,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -985,6 +1011,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1022,6 +1049,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1052,6 +1080,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1086,6 +1115,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1124,6 +1154,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1160,6 +1191,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1190,6 +1222,7 @@ trait APIMethods121 {
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1226,6 +1259,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1260,6 +1294,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1290,6 +1325,7 @@ trait APIMethods121 {
       Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1327,6 +1363,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1361,6 +1398,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1391,6 +1429,7 @@ trait APIMethods121 {
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1427,6 +1466,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1461,6 +1501,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1491,6 +1532,7 @@ trait APIMethods121 {
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1527,6 +1569,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1561,6 +1604,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1591,6 +1635,7 @@ trait APIMethods121 {
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1629,6 +1674,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1663,6 +1709,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1702,6 +1749,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1738,6 +1786,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCounterparties, apiTagMetaData))
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1772,6 +1821,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCounterparties, apiTagMetaData))
@@ -1822,6 +1872,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       true,
+      false,
       List(apiTagAccounts, apiTagTransactions))
 
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1856,6 +1907,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       true,
+      false,
       List(apiTagAccounts, apiTagTransactions))
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1888,6 +1940,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1917,6 +1970,7 @@ trait APIMethods121 {
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagMetaData))
@@ -1953,6 +2007,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1987,6 +2042,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2018,6 +2074,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2047,6 +2104,7 @@ trait APIMethods121 {
       Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagMetaData))
@@ -2084,6 +2142,7 @@ trait APIMethods121 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2115,6 +2174,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2144,6 +2204,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionTagJSON("holiday")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagMetaData))
@@ -2182,6 +2243,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2214,6 +2276,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2243,6 +2306,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagMetaData))
@@ -2279,6 +2343,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2311,6 +2376,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2341,6 +2407,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagMetaData))
@@ -2379,6 +2446,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2415,6 +2483,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagTransactions, apiTagMetaData))
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2448,6 +2517,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagTransactions, apiTagCounterparties))
@@ -2487,6 +2557,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagPayment))

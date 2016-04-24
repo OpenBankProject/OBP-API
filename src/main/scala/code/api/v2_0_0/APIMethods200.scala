@@ -125,6 +125,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagPrivateData, apiTagPublicData))
     
 
@@ -150,6 +151,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       List(apiTagAccounts, apiTagPrivateData))
@@ -192,6 +194,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagPublicData))
 
 
@@ -228,6 +231,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagPrivateData, apiTagPublicData)
     )
 
@@ -258,6 +262,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       List(apiTagAccounts, apiTagPrivateData))
@@ -319,6 +324,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -347,6 +353,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer, apiTagKyc))
@@ -382,6 +389,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
     false,
     false,
+    false,
     List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -414,6 +422,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -443,6 +452,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer, apiTagKyc))
@@ -477,6 +487,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -508,6 +519,7 @@ trait APIMethods200 {
       Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer, apiTagKyc)
@@ -554,6 +566,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCustomer, apiTagKyc)
     )
 
@@ -594,6 +607,7 @@ trait APIMethods200 {
       Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer, apiTagKyc)
@@ -639,6 +653,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagCustomer, apiTagKyc)
     )
 
@@ -675,6 +690,7 @@ trait APIMethods200 {
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagCustomer)
@@ -726,6 +742,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       true,
       true,
+      false,
       apiTagAccounts ::  Nil)
 
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -778,6 +795,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       List(apiTagAccounts, apiTagTransactions))
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -825,6 +843,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       true,
+      false,
       apiTagAccounts ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -865,6 +884,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements)
     )
 
@@ -900,6 +920,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagAccounts, apiTagViews, apiTagEntitlements))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -931,6 +952,7 @@ trait APIMethods200 {
       Extraction.decompose(CreateAccountJSON("CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       List(apiTagAccounts)
@@ -1002,6 +1024,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       true,
       false,
+      false,
       List(apiTagBanks)
     )
 
@@ -1068,6 +1091,7 @@ trait APIMethods200 {
       emptyObjectJson :: Nil,
       true,
       true,
+      true,
       List(apiTagPayment))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1111,6 +1135,7 @@ trait APIMethods200 {
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      true,
       true,
       true,
       List(apiTagPayment))

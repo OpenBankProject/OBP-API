@@ -40,8 +40,9 @@ trait APIMethods130 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
+      false,
+      false,
+      false,
       Nil)
 
     lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -72,6 +73,7 @@ trait APIMethods130 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
+      false,
       false,
       false,
       Nil)

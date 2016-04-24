@@ -1,9 +1,9 @@
 package code.api.ResourceDocs1_4_0
 
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Empty, Box, Full, Loggable}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{JsonResponse, Req}
+import net.liftweb.http.{S, JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
@@ -105,6 +105,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagApiInfo)
     )
 
@@ -116,14 +117,29 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
     // strip the leading v
     def cleanApiVersionString (version: String) : String = {version.stripPrefix("v").stripPrefix("V")}
 
+    // Todo add query parameters
+
+
+
+    // /api/item/search/foo or /api/item/search?q=foo
+//    case "search" :: q JsonGet _ =>
+//    (for {
+//      searchString <- q ::: S.params("q")
+//      item <- Item.search(searchString)
+//    } yield item).distinct: JValue
+
+
+
     def getResourceDocsObp : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "obp" :: Nil JsonGet _ => {
         user => {
           for {
             rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
           } yield {
+            // Filter
+            val rdFiltered = filterResourceDocs(rd)
             // Format the data as json
-            val json = JSONFactory1_4_0.createResourceDocsJson(rd)
+            val json = JSONFactory1_4_0.createResourceDocsJson(rdFiltered)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -147,8 +163,75 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       emptyObjectJson :: Nil,
       false,
       false,
+      false,
       List(apiTagApiInfo)
     )
+
+
+
+
+
+/*
+Filter Resource Docs based on the query parameters, else return the full list.
+we don't assume a default catalog (as API Explorer does)
+so the caller must specify any filtering by catalog
+ */
+def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
+
+    def stringToOptBoolean (x: String) : Option[Boolean] = x.toLowerCase match {
+      case "true" | "yes" | "1" | "-1" => Some(true)
+      case "false" | "no" | "0" => Some(false)
+      case _ => Empty
+    }
+
+    val showCoreParam: Option[Boolean] = for {
+      x <- S.param("core")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+    logger.info(s"showCore is $showCoreParam")
+
+    val showPSD2Param: Option[Boolean] = for {
+      x <- S.param("psd2")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+    logger.info(s"showPSD2 is $showPSD2Param")
+
+    val showOBWGParam: Option[Boolean] = for {
+      x <- S.param("obwg")
+      y <- stringToOptBoolean(x)
+    } yield y
+
+    logger.info(s"showOBWG is $showOBWGParam")
+
+
+    val showCore = showCoreParam
+    val showOBWG = showOBWGParam
+    val showPSD2 = showPSD2Param
+
+    // Filter (include, exclude or ignore)
+    val filteredResources1 : List[ResourceDoc] = showCore match {
+      case Some(true) => allResources.filter(x => x.isCore == true)
+      case Some(false) => allResources.filter(x => x.isCore == false)
+      case _ => allResources
+    }
+
+    val filteredResources2 : List[ResourceDoc] = showPSD2 match {
+      case Some(true) => filteredResources1.filter(x => x.isPSD2 == true)
+      case Some(false) => filteredResources1.filter(x => x.isPSD2 == false)
+      case _ => filteredResources1
+    }
+
+    val filteredResources3 : List[ResourceDoc] = showOBWG match {
+      case Some(true) => filteredResources2.filter(x => x.isOBWG == true)
+      case Some(false) => filteredResources2.filter(x => x.isOBWG == false)
+      case _ => filteredResources2
+    }
+
+    filteredResources3
+}
+
 
     def getResourceDocsSwagger : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "resource-docs" :: requestedApiVersion :: "swagger" :: Nil JsonGet _ => {
@@ -156,8 +239,10 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
           for {
             rd <- getResourceDocsList(cleanApiVersionString(requestedApiVersion))
           } yield {
+            // Filter
+            val rdFiltered = filterResourceDocs(rd)
             // Format the data as json
-            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rd)
+            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -207,6 +292,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
+        false,
         false,
         false,
         List(apiTagApiInfo))
