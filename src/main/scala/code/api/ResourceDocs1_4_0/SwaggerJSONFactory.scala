@@ -53,7 +53,7 @@ object SwaggerJSONFactory {
   def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc]): SwaggerResourceDoc = {
     implicit val formats = DefaultFormats
 
-    val contact = ContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com/")
+    val contact = ContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com")
     val apiVersion = "v1.4.0"
     val title = "Open Bank Project API"
     val description = "An Open Source API for Banks."
@@ -64,7 +64,7 @@ object SwaggerJSONFactory {
     val schemas = List("http")
     val paths: ListMap[String, Map[String, MethodJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       val methods: Map[String, MethodJson] = mrd._2.map(rd =>
-        (rd.requestVerb,
+        (rd.requestVerb.toLowerCase,
           MethodJson(
             List(s"${rd.apiVersion.toString}"),
             rd.summary,
