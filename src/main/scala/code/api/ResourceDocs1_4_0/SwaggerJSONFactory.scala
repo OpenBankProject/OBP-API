@@ -26,6 +26,7 @@ object SwaggerJSONFactory {
 
   case class MethodJson(tags: List[String],
                         summary: String,
+                        description: String,
                         operationId: String,
                         responses: Map[String, ResponseObjectJson])
 
@@ -68,6 +69,7 @@ object SwaggerJSONFactory {
           MethodJson(
             List(s"${rd.apiVersion.toString}"),
             rd.summary,
+            rd.description,
             s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
             Map("200" -> ResponseObjectJson(Some("Success") , None), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
