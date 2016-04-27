@@ -15,6 +15,8 @@ import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.tesobe.CashTransaction
 import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
+import code.util.Helper
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -432,7 +434,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                            status: String) : Box[TransactionRequest] = {
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
