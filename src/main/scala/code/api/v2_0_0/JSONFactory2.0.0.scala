@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -34,7 +34,10 @@ package code.api.v2_0_0
 import java.net.URL
 import java.util.Date
 import code.TransactionTypes.TransactionType.TransactionType
-import code.api.util.APIUtil.ApiLink
+import code.transactionrequests.TransactionRequests._
+
+// import code.api.util.APIUtil.ApiLink
+
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
@@ -44,10 +47,9 @@ import net.liftweb.common.{Box, Full}
 import code.model._
 import net.liftweb.json.JsonAST.JValue
 
-// Import explicitly and rename so its clear.
-import code.api.v1_2_1.{AccountHolderJSON => AccountHolderJSON121, AmountOfMoneyJSON => AmountOfMoneyJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121, ThisAccountJSON => ThisAccountJSON121, OtherAccountJSON => OtherAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121}
+import code.api.v1_2_1.{AmountOfMoneyJSON, UserJSON => UserJSON121, ViewJSON => ViewJSON121, ThisAccountJSON => ThisAccountJSON121, OtherAccountJSON => OtherAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121}
 
-
+import code.api.v1_4_0.JSONFactory1_4_0.{TransactionRequestAccountJSON, ChallengeJSON}
 
 
 
@@ -92,7 +94,7 @@ case class BasicAccountJSON(
 // Json used in account creation
 case class CreateAccountJSON(
                              `type` : String,
-                             balance : AmountOfMoneyJSON121
+                             balance : AmountOfMoneyJSON
                            )
 
 // No view in core
@@ -179,7 +181,7 @@ case class TransactionTypeJSON (
    short_code : String,
    summary: String,
    description: String,
-   customer_fee: AmountOfMoneyJSON121
+   customer_fee: AmountOfMoneyJSON
  )
 
 
@@ -188,16 +190,123 @@ case class TransactionTypesJSON(transaction_types: List[TransactionTypeJSON])
 
 
 
+/*
+v2.0.0 Json Representation of TransactionRequest
+ */
+
+
+case class TransactionRequestChargeJSON(
+                                     val summary: String,
+                                     val value : AmountOfMoneyJSON
+                                   )
+
+
+case class TransactionRequestJSON(
+                                        id: String,
+                                        `type`: String,
+                                        from: TransactionRequestAccountJSON,
+                                        body: TransactionRequestBodyJSON,
+                                        transaction_ids: String,
+                                        status: String,
+                                        start_date: Date,
+                                        end_date: Date,
+                                        challenge: ChallengeJSON
+                                      )
+
+
+case class TransactionRequestWithChargeJSON(
+                                   id: String,
+                                   `type`: String,
+                                   from: TransactionRequestAccountJSON,
+                                   body: TransactionRequestBodyJSON,
+                                   transaction_ids: String,
+                                   status: String,
+                                   start_date: Date,
+                                   end_date: Date,
+                                   challenge: ChallengeJSON,
+                                   charge : TransactionRequestChargeJSON
+                                 )
+
+
+
+
+
+case class TransactionRequestWithChargeJSONs(
+                                    transaction_requests_with_charges : List[TransactionRequestWithChargeJSON]
+                                 )
+
+
+
+
+
+
+
+case class TransactionRequestBodyJSON (
+                                        to: TransactionRequestAccountJSON,
+                                        value : AmountOfMoneyJSON,
+                                        description : String
+                                      )
+
 
 object JSONFactory200{
 
+  // Modified in 2.0.0
+
+  //transaction requests
+  def getTransactionRequestBodyFromJson(body: TransactionRequestBodyJSON) : TransactionRequestBody = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = body.to.bank_id,
+      account_id = body.to.account_id
+    )
+    val amount = AmountOfMoney (
+      currency = body.value.currency,
+      amount = body.value.amount
+    )
+
+    TransactionRequestBody (
+      to = toAcc,
+      value = amount,
+      description = body.description
+    )
+  }
+
+  def getTransactionRequestFromJson(json : TransactionRequestJSON) : TransactionRequest = {
+    val fromAcc = TransactionRequestAccount (
+      json.from.bank_id,
+      json.from.account_id
+    )
+    val challenge = TransactionRequestChallenge (
+      id = json.challenge.id,
+      allowed_attempts = json.challenge.allowed_attempts,
+      challenge_type = json.challenge.challenge_type
+    )
+
+    val charge = TransactionRequestCharge("Total charges for a completed transaction request.", AmountOfMoney(json.body.value.currency, "0.05"))
+
+
+    TransactionRequest (
+      id = TransactionRequestId(json.id),
+      `type`= json.`type`,
+      from = fromAcc,
+      body = getTransactionRequestBodyFromJson(json.body),
+      transaction_ids = json.transaction_ids,
+      status = json.status,
+      start_date = json.start_date,
+      end_date = json.end_date,
+      challenge = challenge,
+      charge = charge
+    )
+  }
+
+
+
+
+
+
+
+
 
   // New in 2.0.0
-
-
-
-
-
 
 
   def createViewBasicJSON(view : View) : BasicViewJSON = {
@@ -244,7 +353,7 @@ object JSONFactory200{
                                    number : String,
                                    owners : List[UserJSON121],
                                    `type` : String,
-                                   balance : AmountOfMoneyJSON121,
+                                   balance : AmountOfMoneyJSON,
                                    IBAN : String,
                                    swift_bic: String,
                                    bank_id : String
@@ -290,8 +399,8 @@ object JSONFactory200{
                                      description : String,
                                      posted : Date,
                                      completed : Date,
-                                     new_balance : AmountOfMoneyJSON121,
-                                     value : AmountOfMoneyJSON121
+                                     new_balance : AmountOfMoneyJSON,
+                                     value : AmountOfMoneyJSON
                                    )
 
 
@@ -462,12 +571,61 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       short_code = transactionType.shortCode,
       summary = transactionType.summary,
       description = transactionType.description,
-      customer_fee = new AmountOfMoneyJSON121(currency = transactionType.customerFee.currency, amount = transactionType.customerFee.amount)
+      customer_fee = new AmountOfMoneyJSON(currency = transactionType.customerFee.currency, amount = transactionType.customerFee.amount)
     )
   }
   def createTransactionTypeJSON(transactionTypes : List[TransactionType]) : TransactionTypesJSON = {
     TransactionTypesJSON(transactionTypes.map(createTransactionTypeJSON))
   }
+
+
+
+
+  /** Creates v2.0.0 representation of a TransactionType
+    *
+    *
+    * @param tr An internal TransactionRequest instance
+    * @return a v2.0.0 representation of a TransactionRequest
+    */
+
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON = {
+    new TransactionRequestWithChargeJSON(
+      id = tr.id.value,
+      `type` = tr.`type`,
+      from = TransactionRequestAccountJSON (
+        bank_id = tr.from.bank_id,
+        account_id = tr.from.account_id),
+      body =  TransactionRequestBodyJSON (
+          to = TransactionRequestAccountJSON (
+            bank_id = tr.body.to.bank_id,
+            account_id = tr.body.to.account_id),
+          value = AmountOfMoneyJSON (currency = tr.body.value.currency, amount = tr.body.value.amount),
+          description = tr.body.description),
+      transaction_ids = tr.transaction_ids,
+      status = tr.status,
+      start_date = tr.start_date,
+      end_date = tr.end_date,
+      // Some (mapped) data might not have the challenge. TODO Make this nicer
+      challenge = {
+        try {ChallengeJSON (id = tr.challenge.id, allowed_attempts = tr.challenge.allowed_attempts, challenge_type = tr.challenge.challenge_type)}
+        // catch { case _ : Throwable => ChallengeJSON (id = "", allowed_attempts = 0, challenge_type = "")}
+        catch { case _ : Throwable => null}
+      },
+      charge = TransactionRequestChargeJSON (summary = tr.charge.summary,
+                                              value = AmountOfMoneyJSON(currency = tr.charge.value.currency,
+                                                                        amount = tr.charge.value.amount)
+      )
+    )
+  }
+  def createTransactionRequestJSONs(trs : List[TransactionRequest]) : TransactionRequestWithChargeJSONs = {
+    TransactionRequestWithChargeJSONs(trs.map(createTransactionRequestWithChargeJSON))
+  }
+
+
+
+
+
+
 
   // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =

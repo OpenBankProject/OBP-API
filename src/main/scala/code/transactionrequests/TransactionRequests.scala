@@ -19,6 +19,12 @@ object TransactionRequests extends SimpleInjector {
 
   val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
 
+
+  case class TransactionRequestCharge(
+                                 val summary: String,
+                                 val value : AmountOfMoney
+  )
+
   case class TransactionRequest (
     val id: TransactionRequestId,
     val `type` : String,
@@ -28,7 +34,8 @@ object TransactionRequests extends SimpleInjector {
     val status: String,
     val start_date: Date,
     val end_date: Date,
-    val challenge: TransactionRequestChallenge
+    val challenge: TransactionRequestChallenge,
+    val charge: TransactionRequestCharge
   )
 
   case class TransactionRequestChallenge (

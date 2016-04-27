@@ -93,20 +93,31 @@ object DirectLogin extends RestHelper with Loggable {
 
       //Extract the directLogin parameters from the header and test if the request is valid
       var (httpCode, message, directLoginParameters) = validator("authorizationToken", getHttpMethod)
-      //Test if the request is valid
-      if(httpCode==200)
-      {
-        val claims = Map("" -> "")
-        val (token,secret) = generateTokenAndSecret(claims)
 
-        //Save the token that we have generated
-        if(saveAuthorizationToken(directLoginParameters,token, secret))
-          message = token
-        else
-          message = "invalid"
+      if (httpCode == 200) {
+        val userId = getUser(directLoginParameters)
+
+        if (userId == 0) {
+          message = ErrorMessages.InvalidLoginCredentials
+          httpCode = 401
+        } else {
+          val claims = Map("" -> "")
+          val (token, secret) = generateTokenAndSecret(claims)
+
+          //Save the token that we have generated
+          if (saveAuthorizationToken(directLoginParameters, token, secret, userId)) {
+            message = token
+          } else {
+            httpCode = 500
+            message = "invalid"
+          }
+        }
       }
-      val tokenJSON = JSONFactory.createTokenJSON(message)
-      successJsonResponse(Extraction.decompose(tokenJSON))
+
+      if (httpCode == 200)
+        successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)))
+      else
+        errorJsonResponse(message, httpCode)
     }
   }
 
@@ -220,12 +231,6 @@ object DirectLogin extends RestHelper with Loggable {
       message = ErrorMessages.InvalidLoginCredentials
       httpCode = 401
     }
-    //checking if the signature is correct
-    //else if(! correctSignature(parameters, httpMethod))
-    //{
-    //  message = "Invalid signature"
-    //  httpCode = 401
-    //}
     else
       httpCode = 200
     if(message.nonEmpty)
@@ -244,7 +249,7 @@ object DirectLogin extends RestHelper with Loggable {
     (token_message, secret_message)
   }
 
-  private def saveAuthorizationToken(directLoginParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
+  private def saveAuthorizationToken(directLoginParameters: Map[String, String], tokenKey: String, tokenSecret: String, userId: Long) =
   {
     import code.model.{Token, TokenType}
     val token = Token.create
@@ -253,12 +258,6 @@ object DirectLogin extends RestHelper with Loggable {
       case Full(consumer) => token.consumerId(consumer.id)
       case _ => None
     }
-    val username = directLoginParameters.get("username").getOrElse("").toString
-    val password = directLoginParameters.get("password").getOrElse("") match {
-      case p: String => p
-      case _ => "error"
-    }
-    val userId = OBPUser.getUserId(username, password)
     token.userForeignKey(userId)
     token.key(tokenKey)
     token.secret(tokenSecret)
@@ -289,6 +288,16 @@ object DirectLogin extends RestHelper with Loggable {
     } else {
       ParamFailure(message, Empty, Empty, APIFailure(message, httpCode))
     }
+  }
+
+  private def getUser(directLoginParameters: Map[String, String]): Long = {
+    val username = directLoginParameters.get("username").getOrElse("").toString
+    val password = directLoginParameters.get("password").getOrElse("") match {
+      case p: String => p
+      case _ => "error"
+    }
+    val userId = OBPUser.getUserId(username, password)
+    userId
   }
 
   def getUser(httpCode : Int, tokenID : Box[String]) : Box[User] =

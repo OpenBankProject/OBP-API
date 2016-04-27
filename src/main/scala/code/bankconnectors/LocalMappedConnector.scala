@@ -17,7 +17,7 @@ import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAcc
 import code.tesobe.CashTransaction
 import code.management.ImporterAPI.ImporterTransaction
 import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
+import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Loggable, Full, Box, Failure}
@@ -230,7 +230,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                            status: String) : Box[TransactionRequest] = {
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
@@ -243,7 +243,11 @@ object LocalMappedConnector extends Connector with Loggable {
       .mBody_Description(body.description)
       .mStatus(status)
       .mStartDate(now)
-      .mEndDate(now).saveMe
+      .mEndDate(now)
+      .mCharge_Summary(charge.summary)
+      .mCharge_Amount(charge.value.amount)
+      .mCharge_Currency(charge.value.currency)
+      .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 

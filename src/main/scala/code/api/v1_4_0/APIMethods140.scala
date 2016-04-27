@@ -421,6 +421,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
             }
             yield {
+              // TODO return 1.4.0 version of Transaction Requests!
               val successJson = Extraction.decompose(transactionRequests)
               successJsonResponse(successJson)
             }
