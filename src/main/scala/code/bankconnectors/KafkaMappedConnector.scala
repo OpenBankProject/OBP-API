@@ -16,19 +16,28 @@ import code.sandbox.{CreateViewImpls, Saveable}
 import code.tesobe.CashTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
-import code.util.Helper
+import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-
+import net.liftweb.util.Props
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
+
+  val cacheTTL              = Props.get("cache.ttl.base", "30").toInt
+  val cachedUser            = TTLCache[KafkaValidatedUserImport](cacheTTL)
+  val cachedBank            = TTLCache[KafkaBankImport](cacheTTL)
+  val cachedAccount         = TTLCache[KafkaAccountImport](cacheTTL)
+  val cachedBanks           = TTLCache[List[KafkaBankImport]](cacheTTL)
+  val cachedAccounts        = TTLCache[List[KafkaAccountImport]](cacheTTL)
+  val cachedPublicAccounts  = TTLCache[List[KafkaAccountImport]](cacheTTL)
+  val cachedUserAccounts    = TTLCache[List[KafkaAccountImport]](cacheTTL)
 
   def getUser( username: String, password: String ): Box[KafkaUserImport] = {
     // Generate random uuid to be used as request-respose match id
@@ -39,7 +48,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "password" -> password )
     implicit val formats = net.liftweb.json.DefaultFormats
 
-    val r = KafkaMappedConnector.process(reqId, "getUser", argList).extract[KafkaValidatedUserImport]
+    val r = {
+      cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaValidatedUserImport])
+    }
     val recDisplayName = r.display_name
     val recEmail = r.email
     if (recEmail == username.toLowerCase && recEmail != "Not Found") {
@@ -81,7 +92,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val argList = Map("username"  -> apiUser.email.get)
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getUserAccounts", argList).extract[List[KafkaAccountImport]]
+    val rList = {
+      cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaAccountImport]])
+    }
     val res = {
       for (r <- rList) yield {
         val views = createSaveableViews(r)
@@ -101,7 +114,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // in order to fetch corresponding response
     val argList = Map("username"  -> user.email.get )
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getPublicAccounts", argList).extract[List[KafkaAccountImport]]
+    val rList = {
+      cachedPublicAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getPublicAccounts", argList).extract[List[KafkaAccountImport]])
+    }
     val res = {
       for (r <- rList) yield {
         val views = createSaveableViews(r)
@@ -142,7 +157,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getBanks", argList).extract[List[KafkaBankImport]]
+    val rList = {
+      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaBankImport]])
+    }
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
         new KafkaBank(r)
@@ -164,7 +181,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Send request to Kafka, marked with reqId 
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getBank", argList).extract[KafkaBankImport]
+    val r = {
+      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaBankImport])
+    }
     // Return result
     Full(new KafkaBank(r))
   }
@@ -237,7 +256,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                       "accountId" -> accountID.value)
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getBankAccount", argList).extract[KafkaAccountImport]
+    val r = {
+      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaAccountImport])
+    }
     val res = new KafkaBankAccount(r)
     Full(res)
   }
@@ -252,7 +273,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       "accountIds" -> accts.map(a => a._2).mkString(","))
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getBankAccounts", argList).extract[List[KafkaAccountImport]]
+    val r = {
+      cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaAccountImport]])
+    }
     val res = r.map ( t => new KafkaBankAccount(t) )
     res
   }
@@ -267,7 +290,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                       "number" -> number)
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getBankAccount", argList).extract[KafkaAccountImport]
+    val r = {
+      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaAccountImport])
+    }
     val res = new KafkaBankAccount(r)
     Full(res)
   }
