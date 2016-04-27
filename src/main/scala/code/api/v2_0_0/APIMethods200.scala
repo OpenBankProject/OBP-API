@@ -1027,7 +1027,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      false,
+      true,
       false,
       List(apiTagBanks)
     )
