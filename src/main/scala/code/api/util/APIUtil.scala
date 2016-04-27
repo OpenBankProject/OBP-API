@@ -89,6 +89,9 @@ object ErrorMessages {
 
   val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
+  // Transaction related messages:
+  val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
+
 }
 
 

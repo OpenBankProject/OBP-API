@@ -48,6 +48,10 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mChallenge_Id extends DefaultStringField(this)
   object mChallenge_AllowedAttempts extends MappedInt(this)
   object mChallenge_ChallengeType extends DefaultStringField(this)
+
+  object mCharge_Summary  extends DefaultStringField(this)
+  object mCharge_Amount  extends DefaultStringField(this)
+  object mCharge_Currency  extends DefaultStringField(this)
  
   def toTransactionRequest : Option[TransactionRequest] = {
     val t_amount = AmountOfMoney (
@@ -74,6 +78,11 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
       challenge_type = mChallenge_ChallengeType
     )
 
+    val t_charge = TransactionRequestCharge (
+    summary = mCharge_Summary,
+    value = AmountOfMoney(currency = mCharge_Currency, amount = mCharge_Amount)
+    )
+
     Some(
       TransactionRequest(
         id = TransactionRequestId(mTransactionRequestId.get),
@@ -84,7 +93,8 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         transaction_ids = mTransactionIDs.get,
         start_date = mStartDate.get,
         end_date = mEndDate.get,
-        challenge = t_challenge
+        challenge = t_challenge,
+        charge = t_charge
       )
     )
   }

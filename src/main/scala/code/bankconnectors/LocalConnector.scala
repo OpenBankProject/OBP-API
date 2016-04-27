@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, UUID, TimeZone}
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
-import code.transactionrequests.TransactionRequests.{TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
+import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
 import code.util.Helper
 import net.liftweb.common.{Failure, Box, Loggable, Full}
 import net.liftweb.json.Extraction
@@ -310,7 +310,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                            status: String) : Box[TransactionRequest] = ???
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???

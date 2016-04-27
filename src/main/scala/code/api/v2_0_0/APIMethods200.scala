@@ -7,7 +7,10 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
-import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+
+//import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.JSONFactory200._
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.kycchecks.KycChecks
@@ -17,6 +20,7 @@ import code.kycstatuses.KycStatuses
 import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.socialmedia.SocialMediaHandle
+import code.transactionrequests.TransactionRequests
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -1083,8 +1087,7 @@ trait APIMethods200 {
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
-        "A description for the transaction to be created",
-        "one of the transaction types possible for the account"
+        "A description for the transaction to be created"
       )
       ),
       emptyObjectJson,
@@ -1112,11 +1115,15 @@ trait APIMethods200 {
               toBankId <- tryo(BankId(transBodyJson.to.bank_id))
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- tryo{BankAccount(toBankId, toAccountId).get} ?~! {ErrorMessages.CounterpartyNotFound}
+              // Prevent default value for transaction request type (at least).
+              // Consider: Add valid list of Transaction Request Types to Props "transactionRequests_supported_types" and use that below
+              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE")) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${TransactionRequests.CHALLENGE_SANDBOX_TAN}"
               transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency must be the same."}
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {
-              val json = Extraction.decompose(createdTransactionRequest)
-              createdJsonResponse(json)
+              // Explicitly format as v2.0.0 json
+              val json = JSONFactory200.createTransactionRequestWithChargeJSON(createdTransactionRequest)
+              createdJsonResponse(Extraction.decompose(json))
             }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
@@ -1131,7 +1138,7 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
       "Answer Transaction Request Challenge.",
-      "In Sandbox mode, any string that can be converted to a possitive integer will be accepted as an answer.",
+      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1156,7 +1163,12 @@ trait APIMethods200 {
               //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId)
             } yield {
-              val successJson = Extraction.decompose(transactionRequest)
+
+              // Format explicitly as v2.0.0 json
+              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
+              //successJsonResponse(Extraction.decompose(json))
+
+              val successJson = Extraction.decompose(json)
               successJsonResponse(successJson, 202)
             }
           } else {
@@ -1164,6 +1176,50 @@ trait APIMethods200 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      getTransactionRequests,
+      apiVersion,
+      "getTransactionRequests",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
+      "Get Transaction Requests." ,
+      "Returns all transaction requests. Version 2.0.0 now returns Fee information.",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagPayment))
+
+    lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              transactionRequests <- Connector.connector.vend.getTransactionRequests(u, fromAccount)
+            }
+              yield {
+                // Format the data as V2.0.0 json
+                val json = JSONFactory200.createTransactionRequestJSONs(transactionRequests)
+                successJsonResponse(Extraction.decompose(json))
+              }
+          } else {
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+          }
+      }
+    }
+
+
+
+
 
 
   }

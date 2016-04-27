@@ -3,7 +3,7 @@ package code.bankconnectors
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
+import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import code.model._
@@ -16,6 +16,7 @@ import java.util.Date
 
 import code.fx.fx
 
+import scala.math.BigDecimal.RoundingMode
 import scala.math.BigInt
 import scala.util.Random
 
@@ -178,6 +179,8 @@ trait Connector {
     Transaction Requests
   */
 
+
+  // This is used for 1.4.0 See createTransactionRequestv200 for 2.0.0
   def createTransactionRequest(initiator : User, fromAccount : BankAccount, toAccount: BankAccount, transactionRequestType: TransactionRequestType, body: TransactionRequestBody) : Box[TransactionRequest] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
@@ -187,6 +190,8 @@ trait Connector {
       } else {
         TransactionRequests.STATUS_INITIATED
       }
+
+
 
     //create a new transaction request
     var result = for {
@@ -200,7 +205,9 @@ trait Connector {
         s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
       })
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
+      // Version 200 below has more support for charge
+      charge = TransactionRequestCharge("Charge for completed transaction", AmountOfMoney(body.value.currency, "0.00"))
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
     } yield transactionRequest
 
     //make sure we get something back
@@ -245,7 +252,8 @@ trait Connector {
         TransactionRequests.STATUS_INITIATED
       }
 
-    //create a new transaction request
+
+    // Always create a new Transaction Request
     var result = for {
       fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
@@ -253,17 +261,23 @@ trait Connector {
       toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
-//      sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
-//        s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
-//      })
+       // isValidTransactionRequestType is checked at API layer. Maybe here too.
       isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
-      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status)
+
+
+      // For now, arbitary charge value to demonstrate PSD2 charge transparency principle. Eventually this would come from Transaction Type? 10 decimal places of scaling so can add small percentage per transaction.
+      chargeValue <- tryo {(BigDecimal(body.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${body.value.amount}"
+      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(body.value.currency, chargeValue.toString()))
+
+
+
+      transactionRequest <- createTransactionRequestImpl(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, body, status, charge)
     } yield transactionRequest
 
     //make sure we get something back
     result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
 
-    //if no challenge necessary, create transaction immediately and put in data store and object to return
+    // If no challenge necessary, create Transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
       val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
         BankAccountUID(toAccount.bankId, toAccount.accountId), BigDecimal(body.value.amount), body.description)
@@ -298,7 +312,7 @@ trait Connector {
   //place holder for various connector methods that overwrite methods like these, does the actual data access
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
-                                             status: String) : Box[TransactionRequest]
+                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {

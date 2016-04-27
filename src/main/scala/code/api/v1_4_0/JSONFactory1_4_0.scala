@@ -323,6 +323,9 @@ object JSONFactory1_4_0 {
       challenge_type = json.challenge.challenge_type
     )
 
+    val charge = TransactionRequestCharge("Total charges for a completed transaction request.", AmountOfMoney(json.body.value.currency, "0.05"))
+
+
     TransactionRequest (
       id = TransactionRequestId(json.id),
       `type`= json.`type`,
@@ -332,7 +335,8 @@ object JSONFactory1_4_0 {
       status = json.status,
       start_date = json.start_date,
       end_date = json.end_date,
-      challenge = challenge
+      challenge = challenge,
+      charge = charge
     )
   }
 
