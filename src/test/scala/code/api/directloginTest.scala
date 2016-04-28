@@ -33,73 +33,71 @@ class directloginTest extends ServerSetup {
       saveMe
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
-  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"jane@example.com\", " +
-    "password=\"the-password-of-jane\", consumer_key=%s").format(KEY))
+
+  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"does-not-exist@example.com\", " +
+    "password=\"no-good-password\", consumer_key=%s").format(KEY))
+
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
     "password=%s, consumer_key=%s").format(EMAIL, PASSWORD, "invalid"))
+
   val validHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
     format(EMAIL, PASSWORD, KEY))
 
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
+
   val invalidConsumerKeyHeaders = List(accessControlOriginHeader, invalidConsumerKeyHeader)
+
   val validHeaders = List(accessControlOriginHeader, validHeader)
 
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
   feature("DirectLogin") {
-    scenario("we try to login without an Authorization header") {
-      Given("The application is running")
-      When("the request is sent")
+    scenario("Invalid auth header") {
+      When("we try to login without an Authorization header")
       val request = directLoginRequest.GET
       val response = makeGetRequest(request, List(accessControlOriginHeader))
 
-      Then("We should get a 401")
+      Then("We should get a 400 - Bad Request")
       response.code should equal(400)
       assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
     }
 
-    scenario("we try to login with an invalid username/password") {
-      Given("The application is running")
-      When("the request is sent")
-      val request = directLoginRequest.GET
+    scenario("Invalid credentials") {
+      When("we try to login with an invalid username/password")
+      val request = directLoginRequest.POST
       val response = makeGetRequest(request, invalidUsernamePasswordHeaders)
 
-      Then("We should get a 401")
+      Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
     scenario("we try to login with a missing DirectLogin header") {
-      Given("The application is running")
       When("the request is sent")
-      val request = directLoginRequest.GET
+      val request = directLoginRequest.POST
       val response = makeGetRequest(request)
 
-      Then("We should get a 400")
+      Then("We should get a 400 - Bad Request")
       response.code should equal(400)
       assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
     }
 
     scenario("we try to login with DirectLogin but the application is not registered") {
-      Given("The application is running")
-      When("the request is sent")
-      val request = directLoginRequest.GET
+      When("the consumer key is invalid")
+      val request = directLoginRequest.POST
       val response = makeGetRequest(request, invalidConsumerKeyHeaders)
 
-      Then("We should get a 401")
+      Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    // TODO: This test is correct but it fails. Enable after it is fixed in directLogin.scala
-    /*
     scenario("we try to login with a valid DirectLogin header") {
-      Given("The application is running")
-      When("the request is sent")
-      val request = directLoginRequest.GET
+      When("the header and credentials are good")
+      val request = directLoginRequest.POST
       val response = makeGetRequest(request, validHeaders)
 
-      Then("We should get a 200 and a token")
+      Then("We should get a 200 - OK and a token")
       response.code should equal(200)
       response.body match {
         case JObject(List(JField(name, JString(value)))) =>
@@ -107,7 +105,7 @@ class directloginTest extends ServerSetup {
           value.length should be > 0
         case _ => fail("Expected a token")
       }
-    }*/
+    }
   }
 
   private def assertResponse(response: APIResponse, expectedErrorMessage: String): Unit = {
