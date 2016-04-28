@@ -72,8 +72,8 @@ class directloginTest extends ServerSetup {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("we try to login with a missing DirectLogin header") {
-      When("the request is sent")
+    scenario("Missing DirecLogin header") {
+      When("we try to login with a missing DirectLogin header")
       val request = directLoginRequest.POST
       val response = makeGetRequest(request)
 
@@ -82,7 +82,7 @@ class directloginTest extends ServerSetup {
       assertResponse(response, ErrorMessages.DirectLoginMissingParameters)
     }
 
-    scenario("we try to login with DirectLogin but the application is not registered") {
+    scenario("Login without consumer key") {
       When("the consumer key is invalid")
       val request = directLoginRequest.POST
       val response = makeGetRequest(request, invalidConsumerKeyHeaders)
@@ -92,7 +92,7 @@ class directloginTest extends ServerSetup {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("we try to login with a valid DirectLogin header") {
+    scenario("Login with correct everything!") {
       When("the header and credentials are good")
       val request = directLoginRequest.POST
       val response = makeGetRequest(request, validHeaders)
