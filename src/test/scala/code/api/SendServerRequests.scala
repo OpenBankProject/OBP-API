@@ -59,7 +59,7 @@ trait SendServerRequests {
   }
 
   /**
-  this method does a POST request given a URL, a JSON and an optional Headers Map
+  this method does a POST request given a URL, a JSON
     */
   def makePostRequest(req: Req, json: String = ""): APIResponse = {
     req.addHeader("Content-Type", "application/json")
@@ -69,6 +69,23 @@ trait SendServerRequests {
     val jsonReq = (req).POST
     getAPIResponse(jsonReq)
   }
+
+// Accepts an additional option header Map
+  def makePostRequestAdditionalHeader(req: Req, json: String = "", params: List[(String, String)] = Nil): APIResponse = {
+    req.addHeader("Content-Type", "application/json")
+    req.addHeader("Accept", "application/json")
+    req.setBody(json)
+    req.setBodyEncoding("UTF-8")
+    val jsonReq = req.POST
+    params.foreach{
+      headerAndValue => {
+        jsonReq.addHeader(headerAndValue._1, headerAndValue._2)
+      }
+    }
+    getAPIResponse(jsonReq)
+  }
+
+
 
   def makePutRequest(req: Req, json: String = "") : APIResponse = {
     req.addHeader("Content-Type", "application/json")

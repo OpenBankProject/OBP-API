@@ -54,8 +54,8 @@ class directloginTest extends ServerSetup {
   feature("DirectLogin") {
     scenario("Invalid auth header") {
       When("we try to login without an Authorization header")
-      val request = directLoginRequest.GET
-      val response = makeGetRequest(request, List(accessControlOriginHeader))
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", List(accessControlOriginHeader))
 
       Then("We should get a 400 - Bad Request")
       response.code should equal(400)
@@ -64,8 +64,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Invalid credentials") {
       When("we try to login with an invalid username/password")
-      val request = directLoginRequest.POST
-      val response = makeGetRequest(request, invalidUsernamePasswordHeaders)
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordHeaders)
 
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
@@ -74,8 +74,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Missing DirecLogin header") {
       When("we try to login with a missing DirectLogin header")
-      val request = directLoginRequest.POST
-      val response = makeGetRequest(request)
+      val request = directLoginRequest
+      val response = makePostRequest(request,"")
 
       Then("We should get a 400 - Bad Request")
       response.code should equal(400)
@@ -84,8 +84,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Login without consumer key") {
       When("the consumer key is invalid")
-      val request = directLoginRequest.POST
-      val response = makeGetRequest(request, invalidConsumerKeyHeaders)
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", invalidConsumerKeyHeaders)
 
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
@@ -94,8 +94,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Login with correct everything!") {
       When("the header and credentials are good")
-      val request = directLoginRequest.POST
-      val response = makeGetRequest(request, validHeaders)
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", validHeaders)
 
       Then("We should get a 200 - OK and a token")
       response.code should equal(200)
@@ -105,6 +105,15 @@ class directloginTest extends ServerSetup {
           value.length should be > 0
         case _ => fail("Expected a token")
       }
+
+      // TODO Check that we are logged in Probably should add an enpoint /me that returns the currently logged in user.
+//      When("when we use the token it should work")
+//      val request2 = directLoginRequest
+//      val response2 = makePostRequestAdditionalHeader(request2, "", validHeaders)
+//
+//      Then("We should get a 200 - OK and a token")
+
+
     }
   }
 
