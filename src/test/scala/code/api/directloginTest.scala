@@ -8,6 +8,11 @@ import dispatch._
 import net.liftweb.json.JsonAST.{JField, JObject, JString}
 import net.liftweb.util.Helpers._
 
+import code.api.DirectLogin.registeredApplication
+
+
+
+
 class directloginTest extends ServerSetup {
 
   val KEY = randomString(20)
@@ -53,6 +58,10 @@ class directloginTest extends ServerSetup {
 
   feature("DirectLogin") {
     scenario("Invalid auth header") {
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      assert(registeredApplication(KEY) == true)
+
       When("we try to login without an Authorization header")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", List(accessControlOriginHeader))
@@ -63,6 +72,10 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Invalid credentials") {
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      assert(registeredApplication(KEY) == true)
+
       When("we try to login with an invalid username/password")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordHeaders)
@@ -73,6 +86,11 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Missing DirecLogin header") {
+
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      assert(registeredApplication(KEY) == true)
+
       When("we try to login with a missing DirectLogin header")
       val request = directLoginRequest
       val response = makePostRequest(request,"")
@@ -83,6 +101,11 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Login without consumer key") {
+
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      assert(registeredApplication(KEY) == true)
+
       When("the consumer key is invalid")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidConsumerKeyHeaders)
@@ -93,6 +116,11 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Login with correct everything!") {
+
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      assert(registeredApplication(KEY) == true)
+
       When("the header and credentials are good")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", validHeaders)
@@ -106,7 +134,7 @@ class directloginTest extends ServerSetup {
         case _ => fail("Expected a token")
       }
 
-      // TODO Check that we are logged in Probably should add an enpoint /me that returns the currently logged in user.
+      // TODO Check that we are logged in. TODO Add an endpoint like /me that returns the currently logged in user.
 //      When("when we use the token it should work")
 //      val request2 = directLoginRequest
 //      val response2 = makePostRequestAdditionalHeader(request2, "", validHeaders)

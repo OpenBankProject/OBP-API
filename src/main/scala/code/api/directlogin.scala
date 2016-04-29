@@ -129,6 +129,15 @@ object DirectLogin extends RestHelper with Loggable {
     case _ => "ERROR"
   }
 
+
+  // TODO remove duplication with OAuth1.0a version of this?
+  def registeredApplication(consumerKey: String): Boolean = {
+    Consumer.find(By(Consumer.key, consumerKey)) match {
+      case Full(application) => application.isActive
+      case _ => false
+    }
+  }
+
   //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
     //return a Map containing the directLogin parameters : prameter -> value
@@ -177,12 +186,7 @@ object DirectLogin extends RestHelper with Loggable {
 
     }
 
-    def registeredApplication(consumerKey: String): Boolean = {
-      Consumer.find(By(Consumer.key, consumerKey)) match {
-        case Full(application) => application.isActive
-        case _ => false
-      }
-    }
+
 
     def validAccessToken(tokenKey: String) = {
       Token.find(By(Token.key, tokenKey), By(Token.tokenType, TokenType.Access)) match {
