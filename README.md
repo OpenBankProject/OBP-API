@@ -82,6 +82,7 @@ To compile and run jetty, install Maven 3 and execute:
 
 ## Other ways to run tests
 
+* See pom.xml for test configuration
 * See http://www.scalatest.org/user_guide
 
 
