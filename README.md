@@ -86,6 +86,15 @@ To compile and run jetty, install Maven 3 and execute:
 * See http://www.scalatest.org/user_guide
 
 
+## From the command line
+
+Set memory options
+export MAVEN_OPTS="-Xmx3000m -XX:MaxPermSize=512m"
+
+Run one test
+mvn -DwildcardSuites=code.api.directloginTest test
+
+
 ----
 
 ## Ubuntu
