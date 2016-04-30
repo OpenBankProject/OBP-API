@@ -36,8 +36,6 @@ To compile and run jetty, install Maven 3 and execute:
 
 ./mvn.sh jetty:run
 
-
-
 ## To run with IntelliJ IDEA
 
 * Make sure you have the IntelliJ Scala plugin installed.
@@ -80,6 +78,11 @@ To compile and run jetty, install Maven 3 and execute:
     
     Note: You may want to disable some tests not relevant to your setup e.g.:
     set bank_account_creation_listener=false in test.default.props 
+
+
+## Other ways to run tests
+
+* See http://www.scalatest.org/user_guide
 
 
 ----

@@ -15,8 +15,8 @@ import code.api.DirectLogin.registeredApplication
 
 class directloginTest extends ServerSetup {
 
-  val KEY = randomString(20)
-  val SECRET = randomString(20)
+  val KEY = java.util.UUID.randomUUID.toString
+  val SECRET = java.util.UUID.randomUUID.toString
   val EMAIL = randomString(10)
   val PASSWORD = randomString(20)
 
