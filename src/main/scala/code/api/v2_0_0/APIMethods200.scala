@@ -841,7 +841,11 @@ trait APIMethods200 {
         |
         |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
         |
-        |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+        |PSD2 Context: PSD2 requires customers to have access to their account information via third party applications.
+        |This call provides balance and other account information via delegated authenticaiton using OAuth.
+        |
+        |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.
+        |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1060,7 +1064,7 @@ trait APIMethods200 {
     import net.liftweb.json.JsonAST._
     import net.liftweb.json.Extraction._
     import net.liftweb.json.Printer._
-    val exchangeRates = compact(render(decompose(fx.exchangeRates)))
+    val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
 
     resourceDocs += ResourceDoc(
       createTransactionRequest,
@@ -1072,6 +1076,16 @@ trait APIMethods200 {
       s"""Initiate a Payment via a Transaction Request.
         |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+        |
+        |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
+        |
+        |This call satisfies that requirement from several perspectives:
+        |
+        |1) A transaction can be initiated by a third party application.
+        |
+        |2) The customer is informed of the charge that will incurred.
+        |
+        |3) The call uses delegated authentication (OAuth)
         |
         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
         |
@@ -1186,7 +1200,28 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-requests",
       "Get Transaction Requests." ,
-      "Returns all transaction requests. Version 2.0.0 now returns Fee information.",
+      """Returns transaction requests for account specified by ACCOUNT_ID at bank specified by BANK_ID.
+        |
+        |The VIEW_ID specified must be 'owner' and the user must have access to this view.
+        |
+        |Version 2.0.0 now returns charge information.
+        |
+        |Transaction Requests serve to initiate transactions that may or may not proceed. They contain information including:
+        |
+        |* Transaction Request Id
+        |* Type
+        |* Status (INITIATED, COMPLETED)
+        |* Challenge (in order to confirm the request)
+        |* From Bank / Account
+        |* Body including To Account, Currency, Value, Description and other initiation information. (Could potentialy include a list of future transactions.)
+        |* Related Transactions
+        |
+        |PSD2 Context: PSD2 requires transparency of charges to the customer.
+        |This endpoint provides the charge that would be applied if the Transaction Request proceeds - and a record of that charge there after.
+        |The customer can proceed with the Transaction by answering the security challenge.
+        |
+        |
+      """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,

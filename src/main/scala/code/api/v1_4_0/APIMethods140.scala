@@ -362,8 +362,20 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getTransactionRequestTypes",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types",
-      "Get supported Transaction Request types.",
-      "",
+      "Get Transaction Request Types for an account",
+      """Returns the Transation Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.
+        |
+        | A Transaction Request Type internally determines:
+        |
+        | * the required Transaction Request 'body' i.e. fields that define the 'what' and 'to' of a Transaction Request,
+        | * the type of security challenge that may be be raised before the Transaction Request proceeds, and
+        | * the threshold of that challenge.
+        |
+        | For instance in a 'SANDBOX_TAN' Transaction Request, for amounts over 1000 currency units, the user must supply a positive integer to complete the Transaction Request and create a Transaction.
+        |
+        | This approach aims to provide only one endpoint for initiating transactions, and one that handles challenges, whilst still allowing flexibility with the payload and internal logic.
+        |
+      """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
