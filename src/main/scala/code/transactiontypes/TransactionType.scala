@@ -28,16 +28,16 @@ object TransactionType extends SimpleInjector {
     * @param shortCode A short code (ideally-no-spaces) unique for the bank. Should map to transaction.details.type
     * @param summary A succinct summary
     * @param description A longer description
-    * @param customerFee The fee to the customer each time this type of transaction happens
+    * @param charge The fee to the customer each time this type of transaction happens
     */
 
   case class TransactionType (
-    id: TransactionTypeId,
-    bankId : BankId,
-    shortCode : String,
-    summary: String,
-    description: String,
-    customerFee: AmountOfMoney
+                               id: TransactionTypeId,
+                               bankId : BankId,
+                               shortCode : String,
+                               summary: String,
+                               description: String,
+                               charge: AmountOfMoney
   )
 
 

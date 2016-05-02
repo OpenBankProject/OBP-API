@@ -49,7 +49,7 @@ class MappedTransactionType extends LongKeyedMapper[MappedTransactionType] with 
         shortCode= mShortCode.get,
         summary = mSummary.get,
         description = mDescription.get,
-        customerFee = AmountOfMoney (
+        charge = AmountOfMoney (
           currency = mCustomerFee_Currency.get,
           amount = mCustomerFee_Amount.get.toString
         )

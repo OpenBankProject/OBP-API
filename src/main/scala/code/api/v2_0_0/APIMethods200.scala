@@ -1025,7 +1025,7 @@ trait APIMethods200 {
           |  * short_code : A short code (ideally-no-spaces) which is unique across the bank. Could be stored with Transactions to link here
           |  * summary : A succinct summary
           |  * description : A longer description
-          |  * customer_fee : The fee to the customer for each one of these
+          |  * charge : The charge to the customer for each one of these
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,

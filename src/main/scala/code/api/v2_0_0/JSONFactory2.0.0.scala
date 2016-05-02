@@ -172,16 +172,16 @@ case class SocialMediasJSON(checks: List[SocialMediaJSON])
   * @param short_code A short code (ideally-no-spaces) which is unique across the bank. Should map to transaction.details.types
   * @param summary A succinct summary
   * @param description A longer description
-  * @param customer_fee The fee to the customer for each one of these
+  * @param charge The fee to the customer for each one of these
   */
 
 case class TransactionTypeJSON (
-   id: TransactionTypeId,
-   bank_id : String,
-   short_code : String,
-   summary: String,
-   description: String,
-   customer_fee: AmountOfMoneyJSON
+                                 id: TransactionTypeId,
+                                 bank_id : String,
+                                 short_code : String,
+                                 summary: String,
+                                 description: String,
+                                 charge: AmountOfMoneyJSON
  )
 
 
@@ -571,7 +571,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       short_code = transactionType.shortCode,
       summary = transactionType.summary,
       description = transactionType.description,
-      customer_fee = new AmountOfMoneyJSON(currency = transactionType.customerFee.currency, amount = transactionType.customerFee.amount)
+      charge = new AmountOfMoneyJSON(currency = transactionType.charge.currency, amount = transactionType.charge.amount)
     )
   }
   def createTransactionTypeJSON(transactionTypes : List[TransactionType]) : TransactionTypesJSON = {
