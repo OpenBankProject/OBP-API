@@ -173,8 +173,8 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
 
 /*
 Filter Resource Docs based on the query parameters, else return the full list.
-we don't assume a default catalog (as API Explorer does)
-so the caller must specify any filtering by catalog
+We don't assume a default catalog (as API Explorer does)
+so the caller must specify any required filtering by catalog explicitly.
  */
 def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
@@ -242,7 +242,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
             // Filter
             val rdFiltered = filterResourceDocs(rd)
             // Format the data as json
-            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered)
+            val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }

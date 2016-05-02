@@ -4,6 +4,7 @@ import code.api.util.APIUtil.ResourceDoc
 import code.api.Constant._
 import net.liftweb.json._
 import net.liftweb.util.Props
+import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.ListMap
 
@@ -51,25 +52,27 @@ object SwaggerJSONFactory {
                                 definitions: DefinitionsJson
                                  )
 
-  def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc]): SwaggerResourceDoc = {
+  def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: String): SwaggerResourceDoc = {
     implicit val formats = DefaultFormats
 
+    val pegDownProcessor : PegDownProcessor = new PegDownProcessor
+
     val contact = ContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com")
-    val apiVersion = "v1.4.0"
+    val apiVersion = requestedApiVersion
     val title = "Open Bank Project API"
     val description = "An Open Source API for Banks."
     val info = InfoJson(title, description, contact, apiVersion)
     // TODO check / improve host, basePath and version
-    val host = Props.get("hostname", "unknown host").replaceFirst("http://", "")
+    val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = s"/$ApiPathZero/" + apiVersion
-    val schemas = List("http")
+    val schemas = List("http", "https")
     val paths: ListMap[String, Map[String, MethodJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       val methods: Map[String, MethodJson] = mrd._2.map(rd =>
         (rd.requestVerb.toLowerCase,
           MethodJson(
             List(s"${rd.apiVersion.toString}"),
             rd.summary,
-            rd.description,
+            description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
             Map("200" -> ResponseObjectJson(Some("Success") , None), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
