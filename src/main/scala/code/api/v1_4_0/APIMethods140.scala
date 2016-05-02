@@ -365,6 +365,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "Get Transaction Request Types for an account",
       """Returns the Transation Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.
         |
+        |These are the ways this API Server can create a Transaction via a Transaction Request
+        |(as opposed to Transaction Types which include external types too e.g. for Transactions created by core banking etc.)
+        |
         | A Transaction Request Type internally determines:
         |
         | * the required Transaction Request 'body' i.e. fields that define the 'what' and 'to' of a Transaction Request,

@@ -62,7 +62,6 @@ object SwaggerJSONFactory {
     val title = "Open Bank Project API"
     val description = "An Open Source API for Banks."
     val info = InfoJson(title, description, contact, apiVersion)
-    // TODO check / improve host, basePath and version
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = s"/$ApiPathZero/" + apiVersion
     val schemas = List("http", "https")

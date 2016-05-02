@@ -1018,14 +1018,17 @@ trait APIMethods200 {
       "/banks/BANK_ID/transaction-types",
       "Get transaction-types offered by the bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
-      s"""Returns transaction types for the bank specified by BANK_ID:
+      s"""Get Transaction Types for the bank specified by BANK_ID:
           |
-          |  * id : Unique transaction type id across the API instance. Ideally a UUID
+          |Lists the possible Transaction Types available at the bank (as opposed to Transaction Request Types which are the possible ways Transactions can be created by this API Server).
+          |
+          |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.
           |  * bank_id : The bank that supports this TransactionType
-          |  * short_code : A short code (ideally-no-spaces) which is unique across the bank. Could be stored with Transactions to link here
+          |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here
           |  * summary : A succinct summary
           |  * description : A longer description
           |  * charge : The charge to the customer for each one of these
+          |  
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,
