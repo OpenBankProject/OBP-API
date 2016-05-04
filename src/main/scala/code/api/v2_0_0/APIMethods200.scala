@@ -1028,7 +1028,7 @@ trait APIMethods200 {
           |  * summary : A succinct summary
           |  * description : A longer description
           |  * charge : The charge to the customer for each one of these
-          |  
+          |
           |${authenticationRequiredMessage(!getTransactionTypesIsPublic)}""",
       emptyObjectJson,
       emptyObjectJson,

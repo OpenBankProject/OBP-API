@@ -60,7 +60,7 @@ object SwaggerJSONFactory {
     val contact = ContactJson("TESOBE Ltd. / Open Bank Project", "https://openbankproject.com")
     val apiVersion = requestedApiVersion
     val title = "Open Bank Project API"
-    val description = "An Open Source API for Banks."
+    val description = "An Open Source API for Banks. (c) TESOBE Ltd. 2011 - 2016. Licensed under the AGPL and commercial licences."
     val info = InfoJson(title, description, contact, apiVersion)
     val host = Props.get("hostname", "unknown host").replaceFirst("http://", "").replaceFirst("https://", "")
     val basePath = s"/$ApiPathZero/" + apiVersion
