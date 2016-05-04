@@ -5,23 +5,22 @@ import code.api.util.ErrorMessages
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch._
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-
-import code.api.DirectLogin.registeredApplication
 
 
 
 
 class directloginTest extends ServerSetup {
 
-  val KEY = java.util.UUID.randomUUID.toString
-  val SECRET = java.util.UUID.randomUUID.toString
-  val EMAIL = randomString(10)
+  val KEY = randomString(40).toLowerCase
+  val SECRET = randomString(40).toLowerCase
+  val EMAIL = randomString(10).toLowerCase + "@example.com"
   val PASSWORD = randomString(20)
 
-  val testConsumer =
+  def setupUserAndConsumer  = {
+    if (OBPConsumer.find(By(OBPConsumer.key, KEY)).isEmpty)
     OBPConsumer.create.
       name("test application").
       isActive(true).
@@ -29,14 +28,15 @@ class directloginTest extends ServerSetup {
       secret(SECRET).
       saveMe
 
-  val user =
-    OBPUser.create.
-      email(EMAIL).
-      password(PASSWORD).
-      validated(true).
-      firstName(randomString(10)).
-      lastName(randomString(10)).
-      saveMe
+    if (OBPUser.find(By(OBPUser.email, EMAIL)).isEmpty)
+      OBPUser.create.
+        email(EMAIL).
+        password(PASSWORD).
+        validated(true).
+        firstName(randomString(10)).
+        lastName(randomString(10)).
+        saveMe
+  }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
 
@@ -59,6 +59,9 @@ class directloginTest extends ServerSetup {
 
   feature("DirectLogin") {
     scenario("Invalid auth header") {
+
+      setupUserAndConsumer
+
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
       val consumers =  OBPConsumer.findAll()
@@ -74,6 +77,9 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Invalid credentials") {
+
+      setupUserAndConsumer
+
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
@@ -88,6 +94,8 @@ class directloginTest extends ServerSetup {
     }
 
     scenario("Missing DirecLogin header") {
+
+      setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
@@ -104,6 +112,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Login without consumer key") {
 
+      setupUserAndConsumer
+
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
@@ -119,6 +129,8 @@ class directloginTest extends ServerSetup {
 
     scenario("Login with correct everything!") {
 
+      setupUserAndConsumer
+
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
       //assert(registeredApplication(KEY) == true)
@@ -126,25 +138,32 @@ class directloginTest extends ServerSetup {
       When("the header and credentials are good")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", validHeaders)
-
+      var token = "INVALID"
       Then("We should get a 200 - OK and a token")
-      // TODO temp response.code should equal(200)
-//      response.body match {
-//        case JObject(List(JField(name, JString(value)))) =>
-//          name should equal("token")
-//          value.length should be > 0
-//        case _ => fail("Expected a token")
-//      }
+      response.code should equal(200)
+      response.body match {
+        case JObject(List(JField(name, JString(value)))) =>
+          name should equal("token")
+          value.length should be > 0
+          token = value
+        case _ => fail("Expected a token")
+      }
 
       // TODO Check that we are logged in. TODO Add an endpoint like /me that returns the currently logged in user.
-//      When("when we use the token it should work")
-//      val request2 = directLoginRequest
-//      val response2 = makePostRequestAdditionalHeader(request2, "", validHeaders)
-//
-//      Then("We should get a 200 - OK and a token")
+      When("when we use the token it should work")
+      val headerWithToken = ("Authorization", "DirectLogin token=%s".format(token))
+      val validHeadersWithToken = List(accessControlOriginHeader, headerWithToken)
+      val request2 = baseRequest / "obp" / "v2.0.0" / "my" / "accounts"
+      val response2 = makeGetRequest(request2, validHeadersWithToken)
 
-
+      Then("We should get a 200 - OK and an empty list of accounts")
+      response2.code should equal(200)
+      response2.body match {
+        case JArray(List()) =>
+        case _ => fail("Expected empty list of accounts")
+      }
     }
+
   }
 
   private def assertResponse(response: APIResponse, expectedErrorMessage: String): Unit = {
