@@ -30,21 +30,22 @@ Berlin 13359, Germany
 
  */
 package code.model
-import net.liftweb.mapper._
+import net.liftweb._
+import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.FieldError
 import net.liftweb.common.{Full,Failure,Box,Empty}
-import net.liftweb.util.Helpers
+import net.liftweb.util.{Helpers, SecurityHelpers}
 import Helpers.now
 import code.model.dataAccess.APIUser
 import net.liftweb.http.S
 import net.liftweb.util.Helpers._
 
-object AppType extends Enumeration("web", "mobile"){
+object AppType extends Enumeration {
   type AppType = Value
   val Web, Mobile = Value
 }
 
-object TokenType extends Enumeration("request", "access"){
+object TokenType extends Enumeration {
   type TokenType=Value
   val Request, Access = Value
 }
@@ -109,7 +110,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
 object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
-  
+
   //obscure primary key to avoid revealing information about, e.g. how many consumers are registered
   // (by incrementing ids until receiving a "log in first" page instead of 404)
   val obfuscator = new KeyObfuscator()
@@ -122,23 +123,23 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
 
   //override it to list the newest ones first
   override def findForListParams: List[QueryParam[Consumer]] = List(OrderBy(primaryKeyField, Descending))
-  
+
   //We won't display all the fields when we are listing Consumers (to save screen space)
   override def fieldsForList: List[FieldPointerType] = List(id, name, appType, description, developerEmail, createdAt)
-  
+
   override def fieldOrder = List(name, appType, description, developerEmail)
-  
+
   //show more than the default of 20
   override def rowsPerPage = 100
-  
+
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
-  
+
   val numUniqueAppNames = s"SELECT COUNT(DISTINCT ${Consumer.name.dbColumnName}) FROM ${Consumer.dbName};"
-  
+
   private val recordsWithUniqueEmails = tryo {Consumer.countByInsecureSql(numUniqueEmailsQuery, IHaveValidatedThisSQL("everett", "2014-04-29")) }
   private val recordsWithUniqueAppNames = tryo {Consumer.countByInsecureSql(numUniqueAppNames, IHaveValidatedThisSQL("everett", "2014-04-29"))}
-  
+
   //overridden to display extra stats above the table
   override def _showAllTemplate =
   <lift:crud.all>
@@ -216,7 +217,7 @@ class Token extends LongKeyedMapper[Token]{
   def gernerateVerifier : String =
     if (verifier.isEmpty){
         def fiveRandomNumbers() : String = {
-          def r() = Helpers.randomInt(9).toString //from zero to 9
+          def r() = randomInt(9).toString //from zero to 9
           (1 to 5).map(x => r()).foldLeft("")(_ + _)
         }
       val generatedVerifier = fiveRandomNumbers()
@@ -237,7 +238,7 @@ class Token extends LongKeyedMapper[Token]{
 
   def generateThirdPartyApplicationSecret: String = {
     if(thirdPartyApplicationSecret isEmpty){
-      def r() = Helpers.randomInt(9).toString //from zero to 9
+      def r() = randomInt(9).toString //from zero to 9
       val generatedSecret = (1 to 10).map(x => r()).foldLeft("")(_ + _)
       thirdPartyApplicationSecret(generatedSecret).save
       generatedSecret

@@ -42,7 +42,7 @@ import _root_.net.liftweb.json.Serialization.write
 import _root_.net.liftweb.json.JsonAST.{JObject}
 import net.liftweb.json.JsonDSL._
 import scala.util.Random._
-import code.api.test.{APIResponse}
+import code.api.APIResponse
 import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
 import APIUtil.OAuth._
 import code.views.Views

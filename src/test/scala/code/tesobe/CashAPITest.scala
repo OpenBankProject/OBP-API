@@ -1,14 +1,13 @@
 package code.tesobe
 
-import java.util.{UUID, Date}
-import net.liftweb.json.Serialization.write
-import code.api.DefaultConnectorTestSetup
-import code.api.test.{APIResponse, ServerSetup}
+import java.util.{Date, UUID}
+
+import code.api.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.bankconnectors.Connector
 import code.model.AccountId
-import net.liftweb.common.{Full, Loggable}
+import net.liftweb.common.Loggable
+import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
-import dispatch._
 
 /**
  * The cash api isn't very well designed and is used only for internal projects. If we want to

@@ -1,21 +1,16 @@
 package code.api.v1_4_0
 
-import code.api.DefaultUsers
-import code.api.test.{APIResponse, ServerSetupWithTestData, ServerSetup}
-import code.api.util.APIUtil.OAuth.{Token, Consumer}
-import code.api.v1_2_1.{TransactionsJSON, TransactionJSON, MakePaymentJson, AmountOfMoneyJSON}
+import code.api.{DefaultUsers, ServerSetupWithTestData}
+import code.api.util.APIUtil.OAuth._
+import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.model.{TransactionRequestId, AccountId, BankAccount}
+import code.model.{AccountId, BankAccount, TransactionRequestId}
 import code.transactionrequests.TransactionRequests
-import code.api.util.APIUtil.OAuth._
-import dispatch._
 import net.liftweb.json.JsonAST.JString
-import net.liftweb.json._
+import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
-import java.util.Calendar
-import net.liftweb.json.Serialization.{read, write}
 
 class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V140ServerSetup {
 

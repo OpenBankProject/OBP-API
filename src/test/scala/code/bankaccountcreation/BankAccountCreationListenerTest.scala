@@ -1,7 +1,7 @@
 package code.bankaccountcreation
 
 import code.api.DefaultConnectorTestSetup
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.model.{User, BankId}
 import code.views.Views
 import net.liftweb.common.Full

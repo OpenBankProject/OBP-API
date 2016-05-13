@@ -3,11 +3,9 @@ package code.management
 import java.text.SimpleDateFormat
 import java.util.TimeZone
 
-import code.api.DefaultConnectorTestSetup
-import code.api.test.{APIResponse, ServerSetup}
+import code.api.{APIResponse, DefaultConnectorTestSetup, ServerSetup}
 import code.bankconnectors.Connector
 import code.model.{AccountId, Transaction}
-import dispatch._
 import net.liftweb.common.Loggable
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers._

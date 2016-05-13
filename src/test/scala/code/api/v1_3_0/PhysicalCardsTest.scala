@@ -1,21 +1,15 @@
 package code.api.v1_3_0
 
-import code.api.DefaultUsers
-import code.api.test.ServerSetup
-import code.api.util.APIUtil
-import code.bankconnectors.{OBPQueryParam, Connector}
-import code.management.ImporterAPI.ImporterTransaction
-import code.tesobe.CashTransaction
-import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
-import com.tesobe.model.CreateBankAccount
-import net.liftweb.common.{Failure, Loggable, Empty, Box}
-import code.model._
-import dispatch._
-import APIUtil.OAuth.{Token, Consumer}
-import code.model.PhysicalCard
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
-import APIUtil.OAuth._
+
+import code.api.util.APIUtil.OAuth._
+import code.api.{DefaultUsers, ServerSetup}
+import code.bankconnectors.{Connector, OBPQueryParam}
+import code.management.ImporterAPI.ImporterTransaction
+import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
+import code.tesobe.CashTransaction
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import net.liftweb.common.{Box, Empty, Failure, Loggable}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 

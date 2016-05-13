@@ -1,31 +1,29 @@
 package code.bankconnectors
 
-import java.util.{Calendar, UUID, Date}
+import java.util.{Date, UUID}
 
 import code.fx.fx
+import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
-import code.model.dataAccess.ViewImpl
-import code.model.dataAccess.ViewPrivileges
-
 import code.model._
-import code.model.dataAccess.{UpdatesRequestSender, MappedBankAccount, MappedAccountHolder, MappedBank}
+import code.model.dataAccess._
 import code.tesobe.CashTransaction
-import code.management.ImporterAPI.ImporterTransaction
-import code.transactionrequests.{TransactionRequests, MappedTransactionRequest}
-import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
+import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Loggable, Full, Box, Failure}
+import net.liftweb.common.{Box, Failure, Full, Loggable}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{False, Props}
+import net.liftweb.util.Props
 
-import scala.concurrent.ops._
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object LocalMappedConnector extends Connector with Loggable {
 
@@ -94,7 +92,7 @@ object LocalMappedConnector extends Connector with Loggable {
       bank <- getMappedBank(bankId)
       account <- getBankAccountType(bankId, accountId)
     } {
-      spawn{
+      Future{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
         val outDatedTransactions = Box!!account.accountLastUpdate.get match {
           case Full(l) => now after time(l.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))

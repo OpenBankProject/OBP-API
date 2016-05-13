@@ -1,26 +1,28 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
-import java.util.{Date, UUID, TimeZone}
+import java.util.{Date, TimeZone, UUID}
+
 import code.management.ImporterAPI.ImporterTransaction
-import code.tesobe.CashTransaction
-import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequestChallenge, TransactionRequest, TransactionRequestBody}
-import code.util.Helper
-import net.liftweb.common.{Failure, Box, Loggable, Full}
-import net.liftweb.json.Extraction
-import net.liftweb.json.JsonAST.JValue
-import scala.concurrent.ops.spawn
+import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
+import code.tesobe.CashTransaction
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.util.Helper
+import com.mongodb.QueryBuilder
+import com.tesobe.model.UpdateBankAccount
+import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.mongodb.BsonDSL._
-import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import com.mongodb.QueryBuilder
-import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metadata}
-import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
+import org.bson.types.ObjectId
 
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math.BigDecimal.RoundingMode
 
 private object LocalConnector extends Connector with Loggable {
@@ -246,7 +248,7 @@ private object LocalConnector extends Connector with Loggable {
       }
 
       envJson =
-      ("obp_transaction" ->
+      "obp_transaction" ->
         ("this_account" ->
           ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
             ("number" -> account.number) ~
@@ -277,7 +279,7 @@ private object LocalConnector extends Connector with Loggable {
                   ("amount" -> (oldBalance + amount).toString)) ~
               ("value" ->
                 ("currency" -> account.currency) ~
-                  ("amount" -> amount.toString))))
+                  ("amount" -> amount.toString)))
       saved <- saveAndUpdateAccountBalance(envJson, account)
     } yield {
       saved
@@ -294,7 +296,7 @@ private object LocalConnector extends Connector with Loggable {
   */
 
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
-    spawn{
+    Future {
       val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
       val outDatedTransactions = now after time(account.accountLastUpdate.get.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
       if(outDatedTransactions && useMessageQueue) {

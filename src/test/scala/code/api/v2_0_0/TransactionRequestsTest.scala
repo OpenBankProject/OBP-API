@@ -1,24 +1,12 @@
 package code.api.v2_0_0
 
-import java.util.Date
-
-import code.api.DefaultUsers
-import code.api.test.ServerSetupWithTestData
+import code.api.{DefaultUsers, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, ChallengeJSON, TransactionRequestAccountJSON}
-
-import code.api.v2_0_0.TransactionRequestBodyJSON
-
-
-import code.api.v2_0_0.TransactionRequestJSON
-
-
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, BankAccount, TransactionRequestId}
-import code.transactionrequests.TransactionRequests
-import dispatch._
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props

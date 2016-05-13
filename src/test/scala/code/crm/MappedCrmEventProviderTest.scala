@@ -3,7 +3,7 @@ package code.crm
 import java.util.Date
 
 import code.api.DefaultUsers
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.model.BankId
 import net.liftweb.mapper.By
 

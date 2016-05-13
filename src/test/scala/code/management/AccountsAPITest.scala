@@ -1,12 +1,10 @@
 package code.management
 
-import code.api.util.APIUtil.OAuth._
-import code.api.v1_2_1.{AccountsJSON, API1_2_1Test}
-import code.api.{PrivateUser2Accounts, DefaultUsers, User1AllPrivileges}
-import code.api.test.APIResponse
-import code.model.{BankId, AccountId}
-import dispatch._
+import code.api._
+import code.api.v1_2_1._
 import code.bankconnectors.Connector
+import code.model.{AccountId, BankId}
+import code.api.util.APIUtil.OAuth.{Consumer, Token, _}
 import net.liftweb.common.Empty
 import org.scalatest.Tag
 

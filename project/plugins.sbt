@@ -7,14 +7,12 @@ resolvers += Classpaths.typesafeResolver
 
 
 //xsbt-web-plugin
-resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
 
-libraryDependencies <+= sbtVersion(v => v match {
-case "0.11.0" => "com.github.siasia" %% "xsbt-web-plugin" % "0.11.0-0.2.8"
-case "0.11.1" => "com.github.siasia" %% "xsbt-web-plugin" % "0.11.1-0.2.10"
-case "0.11.2" => "com.github.siasia" %% "xsbt-web-plugin" % "0.11.2-0.2.11"
-case "0.11.3" => "com.github.siasia" %% "xsbt-web-plugin" % "0.11.3-0.2.11.1"
-})
+addSbtPlugin("com.earldouglas" % "xsbt-web-plugin" % "2.1.0")
+
+//resolvers += "Web plugin repo" at "http://siasia.github.com/maven2"
+
+//libraryDependencies <+= sbtVersion(v => "com.github.siasia" % "xsbt-web-plugin" % (v+"-0.2.11"))
 
 //sbteclipse
 resolvers += {
@@ -23,9 +21,10 @@ resolvers += {
   Resolver.url("Typesafe Repository", typesafeRepoUrl)(pattern)
 }
 
-addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "2.1.0")
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "4.0.0")
+addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.2")
 
 //sbt-idea
 resolvers += "sbt-idea-repo" at "http://mpeltonen.github.com/maven/"
 
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.0.0")
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")

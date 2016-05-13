@@ -11,9 +11,9 @@
   <name>Open Bank Project API</name>
   <inceptionYear>2011</inceptionYear>
   <properties>
-    <scala.version>2.10</scala.version>
-    <scala.compiler>2.10.5</scala.compiler>
-    <lift.version>2.6.2</lift.version>
+    <scala.version>2.11</scala.version>
+    <scala.compiler>2.11.7</scala.compiler>
+    <lift.version>2.6.3</lift.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -51,6 +51,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>org.scala-lang.modules</groupId>
+      <artifactId>scala-xml_${scala.version}</artifactId>
+      <version>1.0.5</version>
+    </dependency>
+    <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mapper_${scala.version}</artifactId>
       <version>${lift.version}</version>
@@ -58,16 +63,16 @@
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-lift-json_${scala.version}</artifactId>
-      <version>0.10.1</version>
+      <version>0.11.3</version>
     </dependency>
     <dependency>
       <groupId>net.databinder.dispatch</groupId>
       <artifactId>dispatch-core_${scala.version}</artifactId>
-      <version>0.10.1</version>
+      <version>0.11.3</version>
     </dependency>
     <dependency>
       <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka_2.10</artifactId>
+      <artifactId>kafka_${scala.version}</artifactId>
       <version>0.8.2.2</version>
     </dependency>
     <dependency>
@@ -76,44 +81,44 @@
       <version>1.46</version>
     </dependency>
     <dependency>
-      <groupId>postgresql</groupId>
+      <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>8.4-701.jdbc4</version>
+      <version>9.4-1206-jdbc4</version>
     </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
-      <version>1.2.138</version>
+      <version>1.4.191</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>javax.servlet</groupId>
-      <artifactId>servlet-api</artifactId>
-      <version>2.5</version>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>3.1.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.9</version>
+      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.version}</artifactId>
-      <version>2.0</version>
+      <version>2.2.6</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
-      <version>7.6.16.v20140903</version>
+      <version>9.2.15.v20160210</version>
       <scope>test</scope>
     </dependency>
     <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-webapp</artifactId>
-        <version>7.6.16.v20140903</version>
+        <version>9.2.15.v20160210</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -129,27 +134,32 @@
     <dependency>
       <groupId>org.seleniumhq.selenium</groupId>
       <artifactId>selenium-java</artifactId>
-      <version>2.46.0</version>
+      <version>2.52.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.seleniumhq.selenium</groupId>
+      <artifactId>selenium-htmlunit-driver</artifactId>
+      <version>2.52.0</version>
     </dependency>
     <dependency>
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
-      <version>4.5</version>
+      <version>4.5.2</version>
     </dependency>
     <dependency>
       <groupId>net.sourceforge.htmlunit</groupId>
       <artifactId>htmlunit</artifactId>
-      <version>2.18</version>
+      <version>2.21</version>
     </dependency>
     <dependency>
       <groupId>com.rabbitmq</groupId>
       <artifactId>amqp-client</artifactId>
-      <version>3.2.0</version>
+      <version>3.6.1</version>
     </dependency>
     <dependency>
       <groupId>net.liftmodules</groupId>
       <artifactId>amqp_2.6_${scala.version}</artifactId>
-      <version>1.3</version>
+      <version>1.4-SNAPSHOT</version>
     </dependency>
     <dependency>
         <groupId>oauth.signpost</groupId>
@@ -163,7 +173,7 @@
     </dependency>
     <dependency>
       <groupId>com.jason-goodwin</groupId>
-      <artifactId>authentikat-jwt_2.10</artifactId>
+      <artifactId>authentikat-jwt_${scala.version}</artifactId>
       <version>0.4.1</version>
     </dependency>
   </dependencies>
@@ -175,7 +185,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.9</version>
+        <version>${scala.version}</version>
         <configuration>
           <skipTests>true</skipTests>
         </configuration>
@@ -184,7 +194,7 @@
         <!-- enable the scalatest plugin -->
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
-        <version>1.0-RC1</version>
+        <version>1.0</version>
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
             <forkMode>once</forkMode>
@@ -205,7 +215,7 @@
           <!-- add src/main/java to source dirs -->
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.9.1</version>
+          <version>1.10</version>
           <executions>
             <execution>
               <phase>generate-sources</phase>
@@ -223,7 +233,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>scala-maven-plugin</artifactId>
-          <version>3.2.0</version>
+          <version>3.2.2</version>
           <configuration>
             <charset>${project.build.sourceEncoding}</charset>
             <jvmArgs>
@@ -242,7 +252,6 @@
               </goals>
               <configuration>
                 <args>
-                  <arg>-make:transitive</arg>
                   <arg>-dependencyfile</arg>
                   <arg>${project.build.directory}/.scala_dependencies</arg>
                   <arg>-Xmax-classfile-name</arg>
@@ -294,7 +303,7 @@
         <plugin>
           <groupId>org.mortbay.jetty</groupId>
           <artifactId>maven-jetty-plugin</artifactId>
-          <version>6.1.9</version>
+          <version>6.1.26</version>
           <configuration>
             <contextPath>/</contextPath>
             <scanIntervalSeconds>5</scanIntervalSeconds>
@@ -304,7 +313,7 @@
         <plugin>
           <groupId>net.alchim31.maven</groupId>
           <artifactId>yuicompressor-maven-plugin</artifactId>
-          <version>1.3.2</version>
+          <version>1.5.1</version>
           <executions>
             <execution>
               <goals>
@@ -320,7 +329,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-idea-plugin</artifactId>
-          <version>2.2</version>
+          <version>2.2.1</version>
           <configuration>
             <downloadSources>true</downloadSources>
           </configuration>
@@ -328,7 +337,7 @@
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-eclipse-plugin</artifactId>
-          <version>2.7</version>
+          <version>2.10</version>
           <configuration>
             <downloadSources>true</downloadSources>
             <additionalProjectnatures>
@@ -346,7 +355,7 @@
         <plugin>
           <groupId>pl.project13.maven</groupId>
           <artifactId>git-commit-id-plugin</artifactId>
-          <version>2.1.0</version>
+          <version>2.2.1</version>
           <executions>
             <execution>
               <goals>
@@ -368,7 +377,7 @@
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>3.2.0</version>
+        <version>3.2.2</version>
         <configuration>
           <charset>${project.build.sourceEncoding}</charset>
           <jvmArgs>

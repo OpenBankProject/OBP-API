@@ -243,7 +243,7 @@ class OBPTransaction private() extends BsonRecord[OBPTransaction]{
     details.get.validate ++
     super.validate
 
-  @deprecated(Helper.deprecatedJsonGenerationMessage)
+  @deprecated(Helper.deprecatedJsonGenerationMessage, null)
   def whenAddedJson(envelopeId : String) : JObject  = {
     JObject(List(JField("obp_transaction_uuid", JString(envelopeId)),
            JField("this_account", this_account.get.whenAddedJson),

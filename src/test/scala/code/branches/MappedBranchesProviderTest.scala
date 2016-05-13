@@ -1,6 +1,6 @@
 package code.branches
 
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.model.BankId
 import code.branches.Branches.BranchId
 import net.liftweb.mapper.By

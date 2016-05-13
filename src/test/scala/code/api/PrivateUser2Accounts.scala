@@ -1,6 +1,5 @@
 package code.api
 
-import code.api.test.{ServerSetupWithTestData, ServerSetup}
 import code.bankconnectors.Connector
 import code.model.{AccountId, User}
 import net.liftweb.util.Helpers._

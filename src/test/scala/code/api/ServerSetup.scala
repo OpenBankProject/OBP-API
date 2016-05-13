@@ -30,14 +30,13 @@ Berlin 13359, Germany
 
  */
 
-package code.api.test
+package code.api
 
 import code.TestServer
-import code.api.{DefaultConnectorTestSetup, TestConnectorSetup, LocalConnectorTestSetup}
-import org.scalatest._
 import dispatch._
-import net.liftweb.json.{ShortTypeHints, DefaultFormats, Serialization, NoTypeHints}
 import net.liftweb.common._
+import net.liftweb.json.{DefaultFormats, ShortTypeHints}
+import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen

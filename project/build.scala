@@ -1,29 +1,21 @@
-
-
 import sbt._
 import Keys._
-import com.github.siasia._
-import PluginKeys._
-import WebPlugin._
-import WebappPlugin._
+import com.earldouglas.xwp._
+
 
 object LiftProjectBuild extends Build {
   override lazy val settings = super.settings ++ buildSettings
-  
+
   lazy val buildSettings = Seq(
     organization := pom.groupId,
     version      := pom.version
   )
   
-  def yourWebSettings = webSettings ++ Seq(
-    // If you are use jrebel
-    scanDirectories in Compile := Nil
-    )
-  
   lazy val opanBank = Project(
     pom.artifactId,
     base = file("."),
-    settings = defaultSettings ++ yourWebSettings ++ pom.settings)
+    settings = 	defaultSettings ++ pom.settings)
+                .enablePlugins(JettyPlugin)
 
   object pom {
 
@@ -66,7 +58,7 @@ object LiftProjectBuild extends Build {
       populateProps((rep \ "url").text) at populateProps((rep \ "url").text)
     }
 
-    lazy val pomScalaVersion = (pom \ "properties" \ "scala.version").text
+    lazy val pomScalaVersion = (pom \ "properties" \ "scala.compiler").text
 
     lazy val artifactId = (pom \ "artifactId").text
     lazy val groupId = (pom \ "groupId").text

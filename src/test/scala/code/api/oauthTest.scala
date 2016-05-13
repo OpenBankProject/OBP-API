@@ -32,22 +32,19 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.APIUtil
-import net.liftweb.util.Props
-import org.scalatest._
-import dispatch._, Defaults._
-import net.liftweb.util.Helpers._
-import net.liftweb.http.S
-import net.liftweb.common.{Box, Loggable}
-import code.api.test.{ServerSetup, APIResponse}
+import code.api.util.APIUtil.OAuth._
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.TokenType._
+import dispatch.Defaults._
+import dispatch._
+import net.liftweb.common.{Box, Loggable}
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
+import org.scalatest._
 import org.scalatest.selenium._
-import org.openqa.selenium.WebDriver
-import scala.concurrent.duration._
+
 import scala.concurrent.Await
-import APIUtil.OAuth._
+import scala.concurrent.duration._
 
 case class OAuthResponse(
   code: Int,
@@ -142,13 +139,13 @@ class OAuthTest extends ServerSetup {
 
   def getVerifier(requestToken: String, userName: String, password: String): Box[String] = {
     val b = Browser()
-    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).build().getUrl
+    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).toRequest.getUrl
     b.getVerifier(loginPage, userName, password)
   }
 
   def getVerifier(userName: String, password: String): Box[String] = {
     val b = Browser()
-    val loginPage = (oauthRequest / "authorize").build().getUrl
+    val loginPage = (oauthRequest / "authorize").toRequest.getUrl
     b.getVerifier(loginPage, userName, password)
   }
 

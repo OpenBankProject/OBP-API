@@ -46,7 +46,7 @@ import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
 import APIUtil.OAuth._
 import code.views.Views
 import net.liftweb.json.JsonAST.JString
-import code.api.test.APIResponse
+import code.api.APIResponse
 import net.liftweb.util.Props
 
 class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {

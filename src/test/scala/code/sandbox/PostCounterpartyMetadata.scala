@@ -31,17 +31,14 @@ limitations under the License.
 * into your props file.
 * */
 
+import code.api.ObpJson.{BarebonesAccountsJson, _}
+import code.api.{SendServerRequests, _}
+import net.liftweb.common.Full
+import net.liftweb.json.JsonDSL._
+import net.liftweb.json._
+
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
-import dispatch._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.common.Full
-import code.api.test.SendServerRequests
-import code.api.ObpJson._
-import code.api.util.APIUtil._
-import code.api._
-import code.api.ObpJson.BarebonesAccountsJson
 
 case class CounterpartyJSONRecord(name: String, category: String, superCategory: String, logoUrl: String, homePageUrl: String, region: String)
 case class UserJSONRecord(email: String, password: String, display_name: String)

@@ -1,10 +1,10 @@
 package code.api
 
-import java.sql.SQLException
 import java.util.Date
+
 import bootstrap.liftweb.ToSchemify
-import code.model.dataAccess._
 import code.model._
+import code.model.dataAccess._
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 
@@ -79,7 +79,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .counterpartyIban(randomString(5))
       .counterpartyNationalId(randomString(5))
       .saveMe
-      .toTransaction.get
+      .toTransaction.orNull
   }
 
   override protected def wipeTestData() = {

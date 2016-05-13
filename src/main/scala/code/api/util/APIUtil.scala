@@ -1,60 +1,54 @@
 /**
-Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
-Osloerstrasse 16/17
-Berlin 13359, Germany
-
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
-
+  * Open Bank Project - API
+  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  **
+  *This program is free software: you can redistribute it and/or modify
+  *it under the terms of the GNU Affero General Public License as published by
+  *the Free Software Foundation, either version 3 of the License, or
+  *(at your option) any later version.
+  **
+  *This program is distributed in the hope that it will be useful,
+  *but WITHOUT ANY WARRANTY; without even the implied warranty of
+  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  *GNU Affero General Public License for more details.
+  **
+  *You should have received a copy of the GNU Affero General Public License
+*along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  **
+ *Email: contact@tesobe.com
+*TESOBE / Music Pictures Ltd
+*Osloerstrasse 16/17
+*Berlin 13359, Germany
+  **
+ *This product includes software developed at
+  *TESOBE (http://www.tesobe.com/)
+  * by
+  *Simon Redfern : simon AT tesobe DOT com
+  *Stefan Bethge : stefan AT tesobe DOT com
+  *Everett Sochowski : everett AT tesobe DOT com
+  *Ayoub Benali: ayoub AT tesobe DOT com
+  *
  */
 
 package code.api.util
 
-import code.api.util.APIUtil.ApiLink
+
+import code.api.Constant._
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
 import code.model._
+import dispatch.url
 import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.http.{JsonResponse, Req, S}
-import net.liftweb.json.Extraction
-import net.liftweb.json._
+import net.liftweb.http.{CurrentReq, JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
-
-import scala.collection.JavaConversions.asScalaSet
+import net.liftweb.util.{Props, Helpers, SecurityHelpers}
 
 import scala.collection.mutable.ArrayBuffer
-
-import net.liftweb.http.CurrentReq
-import code.api.Constant._
-
-
-
+import scala.collection.JavaConverters._
 
 
 object ErrorMessages {
@@ -188,8 +182,17 @@ object APIUtil extends Loggable {
     import org.apache.http.protocol.HTTP.UTF_8
 
     import scala.collection.Map
-    import scala.collection.immutable.{Map => IMap, TreeMap}
-    import scala.collection.mutable.Set
+    import scala.collection.immutable.{TreeMap, Map => IMap}
+
+    case class ReqData (
+                      url: String,
+                      method: String,
+                      body: String,
+                      body_encoding: String,
+                      headers: Map[String, String],
+                      query_params: Map[String,String],
+                      form_params: Map[String,String]
+                     )
 
     case class Consumer(key: String, secret: String)
     case class Token(value: String, secret: String)
@@ -225,7 +228,7 @@ object APIUtil extends Loggable {
       val sig = {
         val mac = crypto.Mac.getInstance(SHA1)
         mac.init(key)
-        Helpers.base64Encode(mac.doFinal(bytes(message)))
+        base64Encode(mac.doFinal(bytes(message)))
       }
       oauth_params + ("oauth_signature" -> sig)
     }
@@ -256,7 +259,7 @@ object APIUtil extends Loggable {
     def decode_% (s: String) = java.net.URLDecoder.decode(s, org.apache.http.protocol.HTTP.UTF_8)
 
     class RequestSigner(rb: Request) {
-      private val r = rb.build()
+      private val r = rb.toRequest
       @deprecated("use <@ (consumer, callback) to pass the callback in the header for a request-token request")
       def <@ (consumer: Consumer): Request = sign(consumer, None, None, None)
       /** sign a request with a callback, e.g. a request-token request */
@@ -275,43 +278,43 @@ object APIUtil extends Loggable {
 
       /** Sign request by reading Post (<<) and query string parameters */
       private def sign(consumer: Consumer, token: Option[Token], verifier: Option[String], callback: Option[String]) = {
-        val split_decode: (String => IMap[String, String]) = {
-          case null => IMap.empty
-          case query =>
-            if(query.isEmpty)
-              IMap.empty
-            else
-              IMap.empty ++ query.trim.split('&').map { nvp =>
-                nvp.split("=").map(decode_%) match {
-                  case Array(name) => name -> ""
-                  case Array(name, value) => name -> value
-                }
-              }
-        }
+
         val oauth_url = r.getUrl.split('?')(0)
-        val query_params = split_decode(tryo{r.getUrl.split('?')(1)}getOrElse(""))
-        val params = r.getParams
-        val keys : Set[String] = tryo{asScalaSet(params.keySet)}.getOrElse(Set())
-        val form_params = keys.map{ k =>
-          (k -> params.get(k))
-        }
+        val query_params = r.getQueryParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
+            case (k, v) => k -> v.toString
+          }
+        val form_params = r.getFormParams.asScala.groupBy(_.getName).mapValues(_.map(_.getValue)).map {
+            case (k, v) => k -> v.toString
+          }
+        val body_encoding = r.getBodyEncoding
+        var body = new String()
+        if (r.getByteData != null )
+          body = new String(r.getByteData)
         val oauth_params = OAuth.sign(r.getMethod, oauth_url,
                                       query_params ++ form_params,
                                       consumer, token, verifier, callback)
 
-        def addHeader(rb : Request, values: Map[String, String]) : Request = {
-          values.map{ case (k,v) =>
-            rb.setHeader(k, v)
-          }
+        def createRequest( reqData: ReqData ): Request = {
+          val rb = url(reqData.url)
+            .setMethod(reqData.method)
+            .setBodyEncoding(reqData.body_encoding)
+            .setBody(reqData.body) <:< reqData.headers
+          if (reqData.query_params.nonEmpty)
+            rb <<? reqData.query_params
           rb
         }
 
-        addHeader(
-          rb,
+        createRequest( ReqData(
+          oauth_url,
+          r.getMethod,
+          body,
+          body_encoding,
           IMap("Authorization" -> ("OAuth " + oauth_params.map {
-            case (k, v) => (encode_%(k)) + "=\"%s\"".format(encode_%(v))
-          }.mkString(",") ))
-        )
+            case (k, v) => encode_%(k) + "=\"%s\"".format(encode_%(v.toString))
+          }.mkString(",") )),
+          query_params,
+          form_params
+        ))
       }
     }
   }

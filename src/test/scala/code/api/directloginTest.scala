@@ -1,33 +1,25 @@
 package code.api
 
-import code.api.test.{APIResponse, ServerSetup}
 import code.api.util.ErrorMessages
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import dispatch._
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
+import org.scalatest.BeforeAndAfter
 
 
 
 
-class directloginTest extends ServerSetup {
+class directloginTest extends ServerSetup with BeforeAndAfter{
 
   val KEY = randomString(40).toLowerCase
   val SECRET = randomString(40).toLowerCase
   val EMAIL = randomString(10).toLowerCase + "@example.com"
   val PASSWORD = randomString(20)
 
-  def setupUserAndConsumer  = {
-    if (OBPConsumer.find(By(OBPConsumer.key, KEY)).isEmpty)
-    OBPConsumer.create.
-      name("test application").
-      isActive(true).
-      key(KEY).
-      secret(SECRET).
-      saveMe
-
+  //def setupUserAndConsumer  = {
+  before {
     if (OBPUser.find(By(OBPUser.email, EMAIL)).isEmpty)
       OBPUser.create.
         email(EMAIL).
@@ -35,6 +27,14 @@ class directloginTest extends ServerSetup {
         validated(true).
         firstName(randomString(10)).
         lastName(randomString(10)).
+        saveMe
+
+    if (OBPConsumer.find(By(OBPConsumer.key, KEY)).isEmpty)
+      OBPConsumer.create.
+        name("test application").
+        isActive(true).
+        key(KEY).
+        secret(SECRET).
         saveMe
   }
 
@@ -60,7 +60,7 @@ class directloginTest extends ServerSetup {
   feature("DirectLogin") {
     scenario("Invalid auth header") {
 
-      setupUserAndConsumer
+      //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
@@ -78,7 +78,7 @@ class directloginTest extends ServerSetup {
 
     scenario("Invalid credentials") {
 
-      setupUserAndConsumer
+      //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
@@ -95,7 +95,7 @@ class directloginTest extends ServerSetup {
 
     scenario("Missing DirecLogin header") {
 
-      setupUserAndConsumer
+      //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
@@ -112,7 +112,7 @@ class directloginTest extends ServerSetup {
 
     scenario("Login without consumer key") {
 
-      setupUserAndConsumer
+      //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")
@@ -129,7 +129,7 @@ class directloginTest extends ServerSetup {
 
     scenario("Login with correct everything!") {
 
-      setupUserAndConsumer
+      //setupUserAndConsumer
 
       Given("the app we are testing is registered and active")
       Then("We should be able to find it")

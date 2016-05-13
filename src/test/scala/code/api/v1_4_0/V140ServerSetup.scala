@@ -1,7 +1,6 @@
 package code.api.v1_4_0
 
-import code.api.test.{ServerSetupWithTestData, ServerSetup}
-import dispatch._
+import code.api.ServerSetupWithTestData
 
 trait V140ServerSetup extends ServerSetupWithTestData {
 

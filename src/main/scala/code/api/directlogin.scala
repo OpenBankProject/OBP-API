@@ -102,7 +102,7 @@ object DirectLogin extends RestHelper with Loggable {
           httpCode = 401
         } else {
           val claims = Map("" -> "")
-          val (token, secret) = generateTokenAndSecret(claims)
+          val (token:String, secret:String) = generateTokenAndSecret(claims)
 
           //Save the token that we have generated
           if (saveAuthorizationToken(directLoginParameters, token, secret, userId)) {

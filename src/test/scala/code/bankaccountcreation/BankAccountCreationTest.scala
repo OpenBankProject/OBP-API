@@ -1,6 +1,6 @@
 package code.bankaccountcreation
 
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.api.{DefaultConnectorTestSetup, DefaultUsers}
 import code.bankconnectors.Connector
 import code.model.{AccountId, BankId}

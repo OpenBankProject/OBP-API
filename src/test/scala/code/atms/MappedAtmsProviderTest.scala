@@ -1,6 +1,6 @@
 package code.atms
 
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.atms.Atms.Atm
 import code.model.BankId
 import net.liftweb.mapper.By

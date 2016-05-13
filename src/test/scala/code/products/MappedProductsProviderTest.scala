@@ -1,6 +1,6 @@
 package code.products
 
-import code.api.test.ServerSetup
+import code.api.ServerSetup
 import code.products.Products.Product
 import code.model.BankId
 import code.util.DefaultStringField

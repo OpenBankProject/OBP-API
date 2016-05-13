@@ -33,17 +33,14 @@ limitations under the License.
 
 import java.util.Date
 
+import code.api.ObpJson._
+import code.api.{SendServerRequests, _}
+import net.liftweb.common.{Box, Empty, Full}
 import net.liftweb.http.RequestVar
+import net.liftweb.json._
 
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
-import dispatch._
-import net.liftweb.json._
-import net.liftweb.json.JsonDSL._
-import net.liftweb.common.{Empty, Box, Full}
-import code.api.test.SendServerRequests
-import code.api.ObpJson._
-import code.api._
 
 case class CustomerFullJson(customer_number : String,
                         legal_name : String,
@@ -170,7 +167,7 @@ object PostCustomer extends SendServerRequests {
 
       println(s"we got customer that matches ")
 
-      customer.map(c =>  {
+      customer.foreach(c =>  {
         println (s"email is ${c.email} has ${c.dependants} dependants born on ${c.dob_of_dependants.map(d => s"${d}")} ")
 
         // We are able to post this (no need to convert to string explicitly)

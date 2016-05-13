@@ -48,9 +48,9 @@ To compile and run jetty, install Maven 3 and execute:
 
 * (Alternatively you can do File -> New -> Project from VCS and checkout from github)
 
-* When / if prompted, choose Java 1.7 and Scala 2.10 otherwise keep the defaults. Use the Maven options. Do not change the project name etc.
+* When / if prompted, choose Java 1.8 and Scala 2.11 otherwise keep the defaults. Use the Maven options. Do not change the project name etc.
 
-* Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.10.5 or so.
+* Navigate to test/scala/code/RunWebApp. You may see a Setup Scala SDK link. Click this and check Scala 2.11.8 or so.
 
 * In src/main/resources/props create a test.default.props for tests. Set connector=mapped
 
