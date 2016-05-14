@@ -33,15 +33,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   type AccountType = KafkaBankAccount
 
   val cacheTTL              = Props.get("cache.ttl.base", "30").toInt
-  val cachedUser            = TTLCache[KafkaValidatedUserImport](cacheTTL)
-  val cachedBank            = TTLCache[KafkaBankImport](cacheTTL)
-  val cachedAccount         = TTLCache[KafkaAccountImport](cacheTTL)
-  val cachedBanks           = TTLCache[List[KafkaBankImport]](cacheTTL)
-  val cachedAccounts        = TTLCache[List[KafkaAccountImport]](cacheTTL)
-  val cachedPublicAccounts  = TTLCache[List[KafkaAccountImport]](cacheTTL)
-  val cachedUserAccounts    = TTLCache[List[KafkaAccountImport]](cacheTTL)
+  val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
+  val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
+  val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)
+  val cachedBanks           = TTLCache[List[KafkaInboundBank]](cacheTTL)
+  val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+  val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+  val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
 
-  def getUser( username: String, password: String ): Box[KafkaUserImport] = {
+  def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
     // Send request to Kafka, marked with reqId
@@ -51,17 +51,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     implicit val formats = net.liftweb.json.DefaultFormats
 
     val r = {
-      cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaValidatedUserImport])
+      cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])
     }
     val recDisplayName = r.display_name
     val recEmail = r.email
     if (recEmail == username.toLowerCase && recEmail != "Not Found") {
       if (recDisplayName == "") {
-        val user = new KafkaUserImport( recEmail, password, recEmail)
+        val user = new KafkaInboundUser( recEmail, password, recEmail)
         Full(user)
       }
       else {
-        val user = new KafkaUserImport(recEmail, password, recDisplayName)
+        val user = new KafkaInboundUser(recEmail, password, recDisplayName)
         Full(user)
       }
     } else {
@@ -70,7 +70,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def setAccountOwner(owner : String, account: KafkaAccountImport) : Unit = {
+  def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
     apiUserOwner match {
       case Some(o) => {
@@ -95,7 +95,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = {
-      cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaAccountImport]])
+      cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
     }
     val res = {
       for (r <- rList) yield {
@@ -117,7 +117,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val argList = Map("username"  -> user.email.get )
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = {
-      cachedPublicAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getPublicAccounts", argList).extract[List[KafkaAccountImport]])
+      cachedPublicAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getPublicAccounts", argList).extract[List[KafkaInboundAccount]])
     }
     val res = {
       for (r <- rList) yield {
@@ -129,7 +129,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     res
   }
 
-  def createSaveableViews(acc : KafkaAccountImport) : List[Saveable[ViewType]] = {
+  def createSaveableViews(acc : KafkaInboundAccount) : List[Saveable[ViewType]] = {
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
 
@@ -156,11 +156,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val reqId: String = UUID.randomUUID().toString
     // Create empty argument list
     val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
-    // Send request to Kafka, marked with reqId 
+    // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = {
-      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaBankImport]])
+      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaInboundBank]])
     }
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
@@ -180,17 +180,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Create argument list
     val argList = Map(  "bankId" -> id.toString,
                         "username" -> OBPUser.getCurrentUserUsername )
-    // Send request to Kafka, marked with reqId 
+    // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaBankImport])
+      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaInboundBank])
     }
     // Return result
     Full(new KafkaBank(r))
   }
 
-  // Gets transaction identified by bankid, accountid and transactionId 
+  // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
@@ -202,8 +202,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "transactionId" -> transactionId.toString )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getTransaction", argList).extract[KafkaTransactionImport]
-    // If empty result from Kafka return empty data 
+    val r = process(reqId, "getTransaction", argList).extract[KafkaInboundTransaction]
+    // If empty result from Kafka return empty data
     if (r.id == "") {
       return Failure(null)
     }
@@ -233,8 +233,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "accountId" -> accountID.toString,
                        "queryParams" -> queryParams.toString )
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getTransactions", argList).extract[List[KafkaTransactionImport]]
-    // Return blank if empty 
+    val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
+    // Return blank if empty
     if (rList.head.id == "") {
       return Failure(null)
     }
@@ -259,7 +259,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaAccountImport])
+      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
     val res = new KafkaBankAccount(r)
     Full(res)
@@ -276,7 +276,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaAccountImport]])
+      cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
     }
     val res = r.map ( t => new KafkaBankAccount(t) )
     res
@@ -293,7 +293,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaAccountImport])
+      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
     val res = new KafkaBankAccount(r)
     Full(res)
@@ -864,7 +864,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   // Helper for creating a transaction
-  def createNewTransaction(r: KafkaTransactionImport) = {
+  def createNewTransaction(r: KafkaInboundTransaction) = {
     var datePosted: Date = null
     if (r.details.posted != null && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
@@ -897,7 +897,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
 
-  case class KafkaBank(r: KafkaBankImport) extends Bank {
+  case class KafkaBank(r: KafkaInboundBank) extends Bank {
     def fullName           = r.full_name
     def shortName          = r.short_name
     def logoUrl            = r.logo
@@ -924,7 +924,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     )
   }
 
-  case class KafkaBankAccount(r: KafkaAccountImport) extends BankAccount {
+  case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def uuid : String               = r.id
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
@@ -941,7 +941,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
 
-  case class KafkaBankImport(
+  case class KafkaInboundBank(
                               id : String,
                               short_name : String,
                               full_name : String,
@@ -949,31 +949,52 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                               website : String)
 
 
-  // Branches to be imported must match this pattern
-  case class KafkaBranchImport(
-                                id : String,
-                                bank_id: String,
-                                name : String,
-                                address : KafkaAddressImport,
-                                location : KafkaLocationImport,
-                                meta : KafkaMetaImport,
-                                lobby : Option[KafkaLobbyImport],
-                                driveUp : Option[KafkaDriveUpImport])
+  /** Bank Branches
+    *
+    * @param id Uniquely identifies the Branch within the Bank. SHOULD be url friendly (no spaces etc.) Used in URLs
+    * @param bank_id MUST match bank_id in Banks
+    * @param name Informal name for the Branch
+    * @param address Address
+    * @param location Geolocation
+    * @param meta Meta information including the license this information is published under
+    * @param lobby Info about when the lobby doors are open
+    * @param driveUp Info about when automated facilities are open e.g. cash point machine
+    */
+  case class KafkaInboundBranch(
+                                 id : String,
+                                 bank_id: String,
+                                 name : String,
+                                 address : KafkaInboundAddress,
+                                 location : KafkaInboundLocation,
+                                 meta : KafkaInboundMeta,
+                                 lobby : Option[KafkaInboundLobby],
+                                 driveUp : Option[KafkaInboundDriveUp])
 
-  case class KafkaLicenseImport(
+  case class KafkaInboundLicense(
                                  id : String,
                                  name : String)
 
-  case class KafkaMetaImport(
-                              license : KafkaLicenseImport)
+  case class KafkaInboundMeta(
+                              license : KafkaInboundLicense)
 
-  case class KafkaLobbyImport(
+  case class KafkaInboundLobby(
                                hours : String)
 
-  case class KafkaDriveUpImport(
+  case class KafkaInboundDriveUp(
                                  hours : String)
 
-  case class KafkaAddressImport(
+  /**
+    *
+    * @param line_1 Line 1 of Address
+    * @param line_2 Line 2 of Address
+    * @param line_3 Line 3 of Address
+    * @param city City
+    * @param county County i.e. Division of State
+    * @param state State i.e. Division of Country
+    * @param post_code Post Code or Zip Code
+    * @param country_code 2 letter country code: ISO 3166-1 alpha-2
+    */
+  case class KafkaInboundAddress(
                                  line_1 : String,
                                  line_2 : String,
                                  line_3 : String,
@@ -983,51 +1004,51 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                  post_code : String,
                                  country_code: String)
 
-  case class KafkaLocationImport(
+  case class KafkaInboundLocation(
                                   latitude : Double,
                                   longitude : Double)
 
-  case class KafkaUserImport(
+  case class KafkaInboundUser(
                               email : String,
                               password : String,
                               display_name : String)
 
-  case class KafkaValidatedUserImport(
+  case class KafkaInboundValidatedUser(
                                        email : String,
                                        display_name : String)
 
-  case class KafkaAccountImport(
-                                 id : String,
-                                 bank : String,
-                                 label : String,
-                                 number : String,
-                                 `type` : String,
-                                 balance : KafkaBalanceImport,
-                                 IBAN : String,
-                                 owners : List[String],
-                                 generate_public_view : Boolean,
-                                 generate_accountants_view : Boolean,
-                                 generate_auditors_view : Boolean)
+  case class KafkaInboundAccount(
+                                  id : String,
+                                  bank : String,
+                                  label : String,
+                                  number : String,
+                                  `type` : String,
+                                  balance : KafkaInboundBalance,
+                                  IBAN : String,
+                                  owners : List[String],
+                                  generate_public_view : Boolean,
+                                  generate_accountants_view : Boolean,
+                                  generate_auditors_view : Boolean)
 
-  case class KafkaBalanceImport(
+  case class KafkaInboundBalance(
                                  currency : String,
                                  amount : String)
 
-  case class KafkaTransactionImport(
-                                     id : String,
-                                     this_account : KafkaAccountIdImport,
-                                     counterparty : Option[KafkaTransactionCounterparty],
-                                     details : KafkaAccountDetailsImport)
+  case class KafkaInboundTransaction(
+                                      id : String,
+                                      this_account : KafkaInboundAccountId,
+                                      counterparty : Option[KafkaInboundTransactionCounterparty],
+                                      details : KafkaInboundAccountDetails)
 
-  case class KafkaTransactionCounterparty(
+  case class KafkaInboundTransactionCounterparty(
                                            name : Option[String],  // Also known as Label
                                            account_number : Option[String])
 
-  case class KafkaAccountIdImport(
+  case class KafkaInboundAccountId(
                                    id : String,
                                    bank : String)
 
-  case class KafkaAccountDetailsImport(
+  case class KafkaInboundAccountDetails(
                                         `type` : String,
                                         description : String,
                                         posted : String,
@@ -1036,17 +1057,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                         value : String)
 
 
-  case class KafkaAtmImport(
-                             id : String,
-                             bank_id: String,
-                             name : String,
-                             address : KafkaAddressImport,
-                             location : KafkaLocationImport,
-                             meta : KafkaMetaImport
+  case class KafkaInboundAtm(
+                              id : String,
+                              bank_id: String,
+                              name : String,
+                              address : KafkaInboundAddress,
+                              location : KafkaInboundLocation,
+                              meta : KafkaInboundMeta
                            )
 
 
-  case class KafkaProductImport(
+  case class KafkaInboundProduct(
                                  bank_id : String,
                                  code: String,
                                  name : String,
@@ -1054,39 +1075,39 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                  family : String,
                                  super_family : String,
                                  more_info_url : String,
-                                 meta : KafkaMetaImport
+                                 meta : KafkaInboundMeta
                                )
 
 
-  case class KafkaAccountDataImport(
-                                     banks : List[KafkaBankImport],
-                                     users : List[KafkaUserImport],
-                                     accounts : List[KafkaAccountImport]
+  case class KafkaInboundAccountData(
+                                      banks : List[KafkaInboundBank],
+                                      users : List[KafkaInboundUser],
+                                      accounts : List[KafkaInboundAccount]
                                    )
 
-  case class KafkaDataImport(
-                              banks : List[KafkaBankImport],
-                              users : List[KafkaUserImport],
-                              accounts : List[KafkaAccountImport],
-                              transactions : List[KafkaTransactionImport],
-                              branches: List[KafkaBranchImport],
-                              atms: List[KafkaAtmImport],
-                              products: List[KafkaProductImport],
-                              crm_events: List[KafkaCrmEventImport]
+  case class KafkaInboundData(
+                               banks : List[KafkaInboundBank],
+                               users : List[KafkaInboundUser],
+                               accounts : List[KafkaInboundAccount],
+                               transactions : List[KafkaInboundTransaction],
+                               branches: List[KafkaInboundBranch],
+                               atms: List[KafkaInboundAtm],
+                               products: List[KafkaInboundProduct],
+                               crm_events: List[KafkaInboundCrmEvent]
                             )
 
 
-  case class KafkaCrmEventImport (
+  case class KafkaInboundCrmEvent(
                                    id : String, // crmEventId
                                    bank_id : String,
-                                   customer: KafkaCustomerImport,
+                                   customer: KafkaInboundCustomer,
                                    category : String,
                                    detail : String,
                                    channel : String,
                                    actual_date: String
                                  )
 
-  case class KafkaCustomerImport (
+  case class KafkaInboundCustomer(
                                    name: String,
                                    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
                                  )
