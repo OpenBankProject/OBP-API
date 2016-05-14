@@ -42,7 +42,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
@@ -87,7 +87,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def updateUserAccountViews( apiUser: APIUser ) = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
@@ -110,7 +110,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def updatePublicAccountViews( user: APIUser ): List[List[Saveable[ViewType]]] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
@@ -192,7 +192,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
@@ -249,7 +249,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   override def getBankAccountType(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
-    // Generate random uuid to be used as request-respose match id
+    // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
@@ -1085,6 +1085,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                       accounts : List[KafkaInboundAccount]
                                    )
 
+  // We won't need this. TODO clean up.
   case class KafkaInboundData(
                                banks : List[KafkaInboundBank],
                                users : List[KafkaInboundUser],
