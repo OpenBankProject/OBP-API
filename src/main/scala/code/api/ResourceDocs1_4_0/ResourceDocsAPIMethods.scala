@@ -1,10 +1,12 @@
 package code.api.ResourceDocs1_4_0
 
+import code.api.ResourceDocs1_4_0.SwaggerJSONFactory.SwaggerResourceDoc
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
+import net.liftweb
 import net.liftweb.common.{Empty, Box, Full, Loggable}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{S, JsonResponse, Req}
-import net.liftweb.json.Extraction
+import net.liftweb.json._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
@@ -244,7 +246,8 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
             // Format the data as json
             val json = SwaggerJSONFactory.createSwaggerResourceDoc(rdFiltered, requestedApiVersion)
             // Return
-            successJsonResponse(Extraction.decompose(json))
+            val jsonAST = SwaggerJSONFactory.loadDefinitions(rdFiltered)
+            successJsonResponse(Extraction.decompose(json) merge jsonAST)
           }
         }
       }
