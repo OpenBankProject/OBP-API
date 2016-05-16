@@ -77,7 +77,7 @@ class WebUI extends Loggable{
   // For example customers and credentials
   // This relies on the page for sandbox documentation having an anchor called example-customer-logins
   def exampleSandboxCredentialsLink: CssSel = {
-    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "") + "#example-customer-logins")
+    ".example_sandbox_credentials_link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_documentation_url", "") + "#customer-logins")
   }
 
   // For link to OAuth Client SDKs

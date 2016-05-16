@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.KafkaMappedConnector
-import code.bankconnectors.KafkaMappedConnector.KafkaUserImport
+import code.bankconnectors.KafkaMappedConnector.KafkaInboundUser
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 import net.liftweb.http.{S, SHtml, SessionVar, Templates}
@@ -287,7 +287,7 @@ import net.liftweb.util.Helpers._
 
   def getExternalUser(username: String, password: String):Box[OBPUser] = {
     KafkaMappedConnector.getUser(username, password) match {
-      case Full(KafkaUserImport(extEmail, extPassword, extDisplayName)) => {
+      case Full(KafkaInboundUser(extEmail, extPassword, extDisplayName)) => {
         val preLoginState = capturePreLoginState()
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {

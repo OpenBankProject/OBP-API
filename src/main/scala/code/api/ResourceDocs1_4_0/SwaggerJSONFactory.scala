@@ -1,12 +1,16 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.util.APIUtil.ResourceDoc
 import code.api.Constant._
+import code.api.util.APIUtil.ResourceDoc
+import net.liftweb
+import net.liftweb.json.Extraction._
 import net.liftweb.json._
 import net.liftweb.util.Props
 import org.pegdown.PegDownProcessor
 
 import scala.collection.immutable.ListMap
+import scala.reflect.runtime.currentMirror
+import scala.reflect.runtime.universe._
 
 object SwaggerJSONFactory {
 
@@ -53,6 +57,14 @@ object SwaggerJSONFactory {
                                  )
 
   def createSwaggerResourceDoc(resourceDocList: List[ResourceDoc], requestedApiVersion: String): SwaggerResourceDoc = {
+
+    def getName(rd: ResourceDoc) = {
+      rd.apiFunction match {
+        case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
+        case _ => None
+      }
+    }
+
     implicit val formats = DefaultFormats
 
     val pegDownProcessor : PegDownProcessor = new PegDownProcessor
@@ -73,7 +85,7 @@ object SwaggerJSONFactory {
             rd.summary,
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
-            Map("200" -> ResponseObjectJson(Some("Success") , None), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
+            Map("200" -> ResponseObjectJson(Some("Success") , getName(rd)), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
       (mrd._1, methods.toSeq.sortBy(m => m._1).toMap)
     }(collection.breakOut)
@@ -87,6 +99,61 @@ object SwaggerJSONFactory {
     val defs = DefinitionsJson(errorDef)
 
     SwaggerResourceDoc("2.0", info, host, basePath, schemas, paths, defs)
+  }
+
+
+  def translateEntity(entity: Any) = {
+
+    val r = currentMirror.reflect(entity)
+    val ddd = r.symbol.typeSignature.members.toStream
+      .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
+      .map(r => r.symbol.name.toString.trim -> r.get)
+      .toMap
+
+    val properties = for ((key, value) <- ddd) yield {
+      value match {
+        case i: String => "\"" + key + "\":" + """{"type":"string"}"""
+        case Some(i: String) => "\"" + key + "\":" + """{"type":"string"}"""
+        case i: Int => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
+        case Some(i: Int) => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
+        case i: Long => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
+        case Some(i: Long) => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
+        case i: Float => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
+        case Some(i: Long) => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
+        case i: Double => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
+        case Some(i: Double) => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
+        case _ => "unknown"
+      }
+    }
+    val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
+
+    val required = for {f <- entity.getClass.getDeclaredFields
+                        if f.getType.toString.contains("Option") == false
+    } yield {
+      f.getName
+    }
+    val requiredFields = required.toList mkString("[\"", "\",\"", "\"]")
+
+    val definition = "\"" + entity.getClass.getSimpleName + "\":" + """{"required": """ + requiredFields + "," + """"properties": {""" + fields + """}}"""
+
+    definition
+
+  }
+
+  def loadDefinitions (resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
+
+    import code.api.v1_2_1._
+
+    implicit val formats = DefaultFormats
+    val jsonAST1: JValue = decompose(BankJSON("1", "Name", "Name1", "None", "www.go.com"))
+    val jsonCaseClass1 = jsonAST1.extract[BankJSON]
+
+    val jsonAST2: JValue = decompose(UserJSON("1", "Name", "Name1"))
+    val jsonCaseClass2 = jsonAST2.extract[UserJSON]
+
+    val definitions = "{\"definitions\":{" + translateEntity(jsonCaseClass1) + "," + translateEntity(jsonCaseClass2) + "}}"
+
+    parse(definitions)
   }
 
 }
