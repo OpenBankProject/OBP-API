@@ -1,5 +1,7 @@
 package code.api.ResourceDocs1_4_0
 
+import java.util.Date
+
 import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import net.liftweb
@@ -102,7 +104,7 @@ object SwaggerJSONFactory {
   }
 
 
-  def translateEntity(entity: Any) = {
+  def translateEntity(entity: Any): String = {
 
     val r = currentMirror.reflect(entity)
     val ddd = r.symbol.typeSignature.members.toStream
@@ -112,16 +114,34 @@ object SwaggerJSONFactory {
 
     val properties = for ((key, value) <- ddd) yield {
       value match {
+        case i: Boolean => "\"" + key + "\":" + """{"type":"boolean"}"""
+        case Some(i: Boolean) => "\"" + key + "\":" + """{"type":"boolean"}"""
+        case List(i: Boolean, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "boolean"}}"""
+        case Some(List(i: Boolean, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "boolean"}}"""
         case i: String => "\"" + key + "\":" + """{"type":"string"}"""
         case Some(i: String) => "\"" + key + "\":" + """{"type":"string"}"""
+        case List(i: String, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "string"}}"""
+        case Some(List(i: String, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "string"}}"""
         case i: Int => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
         case Some(i: Int) => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
+        case List(i: Long, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case Some(List(i: Long, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int32"}}"""
         case i: Long => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
         case Some(i: Long) => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
+        case List(i: Long, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int64"}}"""
+        case Some(List(i: Long, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int64"}}"""
         case i: Float => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
-        case Some(i: Long) => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
+        case Some(i: Float) => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
+        case List(i: Float, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "float"}}"""
+        case Some(List(i: Float, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "float"}}"""
         case i: Double => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
         case Some(i: Double) => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
+        case List(i: Double, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "double"}}"""
+        case Some(List(i: Double, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "double"}}"""
+        case i: Date => "\"" + key + "\":" + """{"type":"string", "format":"date"}"""
+        case Some(i: Date) => "\"" + key + "\":" + """{"type":"string", "format":"date"}"""
+        case List(i: Date, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
+        case Some(List(i: Date, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
         case _ => "unknown"
       }
     }
@@ -134,7 +154,9 @@ object SwaggerJSONFactory {
     }
     val requiredFields = required.toList mkString("[\"", "\",\"", "\"]")
 
-    val definition = "\"" + entity.getClass.getSimpleName + "\":" + """{"required": """ + requiredFields + "," + """"properties": {""" + fields + """}}"""
+    val requiredFieldsPart = if (required.length > 0) """"required": """ + requiredFields + "," else ""
+
+    val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
 
     definition
 
