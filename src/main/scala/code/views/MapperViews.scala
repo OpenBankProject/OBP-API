@@ -160,16 +160,20 @@ private object MapperViews extends Views with Loggable {
   }
 
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
+    if(view.name.contentEquals("")) {
+      return Failure("It is not allowed to create a view with an empty name")
+    }
+
     val newViewPermalink = {
-      view.name.replaceAllLiterally(" ","").toLowerCase
+      view.name.replaceAllLiterally(" ", "").toLowerCase
     }
 
     val existing = ViewImpl.count(
-        By(ViewImpl.permalink_, newViewPermalink) ::
+      By(ViewImpl.permalink_, newViewPermalink) ::
         ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*
-      ) == 1
+    ) == 1
 
-    if(existing)
+    if (existing)
       Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
     else {
       val createdView = ViewImpl.create.
@@ -181,7 +185,6 @@ private object MapperViews extends Views with Loggable {
       createdView.setFromViewData(view)
       Full(createdView.saveMe)
     }
-
   }
 
   def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
