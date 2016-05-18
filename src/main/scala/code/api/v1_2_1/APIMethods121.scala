@@ -113,7 +113,7 @@ trait APIMethods121 {
 
 
     resourceDocs += ResourceDoc(
-      allBanks,
+      getBanks,
       apiVersion,
       "allBanks",
       "GET",
@@ -133,7 +133,7 @@ trait APIMethods121 {
       true,
       apiTagBanks :: Nil)
 
-    lazy val allBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get banks
       case "banks" :: Nil JsonGet json => {
         user =>
