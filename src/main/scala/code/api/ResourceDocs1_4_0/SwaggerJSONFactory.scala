@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
+import code.api.v1_2.{BankJSON, BanksJSON, UserJSON}
 import net.liftweb
 import net.liftweb.json.Extraction._
 import net.liftweb.json._
@@ -62,7 +63,7 @@ object SwaggerJSONFactory {
 
     def getName(rd: ResourceDoc) = {
       rd.apiFunction match {
-        case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
+        case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))
         case _ => None
       }
     }
@@ -142,6 +143,12 @@ object SwaggerJSONFactory {
         case Some(i: Date) => "\"" + key + "\":" + """{"type":"string", "format":"date"}"""
         case List(i: Date, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
         case Some(List(i: Date, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
+        case obj@BankJSON(_,_,_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/BankJSON"""" +"}"
+        case obj@List(BankJSON(_,_,_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/BankJSON"""" +"}}"
+        case obj@BanksJSON(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/BanksJSON"""" +"}"
+        case obj@List(BanksJSON(_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/BanksJSON"""" +"}}"
+        case obj@UserJSON(_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/UserJSON"""" +"}"
+        case obj@List(UserJSON(_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/UserJSON"""" +"}}"
         case _ => "unknown"
       }
     }
@@ -164,8 +171,6 @@ object SwaggerJSONFactory {
 
   def loadDefinitions (resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
 
-    import code.api.v1_2_1._
-
     implicit val formats = DefaultFormats
     val jsonAST1: JValue = decompose(BankJSON("1", "Name", "Name1", "None", "www.go.com"))
     val jsonCaseClass1 = jsonAST1.extract[BankJSON]
@@ -173,7 +178,9 @@ object SwaggerJSONFactory {
     val jsonAST2: JValue = decompose(UserJSON("1", "Name", "Name1"))
     val jsonCaseClass2 = jsonAST2.extract[UserJSON]
 
-    val definitions = "{\"definitions\":{" + translateEntity(jsonCaseClass1) + "," + translateEntity(jsonCaseClass2) + "}}"
+    val caseClass3 = BanksJSON(List(BankJSON("1", "Name", "Name1", "None", "www.go.com")))
+
+    val definitions = "{\"definitions\":{" + translateEntity(jsonCaseClass1) + "," + translateEntity(jsonCaseClass2) + "," + translateEntity(caseClass3) +  "}}"
 
     parse(definitions)
   }
