@@ -45,7 +45,7 @@ object OBPAPI1_2_1 extends OBPRestHelper with APIMethods121 with Loggable {
 
   val routes = List(
     Implementations1_2_1.root(VERSION),
-    Implementations1_2_1.allBanks,
+    Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.allAccountsAllBanks,
     Implementations1_2_1.privateAccountsAllBanks,

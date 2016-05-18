@@ -46,7 +46,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   val routes = List(
     Implementations1_2_1.root(VERSION),
-    Implementations1_2_1.allBanks,
+    Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     // Now in 2_0_0
 //  Implementations1_2_1.allAccountsAllBanks,

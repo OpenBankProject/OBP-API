@@ -1459,6 +1459,28 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+
+    scenario("we are not allowed to create a view with an empty name") {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewWithEmptyName = ViewCreationJSON(
+        name = "",
+        description = randomString(3),
+        is_public = true,
+        which_alias_to_use="alias",
+        hide_metadata_if_alias_used = false,
+        allowed_actions = viewFields
+      )
+
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, viewWithEmptyName, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Update a view on a bank account") {
