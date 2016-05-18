@@ -57,24 +57,12 @@ object ZooKeeperUtils {
 }
 
 class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").openOrThrowException("no kafka.zookeeper_host set"),
-                    val groupId: String   = Props.get("kafka.group_id").openOrThrowException("no kafka.group_id set"),
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
                     val delay: Long       = 0) {
 
   val zkProps = new Properties()
   zkProps.put("log4j.logger.org.apache.zookeeper", "ERROR")
   org.apache.log4j.PropertyConfigurator.configure(zkProps)
-
-  val config = createConsumerConfig(zookeeper, groupId)
-  val consumer = Consumer.create(config)
-
-  // create single stream for topic
-  var consumerMap = consumer.createMessageStreams(Map(topic -> 1))
-
-  def shutdown() = {
-    if (consumer != null)
-      consumer.shutdown()
-  }
 
   def createConsumerConfig(zookeeper: String, groupId: String): ConsumerConfig = {
     val props = new Properties()
@@ -86,16 +74,18 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
     props.put("auto.commit.interval.ms", "1000")
     props.put("zookeeper.session.timeout.ms", "6000")
     props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("consumer.timeout.ms", "20000")
+    props.put("consumer.timeout.ms", "40000")
     val config = new ConsumerConfig(props)
     config
   }
 
-  def getResponse(reqId: String): json.JValue = { //List[Map[String, String]] = {
+  def getResponse(reqId: String): json.JValue = {
+    // create consumer with unique groupId in order to prevent race condition with kafka
+    val config = createConsumerConfig(zookeeper, UUID.randomUUID.toString)
+    val consumer = Consumer.create(config)
     // recreate stream for topic if not existing
-    if ( consumerMap == null ) {
-      consumerMap = consumer.createMessageStreams(Map(topic -> 1))
-    }
+    val consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+
     val streams = consumerMap.get(topic).get
     // process streams
     for (stream <- streams) {
@@ -110,18 +100,20 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
           if (key == reqId) {
             // Parse JSON message
             val j = json.parse(msg)
+            // disconnect from Kafka
+            consumer.shutdown()
             // return as JSON
             return j
           }
         }
       }
       catch {
-        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString())
+        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString)
         return json.parse("""{"error":"timeout"}""") //TODO: replace with standard message
       }
     }
     // disconnect from kafka
-    shutdown()
+    consumer.shutdown()
     return json.parse("""{"info":"disconnected"}""") //TODO: replace with standard message
   }
 }

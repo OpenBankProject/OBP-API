@@ -15,8 +15,10 @@ connector=mapped
 #defaults to "localhost:2181" if not set
 #kafka.zookeeper_host=123.45.67.89:2181
 
+#cache time to live in seconds, caching disabled if not set
+#kafka.cache.ttl.seconds=3
+
 #if using kafka connector, the following is mandatory
-#kafka.group_id=1
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
@@ -38,6 +40,7 @@ End of minimum settings
 #if connector is mapped, set a database backend. If not set, this will be set to an in-memory h2 database by default
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.h2.Driver
+#db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 
 #set this to false if you don't want the api payments call to work
 payments_enabled=false

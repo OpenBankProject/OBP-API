@@ -32,7 +32,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
 
-  val cacheTTL              = Props.get("cache.ttl.base", "30").toInt
+  // Local TTL Cache
+  val cacheTTL              = Props.get("kafka.cache.ttl.seconds", "3").toInt
   val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)
@@ -866,11 +867,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   // Helper for creating a transaction
   def createNewTransaction(r: KafkaInboundTransaction) = {
     var datePosted: Date = null
-    if (r.details.posted != null && r.details.posted.matches("^[0-9]{8}$"))
+    if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
 
     var dateCompleted: Date = null
-    if (r.details.completed != null && r.details.completed.matches("^[0-9]{8}$"))
+    if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
 
     val o = getBankAccountType(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).get
@@ -884,7 +885,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       r.id,                                                   // uuid:String
       TransactionId(r.id),                                    // id:TransactionId
       getBankAccountType( BankId(r.this_account.bank),
-                          AccountId(r.this_account.id)).get,  // thisAccount:BankAccount
+                          AccountId(r.this_account.id)).orNull, // thisAccount:BankAccount
       otherAccount,                                           // otherAccount:OtherBankAccount
       r.details.`type`,                                       // transactionType:String
       BigDecimal(r.details.value),                            // val amount:BigDecimal
@@ -1038,7 +1039,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                       id : String,
                                       this_account : KafkaInboundAccountId,
                                       counterparty : Option[KafkaInboundTransactionCounterparty],
-                                      details : KafkaInboundAccountDetails)
+                                      details : KafkaInboundTransactionDetails)
 
   case class KafkaInboundTransactionCounterparty(
                                            name : Option[String],  // Also known as Label
@@ -1048,7 +1049,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                    id : String,
                                    bank : String)
 
-  case class KafkaInboundAccountDetails(
+  case class KafkaInboundTransactionDetails(
                                         `type` : String,
                                         description : String,
                                         posted : String,
