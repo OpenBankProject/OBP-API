@@ -6,7 +6,6 @@ import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2.{BankJSON, BanksJSON, UserJSON}
 import net.liftweb
-import net.liftweb.json.Extraction._
 import net.liftweb.json._
 import net.liftweb.util.Props
 import org.pegdown.PegDownProcessor
