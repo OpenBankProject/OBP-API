@@ -64,6 +64,7 @@ object SwaggerJSONFactory {
     def getName(rd: ResourceDoc) = {
       rd.apiFunction match {
         case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))
+        case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
         case _ => None
       }
     }
@@ -107,13 +108,15 @@ object SwaggerJSONFactory {
 
   def translateEntity(entity: Any): String = {
 
+    //Get fields of runtime entities and put they into structure Map(nameOfField -> fieldAsObject)
     val r = currentMirror.reflect(entity)
-    val ddd = r.symbol.typeSignature.members.toStream
+    val mapOfFields = r.symbol.typeSignature.members.toStream
       .collect { case s: TermSymbol if !s.isMethod => r.reflectField(s)}
       .map(r => r.symbol.name.toString.trim -> r.get)
       .toMap
 
-    val properties = for ((key, value) <- ddd) yield {
+    //Iterate over Map and use pattern matching to extract type of field of runtime entity and make an appropriate swagger string for it
+    val properties = for ((key, value) <- mapOfFields) yield {
       value match {
         case i: Boolean => "\"" + key + "\":" + """{"type":"boolean"}"""
         case Some(i: Boolean) => "\"" + key + "\":" + """{"type":"boolean"}"""
@@ -152,36 +155,53 @@ object SwaggerJSONFactory {
         case _ => "unknown"
       }
     }
+    //Exclude all unrecognised fields and make part of fields definition
     val fields: String = properties filter (_.contains("unknown") == false) mkString (",")
-
-    val required = for {f <- entity.getClass.getDeclaredFields
-                        if f.getType.toString.contains("Option") == false
-    } yield {
-      f.getName
-    }
+    //Collect all mandatory fields and make an appropriate string
+    val required =
+      for {
+        f <- entity.getClass.getDeclaredFields
+        if f.getType.toString.contains("Option") == false
+      } yield {
+        f.getName
+      }
     val requiredFields = required.toList mkString("[\"", "\",\"", "\"]")
-
+    //Make part of mandatory fields
     val requiredFieldsPart = if (required.length > 0) """"required": """ + requiredFields + "," else ""
-
+    //Make whole swagger definition of an entity
     val definition = "\"" + entity.getClass.getSimpleName + "\":{" + requiredFieldsPart + """"properties": {""" + fields + """}}"""
 
     definition
 
   }
 
-  def loadDefinitions (resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
+  def loadDefinitions(resourceDocList: List[ResourceDoc]): liftweb.json.JValue = {
 
     implicit val formats = DefaultFormats
-    val jsonAST1: JValue = decompose(BankJSON("1", "Name", "Name1", "None", "www.go.com"))
-    val jsonCaseClass1 = jsonAST1.extract[BankJSON]
 
-    val jsonAST2: JValue = decompose(UserJSON("1", "Name", "Name1"))
-    val jsonCaseClass2 = jsonAST2.extract[UserJSON]
+    //Translate a jsonAST to an appropriate case class entity
+    val successResponseBodies: List[Any] =
+      for (rd <- resourceDocList)
+      yield {
+        rd match {
+          case u if u.apiFunction.contains("allBanks") => rd.successResponseBody.extract[BanksJSON]
+          case u if u.apiFunction.contains("bankById") => rd.successResponseBody.extract[BankJSON]
+          case _ => "Not defined"
+        }
+      }
 
-    val caseClass3 = BanksJSON(List(BankJSON("1", "Name", "Name1", "None", "www.go.com")))
-
-    val definitions = "{\"definitions\":{" + translateEntity(jsonCaseClass1) + "," + translateEntity(jsonCaseClass2) + "," + translateEntity(caseClass3) +  "}}"
-
+    val successResponseBodiesForProcessing = successResponseBodies filter (_.toString().contains("Not defined") == false)
+    //Translate every entity in a list to appropriate swagger format
+    val listOfParticularDefinition =
+      for (e <- successResponseBodiesForProcessing)
+      yield {
+        translateEntity(e)
+      }
+    //Add a comma between elements of a list and make a string
+    val particularDefinitionsPart = listOfParticularDefinition mkString (",")
+    //Make a final string
+    val definitions = "{\"definitions\":{" + particularDefinitionsPart + "}}"
+    //Make a jsonAST from a string
     parse(definitions)
   }
 

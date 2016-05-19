@@ -1,10 +1,12 @@
 package code.api.v1_2_1
 
 import code.api.util.APIUtil
+import code.api.v1_2.{BanksJSON, BankJSON}
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.common._
 import code.model._
+import net.liftweb.json.Extraction._
 import net.liftweb.json.JsonAST.JValue
 import APIUtil._
 import net.liftweb.util.Helpers._
@@ -126,7 +128,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      emptyObjectJson,
+      decompose(BanksJSON(List(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")))),
       emptyObjectJson :: Nil,
       true,
       false,
@@ -163,7 +165,7 @@ trait APIMethods121 {
         |* Logo URL
         |* Website""",
       emptyObjectJson,
-      emptyObjectJson,
+      decompose(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")),
       emptyObjectJson :: Nil,
       true,
       false,
