@@ -33,23 +33,21 @@ package code.api.v2_0_0
 
 import java.net.URL
 import java.util.Date
+
 import code.TransactionTypes.TransactionType.TransactionType
 import code.transactionrequests.TransactionRequests._
 
 // import code.api.util.APIUtil.ApiLink
 
+import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
+import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
 import code.kycstatuses.KycStatus
-import code.kycchecks.KycCheck
-import code.socialmedia.SocialMedia
-import net.liftweb.common.{Box, Full}
 import code.model._
+import code.socialmedia.SocialMedia
 import net.liftweb.json.JsonAST.JValue
-
-import code.api.v1_2_1.{AmountOfMoneyJSON, UserJSON => UserJSON121, ViewJSON => ViewJSON121, ThisAccountJSON => ThisAccountJSON121, OtherAccountJSON => OtherAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121}
-
-import code.api.v1_4_0.JSONFactory1_4_0.{TransactionRequestAccountJSON, ChallengeJSON}
 
 
 
@@ -70,7 +68,12 @@ class ResultAndLinksJSON(
   val links: LinksJSON
 )
 
-
+class CreateUserJSON(
+                     val email: String,
+                     val password: String,
+                     val lastName: String,
+                     val firstName: String
+                   )
 
 class BasicViewJSON(
   val id: String,

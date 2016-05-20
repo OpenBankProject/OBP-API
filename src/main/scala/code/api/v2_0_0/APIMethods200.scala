@@ -8,6 +8,8 @@ import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.model.dataAccess.OBPUser
+import net.liftweb.mapper.By
 
 //import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.JSONFactory200._
@@ -92,16 +94,16 @@ trait APIMethods200 {
 
   // helper methods end here
 
-  val Implementations2_0_0 = new Object(){
+  val Implementations2_0_0 = new Object() {
 
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val apiRelations = ArrayBuffer[ApiRelation]()
 
-    val emptyObjectJson : JValue = Nil
-    val apiVersion : String = "2_0_0"
+    val emptyObjectJson: JValue = Nil
+    val apiVersion: String = "2_0_0"
 
-    val exampleDateString : String ="22/08/2013"
-    val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+    val exampleDateString: String = "22/08/2013"
+    val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
     val exampleDate = simpleDateFormat.parse(exampleDateString)
 
     val codeContext = CodeContext(resourceDocs, apiRelations)
@@ -131,7 +133,7 @@ trait APIMethods200 {
       false,
       false,
       List(apiTagAccounts, apiTagPrivateData, apiTagPublicData))
-    
+
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get accounts for all banks (private + public)
@@ -1256,9 +1258,58 @@ trait APIMethods200 {
     }
 
 
+    resourceDocs += ResourceDoc(
+      createUser,
+      apiVersion,
+      "createUser",
+      "POST",
+      "/users",
+      "Create User.",
+      s"""Creates OBP user.
+        | No authorisation (currently) required.
+        |
+        | Mimics current webform to Register.
+        |
+        | Requires username(email) and password.
+        |
+        | Returns 409 error if username not unique.
+        |
+        | Optionally (Default False) require validation of email address.
+        |
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagPayment))
 
-
-
+    lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
+          } yield {
+            if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
+              val userCreated:Boolean = OBPUser.create
+                .firstName(postedData.firstName)
+                .lastName(postedData.lastName)
+                .email(postedData.email)
+                .password(postedData.password)
+                .validated(false)
+                .save
+              if (userCreated)
+                successJsonResponse(JsRaw("{}"), 201)
+              else
+                Full(errorJsonResponse("Error occurred during user creation."))
+            }
+            else {
+              Full(errorJsonResponse("User with the same email already exists."))
+            }
+          }
+      }
+    }
 
   }
 }
