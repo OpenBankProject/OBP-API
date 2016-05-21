@@ -352,7 +352,7 @@
             </classpathContainers>
           </configuration>
         </plugin>
-        <plugin>
+        <!-- <plugin>
           <groupId>pl.project13.maven</groupId>
           <artifactId>git-commit-id-plugin</artifactId>
           <version>2.2.1</version>
@@ -369,7 +369,7 @@
             <generateGitPropertiesFilename>src/main/resources/git.properties</generateGitPropertiesFilename>
             <failOnNoGitDirectory>false</failOnNoGitDirectory>
           </configuration>
-        </plugin>
+        </plugin> -->
       </plugins>
   </build>
   <reporting>
