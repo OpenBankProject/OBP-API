@@ -1277,13 +1277,13 @@ trait APIMethods200 {
         | Optionally (Default False) require validation of email address.
         |
         |""",
-      emptyObjectJson,
+      Extraction.decompose(CreateUserJSON("someone@example.com", "my-secure-password", "James", "Brown")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
       true,
       true,
-      List(apiTagPayment))
+      List())
 
     lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: Nil JsonPost json -> _ => {
@@ -1293,8 +1293,8 @@ trait APIMethods200 {
           } yield {
             if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
               val userCreated:Boolean = OBPUser.create
-                .firstName(postedData.firstName)
-                .lastName(postedData.lastName)
+                .firstName(postedData.first_name)
+                .lastName(postedData.last_name)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(false)

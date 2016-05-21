@@ -68,11 +68,11 @@ class ResultAndLinksJSON(
   val links: LinksJSON
 )
 
-class CreateUserJSON(
-                     val email: String,
-                     val password: String,
-                     val lastName: String,
-                     val firstName: String
+case class CreateUserJSON(
+                     email: String,
+                     password: String,
+                     first_name: String,
+                     last_name: String
                    )
 
 class BasicViewJSON(
