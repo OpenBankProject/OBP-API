@@ -20,6 +20,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
     override def defaultValue = UUID.randomUUID().toString
   }
   //TODO: review the need for this
+  // (why do we need transactionUUID and transactionId - which is a UUID?)
   object transactionUUID extends MappedUUID(this)
   object transactionType extends MappedString(this, 100)
 
