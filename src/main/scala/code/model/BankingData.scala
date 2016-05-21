@@ -112,6 +112,16 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+
+case class CustomerId(val value : String) {
+  override def toString = value
+}
+
+object CustomerId {
+  def unapply(id : String) = Some(CustomerId(id))
+}
+
+
 // In preparation for use in Context (api links) To replace OtherAccountId
 case class CounterpartyId(val value : String) {
   override def toString = value

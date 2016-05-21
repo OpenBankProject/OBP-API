@@ -17,6 +17,8 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("testBank1")
   val mockCustomerNumber = "9393490320"
+  val mockCustomerId = "uuid-asdfasdfaoiu8u8u8hkjhsf"
+
 
   val exampleDateString : String ="22/08/2013"
   val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -44,6 +46,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       //first add a customer to send message to
       var request = (v1_4Request / "banks" / mockBankId.value / "customer").POST <@ user1
       var customerJson = CustomerJson(
+              customer_id = mockCustomerId,
               customer_number = mockCustomerNumber,
               legal_name = "Someone",
               mobile_phone_number = "125245",

@@ -83,6 +83,9 @@ object ErrorMessages {
 
   val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
+  val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
+  val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at BANK_ID"
+
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
 

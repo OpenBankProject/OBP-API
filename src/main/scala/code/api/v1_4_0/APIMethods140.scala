@@ -570,7 +570,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |Dates need to be in the format 2013-01-21T23:08:00Z
         |OAuth authentication is required.
         |""",
-      Extraction.decompose(CustomerJson("687687678", "Joe David Bloggs",
+      Extraction.decompose(PostCustomerJson("687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
@@ -587,8 +587,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! "User must be logged in to post Customer"
             bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ "Customer already exists for this user."
-            postedData <- tryo{json.extract[CustomerJson]} ?~! "Incorrect json format"
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
                 u,
                 postedData.customer_number,

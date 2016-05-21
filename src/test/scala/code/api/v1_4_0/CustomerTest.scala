@@ -16,7 +16,7 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
 
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
 
-  case class MockCustomer(number: String, mobileNumber: String,
+  case class MockCustomer(customerId: String, number: String, mobileNumber: String,
                           legalName: String, email: String,
                           faceImage: MockFaceImage, dateOfBirth: Date,
                           relationshipStatus: String, dependents: Int,
@@ -25,9 +25,12 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
 
   val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
   val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-  val mockCustomer = MockCustomer("123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(format.parse("30/03/2012"), format.parse("30/03/2012"), format.parse("30/03/2014")), "Bachelor’s Degree", "Employed", true, new Date(1234000))
+  val mockCustomer = MockCustomer("uuid-aisuhuiuhuikjhfd", "123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(format.parse("30/03/2012"), format.parse("30/03/2012"), format.parse("30/03/2014")), "Bachelor’s Degree", "Employed", true, new Date(1234000))
 
   object MockedCustomerProvider extends CustomerProvider {
+
+    override def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) = {true}
+
     override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
       if(bankId == mockBankId) Full(mockCustomer)
       else Empty
@@ -105,7 +108,9 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
       And("We should get the right information back")
 
       val info = response.body.extract[CustomerJson]
-      val received = MockCustomer(info.customer_number,
+      val received = MockCustomer(
+        info.customer_id,
+        info.customer_number,
         info.mobile_phone_number,
         info.legal_name,
         info.email,

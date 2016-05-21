@@ -9,6 +9,7 @@ import net.liftweb.mapper._
 
 object MappedKycDocumentsProvider extends KycDocumentProvider {
 
+  // TODO Add bankId (customerNumber is not unique)
   override def getKycDocuments(customerNumber: String): List[MappedKycDocument] = {
     MappedKycDocument.findAll(
       By(MappedKycDocument.mCustomerNumber, customerNumber),

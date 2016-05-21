@@ -4,11 +4,26 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.APIUser
-import code.util.DefaultStringField
+import code.util.{MappedUUID, DefaultStringField}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
 object MappedCustomerProvider extends CustomerProvider {
+
+
+  override def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean = {
+    val customers  = MappedCustomer.findAll(
+      By(MappedCustomer.mBank, bankId.value),
+      By(MappedCustomer.mNumber, customerNumber)
+    )
+
+    val available: Boolean = customers.size match {
+      case 0 => true
+      case _ => false
+    }
+
+    available
+  }
 
   override def getCustomer(bankId : BankId, user: User): Box[Customer] = {
     MappedCustomer.find(
@@ -52,6 +67,8 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
   def getSingleton = MappedCustomer
 
+  object mCustomerId extends MappedUUID(this)
+
   object mUser extends MappedLongForeignKey(this, APIUser)
   object mBank extends DefaultStringField(this)
 
@@ -69,6 +86,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mKycStatus extends MappedBoolean(this)
   object mLastOkDate extends MappedDateTime(this)
 
+  override def customerId: String = mCustomerId.get // id.toString
   override def number: String = mNumber.get
   override def mobileNumber: String = mMobileNumber.get
   override def legalName: String = mLegalName.get

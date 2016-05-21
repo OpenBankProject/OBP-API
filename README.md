@@ -66,13 +66,15 @@ To compile and run jetty, install Maven 3 and execute:
   
 * Run a single test. For instance right click on test/scala/code/branches/MappedBranchProviderTest and select Run Mapp...
 
-* Run multiple tests: Right click on code and select Run. If need be:  
+* Run multiple tests: Right click on test/scala/code and select Run. If need be:
     Goto Run / Debug configurations
     Test Kind: Select All in Package
     Package: Select code
-    Add the absolute /path-to-your-OBP-API in the "working directory" field 
+    Add the absolute /path-to-your-OBP-API in the "working directory" field
+    You might need to assign more memory via VM Options: e.g. -Xmx1512M -XX:MaxPermSize=512M
     
     Make sure your test.default.props has the minimum settings (see test.default.props.template)
+
     
     Right click test/scala/code and select the Scala Tests in code to run them all.
     

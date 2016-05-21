@@ -17,7 +17,10 @@ object Customer extends SimpleInjector {
 trait CustomerProvider {
   def getCustomer(bankId : BankId, user : User) : Box[Customer]
 
-  def getUser(bankId : BankId, customerId : String) : Box[User]
+  def getUser(bankId : BankId, customerNumber : String) : Box[User]
+
+  def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean
+
 
   def addCustomer(bankId: BankId, user: User, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage,
                   dateOfBirth: Date,
@@ -32,7 +35,8 @@ trait CustomerProvider {
 }
 
 trait Customer {
-  def number : String
+  def customerId : String // The UUID for the customer. To be used in URLs
+  def number : String // The Customer number i.e. the bank identifier for the customer.
   def legalName : String
   def mobileNumber : String
   def email : String

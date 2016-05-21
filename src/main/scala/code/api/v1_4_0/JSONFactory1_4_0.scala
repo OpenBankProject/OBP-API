@@ -22,7 +22,25 @@ import code.api.v1_2_1.{AmountOfMoneyJSON}
 
 object JSONFactory1_4_0 {
 
-  case class CustomerJson(customer_number : String,
+
+  case class PostCustomerJson(
+                          customer_number : String,
+                          legal_name : String,
+                          mobile_phone_number : String,
+                          email : String,
+                          face_image : CustomerFaceImageJson,
+                          date_of_birth: Date,
+                          relationship_status: String,
+                          dependants: Int,
+                          dob_of_dependants: List[Date],
+                          highest_education_attained: String,
+                          employment_status: String,
+                          kyc_status: Boolean,
+                          last_ok_date: Date)
+
+
+  case class CustomerJson(customer_id: String,
+                          customer_number : String,
                           legal_name : String,
                           mobile_phone_number : String,
                           email : String,
@@ -83,6 +101,7 @@ object JSONFactory1_4_0 {
   def createCustomerJson(cInfo : Customer) : CustomerJson = {
 
     CustomerJson(
+      customer_id = cInfo.customerId,
       customer_number = cInfo.number,
       legal_name = cInfo.legalName,
       mobile_phone_number = cInfo.mobileNumber,
