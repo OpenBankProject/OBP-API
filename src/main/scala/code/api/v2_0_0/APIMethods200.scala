@@ -1279,7 +1279,7 @@ trait APIMethods200 {
         |
         | Returns 409 error if username not unique.
         |
-        | Optionally (Default False) require validation of email address.
+        | May require validation of email address.
         |
         |""",
       Extraction.decompose(CreateUserJSON("someone@example.com", "my-secure-password", "James", "Brown")),
@@ -1288,7 +1288,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List())
+      List(apiTagOnboarding, apiTagUser))
 
     lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: Nil JsonPost json -> _ => {
@@ -1302,7 +1302,7 @@ trait APIMethods200 {
                 .lastName(postedData.last_name)
                 .email(postedData.email)
                 .password(postedData.password)
-                .validated(false)
+                .validated(false) // TODO Get this from Props
                 .save
               if (userCreated)
                 successJsonResponse(JsRaw("{}"), 201)
@@ -1324,15 +1324,28 @@ trait APIMethods200 {
       "createMeeting",
       "POST",
       "/banks/BANK_ID/meetings",
-      "Initiate a meeting (video conference, call etc.) with the bank.",
-      "Currently this supports tokbox video conferences",
+      "Create Meeting: Initiate a video conference/call with the bank.",
+      """The Meetings resource contains meta data about video/other conference sessions, not the video/audio/chat itself.
+        |
+        |The actual conferencing is handled by external providers. Currently OBP supports tokbox video conferences (WIP).
+        |
+        |This is not a recomendation of tokbox per se.
+        |
+        |provider_id determines the provider of the meeting / video chat service. MUST be url friendly (no spaces).
+        |
+        |purpose_id explains the purpose of the chat. onboarding | mortgage | complaint etc. MUST be url friendly (no spaces).
+        |
+        |Login is required.
+        |
+        |This call is experimental. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+      """.stripMargin,
       Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
       true,
       true,
-      List())
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
 
 
     lazy val createMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1341,8 +1354,8 @@ trait APIMethods200 {
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
               // TODO use these keys to get session and tokens from tokbox
-              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure("Meeting provider API Key is not configured.", 403)
-              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure("Meeting provider Secret is not configured", 403)
+              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
               postedData <- tryo {json.extract[CreateMeetingJSON]} ?~ ErrorMessages.InvalidJsonFormat
@@ -1354,10 +1367,62 @@ trait APIMethods200 {
               successJsonResponse(Extraction.decompose(json), 201)
             }
           } else {
-            Full(errorJsonResponse("Sorry. createMeeting is not supported on this server."))
+            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getMeetings,
+      apiVersion,
+      "getMeetings",
+      "GET",
+      "/banks/BANK_ID/meetings",
+      "Get Meetings",
+      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+        |
+        |The actual conference/chats are handled by external services.
+        |
+        |Login is required.
+        |
+        |This call is experimental and will require further authorisation in the future.
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
+
+
+    lazy val getMeetings: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("meeting.tokbox_enabled", false)) {
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+
+              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              // now = Calendar.getInstance().getTime()
+              meetings <- Meeting.meetingProvider.vend.getMeetings(bank.bankId, u)
+            }
+              yield {
+                // Format the data as V2.0.0 json
+                val json = JSONFactory200.createMeetingJSONs(meetings)
+                successJsonResponse(Extraction.decompose(json))
+              }
+          } else {
+            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
+          }
+      }
+    }
+
 
 
 

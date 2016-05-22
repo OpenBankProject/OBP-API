@@ -32,7 +32,6 @@
 
 package code.api.util
 
-
 import code.api.Constant._
 import code.api.v1_2.ErrorMessage
 import code.metrics.APIMetrics
@@ -85,6 +84,10 @@ object ErrorMessages {
 
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at BANK_ID"
+
+  val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
+  val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
+  val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
@@ -346,6 +349,9 @@ object APIUtil extends Loggable {
   val apiTagCounterparties = ResourceDocTag("Counterparties")
   val apiTagKyc = ResourceDocTag("KYC")
   val apiTagCustomer = ResourceDocTag("Customer")
+  val apiTagOnboarding = ResourceDocTag("Onboarding")
+  val apiTagUser = ResourceDocTag("User")
+  val apiTagMeeting = ResourceDocTag("Meeting")
 
 
   // Used to document the API calls

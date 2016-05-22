@@ -92,6 +92,10 @@ case class MeetingJSON(
                         when : Date
                       )
 
+case class MeetingJSONs(
+                        meetings : List[MeetingJSON]
+                      )
+
 
 case class MeetingKeysJSON(
                             session_id: String,
@@ -103,8 +107,6 @@ case class MeetingPresentJSON(
                                customer_user_id: String,
                                staff_user_id: String
   )
-
-
 
 
 class BasicViewJSON(
@@ -667,9 +669,11 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
 
   }
 
+  def createMeetingJSONs(meetings : List[Meeting]) : MeetingJSONs = {
+    MeetingJSONs(meetings.map(createMeetingJSON))
+  }
 
 
-  
 
   // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =

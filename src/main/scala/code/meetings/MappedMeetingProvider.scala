@@ -11,10 +11,9 @@ import net.liftweb.mapper._
 
 object MappedMeetingProvider extends MeetingProvider {
 
-  override def getMeetings(bankId : BankId, providerId : String, purposeId : String): Box[Meeting] = {
-    MappedMeeting.find(
-      By(MappedMeeting.mProviderId, providerId),
-      By(MappedMeeting.mPurposeId, purposeId))
+  override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
+    // Return a Box so we can handle errors later.
+   Some(MappedMeeting.findAll())
   }
 
 
@@ -23,7 +22,7 @@ object MappedMeetingProvider extends MeetingProvider {
 
     val createdMeeting = MappedMeeting.create
       .mBankId(bankId.value.toString)
-      .mStaffUserId(staffUser.apiId.value)
+      //.mStaffUserId(staffUser.apiId.value)
       .mCustomerUserId(customerUser.apiId.value)
       .mProviderId(providerId)
       .mPurposeId(purposeId)
