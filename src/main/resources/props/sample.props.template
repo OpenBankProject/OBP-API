@@ -86,6 +86,12 @@ transactionRequests_enabled=true
 transactionRequests_connector=mapped
 
 
+# For video conference meetings (createMeeting)
+meeting.tokbox_enabled=false
+meeting.tokbox_api_key=changeme
+meeting.tokbox_api_secret=changeme
+
+
 
 ### management modules
 

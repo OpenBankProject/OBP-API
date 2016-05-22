@@ -46,6 +46,7 @@ import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycchecks.MappedKycCheck
 import code.kycstatuses.MappedKycStatus
+import code.meetings.MappedMeeting
 import code.socialmedia.MappedSocialMedia
 import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
@@ -415,5 +416,6 @@ object ToSchemify {
     MappedKycCheck,
     MappedKycStatus,
     MappedSocialMedia,
-    MappedTransactionType)
+    MappedTransactionType,
+    MappedMeeting)
 }

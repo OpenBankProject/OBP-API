@@ -35,6 +35,7 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
+import code.meetings.Meeting
 import code.transactionrequests.TransactionRequests._
 
 // import code.api.util.APIUtil.ApiLink
@@ -74,6 +75,37 @@ case class CreateUserJSON(
                      first_name: String,
                      last_name: String
                    )
+
+
+case class CreateMeetingJSON(
+                              provider_id: String,
+                              purpose_id: String
+)
+
+case class MeetingJSON(
+                        meeting_id : String,
+                        provider_id: String,
+                        purpose_id: String,
+                        bank_id : String,
+                        present : MeetingPresentJSON,
+                        keys : MeetingKeysJSON,
+                        when : Date
+                      )
+
+
+case class MeetingKeysJSON(
+                            session_id: String,
+                            customer_token: String,
+                            staff_token: String
+                         )
+
+case class MeetingPresentJSON(
+                               customer_user_id: String,
+                               staff_user_id: String
+  )
+
+
+
 
 class BasicViewJSON(
   val id: String,
@@ -624,11 +656,20 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
     TransactionRequestWithChargeJSONs(trs.map(createTransactionRequestWithChargeJSON))
   }
 
+  def createMeetingJSON(meeting : Meeting) : MeetingJSON = {
+    MeetingJSON(meeting_id = meeting.meetingId,
+                provider_id = meeting.providerId,
+                purpose_id = meeting.purposeId,
+                bank_id = meeting.bankId,
+                present = MeetingPresentJSON(staff_user_id = meeting.present.staffUserId, customer_user_id = meeting.present.customerUserId),
+                keys = MeetingKeysJSON(session_id = meeting.keys.sessionId, staff_token = meeting.keys.staffToken, customer_token = meeting.keys.customerToken),
+                when = meeting.when)
+
+  }
 
 
 
-
-
+  
 
   // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =

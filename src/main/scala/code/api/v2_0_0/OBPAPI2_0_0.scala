@@ -164,8 +164,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.getCoreTransactionsForBankAccount,
     Implementations2_0_0.createAccount,
     Implementations2_0_0.getTransactionTypes,
-    Implementations2_0_0.createUser
-    //Implementations2_0_0.testLinks
+    Implementations2_0_0.createUser,
+    Implementations2_0_0.createMeeting
   )
 
   routes.foreach(route => {

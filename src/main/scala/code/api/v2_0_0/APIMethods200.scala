@@ -1,8 +1,10 @@
 package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
+import java.util.Calendar
 
 import code.TransactionTypes.TransactionType
+import code.api.APIFailure
 import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
@@ -23,6 +25,9 @@ import code.model._
 import code.model.dataAccess.BankAccountCreation
 import code.socialmedia.SocialMediaHandle
 import code.transactionrequests.TransactionRequests
+
+import code.meetings.Meeting
+
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.{JsonResponse, Req}
@@ -1310,6 +1315,52 @@ trait APIMethods200 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      createMeeting,
+      apiVersion,
+      "createMeeting",
+      "POST",
+      "/banks/BANK_ID/meetings",
+      "Initiate a meeting (video conference, call etc.) with the bank.",
+      "Currently this supports tokbox video conferences",
+      Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List())
+
+
+    lazy val createMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "meetings" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("meeting.tokbox_enabled", false)) {
+            for {
+              // TODO use these keys to get session and tokens from tokbox
+              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure("Meeting provider API Key is not configured.", 403)
+              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure("Meeting provider Secret is not configured", 403)
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              postedData <- tryo {json.extract[CreateMeetingJSON]} ?~ ErrorMessages.InvalidJsonFormat
+              now = Calendar.getInstance().getTime()
+              meeting <- Meeting.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now)
+            } yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createMeetingJSON(meeting)
+              successJsonResponse(Extraction.decompose(json), 201)
+            }
+          } else {
+            Full(errorJsonResponse("Sorry. createMeeting is not supported on this server."))
+          }
+      }
+    }
+
+
+
 
   }
 }
