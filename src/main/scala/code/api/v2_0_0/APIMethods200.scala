@@ -1337,7 +1337,7 @@ trait APIMethods200 {
         |
         |Login is required.
         |
-        |This call is *experimental*. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+        |This call is **experimental**. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
       Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
       emptyObjectJson,
@@ -1345,7 +1345,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
     lazy val createMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1389,7 +1389,7 @@ trait APIMethods200 {
         |
         |Login is required.
         |
-        |This call is *experimental* and will require further authorisation in the future.
+        |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
@@ -1397,7 +1397,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
     lazy val getMeetings: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1441,7 +1441,7 @@ trait APIMethods200 {
         |
         |Login is required.
         |
-        |This call is *experimental* and will require further authorisation in the future.
+        |This call is **experimental** and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
@@ -1449,7 +1449,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
     lazy val getMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
