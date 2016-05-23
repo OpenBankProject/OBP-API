@@ -11,9 +11,23 @@ import net.liftweb.mapper._
 
 object MappedMeetingProvider extends MeetingProvider {
 
+
+  override def getMeeting(bankId : BankId, userId: User, meetingId : String): Box[Meeting] = {
+    // Return a Box so we can handle errors later.
+    MappedMeeting.find(
+      // TODO Need to check permissions (user)
+      By(MappedMeeting.mBankId, bankId.toString),
+      By(MappedMeeting.mMeetingId, meetingId)
+      , OrderBy(MappedMeeting.mWhen, Descending))
+  }
+
+
   override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
-   Some(MappedMeeting.findAll(By(MappedMeeting.mBankId, bankId.toString), OrderBy(MappedMeeting.mWhen, Descending)))
+   Some(MappedMeeting.findAll(By(
+     // TODO Need to check permissions (user)
+     MappedMeeting.mBankId, bankId.toString),
+     OrderBy(MappedMeeting.mWhen, Descending)))
   }
 
 
@@ -75,7 +89,8 @@ class MappedMeeting extends Meeting with LongKeyedMapper[MappedMeeting] with IdP
   override def bankId : String = mBankId.get.toString
 
   override def keys = MeetingKeys(mSessionId, mCustomerToken, mStaffToken)
-  override def present = MeetingPresent(mCustomerUserId.get.toString, mStaffUserId.get.toString)
+  override def present = MeetingPresent(staffUserId = mStaffUserId.get.toString,
+                                        customerUserId = mCustomerUserId.get.toString)
 
 
 }

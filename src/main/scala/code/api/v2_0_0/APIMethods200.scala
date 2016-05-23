@@ -1337,7 +1337,7 @@ trait APIMethods200 {
         |
         |Login is required.
         |
-        |This call is experimental. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
+        |This call is *experimental*. Currently staff_user_id is not set. Further calls will be needed to correctly set this.
       """.stripMargin,
       Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
       emptyObjectJson,
@@ -1389,7 +1389,7 @@ trait APIMethods200 {
         |
         |Login is required.
         |
-        |This call is experimental and will require further authorisation in the future.
+        |This call is *experimental* and will require further authorisation in the future.
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
@@ -1427,6 +1427,54 @@ trait APIMethods200 {
     }
 
 
+
+    resourceDocs += ResourceDoc(
+      getMeeting,
+      apiVersion,
+      "getMeeting",
+      "GET",
+      "/banks/BANK_ID/meetings/MEETING_ID",
+      "Get Meeting specified by BANK_ID / MEETING_ID",
+      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+        |
+        |The actual conference/chats are handled by external services.
+        |
+        |Login is required.
+        |
+        |This call is *experimental* and will require further authorisation in the future.
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser))
+
+
+    lazy val getMeeting: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "meetings" :: meetingId :: Nil JsonGet _ => {
+        user =>
+          if (Props.getBool("meeting.tokbox_enabled", false)) {
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
+              providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+              meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)
+            }
+              yield {
+                // Format the data as V2.0.0 json
+                val json = JSONFactory200.createMeetingJSON(meeting)
+                successJsonResponse(Extraction.decompose(json))
+              }
+          } else {
+            Full(errorJsonResponse(ErrorMessages.MeetingsNotSupported))
+          }
+      }
+    }
 
 
 

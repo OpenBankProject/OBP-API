@@ -99,13 +99,14 @@ case class MeetingJSONs(
 
 case class MeetingKeysJSON(
                             session_id: String,
-                            customer_token: String,
-                            staff_token: String
+                            staff_token: String,
+                            customer_token: String
                          )
 
 case class MeetingPresentJSON(
-                               customer_user_id: String,
-                               staff_user_id: String
+                               staff_user_id: String,
+                               customer_user_id: String
+
   )
 
 
@@ -663,8 +664,11 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
                 provider_id = meeting.providerId,
                 purpose_id = meeting.purposeId,
                 bank_id = meeting.bankId,
-                present = MeetingPresentJSON(staff_user_id = meeting.present.staffUserId, customer_user_id = meeting.present.customerUserId),
-                keys = MeetingKeysJSON(session_id = meeting.keys.sessionId, staff_token = meeting.keys.staffToken, customer_token = meeting.keys.customerToken),
+                present = MeetingPresentJSON(staff_user_id = meeting.present.staffUserId,
+                                              customer_user_id = meeting.present.customerUserId),
+                keys = MeetingKeysJSON(session_id = meeting.keys.sessionId,
+                                        staff_token = meeting.keys.staffToken,
+                                        customer_token = meeting.keys.customerToken),
                 when = meeting.when)
 
   }
