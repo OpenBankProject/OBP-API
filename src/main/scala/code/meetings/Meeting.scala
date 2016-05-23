@@ -40,7 +40,7 @@ object Meeting extends SimpleInjector {
 
 trait MeetingProvider {
   def getMeetings(bankId : BankId, userId: User) : Box[List[Meeting]]
-  def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date): Box[Meeting]
+  def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date, sessionId: String, customerToken: String, staffToken: String): Box[Meeting]
 
 }
 

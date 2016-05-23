@@ -13,12 +13,12 @@ object MappedMeetingProvider extends MeetingProvider {
 
   override def getMeetings(bankId : BankId, userId: User): Box[List[Meeting]] = {
     // Return a Box so we can handle errors later.
-   Some(MappedMeeting.findAll())
+   Some(MappedMeeting.findAll(By(MappedMeeting.mBankId, bankId.toString), OrderBy(MappedMeeting.mWhen, Descending)))
   }
 
 
 
-  override def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date) : Box[Meeting] = {
+  override def createMeeting(bankId: BankId, staffUser: User, customerUser : User, providerId : String, purposeId : String, when: Date, sessionId: String, customerToken: String, staffToken: String) : Box[Meeting] = {
 
     val createdMeeting = MappedMeeting.create
       .mBankId(bankId.value.toString)
@@ -27,9 +27,9 @@ object MappedMeetingProvider extends MeetingProvider {
       .mProviderId(providerId)
       .mPurposeId(purposeId)
       .mWhen(when)
-      .mSessionId("abcd")
-      .mCustomerToken("cust-token-asdlkfjlaksdjf")
-      .mStaffToken("staff-tok-asdlfkjlkjflkj")
+      .mSessionId(sessionId)
+      .mCustomerToken(customerToken)
+      .mStaffToken(staffToken)
       .saveMe()
 
     Some(createdMeeting)

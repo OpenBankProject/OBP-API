@@ -1360,7 +1360,10 @@ trait APIMethods200 {
               bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
               postedData <- tryo {json.extract[CreateMeetingJSON]} ?~ ErrorMessages.InvalidJsonFormat
               now = Calendar.getInstance().getTime()
-              meeting <- Meeting.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now)
+              sessionId <- tryo{code.opentok.OpenTokUtil.getSession.getSessionId()}
+              customerToken <- tryo{code.opentok.OpenTokUtil.generateTokenForPublisher(60)}
+              staffToken <- tryo{code.opentok.OpenTokUtil.generateTokenForModerator(60)}
+              meeting <- Meeting.meetingProvider.vend.createMeeting(bank.bankId, u, u, postedData.provider_id, postedData.purpose_id, now, sessionId, customerToken, staffToken)
             } yield {
               // Format the data as V2.0.0 json
               val json = JSONFactory200.createMeetingJSON(meeting)
