@@ -132,7 +132,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def viewExists(acc: KafkaInboundAccount): Boolean = {
-    Views.views.vend.permittedViews(User.findByApiId(acc.id.toLong).orNull, acc.asInstanceOf[BankAccount]).nonEmpty
+    Views.views.vend.permittedViews(User.findByApiId(acc.id.toLong).orNull, getBankAccount(BankId(acc.bank), AccountId(acc.id)).orNull).nonEmpty
   }
 
   def createSaveableViews(acc : KafkaInboundAccount) : List[Saveable[ViewType]] = {
@@ -919,7 +919,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = r.label,
       nationalIdentifier = r.nationalIdentifier, //TODO
-      swift_bic = Some(r.swift_bic.get),              //TODO
+      swift_bic = Some(r.swift_bic.get),         //TODO
       iban = Some(r.iban.get),
       number = r.number,
       bankName = r.bankName,
