@@ -11,14 +11,13 @@ import org.scalatest.BeforeAndAfter
 
 
 
-class directloginTest extends ServerSetup with BeforeAndAfter{
+class directloginTest extends ServerSetup with BeforeAndAfter {
 
   val KEY = randomString(40).toLowerCase
   val SECRET = randomString(40).toLowerCase
   val EMAIL = randomString(10).toLowerCase + "@example.com"
   val PASSWORD = randomString(20)
 
-  //def setupUserAndConsumer  = {
   before {
     if (OBPUser.find(By(OBPUser.email, EMAIL)).isEmpty)
       OBPUser.create.

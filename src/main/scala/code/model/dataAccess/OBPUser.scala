@@ -173,9 +173,9 @@ import net.liftweb.util.Helpers._
           passwordResetPath.mkString("/", "/", "/")+urlEncode(user.getUniqueId())
 
         Mailer.sendMail(From(emailFrom),Subject(passwordResetEmailSubject),
-          (To(user.getEmail) ::
+          To(user.getEmail) ::
             generateResetEmailBodies(user, resetLink) :::
-            (bccEmail.toList.map(BCC(_)))) :_*)
+            (bccEmail.toList.map(BCC(_))) :_*)
 
         S.notice(S.?("password.reset.email.sent"))
         S.redirectTo(homePage)
@@ -230,9 +230,9 @@ import net.liftweb.util.Helpers._
     val msgXml = signupMailBody(user, resetLink)
 
     Mailer.sendMail(From(emailFrom),Subject(signupMailSubject),
-      (To(user.getEmail) ::
+      To(user.getEmail) ::
         generateValidationEmailBodies(user, resetLink) :::
-        (bccEmail.toList.map(BCC(_)))) :_* )
+        (bccEmail.toList.map(BCC(_))) :_* )
   }
 
   /**
@@ -288,7 +288,6 @@ import net.liftweb.util.Helpers._
   def getExternalUser(username: String, password: String):Box[OBPUser] = {
     KafkaMappedConnector.getUser(username, password) match {
       case Full(KafkaInboundUser(extEmail, extPassword, extDisplayName)) => {
-        val preLoginState = capturePreLoginState()
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
           case Full(url) =>

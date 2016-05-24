@@ -99,7 +99,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
     }
     val res = {
-      for (r <- rList) yield {
+      for (r <- rList if ! viewExists(r)) yield {
         val views = createSaveableViews(r)
         views.foreach(_.save())
         views.map(_.value).filterNot(_.isPublic).foreach(v => {
@@ -108,6 +108,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         setAccountOwner(apiUser.email.get, r)
       }
     }
+    res
   }
 
   def updatePublicAccountViews( user: APIUser ): List[List[Saveable[ViewType]]] = {
@@ -121,13 +122,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       cachedPublicAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getPublicAccounts", argList).extract[List[KafkaInboundAccount]])
     }
     val res = {
-      for (r <- rList) yield {
+      for (r <- rList if ! viewExists(r)) yield {
         val views = createSaveableViews(r)
         views.foreach(_.save())
         views
       }
     }
     res
+  }
+
+  def viewExists(acc: KafkaInboundAccount): Boolean = {
+    Views.views.vend.permittedViews(User.findByApiId(acc.id.toLong).orNull, acc.asInstanceOf[BankAccount]).nonEmpty
   }
 
   def createSaveableViews(acc : KafkaInboundAccount) : List[Saveable[ViewType]] = {
