@@ -41,7 +41,7 @@ import code.transactionrequests.TransactionRequests._
 // import code.api.util.APIUtil.ApiLink
 
 import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeJSON, TransactionRequestAccountJSON}
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
@@ -192,6 +192,23 @@ case class SocialMediaJSON(
    date_activated: Date
 )
 case class SocialMediasJSON(checks: List[SocialMediaJSON])
+
+case class CreateCustomerJson(
+                             user_id: String,
+                             customer_number : String,
+                             legal_name : String,
+                             mobile_phone_number : String,
+                             email : String,
+                             face_image : CustomerFaceImageJson,
+                             date_of_birth: Date,
+                             relationship_status: String,
+                             dependants: Int,
+                             dob_of_dependants: List[Date],
+                             highest_education_attained: String,
+                             employment_status: String,
+                             kyc_status: Boolean,
+                             last_ok_date: Date)
+
 
 
 

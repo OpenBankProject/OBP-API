@@ -62,8 +62,9 @@ object ErrorMessages {
 
 
 
-  // Authentication / Authorisation messages
+  // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
+
 
   val DirectLoginMissingParameters = "OBP-20002: These DirectLogin parameters are missing: "
   val DirectLoginInvalidToken = "OBP-20003: This DirectLogin token is invalid or expired: "
@@ -71,6 +72,7 @@ object ErrorMessages {
 
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
 
+  val UserNotFoundById = "OBP-20005: User not found by User Id."
 
 
   // Resource related messages

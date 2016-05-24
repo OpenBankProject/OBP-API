@@ -9,7 +9,9 @@ import code.api.util.APIUtil._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeAnswerJSON, TransactionRequestAccountJSON}
+//import code.api.v2_0_0.{CreateCustomerJson}
+
 import code.model.dataAccess.OBPUser
 import net.liftweb.mapper.By
 
@@ -38,7 +40,7 @@ import net.liftweb.util.Props
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
 // Makes JValue assignment to Nil work
-import code.customer.Customer
+import code.customer.{MockCustomerFaceImage, Customer}
 import code.util.Helper._
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.json.Extraction
@@ -1475,6 +1477,71 @@ trait APIMethods200 {
           }
       }
     }
+
+    //
+
+    resourceDocs += ResourceDoc(
+      createCustomer,
+      apiVersion,
+      "createCustomer",
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer.",
+      """Add a customer linked to the user specified by user_id
+        |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+        |This call may require additional permissions/role in the future.
+        |For now the authenticated user can create at most one linked customer.
+        |Dates need to be in the format 2013-01-21T23:08:00Z
+        |OAuth authentication is required.
+        |""",
+      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
+        "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+        exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagCustomer))
+
+    lazy val createCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+            postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
+            user_id <- tryo {postedData.user_id.toLong} ?~ ErrorMessages.InvalidNumber
+            customer_user <- User.findByApiId(user_id) ?~! ErrorMessages.UserNotFoundById
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            customer <- Customer.customerProvider.vend.addCustomer(bankId,
+              customer_user,
+              postedData.customer_number,
+              postedData.legal_name,
+              postedData.mobile_phone_number,
+              postedData.email,
+              MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              postedData.date_of_birth,
+              postedData.relationship_status,
+              postedData.dependants,
+              postedData.dob_of_dependants,
+              postedData.highest_education_attained,
+              postedData.employment_status,
+              postedData.kyc_status,
+              postedData.last_ok_date) ?~! "Could not create customer"
+          } yield {
+            val successJson = Extraction.decompose(customer)
+            successJsonResponse(successJson)
+          }
+      }
+    }
+
+
+
+
+
 
 
 
