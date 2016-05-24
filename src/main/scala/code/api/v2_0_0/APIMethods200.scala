@@ -1302,7 +1302,7 @@ trait APIMethods200 {
                 .lastName(postedData.last_name)
                 .email(postedData.email)
                 .password(postedData.password)
-                .validated(false) // TODO Get this from Props
+                .validated(true) // TODO Get this from Props
                 .save
               if (userCreated)
                 successJsonResponse(JsRaw("{}"), 201)
