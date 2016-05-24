@@ -29,7 +29,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
 
     // No challenge, No FX (same currencies)
-    if (Props.getBool("transactionRequests_enabled", false)) {
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {}
     } else {
       scenario("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {
@@ -168,7 +168,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
     }
 
     // No challenge, with FX
-    if (Props.getBool("transactionRequests_enabled", false)) {
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {}
     } else {
       scenario("we create an FX transaction request without challenge, with FX (different currencies)", TransactionRequest) {
@@ -380,7 +380,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
 
     // With challenge, No FX (Same currencies)
-    if (Props.getBool("transactionRequests_enabled", false)) {
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a challenge, same currencies", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a challenge", TransactionRequest) {
@@ -551,7 +551,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
 
     // With Challenge, with FX
-    if (Props.getBool("transactionRequests_enabled", false)) {
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request with challenge", TransactionRequest) {}
     } else {
       scenario("we create an FX transaction request with challenge", TransactionRequest) {
