@@ -45,6 +45,9 @@ case class UserId(val value : Long) {
   override def toString = value.toString
 }
 
+
+// TODO Document clearly the difference between this and OBPUser
+
 trait User {
 
   def apiId : UserId
