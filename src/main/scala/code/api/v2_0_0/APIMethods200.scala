@@ -1547,7 +1547,7 @@ trait APIMethods200 {
     resourceDocs += ResourceDoc(
       getCurrentUser,
       apiVersion,
-      "getMeeting",
+      "getCurrentUser", // TODO can we get this string from the val two lines above?
       "GET",
       "/users/current",
       "Get Current User",
