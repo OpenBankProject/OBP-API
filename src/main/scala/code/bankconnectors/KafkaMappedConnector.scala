@@ -311,6 +311,34 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(res)
   }
 
+  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
+    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
+    //OtherBankAccountMetadata and a transaction
+    val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
+      t.filter { e =>
+        if (e.otherAccount.number == metadata.getAccountNumber)
+          true
+        else
+          false
+      }
+    }.get.head
+
+    val res = new OtherBankAccount(
+      //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+      id = metadata.metadataId,
+      label = metadata.getHolder,
+      nationalIdentifier = t.otherAccount.nationalIdentifier,
+      swift_bic = None,
+      iban = t.otherAccount.iban,
+      number = metadata.getAccountNumber,
+      bankName = t.otherAccount.bankName,
+      kind = t.otherAccount.kind,
+      originalPartyBankId = thisAccountBankId,
+      originalPartyAccountId = thisAccountId,
+      alreadyFoundMetadata = Some(metadata)
+    )
+    Full(res)
+  }
 
   /**
    *
@@ -350,33 +378,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
-
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    for { //find a transaction with this counterparty
-      t <- MappedTransaction.find(
-        By(MappedTransaction.bank, thisAccountBankId.value),
-        By(MappedTransaction.account, thisAccountId.value),
-        By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
-        By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
-    } yield {
-      new OtherBankAccount(
-        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = metadata.metadataId,
-        label = metadata.getHolder,
-        nationalIdentifier = t.counterpartyNationalId.get,
-        swift_bic = None,
-        iban = t.getCounterpartyIban(),
-        number = metadata.getAccountNumber,
-        bankName = t.counterpartyBankName.get,
-        kind = t.counterpartyAccountKind.get,
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata)
-      )
-    }
-  }
 
   // Get all counterparties related to an account
   override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[OtherBankAccount] =
@@ -893,8 +894,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
     val otherAccount = createOtherBankAccount(c, o, Some(dummyOtherBankAccount.metadata))
 
-    println("metadata: " + Counterparties.counterparties.vend.getOrCreateMetadata(BankId(r.this_account.bank), AccountId(r.this_account.id), otherAccount))
-
     // Create new transaction
     new Transaction(
       r.id,                                                   // uuid:String
@@ -926,7 +925,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   // Helper for creating other bank account
   def createOtherBankAccount(c: KafkaBankAccount, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
-      id = c.accountId.value, //alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+      id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.label,
       nationalIdentifier = c.nationalIdentifier, //TODO
       swift_bic = Some(c.swift_bic.get),         //TODO
