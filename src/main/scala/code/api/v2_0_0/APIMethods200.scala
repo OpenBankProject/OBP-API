@@ -1306,8 +1306,12 @@ trait APIMethods200 {
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props
                 .save
-              if (userCreated)
-                successJsonResponse(JsRaw("{}"), 201)
+              if (userCreated) {
+                // Do we have to get again?
+                val obpUser = OBPUser.find(By(OBPUser.email, postedData.email))
+                val json = JSONFactory200.createUserJSONfromOBPUser(obpUser)
+                successJsonResponse(Extraction.decompose(json), 201)
+              }
               else
                 Full(errorJsonResponse("Error occurred during user creation."))
             }
@@ -1540,10 +1544,45 @@ trait APIMethods200 {
 
 
 
+    resourceDocs += ResourceDoc(
+      getCurrentUser,
+      apiVersion,
+      "getCurrentUser", // TODO can we get this string from the val two lines above?
+      "GET",
+      "/users/current",
+      "Get Current User",
+      """Get the logged in user
+        |
+        |Login is required.
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagUser))
+
+
+    lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: Nil JsonGet _ => {
+        user =>
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+            }
+              yield {
+                // Format the data as V2.0.0 json
+                val json = JSONFactory200.createUserJSON(u)
+                successJsonResponse(Extraction.decompose(json))
+              }
+      }
+    }
 
 
 
 
+
+    ///
 
   }
 }

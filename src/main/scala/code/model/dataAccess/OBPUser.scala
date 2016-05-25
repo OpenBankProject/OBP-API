@@ -45,6 +45,10 @@ import scala.xml.{NodeSeq, Text}
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
+  *
+  *
+  * // TODO Document the difference between this and User / APIUser
+  *
  */
 class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   def getSingleton = OBPUser // what's the "meta" server
@@ -267,6 +271,9 @@ import net.liftweb.util.Helpers._
     failedLoginRedirect.get.foreach(S.redirectTo(_))
     S.error("login", S.?("Invalid Username or Password"))
   }
+
+
+  // What if we just want to return the userId without sending username/password??
 
   def getUserId(username: String, password: String): Long = {
     findUserByUserName(username) match {

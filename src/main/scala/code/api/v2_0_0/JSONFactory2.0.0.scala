@@ -36,7 +36,9 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
 import code.meetings.Meeting
+import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
+import net.liftweb.common.{Full, Box}
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -457,6 +459,60 @@ object JSONFactory200{
                                      new_balance : AmountOfMoneyJSON,
                                      value : AmountOfMoneyJSON
                                    )
+
+
+
+  //
+  case class UserJSON(
+                       id : String,
+                       email : String,
+                       provider_id: String,
+                       provider : String,
+                       display_name : String
+                     )
+
+
+
+
+
+  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = {
+    new UserJSON(
+      id = "", // user.user.apiId.toString, // TODO we need to return the id. Future: It should be a uuid separate from any primary key.
+      email = user.email,
+      provider_id = stringOrNull(user.provider),
+      provider = stringOrNull(user.provider),
+      display_name = stringOrNull(user.displayName())
+    )
+  }
+
+
+  def createUserJSON(user : User) : UserJSON = {
+    new UserJSON(
+      id = user.apiId.toString,
+      email = user.emailAddress,
+      provider_id = user.idGivenByProvider,
+      provider = stringOrNull(user.provider),
+      display_name = stringOrNull(user.name) //TODO: Rename to displayName ?
+    )
+  }
+
+  def createUserJSON(user : Box[User]) : UserJSON = {
+    user match {
+      case Full(u) => createUserJSON(u)
+      case _ => null
+    }
+  }
+
+
+
+  def createUserJSONfromOBPUser(user : Box[OBPUser]) : UserJSON = {
+    user match {
+      case Full(u) => createUserJSONfromOBPUser(u)
+      case _ => null
+    }
+  }
+
+
 
 
 
