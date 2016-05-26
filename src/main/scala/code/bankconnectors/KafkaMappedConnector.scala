@@ -132,7 +132,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def viewExists(acc: KafkaInboundAccount): Boolean = {
-    Views.views.vend.permittedViews(User.findByApiId(acc.id.toLong).orNull, getBankAccount(BankId(acc.bank), AccountId(acc.id)).orNull).nonEmpty
+    val res = ViewImpl.findAll.filter { v =>
+      if (v.bankPermalink.get == acc.bank && v.accountPermalink.get == acc.id  )
+        true
+      else
+        false
+    }
+    res.nonEmpty
   }
 
   def createSaveableViews(acc : KafkaInboundAccount) : List[Saveable[ViewType]] = {
@@ -305,6 +311,34 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(res)
   }
 
+  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
+    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
+    //OtherBankAccountMetadata and a transaction
+    val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
+      t.filter { e =>
+        if (e.otherAccount.number == metadata.getAccountNumber)
+          true
+        else
+          false
+      }
+    }.get.head
+
+    val res = new OtherBankAccount(
+      //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+      id = metadata.metadataId,
+      label = metadata.getHolder,
+      nationalIdentifier = t.otherAccount.nationalIdentifier,
+      swift_bic = None,
+      iban = t.otherAccount.iban,
+      number = metadata.getAccountNumber,
+      bankName = t.otherAccount.bankName,
+      kind = t.otherAccount.kind,
+      originalPartyBankId = thisAccountBankId,
+      originalPartyAccountId = thisAccountId,
+      alreadyFoundMetadata = Some(metadata)
+    )
+    Full(res)
+  }
 
   /**
    *
@@ -344,33 +378,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
-
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
-    //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
-    //OtherBankAccountMetadata and a transaction
-    for { //find a transaction with this counterparty
-      t <- MappedTransaction.find(
-        By(MappedTransaction.bank, thisAccountBankId.value),
-        By(MappedTransaction.account, thisAccountId.value),
-        By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
-        By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
-    } yield {
-      new OtherBankAccount(
-        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = metadata.metadataId,
-        label = metadata.getHolder,
-        nationalIdentifier = t.counterpartyNationalId.get,
-        swift_bic = None,
-        iban = t.getCounterpartyIban(),
-        number = metadata.getAccountNumber,
-        bankName = t.counterpartyBankName.get,
-        kind = t.counterpartyAccountKind.get,
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata)
-      )
-    }
-  }
 
   // Get all counterparties related to an account
   override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[OtherBankAccount] =
@@ -879,12 +886,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
 
-    val o = getBankAccountType(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).get
+    val c = getBankAccountType(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).orNull
+    val o = getBankAccountType(BankId(r.this_account.bank), AccountId(r.this_account.id)).orNull
     //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-    val dummyOtherBankAccount = createOtherBankAccount(o, None)
+    val dummyOtherBankAccount = createOtherBankAccount(c, o, None)
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
     //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-    val otherAccount = createOtherBankAccount(o, Some(dummyOtherBankAccount.metadata))
+    val otherAccount = createOtherBankAccount(c, o, Some(dummyOtherBankAccount.metadata))
+
     // Create new transaction
     new Transaction(
       r.id,                                                   // uuid:String
@@ -914,18 +923,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Helper for creating other bank account
-  def createOtherBankAccount(r: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+  def createOtherBankAccount(c: KafkaBankAccount, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = r.label,
-      nationalIdentifier = r.nationalIdentifier, //TODO
-      swift_bic = Some(r.swift_bic.get),         //TODO
-      iban = Some(r.iban.get),
-      number = r.number,
-      bankName = r.bankName,
-      kind = r.accountType,
-      originalPartyBankId = new BankId(r.bankId.value),
-      originalPartyAccountId = new AccountId(r.accountId.value),
+      label = c.label,
+      nationalIdentifier = c.nationalIdentifier, //TODO
+      swift_bic = Some(c.swift_bic.get),         //TODO
+      iban = Some(c.iban.get),
+      number = c.number,
+      bankName = c.bankName,
+      kind = c.accountType,
+      originalPartyBankId = BankId(o.bankId.value),
+      originalPartyAccountId = AccountId(o.accountId.value),
       alreadyFoundMetadata = alreadyFoundMetadata
     )
   }
