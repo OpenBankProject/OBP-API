@@ -1537,7 +1537,7 @@ trait APIMethods200 {
               postedData.last_ok_date) ?~! "Could not create customer"
           } yield {
             val successJson = Extraction.decompose(customer)
-            successJsonResponse(successJson)
+            successJsonResponse(successJson, 201)
           }
       }
     }
