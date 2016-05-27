@@ -255,7 +255,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def getAPIInfo : APIResponse = {
-    val request = v1_2Request
+    val request = v1_2Request / "root"
     makeGetRequest(request)
   }
 
