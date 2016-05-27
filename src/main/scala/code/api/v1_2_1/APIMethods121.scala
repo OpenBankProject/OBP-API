@@ -84,7 +84,7 @@ trait APIMethods121 {
       apiVersion,
       "root",
       "GET",
-      "", // Note this is empty i.e. we call /obp/v1.2.1 not /obp/v1.2.1/
+      "/root",
       "The root of the API",
       """Returns information about:
         |
@@ -100,7 +100,7 @@ trait APIMethods121 {
       apiTagApiInfo :: Nil)
 
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case Nil JsonGet json => {
+      case "root" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
