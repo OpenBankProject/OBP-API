@@ -71,6 +71,15 @@ trait APIMethods121 {
     } yield metadata
   }
 
+  private def getApiInfoJSON(apiVersion : String) = {
+    val apiDetails: JValue = {
+      val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
+      val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+      Extraction.decompose(apiInfoJSON)
+    }
+    apiDetails
+  }
+
   // helper methods end here
 
   val Implementations1_2_1 = new Object(){
@@ -100,16 +109,8 @@ trait APIMethods121 {
       apiTagApiInfo :: Nil)
 
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "root" :: Nil JsonGet json => {
-        user =>
-          val apiDetails: JValue = {
-            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
-            Extraction.decompose(apiInfoJSON)
-          }
-
-          Full(successJsonResponse(apiDetails, 200))
-      }
+      case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
+      case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
     }
 
 
