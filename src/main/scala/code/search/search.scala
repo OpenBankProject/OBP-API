@@ -1,6 +1,6 @@
 package code.search
 
-import code.api.v1_2_1.TransactionJSON
+import code.api.v2_0_0.TransactionJSON
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 
@@ -16,8 +16,9 @@ class search {
    */
 
 
-  // WIP
-  def indexTransaction (transaction: TransactionJSON) {
+  // Index a Transaction
+  // Put into a index that has the viewId and version in the name.
+  def indexTransaction (viewId: String, transaction: TransactionJSON) {
 
     val client = ElasticClient.local
 
@@ -26,15 +27,15 @@ class search {
 
     // https://github.com/sksamuel/elastic4s/blob/master/guide/source.md
 
-    client.execute { index into "transaction_v1.2.1" doc TransactionJSON }.await
 
-    //client.execute { index into "transactions" JacksonSource (TransactionJSON) }.await
+    // TODO
+    // client.execute { index into viewId + "transaction_v1.2.1"  doc transaction }.await
 
-    
-    val resp = client.execute { search in "bands/artists" query "coldplay" }.await
-    println(resp)
 
-    //logger.debug(s"Search request ${req.show}")
+
+    //val resp = client.execute { search in "bands/artists" query "coldplay" }.await
+    //println(resp)
+
 
   }
 

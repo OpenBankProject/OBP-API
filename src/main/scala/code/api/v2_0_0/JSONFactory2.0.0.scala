@@ -38,11 +38,12 @@ import code.TransactionTypes.TransactionType.TransactionType
 import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
+import com.sksamuel.elastic4s.source.DocumentMap
 import net.liftweb.common.{Full, Box}
 
 // import code.api.util.APIUtil.ApiLink
 
-import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
+import code.api.v1_2_1.{JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121, TransactionMetadataJSON, AmountOfMoneyJSON}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeJSON, TransactionRequestAccountJSON}
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
@@ -303,6 +304,19 @@ case class TransactionRequestBodyJSON (
                                         value : AmountOfMoneyJSON,
                                         description : String
                                       )
+
+
+
+
+
+case class TransactionJSON (
+                             id : String,
+                             account : ThisAccountJSON121,
+                             counterparty : OtherAccountJSON121,
+                             details : TransactionDetailsJSON121,
+                             metadata : TransactionMetadataJSON
+                           ) // extends DocumentMap
+
 
 
 object JSONFactory200{
