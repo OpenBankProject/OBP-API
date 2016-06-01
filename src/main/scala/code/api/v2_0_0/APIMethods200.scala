@@ -1299,17 +1299,15 @@ trait APIMethods200 {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
           } yield {
             if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
-              val userCreated:Boolean = OBPUser.create
+              val userCreated = OBPUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props
-                .save
-              if (userCreated) {
-                // Do we have to get again?
-                val obpUser = OBPUser.find(By(OBPUser.email, postedData.email))
-                val json = JSONFactory200.createUserJSONfromOBPUser(obpUser)
+                .saveMe()
+              if (userCreated.saved_?) {
+                val json = JSONFactory200.createUserJSONfromOBPUser(userCreated)
                 successJsonResponse(Extraction.decompose(json), 201)
               }
               else
