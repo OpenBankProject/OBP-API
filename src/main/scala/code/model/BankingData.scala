@@ -282,6 +282,7 @@ trait BankAccount {
       //In this case, we just use the previous behaviour, which did not return very much information at all
       Set(new User {
         val apiId = UserId(-1)
+        val userId = ""
         val idGivenByProvider = ""
         val provider = ""
         val emailAddress = ""

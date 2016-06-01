@@ -464,7 +464,7 @@ object JSONFactory200{
 
   //
   case class UserJSON(
-                       id : String,
+                       user_id: String,
                        email : String,
                        provider_id: String,
                        provider : String,
@@ -475,20 +475,18 @@ object JSONFactory200{
 
 
 
-  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = {
-    new UserJSON(
-      id = "", // user.user.apiId.toString, // TODO we need to return the id. Future: It should be a uuid separate from any primary key.
-      email = user.email,
-      provider_id = stringOrNull(user.provider),
-      provider = stringOrNull(user.provider),
-      display_name = stringOrNull(user.displayName())
-    )
-  }
+  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
+    user_id = user.user.foreign.get.userId,
+    email = user.email,
+    provider_id = stringOrNull(user.provider),
+    provider = stringOrNull(user.provider),
+    display_name = stringOrNull(user.displayName())
+  )
 
 
   def createUserJSON(user : User) : UserJSON = {
     new UserJSON(
-      id = user.apiId.toString,
+      user_id = user.userId,
       email = user.emailAddress,
       provider_id = user.idGivenByProvider,
       provider = stringOrNull(user.provider),

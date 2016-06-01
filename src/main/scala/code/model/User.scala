@@ -51,6 +51,7 @@ case class UserId(val value : Long) {
 trait User {
 
   def apiId : UserId
+  def userId: String
 
   def idGivenByProvider: String
   def provider : String
