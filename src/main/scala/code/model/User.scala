@@ -100,4 +100,7 @@ object User {
     //versions of the API return this failure message, so if you change it, make sure
     //that all stable versions retain the same behavior
     Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
+
+  def findByUserId(userId : String) =
+    Users.users.vend.getUserByUserId(userId)
 }

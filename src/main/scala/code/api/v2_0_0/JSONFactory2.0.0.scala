@@ -111,6 +111,12 @@ case class MeetingPresentJSON(
 
   )
 
+case class UserCustomerLinkJSON(customer_id: String,
+                                user_id: String,
+                                bank_id: String,
+                                date_inserted: Date,
+                                is_active: Boolean)
+case class UserCustomerLinkJSONs(l: List[UserCustomerLinkJSON])
 
 class BasicViewJSON(
   val id: String,
@@ -748,7 +754,18 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
     MeetingJSONs(meetings.map(createMeetingJSON))
   }
 
+  def createUserCustomerLinkJSON(ucl: code.usercustomerlinks.UserCustomerLink) = {
+    UserCustomerLinkJSON(customer_id = ucl.customerId,
+      user_id = ucl.userId,
+      bank_id = ucl.bankId,
+      date_inserted = ucl.dateInserted,
+      is_active = ucl.isActive
+    )
+  }
 
+  def createUserCustomerLinkJSONs(ucls: List[code.usercustomerlinks.UserCustomerLink]): UserCustomerLinkJSONs = {
+    UserCustomerLinkJSONs(ucls.map(createUserCustomerLinkJSON))
+  }
 
   // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =

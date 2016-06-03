@@ -29,6 +29,7 @@ import code.socialmedia.SocialMediaHandle
 import code.transactionrequests.TransactionRequests
 
 import code.meetings.Meeting
+import code.usercustomerlinks.UserCustomerLink
 
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
@@ -1515,8 +1516,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
-            user_id <- tryo {postedData.user_id.toLong} ?~ ErrorMessages.InvalidNumber
-            customer_user <- User.findByApiId(user_id) ?~! ErrorMessages.UserNotFoundById
+            customer_user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
@@ -1576,7 +1576,43 @@ trait APIMethods200 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      createUserCustomerLinks,
+      apiVersion,
+      "createUserCustomerLinks",
+      "POST",
+      "/banks/BANK_ID/UserCustomerLinks",
+      "Create user customer link.",
+      """Link a customer and an user
+        |This call may require additional permissions/role in the future.
+        |For now the authenticated user can create at most one linked customer.
+        |OAuth authentication is required.
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagCustomer))
 
+    lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "UserCustomerLinks" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! "User must be logged in to post Customer"
+            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+            user_id <- tryo(u.userId.isEmpty) ?~! "Field user_id is not defined for the logged user!"
+            customer_user <- User.findByUserId(u.userId) ?~! ErrorMessages.UserNotFoundById
+            customer <- tryo(Customer.customerProvider.vend.getCustomer(bankId, customer_user).get) ?~! ErrorMessages.CustomerNotFound
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLinkProvider.vend.getUserCustomerLink(u.userId, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLinkProvider.vend.createUserCustomerLink(u.userId, customer.customerId, bankId.value.toString, exampleDate, true) ?~! "Could not create userCustomerLink"
+          } yield {
+            val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
+            successJsonResponse(successJson, 201)
+          }
+      }
+    }
 
 
 
