@@ -170,3 +170,7 @@ apiOptions.getTransactionTypesIsPublic = true
 # Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
 # e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
+
+
+#  Super Admin Users (not database so we don't have to edit database)
+super_admin_user_ids=USER_ID1,USER_ID2,

@@ -34,6 +34,7 @@ package code.api.util
 
 import code.api.Constant._
 import code.api.v1_2.ErrorMessage
+import code.entitlement.Entitlements
 import code.metrics.APIMetrics
 import code.model._
 import dispatch.url
@@ -570,6 +571,15 @@ object APIUtil extends Loggable {
   def getHalLinksFromApiLinks(links: List[ApiLink]) : JValue = {
     val halLinksJson = buildHalLinks(links)
     halLinksJson
+  }
+
+  def isSuperAdmin(user_id: String) : Boolean = {
+    val user_ids = Props.get("super_admin_user_ids", "super_admin_user_ids is not defined").split(",").map(_.trim).toList
+    user_ids.filter(_ == user_id).length > 0
+  }
+
+  def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
+    Entitlements.entitlementProvider.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
 }
