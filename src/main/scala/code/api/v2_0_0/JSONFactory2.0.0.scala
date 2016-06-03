@@ -111,6 +111,12 @@ case class MeetingPresentJSON(
 
   )
 
+case class UserCustomerLinkJSON(customer_id: String,
+                                user_id: String,
+                                bank_id: String,
+                                date_inserted: Date,
+                                is_active: Boolean)
+case class UserCustomerLinkJSONs(l: List[UserCustomerLinkJSON])
 
 class BasicViewJSON(
   val id: String,
@@ -464,7 +470,7 @@ object JSONFactory200{
 
   //
   case class UserJSON(
-                       id : String,
+                       user_id: String,
                        email : String,
                        provider_id: String,
                        provider : String,
@@ -475,20 +481,18 @@ object JSONFactory200{
 
 
 
-  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = {
-    new UserJSON(
-      id = "", // user.user.apiId.toString, // TODO we need to return the id. Future: It should be a uuid separate from any primary key.
-      email = user.email,
-      provider_id = stringOrNull(user.provider),
-      provider = stringOrNull(user.provider),
-      display_name = stringOrNull(user.displayName())
-    )
-  }
+  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
+    user_id = user.user.foreign.get.userId,
+    email = user.email,
+    provider_id = stringOrNull(user.provider),
+    provider = stringOrNull(user.provider),
+    display_name = stringOrNull(user.displayName())
+  )
 
 
   def createUserJSON(user : User) : UserJSON = {
     new UserJSON(
-      id = user.apiId.toString,
+      user_id = user.userId,
       email = user.emailAddress,
       provider_id = user.idGivenByProvider,
       provider = stringOrNull(user.provider),
@@ -750,7 +754,18 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
     MeetingJSONs(meetings.map(createMeetingJSON))
   }
 
+  def createUserCustomerLinkJSON(ucl: code.usercustomerlinks.UserCustomerLink) = {
+    UserCustomerLinkJSON(customer_id = ucl.customerId,
+      user_id = ucl.userId,
+      bank_id = ucl.bankId,
+      date_inserted = ucl.dateInserted,
+      is_active = ucl.isActive
+    )
+  }
 
+  def createUserCustomerLinkJSONs(ucls: List[code.usercustomerlinks.UserCustomerLink]): UserCustomerLinkJSONs = {
+    UserCustomerLinkJSONs(ucls.map(createUserCustomerLinkJSON))
+  }
 
   // Copied from 1.2.1 (import just this def instead?)
   def stringOrNull(text : String) =

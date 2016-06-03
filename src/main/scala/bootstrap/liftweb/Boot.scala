@@ -63,6 +63,7 @@ import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
 import code.tesobe.CashAccountAPI
 import code.transactionrequests.MappedTransactionRequest
+import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.mapper._
@@ -417,5 +418,6 @@ object ToSchemify {
     MappedKycStatus,
     MappedSocialMedia,
     MappedTransactionType,
-    MappedMeeting)
+    MappedMeeting,
+    MappedUserCustomerLink)
 }

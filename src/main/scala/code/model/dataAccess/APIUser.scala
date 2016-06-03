@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.util.MappedUUID
 import net.liftweb.mapper._
 import net.liftweb.util.Props
 
@@ -41,6 +42,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def primaryKeyField = id
 
   object id extends MappedLongIndex(this)
+  object userId_ extends MappedUUID(this)
   object email extends MappedEmail(this, 48){
     override def required_? = false
   }
@@ -79,6 +81,8 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
   def idGivenByProvider = providerId.get
   def apiId = UserId(id.get)
+
+  def userId = userId_.get
 
   def name : String = name_.get
   def provider = provider_.get
