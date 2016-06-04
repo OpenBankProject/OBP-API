@@ -1,6 +1,7 @@
 package code.examplething
 
 import code.branches.Branches._
+import code.examplething.Thing.{Bar, Foo, ThingId, Thing}
 import code.model.BankId
 
 import code.common.{Address, License, Location, Meta}
@@ -12,19 +13,19 @@ import org.joda.time.Hours
 
 import scala.util.Try
 
-object MappedThing1Provider extends Thing1Provider {
+object MappedThingProvider extends ThingProvider {
 
-  override protected def getBranchFromProvider(branchId: BranchId): Option[Branch] =
-    MappedThing1$.find(By(MappedThing1$.mBranchId, branchId.value))
+  override protected def getThingFromProvider(branchId: BranchId): Option[Thing] =
+    MappedThing.find(By(MappedThing.mBranchId, branchId.value))
 
-  override protected def getBranchesFromProvider(bankId: BankId): Option[List[Branch]] = {
-    Some(MappedThing1$.findAll(By(MappedThing1$.mBankId, bankId.value)))
+  override protected def getThingsFromProvider(bankId: BankId): Option[List[Thing]] = {
+    Some(MappedThing.findAll(By(MappedThing.mBankId, bankId.value)))
   }
 }
 
-class MappedThing1$ extends Branch with LongKeyedMapper[MappedThing1$] with IdPK {
+class MappedThing extends Thing with LongKeyedMapper[MappedThing] with IdPK {
 
-  override def getSingleton = MappedThing1$
+  override def getSingleton = MappedThing
 
   object mBankId extends DefaultStringField(this)
   object mName extends DefaultStringField(this)
@@ -51,7 +52,7 @@ class MappedThing1$ extends Branch with LongKeyedMapper[MappedThing1$] with IdPK
   object mLobbyHours extends DefaultStringField(this)
   object mDriveUpHours extends DefaultStringField(this)
 
-  override def branchId: BranchId = BranchId(mBranchId.get)
+  override def thingId: ThingId = ThingId(mBranchId.get)
   override def name: String = mName.get
 
   override def address: Address = new Address {
@@ -72,11 +73,11 @@ class MappedThing1$ extends Branch with LongKeyedMapper[MappedThing1$] with IdPK
     }
   }
 
-  override def lobby: Lobby = new Lobby {
+  override def foo: Foo = new Foo {
     override def hours: String = mLobbyHours
   }
 
-  override def driveUp: DriveUp = new DriveUp {
+  override def bar: Bar = new Bar {
     override def hours: String = mDriveUpHours
   }
 
@@ -89,29 +90,7 @@ class MappedThing1$ extends Branch with LongKeyedMapper[MappedThing1$] with IdPK
 }
 
 //
-object MappedThing1$ extends MappedThing1$ with LongKeyedMetaMapper[MappedThing1$] {
+object MappedThing extends MappedThing with LongKeyedMetaMapper[MappedThing] {
   override def dbIndexes = UniqueIndex(mBankId, mBranchId) :: Index(mBankId) :: super.dbIndexes
 }
 
-/*
-For storing the data license(s) (conceived for open data e.g. branches)
-Currently used as one license per bank for all open data?
-Else could store a link to this with each open data record - or via config for each open data type
- */
-
-
-//class MappedLicense extends License with LongKeyedMapper[MappedLicense] with IdPK {
-//  override def getSingleton = MappedLicense
-//
-//  object mBankId extends DefaultStringField(this)
-//  object mName extends DefaultStringField(this)
-//  object mUrl extends DefaultStringField(this)
-//
-//  override def name: String = mName.get
-//  override def url: String = mUrl.get
-//}
-//
-//
-//object MappedLicense extends MappedLicense with LongKeyedMetaMapper[MappedLicense] {
-//  override  def dbIndexes = Index(mBankId) :: super.dbIndexes
-//}
