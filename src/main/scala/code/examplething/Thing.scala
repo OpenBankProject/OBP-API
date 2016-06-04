@@ -2,20 +2,25 @@ package code.examplething
 
 
 // Need to import these one by one because in same package!
-import code.branches.Branches.{Branch, BranchId}
-
-import code.common.{Address, License, Location, Meta}
+import code.bankconnectors.{KafkaMappedConnector, LocalConnector, LocalMappedConnector}
 
 
 import code.model.{BankId}
 import net.liftweb.common.Logger
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 
 object Thing extends SimpleInjector {
 
     val thingProvider = new Inject(buildOne _) {}
-    def buildOne: ThingProvider = MappedThingProvider
+   // def buildOne: ThingProvider = MappedThingProvider
 
+
+  // This determines the provider we use
+  def buildOne: ThingProvider =
+    Props.get("provider.thing").openOr("mapped") match {
+      case "mapped" => MappedThingProvider
+      case _ => MappedThingProvider
+    }
 
 }
 
@@ -49,16 +54,16 @@ trait ThingProvider {
 
   /*
   Common logic for returning or changing Things
-  Datasource implementation details in Thing provider
+  Datasource implementation details are in Thing provider
    */
   final def getThings(bankId : BankId) : Option[List[Thing]] = {
     getThingsFromProvider(bankId) match {
       case Some(things) => {
 
-        val branchesWithLicense = for {
+        val certainThings = for {
          thing <- things // if thing.meta.license.name.size > 3
         } yield thing
-        Option(branchesWithLicense)
+        Option(certainThings)
       }
       case None => None
     }
@@ -72,7 +77,7 @@ trait ThingProvider {
     getThingFromProvider(thingId)  //.filter...
   }
 
-  protected def getThingFromProvider(branchId : ThingId) : Option[Thing]
+  protected def getThingFromProvider(thingId : ThingId) : Option[Thing]
   protected def getThingsFromProvider(bank : BankId) : Option[List[Thing]]
 
 }
