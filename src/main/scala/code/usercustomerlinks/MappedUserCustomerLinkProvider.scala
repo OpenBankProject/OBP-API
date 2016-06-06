@@ -33,7 +33,6 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
   }
 
   override def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
-    //MappedUserCustomerLink.bulkDelete_!!()
     Some(MappedUserCustomerLink.findAll())
   }
 
