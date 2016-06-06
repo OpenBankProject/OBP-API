@@ -33,19 +33,21 @@
 package code.api.util
 
 import code.api.Constant._
+import code.api.DirectLogin
+import code.api.OAuthHandshake._
 import code.api.v1_2.ErrorMessage
 import code.entitlement.Entitlements
 import code.metrics.APIMetrics
 import code.model._
 import dispatch.url
-import net.liftweb.common.{Box, Full, Loggable}
+import net.liftweb.common.{Empty, _}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
 import net.liftweb.http.{CurrentReq, JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Props, Helpers, SecurityHelpers}
+import net.liftweb.util.{Helpers, Props, SecurityHelpers}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
@@ -134,8 +136,22 @@ object APIUtil extends Loggable {
 
   def logAPICall = {
     if(Props.getBool("write_metrics", false)) {
+      val user =
+        if (isThereAnOAuthHeader) {
+          getUser match {
+            case Full(u) => Full(u)
+            case _ => Empty
+          }
+        } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+          DirectLogin.getUser match {
+            case Full(u) => Full(u)
+            case _ => Empty
+          }
+        } else {
+            Empty
+        }
       // TODO This should use Elastic Search or Kafka not an RDBMS
-      APIMetrics.apiMetrics.vend.saveMetric(S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+      APIMetrics.apiMetrics.vend.saveMetric(user.orNull.userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
     }
   }
 

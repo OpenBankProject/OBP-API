@@ -7,10 +7,11 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.search.{elasticsearch, elasticsearchWarehouse}
 //import code.api.v2_0_0.{CreateCustomerJson}
 
 import code.model.dataAccess.OBPUser
@@ -1689,7 +1690,45 @@ trait APIMethods200 {
             }
       }
     }
-    ///
+
+    resourceDocs += ResourceDoc(
+      elasticSearchWarehouse,
+      apiVersion,
+      "elasticSearchWarehouse",
+      "GET",
+      "/search",
+      "Elastic Search Warehouse",
+      """
+        |
+        |Login is required.
+        |
+        |CanSearchWarehouse entitlement is requred for logged-in user.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List())
+
+    val es = elasticsearchWarehouse
+
+    lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "search" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
+            hasEntitlement <- booleanToBox(entitlements.contains(ApiRole.CanSearchWarehouse)) ?~ "User is not allowed to search warehouse!"
+          } yield {
+              successJsonResponse(Extraction.decompose(es.searchProxy(json.toString)))
+          }
+      }
+    }
+
 
   }
 }

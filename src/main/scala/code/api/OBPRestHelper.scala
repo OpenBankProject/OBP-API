@@ -139,11 +139,9 @@ trait OBPRestHelper extends RestHelper with Loggable {
         case _ => errorJsonResponse("oauth error")
       }
     } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
-      val user = DirectLogin.getUser
-      if (user.isDefined) {
-        fn(user)
-      } else {
-        fn(Empty)
+      DirectLogin.getUser match {
+        case Full(u) => fn(Full(u))
+        case _ => errorJsonResponse("directlogin error")
       }
     } else {
       fn(Empty)

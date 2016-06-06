@@ -29,7 +29,12 @@ object APIMetrics extends SimpleInjector {
 
 trait APIMetrics {
 
-  def saveMetric(url : String, date : Date) : Unit
+  def saveMetric(userId: String, url : String, date : Date) : Unit
+
+  def saveMetric(url : String, date : Date) : Unit ={
+    //TODO: update all places calling old function before removing this
+    saveMetric ("TODO: userId", url, date)
+  }
 
   //TODO: ordering of list? should this be by date? currently not enforced
   def getAllGroupedByUrl() : Map[String, List[APIMetric]]
@@ -37,10 +42,14 @@ trait APIMetrics {
   //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByDay() : Map[Date, List[APIMetric]]
 
+  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
+  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
+
 }
 
 trait APIMetric {
 
   def getUrl() : String
   def getDate() : Date
+  def getUserId() : String
 }
