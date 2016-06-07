@@ -1624,9 +1624,9 @@ trait APIMethods200 {
       "POST",
       "/users/USER_ID/entitlements",
       "Add role to specific user.",
-      """Grants the Role to user.
+      """Grants the Role to user. Creates an entitlement.
         |
-        |OAuth authentication is required and the user needs to have access to the owner view.""",
+        |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1659,7 +1659,7 @@ trait APIMethods200 {
       "getEntitlements",
       "GET",
       "/users/USER_ID/entitlements",
-      "Get Entitlement specified by USER_ID",
+      "Get Entitlements specified by USER_ID",
       """
         |
         |Login is required.
@@ -1697,21 +1697,22 @@ trait APIMethods200 {
       "elasticSearchWarehouse",
       "GET",
       "/search",
-      "Elastic Search Warehouse",
+      "Search Warehouse Data",
       """
+        |Search warehouse data via Elastic Search
         |
         |Login is required.
         |
-        |CanSearchWarehouse entitlement is requred for logged-in user.
+        |CanSearchWarehouse entitlement is requred for the logged-in user.
         |
         |
       """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      false,
+      false,
+      false,
       List())
 
     val es = elasticsearchWarehouse
