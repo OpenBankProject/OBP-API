@@ -6,10 +6,12 @@ import java.util.Calendar
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.util.APIUtil._
-import code.api.util.ErrorMessages
+import code.api.util.ApiRole._
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.search.{elasticsearch, elasticsearchWarehouse}
 //import code.api.v2_0_0.{CreateCustomerJson}
 
 import code.model.dataAccess.OBPUser
@@ -30,6 +32,7 @@ import code.transactionrequests.TransactionRequests
 
 import code.meetings.Meeting
 import code.usercustomerlinks.UserCustomerLink
+import code.entitlement.Entitlements
 
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
@@ -1614,9 +1617,118 @@ trait APIMethods200 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      addEntitlements,
+      apiVersion,
+      "addEntitlements",
+      "POST",
+      "/users/USER_ID/entitlements",
+      "Add role to specific user.",
+      """Grants the Role to user.
+        |
+        |OAuth authentication is required and the user needs to have access to the owner view.""",
+      Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List())
+
+    lazy val addEntitlements : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //add access for specific user to a list of views
+      case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+            postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
+            role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
+            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, u.userId, role)) ?~ "Entitlement already exists"
+            addedEntitlement <- Entitlements.entitlementProvider.vend.addEntitlement(postedData.bank_id, u.userId, postedData.role_name)
+          } yield {
+            val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
+            successJsonResponse(Extraction.decompose(viewJson), 201)
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getEntitlements,
+      apiVersion,
+      "getEntitlements",
+      "GET",
+      "/users/USER_ID/entitlements",
+      "Get Entitlement specified by USER_ID",
+      """
+        |
+        |Login is required.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
-    ///
+    lazy val getEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
+        user =>
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+              entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
+            }
+            yield {
+              // Format the data as V2.0.0 json
+              val json = JSONFactory200.createEntitlementJSONs(entitlements)
+              successJsonResponse(Extraction.decompose(json))
+            }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      elasticSearchWarehouse,
+      apiVersion,
+      "elasticSearchWarehouse",
+      "GET",
+      "/search",
+      "Elastic Search Warehouse",
+      """
+        |
+        |Login is required.
+        |
+        |CanSearchWarehouse entitlement is requred for logged-in user.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List())
+
+    val es = elasticsearchWarehouse
+
+    lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "search" :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
+            hasEntitlement <- booleanToBox(entitlements.contains(ApiRole.CanSearchWarehouse)) ?~ "User is not allowed to search warehouse!"
+          } yield {
+              successJsonResponse(Extraction.decompose(es.searchProxy(json.toString)))
+          }
+      }
+    }
+
 
   }
 }

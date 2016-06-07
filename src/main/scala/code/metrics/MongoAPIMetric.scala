@@ -32,24 +32,28 @@ Berlin 13359, Germany
 
  package code.metrics
 
-import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
- import net.liftweb.record.field.StringField
- import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
- import java.util.{Calendar, Date}
+import java.util.Date
+
+import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
+import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
+import net.liftweb.record.field.StringField
 
  private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
-  def meta = MongoAPIMetric
-  object url extends StringField(this,255)
-  object date extends DateField(this)
+   def meta = MongoAPIMetric
+   object userId extends StringField(this,255)
+   object url extends StringField(this,255)
+   object date extends DateField(this)
 
-  def getUrl() = url.get
-  def getDate() = date.get
+   def getUrl() = url.get
+   def getDate() = date.get
+   def getUserId() = userId.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(url : String, date : Date) : Unit = {
+  def saveMetric(userId: String, url : String, date : Date) : Unit = {
     MongoAPIMetric.createRecord.
+      userId(userId).
       url(url).
       date(date).
       save
@@ -63,4 +67,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
     MongoAPIMetric.findAll.groupBy[Date](APIMetrics.getMetricDay)
   }
 
+  def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
+    MongoAPIMetric.findAll.groupBy[String](_.getUserId)
+  }
 }

@@ -181,6 +181,16 @@
       <artifactId>opentok-server-sdk</artifactId>
       <version>3.0.0-beta.1</version>
     </dependency>
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>2.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sksamuel.elastic4s</groupId>
+      <artifactId>elastic4s-core_2.11</artifactId>
+      <version>2.3.0</version>
+    </dependency>
   </dependencies>
 
   <build>

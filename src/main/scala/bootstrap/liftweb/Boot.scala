@@ -42,6 +42,7 @@ import code.atms.MappedAtm
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.entitlement.MappedEntitlement
 import code.kycdocuments.MappedKycDocument
 import code.kycmedias.MappedKycMedia
 import code.kycchecks.MappedKycCheck
@@ -193,6 +194,11 @@ class Boot extends Loggable{
     // JWT auth endpoints
     if(Props.getBool("allow_direct_login", true)) {
       LiftRules.statelessDispatch.append(DirectLogin)
+    }
+
+    // ElasticSearch metrics endpoint
+    if(Props.getBool("allow_metrics_elasticsearch", true)) {
+      LiftRules.statelessDispatch.append(ElasticSearchMetrics)
     }
 
     // Add the various API versions
@@ -419,5 +425,6 @@ object ToSchemify {
     MappedSocialMedia,
     MappedTransactionType,
     MappedMeeting,
-    MappedUserCustomerLink)
+    MappedUserCustomerLink,
+    MappedEntitlement)
 }

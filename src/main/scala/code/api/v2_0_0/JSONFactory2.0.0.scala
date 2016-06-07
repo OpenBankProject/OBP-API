@@ -36,6 +36,7 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
 import code.meetings.Meeting
+import code.entitlement.Entitlement
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Full, Box}
@@ -310,6 +311,9 @@ case class TransactionRequestBodyJSON (
                                         description : String
                                       )
 
+case class CreateEntitlementJSON(bank_id: String, role_name: String)
+case class EntitlementJSON(entitlement_id: String, user_id: String, role_name: String)
+case class EntitlementJSONs(list: List[EntitlementJSON])
 
 object JSONFactory200{
 
@@ -765,6 +769,16 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
 
   def createUserCustomerLinkJSONs(ucls: List[code.usercustomerlinks.UserCustomerLink]): UserCustomerLinkJSONs = {
     UserCustomerLinkJSONs(ucls.map(createUserCustomerLinkJSON))
+  }
+
+  def createEntitlementJSON(e: Entitlement): EntitlementJSON = {
+    EntitlementJSON(entitlement_id = e.entitlementId,
+      user_id = e.userId,
+      role_name = e.roleName)
+  }
+
+  def createEntitlementJSONs(l: List[Entitlement]) = {
+    EntitlementJSONs(l.map(createEntitlementJSON))
   }
 
   // Copied from 1.2.1 (import just this def instead?)

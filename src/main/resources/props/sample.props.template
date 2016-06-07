@@ -22,6 +22,17 @@ connector=mapped
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
+#ElasticSearch
+allow_elasticsearch=true
+
+#elasticsearch warehouse
+es_warehouse.host=http://localhost:9200
+es_warehouse.data_index=es_warehouse_data_index
+
+#elasticsearch metrics
+es_metrics.host=http://localhost:9200
+es_metrics.data_index=es_metrics_data_index
+
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver
 #db.driver=org.h2.Driver
@@ -170,3 +181,7 @@ apiOptions.getTransactionTypesIsPublic = true
 # Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
 # e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
+
+
+#  Super Admin Users (not database so we don't have to edit database)
+super_admin_user_ids=USER_ID1,USER_ID2,
