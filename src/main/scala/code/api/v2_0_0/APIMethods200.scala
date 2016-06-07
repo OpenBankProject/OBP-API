@@ -1718,14 +1718,14 @@ trait APIMethods200 {
     val es = elasticsearchWarehouse
 
     lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "search" :: Nil JsonGet json => {
+      case "search" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
-            hasEntitlement <- booleanToBox(entitlements.contains(ApiRole.CanSearchWarehouse)) ?~ "User is not allowed to search warehouse!"
+            b <- Bank.all.headOption //TODO: This is a temp workaround
+            canSearchWarehouse <- Entitlements.entitlementProvider.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "User is not allowed to search warehouse!"
           } yield {
-              successJsonResponse(Extraction.decompose(es.searchProxy(json.toString)))
+              successJsonResponse(Extraction.decompose(es.searchProxy(queryString)))
           }
       }
     }

@@ -23,8 +23,8 @@ import net.liftweb.util.Helpers
 import net.liftweb.util.Props
 import dispatch._
 import Defaults._
+import kafka.utils.Json
 import net.liftweb.json
-
 
 class elasticsearch {
 
@@ -45,28 +45,33 @@ class elasticsearch {
       , Duration.Inf)
   }
 
-  def searchProxy(query: String): LiftResponse = {
-      val request = constructQuery(getParametersFromUrl)
+  def searchProxy(queryString: String): LiftResponse = {
+      val request = constructQuery(getParameters(queryString))
       val response = getAPIResponse(request)
       JsonResponse(response.body, ("Access-Control-Allow-Origin","*") :: Nil, Nil, response.code)
     }
 
-  private def constructQuery(queries: QueryStrings): Req = {
-    val jsonQuery = s"""{"query": ${queries.queryStr}}"""
-    val esUrl = Helpers.appendParams(s"$esHost/$esIndex/${queries.esType}/_search", Seq(("source",jsonQuery)))
+  private def constructQuery(params: Map[String, String]): Req = {
+    val esType = params.getOrElse("esType", "")
+    val filteredParams = params -- Set("esType")
+    val jsonQuery = Json.encode(filteredParams)
+    val esUrl = Helpers.appendParams( s"${esHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", jsonQuery)))
     url(esUrl).GET
   }
 
-  def getParametersFromUrl: QueryStrings = {
-    val query: Box[Map[String, List[String]]] = S.request.map(_.params)
-    val esType = S.param("dataset").getOrElse("")
-    val queryStr = S.param("query").getOrElse("")
-    QueryStrings(esType, queryStr)
+  def getParameters(queryString: String): Map[String, String] = {
+    val res = queryString.split('&') map { str =>
+    val pair = str.split('=')
+      if (pair.length > 1)
+        (pair(0) -> pair(1))
+      else
+        (pair(0) -> "")
+    } toMap
+
+    res
   }
 
 }
-
-
 
 
 
@@ -110,13 +115,13 @@ class elasticsearchLocal extends elasticsearch {
 
   object elasticsearchWarehouse extends elasticsearch {
     override val esHost = Props.get("es_warehouse.host","http://localhost:9200")
-    override val esIndex = Props.get("es_warehouse.data_index","es_warehouse_data_index")
+    override val esIndex = Props.get("es_warehouse.data_index","warehouse")
   }
 
 
   class elasticsearchMetrics extends elasticsearch {
     override val esHost = Props.get("es_metrics.host","http://localhost:9200")
-    override val esIndex = Props.get("es_metrics.data_index","es_metrics_data_index")
+    override val esIndex = Props.get("es_metrics.data_index","metrics")
   }
 
 
