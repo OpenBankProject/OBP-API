@@ -151,7 +151,9 @@ object APIUtil extends Loggable {
             Empty
         }
       // TODO This should use Elastic Search or Kafka not an RDBMS
-      APIMetrics.apiMetrics.vend.saveMetric(user.orNull.userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
+      val u = user.orNull
+      val userId = if (u != null) u.userId else "null"
+      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan))
     }
   }
 

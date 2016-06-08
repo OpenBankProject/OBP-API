@@ -7,7 +7,7 @@ object APIMetrics extends SimpleInjector {
 
   val apiMetrics = new Inject(buildOne _) {}
 
-  def buildOne: APIMetrics = MappedMetrics
+  def buildOne: APIMetrics = ElasticsearchMetrics
 
   /**
    * Returns a Date which is at the start of the day of the date

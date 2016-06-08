@@ -25,6 +25,11 @@ import dispatch._
 import Defaults._
 import kafka.utils.Json
 import net.liftweb.json
+import java.util.Date
+
+import com.sksamuel.elastic4s.analyzers.StopAnalyzer
+import com.sksamuel.elastic4s.mappings.FieldType.{DateType, ObjectType, StringType}
+import com.sksamuel.elastic4s.source.Indexable
 
 class elasticsearch {
 
@@ -33,7 +38,6 @@ class elasticsearch {
   case class ErrorMessage(error: String)
 
   val esHost = ""
-  val esIndex = ""
 
   def getAPIResponse(req: Req): APIResponse = {
     Await.result(
@@ -53,9 +57,11 @@ class elasticsearch {
 
   private def constructQuery(params: Map[String, String]): Req = {
     val esType = params.getOrElse("esType", "")
-    val filteredParams = params -- Set("esType")
+    val esIndex = params.getOrElse("esIndex", "")
+    val filteredParams = params -- Set("esIndex", "esType")
     val jsonQuery = Json.encode(filteredParams)
-    val esUrl = Helpers.appendParams( s"${esHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", jsonQuery)))
+    val httpHost = ("http://" +  esHost).replaceAll("9300", "9200")
+    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", jsonQuery)))
     url(esUrl).GET
   }
 
@@ -74,18 +80,63 @@ class elasticsearch {
 }
 
 
+object elasticsearchWarehouse extends elasticsearch {
+  override val esHost = Props.get("es.warehouse.host","localhost:9300")
+  val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
+}
 
-class elasticsearchLocal extends elasticsearch {
 
-  override val esHost = Props.get("es_warehouse.host","http://localhost:9200")
-  override val esIndex = Props.get("es_warehouse.data_index","es_warehouse_data_index")
+class elasticsearchMetrics extends elasticsearch {
+  override val esHost = Props.get("es.metrics.host","localhost:9300")
+  val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
+  val metricsIndex = Props.get("es.metrics.index","metrics")
+  client.execute { create index metricsIndex }
+  client.execute {
+    create index metricsIndex mappings (
+      "request" as (
+        "userId" typed StringType,
+        "url" typed StringType,
+        "date" typed DateType
+        )
+      )
+  }
 
-    val settings = Settings.settingsBuilder()
-      .put("http.enabled", true)
-      .put("path.home", "/tmp/elastic/")
+  def indexMetric(userId: String, url: String, date: Date) {
+      client.execute {
+        index into metricsIndex / "request" fields (
+          "userId" -> userId,
+          "url" -> url,
+          "date" -> date
+          )
+      }
+    }
+}
 
-    val client = ElasticClient.local(settings.build)
 
+class elasticsearchOBP extends elasticsearch {
+  override val esHost = Props.get("es.obp.host","localhost:9300")
+  val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
+
+  val accountIndex     = "account_v1.2.1"
+  val transactionIndex = "transaction_v1.2.1"
+
+  client.execute {
+    create index accountIndex mappings (
+      "account" as (
+        "viewId" typed StringType,
+        "account" typed ObjectType
+        )
+      )
+  }
+
+  client.execute {
+    create index transactionIndex mappings (
+      "transaction" as (
+        "viewId" typed StringType,
+        "transaction" typed ObjectType
+        )
+      )
+  }
     /*
   Index objects in Elastic Search.
   Use **the same** representations that we return in the REST API.
@@ -96,32 +147,24 @@ class elasticsearchLocal extends elasticsearch {
     // Put into a index that has the viewId and version in the name.
     def indexTransaction(viewId: String, transaction: TransactionJSON) {
       client.execute {
-        index into "transaction_v1.2.1" fields {
-          viewId -> transaction
-        }
+        index into transactionIndex / "transaction" fields (
+          "viewId" -> viewId,
+          "transaction" -> transaction
+          )
       }
     }
 
+    // Index an Account
+    // Put into a index that has the viewId and version in the name.
     def indexAccount(viewId: String, account: AccountJSON) {
       client.execute {
-        index into "account_v1.2.1" fields {
-          viewId -> account
-        }
+        index into accountIndex / "account" fields (
+          "viewId" -> viewId,
+          "account" -> account
+          )
       }
     }
 
-  }
-
-
-  object elasticsearchWarehouse extends elasticsearch {
-    override val esHost = Props.get("es_warehouse.host","http://localhost:9200")
-    override val esIndex = Props.get("es_warehouse.data_index","warehouse")
-  }
-
-
-  class elasticsearchMetrics extends elasticsearch {
-    override val esHost = Props.get("es_metrics.host","http://localhost:9200")
-    override val esIndex = Props.get("es_metrics.data_index","metrics")
   }
 
 
