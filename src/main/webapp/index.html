@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -57,7 +57,7 @@ Berlin 13359, Germany
 
         <p class="about-text">
             <ul>
-                <li>Email <a href="mailto:"contact AT openbankproject DOT com">contact AT openbankproject DOT com</a></li>
+                <li>Email <a href="mailto:contact AT openbankproject DOT com">contact AT openbankproject DOT com</a></li>
                 <li>Twitter <a href="https://twitter.com/openbankproject">@OpenBankProject</a></li>
                 <li>Slack <a href="https://openbankproject.slack.com/">openbankproject.slack.com</a></li>
             </ul>
@@ -65,10 +65,103 @@ Berlin 13359, Germany
 
     </div>
 
+
+	<div id="main-apis">
+		<h1>Your APIs</h1>
+		<div class="main-apis-row">
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-accounts.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Accounts</h2>
+				<p>Access the user's list of accounts and account information such a the balance</p>
+			</div>
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-branches.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Branches, ATMs</h2>
+				<p>Access list of branches and ATMs for the specified bank including geolocation and opening hours</p>
+			</div>
+		</div>
+
+		<div class="main-apis-row">
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-transactions.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Transactions</h2>
+				<p>Access transaction history related to a specified account</p>
+			</div>
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-metadata.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Metadata</h2>
+				<p>Enrich transactions with a list metadata such as geolocation, comments, pictures and tags (e.g. category of spending)</p>
+			</div>
+		</div>
+
+		<div class="main-apis-row">
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-counterparties.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Counterparties</h2>
+				<p>Access list of payers & payees for a specified account including counterparty logo, url and other information</p>
+			</div>
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-entitlements.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Entitlements</h2>
+				<p>Enable the account holder to grant different access-levels to third-parties. For instance, in the case of a business account, an auditor can have a full read-only access to the account while a coworker might only access the balance</p>
+			</div>
+		</div>
+
+		<div class="main-apis-row">
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-messages.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Customer messages</h2>
+				<p>Send message from the specified user to the bank. Ideally to collect feedback or enable chat functionality</p>
+			</div>
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-security.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Security challenges</h2>
+				<p>Add an extra layer of security by using a generic challenge / response mechanism for sensitive operations e.g. to progress a transfer, the user must supply a mobile TAN</p>
+			</div>
+		</div>
+		<div class="main-apis-row">
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-requests.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>Payments & Transaction requests</h2>
+				<p>Make a fund transfer from the user specified account to another account or enable a third party app to initiate a transaction / request a payment (as per PSD2)</p>
+			</div>
+			<div class="main-apis-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-kyc.png" width="100" height="100" />
+			</div>
+			<div class="main-apis-cell">
+				<h2>KYC</h2>
+				<p>Perform account opening and record data from Know-your-customer operations (save documents, media, KYC status related to an account opening)</p>
+			</div>
+		</div>
+	</div>
+
+
+	<div id="main-apiexplorer">
+       	<a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">Go to API Explorer</a>
+	</div>
+
+
     <div id="main-partners" class="lift:WebUI.createMainPartners">
         <a href="">
             <img src="" alt="">
         </a>
-        <span class="stretch"></span>
     </div>
 </div>

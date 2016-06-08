@@ -240,16 +240,64 @@ input.submit {
     margin-top: 15px;
 }
 
-#main-partners {
-	width: 900px;
-	padding: 30px 50px 50px 100px;
-	margin-top: 90px;
-	margin-left: auto;
-	margin-right: auto;
 
+#main-apis {
+	text-align: left;
+	/*margin: 60px 0 60px 0;*/
+	margin: 40px auto;
+	display: table;
+}
+.main-apis-row {
+	display: table-row;
+}
+.main-apis-cell {
+	display: table-cell;
+	vertical-align: top;
+	padding-bottom: 30px;
+}
+.main-apis-cell:nth-child(1) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(2) {
+	width: 40%;
+}
+.main-apis-cell:nth-child(3) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(4) {
+	width: 40%;
+}
+
+#main-apis h1 {
 	text-align: center;
-	-ms-text-justify: distribute-all-lines;
-	text-justify: distribute-all-lines;
+	font-weight: bold;
+	font-size: 35px;
+	margin: 30px 0 30px 0;
+	display: table-caption;
+}
+#main-apis h2 {
+	font-weight: bold;
+	font-size: 24px;
+	margin-top: 13px;
+}
+
+#main-apiexplorer {
+	width: 300px;
+	margin: 30px auto;
+	text-align:center;
+}
+#main-apiexplorer a {
+	border: 3px solid green;
+	border-radius: 25px;
+	color: green;
+	padding: 10px;
+	font-size: 24px;
+}
+
+
+#main-partners {
+	margin: 50px auto 0 auto;
+	text-align: center;
 }
 
 #main-partners img {
@@ -261,7 +309,7 @@ input.submit {
     display: inline-block;
     *display: inline;
     /* zoom: 1; */
-    margin: 30px 60px 75px 0px;
+    margin: 30px 30px 30px 30px;
 }
 
 .stretch {
@@ -672,18 +720,18 @@ span.alias_indicator_private {
     padding: 2px;
 }
 
+
 #footer {
-	padding: 100px 0px 15px 50px;
-    font-size: 10px;
-    color: #B3B3B3;
-	margin-bottom: 40px;
+	margin-top: 20px;
+	padding: 50px 0px 50px 0px;
+    color: #999999;
+    background-color: #3C3C3C;
+    text-align: center;
+}
+#footer a {
+    color: white;
 }
 
-#footer p {
-	color: #999999;
-	text-align: center;
-	line-height: 1.5
-}
 
 #authorizeSection {
     background-color: #53C4EF;
@@ -909,6 +957,3 @@ span#accountsMsg {
 #login_special_instructions {
     text-align: left;
 }
-
-
-
