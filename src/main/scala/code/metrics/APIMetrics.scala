@@ -1,6 +1,6 @@
 package code.metrics
 
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 import java.util.{Calendar, Date}
 
 object APIMetrics extends SimpleInjector {
@@ -8,6 +8,10 @@ object APIMetrics extends SimpleInjector {
   val apiMetrics = new Inject(buildOne _) {}
 
   def buildOne: APIMetrics = ElasticsearchMetrics
+    Props.getBool("allow_elasticsearch", false) match {
+      case false => MappedMetrics
+      case true => ElasticsearchMetrics
+    }
 
   /**
    * Returns a Date which is at the start of the day of the date
