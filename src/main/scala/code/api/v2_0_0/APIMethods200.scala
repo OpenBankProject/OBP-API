@@ -1699,17 +1699,39 @@ trait APIMethods200 {
       "/search",
       "Search Warehouse Data",
       """
-        |Search warehouse data via Elastic Search
+        |Search warehouse data via Elastic Search.
         |
         |Login is required.
         |
-        |CanSearchWarehouse entitlement is requred for the logged-in user.
+        |CanSearchWarehouse entitlement is required for the logged-in user.
         |
-        |example usage:
+        |
+        |parameters:
+        |
+        | q       - plain_text_query
+        |
+        | source  - json_html_escaped_query
+        |
+        | esType  - elasticsearch_type
+        |
+        | esIndex - elasticsearch_index
+        |
+        |
+        | example usage:
         |
         | /search/esIndex=metrics&q=findThis
         |
-      """.stripMargin,
+        |or:
+        |
+        | /search/esIndex=metrics&source={"query":{"query_string":{"query":"findThis"}}}
+        |
+        |
+        |Note:
+        |
+        |JSON query needs to be URL-encoded:
+        |{=%7B }=%7D :=%3A "=%22 ...
+        |
+      """,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,

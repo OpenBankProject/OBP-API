@@ -62,11 +62,12 @@ class elasticsearch {
     val source = params.getOrElse("source","")
     val filteredParams = params -- Set("esIndex", "esType")
     val jsonQuery = Json.encode(filteredParams)
+    //TODO: Workaround - HTTP and TCP ports differ. Should there be props entry for both?
     val httpHost = ("http://" +  esHost).replaceAll("9300", "9200")
     val esUrl =
       if (q != "")
         Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("q", q)))
-      else if (q == "" && source == "")
+      else if (q == "" && source != "")
         Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", source)))
       else
         ""
