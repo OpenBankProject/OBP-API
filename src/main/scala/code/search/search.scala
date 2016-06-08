@@ -52,16 +52,25 @@ class elasticsearch {
   def searchProxy(queryString: String): LiftResponse = {
       val request = constructQuery(getParameters(queryString))
       val response = getAPIResponse(request)
-      JsonResponse(response.body, ("Access-Control-Allow-Origin","*") :: Nil, Nil, response.code)
+      JsonResponse(compactRender(response.body), ("Access-Control-Allow-Origin","*") :: Nil, Nil, response.code)
     }
 
   private def constructQuery(params: Map[String, String]): Req = {
     val esType = params.getOrElse("esType", "")
     val esIndex = params.getOrElse("esIndex", "")
+    val q = params.getOrElse("q", "")
+    val source = params.getOrElse("source","")
     val filteredParams = params -- Set("esIndex", "esType")
     val jsonQuery = Json.encode(filteredParams)
     val httpHost = ("http://" +  esHost).replaceAll("9300", "9200")
-    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", jsonQuery)))
+    val esUrl =
+      if (q != "")
+        Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("q", q)))
+      else if (q == "" && source == "")
+        Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", source)))
+      else
+        ""
+    println("[ES.URL]===> " + esUrl)
     url(esUrl).GET
   }
 

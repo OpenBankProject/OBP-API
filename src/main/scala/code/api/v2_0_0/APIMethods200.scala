@@ -1705,6 +1705,9 @@ trait APIMethods200 {
         |
         |CanSearchWarehouse entitlement is requred for the logged-in user.
         |
+        |example usage:
+        |
+        | /search/esIndex=metrics&q=findThis
         |
       """.stripMargin,
       emptyObjectJson,
