@@ -22,18 +22,24 @@ connector=mapped
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
+
 #ElasticSearch
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true
 #allow_elasticsearch_metrics=true
 
 #ElasticSearch warehouse
-#es.warehouse.host=http://localhost:9200
 #es.warehouse.index=warehouse
+#es.warehouse.host=localhost
+#es.warehouse.port.tcp=9300
+#es.warehouse.port.http=9200
 
 #ElasticSearch metrics
-#es.metrics.host=http://localhost:9200
 #es.metrics.index=metrics
+#es.metrics.host=localhost
+#es.metrics.port.tcp=9300
+#es.metrics.port.http=9200
+
 
 #you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver

@@ -9,7 +9,8 @@ object ElasticsearchMetrics extends APIMetrics {
 
   override def saveMetric(userId: String, url: String, date: Date): Unit = {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
-      elasticsearchMetrics.indexMetric(userId, url, date)
+      val es = new elasticsearchMetrics
+      es.indexMetric(userId, url, date)
     }
     MappedMetric.create.url(url).date(date).save
   }
