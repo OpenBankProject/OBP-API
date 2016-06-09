@@ -1718,11 +1718,11 @@ trait APIMethods200 {
           |
           | example usage:
           |
-          | /warehouse/search/q=findThis
+          | /search/warehouse/q=findThis
           |
           |or:
           |
-          | /warehouse/search/source={"query":{"query_string":{"query":"findThis"}}}
+          | /search/warehouse/source={"query":{"query_string":{"query":"findThis"}}}
           |
           |
           |Note:
@@ -1781,11 +1781,11 @@ trait APIMethods200 {
           |
           | example usage:
           |
-          | /metrics/search/q=findThis
+          | /search/metrics/q=findThis
           |
           |or:
           |
-          | /metrics/search/source={"query":{"query_string":{"query":"findThis"}}}
+          | /search/metrics/source={"query":{"query_string":{"query":"findThis"}}}
           |
           |
           |Note:
