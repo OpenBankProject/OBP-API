@@ -196,11 +196,6 @@ class Boot extends Loggable{
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
-    // ElasticSearch metrics endpoint
-    if(Props.getBool("allow_metrics_elasticsearch", true)) {
-      LiftRules.statelessDispatch.append(ElasticSearchMetrics)
-    }
-
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)

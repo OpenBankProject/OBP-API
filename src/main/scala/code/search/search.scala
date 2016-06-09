@@ -33,11 +33,12 @@ import com.sksamuel.elastic4s.source.Indexable
 
 class elasticsearch {
 
-  case class QueryStrings(esType: String, queryStr: String)
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
 
   val esHost = ""
+  val esType = ""
+  val esIndex = ""
 
   def getAPIResponse(req: Req): APIResponse = {
     Await.result(
@@ -57,7 +58,6 @@ class elasticsearch {
 
   private def constructQuery(params: Map[String, String]): Req = {
     val esType = params.getOrElse("esType", "")
-    val esIndex = params.getOrElse("esIndex", "")
     val q = params.getOrElse("q", "")
     val source = params.getOrElse("source","")
     val filteredParams = params -- Set("esIndex", "esType")
@@ -90,15 +90,12 @@ class elasticsearch {
 }
 
 
-object elasticsearchWarehouse extends elasticsearch {
-  override val esHost = Props.get("es.warehouse.host","localhost:9300")
-  val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
-}
-
-
-class elasticsearchMetrics extends elasticsearch {
+object elasticsearchMetrics extends elasticsearch {
   override val esHost = Props.get("es.metrics.host","localhost:9300")
+  override val esIndex = Props.get("es.metrics.index", "")
+
   val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
+
   val metricsIndex = Props.get("es.metrics.index","metrics")
   client.execute { create index metricsIndex }
   client.execute {
@@ -120,11 +117,19 @@ class elasticsearchMetrics extends elasticsearch {
           )
       }
     }
+
+}
+
+object elasticsearchWarehouse extends elasticsearch {
+  override val esHost = Props.get("es.warehouse.host","localhost:9300")
+  override val esIndex = Props.get("es.warehouse.index", "")
+  val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
 }
 
 
-class elasticsearchOBP extends elasticsearch {
+object elasticsearchOBP extends elasticsearch {
   override val esHost = Props.get("es.obp.host","localhost:9300")
+  override val esIndex = Props.get("es.obp.index", "")
   val client = ElasticClient.transport("elasticsearch://" + esHost + ",")
 
   val accountIndex     = "account_v1.2.1"

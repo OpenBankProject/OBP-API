@@ -11,7 +11,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
-import code.search.{elasticsearch, elasticsearchWarehouse}
+import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 //import code.api.v2_0_0.{CreateCustomerJson}
 
 import code.model.dataAccess.OBPUser
@@ -1696,34 +1696,32 @@ trait APIMethods200 {
       apiVersion,
       "elasticSearchWarehouse",
       "GET",
-      "/search",
-      "Search Warehouse Data",
+      "/warehouse/search",
+      "Search Warehouse Data Via Elasticsearch",
       """
         |Search warehouse data via Elastic Search.
         |
         |Login is required.
         |
-        |CanSearchWarehouse entitlement is required for the logged-in user.
+        |CanSearchWarehouse entitlement is required to search warehouse data.
         |
         |
         |parameters:
         |
         | q       - plain_text_query
         |
-        | source  - json_html_escaped_query
+        | source  - JSON_query_(URL-escaped)
         |
-        | esType  - elasticsearch_type
-        |
-        | esIndex - elasticsearch_index
+        | esType  - elasticsearch type
         |
         |
         | example usage:
         |
-        | /search/esIndex=metrics&q=findThis
+        | /warehouse/search/q=findThis
         |
         |or:
         |
-        | /search/esIndex=metrics&source={"query":{"query_string":{"query":"findThis"}}}
+        | /warehouse/search/source={"query":{"query_string":{"query":"findThis"}}}
         |
         |
         |Note:
@@ -1740,23 +1738,83 @@ trait APIMethods200 {
       false,
       List())
 
-    val es = elasticsearchWarehouse
-
     lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "search" :: queryString :: Nil JsonGet _ => {
+      case "warehouse" :: "search" :: queryString :: Nil JsonGet _ => {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             b <- Bank.all.headOption //TODO: This is a temp workaround
             canSearchWarehouse <- Entitlements.entitlementProvider.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "User is not allowed to search warehouse!"
           } yield {
-              successJsonResponse(Extraction.decompose(es.searchProxy(queryString)))
+              successJsonResponse(Extraction.decompose(elasticsearchWarehouse.searchProxy(queryString)))
           }
       }
     }
 
 
+    resourceDocs += ResourceDoc(
+      elasticSearchMetrics,
+      apiVersion,
+      "elasticSearchMetrics",
+      "GET",
+      "/metrics/search",
+      "Search Metrics Data Via Elasticsearch",
+      """
+        |Search metrics data via Elastic Search.
+        |
+        |Login is required.
+        |
+        |CanSearchMetrics entitlement is required to search warehouse data.
+        |
+        |
+        |parameters:
+        |
+        | q       - plain_text_query
+        |
+        | source  - JSON_query_(URL-escaped)
+        |
+        | esType  - elasticsearch type
+        |
+        |
+        | example usage:
+        |
+        | /metrics/search/q=findThis
+        |
+        |or:
+        |
+        | /metrics/search/source={"query":{"query_string":{"query":"findThis"}}}
+        |
+        |
+        |Note:
+        |
+        |JSON query needs to be URL-encoded:
+        |{=%7B }=%7D :=%3A "=%22 ...
+        |
+      """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List())
+
+    lazy val elasticSearchMetrics: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "metrics" :: "search" :: queryString :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            b <- Bank.all.headOption //TODO: This is a temp workaround
+            canSearchMetrics <- Entitlements.entitlementProvider.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "User is not allowed to search metrics!"
+          } yield {
+            successJsonResponse(Extraction.decompose(elasticsearchMetrics.searchProxy(queryString)))
+          }
+      }
+    }
+
   }
+
+
 }
 
 object APIMethods200 {

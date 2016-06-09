@@ -8,7 +8,7 @@ object APIMetrics extends SimpleInjector {
   val apiMetrics = new Inject(buildOne _) {}
 
   def buildOne: APIMetrics = ElasticsearchMetrics
-    Props.getBool("allow_elasticsearch", false) match {
+    Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) match {
       case false => MappedMetrics
       case true => ElasticsearchMetrics
     }

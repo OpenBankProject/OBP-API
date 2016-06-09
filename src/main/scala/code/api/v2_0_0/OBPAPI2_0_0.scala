@@ -1,40 +1,41 @@
 /**
-Open Bank Project - API
-Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
-Osloerstrasse 16/17
-Berlin 13359, Germany
-
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Stefan Bethge : stefan AT tesobe DOT com
-  Everett Sochowski : everett AT tesobe DOT com
-  Ayoub Benali: ayoub AT tesobe DOT com
-
-  */
+  * Open Bank Project - API
+  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+  **
+  *This program is free software: you can redistribute it and/or modify
+  *it under the terms of the GNU Affero General Public License as published by
+  *the Free Software Foundation, either version 3 of the License, or
+  *(at your option) any later version.
+  **
+  *This program is distributed in the hope that it will be useful,
+  *but WITHOUT ANY WARRANTY; without even the implied warranty of
+  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  *GNU Affero General Public License for more details.
+  **
+  *You should have received a copy of the GNU Affero General Public License
+*along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  **
+ *Email: contact@tesobe.com
+*TESOBE / Music Pictures Ltd
+*Osloerstrasse 16/17
+*Berlin 13359, Germany
+  **
+ *This product includes software developed at
+  *TESOBE (http://www.tesobe.com/)
+  * by
+  *Simon Redfern : simon AT tesobe DOT com
+  *Stefan Bethge : stefan AT tesobe DOT com
+  *Everett Sochowski : everett AT tesobe DOT com
+  *Ayoub Benali: ayoub AT tesobe DOT com
+  *
+ */
 package code.api.v2_0_0
 
 import code.api.OBPRestHelper
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import net.liftweb.common.Loggable
+import net.liftweb.util.Props
 
 object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
@@ -172,14 +173,25 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.getCurrentUser,
     Implementations2_0_0.createUserCustomerLinks,
     Implementations2_0_0.addEntitlements,
-    Implementations2_0_0.getEntitlements,
-    Implementations2_0_0.elasticSearchWarehouse
+    Implementations2_0_0.getEntitlements
   )
 
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
   })
 
+  if (Props.getBool("allow_elasticsearch", false)) {
+    if (Props.getBool("allow_elasticsearch_warehouse", false)) {
+      oauthServe(apiPrefix {
+        Implementations2_0_0.elasticSearchWarehouse
+      })
+    }
+    if (Props.getBool("allow_elasticsearch_metrics", false)) {
+      oauthServe(apiPrefix {
+        Implementations2_0_0.elasticSearchMetrics
+      })
+    }
+  }
 
 
 }

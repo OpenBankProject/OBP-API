@@ -3,13 +3,14 @@ package code.metrics
 import java.util.Date
 
 import code.search.elasticsearchMetrics
+import net.liftweb.util.Props
 
 object ElasticsearchMetrics extends APIMetrics {
 
-  val es = new elasticsearchMetrics
-
   override def saveMetric(userId: String, url: String, date: Date): Unit = {
-    es.indexMetric(userId, url, date)
+    if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
+      elasticsearchMetrics.indexMetric(userId, url, date)
+    }
     MappedMetric.create.url(url).date(date).save
   }
 
