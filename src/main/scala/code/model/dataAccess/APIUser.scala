@@ -88,8 +88,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def provider = provider_.get
   def views: List[View] = views_.toList
 
-  // Roles interface
-  // Not sure if this is a good API since the list will grow.
+  // Depreciated. Do not use.///////////////
   def isCrmAdmin : Boolean = hasCrmAdminRole
   def isCrmReader : Boolean = hasCrmReaderRole
   def isCustomerMessageAdmin : Boolean = hasCustomerMessageAdminRole
@@ -97,7 +96,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def isBranchReader : Boolean = hasBranchReaderRole
   def isAtmReader : Boolean = hasAtmReaderRole
   def isProductReader : Boolean = hasProductReaderRole
-  //
+  ////////////////////////////////////////////////////
 }
 
 object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{
