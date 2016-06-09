@@ -45,7 +45,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
-  val routes = List(
+  var routes = List(
     Implementations1_2_1.root(VERSION),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
@@ -176,22 +176,18 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.getEntitlements
   )
 
+  if (Props.getBool("allow_elasticsearch", false)) {
+    if (Props.getBool("allow_elasticsearch_warehouse", false))
+      routes = Implementations2_0_0.elasticSearchWarehouse :: routes
+    if (Props.getBool("allow_elasticsearch_metrics", false))
+      routes = Implementations2_0_0.elasticSearchMetrics :: routes
+  }
+
   routes.foreach(route => {
     oauthServe(apiPrefix{route})
   })
 
-  if (Props.getBool("allow_elasticsearch", false)) {
-    if (Props.getBool("allow_elasticsearch_warehouse", false)) {
-      oauthServe(apiPrefix {
-        Implementations2_0_0.elasticSearchWarehouse
-      })
-    }
-    if (Props.getBool("allow_elasticsearch_metrics", false)) {
-      oauthServe(apiPrefix {
-        Implementations2_0_0.elasticSearchMetrics
-      })
-    }
-  }
+
 
 
 }

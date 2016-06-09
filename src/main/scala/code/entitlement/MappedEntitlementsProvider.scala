@@ -53,5 +53,5 @@ with LongKeyedMapper[MappedEntitlement] with IdPK with CreatedUpdated {
 }
 
 object MappedEntitlement extends MappedEntitlement with LongKeyedMetaMapper[MappedEntitlement] {
-  override def dbIndexes = UniqueIndex(mEntitlementId) :: UniqueIndex(mUserId, mBankId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mEntitlementId) :: super.dbIndexes
 }
