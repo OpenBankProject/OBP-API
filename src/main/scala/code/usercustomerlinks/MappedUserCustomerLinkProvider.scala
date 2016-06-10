@@ -1,10 +1,7 @@
 package code.usercustomerlinks
 
 import java.util.Date
-
-import code.customer.Customer
-import code.model.{User, BankId}
-import code.util.{DefaultStringField}
+import code.util.{MappedUUID, DefaultStringField}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -13,12 +10,11 @@ import net.liftweb.mapper._
  */
 object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
 
-  override def createUserCustomerLink(userId: String, customerId: String, bankId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
+  override def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink] = {
 
     val createUserCustomerLink = MappedUserCustomerLink.create
       .mUserId(userId)
       .mCustomerId(customerId)
-      .mBankId(bankId)
       .mDateInserted(new Date())
       .mIsActive(isActive)
       .saveMe()
@@ -44,15 +40,15 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
 
   // Name the objects m* so that we can give the overridden methods nice names.
   // Assume we'll have to override all fields so name them all m*
+  object mUserCustomerLinkId extends MappedUUID(this)
   object mCustomerId extends DefaultStringField(this)
-  object mBankId extends DefaultStringField(this)
   object mUserId extends DefaultStringField(this)
   object mDateInserted extends MappedDateTime(this)
   object mIsActive extends MappedBoolean(this)
 
+  override def userCustomerLinkId: String = mUserCustomerLinkId.get
   override def customerId: String = mCustomerId.get // id.toString
   override def userId: String = mUserId.get
-  override def bankId : String = mBankId.get
   override def dateInserted: Date = mDateInserted.get
   override def isActive: Boolean = mIsActive
 
@@ -61,5 +57,5 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
 }
 
 object MappedUserCustomerLink extends MappedUserCustomerLink with LongKeyedMetaMapper[MappedUserCustomerLink] {
-  override def dbIndexes = UniqueIndex(mUserId, mCustomerId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mUserCustomerLinkId) :: UniqueIndex(mUserId, mCustomerId) :: super.dbIndexes
 }

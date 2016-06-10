@@ -1584,14 +1584,14 @@ trait APIMethods200 {
       apiVersion,
       "createUserCustomerLinks",
       "POST",
-      "/banks/BANK_ID/UserCustomerLinks",
+      "/banks/user_customer_links",
       "Create user customer link.",
       """Link a customer and an user
         |This call may require additional permissions/role in the future.
         |For now the authenticated user can create at most one linked customer.
         |OAuth authentication is required.
         |""",
-      emptyObjectJson,
+      Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -1600,16 +1600,17 @@ trait APIMethods200 {
       List(apiTagCustomer))
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "UserCustomerLinks" :: Nil JsonPost json -> _ => {
+      case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~! "User must be logged in to post Customer"
-            bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
-            user_id <- tryo(u.userId.isEmpty) ?~! "Field user_id is not defined for the logged user!"
-            customer_user <- User.findByUserId(u.userId) ?~! ErrorMessages.UserNotFoundById
-            customer <- tryo(Customer.customerProvider.vend.getCustomer(bankId, customer_user).get) ?~! ErrorMessages.CustomerNotFound
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLinkProvider.vend.getUserCustomerLink(u.userId, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLinkProvider.vend.createUserCustomerLink(u.userId, customer.customerId, bankId.value.toString, exampleDate, true) ?~! "Could not create userCustomerLink"
+            u <- user ?~! "User must be logged in to post user customer link"
+            postedData <- tryo{json.extract[CreateUserCustomerLinkJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~ "Field user_id is not defined in the posted json!"
+            user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
+            customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLinkProvider.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLinkProvider.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)

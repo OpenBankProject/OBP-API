@@ -14,6 +14,8 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("testBank1")
 
+  val mocCustomerId = "ddfc0cf8-82a0-42eb-9027-8cfb0e7988c9"
+
   case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
 
   case class MockCustomer(customerId: String, number: String, mobileNumber: String,
@@ -33,6 +35,11 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
 
     override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
       if(bankId == mockBankId) Full(mockCustomer)
+      else Empty
+    }
+
+    override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
+      if(customerId == mocCustomerId) Full(mockCustomer)
       else Empty
     }
 
