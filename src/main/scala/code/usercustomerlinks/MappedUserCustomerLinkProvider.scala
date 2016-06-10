@@ -57,5 +57,5 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
 }
 
 object MappedUserCustomerLink extends MappedUserCustomerLink with LongKeyedMetaMapper[MappedUserCustomerLink] {
-  override def dbIndexes = UniqueIndex(mUserCustomerLinkId) :: UniqueIndex(mUserId, mCustomerId) :: super.dbIndexes
+  override def dbIndexes = UniqueIndex(mUserCustomerLinkId) :: super.dbIndexes
 }
