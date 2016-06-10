@@ -112,12 +112,14 @@ case class MeetingPresentJSON(
 
   )
 
-case class UserCustomerLinkJSON(customer_id: String,
+case class UserCustomerLinkJSON(user_customer_link_id: String,
+                                customer_id: String,
                                 user_id: String,
-                                bank_id: String,
                                 date_inserted: Date,
                                 is_active: Boolean)
 case class UserCustomerLinkJSONs(l: List[UserCustomerLinkJSON])
+
+case class CreateUserCustomerLinkJSON(user_id: String, customer_id: String)
 
 class BasicViewJSON(
   val id: String,
@@ -759,9 +761,9 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
   }
 
   def createUserCustomerLinkJSON(ucl: code.usercustomerlinks.UserCustomerLink) = {
-    UserCustomerLinkJSON(customer_id = ucl.customerId,
+    UserCustomerLinkJSON(user_customer_link_id = ucl.userCustomerLinkId,
+      customer_id = ucl.customerId,
       user_id = ucl.userId,
-      bank_id = ucl.bankId,
       date_inserted = ucl.dateInserted,
       is_active = ucl.isActive
     )

@@ -31,6 +31,12 @@ object MappedCustomerProvider extends CustomerProvider {
       By(MappedCustomer.mBank, bankId.value))
   }
 
+  override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
+    MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    )
+  }
+
   override def getUser(bankId: BankId, customerNumber: String): Box[User] = {
     MappedCustomer.find(
       By(MappedCustomer.mBank, bankId.value),

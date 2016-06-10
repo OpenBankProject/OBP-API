@@ -17,6 +17,8 @@ object Customer extends SimpleInjector {
 trait CustomerProvider {
   def getCustomer(bankId : BankId, user : User) : Box[Customer]
 
+  def getCustomerByCustomerId(customerId: String): Box[Customer]
+
   def getUser(bankId : BankId, customerNumber : String) : Box[User]
 
   def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean
