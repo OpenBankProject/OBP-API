@@ -95,26 +95,35 @@ class elasticsearchMetrics extends elasticsearch {
 
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
     client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
-    client.execute { create index esIndex }
-    client.execute {
-      create index esIndex mappings (
+    try {
+      client.execute {
+        create index esIndex mappings (
         "request" as (
           "userId" typed StringType,
           "url" typed StringType,
           "date" typed DateType
           )
         )
+      }
+    }
+    catch {
+      case e:Throwable => println("ERROR - "+ e.getMessage )
     }
   }
 
   def indexMetric(userId: String, url: String, date: Date) {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
-      client.execute {
-        index into esIndex / "request" fields (
-          "userId" -> userId,
-          "url" -> url,
-          "date" -> date
-          )
+      try {
+        client.execute {
+          index into esIndex / "request" fields (
+            "userId" -> userId,
+            "url" -> url,
+            "date" -> date
+            )
+        }
+      }
+      catch {
+        case e:Throwable => println("ERROR - "+ e.getMessage )
       }
     }
   }
