@@ -1681,7 +1681,7 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+              // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
               entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
             }
             yield {
@@ -1733,11 +1733,12 @@ trait APIMethods200 {
           |Note!!
           |
           |The whole JSON query string MUST be URL-encoded:
-          |i.e.
-          |For {  use %7B
-          |For }  use %7D
-          |For : use %3A
-          |For " use %22
+          |
+          |* For {  use %7B
+          |* For }  use %7D
+          |* For : use %3A
+          |* For " use %22
+          |
           |etc..
           |
           |
@@ -1812,11 +1813,12 @@ trait APIMethods200 {
           |Note!!
           |
           |The whole JSON query string MUST be URL-encoded:
-          |i.e.
-          |For {  use %7B
-          |For }  use %7D
-          |For : use %3A
-          |For " use %22
+          |
+          |* For {  use %7B
+          |* For }  use %7D
+          |* For : use %3A
+          |* For " use %22
+          |
           |etc..
           |
           |
