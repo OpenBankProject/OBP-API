@@ -1692,7 +1692,7 @@ trait APIMethods200 {
       }
     }
 
-    if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
+    //if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
       resourceDocs += ResourceDoc(
         elasticSearchWarehouse,
         apiVersion,
@@ -1705,10 +1705,14 @@ trait APIMethods200 {
           |
           |Login is required.
           |
-          |CanSearchWarehouse entitlement is required to search warehouse data.
+          |CanSearchWarehouse entitlement is required to search warehouse data!
+          |
+          |Send your email, name, project name and user_id to the admins to get access.
+          |
+          |Elastic (search) is used in the background. See links below for syntax.
           |
           |
-          |parameters:
+          |Parameters:
           |
           | q       - plain_text_query
           |
@@ -1717,19 +1721,34 @@ trait APIMethods200 {
           | esType  - elasticsearch type
           |
           |
-          | example usage:
+          | Example usage:
           |
-          | /search/warehouse/q=findThis
+          |GET /search/warehouse/q=findThis
           |
           |or:
           |
-          | /search/warehouse/source={"query":{"query_string":{"query":"findThis"}}}
+          |GET /search/warehouse/source={"query":{"query_string":{"query":"findThis"}}}
           |
           |
-          |Note:
+          |Note!!
           |
-          |JSON query needs to be URL-encoded:
-          |{=%7B }=%7D :=%3A "=%22 ...
+          |The whole JSON query string MUST be URL-encoded:
+          |i.e.
+          |For {  use %7B
+          |For }  use %7D
+          |For : use %3A
+          |For " use %22
+          |etc..
+          |
+          |
+          |
+          |Only q, source and esType are passed to Elastic
+          |
+          |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+          |
+          |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+          |
+          |You can specify the esType thus: /search/warehouse/esType=type&q=a
           |
         """,
         emptyObjectJson,
@@ -1739,7 +1758,7 @@ trait APIMethods200 {
         false,
         false,
         List())
-    }
+    //}
 
     lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "search" :: "warehouse" :: queryString :: Nil JsonGet _ => {
@@ -1755,20 +1774,21 @@ trait APIMethods200 {
       }
     }
 
-    if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
+    // TODO Put message into doc below if not enabled (but continue to show API Doc)
+    // if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
       resourceDocs += ResourceDoc(
         elasticSearchMetrics,
         apiVersion,
         "elasticSearchMetrics",
         "GET",
         "/search/metrics",
-        "Search Metrics Data Via Elasticsearch",
+        "Search Metrics Data Via Elastic (search)",
         """
           |Search metrics data via Elastic Search.
           |
           |Login is required.
           |
-          |CanSearchMetrics entitlement is required to search warehouse data.
+          |CanSearchMetrics entitlement is required to search metrics data.
           |
           |
           |parameters:
@@ -1789,10 +1809,25 @@ trait APIMethods200 {
           | /search/metrics/source={"query":{"query_string":{"query":"findThis"}}}
           |
           |
-          |Note:
+          |Note!!
           |
-          |JSON query needs to be URL-encoded:
-          |{=%7B }=%7D :=%3A "=%22 ...
+          |The whole JSON query string MUST be URL-encoded:
+          |i.e.
+          |For {  use %7B
+          |For }  use %7D
+          |For : use %3A
+          |For " use %22
+          |etc..
+          |
+          |
+          |
+          |Only q, source and esType are passed to Elastic
+          |
+          |Elastic simple query: https://www.elastic.co/guide/en/elasticsearch/reference/current/search-uri-request.html
+          |
+          |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
+          |
+          |You can specify the esType thus: /search/warehouse/esType=type&q=a
           |
         """,
         emptyObjectJson,
@@ -1802,7 +1837,7 @@ trait APIMethods200 {
         false,
         false,
         List())
-    }
+    //}
 
     lazy val elasticSearchMetrics: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "search" :: "metrics" :: queryString :: Nil JsonGet _ => {
