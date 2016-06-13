@@ -55,17 +55,31 @@ class elasticsearch {
     val esType = params.getOrElse("esType", "")
     val q = params.getOrElse("q", "")
     val source = params.getOrElse("source","")
-    val filteredParams = params -- Set("esIndex", "esType")
-    val jsonQuery = Json.encode(filteredParams)
+    //val filteredParams = params -- Set("esIndex", "esType")
+    //val jsonQuery = Json.encode(filteredParams)
     //TODO: Workaround - HTTP and TCP ports differ. Should there be props entry for both?
     val httpHost = ("http://" +  esHost + ":" + esPortHTTP)
-    val esUrl =
-      if (q != "")
-        Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("q", q)))
-      else if (q == "" && source != "")
-        Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", Seq(("source", source)))
-      else
-        ""
+
+    var parameters = Seq[(String,String)]()
+    if (q != "") {
+      parameters = parameters ++ Seq(("q", q))
+      val size = params.getOrElse("size", "")
+      val sort = params.getOrElse("sort", "")
+      val from = params.getOrElse("from", "")
+      val df = params.getOrElse("df", "")
+      if (size != "")
+        parameters = parameters ++ Seq(("size", size))
+      if (sort != "")
+        parameters = parameters ++ Seq(("sort", sort))
+      if (from != "")
+        parameters = parameters ++ Seq(("from", from))
+      if (df != "")
+        parameters = parameters ++ Seq(("df", df))
+    }
+    else if (q == "" && source != "") {
+      parameters = Seq(("source", source))
+    }
+    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", parameters )
     println("[ES.URL]===> " + esUrl)
     url(esUrl).GET
   }
