@@ -74,7 +74,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
     implicit val formats = DefaultFormats
 
     //load json for counterpaties
-    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_020/OBP_sandbox_counterparties_pretty.json"
+    val counterpartyDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/Atmira/atmira_load_02/OBP_sandbox_counterparties_pretty.json"
 
     // This contains a list of counterparty lists. one list for each region
     val counerpartyListData = JsonParser.parse(Source.fromFile(counterpartyDataPath) mkString)
@@ -110,7 +110,7 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_020/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/Atmira/atmira_load_02/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
@@ -151,19 +151,20 @@ object PostCounterpartyMetadata extends SendServerRequests {
         }
 
 
-        // In the counterparty json, counterparties have a region (aka bank)
-        // However in sandboxes, the bank_id might also contain a suffix (version of the load).
-        // By convention use bank_id like region~version so we can split on ~ to get the region
 
         val bankId = a.bank_id.get
 
         println(s"bankId is ${bankId}")
 
-        // Convention: lets say that in a bank_id the part before -- is the region and after the -- is just a version
-        // e.g. given enbd-uae--g we would want to extract enbd-uae as the region
-        // Note we don' use ~ because it messes with OAuth signatures
-        val bits = bankId.split("--")
-        val region = bits(0)
+        // In the counterparty json, counterparties have a region which refers to the physical location area (for the purposes of local shops etc.)
+
+        // In sandboxes expect the format of bankId = s"$sandboxGroupName.$sandboxGroupInstance.$bankCode.$counterPartyCode"
+        // This is rather turning the bankId into a composite surrogate key but only for sandbox creation.
+
+        // Split by dot (.) except split can take a reg expression so must escape the .
+        val bits = bankId.split("\\.")
+
+        val region = bits(3) // Use the counterpartyCode from the bankId
 
         println(s"region is ${region}")
 
@@ -183,7 +184,8 @@ object PostCounterpartyMetadata extends SendServerRequests {
 
           var found = false
 
-          if (region == "enbd-lon" && records.size == 0 && name.toLowerCase().indexOf("police") > 0) debugBreak() else println(s"Condition not met. region is ${region} name is ${name}")
+          // region == "enbd-lon" &&
+          if (records.size == 0 && name.toLowerCase().indexOf("gas natural") > 0) debugBreak() // else println(s"Condition not met. region is ${region} name is ${name}")
 
           println(s"Found ${records.size} records")
 
