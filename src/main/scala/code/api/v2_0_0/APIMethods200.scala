@@ -1642,11 +1642,12 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+            user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
-            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, u.userId, role)) ?~ "Entitlement already exists"
-            addedEntitlement <- Entitlements.entitlementProvider.vend.addEntitlement(postedData.bank_id, u.userId, postedData.role_name)
+            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role)) ?~ "Entitlement already exists for the user"
+            addedEntitlement <- Entitlements.entitlementProvider.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -1682,7 +1683,7 @@ trait APIMethods200 {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
-              entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(u.userId)
+              entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(userId)
             }
             yield {
               // Format the data as V2.0.0 json
