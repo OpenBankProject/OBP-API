@@ -1712,16 +1712,28 @@ trait APIMethods200 {
           |Elastic (search) is used in the background. See links below for syntax.
           |
           |
-          |Parameters:
-          |
-          | q       - plain_text_query
-          |
-          | source  - JSON_query_(URL-escaped)
+          |parameters:
           |
           | esType  - elasticsearch type
           |
+          | simple query:
           |
-          | Example usage:
+          | q       - plain_text_query
+          |
+          | df      - default field to search
+          |
+          | sort    - field to sort on
+          |
+          | size    - number of hits returned, default 10
+          |
+          | from    - show hits starting from
+          |
+          | json query:
+          |
+          | source  - JSON_query_(URL-escaped)
+          |
+          |
+          |Example usage:
           |
           |GET /search/warehouse/q=findThis
           |
@@ -1793,14 +1805,26 @@ trait APIMethods200 {
           |
           |parameters:
           |
+          | esType  - elasticsearch type
+          |
+          | simple query:
+          |
           | q       - plain_text_query
+          |
+          | df      - default field to search
+          |
+          | sort    - field to sort on
+          |
+          | size    - number of hits returned, default 10
+          |
+          | from    - show hits starting from
+          |
+          | json query:
           |
           | source  - JSON_query_(URL-escaped)
           |
-          | esType  - elasticsearch type
           |
-          |
-          | example usage:
+          |example usage:
           |
           | /search/metrics/q=findThis
           |
