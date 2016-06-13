@@ -88,7 +88,7 @@ class elasticsearch {
 class elasticsearchMetrics extends elasticsearch {
   override val esHost     = Props.get("es.metrics.host","localhost")
   override val esPortTCP  = Props.get("es.metrics.port.tcp","9300")
-  override val esPortHTTP = Props.get("es.metrics.port.tcp","9200")
+  override val esPortHTTP = Props.get("es.metrics.port.http","9200")
   override val esIndex    = Props.get("es.metrics.index", "metrics")
 
   var client:ElasticClient = null
@@ -133,7 +133,7 @@ class elasticsearchMetrics extends elasticsearch {
 class elasticsearchWarehouse extends elasticsearch {
   override val esHost     = Props.get("es.warehouse.host","localhost")
   override val esPortTCP  = Props.get("es.warehouse.port.tcp","9300")
-  override val esPortHTTP = Props.get("es.warehouse.port.tcp","9200")
+  override val esPortHTTP = Props.get("es.warehouse.port.http","9200")
   override val esIndex    = Props.get("es.warehouse.index", "warehouse")
   var client:ElasticClient = null
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
