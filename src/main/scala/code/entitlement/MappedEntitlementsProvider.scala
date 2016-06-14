@@ -23,6 +23,11 @@ object MappedEntitlementsProvider extends EntitlementProvider {
       OrderBy(MappedEntitlement.updatedAt, Descending)))
   }
 
+  override def getEntitlements: Box[List[MappedEntitlement]] = {
+    // Return a Box so we can handle errors later.
+    Some(MappedEntitlement.findAll(OrderBy(MappedEntitlement.updatedAt, Descending)))
+  }
+
 
   override def addEntitlement(bankId: String, userId: String, roleName: String): Box[MappedEntitlement] = {
     // Return a Box so we can handle errors later.

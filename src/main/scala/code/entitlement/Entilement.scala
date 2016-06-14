@@ -14,6 +14,7 @@ object Entitlements extends SimpleInjector {
 trait EntitlementProvider {
   def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
   def getEntitlements(userId: String) : Box[List[Entitlement]]
+  def getEntitlements() : Box[List[Entitlement]]
   def addEntitlement(bankId: String, userId: String, roleName: String) : Box[MappedEntitlement]
 }
 

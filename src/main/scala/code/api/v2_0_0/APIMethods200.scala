@@ -1693,6 +1693,44 @@ trait APIMethods200 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getAllEntitlements,
+      apiVersion,
+      "getAllEntitlements",
+      "GET",
+      "/entitlements",
+      "Get all Entitlements",
+      """
+        |
+        |Login is required.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+
+
+    lazy val getAllEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "entitlements" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+            entitlements <- Entitlements.entitlementProvider.vend.getEntitlements
+          }
+          yield {
+            // Format the data as V2.0.0 json
+            val json = JSONFactory200.createEntitlementJSONs(entitlements)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
     //if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
       resourceDocs += ResourceDoc(
         elasticSearchWarehouse,
