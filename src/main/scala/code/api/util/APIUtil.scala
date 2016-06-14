@@ -76,6 +76,7 @@ object ErrorMessages {
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
 
   val UserNotFoundById = "OBP-20005: User not found by User Id."
+  val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
 
 
   // Resource related messages

@@ -1516,6 +1516,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
+            canCreateCustomer <- Entitlements.entitlementProvider.vend.getEntitlement(bank.bankId.value, u.userId, CanCreateCustomer.toString) ?~ {ErrorMessages.UserDoesNotHaveRole + CanCreateCustomer +"."}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
