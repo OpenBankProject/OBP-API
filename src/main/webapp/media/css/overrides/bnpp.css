@@ -4,6 +4,9 @@ body {
 	font-family: "BNPPRounded", "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
+#authorizeSection,
+#registerAppSection,
+#create-sandbox-account,
 #header-decoration {
     background-color: #499A5F !important;
 }
