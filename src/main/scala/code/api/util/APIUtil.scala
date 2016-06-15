@@ -599,7 +599,7 @@ object APIUtil extends Loggable {
   }
 
   def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
-    Entitlements.entitlementProvider.vend.getEntitlement(bankId, userId, role.toString).isEmpty
+    !Entitlements.entitlementProvider.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
 }
