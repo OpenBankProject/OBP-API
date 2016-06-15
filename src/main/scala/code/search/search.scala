@@ -1,28 +1,37 @@
 package code.search
 
-import code.api.v1_2_1.{AccountJSON, TransactionJSON}
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import dispatch.{Http, url}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import net.liftweb.http.{JsonResponse, LiftResponse}
+import net.liftweb.http.{InMemoryResponse, JsonResponse, LiftResponse}
 import net.liftweb.json.JsonAST._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Props
 import dispatch._
 import Defaults._
-import kafka.utils.Json
 import net.liftweb.json
 import java.util.Date
 
-import com.sksamuel.elastic4s.mappings.FieldType.{DateType, ObjectType, StringType}
+import com.sksamuel.elastic4s.mappings.FieldType.{DateType, StringType}
+import net.liftweb.http.provider.HTTPCookie
+import net.liftweb.json.JsonAST
+
 
 class elasticsearch {
 
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
+
+  case class ESJsonResponse(json: JsonAST.JValue, headers: List[(String, String)], cookies: List[HTTPCookie], code: Int) extends LiftResponse
+  {
+    def toResponse = {
+      val bytes = json.toString.getBytes("UTF-8")
+      InMemoryResponse(bytes, ("Content-Length", bytes.length.toString) :: ("Content-Type", "application/json; charset=utf-8") :: headers, cookies, code)
+    }
+  }
 
   val esHost = ""
   val esPortHTTP = ""
@@ -35,7 +44,7 @@ class elasticsearch {
     if (Props.getBool("allow_elasticsearch", false) ) {
       val request = constructQuery(getParameters(queryString))
       val response = getAPIResponse(request)
-      JsonResponse(compactRender(response.body), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
+      ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
       JsonResponse(json.JsonParser.parse("""{"error":"elasticsearch disabled"}"""), ("Access-Control-Allow-Origin", "*") :: Nil, Nil, 404)
     }
