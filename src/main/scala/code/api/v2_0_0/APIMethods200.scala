@@ -970,7 +970,7 @@ trait APIMethods200 {
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
       "Create an Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
       "Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)",
-      Extraction.decompose(CreateAccountJSON("CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
+      Extraction.decompose(CreateAccountJSON("An user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -993,20 +993,23 @@ trait APIMethods200 {
         user => {
 
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
             jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
+            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ s"Problem getting user_id"
+            postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
+            hasRoles <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, IsHackathonDeveloper) == true || hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true, s"Logged in user must have assigned role $CanCreateAccount or $IsHackathonDeveloper")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ s"Problem getting balance amount"
             accountType <- tryo(jsonBody.`type`) ?~ s"Problem getting type"
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidInitalBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~ s"Problem getting balance currency"
-            bank <- Bank(bankId) ?~ s"Bank $bankId not found"
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, u.name)
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
           } yield {
-            BankAccountCreation.setAsOwner(bankId, accountId, u)
+            BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
 
             val dataContext = DataContext(user, Some(bankAccount.bankId), Some(bankAccount.accountId), Empty, Empty, Empty)
             val links = code.api.util.APIUtil.getHalLinks(CallerContext(createAccount), codeContext, dataContext)
@@ -1647,7 +1650,7 @@ trait APIMethods200 {
             user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
-            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role)) ?~ "Entitlement already exists for the user"
+            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user.")
             addedEntitlement <- Entitlements.entitlementProvider.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)

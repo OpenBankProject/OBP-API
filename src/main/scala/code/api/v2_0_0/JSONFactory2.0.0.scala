@@ -142,7 +142,8 @@ case class BasicAccountJSON(
 
 // Json used in account creation
 case class CreateAccountJSON(
-                             `type` : String,
+                             user_id : String,
+                              `type` : String,
                              balance : AmountOfMoneyJSON
                            )
 
