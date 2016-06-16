@@ -395,7 +395,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               fromBank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~ {"Unknown bank account"}
+              fromAccount <- tryo(BankAccount(bankId, accountId).get) ?~! {ErrorMessages.AccountNotFound}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
             } yield {
