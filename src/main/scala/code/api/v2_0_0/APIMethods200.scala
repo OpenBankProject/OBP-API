@@ -1896,7 +1896,6 @@ trait APIMethods200 {
           |
           |Elastic JSON query: https://www.elastic.co/guide/en/elasticsearch/reference/current/query-filter-context.html
           |
-          |You can specify the esType thus: /search/warehouse/esType=type&q=a
           |
         """,
         emptyObjectJson,
