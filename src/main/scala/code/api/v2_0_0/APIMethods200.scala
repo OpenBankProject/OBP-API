@@ -1624,13 +1624,15 @@ trait APIMethods200 {
     }
 
     resourceDocs += ResourceDoc(
-      addEntitlements,
+      addEntitlement,
       apiVersion,
-      "addEntitlements",
+      "addEntitlement",
       "POST",
       "/users/USER_ID/entitlements",
-      "Add role to specific user.",
-      """Grants the Role to user. Creates an entitlement.
+      "Add Entitlement to a user.",
+      """Create Entitlement. Grant Role to User.
+        |
+        |Entitlements are used to grant system or bank level roles to users. (For account level privileges, see Views)
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
@@ -1641,7 +1643,7 @@ trait APIMethods200 {
       false,
       List())
 
-    lazy val addEntitlements : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addEntitlement : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
       case "users" :: userId :: "entitlements" :: Nil JsonPost json -> _ => {
         user =>
@@ -1703,8 +1705,8 @@ trait APIMethods200 {
       apiVersion,
       "deleteEntitlement",
       "DELETE",
-      "/users/USER_ID/entitlement/ENTITLEMENT",
-      "Delete Entitlement specified by ENTITLEMENT for an user specified by USER_ID",
+      "/users/USER_ID/entitlement/ENTITLEMENT_ID",
+      "Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID",
       """
         |
         |Authentication is required and the user needs to be a Super Admin.
