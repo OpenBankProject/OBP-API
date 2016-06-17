@@ -1,6 +1,7 @@
 package code.api.v2_0_0
 
-import code.api.{DefaultUsers, ServerSetupWithTestData}
+import code.api.util.ErrorMessages
+import code.api.{ErrorMessage, DefaultUsers, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
@@ -11,6 +12,7 @@ import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
+import code.api.util.ApiRole._
 
 class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V200ServerSetup {
 
@@ -25,6 +27,154 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //it with the correct account owners, and be sure that we don't even run into pagination problems
         accumulator + Connector.connector.vend.getTransactions(account.bankId, account.accountId).get.size
       })
+    }
+
+    // No challenge, No FX (same currencies)
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
+      ignore("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {}
+    } else {
+      scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {
+        val testBank = createBank("transactions-test-bank")
+        val bankId = testBank.bankId
+        val accountId1 = AccountId("__acc1")
+        val accountId2 = AccountId("__acc2")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+        addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        Then("We add entitlement to user3")
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        hasEntitlement should equal(true)
+
+        def getFromAccount: BankAccount = {
+          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        }
+
+        def getToAccount: BankAccount = {
+          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        }
+
+        val fromAccount = getFromAccount
+        val toAccount = getToAccount
+
+        val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+        val beforeFromBalance = fromAccount.balance
+        val beforeToBalance = toAccount.balance
+
+        //Create a transaction (request)
+        //1. get possible challenge types for from account
+        //2. create transaction request to to-account with one of the possible challenges
+        //3. answer challenge
+        //4. have a new transaction
+
+        val transactionRequestId = TransactionRequestId("__trans1")
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+
+        val amt = BigDecimal("12.50")
+        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        //call createTransactionRequest
+        var request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user3)
+        var response = makePostRequest(request, write(transactionRequestBody))
+        Then("we should get a 201 created code")
+        response.code should equal(201)
+
+        println(response.body)
+
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        val transRequestId: String = (response.body \ "id") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        Then("We should have some new transaction id")
+        transRequestId should not equal ("")
+
+        val responseBody = response.body
+
+
+        val status: String = (response.body \ "status") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+
+        // Challenge should be null (none required)
+        var challenge = (response.body \ "challenge").children
+        challenge.size should equal(0)
+
+        var transaction_ids = (response.body \ "transaction_ids") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        //If user does not have access to owner or other view - they won’t be able to view transaction. Hence they can’t see the transaction_id
+        transaction_ids should not equal("")
+
+        //call getTransactionRequests, check that we really created a transaction request
+        request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transaction-requests").GET <@(user1)
+        response = makeGetRequest(request)
+
+        Then("we should get a 200 ok code")
+        response.code should equal(200)
+        val transactionRequests = response.body.children
+        transactionRequests.size should not equal(0)
+
+
+        val tr2Body = response.body
+
+        //check transaction_ids again
+        transaction_ids = (response.body \ "transaction_requests_with_charges" \ "transaction_ids") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        transaction_ids should not equal("")
+
+        //make sure that we also get no challenges back from this url (after getting from db)
+        challenge = (response.body \ "challenge").children
+        challenge.size should equal(0)
+
+        //check that we created a new transaction (since no challenge)
+        request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transactions").GET <@(user1)
+        response = makeGetRequest(request)
+
+        Then("we should get a 200 ok code")
+        response.code should equal(200)
+        val transactions = response.body.children
+
+        transactions.size should equal(1)
+
+        //check that the description has been set
+        println(response.body)
+        /*val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        description should not equal ("")*/
+
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
+        //(do it here even though the payments test does test makePayment already)
+        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val convertedAmount = fx.convert(amt, rate)
+        val fromAccountBalance = getFromAccount.balance
+        And("the from account should have a balance smaller by the amount specified to pay")
+        fromAccountBalance should equal((beforeFromBalance - convertedAmount))
+
+        /*
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        */
+
+        And("the account receiving the payment should have a new balance plus the amount paid")
+        val toAccountBalance = getToAccount.balance
+        toAccountBalance should equal(beforeToBalance + convertedAmount)
+
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+        transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+      }
     }
 
 
@@ -164,6 +314,109 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+      }
+
+
+      scenario("we create a transaction request with a user without owner view access", TransactionRequest) {
+        val testBank = createBank("transactions-test-bank")
+        val bankId = testBank.bankId
+        val accountId1 = AccountId("__acc1")
+        val accountId2 = AccountId("__acc2")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+        def getFromAccount: BankAccount = {
+          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        }
+
+        def getToAccount: BankAccount = {
+          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        }
+
+        val fromAccount = getFromAccount
+        val toAccount = getToAccount
+
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+
+        val amt = BigDecimal("12.50")
+        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        //call createTransactionRequest with a user without owner view access
+        val request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@(user2)
+        val response = makePostRequest(request, write(transactionRequestBody))
+        Then("we should get a 400 created code")
+        response.code should equal(400)
+
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        val error: String = (response.body \ "error") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+      }
+
+
+
+
+
+      scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at a different BANK_ID", TransactionRequest) {
+        val testBank = createBank("transactions-test-bank")
+        val testBank2 = createBank("transactions-test-bank2")
+        val bankId = testBank.bankId
+        val bankId2 = testBank2.bankId
+        val accountId1 = AccountId("__acc1")
+        val accountId2 = AccountId("__acc2")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+
+        Then("We add entitlement to user3")
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        hasEntitlement should equal(true)
+
+        def getFromAccount: BankAccount = {
+          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        }
+
+        def getToAccount: BankAccount = {
+          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        }
+
+        val fromAccount = getFromAccount
+        val toAccount = getToAccount
+
+        val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+        val beforeFromBalance = fromAccount.balance
+        val beforeToBalance = toAccount.balance
+
+        val transactionRequestId = TransactionRequestId("__trans2")
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
+
+        val amt = BigDecimal("12.50")
+        val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        //call createTransactionRequest
+        val request = (v2_0Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transaction-request-types" / "SANDBOX_TAN" / "transaction-requests").POST <@ (user3)
+        val response = makePostRequest(request, write(transactionRequestBody))
+        Then("we should get a 400 created code")
+        response.code should equal(400)
+
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        val error: String = (response.body \ "error") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+
       }
     }
 

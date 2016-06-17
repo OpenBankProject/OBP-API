@@ -1,5 +1,8 @@
 package code.bankconnectors
 
+import code.api.util.APIUtil._
+import code.api.util.ApiRole._
+import code.api.util.ErrorMessages
 import code.management.ImporterAPI.ImporterTransaction
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
@@ -146,7 +149,7 @@ trait Connector {
     for {
       fromAccount <- getBankAccountType(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccountUID.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccount <- getBankAccountType(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       //sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -257,7 +260,7 @@ trait Connector {
     var result = for {
       fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
       toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
