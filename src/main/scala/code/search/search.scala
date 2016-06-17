@@ -40,10 +40,10 @@ class elasticsearch extends Loggable {
   val esType = ""
   val esIndex = ""
 
-  def searchProxy(queryString: String): LiftResponse = {
+  def searchProxy(userId: String, queryString: String): LiftResponse = {
     //println("-------------> " + esHost + ":" + esPortHTTP + "/" + esIndex + "/" + queryString)
     if (Props.getBool("allow_elasticsearch", false) ) {
-      val request = constructQuery(getParameters(queryString))
+      val request = constructQuery(userId, getParameters(queryString))
       val response = getAPIResponse(request)
       ESJsonResponse(response.body, ("Access-Control-Allow-Origin", "*") :: Nil, Nil, response.code)
     } else {
@@ -61,7 +61,7 @@ class elasticsearch extends Loggable {
       , Duration.Inf)
   }
 
-  private def constructQuery(params: Map[String, String]): Req = {
+  private def constructQuery(userId: String, params: Map[String, String]): Req = {
     val esType = params.getOrElse("esType", "")
     val q = params.getOrElse("q", "")
     val source = params.getOrElse("source","")
@@ -93,7 +93,7 @@ class elasticsearch extends Loggable {
     println("[ES.URL]===> " + esUrl)
 
     // Use this incase we cant log to elastic search
-    logger.info(s"esUrl is $esUrl parameters are $parameters user_id is: TODO ")
+    logger.info(s"esUrl is $esUrl parameters are $parameters user_id is $userId")
 
     url(esUrl).GET
   }

@@ -1862,7 +1862,7 @@ trait APIMethods200 {
             canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
             val esw = new elasticsearchWarehouse
-            successJsonResponse(Extraction.decompose(esw.searchProxy(queryString)))
+            successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
       }
     }
@@ -1953,7 +1953,7 @@ trait APIMethods200 {
             canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
           } yield {
             val esm = new elasticsearchMetrics
-            successJsonResponse(Extraction.decompose(esm.searchProxy(queryString)))
+            successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
       }
     }
