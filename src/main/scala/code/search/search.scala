@@ -3,6 +3,7 @@ package code.search
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.ElasticDsl._
 import dispatch.{Http, url}
+import net.liftweb.common.Loggable
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -20,7 +21,7 @@ import net.liftweb.http.provider.HTTPCookie
 import net.liftweb.json.JsonAST
 
 
-class elasticsearch {
+class elasticsearch extends Loggable {
 
   case class APIResponse(code: Int, body: JValue)
   case class ErrorMessage(error: String)
@@ -90,6 +91,10 @@ class elasticsearch {
     }
     val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", parameters )
     println("[ES.URL]===> " + esUrl)
+
+    // Use this incase we cant log to elastic search
+    logger.info(s"esUrl is $esUrl parameters are $parameters user_id is: TODO ")
+
     url(esUrl).GET
   }
 

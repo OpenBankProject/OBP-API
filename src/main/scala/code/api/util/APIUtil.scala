@@ -98,6 +98,7 @@ object ErrorMessages {
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
+  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
 
 }
 
