@@ -11,6 +11,7 @@ import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.entitlement.Entitlement
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 //import code.api.v2_0_0.{CreateCustomerJson}
 
@@ -32,7 +33,6 @@ import code.transactionrequests.TransactionRequests
 
 import code.meetings.Meeting
 import code.usercustomerlinks.UserCustomerLink
-import code.entitlement.Entitlements
 
 import net.liftweb.common.{Full, _}
 import net.liftweb.http.rest.RestHelper
@@ -1519,7 +1519,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             bank <- tryo(Bank(bankId).get) ?~! {ErrorMessages.BankNotFound}
-            canCreateCustomer <- Entitlements.entitlementProvider.vend.getEntitlement(bank.bankId.value, u.userId, CanCreateCustomer.toString) ?~ {ErrorMessages.UserDoesNotHaveRole + CanCreateCustomer +"."}
+            canCreateCustomer <- Entitlement.entitlement.vend.getEntitlement(bank.bankId.value, u.userId, CanCreateCustomer.toString) ?~ {ErrorMessages.UserDoesNotHaveRole + CanCreateCustomer +"."}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
@@ -1613,8 +1613,8 @@ trait APIMethods200 {
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLinkProvider.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLinkProvider.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)
@@ -1651,7 +1651,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
             hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user.")
-            addedEntitlement <- Entitlements.entitlementProvider.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
+            addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
             successJsonResponse(Extraction.decompose(viewJson), 201)
@@ -1687,7 +1687,7 @@ trait APIMethods200 {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
-              entitlements <- Entitlements.entitlementProvider.vend.getEntitlements(userId)
+              entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
             }
             yield {
               // Format the data as V2.0.0 json
@@ -1696,6 +1696,43 @@ trait APIMethods200 {
             }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      deleteEntitlement,
+      apiVersion,
+      "deleteEntitlement",
+      "DELETE",
+      "/users/USER_ID/entitlement/ENTITLEMENT",
+      "Delete Entitlement specified by ENTITLEMENT for an user specified by USER_ID",
+      """
+        |
+        |Authentication is required and the user needs to be a Super Admin.
+        |Super Admins are listed in the Props file.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+
+
+    lazy val deleteEntitlement: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: userId :: "entitlement" :: entitlementId :: Nil JsonDelete _ => {
+        user =>
+            for {
+              u <- user ?~ ErrorMessages.UserNotLoggedIn
+              isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+              entitlement <- tryo{Entitlement.entitlement.vend.getEntitlement(entitlementId)} ?~ "EntitlementId not found"
+              deleted <- Entitlement.entitlement.vend.deleteEntitlement(entitlement)
+            }
+            yield noContentJsonResponse
+      }
+    }
+
 
     resourceDocs += ResourceDoc(
       getAllEntitlements,
@@ -1725,7 +1762,7 @@ trait APIMethods200 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
-            entitlements <- Entitlements.entitlementProvider.vend.getEntitlements
+            entitlements <- Entitlement.entitlement.vend.getEntitlements
           }
           yield {
             // Format the data as V2.0.0 json
@@ -1822,7 +1859,7 @@ trait APIMethods200 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlements.entitlementProvider.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "User is not allowed to search warehouse!"
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
             val esw = new elasticsearchWarehouse
             successJsonResponse(Extraction.decompose(esw.searchProxy(queryString)))
@@ -1914,7 +1951,7 @@ trait APIMethods200 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlements.entitlementProvider.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "User is not allowed to search metrics!"
+            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
           } yield {
             val esm = new elasticsearchMetrics
             successJsonResponse(Extraction.decompose(esm.searchProxy(queryString)))

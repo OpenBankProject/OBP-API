@@ -35,7 +35,6 @@ import code.api.OBPRestHelper
 import code.api.v1_3_0.APIMethods130
 import code.api.v1_4_0.APIMethods140
 import net.liftweb.common.Loggable
-import net.liftweb.util.Props
 
 object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
@@ -174,6 +173,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.createUserCustomerLinks,
     Implementations2_0_0.addEntitlements,
     Implementations2_0_0.getEntitlements,
+    Implementations2_0_0.deleteEntitlement,
     Implementations2_0_0.getAllEntitlements,
     Implementations2_0_0.elasticSearchWarehouse,
     Implementations2_0_0.elasticSearchMetrics
