@@ -113,9 +113,7 @@ class elasticsearchMetrics extends elasticsearch {
   override val esPortTCP  = Props.get("es.metrics.port.tcp","9300")
   override val esPortHTTP = Props.get("es.metrics.port.http","9200")
   override val esIndex    = Props.get("es.metrics.index", "metrics")
-
   var client:ElasticClient = null
-
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
     client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
     try {
