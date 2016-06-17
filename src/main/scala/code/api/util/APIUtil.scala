@@ -36,7 +36,7 @@ import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api.v1_2.ErrorMessage
-import code.entitlement.Entitlements
+import code.entitlement.Entitlement
 import code.metrics.APIMetrics
 import code.model._
 import dispatch.url
@@ -599,7 +599,7 @@ object APIUtil extends Loggable {
   }
 
   def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
-    !Entitlements.entitlementProvider.vend.getEntitlement(bankId, userId, role.toString).isEmpty
+    !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
 }

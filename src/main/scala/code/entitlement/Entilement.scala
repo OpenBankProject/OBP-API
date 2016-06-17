@@ -1,21 +1,15 @@
 package code.entitlement
 
 
-import code.model.{BankId, User}
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 
 
-object Entitlements extends SimpleInjector {
-  val entitlementProvider = new Inject(buildOne _) {}
-  def buildOne: EntitlementProvider = MappedEntitlementsProvider
-}
+object Entitlement extends SimpleInjector {
 
-trait EntitlementProvider {
-  def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
-  def getEntitlements(userId: String) : Box[List[Entitlement]]
-  def getEntitlements() : Box[List[Entitlement]]
-  def addEntitlement(bankId: String, userId: String, roleName: String) : Box[MappedEntitlement]
+  val entitlement = new Inject(buildOne _) {}
+
+  def buildOne: Entitlement = MappedEntitlement
 }
 
 trait Entitlement {
@@ -23,4 +17,11 @@ trait Entitlement {
   def bankId : String
   def userId : String
   def roleName : String
+
+  def getEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
+  def getEntitlement(entitlementId: String) : Box[Entitlement]
+  def getEntitlements(userId: String) : Box[List[Entitlement]]
+  def deleteEntitlement(entitlement: Box[Entitlement]) : Box[Boolean]
+  def getEntitlements() : Box[List[Entitlement]]
+  def addEntitlement(bankId: String, userId: String, roleName: String) : Box[Entitlement]
 }
