@@ -171,7 +171,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.createCustomer,
     Implementations2_0_0.getCurrentUser,
     Implementations2_0_0.createUserCustomerLinks,
-    Implementations2_0_0.addEntitlements,
+    Implementations2_0_0.addEntitlement,
     Implementations2_0_0.getEntitlements,
     Implementations2_0_0.deleteEntitlement,
     Implementations2_0_0.getAllEntitlements,
