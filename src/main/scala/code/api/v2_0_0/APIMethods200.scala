@@ -1772,8 +1772,8 @@ trait APIMethods200 {
       }
     }
 
-    //if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_warehouse", false) ) {
-      resourceDocs += ResourceDoc(
+    // TODO Put message into doc below if not enabled (but continue to show API Doc)
+    resourceDocs += ResourceDoc(
         elasticSearchWarehouse,
         apiVersion,
         "elasticSearchWarehouse",
@@ -1851,8 +1851,8 @@ trait APIMethods200 {
         false,
         false,
         List())
-    //}
 
+    val esw = new elasticsearchWarehouse
     lazy val elasticSearchWarehouse: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "search" :: "warehouse" :: queryString :: Nil JsonGet _ => {
         user =>
@@ -1861,15 +1861,13 @@ trait APIMethods200 {
             b <- Bank.all.headOption //TODO: This is a temp workaround
             canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
-            val esw = new elasticsearchWarehouse
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
       }
     }
 
     // TODO Put message into doc below if not enabled (but continue to show API Doc)
-    // if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
-      resourceDocs += ResourceDoc(
+    resourceDocs += ResourceDoc(
         elasticSearchMetrics,
         apiVersion,
         "elasticSearchMetrics",
@@ -1942,8 +1940,8 @@ trait APIMethods200 {
         false,
         false,
         List())
-    //}
 
+    val esm = new elasticsearchMetrics
     lazy val elasticSearchMetrics: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "search" :: "metrics" :: queryString :: Nil JsonGet _ => {
         user =>
@@ -1952,7 +1950,6 @@ trait APIMethods200 {
             b <- Bank.all.headOption //TODO: This is a temp workaround
             canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
           } yield {
-            val esm = new elasticsearchMetrics
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }
       }
