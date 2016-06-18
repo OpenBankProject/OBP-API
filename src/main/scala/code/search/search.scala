@@ -62,10 +62,10 @@ class elasticsearch extends Loggable {
   }
 
   private def constructQuery(userId: String, params: Map[String, String]): Req = {
+    var esScroll = ""
     val esType = params.getOrElse("esType", "")
     val q = params.getOrElse("q", "")
     val source = params.getOrElse("source","")
-    //val filteredParams = params -- Set("esIndex", "esType")
     //val jsonQuery = Json.encode(filteredParams)
     //TODO: Workaround - HTTP and TCP ports differ. Should there be props entry for both?
     val httpHost = ("http://" +  esHost + ":" + esPortHTTP)
@@ -77,6 +77,9 @@ class elasticsearch extends Loggable {
       val sort = params.getOrElse("sort", "")
       val from = params.getOrElse("from", "")
       val df = params.getOrElse("df", "")
+      val scroll = params.getOrElse("scroll", "")
+      val scroll_id = params.getOrElse("scroll_id", "")
+      val search_type = params.getOrElse("search_type", "")
       if (size != "")
         parameters = parameters ++ Seq(("size", size))
       if (sort != "")
@@ -85,11 +88,20 @@ class elasticsearch extends Loggable {
         parameters = parameters ++ Seq(("from", from))
       if (df != "")
         parameters = parameters ++ Seq(("df", df))
+      if (scroll != "")
+        parameters = parameters ++ Seq(("scroll", scroll))
+      if (search_type != "")
+        parameters = parameters ++ Seq(("search_type", search_type))
+      // scroll needs specific URL
+      if (scroll_id != "" && scroll != "") {
+        esScroll = "/scroll"
+        parameters = Seq(("scroll", scroll)) ++ Seq(("scroll_id", scroll_id))
+      }
     }
     else if (q == "" && source != "") {
       parameters = Seq(("source", source))
     }
-    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search", parameters )
+    val esUrl = Helpers.appendParams( s"${httpHost}/${esIndex}/${esType}${if (esType.nonEmpty) "/" else ""}_search${esScroll}", parameters )
     println("[ES.URL]===> " + esUrl)
 
     // Use this incase we cant log to elastic search
