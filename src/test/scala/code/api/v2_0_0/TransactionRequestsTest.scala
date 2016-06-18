@@ -31,7 +31,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
     // No challenge, No FX (same currencies)
     if (Props.getBool("transactionRequests_enabled", false) == false) {
-      ignore("we create a transaction request without challenge, no FX (same currencies)", TransactionRequest) {}
+      ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {
         val testBank = createBank("transactions-test-bank")
@@ -315,8 +315,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
       }
+    }
 
-
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
+      ignore("we create a transaction request with a user without owner view access", TransactionRequest) {}
+    } else {
       scenario("we create a transaction request with a user without owner view access", TransactionRequest) {
         val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
@@ -359,10 +362,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
       }
 
+    }
 
-
-
-
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
+      ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at a different BANK_ID", TransactionRequest) {}
+    } else {
       scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at a different BANK_ID", TransactionRequest) {
         val testBank = createBank("transactions-test-bank")
         val testBank2 = createBank("transactions-test-bank2")
