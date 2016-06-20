@@ -13,6 +13,7 @@ object ApiRole {
   case object CanCreateAccount extends ApiRole
   case object CanGetAnyUser extends ApiRole
   case object IsHackathonDeveloper extends ApiRole
+  case object CanCreateAnyTransactionRequest extends ApiRole
 
   def valueOf(value: String): ApiRole = value match {
     case "CanSearchAllTransactions" => CanSearchAllTransactions
@@ -24,6 +25,7 @@ object ApiRole {
     case "CanCreateAccount" => CanCreateAccount
     case "CanGetAnyUser" => CanGetAnyUser
     case "IsHackathonDeveloper" => IsHackathonDeveloper
+    case "CanCreateAnyTransactionRequest" => CanCreateAnyTransactionRequest
     case _ => throw new IllegalArgumentException()
   }
 

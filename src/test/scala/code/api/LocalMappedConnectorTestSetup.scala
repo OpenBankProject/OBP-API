@@ -5,8 +5,10 @@ import java.util.Date
 import bootstrap.liftweb.ToSchemify
 import code.model._
 import code.model.dataAccess._
+import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
+import code.entitlement.{MappedEntitlement, Entitlement}
 
 import scala.util.Random
 
@@ -50,6 +52,16 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .holder(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4)).saveMe
+  }
+
+  def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
+    // Return a Box so we can handle errors later.
+    val addEntitlement = MappedEntitlement.create
+      .mBankId(bankId)
+      .mUserId(userId)
+      .mRoleName(roleName)
+      .saveMe()
+    Some(addEntitlement)
   }
 
   override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
