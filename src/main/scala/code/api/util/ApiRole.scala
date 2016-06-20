@@ -11,6 +11,7 @@ object ApiRole {
   case object CanSearchMetrics extends ApiRole
   case object CanCreateCustomer extends ApiRole
   case object CanCreateAccount extends ApiRole
+  case object CanGetAnyUser extends ApiRole
   case object IsHackathonDeveloper extends ApiRole
   case object CanCreateAnyTransactionRequest extends ApiRole
 
@@ -22,6 +23,7 @@ object ApiRole {
     case "CanSearchMetrics" => CanSearchMetrics
     case "CanCreateCustomer" => CanCreateCustomer
     case "CanCreateAccount" => CanCreateAccount
+    case "CanGetAnyUser" => CanGetAnyUser
     case "IsHackathonDeveloper" => IsHackathonDeveloper
     case "CanCreateAnyTransactionRequest" => CanCreateAnyTransactionRequest
     case _ => throw new IllegalArgumentException()

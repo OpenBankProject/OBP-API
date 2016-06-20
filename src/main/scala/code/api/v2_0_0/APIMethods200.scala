@@ -13,6 +13,7 @@ import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.entitlement.Entitlement
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
+import net.liftweb.http.CurrentReq
 //import code.api.v2_0_0.{CreateCustomerJson}
 
 import code.model.dataAccess.OBPUser
@@ -1593,6 +1594,48 @@ trait APIMethods200 {
               }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getUser,
+      apiVersion,
+      "getUser",
+      "GET",
+      "/users/USER_EMAIL",
+      "Get User by Email Address",
+      """Get the user by email address
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagUser))
+
+
+    lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: userEmail :: Nil JsonGet _ => {
+        user =>
+            for {
+              l <- user ?~ ErrorMessages.UserNotLoggedIn
+              b <- Bank.all.headOption //TODO: This is a temp workaround
+              canGetAnyUser <- booleanToBox(hasEntitlement(b.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              // Workaround to get userEmail address directly from URI without needing to URL-encode it
+              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last)
+            }
+              yield {
+                // Format the data as V2.0.0 json
+                val json = JSONFactory200.createUserJSON(u)
+                successJsonResponse(Extraction.decompose(json))
+              }
+      }
+    }
+
 
     resourceDocs += ResourceDoc(
       createUserCustomerLinks,
