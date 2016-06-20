@@ -170,6 +170,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.getMeeting,
     Implementations2_0_0.createCustomer,
     Implementations2_0_0.getCurrentUser,
+    Implementations2_0_0.getUser,
     Implementations2_0_0.createUserCustomerLinks,
     Implementations2_0_0.addEntitlement,
     Implementations2_0_0.getEntitlements,
@@ -178,13 +179,6 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.elasticSearchWarehouse,
     Implementations2_0_0.elasticSearchMetrics
   )
-
-//  if (Props.getBool("allow_elasticsearch", false)) {
-//    if (Props.getBool("allow_elasticsearch_warehouse", false))
-//      routes = Implementations2_0_0.elasticSearchWarehouse :: routes
-//    if (Props.getBool("allow_elasticsearch_metrics", false))
-//      routes = Implementations2_0_0.elasticSearchMetrics :: routes
-//  }
 
   routes.foreach(route => {
     oauthServe(apiPrefix{route})

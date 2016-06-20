@@ -92,6 +92,10 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
       .providerId(email)
   }
 
+  def getApiUserByEmail(userEmail: String) : Box[APIUser] = {
+    APIUser.find(By(APIUser.email, userEmail))
+  }
+
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
