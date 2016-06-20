@@ -55,7 +55,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     //these methods aren't required by our test
     override def getBank(bankId : BankId) : Box[Bank] = Empty
     override def getBanks : List[Bank] = Nil
-    override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
+    override def getSingleBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount] =
       Empty
     override def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount] =

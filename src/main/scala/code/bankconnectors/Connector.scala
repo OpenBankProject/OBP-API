@@ -1,25 +1,21 @@
 package code.bankconnectors
 
+import java.util.Date
+
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
+import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
+import code.model.{OtherBankAccount, Transaction, User, _}
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
-import code.model._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
-import code.model.User
-import code.model.OtherBankAccount
-import code.model.Transaction
-import java.util.Date
 
-import code.fx.fx
-
-import scala.math.BigDecimal.RoundingMode
 import scala.math.BigInt
 import scala.util.Random
 
@@ -82,7 +78,7 @@ trait Connector {
   def getBanks : List[Bank]
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] =
-    getBankAccountType(bankId, accountId)
+    getSingleBankAccount(bankId, accountId)
 
   def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
     for ( acc <- accounts ) yield {
@@ -90,7 +86,7 @@ trait Connector {
     }
   }
 
-  protected def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[AccountType]
+  protected def getSingleBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
   def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]
 
@@ -103,7 +99,7 @@ trait Connector {
   def getPhysicalCards(user : User) : Set[PhysicalCard]
 
   def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard]
-  
+
   //gets the users who are the legal owners/holders of the account
   def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]
 
@@ -121,10 +117,10 @@ trait Connector {
   def makePayment(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
                   amt : BigDecimal, description : String) : Box[TransactionId] = {
     for{
-      fromAccount <- getBankAccountType(fromAccountUID.bankId, fromAccountUID.accountId) ?~
+      fromAccount <- getSingleBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
-      toAccount <- getBankAccountType(toAccountUID.bankId, toAccountUID.accountId) ?~
+      toAccount <- getSingleBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
         s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
@@ -147,10 +143,10 @@ trait Connector {
   def makePaymentv200(initiator : User, fromAccountUID : BankAccountUID, toAccountUID : BankAccountUID,
                       amt : BigDecimal, description : String) : Box[TransactionId] = {
     for {
-      fromAccount <- getBankAccountType(fromAccountUID.bankId, fromAccountUID.accountId) ?~
+      fromAccount <- getSingleBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccountUID.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccount <- getBankAccountType(toAccountUID.bankId, toAccountUID.accountId) ?~
+      toAccount <- getSingleBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
         s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
       //sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
       //  s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
@@ -198,10 +194,10 @@ trait Connector {
 
     //create a new transaction request
     var result = for {
-      fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
+      fromAccountType <- getSingleBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
-      toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
+      toAccountType <- getSingleBankAccount(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
       sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
@@ -258,10 +254,10 @@ trait Connector {
 
     // Always create a new Transaction Request
     var result = for {
-      fromAccountType <- getBankAccountType(fromAccount.bankId, fromAccount.accountId) ?~
+      fromAccountType <- getSingleBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
         s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
       isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccountType <- getBankAccountType(toAccount.bankId, toAccount.accountId) ?~
+      toAccountType <- getSingleBankAccount(toAccount.bankId, toAccount.accountId) ?~
         s"account ${toAccount.accountId} not found at bank ${toAccount.bankId}"
       rawAmt <- tryo { BigDecimal(body.value.amount) } ?~! s"amount ${body.value.amount} not convertible to number"
        // isValidTransactionRequestType is checked at API layer. Maybe here too.
