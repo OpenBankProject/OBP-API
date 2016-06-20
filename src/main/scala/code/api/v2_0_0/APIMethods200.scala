@@ -1116,7 +1116,17 @@ trait APIMethods200 {
         |
         |The following static FX rates are available in sandbox mode:
         |
-        |${exchangeRates}""",
+        |${exchangeRates}
+        |
+        |
+        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL
+        |
+        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+        |
+        |
+        |
+        |
+        |""",
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
         AmountOfMoneyJSON121("EUR", "100.53"),
