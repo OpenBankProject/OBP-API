@@ -126,11 +126,13 @@ class elasticsearch extends Loggable {
 
 
 class elasticsearchMetrics extends elasticsearch {
-  //println("-----------------------------------------------------> elasticsearchMetrics instantiated")
   override val esHost     = Props.get("es.metrics.host","localhost")
   override val esPortTCP  = Props.get("es.metrics.port.tcp","9300")
   override val esPortHTTP = Props.get("es.metrics.port.http","9200")
   override val esIndex    = Props.get("es.metrics.index", "metrics")
+
+  if (esIndex.contains(",")) throw new RuntimeException("Props error: es.metrics.index can not be a list")
+
   var client:ElasticClient = null
   if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
     client = ElasticClient.transport("elasticsearch://" + esHost + ":" + esPortTCP + ",")
@@ -170,7 +172,6 @@ class elasticsearchMetrics extends elasticsearch {
 }
 
 class elasticsearchWarehouse extends elasticsearch {
-  //println("-----------------------------------------------------> elasticsearchWarehouse instantiated")
   override val esHost     = Props.get("es.warehouse.host","localhost")
   override val esPortTCP  = Props.get("es.warehouse.port.tcp","9300")
   override val esPortHTTP = Props.get("es.warehouse.port.http","9200")
