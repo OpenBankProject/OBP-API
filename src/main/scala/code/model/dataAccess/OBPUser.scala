@@ -289,14 +289,17 @@ import net.liftweb.util.Helpers._
           user.id.toLong
         }
         else {
-          getExternalUser(username, password).get.id.toLong
+          Props.get("connector").openOrThrowException("no connector set") match {
+            case "kafka" => getUserFromKafka(username, password).get.id.toLong
+            case _ => 0
+          }
         }
       }
       case _ => 0
     }
   }
 
-  def getExternalUser(username: String, password: String):Box[OBPUser] = {
+  def getUserFromKafka(username: String, password: String):Box[OBPUser] = {
     KafkaMappedConnector.getUser(username, password) match {
       case Full(KafkaInboundUser(extEmail, extPassword, extDisplayName)) => {
         info("external user authenticated. login redir: " + loginRedirect.get)
@@ -381,7 +384,7 @@ import net.liftweb.util.Helpers._
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             val preLoginState = capturePreLoginState()
-            val extUser = getExternalUser(S.param("username").orNull, S.param("password").orNull)
+            val extUser = getUserFromKafka(S.param("username").orNull, S.param("password").orNull)
 
             if (!extUser.isEmpty) {
               val u = APIUser.find(By(APIUser.email, extUser.getOrElse(null).email)).getOrElse(null)
