@@ -36,7 +36,7 @@ class MappedEntitlementTest extends ServerSetup {
 
   feature("Getting Entitlement data") {
     scenario("We try to get Entitlement") {
-      Given("There is no user to customer link at all but we try to get it")
+      Given("There is no entitlements at all but we try to get it")
       MappedEntitlement.findAll().size should equal(0)
 
       When("We try to get it all")
@@ -48,15 +48,15 @@ class MappedEntitlementTest extends ServerSetup {
   }
 
   scenario("A Entitlement exists for user and we try to get it") {
+    Given("Create an entitlement")
     val entitlement1 = createEntitlement(bankId1, userId1, role1.toString)
-    Given("Create a user to customer link")
     MappedEntitlement.find(
       By(MappedEntitlement.mBankId, bankId1),
       By(MappedEntitlement.mUserId, userId1),
       By(MappedEntitlement.mRoleName, role1.toString)
     ).isDefined should equal(true)
 
-    When("We try to get it by user and customer")
+    When("We try to get it by bank, user and role")
     val foundOpt = MappedEntitlement.getEntitlement(bankId1, userId1, role1.toString)
 
     Then("We do")
@@ -81,11 +81,11 @@ class MappedEntitlementTest extends ServerSetup {
     Then("We don't")
     found.size should equal(2)
 
-    And("We try to get it by user1 and bank1")
+    And("We try to get it by user1, bank1 and role1")
     val foundThing1 = found.filter(_.userId == userId1).filter(_.bankId == bankId1).filter(_.roleName == role1.toString)
     foundThing1 should equal(List(entitlement1))
 
-    And("We try to get it by user2 and bank2")
+    And("We try to get it by user2, bank2 and role2")
     val foundThing2 = found.filter(_.userId == userId2).filter(_.bankId == bankId2).filter(_.roleName == role1.toString)
     foundThing2 should equal(List(entitlement2))
 
