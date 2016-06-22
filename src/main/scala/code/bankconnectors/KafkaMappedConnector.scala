@@ -260,7 +260,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     return Full(res)
   }
 
-  override def getSingleBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
@@ -602,7 +602,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     )
 
     //delete account
-    val account = getSingleBankAccount(bankId, accountID)
+    val account = getBankAccount(bankId, accountID)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -638,7 +638,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
                             currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getSingleBankAccount(bankId, accountID) match {
+    getBankAccount(bankId, accountID) match {
       case Full(a) =>
         logger.info(s"account with id $accountID at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -666,7 +666,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountID
   override def getAccountByUUID(uuid: String): Box[AccountType] = {
-    getSingleBankAccount(null, AccountId(uuid))
+    getBankAccount(null, AccountId(uuid))
   }
 
   //cash api requires a call to add a new transaction and update the account balance
@@ -729,7 +729,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getSingleBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountID)
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
@@ -821,7 +821,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       bankId <- getBankByNationalIdentifier(bankNationalIdentifier).map(_.bankId)
       account <- getAccountByNumber(bankId, accountNumber)
     } yield {
-        val acc = getSingleBankAccount(bankId, account.accountId)
+        val acc = getBankAccount(bankId, account.accountId)
         acc match {
           case a => true //a.lastUpdate = updateDate //TODO
           case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
@@ -838,7 +838,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   override def updateAccountLabel(bankId: BankId, accountID: AccountId, label: String): Boolean = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getSingleBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountID)
       bank <- getBank(bankId)
     } yield {
         //acc.label = label
@@ -886,8 +886,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
 
-    val c = getSingleBankAccount(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).orNull
-    val o = getSingleBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id)).orNull
+    val c = getBankAccount(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).orNull
+    val o = getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id)).orNull
     //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
     val dummyOtherBankAccount = createOtherBankAccount(c, o, None)
     //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
@@ -898,12 +898,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     new Transaction(
       r.id,                                                   // uuid:String
       TransactionId(r.id),                                    // id:TransactionId
-      getSingleBankAccount( BankId(r.this_account.bank),
+      getBankAccount( BankId(r.this_account.bank),
                           AccountId(r.this_account.id)).orNull, // thisAccount:BankAccount
       otherAccount,                                           // otherAccount:OtherBankAccount
       r.details.`type`,                                       // transactionType:String
       BigDecimal(r.details.value),                            // val amount:BigDecimal
-      "GBP",                                                  // currency:String
+      o.currency,                                             // currency:String
       Some(r.details.description),                            // description:Option[String]
       datePosted,                                             // startDate:Date
       dateCompleted,                                          // finishDate:Date

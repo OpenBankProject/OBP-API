@@ -36,7 +36,7 @@ private object LocalConnector extends Connector with Loggable {
   override def getBanks : List[Bank] =
     HostedBank.findAll
 
-  override def getSingleBankAccount(bankId : BankId, accountId : AccountId) : Box[Account] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[Account] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -587,7 +587,7 @@ private object LocalConnector extends Connector with Loggable {
 
   //used by the transaction import api
   override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
-    getSingleBankAccount(bankId, accountId) match {
+    getBankAccount(bankId, accountId) match {
       case Full(acc) =>
         acc.accountBalance(newBalance).saveTheRecord().isDefined
         true
@@ -607,7 +607,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
-    getSingleBankAccount(bankId, accountId) match {
+    getBankAccount(bankId, accountId) match {
       case Full(acc) =>
         acc.accountLabel(label).saveTheRecord().isDefined
         true
