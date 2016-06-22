@@ -78,13 +78,10 @@ trait Connector {
   def getBanks : List[Bank]
 
   def getBankAccounts(accounts: List[(BankId, AccountId)]) : List[BankAccount] = {
-    for ( acc <- accounts ) yield {
-      for {
-        a <- getBankAccount(acc._1, acc._2)
-      } yield {
-        a
-      }
-    }.orNull
+    for {
+      acc <- accounts
+      a <- getBankAccount(acc._1, acc._2)
+    } yield a
   }
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
