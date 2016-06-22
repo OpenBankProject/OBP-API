@@ -315,7 +315,7 @@ case class TransactionRequestBodyJSON (
                                       )
 
 case class CreateEntitlementJSON(bank_id: String, role_name: String)
-case class EntitlementJSON(entitlement_id: String, user_id: String, role_name: String)
+case class EntitlementJSON(entitlement_id: String, role_name: String, bank_id: String)
 case class EntitlementJSONs(list: List[EntitlementJSON])
 
 object JSONFactory200{
@@ -776,8 +776,8 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
 
   def createEntitlementJSON(e: Entitlement): EntitlementJSON = {
     EntitlementJSON(entitlement_id = e.entitlementId,
-      user_id = e.userId,
-      role_name = e.roleName)
+      role_name = e.roleName,
+      bank_id = e.bankId)
   }
 
   def createEntitlementJSONs(l: List[Entitlement]) = {
