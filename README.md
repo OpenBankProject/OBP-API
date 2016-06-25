@@ -115,6 +115,15 @@ The current workaround is to move the project directory onto a different partiti
 
 The default database for testing etc is H2. PostgreSQL is used for the sandboxes (user accounts, metadata, transaction cache).
 
+## Sandbox data
+
+To populate the OBP database with sandbox data:
+
+1) In your Props file, set allow_sandbox_data_import=true
+2) In your Props files, set sandbox_data_import_secret=YOUR-KEY-HERE
+3) Now you can POST the sandbox json found in src/main/scala/code/api/sandbox/example_data/example_import.json to /sandbox/v1.0/data-import?secret_token=YOUR-KEY-HERE
+4) If successful you should get 201 Created.
+
 
 ## Kafka (optional):
 
