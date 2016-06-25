@@ -1,18 +1,17 @@
 package code.sandbox
 
 import code.atms.MappedAtm
-import code.crm.CrmEvent.CrmEvent
+import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
-import code.metadata.counterparties.{MappedCounterpartyMetadata}
-import code.model.dataAccess.{MappedBankAccount, MappedBank}
-import code.model.{MappedTransaction, AccountId, BankId}
-import code.branches.{MappedBranch}
+import code.metadata.counterparties.MappedCounterpartyMetadata
+import code.model.dataAccess.{MappedBank, MappedBankAccount}
+import code.model.{AccountId, BankId}
 import code.products.MappedProduct
-import code.products.Products.ProductCode
+import code.transaction.MappedTransaction
 
 // , MappedDataLicense
 import code.util.Helper.convertToSmallestCurrencyUnits
-import net.liftweb.common.{Full, Failure, Box}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper.Mapper
 import net.liftweb.util.Helpers._
 

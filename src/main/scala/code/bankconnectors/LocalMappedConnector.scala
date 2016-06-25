@@ -13,6 +13,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
 import code.tesobe.CashTransaction
+import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper
