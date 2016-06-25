@@ -90,7 +90,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
     for {
       bank <- getMappedBank(bankId)
-      account <- getSingleBankAccount(bankId, accountId)
+      account <- getBankAccount(bankId, accountId)
     } {
       Future{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -106,7 +106,7 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   // Question: Why is this called getBankAccountType? Why not getBankAccount? TODO rename
-  override def getSingleBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value))
@@ -428,7 +428,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                             currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getSingleBankAccount(bankId, accountId) match {
+    getBankAccount(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
@@ -517,7 +517,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getSingleBankAccount(bankId, accountId)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getMappedBank(bankId)
     } yield {
       acc.accountBalance(Helper.convertToSmallestCurrencyUnits(newBalance, acc.currency)).save
@@ -634,7 +634,7 @@ object LocalMappedConnector extends Connector with Loggable {
   override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getSingleBankAccount(bankId, accountId)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getMappedBank(bankId)
     } yield {
         acc.accountLabel(label).save
