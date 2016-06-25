@@ -144,7 +144,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagPrivateData, apiTagPublicData))
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -172,7 +172,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagAccounts, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData))
 
 
     apiRelations += ApiRelation(privateAccountsAllBanks, getCoreAccountById, "detail")
@@ -213,7 +213,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagPublicData))
+      List(apiTagAccount, apiTagPublicData))
 
 
 
@@ -250,7 +250,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagPrivateData, apiTagPublicData)
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -283,7 +283,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagAccounts, apiTagPrivateData))
+      List(apiTagAccount, apiTagPrivateData))
 
 
     def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
@@ -343,7 +343,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagPublicData))
+      List(apiTagAccount, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public accounts for a single bank
@@ -761,7 +761,7 @@ trait APIMethods200 {
       true,
       true,
       false,
-      apiTagAccounts ::  Nil)
+      apiTagAccount ::  Nil)
 
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id (assume owner view requested)
@@ -814,7 +814,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagAccounts, apiTagTransactions))
+      List(apiTagAccount, apiTagTransaction))
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get transactions
@@ -866,7 +866,7 @@ trait APIMethods200 {
       false,
       true,
       false,
-      apiTagAccounts ::  Nil)
+      apiTagAccount ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get account by id
@@ -907,7 +907,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagViews, apiTagEntitlements)
+      List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
 
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -943,7 +943,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts, apiTagViews, apiTagEntitlements))
+      List(apiTagAccount, apiTagView, apiTagEntitlement))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
@@ -977,7 +977,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccounts)
+      List(apiTagAccount)
     )
 
     apiRelations += ApiRelation(createAccount, createAccount, "self")
@@ -1053,7 +1053,7 @@ trait APIMethods200 {
       true,
       true,
       false,
-      List(apiTagBanks)
+      List(apiTagBank)
     )
 
     lazy val getTransactionTypes : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

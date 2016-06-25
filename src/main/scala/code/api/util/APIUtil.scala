@@ -359,24 +359,26 @@ object APIUtil extends Loggable {
   // Used to tag Resource Docs
   case class ResourceDocTag(tag: String)
 
-  val apiTagPayment = ResourceDocTag("Payments")
+  // Use the *singular* case. for both the variable name and string.
+  // e.g. "This call is Payment related"
+  val apiTagPayment = ResourceDocTag("Payment")
   val apiTagApiInfo = ResourceDocTag("APIInfo")
-  val apiTagBanks = ResourceDocTag("Banks")
-  val apiTagAccounts = ResourceDocTag("Accounts")
+  val apiTagBank = ResourceDocTag("Bank")
+  val apiTagAccount = ResourceDocTag("Account")
   val apiTagPublicData = ResourceDocTag("PublicData")
   val apiTagPrivateData = ResourceDocTag("PrivateData")
-  val apiTagTransactions = ResourceDocTag("Transactions")
-  val apiTagMetaData = ResourceDocTag("Meta Data")
-  val apiTagViews = ResourceDocTag("Views")
-  val apiTagEntitlements = ResourceDocTag("Entitlements")
+  val apiTagTransaction = ResourceDocTag("Transaction")
+  val apiTagMetaData = ResourceDocTag("MetaData")
+  val apiTagView = ResourceDocTag("View")
+  val apiTagEntitlement = ResourceDocTag("Entitlement")
   val apiTagOwnerRequired = ResourceDocTag("OwnerViewRequired")
-  val apiTagCounterparties = ResourceDocTag("Counterparties")
+  val apiTagCounterparty = ResourceDocTag("Counterparty")
   val apiTagKyc = ResourceDocTag("KYC")
   val apiTagCustomer = ResourceDocTag("Customer")
   val apiTagOnboarding = ResourceDocTag("Onboarding")
   val apiTagUser = ResourceDocTag("User")
   val apiTagMeeting = ResourceDocTag("Meeting")
-  val apiTagExperimental = ResourceDocTag("Experimental!")
+  val apiTagExperimental = ResourceDocTag("Experimental")
 
 
   // Used to document the API calls

@@ -193,7 +193,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       false,
       true,
-      List(apiTagBanks)
+      List(apiTagBank)
     )
 
     lazy val getBranches : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -239,7 +239,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       false,
       true,
-      List(apiTagBanks)
+      List(apiTagBank)
     )
 
     lazy val getAtms : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -293,7 +293,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       false,
       true,
-      List(apiTagBanks)
+      List(apiTagBank)
     )
 
     lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
