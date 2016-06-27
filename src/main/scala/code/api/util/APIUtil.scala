@@ -361,7 +361,7 @@ object APIUtil extends Loggable {
 
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
-  val apiTagPayment = ResourceDocTag("Payment")
+  val apiTagTransactionRequest = ResourceDocTag("TransactionRequest")
   val apiTagApiInfo = ResourceDocTag("APIInfo")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")

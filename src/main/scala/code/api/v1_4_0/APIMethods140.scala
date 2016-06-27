@@ -385,7 +385,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -422,7 +422,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -476,7 +476,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -526,7 +526,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::

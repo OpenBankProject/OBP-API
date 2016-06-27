@@ -2562,7 +2562,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {

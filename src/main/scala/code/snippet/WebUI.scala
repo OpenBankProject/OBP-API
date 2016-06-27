@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import net.liftweb.common.Loggable
+import net.liftweb.http.S
 
 import net.liftweb.util.{CssSel, Props}
 
@@ -60,8 +61,18 @@ class WebUI extends Loggable{
   }
 
   def apiExplorerLink: CssSel = {
-    ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", ""))
+    val tags = S.attr("tags") openOr ""
+    ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?tags=$tags")
   }
+
+
+
+
+
+
+
+
+
 
   // Social Finance (Sofi)
   def sofiLink: CssSel = {

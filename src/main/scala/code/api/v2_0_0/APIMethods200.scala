@@ -1139,7 +1139,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1190,7 +1190,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1259,7 +1259,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -1655,7 +1655,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagCustomer))
+      List(apiTagUser, apiTagCustomer))
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
@@ -1735,7 +1735,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val getEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1774,7 +1774,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val deleteEntitlement: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1810,7 +1810,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val getAllEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
