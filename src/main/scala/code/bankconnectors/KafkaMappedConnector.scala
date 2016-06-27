@@ -14,8 +14,9 @@ import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.tesobe.CashTransaction
+import code.transaction.{KafkaTransaction, MappedTransaction}
 import code.transactionrequests.MappedTransactionRequest
-import code.transactionrequests.TransactionRequests.{TransactionRequestCharge, TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.Helper
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.{Helper, TTLCache}

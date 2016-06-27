@@ -33,23 +33,16 @@ Berlin 13359, Germany
 package code.model.dataAccess
 
 import java.util.Date
-import com.mongodb.QueryBuilder
-import net.liftweb.mongodb.record.MongoMetaRecord
-import net.liftweb.mongodb.record.field.ObjectIdPk
-import net.liftweb.mongodb.record.MongoRecord
-import net.liftweb.mongodb.record.field.ObjectIdRefField
-import net.liftweb.mongodb.record.field.DateField
-import net.liftweb.common._
-import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
-import net.liftweb.mongodb.{Limit, Skip}
+
+import code.bankconnectors.{OBPLimit, OBPOffset, OBPOrdering, _}
 import code.model._
+import com.mongodb.QueryBuilder
+import net.liftweb.common._
 import net.liftweb.mongodb.BsonDSL._
-import code.bankconnectors._
-import code.bankconnectors.OBPOffset
-import code.bankconnectors.OBPLimit
-import code.bankconnectors.OBPOrdering
-import net.liftweb.mongodb.Limit
-import net.liftweb.mongodb.Skip
+import net.liftweb.mongodb.{Limit, Skip}
+import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
+import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
+import net.liftweb.record.field.{DecimalField, StringField}
 
 
 class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with Loggable{

@@ -8,7 +8,8 @@ import code.model.dataAccess._
 import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
-import code.entitlement.{MappedEntitlement, Entitlement}
+import code.entitlement.{Entitlement, MappedEntitlement}
+import code.transaction.MappedTransaction
 
 import scala.util.Random
 

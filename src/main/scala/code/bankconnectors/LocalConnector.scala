@@ -21,8 +21,8 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.bson.types.ObjectId
 
-import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 import scala.math.BigDecimal.RoundingMode
 
 private object LocalConnector extends Connector with Loggable {

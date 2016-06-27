@@ -1,12 +1,12 @@
-package code.model
+package code.transaction
 
 import java.util.UUID
 
 import code.bankconnectors.Connector
-import code.metadata.counterparties.Counterparties
-import code.util.{MappedAccountNumber, DefaultStringField, Helper, MappedUUID}
-import net.liftweb.common.{Logger, Box}
+import code.util.{DefaultStringField, Helper, MappedAccountNumber, MappedUUID}
+import net.liftweb.common.Logger
 import net.liftweb.mapper._
+import code.model._
 
 class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK with CreatedUpdated with TransactionUUID {
 

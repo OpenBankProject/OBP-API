@@ -73,6 +73,7 @@ import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
+import code.transaction.MappedTransaction
 
 
 /**
