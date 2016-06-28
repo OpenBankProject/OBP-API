@@ -1915,8 +1915,8 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
+            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
