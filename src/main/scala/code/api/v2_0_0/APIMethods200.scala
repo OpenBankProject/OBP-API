@@ -1623,10 +1623,10 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              b <- Bank.all.headOption //TODO: This is a temp workaround
-              canGetAnyUser <- booleanToBox(hasEntitlement(b.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+              canGetAnyUser <- booleanToBox(hasEntitlement(b.get.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last)
+              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json
