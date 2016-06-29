@@ -124,7 +124,7 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // New in 1.4.0
     Implementations1_4_0.getCustomer,
-    Implementations1_4_0.addCustomer,
+    //  Now in 2.0.0 Implementations1_4_0.addCustomer,
     Implementations1_4_0.getCustomerMessages,
     Implementations1_4_0.addCustomerMessage,
     Implementations1_4_0.getBranches,

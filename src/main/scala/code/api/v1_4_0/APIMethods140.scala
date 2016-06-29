@@ -569,6 +569,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |For now the authenticated user can create at most one linked customer.
         |Dates need to be in the format 2013-01-21T23:08:00Z
         |OAuth authentication is required.
+        |Note: This call is depreciated in favour of v.2.0.0 createCustomer
         |""",
       Extraction.decompose(PostCustomerJson("687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),

@@ -969,7 +969,7 @@ trait APIMethods200 {
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create an Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
+      "Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
       "Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)",
       Extraction.decompose(CreateAccountJSON("An user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
