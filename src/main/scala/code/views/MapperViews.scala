@@ -124,6 +124,13 @@ private object MapperViews extends Views with Loggable {
     } else true
   }
 
+
+
+
+  /*
+  This removes the link between a User and a View (View Privileges)
+   */
+
   def revokeAllPermission(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))

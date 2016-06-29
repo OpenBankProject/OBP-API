@@ -104,8 +104,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getCustomerMessages",
       "GET",
       "/banks/BANK_ID/customer/messages",
-      "Get messages for the logged in customer",
-      """Messages sent to the currently authenticated user.
+      "Get Customer Messages (current)",
+      """Get messages for the logged in customer
+      |Messages sent to the currently authenticated user.
       |
       |Authentication via OAuth is required.""",
       emptyObjectJson,
@@ -139,8 +140,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "addCustomerMessage",
       "POST",
       "/banks/BANK_ID/customer/CUSTOMER_NUMBER/messages",
+      "Add Customer Message.",
       "Add a message for the customer specified by CUSTOMER_NUMBER",
-      "",
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
@@ -362,7 +363,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getTransactionRequestTypes",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types",
-      "Get Transaction Request Types for an account",
+      "Get Transaction Request Types for Account",
       """Returns the Transation Request Types that the account specified by ACCOUNT_ID and view specified by VIEW_ID has access to.
         |
         |These are the ways this API Server can create a Transaction via a Transaction Request
