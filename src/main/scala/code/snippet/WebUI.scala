@@ -62,7 +62,7 @@ class WebUI extends Loggable{
 
   def apiExplorerLink: CssSel = {
     val tags = S.attr("tags") openOr ""
-    ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?tags=$tags")
+    ".api-explorer-link a [href]" #> scala.xml.Unparsed(Props.get("webui_api_explorer_url", "") + s"?ignoredefcat=true&tags=$tags")
   }
 
 
