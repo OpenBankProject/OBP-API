@@ -1623,10 +1623,10 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              b <- Bank.all.headOption //TODO: This is a temp workaround
-              canGetAnyUser <- booleanToBox(hasEntitlement(b.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+              canGetAnyUser <- booleanToBox(hasEntitlement(b.get.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last)
+              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json
@@ -1915,8 +1915,8 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
+            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -2004,8 +2004,8 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
+            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }

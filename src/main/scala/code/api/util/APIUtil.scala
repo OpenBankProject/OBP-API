@@ -77,6 +77,7 @@ object ErrorMessages {
 
   val UserNotFoundById = "OBP-20005: User not found by User Id."
   val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
+  val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
 
   // Resource related messages
