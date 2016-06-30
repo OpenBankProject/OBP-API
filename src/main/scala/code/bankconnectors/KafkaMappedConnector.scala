@@ -176,20 +176,32 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   override def getBanks: List[Bank] = {
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
+
+    logger.info(s"Kafka getBanks says reqId is: $reqId")
+
     // Create empty argument list
     val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
+
+    logger.debug(s"Kafka getBanks says: argList is: $argList")
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
+
+    logger.debug(s"Kafka getBanks before cachedBanks.getOrElseUpdate")
     val rList = {
       cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaInboundBank]])
     }
+
+    logger.debug(s"Kafka getBanks says rList is $rList")
+
     // Loop through list of responses and create entry for each
     val res = { for ( r <- rList ) yield {
         new KafkaBank(r)
       }
     }
     // Return list of results
+
+    logger.debug(s"Kafka getBanks says res is $res")
     res
   }
 
