@@ -4,3 +4,7 @@
 #header-decoration {
 	background-color: #000000 !important;
 }
+
+#registerAppSection table {
+	color: white;
+}
