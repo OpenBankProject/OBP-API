@@ -72,6 +72,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
+    logger.error(s"------------> list of all apiusers: ${APIUser.findAll}")
+    println(s"------------> list of all apiusers: ${APIUser.findAll}")
+    logger.error(s"------------> owner=${owner}")
+    println(s"------------> owner=${owner}")
     val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
     logger.info(s"------------> list of all apiusers: ${APIUser.findAll}")
     logger.info(s"------------> looking for: ${owner}, found: apiUserOwner ${apiUserOwner}")
@@ -91,6 +95,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def updateUserAccountViews( apiUser: APIUser ) = {
+    logger.error(s"------------> UPDATING VIEWS")
+    println(s"------------> UPDATING VIEWS")
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
