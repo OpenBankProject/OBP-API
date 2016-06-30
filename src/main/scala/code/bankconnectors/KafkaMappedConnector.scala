@@ -14,10 +14,9 @@ import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.tesobe.CashTransaction
-import code.transaction.{KafkaTransaction, MappedTransaction}
+import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
-import code.util.Helper
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -74,12 +73,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+    logger.info(s"------------> list of all apiusers: ${APIUser.findAll}")
+    logger.info(s"------------> looking for: ${owner}, found: apiUserOwner ${apiUserOwner}")
     apiUserOwner match {
       case Some(o) => {
-        MappedAccountHolder.create
+        val holder = MappedAccountHolder.create
           .user(o)
           .accountBankPermalink(account.bank)
-          .accountPermalink(account.id).save
+          .accountPermalink(account.id).saveMe
+        logger.info(s"------------> created mappeduserholder: ${holder}")
       }
       case None => {
         //This shouldn't happen as OBPUser should generate the APIUsers when saved
@@ -105,6 +107,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         views.foreach(_.save())
         views.map(_.value).filterNot(_.isPublic).foreach(v => {
           Views.views.vend.addPermission(v.uid, apiUser)
+          logger.info(s"------------> added view: ${v.uid} for apiuser: ${apiUser}")
         })
         setAccountOwner(apiUser.email.get, r)
       }
@@ -412,34 +415,37 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(account : AccountType, counterparty : BankAccount, amt : BigDecimal, description : String) : Box[TransactionId] = {
+  private def saveTransaction(account : AccountType,
+                              counterparty : BankAccount,
+                              amt : BigDecimal,
+                              description : String) : Box[TransactionId] = {
 
     val transactionTime = now
     val currency = account.currency
-
 
     //update the balance of the account for which a transaction is being created
     val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     //account.balance = newAccountBalance
 
-    val mappedTransaction = MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType("sandbox-payment")
-      .amount(Helper.convertToSmallestCurrencyUnits(amt, currency))
-      .newAccountBalance(newAccountBalance)
-      .currency(currency)
-      .tStartDate(transactionTime)
-      .tFinishDate(transactionTime)
-      .description(description)
-      .counterpartyAccountHolder(counterparty.accountHolder)
-      .counterpartyAccountNumber(counterparty.number)
-      .counterpartyAccountKind(counterparty.accountType)
-      .counterpartyBankName(counterparty.bankName)
-      .counterpartyIban(counterparty.iban.getOrElse(""))
-      .counterpartyNationalId(counterparty.nationalIdentifier).saveMe
+        val reqId: String = UUID.randomUUID().toString
+    // Create argument list with reqId
+    // in order to fetch corresponding response
+    val argList = Map("username"  -> OBPUser.getCurrentUserUsername,
+                      "accountId" -> account.accountId.value,
+                      "currency" -> currency,
+                      "amount" -> amt.toString,
+                      "otherAccountId" -> counterparty.accountId.value,
+                      "otherAccountCurrency" -> counterparty.currency,
+                      "transactionType" -> "AC")
+    // Since result is single account, we need only first list entry
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = process(reqId, "saveTransaction", argList) //.extract[KafkaInboundTransactionId]
 
-    Full(mappedTransaction.theTransactionId)
+    r.extract[KafkaInboundTransactionId] match {
+      case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
+      case _ => Full(TransactionId("0"))
+    }
+
   }
 
   /*
@@ -1128,6 +1134,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                    name: String,
                                    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
                                  )
+
+
+  case class KafkaInboundTransactionId(
+                                        transactionId : String
+                                      )
 
 }
 
