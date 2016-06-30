@@ -162,8 +162,9 @@ trait APIMethods200 {
       "privateAccountsAllBanks",
       "GET",
       "/my/accounts",
-      "Get private accounts at all banks (Authenticated access).",
-      """Returns the list of accounts containing private views for the user at all banks.
+      "Get Accounts at all Banks (Private)",
+      """Get private accounts at all banks (Authenticated access)
+        |Returns the list of accounts containing private views for the user at all banks.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -240,7 +241,7 @@ trait APIMethods200 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get Accounts at one Bank.",
+      "Get Accounts at one Bank (Public and Private).",
       """Get accounts at one bank that the user has access to (Authenticated + Anonymous access).
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
@@ -275,8 +276,9 @@ trait APIMethods200 {
       "privateAccountsAtOneBank",
       "GET",
       "/my/banks/BANK_ID/accounts",
-      "Get private accounts at one bank (Authenticated access).",
-      """Returns the list of accounts containing private views for the user at BANK_ID.
+      "Get Accounts at Bank (Private)",
+      """Get private accounts at one bank (Authenticated access).
+        |Returns the list of accounts containing private views for the user at BANK_ID.
         |For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is required.""",
@@ -336,7 +338,7 @@ trait APIMethods200 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get public Accounts at Bank.",
+      "Get Accounts at Bank (Public)",
       """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.""",
@@ -749,14 +751,16 @@ trait APIMethods200 {
       "coreAccountById",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
-      "Get account by id.",
-      """Information returned about an account specified by ACCOUNT_ID:
+      "Get Account by Id (Core)",
+      """Information returned about the account specified by ACCOUNT_ID:
         |
         |* Number
         |* Owners
         |* Type
         |* Balance
         |* IBAN
+        |
+        |This call returns the owner view and requires access to that view.
         |
         |
         |OAuth authentication is required""",
@@ -798,8 +802,8 @@ trait APIMethods200 {
       "getCoreTransactionsForBankAccount",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/transactions",
-      "Get transactions.",
-      """Returns transactions list of the account specified by ACCOUNT_ID.
+      "Get Transactions for Account (Core)",
+      """Returns transactions list (Core info) of the account specified by ACCOUNT_ID.
         |
         |Authentication is required.
         |
@@ -848,7 +852,7 @@ trait APIMethods200 {
       "accountById",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
-      "Get account by id.",
+      "Get Account by Id (Full)",
       """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
         |
         |* Number
@@ -974,9 +978,15 @@ trait APIMethods200 {
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
-      "Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)",
-      Extraction.decompose(CreateAccountJSON("An user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
+      "Create Account",
+      """Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID.
+        |
+        |The account will be owned by the USER_ID specified. If USER_ID is not specified the accout will be owned by the logged in User.
+        |
+        |The logged in User must have CanCreateAccount role.
+        |
+        |Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)""".stripMargin,
+      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -1004,7 +1014,8 @@ trait APIMethods200 {
             user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ s"Problem getting user_id"
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             bank <- Bank(bankId) ?~ s"Bank $bankId not found"
-            hasRoles <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, IsHackathonDeveloper) == true || hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true, s"Logged in user must have assigned role $CanCreateAccount or $IsHackathonDeveloper")
+            // TODO IF posted user_id is null user should be able to create Account even without CanCreateAccount as long as balance is 0
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true, s"Logged in user must have assigned role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ s"Problem getting balance amount"
             accountType <- tryo(jsonBody.`type`) ?~ s"Problem getting type"
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidInitalBalance
@@ -1464,8 +1475,9 @@ trait APIMethods200 {
       "getMeeting",
       "GET",
       "/banks/BANK_ID/meetings/MEETING_ID",
-      "Get Meeting specified by BANK_ID / MEETING_ID",
-      """Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
+      "Get Meeting",
+      """Get Meeting specified by BANK_ID / MEETING_ID
+        |Meetings contain meta data about, and are used to facilitate, video conferences / chats etc.
         |
         |The actual conference/chats are handled by external services.
         |
