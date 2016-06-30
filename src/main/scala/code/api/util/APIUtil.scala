@@ -77,6 +77,7 @@ object ErrorMessages {
 
   val UserNotFoundById = "OBP-20005: User not found by User Id."
   val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
+  val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
 
   // Resource related messages
@@ -361,7 +362,7 @@ object APIUtil extends Loggable {
 
   // Use the *singular* case. for both the variable name and string.
   // e.g. "This call is Payment related"
-  val apiTagPayment = ResourceDocTag("Payment")
+  val apiTagTransactionRequest = ResourceDocTag("TransactionRequest")
   val apiTagApiInfo = ResourceDocTag("APIInfo")
   val apiTagBank = ResourceDocTag("Bank")
   val apiTagAccount = ResourceDocTag("Account")

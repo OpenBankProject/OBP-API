@@ -130,8 +130,9 @@ trait APIMethods200 {
       "allAccountsAllBanks",
       "GET",
       "/accounts",
-      "Get accounts at all banks (Authenticated + Anonymous access).",
-      """Returns the list of accounts at that the user has access to at all banks.
+      "Get all Accounts at all Banks.",
+      """Get all accounts at all banks the User has access to (Authenticated + Anonymous access).
+         |Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
          |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
@@ -204,8 +205,9 @@ trait APIMethods200 {
       "publicAccountsAllBanks",
       "GET",
       "/accounts/public",
-      "Get public accounts at all banks (Anonymous access).",
-      """Returns the list of accounts containing public views at all banks
+      "Get Public Accounts at all Banks.",
+      """Get public accounts at all banks (Anonymous access).
+        |Returns the list of accounts containing public views at all banks
         |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
       emptyObjectJson,
       emptyObjectJson,
@@ -238,8 +240,9 @@ trait APIMethods200 {
       "allAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts",
-      "Get accounts at one bank (Authenticated + Anonymous access).",
-      """Returns the list of accounts at BANK_ID that the user has access to.
+      "Get Accounts at one Bank.",
+      """Get accounts at one bank that the user has access to (Authenticated + Anonymous access).
+        |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
         |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
@@ -333,8 +336,8 @@ trait APIMethods200 {
       "publicAccountsAtOneBank",
       "GET",
       "/banks/BANK_ID/accounts/public",
-      "Get public accounts at one bank (Anonymous access).",
-      """Returns a list of the public accounts at BANK_ID. For each account the API returns the ID and the available views.
+      "Get public Accounts at Bank.",
+      """Returns a list of the public accounts (Anonymous access) at BANK_ID. For each account the API returns the ID and the available views.
         |
         |Authentication via OAuth is not required.""",
       emptyObjectJson,
@@ -364,8 +367,9 @@ trait APIMethods200 {
       "getKycDocuments",
       "GET",
       "/customers/CUSTOMER_NUMBER/kyc_documents",
-      "Get KYC (know your customer) documents for a customer",
-      """Get a list of documents that affirm the identity of the customer
+      "Get KYC Documents for Customer",
+      """Get KYC (know your customer) documents for a customer
+        |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
         |Authentication is required.""",
       emptyObjectJson,
@@ -431,8 +435,9 @@ trait APIMethods200 {
       "getKycChecks",
       "GET",
       "/customers/CUSTOMER_NUMBER/kyc_checks",
-      "Get KYC checks for the logged in customer",
-      """Messages sent to the currently authenticated user.
+      "Get KYC Checks for current Customer",
+      """Get KYC checks for the logged in customer
+        |Messages sent to the currently authenticated user.
         |
         |Authentication via OAuth is required.""",
       emptyObjectJson,
@@ -532,8 +537,8 @@ trait APIMethods200 {
       "addKycDocument",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_documents",
-      "Add a KYC document for the customer specified by CUSTOMER_NUMBER",
-      "KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
+      "Add KYC Document.",
+      "Add a KYC document for the customer specified by CUSTOMER_NUMBER. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -577,8 +582,8 @@ trait APIMethods200 {
       "addKycMedia",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_media",
-      "Add some KYC media for the customer specified by CUSTOMER_NUMBER",
-      "KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
+      "Add KYC Media.",
+      "Add some KYC media for the customer specified by CUSTOMER_NUMBER. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
       Extraction.decompose(KycMediaJSON("73hyfgayt6ywerwerasd", "1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -620,8 +625,8 @@ trait APIMethods200 {
       "addKycCheck",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_check",
-      "Add a KYC check for the customer specified by CUSTOMER_NUMBER",
-      "KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
+      "Add KYC Check",
+      "Add a KYC check for the customer specified by CUSTOMER_NUMBER. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -664,8 +669,8 @@ trait APIMethods200 {
       "addKycStatus",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_statuses",
-      "Add a kyc_status for the customer specified by CUSTOMER_NUMBER",
-      "KYC Status is a timeline of the KYC status of the customer",
+      "Add KYC Status",
+      "Add a kyc_status for the customer specified by CUSTOMER_NUMBER. KYC Status is a timeline of the KYC status of the customer",
       Extraction.decompose(KycStatusJSON("8762893876", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -703,8 +708,8 @@ trait APIMethods200 {
       "addSocialMediaHandle",
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media",
-      "Add a social media handle for the customer specified by CUSTOMER_NUMBER",
-      "",
+      "Add Social Media Handle",
+      "Add a social media handle for the customer specified by CUSTOMER_NUMBER.",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -969,7 +974,7 @@ trait APIMethods200 {
       "createAccount",
       "PUT",
       "/banks/BANK_ID/accounts/NEW_ACCOUNT_ID",
-      "Create an Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
+      "Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID",
       "Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)",
       Extraction.decompose(CreateAccountJSON("An user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
@@ -1139,7 +1144,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1190,7 +1195,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -1259,7 +1264,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-requests" :: Nil JsonGet _ => {
@@ -1347,8 +1352,10 @@ trait APIMethods200 {
       "createMeeting",
       "POST",
       "/banks/BANK_ID/meetings",
-      "Create Meeting: Initiate a video conference/call with the bank.",
-      """The Meetings resource contains meta data about video/other conference sessions, not the video/audio/chat itself.
+      "Create Meeting (video conference/call)",
+      """Create Meeting: Initiate a video conference/call with the bank.
+        |
+        |The Meetings resource contains meta data about video/other conference sessions, not the video/audio/chat itself.
         |
         |The actual conferencing is handled by external providers. Currently OBP supports tokbox video conferences (WIP).
         |
@@ -1623,10 +1630,10 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              b <- Bank.all.headOption //TODO: This is a temp workaround
-              canGetAnyUser <- booleanToBox(hasEntitlement(b.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+              canGetAnyUser <- booleanToBox(hasEntitlement(b.get.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last)
+              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json
@@ -1655,7 +1662,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagCustomer))
+      List(apiTagUser, apiTagCustomer))
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
@@ -1735,7 +1742,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val getEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1760,8 +1767,8 @@ trait APIMethods200 {
       "deleteEntitlement",
       "DELETE",
       "/users/USER_ID/entitlement/ENTITLEMENT_ID",
-      "Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID",
-      """
+      "Delete Entitlement",
+      """Delete Entitlement specified by ENTITLEMENT_ID for an user specified by USER_ID
         |
         |Authentication is required and the user needs to be a Super Admin.
         |Super Admins are listed in the Props file.
@@ -1774,7 +1781,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val deleteEntitlement: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1810,7 +1817,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
+      List(apiTagUser, apiTagEntitlement))
 
 
     lazy val getAllEntitlements: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1915,8 +1922,8 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
+            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+            canSearchWarehouse <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchWarehouse.toString) ?~ "CanSearchWarehouse entitlement required"
           } yield {
             successJsonResponse(Extraction.decompose(esw.searchProxy(u.userId, queryString)))
           }
@@ -1930,9 +1937,9 @@ trait APIMethods200 {
         "elasticSearchMetrics",
         "GET",
         "/search/metrics",
-        "Search Metrics Data Via Elastic (search)",
+        "Search API Metrics via Elasticsearch.",
         """
-          |Search metrics data via Elastic Search.
+          |Search the API calls made to this API instance via Elastic Search.
           |
           |Login is required.
           |
@@ -2004,8 +2011,8 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            b <- Bank.all.headOption //TODO: This is a temp workaround
-            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.bankId.toString, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
+            b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+            canSearchMetrics <- Entitlement.entitlement.vend.getEntitlement(b.get.bankId.value, u.userId, ApiRole.CanSearchMetrics.toString) ?~ "CanSearchMetrics entitlement required"
           } yield {
             successJsonResponse(Extraction.decompose(esm.searchProxy(u.userId, queryString)))
           }

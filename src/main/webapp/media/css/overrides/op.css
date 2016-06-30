@@ -2,9 +2,5 @@
 #registerAppSection,
 #create-sandbox-account,
 #header-decoration {
-	background-color: #000000 !important;
-}
-
-#registerAppSection table {
-	color: white;
+    background-color: #ff6a10 !important;
 }

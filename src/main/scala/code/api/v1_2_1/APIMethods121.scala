@@ -158,8 +158,9 @@ trait APIMethods121 {
       "bankById",
       "GET",
       "/banks/BANK_ID",
-      "Get the bank specified by BANK_ID",
-      """Returns information about a single bank specified by BANK_ID including:
+      "Get Bank",
+      """Get the bank specified by BANK_ID
+        |Returns information about a single bank specified by BANK_ID including:
         |
         |* Short and full name of bank
         |* Logo URL
@@ -462,12 +463,11 @@ trait APIMethods121 {
       "getViewsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Get the available views on an bank account.",
+      "Get Views for Account.",
       """#Views
          |
-         |### Delegation, Entitlements (Permissions)
          |
-         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
+         |Views in Open Bank Project provide a mechanism for fine grained access control and delegation to Accounts and Transactions. Account holders use the 'owner' view by default. Delegated access is made through other views for example 'accountants', 'share-holders' or 'tagging-application'. Views can be created via the API and each view has a list of entitlements.
          |
          |Views on accounts and transactions filter the underlying data to redact certain fields for certain users. For instance the balance on an account may be hidden from the public. The way to know what is possible on a view is determined in the following JSON.
          |
@@ -517,7 +517,7 @@ trait APIMethods121 {
       "createViewForBankAccount",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views",
-      "Creates a view on an bank account.",
+      "Create View.",
       """#Create a view on bank account
         |
         | OAuth authentication is required and the user needs to have access to the owner view.
@@ -561,7 +561,7 @@ trait APIMethods121 {
       "updateViewForBankAccount",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Updates a view on a bank account.",
+      "Update View.",
       """Update an existing view on a bank account
         |
         |OAuth authentication is required and the user needs to have access to the owner view.
@@ -694,7 +694,7 @@ trait APIMethods121 {
       "addPermissionForUserForBankAccountForMultipleViews",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
-      "Add access for specific user to a list of views.",
+      "Grant User access to a list of views.",
       """Grants the user USER_ID at their provider PROVIDER_ID access to a list of views at BANK_ID for account ACCOUNT_ID.
          |
          |All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
@@ -730,7 +730,7 @@ trait APIMethods121 {
       "addPermissionForUserForBankAccountForOneView",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
-      "Add access for specific user to a specific view.",
+      "Grant User access to View.",
       """Grants the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID. All url parameters must be [%-encoded](http://en.wikipedia.org/wiki/Percent-encoding), which is often especially relevant for USER_ID and PROVIDER_ID.
           |
           |OAuth authentication is required and the user needs to have access to the owner view.
@@ -766,7 +766,7 @@ trait APIMethods121 {
       "removePermissionForUserForBankAccountForOneView",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views/VIEW_ID",
-      "Delete access for specific user to one view.",
+      "Revoke access to one View.",
       """Revokes the user USER_ID at their provider PROVIDER_ID access to the view VIEW_ID at BANK_ID for account ACCOUNT_ID.
         |
         |Revoking a user access to a public view will return an error message.
@@ -799,7 +799,7 @@ trait APIMethods121 {
       "removePermissionForUserForBankAccountForAllViews",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/permissions/PROVIDER_ID/USER_ID/views",
-      "Delete access for specific user to all the views.",
+      "Revoke access to all Views on Account",
       """Revokes the user USER_ID at their provider PROVIDER_ID access to all the views at BANK_ID for account ACCOUNT_ID.
         |
         |OAuth authentication is required and the user needs to have access to the owner view.""",
@@ -896,8 +896,9 @@ trait APIMethods121 {
       "getCounterpartyMetadata",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata",
-      "Get metadata of one counterpary (other account).",
-      """Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Get Counterparty Metadata.",
+      """Get metadata of one counterparty (other account).
+        |Returns only the metadata about one other bank account (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
         |
         |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
@@ -1706,8 +1707,8 @@ trait APIMethods121 {
       "deleteCounterpartyCorporateLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
-      "Delete corporate location of other bank account.",
-      "Delete the geolocation of the counterparty's registered address",
+      "Delete Counterparty Metadata Corporate Location.",
+      "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1818,8 +1819,8 @@ trait APIMethods121 {
       "deleteCounterpartyPhysicalLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
+      "Delete Counterparty Metadata Physical Location.",
       "Delete physical location of other bank account.",
-      "",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2562,7 +2563,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagPayment))
+      List(apiTagTransactionRequest))
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transactions" :: Nil JsonPost json -> _ => {
