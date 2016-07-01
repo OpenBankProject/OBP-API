@@ -120,8 +120,9 @@ trait APIMethods121 {
       "allBanks",
       "GET",
       "/banks",
-      "Get banks on this API instance",
-      """Returns a list of banks supported on this server:
+      "Get Banks",
+      """Get banks on this API instance
+        |Returns a list of banks supported on this server:
         |
         |* ID used as parameter in URLs
         |* Short and full name of bank
@@ -1185,7 +1186,7 @@ trait APIMethods121 {
       "deleteCounterpartyPrivateAlias",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Delete private alias of other bank account.",
+      "Delete Counterparty Private Alias",
       """Deletes the private alias of the other account OTHER_ACCOUNT_ID.
         |
         |OAuth authentication is required if the view is not public.""",
@@ -1220,7 +1221,7 @@ trait APIMethods121 {
       "addCounterpartyMoreInfo",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Add more info to other bank account.",
+      "Add Counterparty More Info",
       "Add a description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
@@ -1255,8 +1256,8 @@ trait APIMethods121 {
       "updateCounterpartyMoreInfo",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/more_info",
-      "Update more info of other bank account",
-      "Update the description of the counter party from the perpestive of the account e.g. My dentist.",
+      "Update Counterparty More Info",
+      "Update the more info description of the counter party from the perpestive of the account e.g. My dentist.",
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1497,8 +1498,8 @@ trait APIMethods121 {
       "deleteCounterpartyImageUrl",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
+      "Delete Counterparty Image URL",
       "Delete image url of other bank account.",
-      "",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1530,8 +1531,8 @@ trait APIMethods121 {
       "addCounterpartyOpenCorporatesUrl",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
-      "Add open corporate url to other bank account.",
-      "",
+      "Add Open Corporates URL to Counterparty",
+      "Add open corporates url to other bank account.",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1565,8 +1566,8 @@ trait APIMethods121 {
       "updateCounterpartyOpenCorporatesUrl",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
+      "Update Open Corporates Url of Counterparty",
       "Update open corporate url of other bank account.",
-      "",
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1600,8 +1601,8 @@ trait APIMethods121 {
       "deleteCounterpartyOpenCorporatesUrl",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/open_corporates_url",
+      "Delete Counterparty Open Corporates URL",
       "Delete open corporate url of other bank account.",
-      "",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1633,7 +1634,7 @@ trait APIMethods121 {
       "addCounterpartyCorporateLocation",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
-      "Add corporate location to other bank account.",
+      "Add Corporate Location to Counterparty",
       "Add the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
@@ -1707,7 +1708,7 @@ trait APIMethods121 {
       "deleteCounterpartyCorporateLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
-      "Delete Counterparty Metadata Corporate Location.",
+      "Delete Counterparty Corporate Location.",
       "Delete corporate location of other bank account. Delete the geolocation of the counterparty's registered address",
       emptyObjectJson,
       emptyObjectJson,
@@ -1819,7 +1820,7 @@ trait APIMethods121 {
       "deleteCounterpartyPhysicalLocation",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
-      "Delete Counterparty Metadata Physical Location.",
+      "Delete Counterparty Physical Location.",
       "Delete physical location of other bank account.",
       emptyObjectJson,
       emptyObjectJson,
@@ -1855,7 +1856,7 @@ trait APIMethods121 {
       "getTransactionsForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions",
-      "Get transactions.",
+      "Get Transactions for Account (Full)",
       """Returns transactions list of the account specified by ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
          |Authentication via OAuth is required if the view is not public.
@@ -2513,8 +2514,9 @@ Authentication via OAuth is required. The user must either have owner privileges
       "getCounterpartyForTransaction",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/other_account",
-      "Get other account of a transaction.",
-      """Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
+      "Get Counterparty of Transaction",
+      """Get other account of a transaction.
+         |Returns details of the other party involved in the transaction, moderated by the [view](#1_2_1-getViewsForBankAccount) (VIEW_ID).
 
 Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
