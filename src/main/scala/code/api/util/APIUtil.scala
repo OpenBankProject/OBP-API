@@ -61,9 +61,6 @@ object ErrorMessages {
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
-  val InvalidInitalBalance = "OBP-10003: Invalid Number. Initial balance must be a number, e.g 1000.00"
-
-
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
@@ -97,9 +94,25 @@ object ErrorMessages {
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
 
+
+  val InvalidAccountInitalBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
+  val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
+  val InvalidAccountBalanceAmount = "OBP-30106: Invalid Balance Amount."
+
+  val InvalidUserId = "OBP-30107: Invalid User Id."
+  val InvalidAccountType = "OBP-30108: Invalid Account Type."
+  val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
+
+
+
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
+
+
+
+
+
 
 }
 

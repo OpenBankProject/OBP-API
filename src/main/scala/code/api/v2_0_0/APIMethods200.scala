@@ -981,11 +981,12 @@ trait APIMethods200 {
       "Create Account",
       """Create Account at bank specified by BANK_ID with Id specified by NEW_ACCOUNT_ID.
         |
-        |The account will be owned by the USER_ID specified. If USER_ID is not specified the accout will be owned by the logged in User.
         |
-        |The logged in User must have CanCreateAccount role.
+        |The User can create an Account for themself or an Account for another User if they have CanCreateAccount role.
         |
-        |Note: Type is currently ignored and Amount must be zero. You can update the account label with another call (see updateAccountLabel)""".stripMargin,
+        |If USER_ID is not specified the account will be owned by the logged in User.
+        |
+        |Note: Type is currently ignored and the Amount must be zero. You can update the account label with another call (see updateAccountLabel)""".stripMargin,
       Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1011,16 +1012,16 @@ trait APIMethods200 {
           for {
             loggedInUser <- user ?~! ErrorMessages.UserNotLoggedIn
             jsonBody <- tryo (json.extract[CreateAccountJSON]) ?~ ErrorMessages.InvalidJsonFormat
-            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ s"Problem getting user_id"
+            user_id <- tryo (if (jsonBody.user_id.nonEmpty) jsonBody.user_id else loggedInUser.userId) ?~ ErrorMessages.InvalidUserId
             postedOrLoggedInUser <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             bank <- Bank(bankId) ?~ s"Bank $bankId not found"
-            // TODO IF posted user_id is null user should be able to create Account even without CanCreateAccount as long as balance is 0
-            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true, s"Logged in user must have assigned role $CanCreateAccount")
-            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ s"Problem getting balance amount"
-            accountType <- tryo(jsonBody.`type`) ?~ s"Problem getting type"
-            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidInitalBalance
+            // User can create account for self or an account for another user if they have CanCreateAccount role
+            isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
+            initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
+            accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
+            initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitalBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
-            currency <- tryo (jsonBody.balance.currency) ?~ s"Problem getting balance currency"
+            currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
@@ -1585,7 +1586,7 @@ trait APIMethods200 {
       "getCurrentUser", // TODO can we get this string from the val two lines above?
       "GET",
       "/users/current",
-      "Get Current User",
+      "Get User (Current)",
       """Get the logged in user
         |
         |Login is required.
@@ -1641,8 +1642,8 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
-              canGetAnyUser <- booleanToBox(hasEntitlement(b.get.bankId.value, l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+              //b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
+              canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
               u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
             }
@@ -1700,10 +1701,14 @@ trait APIMethods200 {
       "addEntitlement",
       "POST",
       "/users/USER_ID/entitlements",
-      "Add Entitlement to a user.",
+      "Add Entitlement for a User.",
       """Create Entitlement. Grant Role to User.
         |
-        |Entitlements are used to grant system or bank level roles to users. (For account level privileges, see Views)
+        |Entitlements are used to grant System or Bank level roles to Users. (For Account level privileges, see Views)
+        |
+        |For a System level Role (.e.g CanGetAnyUser), set bank_id to an empty string i.e. "bank_id":""
+        |
+        |For a Bank level Role (e.g. CanCreateAccount), set bank_id to a valid value e.g. "bank_id":"my-bank-id"
         |
         |Authentication is required and the user needs to be a Super Admin. Super Admins are listed in the Props file.""",
       Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
@@ -1712,7 +1717,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List())
+      List(apiTagUser))
 
     lazy val addEntitlement : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
