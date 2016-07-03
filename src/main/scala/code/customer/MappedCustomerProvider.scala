@@ -55,14 +55,22 @@ object MappedCustomerProvider extends CustomerProvider {
                            lastOkDate: Date) : Box[Customer] = {
 
     val createdCustomer = MappedCustomer.create
-      .mBank(bankId.value).mEmail(email).mFaceImageTime(faceImage.date)
-      .mFaceImageUrl(faceImage.url).mLegalName(legalName)
-      .mMobileNumber(mobileNumber).mNumber(number).mUser(user.apiId.value)
-      .mDateOfBirth(dateOfBirth).mRelationshipStatus(relationshipStatus)
+      .mBank(bankId.value)
+      .mEmail(email)
+      .mFaceImageTime(faceImage.date)
+      .mFaceImageUrl(faceImage.url)
+      .mLegalName(legalName)
+      .mMobileNumber(mobileNumber)
+      .mNumber(number)
+      .mUser(user.apiId.value)
+      .mDateOfBirth(dateOfBirth)
+      .mRelationshipStatus(relationshipStatus)
       .mDependents(dependents)
       .mHighestEducationAttained(highestEducationAttained)
-      .mEmploymentStatus(employmentStatus).mKycStatus(kycStatus)
-      .mLastOkDate(lastOkDate).saveMe()
+      .mEmploymentStatus(employmentStatus)
+      .mKycStatus(kycStatus)
+      .mLastOkDate(lastOkDate)
+      .saveMe()
 
     Some(createdCustomer)
   }
