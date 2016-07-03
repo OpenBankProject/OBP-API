@@ -179,7 +179,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getBranches",
       "GET",
       "/banks/BANK_ID/branches",
-      "Get branches for the bank",
+      "Get Bank Branches",
       s"""Returns information about branches for a single bank specified by BANK_ID including:
         |
         |* Name
@@ -226,7 +226,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getAtms",
       "GET",
       "/banks/BANK_ID/atms",
-      "Get ATMS for the bank",
+      "Get Bank ATMS",
       s"""Returns information about ATMs for a single bank specified by BANK_ID including:
          |
          |* Address
@@ -275,8 +275,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       "getProducts",
       "GET",
       "/banks/BANK_ID/products",
-      "Get products offered by the bank",
-      s"""Returns information about financial products offered by a bank specified by BANK_ID including:
+      "Get Bank Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
         |
         |* Name
         |* Code

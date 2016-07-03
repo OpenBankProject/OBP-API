@@ -743,7 +743,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
