@@ -101,7 +101,7 @@ object PostCustomer extends SendServerRequests {
 
 
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_019/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/unicredit_to_load_04/OBP_sandbox_customers_pretty.json"
 
     // This contains a list of customers.
     val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
@@ -122,7 +122,7 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/ENBD/load_019/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/unicredit_to_load_04/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
@@ -184,7 +184,7 @@ object PostCustomer extends SendServerRequests {
 
         // For now, create a customer
         for (b <- banks) {
-          val url = s"/v2.0.0/banks/${b.id}/customer"
+          val url = s"/v2.0.0/banks/${b.id}/customers"
           val result = ObpPost(url, json)
           if (!result.isEmpty) {
             println("saved " + c.customer_number + " as customer " + result)
