@@ -986,7 +986,7 @@ trait APIMethods200 {
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
-        |Note: Type is currently ignored and the Amount must be zero. You can update the account label with another call (see updateAccountLabel)""".stripMargin,
+        |Note: Type is currently ignored and the Amount must be zero. You can update the account label with another call (see 1_2_1-updateAccountLabel)""".stripMargin,
       Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,

@@ -432,8 +432,8 @@ trait APIMethods121 {
       "updateAccountLabel",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID",
-      "Change account label.",
-      "",
+      "Update Account Label.",
+      "Update the label for the account. The label is how the account is known to the account owner e.g. 'My savings account' ",
       Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -599,8 +599,8 @@ trait APIMethods121 {
       "deleteViewForBankAccount",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/views/VIEW_ID",
-      "Deletes a view on an bank account.",
-      "",
+      "Delete View",
+      "Deletes the view specified by VIEW_ID on the bank account specified by ACCOUNT_ID at bank BANK_ID.",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1044,7 +1044,7 @@ trait APIMethods121 {
       "deleteCounterpartyPublicAlias",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
-      "Delete public alias of other bank account.",
+      "Delete Counterparty Public Alias",
       """Deletes the public alias of the other account OTHER_ACCOUNT_ID.
          |
          |OAuth authentication is required if the view is not public.""",
@@ -1077,7 +1077,7 @@ trait APIMethods121 {
       "getCounterpartyPrivateAlias",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Get private alias of other bank account.",
+      "Get Counterparty Private Alias",
       """Returns the private alias of the other account OTHER_ACCOUNT_ID.
         |
         |OAuth authentication is required if the view is not public.""",
@@ -1112,7 +1112,7 @@ trait APIMethods121 {
       "addCounterpartyPrivateAlias",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Add private alias to other bank account.",
+      "Create Counterparty Private Alias",
       """Creates a private alias for the other account OTHER_ACCOUNT_ID.
          |
          |OAuth authentication is required if the view is not public.""",
@@ -1149,8 +1149,8 @@ trait APIMethods121 {
       "updateCounterpartyPrivateAlias",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
-      "Update private alias of other bank account.",
-      """Updates the private alias of the other account OTHER_ACCOUNT_ID.
+      "Update Counterparty Private Alias",
+      """Updates the private alias of the counterparty (AKA other account) OTHER_ACCOUNT_ID.
         |
         |OAuth authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
@@ -1463,7 +1463,7 @@ trait APIMethods121 {
       "updateCounterpartyImageUrl",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/image_url",
-      "Update image url of other bank account.",
+      "Update Counterparty Image Url",
       "Update the url that points to the logo of the counterparty",
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
@@ -1671,7 +1671,7 @@ trait APIMethods121 {
       "updateCounterpartyCorporateLocation",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/corporate_location",
-      "Update corporate location of other bank account.",
+      "Update Counterparty Corporate Location",
       "Update the geolocation of the counterparty's registered address",
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
@@ -1783,7 +1783,7 @@ trait APIMethods121 {
       "updateCounterpartyPhysicalLocation",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/metadata/physical_location",
-      "Update counterparties physical location",
+      "Update Counterparty Physical Location",
       "Update geocoordinates of the counterparty's main location",
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
