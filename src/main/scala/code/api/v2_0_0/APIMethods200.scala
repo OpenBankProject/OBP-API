@@ -1384,9 +1384,9 @@ trait APIMethods200 {
       Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      false, // Core
+      false, // PSD2
+      false, // OBWG
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1436,9 +1436,9 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      false,
+      false, // PSD2
+      false,
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1488,9 +1488,9 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      false,
+      false,
+      false,
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
