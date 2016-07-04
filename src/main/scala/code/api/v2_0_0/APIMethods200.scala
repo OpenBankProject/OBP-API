@@ -1448,7 +1448,7 @@ trait APIMethods200 {
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              fromBank <- tryo(Bank(bankId)) ?~! {ErrorMessages.BankNotFound}
+              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               u <- user ?~ ErrorMessages.UserNotLoggedIn
@@ -1500,12 +1500,12 @@ trait APIMethods200 {
           if (Props.getBool("meeting.tokbox_enabled", false)) {
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              fromBank: Box[Bank] <- tryo(Bank(bankId)) ?~! {ErrorMessages.BankNotFound}
+              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              bank: Bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId) ?~ "gdgd"
+              bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
             }
               yield {
                 // Format the data as V2.0.0 json
