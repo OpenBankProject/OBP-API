@@ -93,6 +93,7 @@ object ErrorMessages {
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
   val MeetingApiSecretNotConfigured = "OBP-30103: Meeting provider Secret is not configured."
+  val MeetingNotFound = "OBP-30104: Meeting not found."
 
 
   val InvalidAccountInitalBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
