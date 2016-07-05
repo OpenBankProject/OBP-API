@@ -1552,9 +1552,11 @@ trait APIMethods200 {
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             canCreateCustomer <- Entitlement.entitlement.vend.getEntitlement(bank.bankId.value, u.userId, CanCreateCustomer.toString) ?~ {ErrorMessages.UserDoesNotHaveRole + CanCreateCustomer +"."}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
-            customer_user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
+            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
+            customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
