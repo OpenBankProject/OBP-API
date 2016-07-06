@@ -19,6 +19,8 @@ trait CustomerProvider {
 
   def getCustomerByCustomerId(customerId: String): Box[Customer]
 
+  def getCustomer(customerId: String, bankId : BankId): Box[Customer]
+
   def getUser(bankId : BankId, customerNumber : String) : Box[User]
 
   def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean

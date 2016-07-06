@@ -1549,13 +1549,20 @@ trait APIMethods200 {
           for {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            canCreateCustomer <- Entitlement.entitlement.vend.getEntitlement(bank.bankId.value, u.userId, CanCreateCustomer.toString) ?~ {ErrorMessages.UserDoesNotHaveRole + CanCreateCustomer +"."}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
-            isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
+            canCreateCustomer <- tryo(hasEntitlement(bank.bankId.value, u.userId, CanCreateCustomer))
+            isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || canCreateCustomer == true || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks
+            //Find all user to customer links by user_id
+            userCustomerLinks <- tryo(userCustomerLinks.filter(u => u.userId.equalsIgnoreCase(user_id)))
+            customerIds: List[String] <-  tryo(userCustomerLinks.map(p => p.customerId))
+            //Try to find an existing customer at BANK_ID
+            alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomer(x, bank.bankId).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            // TODO we still store the user inside the customer, we should only store the user in the usercustomer link
             customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
@@ -1572,6 +1579,8 @@ trait APIMethods200 {
               postedData.employment_status,
               postedData.kyc_status,
               postedData.last_ok_date) ?~! "Could not create customer"
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = Extraction.decompose(customer)
             successJsonResponse(successJson, 201)
