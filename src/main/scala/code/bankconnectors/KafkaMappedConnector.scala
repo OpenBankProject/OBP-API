@@ -72,10 +72,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
-    logger.error(s"------------> list of all apiusers: ${APIUser.findAll}")
-    println(s"------------> list of all apiusers: ${APIUser.findAll}")
-    logger.error(s"------------> owner=${owner}")
-    println(s"------------> owner=${owner}")
     val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
     logger.info(s"------------> list of all apiusers: ${APIUser.findAll}")
     logger.info(s"------------> looking for: ${owner}, found: apiUserOwner ${apiUserOwner}")
@@ -94,9 +90,23 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
+
+  def updateSingleAccountViews( apiUser: APIUser, account: KafkaInboundAccount ) = {
+    val res = {
+      if (!viewExists(account)) {
+        val views = createSaveableViews(account)
+        views.foreach(_.save())
+        views.map(_.value).filterNot(_.isPublic).foreach(v => {
+          Views.views.vend.addPermission(v.uid, apiUser)
+          logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${apiUser} and account ${account}")
+        })
+        setAccountOwner(apiUser.email.get, account)
+      }
+    }
+    res
+  }
+
   def updateUserAccountViews( apiUser: APIUser ) = {
-    logger.info(s"------------> UPDATING VIEWS")
-    println(s"------------> UPDATING VIEWS")
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
@@ -108,18 +118,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
     }
 
-
     logger.info(s"------------> userAccounts from Kafka: " + rList)
-
-
 
     for (r <- rList) {
       logger.info("------------>view " + r + "exists=" + viewExists(r))
     }
-
-
-
-
 
     val res = {
       // TODO CHECK
@@ -129,7 +132,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         views.foreach(_.save())
         views.map(_.value).filterNot(_.isPublic).foreach(v => {
           Views.views.vend.addPermission(v.uid, apiUser)
-          logger.info(s"------------> added view: ${v.uid} for apiuser: ${apiUser}")
+          logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${apiUser}")
         })
         setAccountOwner(apiUser.email.get, r)
       }
@@ -189,8 +192,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val auditorsView =
       if(acc.generate_auditors_view) Some(createSaveableAuditorsView(bankId, accountId))
       else None
-
-
 
 
     List(Some(ownerView), publicView, accountantsView, auditorsView).flatten
