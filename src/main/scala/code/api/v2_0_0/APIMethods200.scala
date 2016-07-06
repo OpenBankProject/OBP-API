@@ -1503,7 +1503,6 @@ trait APIMethods200 {
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               providerApiKey <- Props.get("meeting.tokbox_api_key") ~> APIFailure(ErrorMessages.MeetingApiKeyNotConfigured, 403)
               providerSecret <- Props.get("meeting.tokbox_api_secret") ~> APIFailure(ErrorMessages.MeetingApiSecretNotConfigured, 403)
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
               bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               meeting <- Meeting.meetingProvider.vend.getMeeting(bank.bankId, u, meetingId)  ?~! {ErrorMessages.MeetingNotFound}
             }

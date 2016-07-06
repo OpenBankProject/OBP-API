@@ -95,7 +95,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def updateUserAccountViews( apiUser: APIUser ) = {
-    logger.error(s"------------> UPDATING VIEWS")
+    logger.info(s"------------> UPDATING VIEWS")
     println(s"------------> UPDATING VIEWS")
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
@@ -107,8 +107,24 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val rList = {
       cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
     }
+
+
+    logger.info(s"------------> userAccounts from Kafka: " + rList)
+
+
+
+    for (r <- rList) {
+      logger.info("------------>view " + r + "exists=" + viewExists(r))
+    }
+
+
+
+
+
     val res = {
-      for (r <- rList if ! viewExists(r)) yield {
+      // TODO CHECK
+ //     for (r <- rList if ! viewExists(r)) yield {
+        for (r <- rList) yield {
         val views = createSaveableViews(r)
         views.foreach(_.save())
         views.map(_.value).filterNot(_.isPublic).foreach(v => {
@@ -141,9 +157,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     res
   }
 
+  // TODO check me ! (no view name)
   def viewExists(acc: KafkaInboundAccount): Boolean = {
     val res = ViewImpl.findAll.filter { v =>
-      if (v.bankPermalink.get == acc.bank && v.accountPermalink.get == acc.id  )
+      if (v.bankPermalink.get == acc.bank && v.accountPermalink.get == acc.id)
         true
       else
         false
@@ -152,10 +169,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def createSaveableViews(acc : KafkaInboundAccount) : List[Saveable[ViewType]] = {
+
+    logger.info(s"Kafka createSaveableViews acc is  $acc")
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
 
     val ownerView = createSaveableOwnerView(bankId, accountId)
+
+    logger.info(s"Kafka createSaveableViews ownerView is  $ownerView")
 
     val publicView =
       if(acc.generate_public_view) Some(createSaveablePublicView(bankId, accountId))
@@ -168,6 +189,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val auditorsView =
       if(acc.generate_auditors_view) Some(createSaveableAuditorsView(bankId, accountId))
       else None
+
+
+
 
     List(Some(ownerView), publicView, accountantsView, auditorsView).flatten
   }
@@ -971,7 +995,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     def balance : BigDecimal        = BigDecimal(r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
-    def label : String              = r.label
+    def label : String              = r.number
     def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
