@@ -43,6 +43,11 @@ class CustomerTest extends V140ServerSetup with DefaultUsers {
       else Empty
     }
 
+    override def getCustomer(customerId: String, bankId: BankId): Box[Customer] = {
+      if(customerId == mocCustomerId && bankId == mockBankId) Full(mockCustomer)
+      else Empty
+    }
+
     override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
     override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage,
                              dateOfBirth: Date,
