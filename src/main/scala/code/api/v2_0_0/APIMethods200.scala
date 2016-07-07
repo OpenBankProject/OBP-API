@@ -1341,13 +1341,19 @@ trait APIMethods200 {
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props
-                .saveMe()
-              if (userCreated.saved_?) {
-                val json = JSONFactory200.createUserJSONfromOBPUser(userCreated)
-                successJsonResponse(Extraction.decompose(json), 201)
+              if(userCreated.validate.size > 0){
+                Full(errorJsonResponse(userCreated.validate.map(_.msg).mkString(";")))
               }
               else
-                Full(errorJsonResponse("Error occurred during user creation."))
+              {
+                userCreated.saveMe()
+                if (userCreated.saved_?) {
+                  val json = JSONFactory200.createUserJSONfromOBPUser(userCreated)
+                  successJsonResponse(Extraction.decompose(json), 201)
+                }
+                else
+                  Full(errorJsonResponse("Error occurred during user creation."))
+              }
             }
             else {
               Full(errorJsonResponse("User with the same email already exists."))
