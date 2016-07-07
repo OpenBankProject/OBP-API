@@ -302,13 +302,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
     // Populate fields and generate result
-    Full( for {
+    val res = for {
       r <- rList
       transaction <- createNewTransaction(r)
     } yield {
       transaction
-    })
-    //updateAccountTransactions(bankId, accountID)
+    }
+    Full(res)
+    //TODO is this needed updateAccountTransactions(bankId, accountID)
   }
 
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
@@ -948,13 +949,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
 
     for {
-        counterparty <- r.counterparty
+        counterparty <- tryo{r.counterparty}
         thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-        dummyOtherBankAccount <- tryo{createOtherBankAccount(counterparty, thisAccount, None)}
+        dummyOtherBankAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, None)}
         //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
         //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-        otherAccount <- tryo{createOtherBankAccount(counterparty, thisAccount, Some(dummyOtherBankAccount.metadata))}
+        otherAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
       } yield {
         // Create new transaction
         new Transaction(
@@ -988,11 +989,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = c.name + " " + c.account_number,
+      label = c.name.getOrElse("") + " " + c.account_number.getOrElse(""),
       nationalIdentifier = "",
       swift_bic = None,
       iban = None,
-      number = "" + c.account_number,
+      number = c.account_number.getOrElse("").substring(0,30),
       bankName = "",
       kind = "",
       originalPartyBankId = BankId(o.bankId.value),
