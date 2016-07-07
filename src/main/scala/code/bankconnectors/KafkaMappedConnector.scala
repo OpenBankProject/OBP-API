@@ -71,17 +71,28 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
+  def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
+    val res =
+      MappedAccountHolder.findAll(
+        By(MappedAccountHolder.user, user),
+        By(MappedAccountHolder.accountBankPermalink, account.bank),
+        By(MappedAccountHolder.accountPermalink, account.id)
+      )
+
+    res.nonEmpty
+  }
+
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
-    logger.info(s"------------> list of all apiusers: ${APIUser.findAll}")
-    logger.info(s"------------> looking for: ${owner}, found: apiUserOwner ${apiUserOwner}")
     apiUserOwner match {
       case Some(o) => {
-        val holder = MappedAccountHolder.create
-          .user(o)
-          .accountBankPermalink(account.bank)
-          .accountPermalink(account.id).saveMe
-        logger.info(s"------------> created mappeduserholder: ${holder}")
+        if ( ! accountOwnerExists(o, account)) {
+          val holder = MappedAccountHolder.create
+            .user(o)
+            .accountBankPermalink(account.bank)
+            .accountPermalink(account.id).saveMe
+          logger.info(s"------------> created mappedUserHolder ${holder}")
+        }
       }
       case None => {
         //This shouldn't happen as OBPUser should generate the APIUsers when saved
@@ -90,44 +101,43 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-
   def updateSingleAccountViews( user: APIUser, account: KafkaInboundAccount ) = {
-    val res = {
-      val views = createSaveableViews(account, account.owners.contains(user.email.get))
+    for {
+      email <- tryo{user.emailAddress}
+      views <- tryo{createSaveableViews(account, account.owners.contains(email))}
+    } yield {
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${user} and account ${account}")
+        logger.info(s"------------> added view ${v.name} for apiuser ${user} and account ${account}")
       })
-      setAccountOwner(user.email.get, account)
+      setAccountOwner(email, account)
     }
-    res
   }
 
+  implicit val formats = net.liftweb.json.DefaultFormats
+
   def updateUserAccountViews( user: APIUser ) = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argList = Map("username"  -> user.email.get)
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = {
-      cachedUserAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
-    }
+    val accounts = for {
+      email <- tryo {user.emailAddress}
+      argList <- tryo {Map[String, String]("username" -> email)}
+      // Generate random uuid to be used as request-response match id
+      reqId <- tryo {UUID.randomUUID().toString}
+    } yield {
+      cachedUserAccounts.getOrElseUpdate(argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
+    }.head
 
-    logger.info(s"------------> userAccounts from Kafka: " + rList)
+    val views = for {
+      acc <- accounts
+      email <- tryo {user.emailAddress}
+      views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
+    } yield {
+      setAccountOwner(email, acc)
+      views.foreach(_.save())
+      views.map(_.value).filterNot(_.isPublic).foreach(v => {
+        logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${user}")
 
-    val res = {
-      for (r <- rList) {
-        val views = createSaveableViews(r, r.owners.contains(user.email.get))
-        views.foreach(_.save())
-        views.map(_.value).filterNot(_.isPublic).foreach(v => {
-          Views.views.vend.addPermission(v.uid, user)
-          logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${user}")
-        })
-        setAccountOwner(user.email.get, r)
-      }
+      })
     }
   }
 
@@ -153,17 +163,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  // TODO check me ! (no view name)
-  def viewExists(acc: KafkaInboundAccount, name: String): Boolean = {
-    //logger.info(s"------------> all views: " + ViewImpl.findAll)
-    val res = ViewImpl.findAll.filter { v =>
-      if (v.bankPermalink.get == acc.bank &&
-          v.accountPermalink.get == acc.id  &&
-          v.name_ == name)
-        true
-      else
-        false
-    }
+  def viewExists(account: KafkaInboundAccount, name: String): Boolean = {
+    val res =
+      ViewImpl.findAll(
+        By(ViewImpl.bankPermalink, account.bank),
+        By(ViewImpl.accountPermalink, account.id),
+        By(ViewImpl.name_, name)
+      )
     res.nonEmpty
   }
 
@@ -173,10 +179,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val accountId = AccountId(acc.id)
 
     val ownerView =
-      if(owner && ! viewExists(acc, "Owner")) Some(createSaveableOwnerView(bankId, accountId))
+      if(owner && ! viewExists(acc, "Owner")) {
+        logger.info("Creating owner view")
+        Some(createSaveableOwnerView(bankId, accountId))
+      }
       else None
-
-    logger.info(s"Kafka createSaveableViews ownerView is  $ownerView")
 
     val publicView =
       if(acc.generate_public_view && ! viewExists(acc, "Public")) {
@@ -268,12 +275,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = process(reqId, "getTransaction", argList).extract[KafkaInboundTransaction]
-    // If empty result from Kafka return empty data
-    if (r.id == "") {
-      return Failure(null)
-    }
-    //updateAccountTransactions(bankId, accountID)
-    Full(createNewTransaction(r))
+    createNewTransaction(r)
   }
 
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -299,18 +301,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "queryParams" -> queryParams.toString )
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
-    // Return blank if empty
-    if (rList.head.id == "") {
-      return Failure(null)
-    }
     // Populate fields and generate result
-    val res = {
-      for (r <- rList) yield {
-        createNewTransaction(r)
-      }
-    }
+    Full( for {
+      r <- rList
+      transaction <- createNewTransaction(r)
+    } yield {
+      transaction
+    })
     //updateAccountTransactions(bankId, accountID)
-    return Full(res)
   }
 
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
@@ -921,12 +919,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
   var retries:Int = 3
     while (consumer == null && retries > 0 ) {
-      retries-=1
+      retries -= 1
       consumer = new KafkaConsumer()
     }
     retries = 3
     while (producer == null && retries > 0) {
-      retries-=1
+      retries -= 1
       producer = new KafkaProducer()
     }
     if (producer == null || consumer == null)
@@ -940,7 +938,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   // Helper for creating a transaction
-  def createNewTransaction(r: KafkaInboundTransaction) = {
+  def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
@@ -949,29 +947,30 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
       dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
 
-    val c = getBankAccount(BankId(r.this_account.bank), AccountId(r.counterparty.get.account_number.get)).orNull
-    val o = getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id)).orNull
-    //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-    val dummyOtherBankAccount = createOtherBankAccount(c, o, None)
-    //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
-    //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-    val otherAccount = createOtherBankAccount(c, o, Some(dummyOtherBankAccount.metadata))
-
-    // Create new transaction
-    new Transaction(
-      r.id,                                                   // uuid:String
-      TransactionId(r.id),                                    // id:TransactionId
-      getBankAccount( BankId(r.this_account.bank),
-                          AccountId(r.this_account.id)).orNull, // thisAccount:BankAccount
-      otherAccount,                                           // otherAccount:OtherBankAccount
-      r.details.`type`,                                       // transactionType:String
-      BigDecimal(r.details.value),                            // val amount:BigDecimal
-      o.currency,                                             // currency:String
-      Some(r.details.description),                            // description:Option[String]
-      datePosted,                                             // startDate:Date
-      dateCompleted,                                          // finishDate:Date
-      BigDecimal(r.details.new_balance)                       // balance:BigDecimal
-    )
+    for {
+        counterparty <- r.counterparty
+        thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
+        //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
+        dummyOtherBankAccount <- tryo{createOtherBankAccount(counterparty, thisAccount, None)}
+        //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
+        //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
+        otherAccount <- tryo{createOtherBankAccount(counterparty, thisAccount, Some(dummyOtherBankAccount.metadata))}
+      } yield {
+        // Create new transaction
+        new Transaction(
+          r.id,                             // uuid:String
+          TransactionId(r.id),              // id:TransactionId
+          thisAccount,                      // thisAccount:BankAccount
+          otherAccount,                     // otherAccount:OtherBankAccount
+          r.details.`type`,                 // transactionType:String
+          BigDecimal(r.details.value),      // val amount:BigDecimal
+          thisAccount.currency,             // currency:String
+          Some(r.details.description),      // description:Option[String]
+          datePosted,                       // startDate:Date
+          dateCompleted,                    // finishDate:Date
+          BigDecimal(r.details.new_balance) // balance:BigDecimal)
+        )
+    }
   }
 
 
@@ -986,16 +985,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Helper for creating other bank account
-  def createOtherBankAccount(c: KafkaBankAccount, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
+  def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = c.label,
-      nationalIdentifier = c.nationalIdentifier, //TODO
-      swift_bic = Some(c.swift_bic.get),         //TODO
-      iban = Some(c.iban.get),
-      number = c.number,
-      bankName = c.bankName,
-      kind = c.accountType,
+      label = c.name + " " + c.account_number,
+      nationalIdentifier = "",
+      swift_bic = None,
+      iban = None,
+      number = "" + c.account_number,
+      bankName = "",
+      kind = "",
       originalPartyBankId = BankId(o.bankId.value),
       originalPartyAccountId = AccountId(o.accountId.value),
       alreadyFoundMetadata = alreadyFoundMetadata
