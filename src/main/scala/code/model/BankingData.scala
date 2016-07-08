@@ -436,7 +436,7 @@ trait BankAccount {
       Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
   }
 
-  final def createView(userDoingTheCreate : User,v: ViewCreationJSON): Box[View] = {
+  final def createView(userDoingTheCreate : User,v: CreateViewJSON): Box[View] = {
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
@@ -451,7 +451,7 @@ trait BankAccount {
     }
   }
 
-  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: ViewUpdateData) : Box[View] = {
+  final def updateView(userDoingTheUpdate : User, viewId : ViewId, v: UpdateViewJSON) : Box[View] = {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {

@@ -243,8 +243,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) : ViewCreationJSON = {
-    ViewCreationJSON(
+  def randomView(isPublic: Boolean, alias: String) : CreateViewJSON = {
+    CreateViewJSON(
       name = randomString(3),
       description = randomString(3),
       is_public = isPublic,
@@ -315,12 +315,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
-  def postView(bankId: String, accountId: String, view: ViewCreationJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postView(bankId: String, accountId: String, view: CreateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateData, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
     makePutRequest(request, write(view))
   }
@@ -1465,7 +1465,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
-      val viewWithEmptyName = ViewCreationJSON(
+      val viewWithEmptyName = CreateViewJSON(
         name = "",
         description = randomString(3),
         is_public = true,
@@ -1491,7 +1491,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     def viewUpdateJson(originalView : ViewJSON) = {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
-      new ViewUpdateData(
+      new UpdateViewJSON(
         description = updatedViewDescription,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
@@ -1501,7 +1501,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     }
 
     def someViewUpdateJson() = {
-      new ViewUpdateData(
+      new UpdateViewJSON(
         description = updatedViewDescription,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,

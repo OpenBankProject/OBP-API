@@ -16,9 +16,9 @@ import code.bankconnectors._
 import code.bankconnectors.OBPOffset
 import code.bankconnectors.OBPFromDate
 import code.bankconnectors.OBPToDate
-import code.model.ViewCreationJSON
+import code.model.CreateViewJSON
 import net.liftweb.common.Full
-import code.model.ViewUpdateData
+import code.model.UpdateViewJSON
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -532,7 +532,7 @@ trait APIMethods121 {
         | The 'hide_metadata_if_alias_used' field in the JSON can take boolean values. If it is set to `true` and there is an alias on the other account then the other accounts' metadata (like more_info, url, image_url, open_corporates_url, etc.) will be hidden. Otherwise the metadata will be shown.
         |
         | The 'allowed_actions' field is a list containing the name of the actions allowed on this view, all the actions contained will be set to `true` on the view creation, the rest will be set to `false`.""",
-      Extraction.decompose(ViewCreationJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
+      Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -546,7 +546,7 @@ trait APIMethods121 {
         user =>
           for {
             u <- user ?~ "user not found"
-            json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
+            json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
             account <- BankAccount(bankId, accountId)
             view <- account createView (u, json)
           } yield {
@@ -569,7 +569,7 @@ trait APIMethods121 {
         |
         |The json sent is the same as during view creation (above), with one difference: the 'name' field
         |of a view is not editable (it is only set when a view is created)""",
-      Extraction.decompose(ViewUpdateData("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
+      Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -584,7 +584,7 @@ trait APIMethods121 {
           for {
             account <- BankAccount(bankId, accountId)
             u <- user ?~ "user not found"
-            updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
+            updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
             updatedView <- account.updateView(u, viewId, updateJson)
           } yield {
             val viewJSON = JSONFactory.createViewJSON(updatedView)

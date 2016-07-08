@@ -56,7 +56,7 @@ case class Permission(
 /*
 View Specification
  */
-trait ViewData {
+trait ViewSpecification {
   def description: String
   def is_public: Boolean
   def which_alias_to_use: String
@@ -64,21 +64,21 @@ trait ViewData {
   def allowed_actions : List[String]
 }
 
-case class ViewCreationJSON(
+case class CreateViewJSON(
   name: String,
   description: String,
   is_public: Boolean,
   which_alias_to_use: String,
   hide_metadata_if_alias_used: Boolean,
   allowed_actions : List[String]
-) extends ViewData
+) extends ViewSpecification
 
-case class ViewUpdateData(
+case class UpdateViewJSON(
   description: String,
   is_public: Boolean,
   which_alias_to_use: String,
   hide_metadata_if_alias_used: Boolean,
-  allowed_actions: List[String]) extends ViewData
+  allowed_actions: List[String]) extends ViewSpecification
 
 
 

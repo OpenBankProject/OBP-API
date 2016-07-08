@@ -3,7 +3,7 @@ package code.views
 import code.api.APIFailure
 import code.bankconnectors.Connector
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.model.{Permission, ViewCreationJSON, ViewUpdateData, _}
+import code.model.{Permission, CreateViewJSON, UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.By
 
@@ -170,7 +170,7 @@ private object MapperViews extends Views with Loggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
+  def createView(bankAccount: BankAccount, view: CreateViewJSON): Box[View] = {
     if(view.name.contentEquals("")) {
       return Failure("You cannot create a View with an empty Name")
     }
@@ -200,7 +200,7 @@ private object MapperViews extends Views with Loggable {
 
 
   /* Update the specification of the view (what data/actions are allowed) */
-  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
+  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
       view <- ViewImpl.find(viewId, bankAccount)

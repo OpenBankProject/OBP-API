@@ -67,7 +67,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def users : List[User] =  users_.toList
   
   //Important! If you add a field, be sure to handle it here in this function
-  def setFromViewData(viewData : ViewData) = {
+  def setFromViewData(viewData : ViewSpecification) = {
 
     if(viewData.which_alias_to_use == "public"){
       usePublicAliasIfOneExists_(true)
