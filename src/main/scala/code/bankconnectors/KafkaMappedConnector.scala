@@ -971,7 +971,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       nationalIdentifier = "",
       swift_bic = None,
       iban = None,
-      number = c.account_number.getOrElse("").substring(0,30),
+      number = c.account_number.getOrElse(""),
       bankName = "",
       kind = "",
       originalPartyBankId = BankId(o.bankId.value),
