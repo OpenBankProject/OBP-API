@@ -101,7 +101,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def updateSingleAccountViews( user: APIUser, account: KafkaInboundAccount ) = {
+  def updateAccountViews(user: APIUser, account: KafkaInboundAccount ) = {
     for {
       email <- tryo{user.emailAddress}
       views <- tryo{createSaveableViews(account, account.owners.contains(email))}
@@ -109,7 +109,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added view ${v.name} for apiuser ${user} and account ${account}")
+        logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${account}")
       })
       setAccountOwner(email, account)
     }
@@ -125,41 +125,20 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       reqId <- tryo {UUID.randomUUID().toString}
     } yield {
       cachedUserAccounts.getOrElseUpdate(argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
-    }.head
+    }
 
     val views = for {
-      acc <- accounts
+      acc <- accounts.getOrElse(List.empty)
       email <- tryo {user.emailAddress}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
     } yield {
       setAccountOwner(email, acc)
       views.foreach(_.save())
-      views.map(_.value).filterNot(_.isPublic).foreach(v => {
-        logger.info(s"------------> added view: ${v.name}, ${v.uid} for apiuser: ${user}")
-
+      //views.map(_.value).filterNot(_.isPublic).foreach(v => {
+      views.map(_.value).foreach(v => {
+        Views.views.vend.addPermission(v.uid, user)
+        logger.info(s"------------> added view ${v.uid} for apiuser ${user} and account ${acc}")
       })
-    }
-  }
-
-  def updatePublicAccountViews( user: APIUser ) = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argList = Map("username"  -> user.email.get )
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = {
-      cachedPublicAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getPublicAccounts", argList).extract[List[KafkaInboundAccount]])
-    }
-
-    logger.info(s"------------> publicAccounts from Kafka: " + rList)
-
-    val res = {
-      for (r <- rList) {
-        val views = createSaveableViews(r,  ! r.owners.contains(user.email.get))
-        views.foreach(_.save())
-        views
-      }
     }
   }
 
@@ -205,7 +184,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         Some(createSaveableAuditorsView(bankId, accountId))
       }
       else None
-
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
@@ -331,7 +309,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       u <- OBPUser.getApiUserByEmail(e)
     }
       yield {
-        updateSingleAccountViews(u, r)
+        updateAccountViews(u, r)
       }
         Full(res)
   }

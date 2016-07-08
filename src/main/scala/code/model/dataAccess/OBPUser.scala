@@ -389,7 +389,6 @@ import net.liftweb.util.Helpers._
             if (!extUser.isEmpty) {
               val u = APIUser.find(By(APIUser.email, extUser.getOrElse(null).email)).getOrElse(null)
               if (u != null) {
-                //KafkaMappedConnector.updatePublicAccountViews(u)
                 KafkaMappedConnector.updateUserAccountViews(u)
               }
 
