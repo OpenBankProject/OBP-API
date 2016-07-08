@@ -66,7 +66,7 @@ trait ViewSpecification {
 }
 
 /*
-The JSON used during creation of the view. See ViewSpecification
+The JSON that should be supplied to create a view. Conforms to ViewSpecification
  */
 case class CreateViewJSON(
   name: String,
@@ -78,7 +78,7 @@ case class CreateViewJSON(
 ) extends ViewSpecification
 
 /*
-The JSON used to update the specification of the view. See ViewSpecification
+The JSON that should be supplied to update a view. Conforms to ViewSpecification
  */
 case class UpdateViewJSON(
   description: String,
