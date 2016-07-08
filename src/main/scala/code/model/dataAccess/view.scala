@@ -38,6 +38,10 @@ import net.liftweb.mapper._
 import code.model._
 import scala.collection.immutable.List
 
+/*
+This stores the link between A User and a View
+A User can't use a View unless it is listed here.
+ */
 class ViewPrivileges extends LongKeyedMapper[ViewPrivileges] with IdPK with CreatedUpdated {
   def getSingleton = ViewPrivileges
   object user extends MappedLongForeignKey(this, APIUser)

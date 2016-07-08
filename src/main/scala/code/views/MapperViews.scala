@@ -46,6 +46,7 @@ private object MapperViews extends Views with Loggable {
   }
 
   def addPermission(viewUID: ViewUID, user: User): Box[View] = {
+    logger.debug(s"addPermission says viewUID is $viewUID user is $user")
     val viewImpl = ViewImpl.find(viewUID)
 
     viewImpl match {
@@ -166,9 +167,12 @@ private object MapperViews extends Views with Loggable {
     ViewImpl.find(viewUID)
   }
 
+  /*
+  Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
+  * */
   def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
     if(view.name.contentEquals("")) {
-      return Failure("It is not allowed to create a view with an empty name")
+      return Failure("You cannot create a View with an empty Name")
     }
 
     val newViewPermalink = {
@@ -194,6 +198,8 @@ private object MapperViews extends Views with Loggable {
     }
   }
 
+
+  /* Update the specification of the view (what data/actions are allowed) */
   def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
 
     for {

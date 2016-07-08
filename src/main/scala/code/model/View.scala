@@ -52,6 +52,10 @@ case class Permission(
   views : List[View]
 )
 
+
+/*
+View Specification
+ */
 trait ViewData {
   def description: String
   def is_public: Boolean
@@ -139,8 +143,8 @@ case class ViewUpdateData(
   * @define canSeePhysicalLocation If true, the view will show the Counterparty PhysicalLocation
   * @define canSeePublicAlias If true, the view will show the Counterparty PublicAlias
   * @define canSeePrivateAlias If true, the view will show the Counterparty PrivateAlias
-  * @define canAddMoreInfo If true, the view will show the Counterparty AddMoreInfo
   *
+  * @define canAddMoreInfo If true, the view can add the Counterparty MoreInfo
   * @define canAddURL If true, the view can add the Counterparty Url
   * @define canAddImageURL If true, the view can add the Counterparty Image Url
   * @define canAddOpenCorporatesUrl If true, the view can add the Counterparty OpenCorporatesUrl
