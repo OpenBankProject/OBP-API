@@ -55,6 +55,7 @@ case class Permission(
 
 /*
 View Specification
+Defines how the View should be named, i.e. if it is public, the Alias behaviour, what fields can be seen and what actions can be done through it.
  */
 trait ViewSpecification {
   def description: String
@@ -64,6 +65,9 @@ trait ViewSpecification {
   def allowed_actions : List[String]
 }
 
+/*
+The JSON used during creation of the view. See ViewSpecification
+ */
 case class CreateViewJSON(
   name: String,
   description: String,
@@ -73,6 +77,9 @@ case class CreateViewJSON(
   allowed_actions : List[String]
 ) extends ViewSpecification
 
+/*
+The JSON used to update the specification of the view. See ViewSpecification
+ */
 case class UpdateViewJSON(
   description: String,
   is_public: Boolean,
@@ -246,7 +253,7 @@ trait View {
   def canSeePublicAlias : Boolean
   def canSeePrivateAlias : Boolean
 
-  //other bank account meta data - write
+  //other bank account (Counterparty) meta data - write
   def canAddMoreInfo : Boolean
   def canAddURL : Boolean
   def canAddImageURL : Boolean
