@@ -959,7 +959,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = c.name.getOrElse("") + " " + c.account_number.getOrElse(""),
+      label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
       swift_bic = None,
       iban = None,
