@@ -502,7 +502,7 @@ trait APIMethods200 {
       apiVersion,
       "getSocialMedia",
       "GET",
-      "/customers/CUSTOMER_NUMBER/social_media_handles",
+      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media_handles",
       "Get social media handles for a customer",
       """Get social media handles for a customer.
         |
@@ -516,10 +516,12 @@ trait APIMethods200 {
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "customers" :: customerNumber :: "social_media_handles" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "social_media_handles" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            CanGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), s"$CanGetSocialMediaHandles entitlement required")
             cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(cNumber)
@@ -729,6 +731,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            CanAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), s"$CanAddSocialMediaHandle entitlement required")
             customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
