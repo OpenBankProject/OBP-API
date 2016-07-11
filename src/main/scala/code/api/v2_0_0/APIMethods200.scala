@@ -368,7 +368,7 @@ trait APIMethods200 {
       apiVersion,
       "getKycDocuments",
       "GET",
-      "/customers/CUSTOMER_NUMBER/kyc_documents",
+      "/customers/CUSTOMER_ID/kyc_documents",
       "Get KYC Documents for Customer",
       """Get KYC (know your customer) documents for a customer
         |Get a list of documents that affirm the identity of the customer
@@ -383,13 +383,13 @@ trait APIMethods200 {
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycDocuments  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "customers" :: customerNumber :: "kyc_documents" :: Nil JsonGet _ => {
+      case "customers" :: customerId :: "kyc_documents" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(cNumber)
+            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customer.number)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -403,7 +403,7 @@ trait APIMethods200 {
       apiVersion,
       "getKycMedia",
       "GET",
-      "/customers/CUSTOMER_NUMBER/kyc_media",
+      "/customers/CUSTOMER_ID/kyc_media",
       "Get KYC Media for a customer",
       """Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
@@ -417,13 +417,13 @@ trait APIMethods200 {
     List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "customers" :: customerNumber :: "kyc_media" :: Nil JsonGet _ => {
+      case "customers" :: customerId :: "kyc_media" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(cNumber)
+            val kycMedias = KycMedias.kycMediaProvider.vend.getKycMedias(customer.number)
             val json = JSONFactory200.createKycMediasJSON(kycMedias)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -436,7 +436,7 @@ trait APIMethods200 {
       apiVersion,
       "getKycChecks",
       "GET",
-      "/customers/CUSTOMER_NUMBER/kyc_checks",
+      "/customers/CUSTOMER_ID/kyc_checks",
       "Get KYC Checks for current Customer",
       """Get KYC checks for the logged in customer
         |Messages sent to the currently authenticated user.
@@ -451,13 +451,13 @@ trait APIMethods200 {
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "customers" :: customerNumber :: "kyc_checks" :: Nil JsonGet _ => {
+      case "customers" :: customerId :: "kyc_checks" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(cNumber)
+            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customer.number)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -469,7 +469,7 @@ trait APIMethods200 {
       apiVersion,
       "getKycStatuses",
       "GET",
-      "/customers/CUSTOMER_NUMBER/kyc_statuses",
+      "/customers/CUSTOMER_ID/kyc_statuses",
       "Get the KYC statuses for a customer",
       """Get the KYC statuses for a customer over time
         |
@@ -483,13 +483,13 @@ trait APIMethods200 {
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycStatuses  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "customers" :: customerNumber :: "kyc_statuses" :: Nil JsonGet _ => {
+      case "customers" :: customerId :: "kyc_statuses" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(cNumber)
+            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customer.number)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -502,7 +502,7 @@ trait APIMethods200 {
       apiVersion,
       "getSocialMedia",
       "GET",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media_handles",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Get social media handles for a customer",
       """Get social media handles for a customer.
         |
@@ -516,15 +516,15 @@ trait APIMethods200 {
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "social_media_handles" :: Nil JsonGet _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonGet _ => {
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             CanGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), s"$CanGetSocialMediaHandles entitlement required")
-            cNumber <- tryo(customerNumber) ?~! {ErrorMessages.CustomerNotFound}
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(cNumber)
+            val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
             val json = JSONFactory200.createSocialMediasJSON(kycSocialMedias)
             successJsonResponse(Extraction.decompose(json))
           }
