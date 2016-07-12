@@ -416,11 +416,7 @@ private object LocalConnector extends Connector with Loggable {
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.create
-      .accountBankPermalink(bankAccountUID.bankId.value)
-      .accountPermalink(bankAccountUID.accountId.value)
-      .user(user.apiId.value)
-      .save
+    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number

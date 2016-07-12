@@ -87,11 +87,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     apiUserOwner match {
       case Some(o) => {
         if ( ! accountOwnerExists(o, account)) {
-          val holder = MappedAccountHolder.create
-            .user(o)
-            .accountBankPermalink(account.bank)
-            .accountPermalink(account.id).saveMe
-          logger.info(s"------------> created mappedUserHolder ${holder}")
+          MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaMappedConnector")
         }
       }
       case None => {
@@ -669,11 +665,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.create
-      .accountBankPermalink(bankAccountUID.bankId.value)
-      .accountPermalink(bankAccountUID.accountId.value)
-      .user(user.apiId.value)
-      .save
+    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
@@ -967,7 +959,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
     new OtherBankAccount(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
-      label = c.name.getOrElse("") + " " + c.account_number.getOrElse(""),
+      label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
       swift_bic = None,
       iban = None,

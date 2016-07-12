@@ -159,15 +159,12 @@ trait OBPDataImport extends Loggable {
    *
    * TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
    */
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: BankAccount, createdUsers: List[APIUser]) : Unit = {
+  protected def setAccountOwner(owner : AccountOwnerEmail, account: BankAccount, createdUsers: List[APIUser]): AnyVal = {
     val apiUserOwner = createdUsers.find(user => owner == user.emailAddress)
 
     apiUserOwner match {
       case Some(o) => {
-        MappedAccountHolder.create
-          .user(o)
-          .accountBankPermalink(account.bankId.value)
-          .accountPermalink(account.accountId.value).save
+        MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
       }
       case None => {
         //This shouldn't happen as OBPUser should generate the APIUsers when saved
