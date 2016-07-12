@@ -709,7 +709,7 @@ trait APIMethods200 {
       apiVersion,
       "addSocialMediaHandle",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media",
+      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media_handles",
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_NUMBER.",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
@@ -722,7 +722,7 @@ trait APIMethods200 {
     )
 
     lazy val addSocialMediaHandle : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "social_media" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "social_media_handles" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
