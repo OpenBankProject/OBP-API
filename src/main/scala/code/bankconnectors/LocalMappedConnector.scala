@@ -445,65 +445,6 @@ object LocalMappedConnector extends Connector with Loggable {
     End of bank account creation
    */
 
-  /*
-      Cash api
-     */
-
-  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
-  override def getAccountByUUID(uuid: String): Box[AccountType] = {
-    MappedBankAccount.find(By(MappedBankAccount.accUUID, uuid))
-  }
-
-  //cash api requires a call to add a new transaction and update the account balance
-  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = {
-
-    val currency = account.currency
-    val currencyDecimalPlaces = Helper.currencyDecimalPlaces(currency)
-
-    //not ideal to have to convert it this way
-    def doubleToSmallestCurrencyUnits(x : Double) : Long = {
-      (x * math.pow(10, currencyDecimalPlaces)).toLong
-    }
-
-    //can't forget to set the sign of the amount cashed on kind being "in" or "out"
-    //we just assume if it's not "in", then it's "out"
-    val amountInSmallestCurrencyUnits = {
-      if(cashTransaction.kind == "in") doubleToSmallestCurrencyUnits(cashTransaction.amount)
-      else doubleToSmallestCurrencyUnits(-1 * cashTransaction.amount)
-    }
-
-    val currentBalanceInSmallestCurrencyUnits = account.accountBalance.get
-    val newBalanceInSmallestCurrencyUnits = currentBalanceInSmallestCurrencyUnits + amountInSmallestCurrencyUnits
-
-    //create transaction
-    val transactionCreated = MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType("cash")
-      .amount(amountInSmallestCurrencyUnits)
-      .newAccountBalance(newBalanceInSmallestCurrencyUnits)
-      .currency(account.currency)
-      .tStartDate(cashTransaction.date)
-      .tFinishDate(cashTransaction.date)
-      .description(cashTransaction.label)
-      .counterpartyAccountHolder(cashTransaction.otherParty)
-      .counterpartyAccountKind("cash")
-      .save
-
-    if(!transactionCreated) {
-      logger.warn("Failed to save cash transaction")
-    } else {
-      //update account
-      val accountUpdated = account.accountBalance(newBalanceInSmallestCurrencyUnits).save()
-
-      if(!accountUpdated)
-        logger.warn("Failed to update account balance after new cash transaction")
-    }
-  }
-
-  /*
-    End of cash api
-   */
 
   /*
     Transaction importer api

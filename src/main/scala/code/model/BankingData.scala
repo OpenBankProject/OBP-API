@@ -229,9 +229,6 @@ trait BankAccount {
 
   @transient protected val log = Logger(this.getClass)
 
-  @deprecated
-  def uuid : String
-
   def accountId : AccountId
   def accountType : String // (stored in the field "kind" on Mapper)
   //def productCode : String // TODO Add this shorter code.

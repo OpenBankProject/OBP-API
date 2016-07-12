@@ -461,12 +461,6 @@ trait Connector {
   //remove an account and associated transactions
   def removeAccount(bankId: BankId, accountId: AccountId) : Boolean
 
-  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
-  def getAccountByUUID(uuid : String) : Box[AccountType]
-
-  //cash api requires a call to add a new transaction and update the account balance
-  def addCashTransactionAndUpdateBalance(account : AccountType, cashTransaction : CashTransaction)
-
   //used by transaction import api call to check for duplicates
 
   //the implementation is responsible for dealing with the amount as a string

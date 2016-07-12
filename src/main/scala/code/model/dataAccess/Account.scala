@@ -149,8 +149,6 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     }
   }
 
-  override def uuid: String = id.get.toString
-
   override def bankId: BankId = {
     bankID.obj match  {
       case Full(bank) => BankId(bank.permalink.get)
