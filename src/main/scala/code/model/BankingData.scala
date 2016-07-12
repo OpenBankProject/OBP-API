@@ -138,6 +138,9 @@ trait Bank {
   def logoUrl : String
   def websiteUrl : String
 
+  // TODO Add Group ?
+
+
   //SWIFT BIC banking code (globally unique)
   def swiftBic: String
 
