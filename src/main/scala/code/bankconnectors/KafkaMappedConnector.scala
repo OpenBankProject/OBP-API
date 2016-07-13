@@ -135,7 +135,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added view ${v.uid} for apiuser ${user} and account ${acc}")
       })
-      existing_views.foreach(v => {
+      existing_views.filterNot(_.users.contains(user)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
       })
