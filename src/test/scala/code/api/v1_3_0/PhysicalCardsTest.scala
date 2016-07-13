@@ -121,12 +121,6 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
                                           accountNumber: String, currency: String,
                                           initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
 
-    //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountId
-    override def getAccountByUUID(uuid: String): Box[PhysicalCardsTest.this.MockedCardConnector.AccountType] = ???
-
-    //cash api requires a call to add a new transaction and update the account balance
-    override def addCashTransactionAndUpdateBalance(account: PhysicalCardsTest.this.MockedCardConnector.AccountType, cashTransaction: CashTransaction): Unit = ???
-
     //used by transaction import api call to check for duplicates
     override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
     //used by transaction import api

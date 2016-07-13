@@ -6,5 +6,5 @@ import net.liftweb.mapper.{Mapper, MappedString}
 class MappedAccountNumber [T <: Mapper[T]] (override val fieldOwner : T) extends MappedString(fieldOwner, MappedAccountNumber.MaxLength)
 
 object MappedAccountNumber {
-  val MaxLength = 30
+  val MaxLength = 128
 }

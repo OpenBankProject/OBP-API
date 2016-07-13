@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.util.ErrorMessages
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -43,31 +44,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    val argList = Map( "email"    -> username.toLowerCase,
-                       "password" -> password )
-    implicit val formats = net.liftweb.json.DefaultFormats
-
-    val r = {
-      cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])
-    }
-    val recDisplayName = r.display_name
-    val recEmail = r.email
-    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
-      if (recDisplayName == "") {
-        val user = new KafkaInboundUser( recEmail, password, recEmail)
-        Full(user)
-      }
-      else {
-        val user = new KafkaInboundUser(recEmail, password, recDisplayName)
-        Full(user)
-      }
-    } else {
-      // If empty result from Kafka return empty data
-      Empty
+    for {
+      argList <- tryo {Map[String, String]( "email" -> username.toLowerCase, "password" -> password )}
+      // Generate random uuid to be used as request-response match id
+      reqId <- tryo {UUID.randomUUID().toString}
+      u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
+      recEmail <- tryo{u.email} ?~ {ErrorMessages.UserNotFoundByEmail}
+      user <- tryo{new KafkaInboundUser( recEmail, password, recEmail)}
+    } yield {
+      user
     }
   }
 
@@ -101,11 +86,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     for {
       email <- tryo{user.emailAddress}
       views <- tryo{createSaveableViews(account, account.owners.contains(email))}
+      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(account))}
     } yield {
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${account}")
+      })
+      existing_views.filterNot(_.users.contains(user)).foreach (v => {
+        Views.views.vend.addPermission(v.uid, user)
+        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${account}")
       })
       setAccountOwner(email, account)
     }
@@ -127,13 +117,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       acc <- accounts.getOrElse(List.empty)
       email <- tryo {user.emailAddress}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
+      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
     } yield {
       setAccountOwner(email, acc)
       views.foreach(_.save())
-      //views.map(_.value).filterNot(_.isPublic).foreach(v => {
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added view ${v.uid} for apiuser ${user} and account ${acc}")
+      })
+      existing_views.filterNot(_.users.contains(user)).foreach (v => {
+        Views.views.vend.addPermission(v.uid, user)
+        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
   }
@@ -303,11 +297,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     for {
       e <- tryo{OBPUser.getCurrentUserUsername}
       u <- OBPUser.getApiUserByEmail(e)
+    } yield {
+      updateAccountViews(u, r)
     }
-      yield {
-        updateAccountViews(u, r)
-      }
-        Full(res)
+    Full(res)
   }
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
@@ -323,7 +316,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
     }
-    val res = r.map ( t => new KafkaBankAccount(t) )
+    val res = r.map { t =>
+      val a = new KafkaBankAccount(t)
+      for {
+      e <- tryo{OBPUser.getCurrentUserUsername}
+      u <- OBPUser.getApiUserByEmail(e)
+      } yield {
+        updateAccountViews(u, t)
+      }
+      a
+    }
     res
   }
 
@@ -341,6 +343,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
     val res = new KafkaBankAccount(r)
+    for {
+      e <- tryo{OBPUser.getCurrentUserUsername}
+      u <- OBPUser.getApiUserByEmail(e)
+    } yield {
+      updateAccountViews(u, r)
+    }
     Full(res)
   }
 
@@ -696,58 +704,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       Cash api
      */
 
-  //cash api requires getting an account via a uuid: for legacy reasons it does not use bankId + accountID
-  override def getAccountByUUID(uuid: String): Box[AccountType] = {
-    getBankAccount(null, AccountId(uuid))
-  }
-
-  //cash api requires a call to add a new transaction and update the account balance
-  override def addCashTransactionAndUpdateBalance(account: AccountType, cashTransaction: CashTransaction): Unit = {
-
-    val currency = account.currency
-    val currencyDecimalPlaces = Helper.currencyDecimalPlaces(currency)
-
-    //not ideal to have to convert it this way
-    def doubleToSmallestCurrencyUnits(x : Double) : Long = {
-      (x * math.pow(10, currencyDecimalPlaces)).toLong
-    }
-
-    //can't forget to set the sign of the amount cashed on kind being "in" or "out"
-    //we just assume if it's not "in", then it's "out"
-    val amountInSmallestCurrencyUnits = {
-      if(cashTransaction.kind == "in") doubleToSmallestCurrencyUnits(cashTransaction.amount)
-      else doubleToSmallestCurrencyUnits(-1 * cashTransaction.amount)
-    }
-
-    val currentBalanceInSmallestCurrencyUnits = account.balance
-    val newBalanceInSmallestCurrencyUnits = currentBalanceInSmallestCurrencyUnits + amountInSmallestCurrencyUnits
-
-    //create transaction
-    val transactionCreated = MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType("cash")
-      .amount(amountInSmallestCurrencyUnits)
-      .newAccountBalance(newBalanceInSmallestCurrencyUnits.toLong)
-      .currency(account.currency)
-      .tStartDate(cashTransaction.date)
-      .tFinishDate(cashTransaction.date)
-      .description(cashTransaction.label)
-      .counterpartyAccountHolder(cashTransaction.otherParty)
-      .counterpartyAccountKind("cash")
-      .save
-
-    if(!transactionCreated) {
-      logger.warn("Failed to save cash transaction")
-    } else {
-      //update account
-      val accountUpdated = false //account.balance = newBalanceInSmallestCurrencyUnits
-
-      if(!accountUpdated)
-        logger.warn("Failed to update account balance after new cash transaction")
-    }
-  }
-
   /*
     End of cash api
    */
@@ -973,7 +929,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
-    def uuid : String               = r.id
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
     def balance : BigDecimal        = BigDecimal(r.balance.amount)

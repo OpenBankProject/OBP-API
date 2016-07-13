@@ -62,7 +62,6 @@ import code.model.dataAccess._
 import code.products.MappedProduct
 import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.tesobe.CashAccountAPI
 import code.transactionrequests.MappedTransactionRequest
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
@@ -212,7 +211,6 @@ class Boot extends Loggable{
     LiftRules.statelessDispatch.append(AccountsAPI)
 
     // add other apis
-    LiftRules.statelessDispatch.append(CashAccountAPI)
     LiftRules.statelessDispatch.append(BankMockAPI)
 
 

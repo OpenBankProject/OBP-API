@@ -367,12 +367,9 @@ import net.liftweb.util.Helpers._
               case _ =>
                 homePage
             }
-
             logUserIn(user, () => {
               S.notice(S.?("logged.in"))
-
               preLoginState()
-
               S.redirectTo(redir)
             })
           }
@@ -384,26 +381,24 @@ import net.liftweb.util.Helpers._
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             val preLoginState = capturePreLoginState()
-            val extUser = getUserFromKafka(S.param("username").orNull, S.param("password").orNull)
-
-            if (!extUser.isEmpty) {
-              val u = APIUser.find(By(APIUser.email, extUser.getOrElse(null).email)).getOrElse(null)
-              if (u != null) {
-                KafkaMappedConnector.updateUserAccountViews(u)
-              }
-
-              logUserIn(extUser.orNull, () => {
+            val extUser = for {
+              username_ <- S.param("username")
+              password_ <- S.param("password")
+              user_ <- getUserFromKafka(username_, password_)
+            } yield {
+              logUserIn(user_, () => {
                 S.notice(S.?("logged.in"))
-
                 preLoginState()
-
                 S.redirectTo(homePage)
               })
-            } else {
-              userLoginFailed
+              for {
+                u <- APIUser.find(By(APIUser.email, user_.email))
+                v <- tryo{KafkaMappedConnector.updateUserAccountViews(u)}
+              }
+              user_
             }
-          } else {
-            userLoginFailed
+            if (extUser.isEmpty)
+              userLoginFailed
           }
         }
       }
