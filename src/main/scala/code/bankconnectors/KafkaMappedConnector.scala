@@ -127,13 +127,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       acc <- accounts.getOrElse(List.empty)
       email <- tryo {user.emailAddress}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
+      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
     } yield {
       setAccountOwner(email, acc)
       views.foreach(_.save())
-      //views.map(_.value).filterNot(_.isPublic).foreach(v => {
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added view ${v.uid} for apiuser ${user} and account ${acc}")
+      })
+      existing_views.foreach(v => {
+        Views.views.vend.addPermission(v.uid, user)
+        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
   }
