@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.api.util.ErrorMessages
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -43,31 +44,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    val argList = Map( "email"    -> username.toLowerCase,
-                       "password" -> password )
-    implicit val formats = net.liftweb.json.DefaultFormats
-
-    val r = {
-      cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])
-    }
-    val recDisplayName = r.display_name
-    val recEmail = r.email
-    if (recEmail == username.toLowerCase && recEmail != "Not Found") {
-      if (recDisplayName == "") {
-        val user = new KafkaInboundUser( recEmail, password, recEmail)
-        Full(user)
-      }
-      else {
-        val user = new KafkaInboundUser(recEmail, password, recDisplayName)
-        Full(user)
-      }
-    } else {
-      // If empty result from Kafka return empty data
-      Empty
+    for {
+      argList <- tryo {Map[String, String]( "email" -> username.toLowerCase, "password" -> password )}
+      // Generate random uuid to be used as request-response match id
+      reqId <- tryo {UUID.randomUUID().toString}
+      u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
+      recEmail <- tryo{u.email} ?~ {ErrorMessages.UserNotFoundByEmail}
+      user <- tryo{new KafkaInboundUser( recEmail, password, recEmail)}
+    } yield {
+      user
     }
   }
 
@@ -101,11 +86,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     for {
       email <- tryo{user.emailAddress}
       views <- tryo{createSaveableViews(account, account.owners.contains(email))}
+      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(account))}
     } yield {
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${account}")
+      })
+      existing_views.filterNot(_.users.contains(user)).foreach (v => {
+        Views.views.vend.addPermission(v.uid, user)
+        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${account}")
       })
       setAccountOwner(email, account)
     }
@@ -307,11 +297,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     for {
       e <- tryo{OBPUser.getCurrentUserUsername}
       u <- OBPUser.getApiUserByEmail(e)
+    } yield {
+      updateAccountViews(u, r)
     }
-      yield {
-        updateAccountViews(u, r)
-      }
-        Full(res)
+    Full(res)
   }
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
@@ -327,7 +316,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
     }
-    val res = r.map ( t => new KafkaBankAccount(t) )
+    val res = r.map { t =>
+      val a = new KafkaBankAccount(t)
+      for {
+      e <- tryo{OBPUser.getCurrentUserUsername}
+      u <- OBPUser.getApiUserByEmail(e)
+      } yield {
+        updateAccountViews(u, t)
+      }
+      a
+    }
     res
   }
 
@@ -345,6 +343,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
     val res = new KafkaBankAccount(r)
+    for {
+      e <- tryo{OBPUser.getCurrentUserUsername}
+      u <- OBPUser.getApiUserByEmail(e)
+    } yield {
+      updateAccountViews(u, r)
+    }
     Full(res)
   }
 
