@@ -711,7 +711,7 @@ trait APIMethods200 {
       apiVersion,
       "addSocialMediaHandle",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media_handles",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Add Social Media Handle",
       "Add a social media handle for the customer specified by CUSTOMER_ID.",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
