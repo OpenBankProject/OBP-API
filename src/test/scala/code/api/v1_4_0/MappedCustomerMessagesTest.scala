@@ -7,9 +7,13 @@ import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, AddCustomerMessageJson, CustomerMessagesJson, CustomerJson}
 import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
 import code.model.BankId
+import code.usercustomerlinks.{MappedUserCustomerLink}
 import dispatch._
 import code.api.util.APIUtil.OAuth._
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.mapper.By
+import net.liftweb.common.{Full, Empty}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
@@ -17,7 +21,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("testBank1")
   val mockCustomerNumber = "9393490320"
-  val mockCustomerId = "uuid-asdfasdfaoiu8u8u8hkjhsf"
+  val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
 
 
   val exampleDateString : String ="22/08/2013"
@@ -63,8 +67,19 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       )
       var response = makePostRequest(request, write(customerJson))
 
+      val customer: Box[MappedCustomer] = MappedCustomer.find(
+        By(MappedCustomer.mBank, mockBankId.value),
+        By(MappedCustomer.mNumber, mockCustomerNumber)
+      )
+      val customerId = customer match {
+        case Full(c) => c.customerId
+        case Empty => "Empty"
+        case _ => "Failure"
+      }
+      MappedUserCustomerLink.createUserCustomerLink(obpuser1.userId, customerId, exampleDate, true)
+
       When("We add a message")
-      request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST <@ user1
+      request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
       response = makePostRequest(request, write(messageJson))
 

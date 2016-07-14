@@ -540,9 +540,9 @@ trait APIMethods200 {
       apiVersion,
       "addKycDocument",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_documents",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents",
       "Add KYC Document.",
-      "Add a KYC document for the customer specified by CUSTOMER_NUMBER. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
+      "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
       Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -555,14 +555,14 @@ trait APIMethods200 {
     // TODO customerNumber should be in the url but not also in the postedData
 
     lazy val addKycDocument : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "kyc_documents" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_documents" :: Nil JsonPost json -> _ => {
         // customerNumber is duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[KycDocumentJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycDocumentCreated <- booleanToBox(
               KycDocuments.kycDocumentProvider.vend.addKycDocuments(
                 postedData.id,
@@ -585,9 +585,9 @@ trait APIMethods200 {
       apiVersion,
       "addKycMedia",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_media",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media",
       "Add KYC Media.",
-      "Add some KYC media for the customer specified by CUSTOMER_NUMBER. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
+      "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
       Extraction.decompose(KycMediaJSON("73hyfgayt6ywerwerasd", "1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -598,14 +598,14 @@ trait APIMethods200 {
     )
 
     lazy val addKycMedia : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "kyc_media" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_media" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[KycMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycDocumentCreated <- booleanToBox(
               KycMedias.kycMediaProvider.vend.addKycMedias(
                 postedData.id,
@@ -628,9 +628,9 @@ trait APIMethods200 {
       apiVersion,
       "addKycCheck",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_check",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check",
       "Add KYC Check",
-      "Add a KYC check for the customer specified by CUSTOMER_NUMBER. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
+      "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
       Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -641,14 +641,14 @@ trait APIMethods200 {
     )
 
     lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "kyc_check" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[KycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycCheckCreated <- booleanToBox(
               KycChecks.kycCheckProvider.vend.addKycChecks(
                 postedData.id,
@@ -672,9 +672,9 @@ trait APIMethods200 {
       apiVersion,
       "addKycStatus",
       "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_NUMBER/kyc_statuses",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
-      "Add a kyc_status for the customer specified by CUSTOMER_NUMBER. KYC Status is a timeline of the KYC status of the customer",
+      "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
       Extraction.decompose(KycStatusJSON("8762893876", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -685,14 +685,14 @@ trait APIMethods200 {
     )
 
     lazy val addKycStatus : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "kyc_statuses" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_statuses" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[KycStatusJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycStatusCreated <- booleanToBox(
               KycStatuses.kycStatusProvider.vend.addKycStatus(
                 postedData.customer_number,
@@ -713,7 +713,7 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/customers/CUSTOMER_NUMBER/social_media_handles",
       "Add Social Media Handle",
-      "Add a social media handle for the customer specified by CUSTOMER_NUMBER.",
+      "Add a social media handle for the customer specified by CUSTOMER_ID.",
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -724,7 +724,7 @@ trait APIMethods200 {
     )
 
     lazy val addSocialMediaHandle : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "social_media_handles" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "social_media_handles" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
@@ -732,7 +732,7 @@ trait APIMethods200 {
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             CanAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), s"$CanAddSocialMediaHandle entitlement required")
-            customer <- Customer.customerProvider.vend.getUser(bankId, postedData.customer_number) ?~! ErrorMessages.CustomerNotFound
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
                 postedData.customer_number,
