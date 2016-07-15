@@ -10,6 +10,7 @@ import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.entitlement.Entitlement
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
@@ -131,13 +132,15 @@ trait APIMethods200 {
       "GET",
       "/accounts",
       "Get all Accounts at all Banks.",
-      """Get all accounts at all banks the User has access to (Authenticated + Anonymous access).
+      s"""Get all accounts at all banks the User has access to (Authenticated + Anonymous access).
          |Returns the list of accounts at that the user has access to at all banks.
          |For each account the API returns the account ID and the available views.
          |
          |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views. If
          |the user is authenticated, the list will contain non-public accounts to which the user has access, in addition to
          |all public accounts.
+         |
+         |${authenticationRequiredMessage(false)}
          |""",
       emptyObjectJson,
       emptyObjectJson,
@@ -163,11 +166,12 @@ trait APIMethods200 {
       "GET",
       "/my/accounts",
       "Get Accounts at all Banks (Private)",
-      """Get private accounts at all banks (Authenticated access)
+      s"""Get private accounts at all banks (Authenticated access)
         |Returns the list of accounts containing private views for the user at all banks.
         |For each account the API returns the ID and the available views.
         |
-        |Authentication via OAuth is required.""",
+        |${authenticationRequiredMessage(true)}
+        |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -207,9 +211,12 @@ trait APIMethods200 {
       "GET",
       "/accounts/public",
       "Get Public Accounts at all Banks.",
-      """Get public accounts at all banks (Anonymous access).
+      s"""Get public accounts at all banks (Anonymous access).
         |Returns the list of accounts containing public views at all banks
-        |For each account the API returns the ID and the available views. Authentication via OAuth is required.""",
+        |For each account the API returns the ID and the available views.
+        |
+        |${authenticationRequiredMessage(true)}
+        |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -242,11 +249,11 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/accounts",
       "Get Accounts at one Bank (Public and Private).",
-      """Get accounts at one bank that the user has access to (Authenticated + Anonymous access).
+      s"""Get accounts at one bank that the user has access to (Authenticated + Anonymous access).
         |Returns the list of accounts at BANK_ID that the user has access to.
         |For each account the API returns the account ID and the available views.
         |
-        |If the user is not authenticated via OAuth, the list will contain only the accounts providing public views.
+        |If the user is not authenticated, the list will contain only the accounts providing public views.
       """,
       emptyObjectJson,
       emptyObjectJson,
@@ -370,10 +377,10 @@ trait APIMethods200 {
       "GET",
       "/customers/CUSTOMER_ID/kyc_documents",
       "Get KYC Documents for Customer",
-      """Get KYC (know your customer) documents for a customer
+      s"""Get KYC (know your customer) documents for a customer
         |Get a list of documents that affirm the identity of the customer
         |Passport, driving licence etc.
-        |Authentication is required.""",
+        |${authenticationRequiredMessage(false)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -405,9 +412,9 @@ trait APIMethods200 {
       "GET",
       "/customers/CUSTOMER_ID/kyc_media",
       "Get KYC Media for a customer",
-      """Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
+      s"""Get KYC media (scans, pictures, videos) that affirms the identity of the customer.
         |
-        |Authentication is required.""",
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -438,10 +445,10 @@ trait APIMethods200 {
       "GET",
       "/customers/CUSTOMER_ID/kyc_checks",
       "Get KYC Checks for current Customer",
-      """Get KYC checks for the logged in customer
+      s"""Get KYC checks for the logged in customer
         |Messages sent to the currently authenticated user.
         |
-        |Authentication via OAuth is required.""",
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -471,9 +478,9 @@ trait APIMethods200 {
       "GET",
       "/customers/CUSTOMER_ID/kyc_statuses",
       "Get the KYC statuses for a customer",
-      """Get the KYC statuses for a customer over time
+      s"""Get the KYC statuses for a customer over time
         |
-        |Authentication is required.""",
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -504,9 +511,9 @@ trait APIMethods200 {
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Get social media handles for a customer",
-      """Get social media handles for a customer.
+      s"""Get social media handles for a customer.
         |
-        |Authentication via OAuth is required.""",
+        |${authenticationRequiredMessage(true)}""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1145,7 +1152,7 @@ trait APIMethods200 {
         |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_IDO specified in the request body.
         |
         |
-        |
+        |${authenticationRequiredMessage(true)}
         |
         |""",
       Extraction.decompose(TransactionRequestBodyJSON (
@@ -1359,7 +1366,7 @@ trait APIMethods200 {
               }
             }
             else {
-              Full(errorJsonResponse("User with the same email already exists."))
+              Full(errorJsonResponse("User with the same email already exists.", 409))
             }
           }
       }
@@ -1528,6 +1535,8 @@ trait APIMethods200 {
 
     //
 
+
+
     resourceDocs += ResourceDoc(
       createCustomer,
       apiVersion,
@@ -1535,12 +1544,12 @@ trait APIMethods200 {
       "POST",
       "/banks/BANK_ID/customers",
       "Create Customer.",
-      """Add a customer linked to the user specified by user_id
+      s"""Add a customer linked to the user specified by user_id
         |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
         |This call may require additional permissions/role in the future.
         |For now the authenticated user can create at most one linked customer.
         |Dates need to be in the format 2013-01-21T23:08:00Z
-        |OAuth authentication is required.
+        |${authenticationRequiredMessage(true)}
         |""",
       Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
@@ -1591,7 +1600,8 @@ trait APIMethods200 {
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
-            val successJson = Extraction.decompose(customer)
+            val json = JSONFactory1_4_0.createCustomerJson(customer)
+            val successJson = Extraction.decompose(json)
             successJsonResponse(successJson, 201)
           }
       }
@@ -1682,10 +1692,10 @@ trait APIMethods200 {
       "POST",
       "/banks/user_customer_links",
       "Create user customer link.",
-      """Link a customer and an user
+      s"""Link a customer and an user
         |This call may require additional permissions/role in the future.
         |For now the authenticated user can create at most one linked customer.
-        |OAuth authentication is required.
+        |${authenticationRequiredMessage(true)}
         |""",
       Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
       emptyObjectJson,
