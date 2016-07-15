@@ -1,17 +1,19 @@
 import sbt._
 import Keys._
 import com.earldouglas.xwp._
+import com.earldouglas.xwp.WebappPlugin
+import com.earldouglas.xwp.ContainerPlugin.autoImport._
 
 
 object LiftProjectBuild extends Build {
   override lazy val settings = super.settings ++ buildSettings
 
   lazy val buildSettings = Seq(
-    organization := pom.groupId,
-    version      := pom.version
+    organization  := pom.groupId,
+    version       := pom.version
   )
   
-  lazy val opanBank = Project(
+  lazy val openBank = Project(
     pom.artifactId,
     base = file("."),
     settings = 	defaultSettings ++ pom.settings)
@@ -68,7 +70,8 @@ object LiftProjectBuild extends Build {
     lazy val settings = Seq(
       scalaVersion := pomScalaVersion,
       libraryDependencies ++= pomDeps,
-      resolvers ++= pomRepos
+      resolvers ++= pomRepos,
+      containerPort := 8080
     )
 
   }
