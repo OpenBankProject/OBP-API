@@ -648,7 +648,6 @@ trait APIMethods200 {
 
     lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: Nil JsonPost json -> _ => {
-      case "banks" :: BankId(bankId) :: "customers" :: customerNumber :: "kyc_check" :: Nil JsonPost json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
