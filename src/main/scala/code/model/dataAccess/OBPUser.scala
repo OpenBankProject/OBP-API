@@ -386,19 +386,23 @@ import net.liftweb.util.Helpers._
               password_ <- S.param("password")
               user_ <- getUserFromKafka(username_, password_)
             } yield {
-              logUserIn(user_, () => {
-                S.notice(S.?("logged.in"))
-                preLoginState()
-                S.redirectTo(homePage)
-              })
-              for {
-                u <- APIUser.find(By(APIUser.email, user_.email))
-                v <- tryo{KafkaMappedConnector.updateUserAccountViews(u)}
+              if (user != null) {
+                logUserIn(user_, () => {
+                  S.notice(S.?("logged.in"))
+                  preLoginState()
+                  S.redirectTo(homePage)
+                })
+                for {
+                  u <- APIUser.find(By(APIUser.email, user_.email))
+                  v <- tryo {
+                    KafkaMappedConnector.updateUserAccountViews(u)
+                  }
+                }
+                user_
               }
-              user_
+              else
+                userLoginFailed
             }
-            if (extUser.isEmpty)
-              userLoginFailed
           }
         }
       }

@@ -77,7 +77,7 @@ object LiftProjectBuild extends Build {
     name := pom.name,
     resolvers ++= Seq(
       "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases", 
-      "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
+      "Java.net Maven3 Repository" at "http://download.java.net/maven/3/",
       "Scala-Tools Dependencies Repository for Releases" at "http://scala-tools.org/repo-releases",
       "Scala-Tools Dependencies Repository for Snapshots" at "http://scala-tools.org/repo-snapshots"),
 

@@ -49,10 +49,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       // Generate random uuid to be used as request-response match id
       reqId <- tryo {UUID.randomUUID().toString}
       u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
-      recEmail <- tryo{u.email} ?~ {ErrorMessages.UserNotFoundByEmail}
-      user <- tryo{new KafkaInboundUser( recEmail, password, recEmail)}
+      recEmail <- tryo{u.email}
     } yield {
-      user
+      if (username == u.email) new KafkaInboundUser( recEmail, password, recEmail)
+      else null
     }
   }
 
