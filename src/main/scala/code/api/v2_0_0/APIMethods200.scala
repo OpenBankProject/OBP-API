@@ -10,6 +10,7 @@ import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
+import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.entitlement.Entitlement
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
@@ -1599,7 +1600,8 @@ trait APIMethods200 {
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
-            val successJson = Extraction.decompose(customer)
+            val json = JSONFactory1_4_0.createCustomerJson(customer)
+            val successJson = Extraction.decompose(json)
             successJsonResponse(successJson, 201)
           }
       }
