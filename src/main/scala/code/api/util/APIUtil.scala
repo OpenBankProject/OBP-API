@@ -474,10 +474,15 @@ object APIUtil extends Loggable {
 
 
 
+
+
+/*
+Returns a string showed to the developer
+ */
   def authenticationRequiredMessage(authRequired: Boolean) : String =
-    authRequired match {
-      case true => "Authentication IS required"
-      case false => "Authentication is NOT required"
+  authRequired match {
+      case true => "Authentication is Mandatory"
+      case false => "Authentication is Optional"
     }
 
 

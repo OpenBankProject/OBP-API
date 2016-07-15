@@ -389,7 +389,7 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/account",
       "Get account by id.",
-      """Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
+      s"""Information returned about an account specified by ACCOUNT_ID as moderated by the view (VIEW_ID):
          |
          |* Number
          |* Owners
@@ -400,7 +400,9 @@ trait APIMethods121 {
          |
          |More details about the data moderation by the view [here](#1_2_1-getViewsForBankAccount).
          |
-         |OAuth authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
+         |${authenticationRequiredMessage(false)}
+         |
+         |Authentication is required if the 'is_public' field in view (VIEW_ID) is not set to `true`.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -832,9 +834,9 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
       "Get counterparties of one account.",
-      """Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
-        |
-        |OAuth authentication is required if the view VIEW_ID is not public.""",
+      s"""Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+        |${authenticationRequiredMessage(false)}
+        |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -865,9 +867,9 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
       "Get counterparty by id.",
-      """Returns data about one other counterparty (bank account) (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
-         |
-         |OAuth authentication is required if the view is not public.""",
+      s"""Returns data about one other counterparty (bank account) (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -933,8 +935,8 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Get public alias of other bank account.",
-      """Returns the public alias of the other account OTHER_ACCOUNT_ID.
-        |
+      s"""Returns the public alias of the other account OTHER_ACCOUNT_ID.
+        |${authenticationRequiredMessage(false)}
         |OAuth authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
@@ -968,11 +970,12 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Add public alias to other bank account.",
-      """Creates the public alias for the other account OTHER_ACCOUNT_ID.
+      s"""Creates the public alias for the other account OTHER_ACCOUNT_ID.
          |
-         |OAuth authentication is required if the view is not public.
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.
          |
-         |Note: Public aliases are automatically generated for new 'other accounts', so this call should only be used if
+         |Note: Public aliases are automatically generated for new 'other accounts / counterparties', so this call should only be used if
          |the public alias was deleted.
          |
          |The VIEW_ID parameter should be a view the caller is permitted to access to and that has permission to create public aliases.""",
@@ -1009,9 +1012,10 @@ trait APIMethods121 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Update public alias of other bank account.",
-      """Updates the public alias of the other account OTHER_ACCOUNT_ID.
+      s"""Updates the public alias of the other account / counterparty OTHER_ACCOUNT_ID.
         |
-        |OAuth authentication is required if the view is not public.""",
+        |${authenticationRequiredMessage(false)}
+        |Authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1045,9 +1049,10 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/public_alias",
       "Delete Counterparty Public Alias",
-      """Deletes the public alias of the other account OTHER_ACCOUNT_ID.
+      s"""Deletes the public alias of the other account OTHER_ACCOUNT_ID.
          |
-         |OAuth authentication is required if the view is not public.""",
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1078,9 +1083,10 @@ trait APIMethods121 {
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Get Counterparty Private Alias",
-      """Returns the private alias of the other account OTHER_ACCOUNT_ID.
+      s"""Returns the private alias of the other account OTHER_ACCOUNT_ID.
         |
-        |OAuth authentication is required if the view is not public.""",
+        |${authenticationRequiredMessage(false)}
+        |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1113,9 +1119,10 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Create Counterparty Private Alias",
-      """Creates a private alias for the other account OTHER_ACCOUNT_ID.
+      s"""Creates a private alias for the other account OTHER_ACCOUNT_ID.
          |
-         |OAuth authentication is required if the view is not public.""",
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1150,9 +1157,10 @@ trait APIMethods121 {
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Update Counterparty Private Alias",
-      """Updates the private alias of the counterparty (AKA other account) OTHER_ACCOUNT_ID.
+      s"""Updates the private alias of the counterparty (AKA other account) OTHER_ACCOUNT_ID.
         |
-        |OAuth authentication is required if the view is not public.""",
+        |${authenticationRequiredMessage(false)}
+        |Authentication is required if the view is not public.""",
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1187,9 +1195,10 @@ trait APIMethods121 {
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID/private_alias",
       "Delete Counterparty Private Alias",
-      """Deletes the private alias of the other account OTHER_ACCOUNT_ID.
+      s"""Deletes the private alias of the other account OTHER_ACCOUNT_ID.
         |
-        |OAuth authentication is required if the view is not public.""",
+        |${authenticationRequiredMessage(false)}
+        |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2104,7 +2113,9 @@ trait APIMethods121 {
       "Add comment.",
       """Posts a comment about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
-         |OAuth authentication is required since the comment is linked with the user.""",
+         |${authenticationRequiredMessage(false)}
+         |
+         |Authentication is required since the comment is linked with the user.""",
       Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2202,9 +2213,11 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/tags",
       "Add a tag.",
-      """Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+      s"""Posts a tag about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
-         |OAuth authentication is required since the tag is linked with the user.""",
+         |${authenticationRequiredMessage(true)}
+         |
+         |Authentication is required as the tag is linked with the user.""",
       Extraction.decompose(PostTransactionTagJSON("holiday")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2304,9 +2317,11 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/images",
       "Add an image.",
-      """Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
+      s"""Posts an image about a transaction TRANSACTION_ID on a [view](#1_2_1-getViewsForBankAccount) VIEW_ID.
          |
-         |OAuth authentication is required since the image is linked with the user.""",
+         |${authenticationRequiredMessage(true)}
+         |
+         |The image is linked with the user.""",
       Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2405,9 +2420,11 @@ Authentication via OAuth is required if the view is not public.""",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Add where tag.",
-      """Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
+      s"""Creates a "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
-         |OAuth authentication is required since the geo tag is linked with the user.""",
+         |${authenticationRequiredMessage(true)}
+         |
+         |The geo tag is linked with the user.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2442,9 +2459,11 @@ Authentication via OAuth is required if the view is not public.""",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Update where tag.",
-      """Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
+      s"""Updates the "where" Geo tag on a transaction TRANSACTION_ID in a [view](#1_2_1-getViewsForBankAccount).
          |
-         |OAuth authentication is required since the geo tag is linked with the user.""",
+         |${authenticationRequiredMessage(true)}
+         |
+         |The geo tag is linked with the user.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -2479,9 +2498,11 @@ Authentication via OAuth is required if the view is not public.""",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/where",
       "Delete where tag.",
-      """Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
-
-Authentication via OAuth is required. The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
+      s"""Deletes the where tag of the transaction TRANSACTION_ID made on [view](#1_2_1-getViewsForBankAccount).
+         |
+        |${authenticationRequiredMessage(true)}
+        |
+        |The user must either have owner privileges for this account, or must be the user that posted the geo tag.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
