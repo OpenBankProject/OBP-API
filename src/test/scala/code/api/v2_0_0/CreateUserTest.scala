@@ -111,5 +111,18 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
       requestToken.value.size should not equal (0)
     }
 
+    scenario("we try to create a same user again", CreateUser) {
+      When("we create a same user")
+      val params = Map("email" -> EMAIL,
+        "password" -> PASSWORD,
+        "first_name" -> FIRSTNAME,
+        "last_name" -> LASTNAME)
+
+      val request = (v2_0Request / "users").POST
+      val response = makePostRequest(request, write(params))
+      Then("we should get a 409 created code")
+      response.code should equal(409)
+    }
+
   }
 }
