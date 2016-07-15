@@ -7,6 +7,7 @@ import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
 import code.metadata.comments.MappedComment
 import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
+import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.{Failure, Loggable, Box, Full}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
@@ -139,9 +140,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       apiVersion,
       "addCustomerMessage",
       "POST",
-      "/banks/BANK_ID/customer/CUSTOMER_NUMBER/messages",
+      "/banks/BANK_ID/customer/CUSTOMER_ID/messages",
       "Add Customer Message.",
-      "Add a message for the customer specified by CUSTOMER_NUMBER",
+      "Add a message for the customer specified by CUSTOMER_ID",
       // We use Extraction.decompose to convert to json
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
@@ -153,15 +154,17 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customer" :: customerNumber ::  "messages" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customer" :: customerId ::  "messages" :: Nil JsonPost json -> _ => {
         user => {
           for {
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- Customer.customerProvider.vend.getUser(bankId, customerNumber) ?~! "Customer not found"
+            customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
+            user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(
-                customer, bankId, postedData.message, postedData.from_department, postedData.from_person),
+                user, bankId, postedData.message, postedData.from_department, postedData.from_person),
               "Server error: could not add message")
           } yield {
             successJsonResponse(JsRaw("{}"), 201)

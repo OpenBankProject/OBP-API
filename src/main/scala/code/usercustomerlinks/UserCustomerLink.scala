@@ -22,6 +22,7 @@ trait UserCustomerLink {
   def isActive: Boolean
 
   def createUserCustomerLink(userId: String, customerId: String, dateInserted: Date, isActive: Boolean): Box[UserCustomerLink]
+  def getUserCustomerLink(customerId: String): Box[UserCustomerLink]
   def getUserCustomerLink(userId: String, customerId: String): Box[UserCustomerLink]
   def getUserCustomerLinks: Box[List[UserCustomerLink]]
 }
