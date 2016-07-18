@@ -85,7 +85,7 @@ object LiftProjectBuild extends Build {
       "Scala-Tools Dependencies Repository for Snapshots" at "http://scala-tools.org/repo-snapshots"),
 
     // compile options
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-Xmax-classfile-name", "78") ,
     javacOptions  ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
 
     // show full stack traces
