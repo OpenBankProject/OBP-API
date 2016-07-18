@@ -370,6 +370,10 @@ input.submit {
 	font-size: 24px;
 }
 
+#main-showcases p {
+	padding: 0 10px;
+}
+
 .main-showcases-item {
 	display: inline-block;
 	margin: 30px 10px;
