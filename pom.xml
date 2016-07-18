@@ -282,7 +282,7 @@
                   <arg>-dependencyfile</arg>
                   <arg>${project.build.directory}/.scala_dependencies</arg>
                   <arg>-Xmax-classfile-name</arg>
-                  <arg>180</arg>
+                  <arg>78</arg>
                 </args>
               </configuration>
             </execution>
