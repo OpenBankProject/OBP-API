@@ -26,4 +26,17 @@ $(document).ready(function() {
             });
         });
     }
+
+
+	// FAQ shenanigans
+	$('#main-faq .collapse').click(function() {
+		var answer = $(this).find('h2').next();
+		if ($(this).attr("class").indexOf("minus") >= 0) {
+			answer.hide();
+			$(this).removeClass("minus").addClass("plus");
+		} else {
+			answer.show();
+			$(this).removeClass("plus").addClass("minus");
+		}
+	});
 });

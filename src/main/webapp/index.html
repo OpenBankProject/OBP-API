@@ -240,91 +240,73 @@ Berlin 13359, Germany
 
 		<div class="main-faq-row">
 			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>What is the correct base URL for this sandbox?</h2>
-				<p>
-					The base URL is<br />
-					<a class="api-link" data-lift="WebUI.apiLink" href="">http://apisandbox.openbankproject.com</a><br />
-					Please make sure you are using this in all your API calls
-				</p>
-			</div>
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>I got a 404 error, what am I doing wrong</h2>
-				<ol>
-					<li>
-						Avoid using trailing slashes, else, you would get a 404 error. Example:<br />
-						.../obp/v1.4.0 200 OK<br />
-						.../obp/v1.4.0/ 404 Not Found<br />
+				<ul>
+					<li class="plus collapse">
+						<h2>What is the correct base URL for this sandbox?</h2>
+						<p>
+							The base URL is<br />
+							<a class="api-link" data-lift="WebUI.apiLink" href="">http://apisandbox.openbankproject.com</a><br />
+							Please make sure you are using this in all your API calls
+						</p>
 					</li>
-					<li>Double check parameters are spelt correctly (including http vs https etc.)</li>
-					<li>Check your encoding (use UTF8)</li>
-				</ol>
+
+					<li class="plus collapse">
+						<h2>How should I login?</h2>
+						<p>There are two ways to authenticate a user. OAuth and Direct Login. If you are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it is easier than the OAuth workflow. You can find more information on the Direct Login <a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">here</a>
+						</p>
+					</li>
+
+					<li class="plus collapse">
+						<h2>Where can I read the API documentation?</h2>
+						<p>
+							For the current stable API version see <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.4.0">1.4.0.</a><br />
+							For the latest version (recommended) see <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">2.0.0</a>
+						</p>
+
+					</li>
+
+					<li class="plus collapse">
+						<h2>How much does it cost?</h2>
+						<p>It is free to use our sandbox for testing. Using live data may be subject to charges depending on the bank. <a href="http://openbankproject.com/contact">Contact us</a> to learn more about pricing options.</p>
+					</li>
+				</ul>
+			</div>
+			<div class="main-faq-cell">
+				<ul>
+					<li class="plus collapse">
+						<h2>I got a 404 error, what am I doing wrong</h2>
+						<ol>
+							<li>
+								Avoid using trailing slashes, else, you would get a 404 error. Example:<br />
+								.../obp/v1.4.0 200 OK<br />
+								.../obp/v1.4.0/ 404 Not Found<br />
+							</li>
+							<li>Double check parameters are spelt correctly (including http vs https etc.)</li>
+							<li>Check your encoding (use UTF8)</li>
+						</ol>
+					</li>
+
+					<li class="plus collapse">
+						<h2>How can I use OAuth?</h2>
+						<p>
+							For a walkthrough example with sample code, please see <a href="http://obp.sckhoo.com/">here</a>. Further technical details including getting a request token, redirecting the user, getting an access token and accessing protected resources are available <a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">here</a><br />
+							Please note we are using OAuth 1
+						</p>
+					</li>
+
+					<li class="plus collapse">
+						<h2>What are some customer logins I can use? </h2>
+						<p>During the login, the user of your app will be asked for a customer username/password. You can find example login to test your Direct Login or OAuth flow <a class="sandbox-credentials" data-lift="WebUI.sandboxCredentialsLink" href="https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials">here</a>.</p>
+					</li>
+
+					<li class="plus collapse">
+						<h2>Who owns the IP of the code I create?</h2>
+						<p>Of course, you do!</p>
+					</li>
+
+				</ul>
 			</div>
 		</div>
-
-		<div class="main-faq-row">
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>How should I login?</h2>
-				<p>There are two ways to authenticate a user. OAuth and Direct Login. If you are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it is easier than the OAuth workflow. You can find more information on the Direct Login <a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">here</a>
-				</p>
-			</div>
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>How can I use OAuth?</h2>
-				<p>
-					For a walkthrough example with sample code, please see <a href="http://obp.sckhoo.com/">here</a>. Further technical details including getting a request token, redirecting the user, getting an access token and accessing protected resources are available <a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">here</a><br />
-					Please note we are using OAuth 1
-				</p>
-			</div>
-		</div>
-
-		<div class="main-faq-row">
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>Where can I read the API documentation?</h2>
-				<p>
-					For the current stable API version see <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.4.0">1.4.0.</a><br />
-					For the latest version (recommended) see <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">2.0.0</a>
-				</p>
-			</div>
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>What are some customer logins I can use? </h2>
-				<p>During the login, the user of your app will be asked for a customer username/password. You can find example login to test your Direct Login or OAuth flow <a class="sandbox-credentials" data-lift="WebUI.sandboxCredentialsLink" href="https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials">here</a>.</p>
-			</div>
-		</div>
-
-		<div class="main-faq-row">
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>How much does it cost?</h2>
-				<p>It is free to use our sandbox for testing. Using live data may be subject to charges depending on the bank. <a href="http://openbankproject.com/contact">Contact us</a> to learn more about pricing options.</p>
-			</div>
-			<div class="main-faq-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
-			</div>
-			<div class="main-faq-cell">
-				<h2>Who owns the IP of the code I create?</h2>
-				<p>Of course, you do!</p>
-			</div>
-		</div>
-
 	</div>
 
 
