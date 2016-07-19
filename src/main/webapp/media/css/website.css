@@ -405,6 +405,10 @@ input.submit {
 .main-faq-cell:nth-child(odd) {
 	width: 55px;
 }
+.main-faq-cell:nth-child(even) {
+	width: 410px;
+}
+
 .main-faq-cell ol {
 	list-style-type: decimal;
 }
