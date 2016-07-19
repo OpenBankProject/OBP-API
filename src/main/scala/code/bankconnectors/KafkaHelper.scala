@@ -52,7 +52,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
     props.put("auto.commit.interval.ms", "1000")
     props.put("zookeeper.session.timeout.ms", "6000")
     props.put("zookeeper.connection.timeout.ms", "6000")
-    props.put("consumer.timeout.ms", "40000")
+    props.put("consumer.timeout.ms", "20000")
     val config = new ConsumerConfig(props)
     config
   }
@@ -99,7 +99,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
 
 case class KafkaProducer(
                           topic: String          = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set"),
-                          brokerList: String     = Props.get("kafka.host")openOr("localhost:9092").mkString(","), //getBrokers(Props.get("kafka.zookeeper_host")openOr("localhost:2181")).mkString(","),
+                          brokerList: String     = Props.get("kafka.host")openOr("localhost:9092"),
                           clientId: String       = UUID.randomUUID().toString,
                           synchronously: Boolean = true,
                           compress: Boolean      = true,
