@@ -212,7 +212,7 @@ trait APIMethods200 {
       "/accounts/public",
       "Get Public Accounts at all Banks.",
       s"""Get public accounts at all banks (Anonymous access).
-        |Returns the list of accounts containing public views at all banks
+        |Returns accounts that contain at least one public view (a view where is_public is true)
         |For each account the API returns the ID and the available views.
         |
         |${authenticationRequiredMessage(true)}
@@ -892,7 +892,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn // Check we have a user (rather than error or empty)
+            u <- user ?~! ErrorMessages.UserNotLoggedIn // TODO. Allow anon for public views. (check previous version of this call) Check we have a user (rather than error or empty)
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
@@ -1571,7 +1571,6 @@ trait APIMethods200 {
             canCreateCustomer <- tryo(hasEntitlement(bank.bankId.value, u.userId, CanCreateCustomer))
             isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || canCreateCustomer == true || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
-            // TODO The user id we expose should be a uuid . For now we have a long direct from the database.
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks

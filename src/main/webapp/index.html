@@ -36,48 +36,69 @@ Berlin 13359, Germany
           </div>
       </div>
     </div>
+
     <div id="main-links">
-        <a href="/consumer-registration">API keys</a>
-        <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">API Explorer</a>
-        <a class="sofi-link" data-lift="WebUI.sofiLink" href="">Sofi</a>
-    </div>
-    <div id="main-sandbox">
-        <h1>Get Started</h1>
-
-        <p class="about-text">
-            <ol start="1">
-                <li>Explore the API <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">here</a> using the example customer logins <a class="example_sandbox_credentials_link" data-lift="WebUI.exampleSandboxCredentialsLink" href="">here</a>.</li>
-                <li>Get <a href="/consumer-registration">API keys</a> and <a class="sdks_link" data-lift="WebUI.sdksLink" href="">SDKs</a>.</li>
-            </ol>
-        </p>
-
-        <br />
-
-        <h1>Questions?</h1>
-
-        <p class="about-text">
-            <ul>
-                <li>Email <a href="mailto:contact AT openbankproject DOT com">contact AT openbankproject DOT com</a></li>
-                <li>Twitter <a href="https://twitter.com/openbankproject">@OpenBankProject</a></li>
-                <li>Slack <a href="https://openbankproject.slack.com/">openbankproject.slack.com</a></li>
-            </ul>
-        </p>
-
+        <a href="/consumer-registration">Get API Key</a>
+        <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">Explore API</a>
+        <a class="sofi-link" data-lift="WebUI.sofiLink" href="">See App</a>
     </div>
 
+	<div id="main-get_started">
+		<h1>Get Started</h1>
+		<div class="main-get_started-row">
+			<div class="main-get_started-cell main-get_started-icon">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/create_account.png" width="260" height="260" alt="create account" />
+			</div>
+			<div class="main-get_started-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/item-1.png" width="75" height="300" alt="item-1" />
+			</div>
+			<div class="main-get_started-cell">
+				<h2>Create an account</h2>
+				<p>First, create a free developer account on this sandbox and request a developer key. You will be asked to submit basic information about your app at this stage. Register <a href="/user_mgt/sign_up">here</a>.</p>
+			</div>
+		</div>
+		<div class="main-get_started-row">
+			<div class="main-get_started-cell">
+				<h2>Connect your app</h2>
+				<p>Use our SDKs to connect your app to the Open Bank Project APIs. You will need your developer key, which was provided to you when you created an account. See all available APIs on the API Explorer. Please make sure you are using the correct base URL.</p>
+			</div>
+			<div class="main-get_started-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/item-2.png" width="75" height="300" alt="item-2" />
+			</div>
+			<div class="main-get_started-cell main-get_started-icon">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/connect_app.png" width="370" height="260" alt="connect app" />
+			</div>
+		</div>
+		<div class="main-get_started-row">
+			<div class="main-get_started-cell main-get_started-icon">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/test_data.png" width="285" height="270" alt="test data" />
+			</div>
+			<div class="main-get_started-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/get-started/item-3.png" width="75" height="300" alt="item-3" />
+			</div>
+			<div class="main-get_started-cell">
+				<h2>Test your app using customer data</h2>
+				<p>Once your app is connected, you can test it using test customer credentials. You can find a list of available customer logins for this sandbox <a class="sandbox-credentials" data-lift="WebUI.sandboxCredentialsLink" href="https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials">here</a>.</p>
+			</div>
+		</div>
+
+		<div class="main-get_api_key">
+			<a href="/consumer-registration">Get your API key</a>
+		</div>
+	</div>
 
 	<div id="main-apis">
 		<h1>Your APIs</h1>
 		<div class="main-apis-row">
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-accounts.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-accounts.png" width="100" height="100" alt="accounts" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Accounts</h2>
 				<p>Access the user's list of accounts and account information such as the balance. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Account" href="">Explore...</a> </p>
 			</div>
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-branches.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-branches.png" width="100" height="100" alt="branches" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Branches, ATMs</h2>
@@ -87,14 +108,14 @@ Berlin 13359, Germany
 
 		<div class="main-apis-row">
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-transactions.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-transactions.png" width="100" height="100" alt="transactions" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Transactions</h2>
 				<p>Access the transaction history and metadata of accounts. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Transaction,Metadata" href="">Explore...</a></p>
 			</div>
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-metadata.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-metadata.png" width="100" height="100" alt="metadata" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Metadata</h2>
@@ -104,14 +125,14 @@ Berlin 13359, Germany
 
 		<div class="main-apis-row">
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-counterparties.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-counterparties.png" width="100" height="100" alt="counterparties" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Counterparties</h2>
-				<p>Access the payers & payees of an account including metadata such as their aliases, labels, logos and home pages. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Counterparty" href="">Explore...</a></p>
+				<p>Access the payers &amp; payees of an account including metadata such as their aliases, labels, logos and home pages. <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=Counterparty" href="">Explore...</a></p>
 			</div>
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-entitlements.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-entitlements.png" width="100" height="100" alt="entitlements" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Entitlements</h2>
@@ -121,14 +142,14 @@ Berlin 13359, Germany
 
 		<div class="main-apis-row">
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-messages.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-messages.png" width="100" height="100" alt="messages" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Customer meetings, messages and video conferencing.</h2>
 				<p>Enable customer meetings, messages and video conferencing for KYC and CRM operations (uses third party video streaming). <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink?tags=KYC,Onboarding" href="">Explore...</a></p>
 			</div>
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-security.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-security.png" width="100" height="100" alt="security" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Security challenges</h2>
@@ -137,7 +158,7 @@ Berlin 13359, Germany
 		</div>
 		<div class="main-apis-row">
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-requests.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-requests.png" width="100" height="100" alt="requests" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Payments & Transaction requests</h2>
@@ -145,7 +166,7 @@ Berlin 13359, Germany
 
 			</div>
 			<div class="main-apis-cell">
-				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-kyc.png" width="100" height="100" />
+				<img src="https://static.openbankproject.com/images/sandbox/icons/icon-kyc.png" width="100" height="100" alt="kyc" />
 			</div>
 			<div class="main-apis-cell">
 				<h2>Onboarding & KYC</h2>
@@ -160,9 +181,187 @@ Berlin 13359, Germany
 	</div>
 
 
+	<div id="main-showcases">
+		<h1>SDK Showcases</h1>
+
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python"><img src="https://static.openbankproject.com/images/sandbox/showcases/python.png" width="156" height="156" alt="python" /></a>
+			<h2>Python</h2>
+			By OpenBankProject
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Django"><img src="https://static.openbankproject.com/images/sandbox/showcases/django.png" width="156" height="156" alt="django" /></a>
+			<h2>Django</h2>
+			By Azd325
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Node"><img src="https://static.openbankproject.com/images/sandbox/showcases/nodejs.png" width="156" height="156" alt="nodejs" /></a>
+			<h2>NodeJS</h2>
+			By OpenBankProject
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Mac"><img src="https://static.openbankproject.com/images/sandbox/showcases/mac.png" width="156" height="156" alt="mac"/></a>
+			<h2>Mac</h2>
+			By T0rst
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-IOS"><img src="https://static.openbankproject.com/images/sandbox/showcases/ios.png" width="156" height="156" alt="ios" /></a>
+			<h2>IOS</h2>
+			By T0rst
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Hello-OBP-OAuth1.0a-Android"><img src="https://static.openbankproject.com/images/sandbox/showcases/android.png" width="156" height="156" alt="android" /></a>
+			<h2>Android</h2>
+			By OpenBankProject
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/OpenBankProject/Social-Finance"><img src="https://static.openbankproject.com/images/sandbox/showcases/scala.png" width="156" height="156" alt="scala" /></a>
+			<h2>Scala (liftweb)</h2>
+			By OpenBankProject
+		</div>
+		<div class="main-showcases-item">
+			<a href="https://github.com/solonas/OBP-PHP-HelloWorld"><img src="https://static.openbankproject.com/images/sandbox/showcases/php.png" width="156" height="156" alt="php" /></a>
+			<h2>PHP</h2>
+			By Solonas
+		</div>
+		<div class="main-showcases-item">
+			<a href="http://obp.sckhoo.com"><img src="https://static.openbankproject.com/images/sandbox/showcases/csharp.png" width="156" height="156" alt="csharp" /></a>
+			<h2>C#</h2>
+			By Sweechem<br /><span class="small">(this has a nice OAuth walk through with C# snippets)</span>
+		</div>
+
+		<p>Please make sure you are using the correct sandbox domain in all calls when using the SDKs. In doubt, drop us a line.</p> 
+	</div>
+
+
+
+	<div id="main-faq">
+		<h1>FAQs</h1>
+
+		<div class="main-faq-row">
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>What is the correct base URL for this sandbox?</h2>
+				<p>
+					The base URL is<br />
+					<a class="api-link" data-lift="WebUI.apiLink" href="">http://apisandbox.openbankproject.com</a><br />
+					Please make sure you are using this in all your API calls
+				</p>
+			</div>
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>I got a 404 error, what am I doing wrong</h2>
+				<ol>
+					<li>
+						Avoid using trailing slashes, else, you would get a 404 error. Example:<br />
+						.../obp/v1.4.0 200 OK<br />
+						.../obp/v1.4.0/ 404 Not Found<br />
+					</li>
+					<li>Double check parameters are spelt correctly (including http vs https etc.)</li>
+					<li>Check your encoding (use UTF8)</li>
+				</ol>
+			</div>
+		</div>
+
+		<div class="main-faq-row">
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>How should I login?</h2>
+				<p>There are two ways to authenticate a user. OAuth and Direct Login. If you are using this sandbox for a hackathon, we recommend you use Direct Login to authenticate as it is easier than the OAuth workflow. You can find more information on the Direct Login <a href="https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login">here</a>
+				</p>
+			</div>
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>How can I use OAuth?</h2>
+				<p>
+					For a walkthrough example with sample code, please see <a href="http://obp.sckhoo.com/">here</a>. Further technical details including getting a request token, redirecting the user, getting an access token and accessing protected resources are available <a href="https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server">here</a><br />
+					Please note we are using OAuth 1
+				</p>
+			</div>
+		</div>
+
+		<div class="main-faq-row">
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>Where can I read the API documentation?</h2>
+				<p>
+					For the current stable API version see <a href="https://github.com/OpenBankProject/OBP-API/wiki/REST-API-V1.4.0">1.4.0.</a><br />
+					For the latest version (recommended) see <a class="api-explorer-link" data-lift="WebUI.apiExplorerLink" href="">2.0.0</a>
+				</p>
+			</div>
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>What are some customer logins I can use? </h2>
+				<p>During the login, the user of your app will be asked for a customer username/password. You can find example login to test your Direct Login or OAuth flow <a class="sandbox-credentials" data-lift="WebUI.sandboxCredentialsLink" href="https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials">here</a>.</p>
+			</div>
+		</div>
+
+		<div class="main-faq-row">
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>How much does it cost?</h2>
+				<p>It is free to use our sandbox for testing. Using live data may be subject to charges depending on the bank. <a href="http://openbankproject.com/contact">Contact us</a> to learn more about pricing options.</p>
+			</div>
+			<div class="main-faq-cell">
+				<img src="https://static.openbankproject.com/images/sandbox/faq/plus.png" width="55" height="55" alt="plus" />
+			</div>
+			<div class="main-faq-cell">
+				<h2>Who owns the IP of the code I create?</h2>
+				<p>Of course, you do!</p>
+			</div>
+		</div>
+
+	</div>
+
+
+	<div id="main-start_building">
+		<h1>Get started building your application using this sandbox now, register for a developer key</h1>
+		<div class="main-get_api_key">
+			<a href="/consumer-registration">Get your API key</a>
+		</div>
+	</div>
+
+
+
     <div id="main-partners" class="lift:WebUI.createMainPartners">
         <a href="">
             <img src="" alt="">
         </a>
     </div>
+
+	
+
+	<div id="main-support">
+		<div class="main-support-item">
+			<img src="https://static.openbankproject.com/images/sandbox/support/mail.png" width="200" height="150" alt="mail" />
+			<h2>Email us</h2>
+			<a href="mailto:contact@openbankproject.com">contact@openbankproject.com</a>
+		</div>
+		<div class="main-support-item">
+			<img src="https://static.openbankproject.com/images/sandbox/support/twitter.png" width="200" height="150" alt="twitter" />
+			<h2>Twitter</h2>
+			<a href="https://twitter.com/openbankproject">@OpenBankProject</a>
+		</div>
+		<div class="main-support-item">
+			<img src="https://static.openbankproject.com/images/sandbox/support/slack.png" width="200" height="150" alt="slack" />
+			<h2>Slack</h2>
+			<a href="http://slack.openbankproject.com">slack.openbankproject.com</a>
+		</div>
+
+
+	</div>
 </div>
