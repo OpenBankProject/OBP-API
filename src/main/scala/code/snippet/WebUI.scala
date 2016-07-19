@@ -69,6 +69,19 @@ class WebUI extends Loggable{
 
 
 
+  // Link to API
+  def apiLink: CssSel = {
+    val hostname = scala.xml.Unparsed(Props.get("hostname", ""))
+    ".api-link a *" #>  hostname &
+    ".api-link a [href]" #> hostname
+  }
+
+  // Link to Sandbox credentials
+  def sandboxCredentialsLink: CssSel = {
+    // github removes dots when creating new sections with dots in name in wiki page
+    val wikiAnchor = scala.xml.Unparsed(Props.get("hostname", "").replace("http://", "").replace("https://", "").replace(".", "").replace(":", ""))
+    ".sandbox-credentials a [href]" #> ("https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials#" + wikiAnchor)
+  }
 
 
 
@@ -101,7 +114,12 @@ class WebUI extends Loggable{
   }
 
   def overrideStyleSheet: CssSel = {
-    "#override_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_override_style_sheet", ""))
+    val stylesheet = Props.get("webui_override_style_sheet", "")
+    if (stylesheet.isEmpty) {
+      "#override_style_sheet" #> ""
+    } else {
+      "#override_style_sheet [href]" #> scala.xml.Unparsed(stylesheet)
+    }
   }
 
   // Used to represent partners or sponsors of this API instance

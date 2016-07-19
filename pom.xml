@@ -162,11 +162,6 @@
       <version>1.4-SNAPSHOT</version>
     </dependency>
     <dependency>
-        <groupId>oauth.signpost</groupId>
-        <artifactId>signpost-commonshttp4</artifactId>
-        <version>1.2.1.2</version>
-    </dependency>
-    <dependency>
       <groupId>org.pegdown</groupId>
       <artifactId>pegdown</artifactId>
       <version>1.6.0</version>
@@ -190,6 +185,23 @@
       <groupId>com.sksamuel.elastic4s</groupId>
       <artifactId>elastic4s-core_2.11</artifactId>
       <version>2.3.0</version>
+    </dependency>
+    <!-- for LiftConsole -->
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-compiler</artifactId>
+      <version>${scala.compiler}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>${scala.compiler}</version>
+    </dependency>
+    <dependency>
+      <groupId>oauth.signpost</groupId>
+      <artifactId>signpost-commonshttp4</artifactId>
+      <version>1.2.1.2</version>
     </dependency>
   </dependencies>
 
@@ -270,7 +282,7 @@
                   <arg>-dependencyfile</arg>
                   <arg>${project.build.directory}/.scala_dependencies</arg>
                   <arg>-Xmax-classfile-name</arg>
-                  <arg>180</arg>
+                  <arg>78</arg>
                 </args>
               </configuration>
             </execution>

@@ -58,7 +58,7 @@ class Login {
     if(OBPUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     } else {
-      ".login [action]" #> OBPUser.loginPageURL &
+      ".login [href]" #> OBPUser.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
           menu <- OBPUser.lostPasswordMenuLoc
