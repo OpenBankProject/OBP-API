@@ -28,33 +28,11 @@ import java.util.{Properties, UUID}
 import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
-import kafka.utils.{Json, ZKStringSerializer, ZkUtils}
+import kafka.utils.Json
 import net.liftweb.json
 import net.liftweb.json._
 import net.liftweb.util.Props
-import org.I0Itec.zkclient.ZkClient
 
-object ZooKeeperUtils {
-  // gets brokers tracked by zookeeper
-  def getBrokers(zookeeper:String): List[String] = {
-    //connect to zookeeper client
-    val zkClient = new ZkClient(zookeeper, 30000, 30000, ZKStringSerializer)
-    // get list of all available kafka brokers
-    val brokers = for {broker <- ZkUtils.getAllBrokersInCluster(zkClient)} yield {broker.host +":"+ broker.port}
-    // close zookeeper client before returning the result
-    zkClient.close()
-    brokers.toList
-  }
-  // gets all topics tracked by zookeeper
-  def getTopics(zookeeper:String): List[String] = {
-    //connect to zookeeper client
-    val zkClient = new ZkClient(zookeeper, 30000, 30000, ZKStringSerializer)
-    // get list of all available kafka topics 
-    val res = ZkUtils.getAllTopics(zkClient).toList
-    zkClient.close()
-    res
-  }
-}
 
 class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").openOrThrowException("no kafka.zookeeper_host set"),
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
@@ -118,11 +96,10 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
   }
 }
 
-import code.bankconnectors.ZooKeeperUtils._
 
 case class KafkaProducer(
                           topic: String          = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set"),
-                          brokerList: String     = getBrokers(Props.get("kafka.zookeeper_host")openOr("localhost:2181")).mkString(","),
+                          brokerList: String     = Props.get("kafka.host")openOr("localhost:9092").mkString(","), //getBrokers(Props.get("kafka.zookeeper_host")openOr("localhost:2181")).mkString(","),
                           clientId: String       = UUID.randomUUID().toString,
                           synchronously: Boolean = true,
                           compress: Boolean      = true,

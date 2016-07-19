@@ -14,11 +14,9 @@ import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
-import code.tesobe.CashTransaction
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge}
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge }
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -42,6 +40,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+
+  implicit val formats = net.liftweb.json.DefaultFormats
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
     for {
@@ -100,8 +100,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       setAccountOwner(email, account)
     }
   }
-
-  implicit val formats = net.liftweb.json.DefaultFormats
 
   def updateUserAccountViews( user: APIUser ) = {
     val accounts = for {
