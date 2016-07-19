@@ -114,7 +114,12 @@ class WebUI extends Loggable{
   }
 
   def overrideStyleSheet: CssSel = {
-    "#override_style_sheet [href]" #> scala.xml.Unparsed(Props.get("webui_override_style_sheet", ""))
+    val stylesheet = Props.get("webui_override_style_sheet", "")
+    if (stylesheet.isEmpty) {
+      "#override_style_sheet" #> ""
+    } else {
+      "#override_style_sheet [href]" #> scala.xml.Unparsed(stylesheet)
+    }
   }
 
   // Used to represent partners or sponsors of this API instance
