@@ -297,6 +297,9 @@ trait APIMethods200 {
       true,
       List(apiTagAccount, apiTagPrivateData))
 
+    apiRelations += ApiRelation(privateAccountsAtOneBank, getCoreAccountById, "detail")
+    apiRelations += ApiRelation(privateAccountsAtOneBank, privateAccountsAtOneBank, "self")
+
 
     def privateAccountsAtOneBankResult (bank: Bank, u: User) = {
       val availableAccounts = bank.nonPublicAccounts(u)
