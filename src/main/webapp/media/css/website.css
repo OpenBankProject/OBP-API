@@ -390,27 +390,6 @@ input.submit {
 	margin: 40px auto;
 	padding:0 40px;
 	background-color: #f1f4f8;
-	border-collapse: separate;
-	border-spacing: 20px;
-}
-
-.main-faq-row {
-	display: table-row;
-}
-.main-faq-cell {
-	display: table-cell;
-	vertical-align: top;
-	color: #838b98;
-}
-.main-faq-cell:nth-child(odd) {
-	width: 55px;
-}
-.main-faq-cell:nth-child(even) {
-	width: 410px;
-}
-
-.main-faq-cell ol {
-	list-style-type: decimal;
 }
 
 #main-faq h1 {
@@ -422,13 +401,48 @@ input.submit {
 }
  
 #main-faq h2 {
-	font-size: 24px;
+	font-size: 18px;
 	font-weight: bold;
 	color: #333333;
 }
  
-#main-faq img {
+#main-faq .collapse {
+	background-repeat:no-repeat;
+	padding-left: 30px;
+	margin-bottom: 30px;
+	list-style: none;
 }
+#main-faq .collapse.plus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/plus.png');
+}
+#main-faq .collapse.minus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/minus.png');
+}
+#main-faq .collapse:hover {
+	cursor: pointer;
+}
+
+#main-faq ol {
+	list-style-type: decimal;
+	display: none;
+}
+
+#main-faq p {
+	display: none;
+}
+
+.main-faq-row {
+	display: table-row;
+}
+
+.main-faq-cell {
+	display: table-cell;
+	vertical-align: top;
+	color: #838b98;
+	font-size: 16px;
+	width:485px;
+}
+
 
 
 
