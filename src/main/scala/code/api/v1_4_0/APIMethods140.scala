@@ -90,7 +90,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            info <- Customer.customerProvider.vend.getCustomer(bankId, u) ?~ "No customer information found for current user"
+            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+            ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
+            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.CustomerDoNotExistsForUser)
+            u <- ucl
+            info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val json = JSONFactory1_4_0.createCustomerJson(info)
             successJsonResponse(Extraction.decompose(json))
@@ -611,8 +615,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.kyc_status,
                 postedData.last_ok_date) ?~! "Could not create customer"
           } yield {
-            val successJson = Extraction.decompose(customer)
-            successJsonResponse(successJson)
+            val successJson = JSONFactory1_4_0.createCustomerJson(customer)
+            successJsonResponse(Extraction.decompose(successJson))
           }
       }
     }

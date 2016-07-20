@@ -44,6 +44,11 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
       By(MappedUserCustomerLink.mCustomerId, customerId))
   }
 
+  override def getUserCustomerLinkByUserId(userId: String): List[UserCustomerLink] = {
+    MappedUserCustomerLink.findAll(
+      By(MappedUserCustomerLink.mUserId, userId))
+  }
+
   override def getUserCustomerLink(userId : String, customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mUserId, userId),

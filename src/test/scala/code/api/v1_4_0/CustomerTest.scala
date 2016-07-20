@@ -1,144 +1,102 @@
 package code.api.v1_4_0
 
-import java.util.Date
-
+import java.text.SimpleDateFormat
 import code.api.DefaultUsers
-import code.api.v1_4_0.JSONFactory1_4_0.CustomerJson
-import code.customer.{CustomerFaceImage, Customer, CustomerProvider}
-import code.model.{User, BankId}
-import net.liftweb.common.{Full, Empty, Box}
-import dispatch._
+import code.api.util.ErrorMessages
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
+import code.api.v2_0_0.{CreateUserCustomerLinkJSON, V200ServerSetup, CreateCustomerJson}
+import code.customer.{MappedCustomer}
+import code.model.{BankId}
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.Serialization._
 import code.api.util.APIUtil.OAuth._
 
-class CustomerTest extends V140ServerSetup with DefaultUsers {
+class CustomerTest extends V200ServerSetup with DefaultUsers {
+
+  val exampleDateString: String = "22/08/2013"
+  val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+  val exampleDate = simpleDateFormat.parse(exampleDateString)
 
   val mockBankId = BankId("testBank1")
+  val mockCustomerNumber = "9393490320"
 
-  val mocCustomerId = "ddfc0cf8-82a0-42eb-9027-8cfb0e7988c9"
-
-  case class MockFaceImage(date : Date, url : String) extends CustomerFaceImage
-
-  case class MockCustomer(customerId: String, number: String, mobileNumber: String,
-                          legalName: String, email: String,
-                          faceImage: MockFaceImage, dateOfBirth: Date,
-                          relationshipStatus: String, dependents: Int,
-                          dobOfDependents: List[Date], highestEducationAttained: String,
-                          employmentStatus: String, kycStatus: Boolean, lastOkDate: Date) extends Customer
-
-  val format = new java.text.SimpleDateFormat("dd/MM/yyyy")
-  val mockCustomerFaceImage = MockFaceImage(new Date(1234000), "http://example.com/image1")
-  val mockCustomer = MockCustomer("uuid-aisuhuiuhuikjhfd", "123", "3939", "Bob", "bob@example.com", mockCustomerFaceImage, new Date(1234000), "Single", 3, List(format.parse("30/03/2012"), format.parse("30/03/2012"), format.parse("30/03/2014")), "Bachelor’s Degree", "Employed", true, new Date(1234000))
-
-  object MockedCustomerProvider extends CustomerProvider {
-
-    override def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) = {true}
-
-    override def getCustomer(bankId: BankId, user: User): Box[Customer] = {
-      if(bankId == mockBankId) Full(mockCustomer)
-      else Empty
-    }
-
-    override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
-      if(customerId == mocCustomerId) Full(mockCustomer)
-      else Empty
-    }
-
-    override def getCustomer(customerId: String, bankId: BankId): Box[Customer] = {
-      if(customerId == mocCustomerId && bankId == mockBankId) Full(mockCustomer)
-      else Empty
-    }
-
-    override def getUser(bankId: BankId, customerId: String): Box[User] = Empty
-    override def addCustomer(bankId : BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage,
-                             dateOfBirth: Date,
-                             relationshipStatus: String,
-                             dependents: Int,
-                             dobOfDependents: List[Date],
-                             highestEducationAttained: String,
-                             employmentStatus: String,
-                             kycStatus: Boolean,
-                             lastOkDate: Date) :  Box[Customer] = Empty
-  }
 
   override def beforeAll() {
     super.beforeAll()
-    //use the mock connector
-    Customer.customerProvider.default.set(MockedCustomerProvider)
   }
 
   override def afterAll() {
     super.afterAll()
-    //reset the default connector
-    Customer.customerProvider.default.set(Customer.buildOne)
+    MappedCustomer.bulkDelete_!!()
   }
 
 
-  feature("Getting a bank's customer info of the current user") {
+  feature("Assuring that create customer, v1.4.0, feedback and get customer, v1.4.0, feedback are the same") {
 
-    scenario("There is no current user") {
-      Given("There is no logged in user")
-
-      When("We make the request")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer").GET
-      val response = makeGetRequest(request)
-
-      Then("We should get a 400")
-      response.code should equal(400)
-    }
-
-    scenario("There is a user, but the bank in questions has no customer info") {
-      Given("The bank in question has no customer info")
-      val testBank = BankId("test-bank")
-      val user = obpuser1
-
-      Customer.customerProvider.vend.getCustomer(testBank, user).isEmpty should equal(true)
-
-      When("We make the request")
-      //TODO: need stronger link between obpuser1 and user1
-      val request = (v1_4Request / "banks" / testBank.value / "customer").GET <@(user1)
-      val response = makeGetRequest(request)
-
-      Then("We should get a 400")
-      response.code should equal(400)
-    }
-
-    scenario("There is a user, and the bank in questions has customer info for that user") {
+    scenario("There is a user, and the bank in questions has customer info for that user - v1.4.0") {
       Given("The bank in question has customer info")
       val testBank = mockBankId
-      val user = obpuser1
 
-      Customer.customerProvider.vend.getCustomer(testBank, user).isEmpty should equal(false)
+      val customerPostJSON = CreateCustomerJson(
+        user_id = obpuser1.userId,
+        customer_number = mockCustomerNumber,
+        legal_name = "Someone",
+        mobile_phone_number = "125245",
+        email = "hello@hullo.com",
+        face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+        date_of_birth = exampleDate,
+        relationship_status = "Single",
+        dependants = 1,
+        dob_of_dependants = List(exampleDate),
+        highest_education_attained = "Bachelor’s Degree",
+        employment_status = "Employed",
+        kyc_status = true,
+        last_ok_date = exampleDate
+      )
+      val requestPost = (v1_4Request / "banks" / testBank.value / "customer").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      Then("We should get a 200")
+      responsePost.code should equal(200)
+      And("We should get the right information back")
+      val infoPost = responsePost.body.extract[CustomerJson]
+
+      When("We make the request without link user to customer")
+      val requestGetWithoutLink = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)
+      val responseGetWithoutLink = makeGetRequest(requestGetWithoutLink)
+      Then("We should get a 400")
+      responseGetWithoutLink.code should equal(400)
+      val error = for { JObject(o) <- responseGetWithoutLink.body; JField("error", JString(error)) <- o } yield error
+      And("We should get a message: " + ErrorMessages.CustomerDoNotExistsForUser)
+      error should contain (ErrorMessages.CustomerDoNotExistsForUser)
+
+
+      val customerId: String = (responsePost.body \ "customer_id") match {
+        case JString(i) => i
+        case _ => ""
+      }
+
+      When("We link user to customer")
+      val uclJSON = CreateUserCustomerLinkJSON(user_id = obpuser1.userId, customer_id = customerId)
+      val requestPostUcl = (v2_0Request / "banks" / "user_customer_links").POST <@ (user1)
+      val responsePostUcl = makePostRequest(requestPostUcl, write(uclJSON))
+
+      Then("We should get a 201")
+      responsePostUcl.code should equal(201)
+
 
       When("We make the request")
-      //TODO: need stronger link between obpuser1 and user1
-      val request = (v1_4Request / "banks" / testBank.value / "customer").GET <@(user1)
-      val response = makeGetRequest(request)
+      val requestGet = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)
+      val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
-      response.code should equal(200)
+      responseGet.code should equal(200)
 
       And("We should get the right information back")
+      val infoGet = responseGet.body.extract[CustomerJson]
 
-      val info = response.body.extract[CustomerJson]
-      val received = MockCustomer(
-        info.customer_id,
-        info.customer_number,
-        info.mobile_phone_number,
-        info.legal_name,
-        info.email,
-        MockFaceImage(info.face_image.date, info.face_image.url),
-        info.date_of_birth,
-        info.relationship_status,
-        info.dependants,
-        info.dob_of_dependants,
-        info.highest_education_attained,
-        info.employment_status,
-        info.kyc_status,
-        info.last_ok_date)
-
-      received should equal(mockCustomer)
+      And("POST feedback and GET feedback must be the same")
+      infoGet should equal(infoPost)
     }
-
   }
 
 

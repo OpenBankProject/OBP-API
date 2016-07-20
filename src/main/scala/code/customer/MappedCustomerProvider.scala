@@ -37,6 +37,13 @@ object MappedCustomerProvider extends CustomerProvider {
     )
   }
 
+  override def getBankIdByCustomerId(customerId: String): Box[String] = {
+    val customer: Box[MappedCustomer] = MappedCustomer.find(
+      By(MappedCustomer.mCustomerId, customerId)
+    )
+    for (c <- customer) yield {c.mBank.get}
+  }
+
   override def getCustomer(customerId: String, bankId : BankId): Box[Customer] = {
     MappedCustomer.find(
       By(MappedCustomer.mCustomerId, customerId),
@@ -118,11 +125,11 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   }
   override def dateOfBirth: Date = mDateOfBirth.get
   override def relationshipStatus: String = mRelationshipStatus.get
-  override def dependents: Int = mDependents
+  override def dependents: Int = mDependents.get
   override def dobOfDependents: List[Date] = List(createdAt.get)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
-  override def kycStatus: Boolean = mKycStatus
+  override def kycStatus: Boolean = mKycStatus.get
   override def lastOkDate: Date = mLastOkDate.get
 }
 
