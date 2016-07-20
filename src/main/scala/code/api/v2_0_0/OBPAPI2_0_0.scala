@@ -177,7 +177,8 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.deleteEntitlement,
     Implementations2_0_0.getAllEntitlements,
     Implementations2_0_0.elasticSearchWarehouse,
-    Implementations2_0_0.elasticSearchMetrics
+    Implementations2_0_0.elasticSearchMetrics,
+    Implementations2_0_0.getCustomers
   )
 
   routes.foreach(route => {

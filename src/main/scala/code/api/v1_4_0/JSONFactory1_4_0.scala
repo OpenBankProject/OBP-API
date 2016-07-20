@@ -54,6 +54,8 @@ object JSONFactory1_4_0 {
                           kyc_status: Boolean,
                           last_ok_date: Date)
 
+  case class CustomerJSONs(customers: List[CustomerJson])
+
   case class CustomerFaceImageJson(url : String, date : Date)
 
   case class CustomerMessagesJson(messages : List[CustomerMessageJson])
@@ -118,6 +120,12 @@ object JSONFactory1_4_0 {
       last_ok_date = cInfo.lastOkDate
     )
 
+
+
+  }
+
+  def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
+    CustomerJSONs(customers.map(createCustomerJson))
   }
 
   def createCustomerMessageJson(cMessage : CustomerMessage) : CustomerMessageJson = {

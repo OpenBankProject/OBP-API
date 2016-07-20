@@ -7,7 +7,7 @@ import code.TransactionTypes.TransactionType
 import code.api.APIFailure
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.OBPAPI1_2_1._
 import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121, JSONFactory => JSONFactory121}
 import code.api.v1_4_0.JSONFactory1_4_0
@@ -2062,6 +2062,48 @@ trait APIMethods200 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getCustomers,
+      apiVersion,
+      "getCustomers",
+      "GET",
+      "/users/current/customers",
+      "Get all customers for logged in user",
+      """Information about the currently authenticated user.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagCustomer))
+
+    lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            //bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+          } yield {
+            val json = JSONFactory1_4_0.createCustomersJson(APIUtil.getCustomers(customerIds))
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+
+
+
+
+
+
+
 
   }
 

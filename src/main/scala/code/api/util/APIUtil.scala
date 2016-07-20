@@ -36,6 +36,7 @@ import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
 import code.api.v1_2.ErrorMessage
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.metrics.APIMetrics
 import code.model._
@@ -624,6 +625,18 @@ Returns a string showed to the developer
 
   def hasEntitlement(bankId: String, userId: String, role: ApiRole): Boolean = {
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
+  }
+
+  def getCustomers(ids: List[String]): List[Customer] = {
+    val customers = {
+      for {id <- ids
+           c = Customer.customerProvider.vend.getCustomerByCustomerId(id)
+           u <- c
+      } yield {
+        u
+      }
+    }
+    customers
   }
 
 }
