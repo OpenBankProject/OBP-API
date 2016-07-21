@@ -297,7 +297,7 @@ trait APIMethods200 {
       true,
       List(apiTagAccount, apiTagPrivateData))
 
-    apiRelations += ApiRelation(privateAccountsAtOneBank, getCoreAccountById, "detail")
+    apiRelations += ApiRelation(privateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(privateAccountsAtOneBank, privateAccountsAtOneBank, "self")
 
 
