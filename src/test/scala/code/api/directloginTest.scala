@@ -123,7 +123,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
-      assertResponse(response, ErrorMessages.InvalidLoginCredentials)
+      assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
     scenario("Login with correct everything!") {
