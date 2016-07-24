@@ -1564,6 +1564,14 @@ trait APIMethods200 {
       false,
       List(apiTagCustomer))
 
+
+
+    // TODO
+    // Separate customer creation (keep here) from customer linking (remove from here)
+    // Remove user_id from CreateCustomerJson
+    // Logged in user must have CanCreateCustomer (should no longer be able create customer for own user)
+    // Add ApiLink to createUserCustomerLink
+
     lazy val createCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
         user =>
@@ -1706,6 +1714,9 @@ trait APIMethods200 {
       false,
       false,
       List(apiTagUser, apiTagCustomer))
+
+    // TODO
+    // Allow multiple UserCustomerLinks per user (and bank)
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
