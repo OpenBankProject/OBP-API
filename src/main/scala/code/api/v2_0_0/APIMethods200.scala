@@ -269,7 +269,7 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: Nil JsonGet json => {
         user =>
           for{
-            bank <- Bank(bankId)
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
           } yield {
             val availableAccounts = bank.accounts(user)
             successJsonResponse(bankAccountBasicListToJson(availableAccounts, user))
@@ -297,7 +297,7 @@ trait APIMethods200 {
       true,
       List(apiTagAccount, apiTagPrivateData))
 
-    apiRelations += ApiRelation(privateAccountsAtOneBank, getCoreAccountById, "detail")
+    apiRelations += ApiRelation(privateAccountsAtOneBank, createAccount, "new")
     apiRelations += ApiRelation(privateAccountsAtOneBank, privateAccountsAtOneBank, "self")
 
 
