@@ -227,7 +227,7 @@
             <forkMode>once</forkMode>
             <junitxml>.</junitxml>
             <filereports>WDF TestSuite.txt</filereports>
-            <argLine>-Drun.mode=test -Xms512m -Xmx512m</argLine>
+            <argLine>-Drun.mode=test -XX:MaxPermSize=128m -Xms512m -Xmx512m</argLine>
         </configuration>
         <executions>
           <execution>
