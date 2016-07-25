@@ -381,23 +381,31 @@ import net.liftweb.util.Helpers._
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             val preLoginState = capturePreLoginState()
-            val extUser = for {
+            info("login redir: " + loginRedirect.get)
+            val redir = loginRedirect.get match {
+              case Full(url) =>
+                loginRedirect(Empty)
+              url
+              case _ =>
+                homePage
+            }
+            for {
               username_ <- S.param("username")
               password_ <- S.param("password")
               user_ <- getUserFromKafka(username_, password_)
             } yield {
               if (user != null) {
                 logUserIn(user_, () => {
+                  for {
+                    u <- APIUser.find(By(APIUser.email, user_.email))
+                    v <- tryo {
+                      KafkaMappedConnector.updateUserAccountViews(u)
+                    }
+                  }
                   S.notice(S.?("logged.in"))
                   preLoginState()
-                  S.redirectTo(homePage)
+                  S.redirectTo(redir)
                 })
-                for {
-                  u <- APIUser.find(By(APIUser.email, user_.email))
-                  v <- tryo {
-                    KafkaMappedConnector.updateUserAccountViews(u)
-                  }
-                }
                 user_
               }
               else
