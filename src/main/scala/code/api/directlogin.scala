@@ -231,7 +231,7 @@ object DirectLogin extends RestHelper with Loggable {
         !registeredApplication(parameters.get("consumer_key").getOrElse(""))) {
 
       logger.error("application: " + parameters.get("consumer_key").getOrElse("") + " not found")
-      message = ErrorMessages.InvalidLoginCredentials
+      message = ErrorMessages.InvalidConsumerKey
       httpCode = 401
     }
     else
