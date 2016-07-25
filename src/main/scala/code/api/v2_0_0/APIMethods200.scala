@@ -895,11 +895,11 @@ trait APIMethods200 {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "account" :: Nil JsonGet json => {
         user =>
           for {
-            u <- user ?~! ErrorMessages.UserNotLoggedIn // TODO. Allow anon for public views. (check previous version of this call) Check we have a user (rather than error or empty)
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound} // Check bank exists.
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
             moderatedAccount <- account.moderatedBankAccount(view, user)
           } yield {
             val viewsAvailable = availableViews.map(JSONFactory121.createViewJSON).sortBy(_.short_name)
