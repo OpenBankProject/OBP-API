@@ -363,7 +363,7 @@ import net.liftweb.util.Helpers._
             val redir = loginRedirect.get match {
               case Full(url) =>
                 loginRedirect(Empty)
-              url
+                url
               case _ =>
                 homePage
             }
@@ -395,13 +395,13 @@ import net.liftweb.util.Helpers._
               user_ <- getUserFromKafka(username_, password_)
             } yield {
               if (user != null) {
-                logUserIn(user_, () => {
-                  for {
-                    u <- APIUser.find(By(APIUser.email, user_.email))
-                    v <- tryo {
-                      KafkaMappedConnector.updateUserAccountViews(u)
-                    }
+                for {
+                  u <- APIUser.find(By(APIUser.email, user_.email))
+                  v <- tryo {
+                    KafkaMappedConnector.updateUserAccountViews(u)
                   }
+                }
+                logUserIn(user_, () => {
                   S.notice(S.?("logged.in"))
                   preLoginState()
                   S.redirectTo(redir)
