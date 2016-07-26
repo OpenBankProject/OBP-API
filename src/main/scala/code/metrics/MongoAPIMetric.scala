@@ -43,19 +43,28 @@ import net.liftweb.record.field.StringField
    object userId extends StringField(this,255)
    object url extends StringField(this,255)
    object date extends DateField(this)
+   object userName extends StringField(this,255)
+   object appName extends StringField(this,255)
+   object developerEmail extends StringField(this,255)
 
    def getUrl() = url.get
    def getDate() = date.get
    def getUserId() = userId.get
+   def getUserName(): String = userName.get
+   def getAppName(): String = appName.get
+   def getDeveloperEmail(): String = developerEmail.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(userId: String, url : String, date : Date) : Unit = {
+  def saveMetric(userId: String, url : String, date : Date, userName: String, appName: String, developerEmail: String) : Unit = {
     MongoAPIMetric.createRecord.
       userId(userId).
       url(url).
       date(date).
+      userName(userName).
+      appName(appName).
+      developerEmail(developerEmail).
       save
   }
 

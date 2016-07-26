@@ -142,7 +142,10 @@ class elasticsearchMetrics extends elasticsearch {
         "request" as (
           "userId" typed StringType,
           "url" typed StringType,
-          "date" typed DateType
+          "date" typed DateType,
+          "userName" typed StringType,
+          "appName" typed StringType,
+          "developerEmail" typed StringType
           )
         )
       }
@@ -152,14 +155,17 @@ class elasticsearchMetrics extends elasticsearch {
     }
   }
 
-  def indexMetric(userId: String, url: String, date: Date) {
+  def indexMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String) {
     if (Props.getBool("allow_elasticsearch", false) && Props.getBool("allow_elasticsearch_metrics", false) ) {
       try {
         client.execute {
           index into esIndex / "request" fields (
             "userId" -> userId,
             "url" -> url,
-            "date" -> date
+            "date" -> date,
+            "userName" -> userName,
+            "appName" -> appName,
+            "developerEmail" -> developerEmail
             )
         }
       }
