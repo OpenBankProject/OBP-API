@@ -84,25 +84,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def updateAccountViews(user: APIUser, account: KafkaInboundAccount ) = {
-    for {
-      email <- tryo{user.emailAddress}
-      views <- tryo{createSaveableViews(account, account.owners.contains(email))}
-      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(account))}
-    } yield {
-      views.foreach(_.save())
-      views.map(_.value).foreach(v => {
-        Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${account}")
-      })
-      existing_views.filterNot(_.users.contains(user)).foreach (v => {
-        Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${account}")
-      })
-      setAccountOwner(email, account)
-    }
-  }
-
   def updateUserAccountViews( user: APIUser ) = {
     val accounts = for {
       email <- tryo {user.emailAddress}
@@ -293,14 +274,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
-    val res = new KafkaBankAccount(r)
-    for {
-      e <- tryo{OBPUser.getCurrentUserUsername}
-      u <- OBPUser.getApiUserByEmail(e)
-    } yield {
-      updateAccountViews(u, r)
-    }
-    Full(res)
+    Full(new KafkaBankAccount(r))
   }
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
@@ -316,17 +290,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
     }
-    val res = r.map { t =>
-      val a = new KafkaBankAccount(t)
-      for {
-      e <- tryo{OBPUser.getCurrentUserUsername}
-      u <- OBPUser.getApiUserByEmail(e)
-      } yield {
-        updateAccountViews(u, t)
-      }
-      a
-    }
-    res
+    r.map { t => new KafkaBankAccount(t) }
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
@@ -342,14 +306,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
-    val res = new KafkaBankAccount(r)
-    for {
-      e <- tryo{OBPUser.getCurrentUserUsername}
-      u <- OBPUser.getApiUserByEmail(e)
-    } yield {
-      updateAccountViews(u, r)
-    }
-    Full(res)
+    Full(new KafkaBankAccount(r))
   }
 
   def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
