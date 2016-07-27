@@ -929,7 +929,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement)
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
 
     lazy val getPermissionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -965,7 +965,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get access for specific user
@@ -1562,7 +1562,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagCustomer))
+      List(apiTagPerson, apiTagCustomer))
 
 
 
@@ -1636,7 +1636,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagUser))
+      List(apiTagPerson, apiTagUser))
 
 
     lazy val getCurrentUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1673,7 +1673,7 @@ trait APIMethods200 {
       true,
       true,
       true,
-      List(apiTagUser))
+      List(apiTagPerson, apiTagUser))
 
 
     lazy val getUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1713,7 +1713,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagUser, apiTagCustomer))
+      List(apiTagPerson, apiTagUser, apiTagCustomer))
 
     // TODO
     // Allow multiple UserCustomerLinks per user (and bank)
@@ -2094,7 +2094,7 @@ trait APIMethods200 {
       false,
       false,
       false,
-      List(apiTagCustomer))
+      List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "users" :: "current" :: "customers" :: Nil JsonGet _ => {

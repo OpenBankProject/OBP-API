@@ -120,7 +120,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       false,
       false,
       false,
-      List(apiTagCustomer))
+      List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "customer" :: "messages" :: Nil JsonGet _ => {
@@ -154,7 +154,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       false,
       false,
       false,
-      List(apiTagCustomer)
+      List(apiTagPerson, apiTagCustomer)
     )
 
     lazy val addCustomerMessage : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

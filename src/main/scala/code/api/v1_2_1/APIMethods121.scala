@@ -709,7 +709,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a list of views
@@ -745,7 +745,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add access for specific user to a specific view
@@ -781,7 +781,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to one view
@@ -812,7 +812,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete access for specific user to all the views
@@ -843,7 +843,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagAccount, apiTagCounterparty))
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get other accounts for one account
@@ -910,7 +910,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get metadata of one other account
@@ -944,7 +944,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get public alias of other bank account
@@ -985,7 +985,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add public alias to other bank account
@@ -1022,7 +1022,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update public alias of other bank account
@@ -1059,7 +1059,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete public alias of other bank account
@@ -1093,7 +1093,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get private alias of other bank account
@@ -1129,7 +1129,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add private alias to other bank account
@@ -1167,7 +1167,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update private alias of other bank account
@@ -1205,7 +1205,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete private alias of other bank account
@@ -1238,7 +1238,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add more info to other bank account
@@ -1273,7 +1273,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update more info of other bank account
@@ -1308,7 +1308,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete more info of other bank account
@@ -1341,7 +1341,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
 
     lazy val addCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1377,7 +1377,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update url of other bank account
@@ -1412,7 +1412,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete url of other bank account
@@ -1445,7 +1445,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add image url to other bank account
@@ -1480,7 +1480,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update image url of other bank account
@@ -1515,7 +1515,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete image url of other bank account
@@ -1548,7 +1548,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add open corporate url to other bank account
@@ -1583,7 +1583,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update open corporate url of other bank account
@@ -1618,7 +1618,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete open corporate url of other bank account
@@ -1651,7 +1651,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add corporate location to other bank account
@@ -1688,7 +1688,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update corporate location of other bank account
@@ -1725,7 +1725,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete corporate location of other bank account
@@ -1763,7 +1763,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add physical location to other bank account
@@ -1800,7 +1800,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update physical location to other bank account
@@ -1837,7 +1837,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagCounterparty, apiTagMetaData))
+      List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete physical location of other bank account
@@ -1954,7 +1954,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get narrative
@@ -1977,16 +1977,21 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add narrative.",
-      """Creates a description of the transaction TRANSACTION_ID.
+      s"""Creates a description of the transaction TRANSACTION_ID.
          |
-         |Authentication via OAuth is required if the view is not public.""",
+         |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
+         |If you set narrative via a view e.g. view-x it will be seen via view-y (as long as view-y has permission to see the narrative).
+         |
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.
+         |""",
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add narrative
@@ -2021,7 +2026,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update narrative
@@ -2056,7 +2061,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete narrative
@@ -2088,7 +2093,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get comments
@@ -2122,7 +2127,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add comment
@@ -2158,7 +2163,7 @@ trait APIMethods121 {
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete comment
@@ -2190,7 +2195,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get tags
@@ -2224,7 +2229,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add a tag
@@ -2261,7 +2266,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete a tag
@@ -2294,7 +2299,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get images
@@ -2328,7 +2333,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add an image
@@ -2363,7 +2368,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete an image
@@ -2396,7 +2401,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //get where tag
@@ -2431,7 +2436,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //add where tag
@@ -2470,7 +2475,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //update where tag
@@ -2509,7 +2514,7 @@ Authentication via OAuth is required if the view is not public.""",
       false,
       false,
       false,
-      List(apiTagTransaction, apiTagMetaData))
+      List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       //delete where tag

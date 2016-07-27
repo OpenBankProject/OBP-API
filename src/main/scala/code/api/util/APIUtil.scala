@@ -396,6 +396,7 @@ object APIUtil extends Loggable {
   val apiTagUser = ResourceDocTag("User")
   val apiTagMeeting = ResourceDocTag("Meeting")
   val apiTagExperimental = ResourceDocTag("Experimental")
+  val apiTagPerson = ResourceDocTag("Person")
 
 
   // Used to document the API calls
