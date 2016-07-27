@@ -279,23 +279,25 @@ import net.liftweb.util.Helpers._
 
   // What if we just want to return the userId without sending username/password??
 
-  def getUserId(username: String, password: String): Long = {
+  def getUserId(username: String, password: String): Box[Long] = {
     findUserByUserName(username) match {
       case Full(user) => {
         if (user.validated_? &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
         {
-          user.id.toLong
+          Full(user.id.toLong)
         }
         else {
           Props.get("connector").openOrThrowException("no connector set") match {
-            case "kafka" => getUserFromKafka(username, password).get.id.toLong
-            case _ => 0
+            case "kafka" =>
+              for { kafkaUser <- getUserFromKafka(username, password)
+                    kafkaUserId <- tryo{kafkaUser.id} } yield kafkaUserId.toLong
+            case _ => Full(0)
           }
         }
       }
-      case _ => 0
+      case _ => Full(0)
     }
   }
 
@@ -363,7 +365,7 @@ import net.liftweb.util.Helpers._
             val redir = loginRedirect.get match {
               case Full(url) =>
                 loginRedirect(Empty)
-              url
+                url
               case _ =>
                 homePage
             }
@@ -390,26 +392,13 @@ import net.liftweb.util.Helpers._
                 homePage
             }
             for {
-              username_ <- S.param("username")
-              password_ <- S.param("password")
-              user_ <- getUserFromKafka(username_, password_)
+              user_ <- externalUserHelper(S.param("username").getOrElse(""), S.param("password").getOrElse(""))
             } yield {
-              if (user != null) {
-                logUserIn(user_, () => {
-                  for {
-                    u <- APIUser.find(By(APIUser.email, user_.email))
-                    v <- tryo {
-                      KafkaMappedConnector.updateUserAccountViews(u)
-                    }
-                  }
-                  S.notice(S.?("logged.in"))
-                  preLoginState()
-                  S.redirectTo(redir)
-                })
-                user_
-              }
-              else
-                userLoginFailed
+              logUserIn(user_, () => {
+                S.notice(S.?("logged.in"))
+                preLoginState()
+                S.redirectTo(redir)
+              })
             }
           }
         }
@@ -421,6 +410,19 @@ import net.liftweb.util.Helpers._
          "password" -> (<input type="password" name="password"/>),
          "submit" -> loginSubmitButton(S.?("log.in")))
   }
+
+  def externalUserHelper(username: String, password: String): Box[OBPUser] = {
+    if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+      for {
+       user <- getUserFromKafka(username, password)
+       u <- APIUser.find(By(APIUser.email, user.email))
+       v <- tryo {KafkaMappedConnector.updateUserAccountViews(u)}
+      } yield {
+        user
+      }
+    } else Full(OBPUser)
+  }
+
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,

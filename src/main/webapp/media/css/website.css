@@ -1,12 +1,13 @@
 @import url('reset.css');
 
-body {
-	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-	font-weight: 400;
-}
-
 html {
     height: 100%
+}
+
+
+body, div, h1, h2, h3, h4, p, span {
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+	font-weight: 400;
 }
 
 a {
@@ -211,7 +212,10 @@ input.submit {
 }
 
 #main-about p.about-text a {
-    color: lightgray;
+    color: white;
+}
+#main-about p.about-text a:hover {
+    text-decoration: underline;
 }
 
 #main-links {
@@ -228,6 +232,7 @@ input.submit {
     border: 2px solid gray;
     border-radius: 25px;
     margin: 30px 20px 0px 20px;
+	font-size: 24px;
 }
 
 #main-sandbox {
@@ -239,7 +244,7 @@ input.submit {
 
 #main-sandbox h1 {
     color: white;
-    font-size: 35px;
+    font-size: 36px;
     margin-bottom: 15px;
     margin-left: -5px;
     margin-top: 15px;
@@ -248,7 +253,7 @@ input.submit {
 
 #main-get_started {
 	text-align: left;
-	margin: 40px auto;
+	margin: 50px auto;
 	background-color: #f1f4f8;
 }
 
@@ -286,7 +291,7 @@ input.submit {
 #main-get_started h1 {
 	text-align: center;
 	font-weight: bold;
-	font-size: 35px;
+	font-size: 36px;
 	margin: 30px 0 30px 0;
 	display: table-caption;
 }
@@ -297,13 +302,14 @@ input.submit {
 	color: #333333;
 }
 
-.main-get_api_key {
-	padding: 30px 0;
+#main-get_started .green-button {
+	padding-bottom: 40px;
 }
+
 
 #main-apis {
 	text-align: left;
-	margin: 40px auto;
+	margin: 50px auto;
 	display: table;
 }
 .main-apis-row {
@@ -330,27 +336,14 @@ input.submit {
 #main-apis h1 {
 	text-align: center;
 	font-weight: bold;
-	font-size: 35px;
-	margin: 30px 0 30px 0;
+	font-size: 36px;
+	margin: 0px 0 30px 0;
 	display: table-caption;
 }
 #main-apis h2 {
 	font-weight: bold;
 	font-size: 24px;
 	margin-top: 13px;
-}
-
-#main-apiexplorer, .main-get_api_key {
-	width: 300px;
-	margin: 30px auto;
-	text-align: center;
-}
-#main-apiexplorer a, .main-get_api_key a {
-	border: 3px solid green;
-	border-radius: 25px;
-	color: green;
-	padding: 10px;
-	font-size: 24px;
 }
 
 
@@ -370,24 +363,24 @@ input.submit {
 	font-size: 24px;
 }
 
-#main-showcases p {
-	padding: 0 10px;
-}
-
 .main-showcases-item {
 	display: inline-block;
 	margin: 30px 10px;
 	width: 230px;
+	font-size: small;
 }
 
-.main-showcases-item span {
-	font-size: small;
+.main-showcases-item a {
+	color: white;
+}
+.main-showcases-item a:hover {
+	text-decoration: underline;
 }
 
 
 #main-faq {
 	text-align: left;
-	margin: 40px auto;
+	margin: 50px auto;
 	padding:0 40px;
 	background-color: #f1f4f8;
 }
@@ -401,7 +394,7 @@ input.submit {
 }
  
 #main-faq h2 {
-	font-size: 18px;
+	font-size: 18px; /* text won't fit on line with 24px */
 	font-weight: bold;
 	color: #333333;
 }
@@ -447,8 +440,8 @@ input.submit {
 
 
 #main-start_building {
-	margin: 40px 0;
-	padding: 40px 80px;
+	margin: 50px 0;
+	padding: 0 80px;
 }
 #main-start_building h1 {
 	font-size: 36px;
@@ -458,7 +451,7 @@ input.submit {
 
 
 #main-partners {
-	margin: 40px auto 0 auto;
+	margin: 50px auto;
 	text-align: center;
 }
 
@@ -495,6 +488,21 @@ input.submit {
 }
 .main-support-item a {
 	color: white;
+}
+
+
+
+.green-button {
+	width: 300px;
+	margin: 30px auto;
+	text-align: center;
+}
+.green-button a {
+	border: 3px solid green;
+	border-radius: 25px;
+	color: green;
+	padding: 10px;
+	font-size: 24px;
 }
 
 
@@ -630,7 +638,6 @@ input.submit {
   width: inherit;
   text-transform: uppercase;
   font-weight: 500;
-  font-family: inherit;
 }
 
 .account-in-content form.login .field .forgot {
@@ -920,6 +927,9 @@ span.alias_indicator_private {
 }
 #footer a {
     color: white;
+}
+#footer #copyright {
+	margin-bottom: 10px;
 }
 
 

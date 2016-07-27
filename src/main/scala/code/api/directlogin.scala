@@ -299,7 +299,11 @@ object DirectLogin extends RestHelper with Loggable {
       case p: String => p
       case _ => "error"
     }
-    val userId = OBPUser.getUserId(username, password)
+    var userId:Long  = OBPUser.getUserId(username, password).getOrElse(0)
+    if (userId == 0) {
+      OBPUser.externalUserHelper(directLoginParameters.getOrElse("username", ""), directLoginParameters.getOrElse("password", ""))
+      userId = OBPUser.getUserId(username, password).getOrElse(0)
+    }
     userId
   }
 

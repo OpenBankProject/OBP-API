@@ -483,6 +483,24 @@ object OAuthHandshake extends RestHelper with Loggable {
     nonceSaved && tokenSaved
   }
 
+  def getConsumer: List[Consumer] = {
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
+    val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
+    import code.model.Token
+    val consumer: Option[Consumer] = for {
+      tokenId: String <- oAuthParameters.get("oauth_token")
+      token: Token <- Token.find(By(Token.key, tokenId))
+      consumer: Consumer <- token.consumerId.foreign
+    } yield {
+      consumer
+    }
+    consumer.toList
+  }
+
+
   def getUser : Box[User] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
