@@ -68,16 +68,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
-    val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
-    apiUserOwner match {
-      case Some(o) => {
-        if ( ! accountOwnerExists(o, account)) {
-          MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaMappedConnector")
-        }
-      }
-      case None => {
-        //This shouldn't happen as OBPUser should generate the APIUsers when saved
-        logger.error(s"api user(s) with email $owner not found.")
+    if (account.owners.contains(owner)) {
+      val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+      apiUserOwner match {
+        case Some(o) => {
+          if ( ! accountOwnerExists(o, account)) {
+            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaMappedConnector")
+          }
+       }
+        case None => {
+          //This shouldn't happen as OBPUser should generate the APIUsers when saved
+          logger.error(s"api user(s) with email $owner not found.")
+       }
       }
     }
   }
@@ -121,7 +123,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added view ${v.uid} for apiuser ${user} and account ${acc}")
+        logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
