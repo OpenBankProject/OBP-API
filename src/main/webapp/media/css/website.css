@@ -949,6 +949,10 @@ span.alias_indicator_private {
 	width: 400px;
 }
 
+.loginSection {
+    width: 50%;
+}
+
 .signupSection {
     padding: 30px 0px 30px 0px !important;
     width: 60%;
