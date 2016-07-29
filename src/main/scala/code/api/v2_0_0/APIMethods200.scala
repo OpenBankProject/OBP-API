@@ -215,7 +215,7 @@ trait APIMethods200 {
         |Returns accounts that contain at least one public view (a view where is_public is true)
         |For each account the API returns the ID and the available views.
         |
-        |${authenticationRequiredMessage(true)}
+        |${authenticationRequiredMessage(false)}
         |""",
       emptyObjectJson,
       emptyObjectJson,
