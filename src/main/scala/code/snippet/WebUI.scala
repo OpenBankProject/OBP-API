@@ -76,15 +76,6 @@ class WebUI extends Loggable{
     ".api-link a [href]" #> hostname
   }
 
-  // Link to Sandbox credentials
-  def sandboxCredentialsLink: CssSel = {
-    // github removes dots when creating new sections with dots in name in wiki page
-    val wikiAnchor = scala.xml.Unparsed(Props.get("hostname", "").replace("http://", "").replace("https://", "").replace(".", "").replace(":", ""))
-    ".sandbox-credentials a [href]" #> ("https://github.com/OpenBankProject/OBP-API/wiki/Sandbox-credentials#" + wikiAnchor)
-  }
-
-
-
 
 
   // Social Finance (Sofi)
