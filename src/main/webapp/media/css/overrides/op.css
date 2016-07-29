@@ -1,3 +1,9 @@
+@import url('https://static.openbankproject.com/css/op/op-fonts.css');
+
+body, div, h1, h2, h3, h4, p, span {
+	font-family: "ChevinMedium", "OPHand", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
 #authorizeSection,
 #registerAppSection,
 #create-sandbox-account,
