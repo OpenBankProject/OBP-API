@@ -224,6 +224,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = process(reqId, "getTransaction", argList).extract[KafkaInboundTransaction]
+    // Check does the response data match the requested data
+    if (transactionId.value != r.id) throw new Exception(ErrorMessages.InvalidGetTransactionConnectorResponse)
     createNewTransaction(r)
   }
 
