@@ -107,6 +107,7 @@ object ErrorMessages {
   val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
 
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
+  val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
 
 
 

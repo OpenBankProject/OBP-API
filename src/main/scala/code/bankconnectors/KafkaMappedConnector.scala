@@ -274,6 +274,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
+    // Check does the response data match the requested data
+    val accResp = List((BankId(r.bank), AccountId(r.id))).toSet
+    val acc = List((bankId, accountID)).toSet
+    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountConnectorResponse)
+
     Full(new KafkaBankAccount(r))
   }
 
