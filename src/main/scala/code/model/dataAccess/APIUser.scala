@@ -63,8 +63,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
   // Roles
-  // Don't access directly. See Roles interface below - use isCrmAdmin etc
-  // May endup storing in ManytoMany
+ // THESE ARE NO LONGER USED!!------------------------
   object hasCrmAdminRole extends MappedBoolean(this)
   object hasCrmReaderRole extends MappedBoolean(this)
   object hasCustomerMessageAdminRole extends MappedBoolean(this)
@@ -72,7 +71,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   object hasBranchReaderRole extends MappedBoolean(this)
   object hasAtmReaderRole extends MappedBoolean(this)
   object hasProductReaderRole extends MappedBoolean(this)
-  // End Roles
+  // END of no longer used. TODO remove. --------------
 
   def emailAddress = {
     val e = email.get
