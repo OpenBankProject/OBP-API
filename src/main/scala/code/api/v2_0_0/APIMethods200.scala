@@ -234,8 +234,11 @@ trait APIMethods200 {
       //get public accounts for all banks
       case "accounts" :: "public" :: Nil JsonGet json => {
         user =>
-          val publicAccountsJson = bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)
-          Full(successJsonResponse(publicAccountsJson))
+          for {
+            publicAccountsJson <- tryo{bankAccountBasicListToJson(BankAccount.publicAccounts, Empty)} ?~ "Could not get accounts."
+          } yield {
+            Full(successJsonResponse(publicAccountsJson))
+          }
       }
     }
 
