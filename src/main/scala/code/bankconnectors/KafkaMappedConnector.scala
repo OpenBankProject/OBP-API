@@ -223,10 +223,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "transactionId" -> transactionId.toString )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getTransaction", argList).extract[KafkaInboundTransaction]
-    // Check does the response data match the requested data
-    if (transactionId.value != r.id) throw new Exception(ErrorMessages.InvalidGetTransactionConnectorResponse)
-    createNewTransaction(r)
+    val r = process(reqId, "getTransaction", argList).extractOpt[KafkaInboundTransaction]
+    r match {
+      // Check does the response data match the requested data
+      case Some(x) if transactionId.value != x.id => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
+      case Some(x) if transactionId.value == x.id => createNewTransaction(x)
+      case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+    }
+
   }
 
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -252,6 +256,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "queryParams" -> queryParams.toString )
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
+    // Check does the response data match the requested data
+    val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
+    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
     // Populate fields and generate result
     val res = for {
       r <- rList
