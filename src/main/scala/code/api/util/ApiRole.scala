@@ -7,13 +7,13 @@ sealed trait ApiRole{
 object ApiRole {
 
   case object CanSearchAllTransactions extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanSearchAllAccounts extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanQueryOtherUser extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanSearchWarehouse extends ApiRole{
     val requiresBankId = true
@@ -28,7 +28,7 @@ object ApiRole {
     val requiresBankId = true
   }
   case object CanGetAnyUser extends ApiRole{
-    val requiresBankId = true
+    val requiresBankId = false
   }
   case object CanCreateAnyTransactionRequest extends ApiRole{
     val requiresBankId = true
