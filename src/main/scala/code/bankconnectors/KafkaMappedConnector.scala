@@ -224,6 +224,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = process(reqId, "getTransaction", argList).extract[KafkaInboundTransaction]
+    // Check does the response data match the requested data
+    if (transactionId.value != r.id) throw new Exception(ErrorMessages.InvalidGetTransactionConnectorResponse)
     createNewTransaction(r)
   }
 
@@ -274,6 +276,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
     }
+    // Check does the response data match the requested data
+    val accResp = List((BankId(r.bank), AccountId(r.id))).toSet
+    val acc = List((bankId, accountID)).toSet
+    if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountConnectorResponse)
+
     Full(new KafkaBankAccount(r))
   }
 
@@ -290,6 +297,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val r = {
       cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
     }
+    // Check does the response data match the requested data
+    val accRes = for(row <- r) yield {
+      (BankId(row.bank), AccountId(row.id))
+    }
+    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
+
     r.map { t => new KafkaBankAccount(t) }
   }
 
