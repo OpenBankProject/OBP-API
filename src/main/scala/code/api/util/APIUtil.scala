@@ -109,6 +109,8 @@ object ErrorMessages {
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
   val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
   val InvalidGetTransactionConnectorResponse = "OBP-30203: Connector did not return the transaction we requested."
+  val EntitlementIsBankRole = "OBP-30204: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
+  val EntitlementIsSystemRole = "OBP-30205: This entitlement is a System Role. Please set bank_id to empty string."
 
 
 
