@@ -106,11 +106,17 @@ object ErrorMessages {
   val InvalidAccountType = "OBP-30108: Invalid Account Type."
   val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
 
+
+  val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
   val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
   val InvalidGetTransactionConnectorResponse = "OBP-30203: Connector did not return the transaction we requested."
-  val EntitlementIsBankRole = "OBP-30204: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
-  val EntitlementIsSystemRole = "OBP-30205: This entitlement is a System Role. Please set bank_id to empty string."
+
+  val EntitlementIsBankRole = "OBP-30205: This entitlement is a Bank Role. Please set bank_id to a valid bank id."
+  val EntitlementIsSystemRole = "OBP-30206: This entitlement is a System Role. Please set bank_id to empty string."
+
+  val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
+
 
 
 
