@@ -252,6 +252,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                        "queryParams" -> queryParams.toString )
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
+    // Check does the response data match the requested data
+    val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
+    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
     // Populate fields and generate result
     val res = for {
       r <- rList

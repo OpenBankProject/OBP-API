@@ -109,6 +109,7 @@ object ErrorMessages {
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
   val InvalidGetBankAccountConnectorResponse = "OBP-30202: Connector did not return the account we requested."
   val InvalidGetTransactionConnectorResponse = "OBP-30203: Connector did not return the transaction we requested."
+  val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
 
 
