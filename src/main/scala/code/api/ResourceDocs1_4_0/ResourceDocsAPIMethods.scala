@@ -17,6 +17,7 @@ import scala.collection.immutable.Nil
 import code.api.v1_2_1.{APIInfoJSON, APIMethods121, HostedBy, OBPAPI1_2_1}
 import code.api.v1_3_0.{APIMethods130, OBPAPI1_3_0}
 import code.api.v2_0_0.{APIMethods200, OBPAPI2_0_0}
+import code.api.v2_1_0.{APIMethods210, OBPAPI2_1_0}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -26,7 +27,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 
-trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
@@ -50,6 +51,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case "2.1.0" => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.3.0" => Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
@@ -59,6 +61,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods200 with APIMethods
       logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case "2.1.0" => OBPAPI2_1_0.routes
         case "2.0.0" => OBPAPI2_0_0.routes
         case "1.4.0" => OBPAPI1_4_0.routes
         case "1.3.0" => OBPAPI1_3_0.routes

@@ -1,22 +1,47 @@
 package code.api.util
 
-sealed trait ApiRole
+sealed trait ApiRole{
+  val requiresBankId: Boolean
+}
 
 object ApiRole {
 
-  case object CanSearchAllTransactions extends ApiRole
-  case object CanSearchAllAccounts extends ApiRole
-  case object CanQueryOtherUser extends ApiRole
-  case object CanSearchWarehouse extends ApiRole
-  case object CanSearchMetrics extends ApiRole
-  case object CanCreateCustomer extends ApiRole
-  case object CanCreateAccount extends ApiRole
-  case object CanGetAnyUser extends ApiRole
-  case object IsHackathonDeveloper extends ApiRole
-  case object CanCreateAnyTransactionRequest extends ApiRole
-  case object CanAddSocialMediaHandle extends ApiRole
-  case object CanGetSocialMediaHandles extends ApiRole
-  case object CanCreateSandbox extends ApiRole
+  case object CanSearchAllTransactions extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanSearchAllAccounts extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanQueryOtherUser extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanSearchWarehouse extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanSearchMetrics extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateCustomer extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateAccount extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanGetAnyUser extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateAnyTransactionRequest extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanAddSocialMediaHandle extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanGetSocialMediaHandles extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateSandbox extends ApiRole{
+    val requiresBankId = false
+  }
 
   def valueOf(value: String): ApiRole = value match {
     case "CanSearchAllTransactions" => CanSearchAllTransactions
@@ -27,7 +52,6 @@ object ApiRole {
     case "CanCreateCustomer" => CanCreateCustomer
     case "CanCreateAccount" => CanCreateAccount
     case "CanGetAnyUser" => CanGetAnyUser
-    case "IsHackathonDeveloper" => IsHackathonDeveloper
     case "CanCreateAnyTransactionRequest" => CanCreateAnyTransactionRequest
     case "CanAddSocialMediaHandle" => CanAddSocialMediaHandle
     case "CanGetSocialMediaHandles" => CanGetSocialMediaHandles
