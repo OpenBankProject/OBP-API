@@ -1194,8 +1194,11 @@ trait APIMethods200 {
               toAccountId <- tryo(AccountId(transBodyJson.to.account_id))
               toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
               // Prevent default value for transaction request type (at least).
-              // Consider: Add valid list of Transaction Request Types to Props "transactionRequests_supported_types" and use that below
-              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE")) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${TransactionRequests.CHALLENGE_SANDBOX_TAN}"
+              // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
+              validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
+              // Use a list instead of a string to avoid partial matches
+              validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
+              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
               transferCurrencyEqual <- tryo(assert(transBodyJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency must be the same."}
               createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv200(u, fromAccount, toAccount, transactionRequestType, transBody)
             } yield {

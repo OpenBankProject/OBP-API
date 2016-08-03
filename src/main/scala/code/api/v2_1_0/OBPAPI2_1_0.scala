@@ -181,7 +181,8 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.elasticSearchMetrics,
     Implementations2_0_0.getCustomers,
     // New in 2.1.0
-    Implementations2_1_0.sandboxDataImport
+    Implementations2_1_0.sandboxDataImport,
+    Implementations2_1_0.getTransactionRequestTypesSupportedByBank
   )
 
   routes.foreach(route => {

@@ -294,7 +294,9 @@ object LocalMappedConnector extends Connector with Loggable {
 
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
-    Full(List(TransactionRequestType("SANDBOX_TAN")))
+    // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
+    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
+    Full(validTransactionRequestTypes)
   }
 
   /*
