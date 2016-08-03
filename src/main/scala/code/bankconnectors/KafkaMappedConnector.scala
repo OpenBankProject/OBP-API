@@ -24,6 +24,7 @@ import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
+import net.liftweb.json._
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
 
@@ -444,16 +445,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map("username"  -> OBPUser.getCurrentUserUsername,
-                      "accountId" -> account.accountId.value,
-                      "currency" -> currency,
-                      "amount" -> amt.toString,
-                      "otherAccountId" -> counterparty.accountId.value,
-                      "otherAccountCurrency" -> counterparty.currency,
-                      "transactionType" -> "AC")
+    val argObj = KafkaOutboundSaveTransaction(username = OBPUser.getCurrentUserUsername,
+                                              accountId = account.accountId.value,
+                                              currency = currency,
+                                              amount = amt.toString,
+                                              otherAccountId = counterparty.accountId.value,
+                                              otherAccountCurrency = counterparty.currency,
+                                              transactionType = "AC")
+
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "saveTransaction", argList) //.extract[KafkaInboundTransactionId]
+    val argMap = Extraction.decompose(argObj).values
+    val r = process(reqId, "saveTransaction", argMap.asInstanceOf[Map[String,String]]) //.extract[KafkaInboundTransactionId]
 
     r.extract[KafkaInboundTransactionId] match {
       case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
@@ -1097,6 +1100,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   case class KafkaInboundTransactionId(
                                         transactionId : String
                                       )
-
+  case class KafkaOutboundSaveTransaction(username: String,
+                                          accountId: String,
+                                          currency: String,
+                                          amount: String,
+                                          otherAccountId: String,
+                                          otherAccountCurrency: String,
+                                          transactionType: String)
 }
 
