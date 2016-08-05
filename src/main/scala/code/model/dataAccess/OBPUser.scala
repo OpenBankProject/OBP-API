@@ -120,6 +120,22 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     user.obj.map{_.delete_!}
     super.delete_!
   }
+
+  // Regex to validate an email address as per W3C recommendations: https://www.w3.org/TR/html5/forms.html#valid-e-mail-address
+  private val emailRegex = """^[a-zA-Z0-9\.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$""".r
+
+  def isEmailValid(e: String): Boolean = e match{
+    case null                                           => false
+    case e if e.trim.isEmpty                            => false
+    case e if emailRegex.findFirstMatchIn(e).isDefined  => true
+    case _                                              => false
+  }
+
+  // Override the validate method of MappedEmail class
+  // There's no way to override the default emailPattern from MappedEmail object
+  override lazy val email = new MyEmail(this, 48) {
+    override def validate = if (isEmailValid(i_is_!)) Nil else List(FieldError(this, Text(S.?("invalid.email.address"))))
+  }
 }
 
 /**
