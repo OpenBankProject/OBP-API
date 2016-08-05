@@ -445,13 +445,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argObj = KafkaOutboundSaveTransaction(username = OBPUser.getCurrentUserUsername,
-                                              accountId = account.accountId.value,
-                                              currency = currency,
-                                              amount = amt.toString,
-                                              otherAccountId = counterparty.accountId.value,
-                                              otherAccountCurrency = counterparty.currency,
-                                              transactionType = "AC")
+    val argObj = KafkaOutboundTransaction(username = OBPUser.getCurrentUserUsername,
+                                          accountId = account.accountId.value,
+                                          currency = currency,
+                                          amount = amt.toString,
+                                          otherAccountId = counterparty.accountId.value,
+                                          otherAccountCurrency = counterparty.currency,
+                                          transactionType = "AC")
 
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -1100,12 +1100,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   case class KafkaInboundTransactionId(
                                         transactionId : String
                                       )
-  case class KafkaOutboundSaveTransaction(username: String,
-                                          accountId: String,
-                                          currency: String,
-                                          amount: String,
-                                          otherAccountId: String,
-                                          otherAccountCurrency: String,
-                                          transactionType: String)
+  case class KafkaOutboundTransaction(username: String,
+                                      accountId: String,
+                                      currency: String,
+                                      amount: String,
+                                      otherAccountId: String,
+                                      otherAccountCurrency: String,
+                                      transactionType: String)
 }
 
