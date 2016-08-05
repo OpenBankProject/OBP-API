@@ -1820,8 +1820,16 @@ trait APIMethods200 {
               entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
             }
             yield {
+              var json = EntitlementJSONs(Nil)
               // Format the data as V2.0.0 json
-              val json = JSONFactory200.createEntitlementJSONs(entitlements)
+              if (isSuperAdmin(u.userId)) {
+                // If the user is SuperAdmin add it to the list
+                json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+                successJsonResponse(Extraction.decompose(json))
+              } else {
+                json = JSONFactory200.createEntitlementJSONs(entitlements)
+              }
+              // Return
               successJsonResponse(Extraction.decompose(json))
             }
       }
