@@ -31,5 +31,17 @@ Berlin 13359, Germany
  */
 package code.api.v2_1_0
 
+case class TransactionRequestTypeJSON(transaction_request_type: String)
+case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
+
 object JSONFactory210{
+  def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
+    new TransactionRequestTypeJSON(
+      transactionRequestType
+    )
+  }
+
+  def createTransactionRequestTypeJSON(transactionRequestTypes : List[String]) : TransactionRequestTypesJSON = {
+    TransactionRequestTypesJSON(transactionRequestTypes.map(createTransactionRequestTypeJSON))
+  }
 }

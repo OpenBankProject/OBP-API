@@ -103,6 +103,7 @@ payments_enabled=true
 #transaction requests are replacing simple payments starting from 1.4.0
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
+transactionRequests_supported_types=SANDBOX_TAN,INTRABANK
 
 
 # For video conference meetings (createMeeting)

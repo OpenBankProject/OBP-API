@@ -3,9 +3,11 @@ package code.api.v2_1_0
 import java.text.SimpleDateFormat
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
+import code.api.v2_1_0.JSONFactory210
 import code.model._
 
 import net.liftweb.http.Req
+import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.Props
 
@@ -71,7 +73,7 @@ trait APIMethods210 {
 
 
     lazy val sandboxDataImport: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      //import data into the sandbox
+      // Import data into the sandbox
       case "sandbox" :: "data-import" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -83,6 +85,50 @@ trait APIMethods210 {
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(JsRaw("{}"), 201)
+          }
+      }
+    }
+
+
+    val getTransactionRequestTypesIsPublic = Props.getBool("apiOptions.getTransactionRequestTypesIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      getTransactionRequestTypesSupportedByBank,
+      apiVersion,
+      "getTransactionRequestTypesSupportedByBank",
+      "GET",
+      "/banks/BANK_ID/transaction-request-types",
+      "Get the Transaction Request Types supported by the bank",
+      s"""Get the list of the Transaction Request Types supported by the bank.
+        |
+        |${authenticationRequiredMessage(!getTransactionRequestTypesIsPublic)}
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagBank, apiTagTransactionRequest))
+
+
+    lazy val getTransactionRequestTypesSupportedByBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      // Get transaction request types supported by the bank
+      case "banks" :: BankId(bankId) :: "transaction-request-types" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- if(getTransactionRequestTypesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
+            transactionRequestTypes <- tryo(Props.get("transactionRequests_supported_types", ""))
+          } yield {
+            // Format the data as json
+            val json = JSONFactory210.createTransactionRequestTypeJSON(transactionRequestTypes.split(",").toList)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
           }
       }
     }
