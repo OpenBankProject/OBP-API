@@ -1,6 +1,7 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
+import java.util
 import java.util.{Date, Locale, UUID}
 
 import code.api.util.ErrorMessages
@@ -19,14 +20,23 @@ import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge }
 import code.util.{Helper, TTLCache}
 import code.views.Views
+import com.sun.tools.javac.resources.legacy
+import com.tesobe.obp.kafka.SimpleNorth
+import com.tesobe.obp.transport.{Transport, Connector}
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
+import scala.collection.JavaConversions._
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
+  //testing the new obp-jvm connector
+  val north: SimpleNorth = new SimpleNorth("Request", "Response")
+  north.receive()
+  val factory = Transport.defaultFactory()
+  val connector = factory.connector(north)
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
@@ -162,55 +172,83 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
+    val rList = connector.getPublicBanks()
 
-    logger.info(s"Kafka getBanks says reqId is: $reqId")
-
-    // Create empty argument list
-    val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
-
-    logger.debug(s"Kafka getBanks says: argList is: $argList")
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    implicit val formats = net.liftweb.json.DefaultFormats
-
-    logger.debug(s"Kafka getBanks before cachedBanks.getOrElseUpdate")
-    val rList = {
-      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaInboundBank]])
-    }
-
-    logger.debug(s"Kafka getBanks says rList is $rList")
-
-    // Loop through list of responses and create entry for each
-    val res = { for ( r <- rList ) yield {
-        new KafkaBank(r)
+    //Loop through list of responses and create entry for each
+    val res = {
+      for (r <- rList) yield {
+        new KafkaBank(new KafkaInboundBank(r.id, r.shortName, r.fullName, r.logo, r.url))
       }
     }
     // Return list of results
 
     logger.debug(s"Kafka getBanks says res is $res")
-    res
+    res.toList
   }
+
+  //gets banks handled by this connector
+//  override def getBanks: List[Bank] = {
+//    // Generate random uuid to be used as request-response match id
+//    val reqId: String = UUID.randomUUID().toString
+//
+//    logger.info(s"Kafka getBanks says reqId is: $reqId")
+//
+//    // Create empty argument list
+//    val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
+//
+//    logger.debug(s"Kafka getBanks says: argList is: $argList")
+//    // Send request to Kafka, marked with reqId
+//    // so we can fetch the corresponding response
+//    implicit val formats = net.liftweb.json.DefaultFormats
+//
+//    logger.debug(s"Kafka getBanks before cachedBanks.getOrElseUpdate")
+//    val rList = {
+//      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaInboundBank]])
+//    }
+//
+//    logger.debug(s"Kafka getBanks says rList is $rList")
+//
+//    // Loop through list of responses and create entry for each
+//    val res = { for ( r <- rList ) yield {
+//        new KafkaBank(r)
+//      }
+//    }
+//    // Return list of results
+//
+//    logger.debug(s"Kafka getBanks says res is $res")
+//    res
+//  }
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
-    // Generate random uuid to be used as request-respose match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create Kafka producer
-    val producer: KafkaProducer = new KafkaProducer()
-    // Create argument list
-    val argList = Map(  "bankId" -> id.toString,
-                        "username" -> OBPUser.getCurrentUserUsername )
-    // Send request to Kafka, marked with reqId
-    // so we can fetch the corresponding response
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val r = {
-      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaInboundBank])
+    val r = connector.getPrivateBank(id.value, OBPUser.userIdAsString)
+
+    if (r.isPresent()){
+      val rValue = r.get
+      Full(new KafkaBank(new KafkaInboundBank(rValue.id, rValue.shortName, rValue.fullName, rValue.logo, rValue.url)))
+    } else {
+      Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
     }
-    // Return result
-    Full(new KafkaBank(r))
   }
+
+  // Gets bank identified by bankId
+//  override def getBank(id: BankId): Box[Bank] = {
+//    // Generate random uuid to be used as request-respose match id
+//    val reqId: String = UUID.randomUUID().toString
+//    // Create Kafka producer
+//    val producer: KafkaProducer = new KafkaProducer()
+//    // Create argument list
+//    val argList = Map(  "bankId" -> id.toString,
+//                        "username" -> OBPUser.getCurrentUserUsername )
+//    // Send request to Kafka, marked with reqId
+//    // so we can fetch the corresponding response
+//    implicit val formats = net.liftweb.json.DefaultFormats
+//    val r = {
+//      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaInboundBank])
+//    }
+//    // Return result
+//    Full(new KafkaBank(r))
+//  }
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
