@@ -1,8 +1,6 @@
 package code.bankconnectors
 
-import java.text.SimpleDateFormat
-import java.util
-import java.util.{Date, Locale, UUID}
+import java.util.{Optional, UUID}
 
 import code.api.util.ErrorMessages
 import code.management.ImporterAPI.ImporterTransaction
@@ -17,29 +15,73 @@ import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge }
+import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
 import code.util.{Helper, TTLCache}
 import code.views.Views
-import com.sun.tools.javac.resources.legacy
 import com.tesobe.obp.kafka.SimpleNorth
-import com.tesobe.obp.transport.{Transport, Connector}
+import com.tesobe.obp.transport.Transport.Factory
+import com.tesobe.obp.transport.spi.Decoder.Request
+import com.tesobe.obp.transport.spi._
+import com.tesobe.obp.transport.{Bank, Message, Sender, Transport}
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
+
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
-  //testing the new obp-jvm connector
-  val north: SimpleNorth = new SimpleNorth("Request", "Response")
-  north.receive()
-  val factory = Transport.defaultFactory()
-  val connector = factory.connector(north)
+  type JBank = com.tesobe.obp.transport.Bank
+  val factory : Factory = Transport.defaultFactory()
+  val encoder : Encoder = factory.encoder()
+  val decoder : Decoder = factory.decoder()
+  val south : LegacyResponder = new DefaultLegacyResponder(decoder, encoder)
+  {
+    override def getPublicBank(payload: String, r: Request, e: Encoder) = {
+      if (r.bankId.isPresent) {
+        e.bank(new com.tesobe.obp.transport.Bank() {
+          def id: String = r.bankId.get
+          def shortName: String = "My Bank"
+          def fullName: String = "My Very Own Bank"
+          def logo: String = "https://example.org/logo.png"
+          def url: String = "https://example.org/"
+        })
+      }
+      else {
+        e.bank(null)
+      }
+    }
+    override def getPublicBanks(payload: String, e: Encoder) = {
+      e.banks(java.util.Arrays.asList(new JBank() {
+        def id: String = "First Bank"
+        def shortName: String = "My 1st Bank"
+        def fullName: String = "My Very First Bank"
+        def logo: String = "https://example.org/first-logo.png"
+        def url: String = "https://example.org/first"
+      },
+        new JBank() {
+          def id: String = "Second Bank"
+          def shortName: String = "My 2nd Bank"
+          def fullName: String = "My Second Bank"
+          def logo: String = "https://example.org/second-logo.png"
+          def url: String = "https://example.org/second"
+        }))
+    }
+  }
+  //todo get topic names from the props
+  //val north: SimpleNorth = new SimpleNorth("Request", "Response") // Kafka
+  val north : Sender = new Sender() {
+    def send(request: Message) = { south.respond(request) }
+  }
+  val connector : com.tesobe.obp.transport.Connector = factory.connector(north)
 
-  var producer = new KafkaProducer()
-  var consumer = new KafkaConsumer()
+  //  north.receive() // start Kafka
+
+  //  var producer = new KafkaProducer()
+  //  var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
 
   // Local TTL Cache
@@ -172,12 +214,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    val rList = connector.getPublicBanks()
+    val banks : Iterable[JBank] = connector.getPublicBanks()
 
     //Loop through list of responses and create entry for each
     val res = {
-      for (r <- rList) yield {
-        new KafkaBank(new KafkaInboundBank(r.id, r.shortName, r.fullName, r.logo, r.url))
+      for (r : JBank <- banks) yield {
+        KafkaBank(KafkaInboundBank(r.id, r.shortName, r.fullName, r.logo, r.url))
       }
     }
     // Return list of results
@@ -221,14 +263,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
-    val r = connector.getPrivateBank(id.value, OBPUser.userIdAsString)
-
-    if (r.isPresent()){
-      val rValue = r.get
-      Full(new KafkaBank(new KafkaInboundBank(rValue.id, rValue.shortName, rValue.fullName, rValue.logo, rValue.url)))
-    } else {
-      Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
-    }
+    type JFunction = java.util.function.Function[JBank, Box[KafkaBank]]
+    val bank : Optional[JBank] = connector.getPublicBank(id.value)
+    bank.map(JFunction {
+      def apply(b: JBank): Box[KafkaBank] = {
+         Full(KafkaBank(KafkaInboundBank(b.id, b.shortName, b.fullName, b.logo, b.url)))
+      }
+    }).orElse(Empty)
   }
 
   // Gets bank identified by bankId
