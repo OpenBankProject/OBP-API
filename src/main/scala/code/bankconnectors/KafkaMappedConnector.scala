@@ -227,7 +227,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       val rValue = r.get
       Full(new KafkaBank(new KafkaInboundBank(rValue.id, rValue.shortName, rValue.fullName, rValue.logo, rValue.url)))
     } else {
-      Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+      Empty
     }
   }
 
