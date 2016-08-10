@@ -59,39 +59,39 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
 
   def getResponse(reqId: String): json.JValue = {
     // create consumer with unique groupId in order to prevent race condition with kafka
-    val config = createConsumerConfig(zookeeper, UUID.randomUUID.toString)
-    val consumer = Consumer.create(config)
-    // recreate stream for topic if not existing
-    val consumerMap = consumer.createMessageStreams(Map(topic -> 1))
-
-    val streams = consumerMap.get(topic).get
-    // process streams
-    for (stream <- streams) {
-      val it = stream.iterator()
-      try {
-        // wait for message
-        while (it.hasNext()) {
-          val mIt = it.next()
-          val msg = new String(mIt.message(), "UTF8")
-          val key = new String(mIt.key(), "UTF8")
-          // check if the id matches
-          if (key == reqId) {
-            // Parse JSON message
-            val j = json.parse(msg)
-            // disconnect from Kafka
-            consumer.shutdown()
-            // return as JSON
-            return j
-          }
-        }
-      }
-      catch {
-        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString)
-        return json.parse("""{"error":"timeout"}""") //TODO: replace with standard message
-      }
-    }
-    // disconnect from kafka
-    consumer.shutdown()
+//    val config = createConsumerConfig(zookeeper, UUID.randomUUID.toString)
+//    val consumer = Consumer.create(config)
+//    // recreate stream for topic if not existing
+//    val consumerMap = consumer.createMessageStreams(Map(topic -> 1))
+//
+//    val streams = consumerMap.get(topic).get
+//    // process streams
+//    for (stream <- streams) {
+//      val it = stream.iterator()
+//      try {
+//        // wait for message
+//        while (it.hasNext()) {
+//          val mIt = it.next()
+//          val msg = new String(mIt.message(), "UTF8")
+//          val key = new String(mIt.key(), "UTF8")
+//          // check if the id matches
+//          if (key == reqId) {
+//            // Parse JSON message
+//            val j = json.parse(msg)
+//            // disconnect from Kafka
+//            consumer.shutdown()
+//            // return as JSON
+//            return j
+//          }
+//        }
+//      }
+//      catch {
+//        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString)
+//        return json.parse("""{"error":"timeout"}""") //TODO: replace with standard message
+//      }
+//    }
+//    // disconnect from kafka
+//    consumer.shutdown()
     return json.parse("""{"info":"disconnected"}""") //TODO: replace with standard message
   }
 }
@@ -131,7 +131,7 @@ case class KafkaProducer(
       // no partiton specified
       new KeyedMessage(topic, key, message)
     } else {
-      // specific partition 
+      // specific partition
       new KeyedMessage(topic, key, partition, message)
     }
   }

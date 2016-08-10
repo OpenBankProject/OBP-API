@@ -1,6 +1,7 @@
 package code.bankconnectors
 
-import java.util.{Optional, UUID}
+import java.text.SimpleDateFormat
+import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
 import code.management.ImporterAPI.ImporterTransaction
@@ -19,10 +20,9 @@ import code.transactionrequests.TransactionRequests.{TransactionRequest, Transac
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import com.tesobe.obp.kafka.SimpleNorth
+import com.tesobe.obp.transport.Transport
 import com.tesobe.obp.transport.Transport.Factory
 import com.tesobe.obp.transport.spi.Decoder.Request
-import com.tesobe.obp.transport.spi._
-import com.tesobe.obp.transport.{Bank, Message, Sender, Transport}
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
@@ -36,52 +36,14 @@ import scala.collection.mutable.ListBuffer
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
   type JBank = com.tesobe.obp.transport.Bank
   val factory : Factory = Transport.defaultFactory()
-  val encoder : Encoder = factory.encoder()
-  val decoder : Decoder = factory.decoder()
-  val south : LegacyResponder = new DefaultLegacyResponder(decoder, encoder)
-  {
-    override def getPublicBank(payload: String, r: Request, e: Encoder) = {
-      if (r.bankId.isPresent) {
-        e.bank(new com.tesobe.obp.transport.Bank() {
-          def id: String = r.bankId.get
-          def shortName: String = "My Bank"
-          def fullName: String = "My Very Own Bank"
-          def logo: String = "https://example.org/logo.png"
-          def url: String = "https://example.org/"
-        })
-      }
-      else {
-        e.bank(null)
-      }
-    }
-    override def getPublicBanks(payload: String, e: Encoder) = {
-      e.banks(java.util.Arrays.asList(new JBank() {
-        def id: String = "First Bank"
-        def shortName: String = "My 1st Bank"
-        def fullName: String = "My Very First Bank"
-        def logo: String = "https://example.org/first-logo.png"
-        def url: String = "https://example.org/first"
-      },
-        new JBank() {
-          def id: String = "Second Bank"
-          def shortName: String = "My 2nd Bank"
-          def fullName: String = "My Second Bank"
-          def logo: String = "https://example.org/second-logo.png"
-          def url: String = "https://example.org/second"
-        }))
-    }
-  }
   //todo get topic names from the props
-  //val north: SimpleNorth = new SimpleNorth("Request", "Response") // Kafka
-  val north : Sender = new Sender() {
-    def send(request: Message) = { south.respond(request) }
-  }
+  val north: SimpleNorth = new SimpleNorth("Request", "Response") // Kafka
   val connector : com.tesobe.obp.transport.Connector = factory.connector(north)
 
-  //  north.receive() // start Kafka
+  north.receive() // start Kafka
 
-  //  var producer = new KafkaProducer()
-  //  var consumer = new KafkaConsumer()
+  var producer = new KafkaProducer()
+  var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
 
   // Local TTL Cache
@@ -263,13 +225,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
-    type JFunction = java.util.function.Function[JBank, Box[KafkaBank]]
     val bank : Optional[JBank] = connector.getPublicBank(id.value)
-    bank.map(JFunction {
-      def apply(b: JBank): Box[KafkaBank] = {
-         Full(KafkaBank(KafkaInboundBank(b.id, b.shortName, b.fullName, b.logo, b.url)))
-      }
-    }).orElse(Empty)
+    if(bank.isPresent) {
+      val b : JBank = bank.get
+      Full(KafkaBank(KafkaInboundBank(b.id, b.shortName, b.fullName, b.logo, b.url)))
+    } else {
+      Empty
+    }
   }
 
   // Gets bank identified by bankId
