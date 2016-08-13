@@ -30,17 +30,20 @@ import net.liftweb.http.Req
 import net.liftweb.http.PostRequest
 import net.liftweb.common.Box
 import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.{Full,Empty,Loggable}
+import net.liftweb.common.{Empty, Full, Loggable}
 import net.liftweb.http.S
-import code.model.{Nonce, Consumer, Token}
+import code.model.{Consumer, Nonce, Token}
 import net.liftweb.mapper.By
 import java.util.Date
-import java.net.{URLEncoder, URLDecoder}
+import java.net.{URLDecoder, URLEncoder}
 import javax.crypto.spec.SecretKeySpec
 import javax.crypto.Mac
+
 import net.liftweb.util.Helpers
+
 import scala.compat.Platform
 import Helpers._
+import code.api.util.APIUtil
 import net.liftweb.util.Props
 import code.model.TokenType
 import code.model.User
@@ -224,13 +227,6 @@ object OAuthHandshake extends RestHelper with Loggable {
        ) !=0
     }
 
-    def registeredApplication(consumerKey : String ) : Boolean = {
-      Consumer.find(By(Consumer.key,consumerKey)) match {
-        case Full(application) => application.isActive
-        case _ => false
-      }
-    }
-
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
       //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
       //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
@@ -362,7 +358,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //check if the application is registered and active
-    else if(! registeredApplication(parameters.get("oauth_consumer_key").get))
+    else if(! APIUtil.registeredApplication(parameters.get("oauth_consumer_key").get))
     {
       logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
       message = "Invalid consumer credentials"

@@ -130,7 +130,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
     }
   }
 
-  def failIfBadOauth(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
+  def failIfBadAuthorizationHeader(fn: (Box[User]) => Box[JsonResponse]) : JsonResponse = {
     if (isThereAnOAuthHeader) {
       getUser match {
         case Full(u) => fn(Full(u))
@@ -141,7 +141,10 @@ trait OBPRestHelper extends RestHelper with Loggable {
     } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
       DirectLogin.getUser match {
         case Full(u) => fn(Full(u))
-        case _ => errorJsonResponse("directlogin error")
+        case _ => {
+          var (httpCode, message, directLoginParameters) = DirectLogin.validator("protectedResource", DirectLogin.getHttpMethod)
+          errorJsonResponse(message, httpCode)
+        }
       }
     } else {
       fn(Empty)
@@ -189,7 +192,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
           //if request is correct json
           //if request matches PartialFunction cases for each defined url
           //if request has correct oauth headers
-          failIfBadOauth {
+          failIfBadAuthorizationHeader {
             failIfBadJSON(r, handler)
           }
         }
