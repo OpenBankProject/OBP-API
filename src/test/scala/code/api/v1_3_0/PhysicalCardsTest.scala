@@ -8,7 +8,7 @@ import code.bankconnectors.{Connector, OBPQueryParam}
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
 import code.tesobe.CashTransaction
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Loggable}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers {
@@ -95,11 +95,17 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
       Failure("not supported")
     }
+    override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                              account : BankAccount, details: String,
+                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+      Failure("not supported")
+    }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
     override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
     override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = ???
 
     override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
+    override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
     override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
     override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
       Failure("not supported")

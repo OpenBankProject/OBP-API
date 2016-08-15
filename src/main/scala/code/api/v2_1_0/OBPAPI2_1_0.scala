@@ -143,9 +143,9 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.allAccountsAtOneBank,
     Implementations2_0_0.privateAccountsAtOneBank,
     Implementations2_0_0.publicAccountsAtOneBank,
-    Implementations2_0_0.createTransactionRequest,
+    // Now in 2.1.0 Implementations2_0_0.createTransactionRequest,
     Implementations2_0_0.answerTransactionRequestChallenge,
-    Implementations2_0_0.getTransactionRequests, // Now has charges information
+    // Now in 2.1.0 Implementations2_0_0.getTransactionRequests, // Now has charges information
     // Updated in 2.0.0 (added sorting and better guards / error messages)
     Implementations2_0_0.accountById,
     Implementations2_0_0.getPermissionsForBankAccount,
@@ -182,7 +182,9 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     Implementations2_0_0.getCustomers,
     // New in 2.1.0
     Implementations2_1_0.sandboxDataImport,
-    Implementations2_1_0.getTransactionRequestTypesSupportedByBank
+    Implementations2_1_0.getTransactionRequestTypesSupportedByBank,
+    Implementations2_1_0.createTransactionRequest,
+    Implementations2_1_0.getTransactionRequests
   )
 
   routes.foreach(route => {
