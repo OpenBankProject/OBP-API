@@ -10,7 +10,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.model.{OtherBankAccount, Transaction, User, _}
 import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.util.Helpers._
@@ -169,6 +169,7 @@ trait Connector {
     } yield transactionId
   }
 
+
   protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId]
 
 
@@ -302,6 +303,71 @@ trait Connector {
     result
   }
 
+  def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest210] = {
+    //set initial status
+    //for sandbox / testing: depending on amount, we ask for challenge or not
+    val status =
+      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < 1000) {
+        TransactionRequests.STATUS_COMPLETED
+      } else {
+        TransactionRequests.STATUS_INITIATED
+      }
+
+
+    // Always create a new Transaction Request
+    var result = for {
+      fromAccountType <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+        s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+      rawAmt <- tryo { BigDecimal(details.value.amount) } ?~! s"amount ${details.value.amount} not convertible to number"
+      // isValidTransactionRequestType is checked at API layer. Maybe here too.
+      isPositiveAmtToSend <- booleanToBox(rawAmt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. (${rawAmt})")
+
+
+      // For now, arbitary charge value to demonstrate PSD2 charge transparency principle. Eventually this would come from Transaction Type? 10 decimal places of scaling so can add small percentage per transaction.
+      chargeValue <- tryo {(BigDecimal(details.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${details.value.amount}"
+      charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(details.value.currency, chargeValue.toString()))
+
+
+
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, detailsPlain, status, charge)
+    } yield transactionRequest
+
+    //make sure we get something back
+    result = Full(result.openOrThrowException("Exception: Couldn't create transactionRequest"))
+
+    // If no challenge necessary, create Transaction immediately and put in data store and object to return
+    if (status == TransactionRequests.STATUS_COMPLETED) {
+      val createdTransactionId = transactionRequestType.value match {
+        case "SANDBOX_TAN" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
+        case "SEPA" => Empty
+      }
+
+      //set challenge to null
+      result = Full(result.get.copy(challenge = null))
+
+      //save transaction_id if we have one
+      createdTransactionId match {
+        case Full(ti) => {
+          if (! createdTransactionId.isEmpty) {
+            saveTransactionRequestTransaction(result.get.id, ti)
+            result = Full(result.get.copy(transaction_ids = ti.value))
+          }
+        }
+        case _ => None
+      }
+    } else {
+      //if challenge necessary, create a new one
+      var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+      saveTransactionRequestChallenge(result.get.id, challenge)
+      result = Full(result.get.copy(challenge = challenge))
+    }
+
+    result
+  }
+
 
 
 
@@ -310,6 +376,10 @@ trait Connector {
   protected def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
+
+  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                             fromAccount : BankAccount, details: String,
+                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
@@ -351,7 +421,32 @@ trait Connector {
     }
   }
 
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
+    val transactionRequests =
+      for {
+        fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
+          s"account ${fromAccount.accountId} not found at bank ${fromAccount.bankId}"
+        isOwner <- booleanToBox(initiator.ownerAccess(fromAccount), "user does not have access to owner view")
+        transactionRequests <- getTransactionRequestsImpl210(fromAccount)
+      } yield transactionRequests
+
+    //make sure we return null if no challenge was saved (instead of empty fields)
+    if (!transactionRequests.isEmpty) {
+      Full(
+        transactionRequests.get.map(tr => if (tr.challenge.id == "") {
+          tr.copy(challenge = null)
+        } else {
+          tr
+        })
+      )
+    } else {
+      transactionRequests
+    }
+  }
+
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
+
+  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]]
 
   protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest]
 
