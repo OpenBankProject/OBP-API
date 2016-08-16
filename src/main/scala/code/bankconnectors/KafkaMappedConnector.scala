@@ -15,8 +15,8 @@ import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
-import code.transactionrequests.MappedTransactionRequest
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge }
+import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import net.liftweb.common._
@@ -488,6 +488,21 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                               account : BankAccount, details: String,
+                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+    val mappedTransactionRequest = MappedTransactionRequest210.create
+      .mTransactionRequestId(transactionRequestId.value)
+      .mType(transactionRequestType.value)
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mDetails(details)
+      .mStatus(status)
+      .mStartDate(now)
+      .mEndDate(now).saveMe
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+  }
+
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
@@ -522,6 +537,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                                                By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
     Full(transactionRequests.flatMap(_.toTransactionRequest))
+  }
+
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
+    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
+      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
+
+    Full(transactionRequests.flatMap(_.toTransactionRequest210))
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {

@@ -38,6 +38,19 @@ object TransactionRequests extends SimpleInjector {
     val charge: TransactionRequestCharge
   )
 
+  case class TransactionRequest210 (
+                                  val id: TransactionRequestId,
+                                  val `type` : String,
+                                  val from: TransactionRequestAccount,
+                                  val details: String,
+                                  val transaction_ids: String,
+                                  val status: String,
+                                  val start_date: Date,
+                                  val end_date: Date,
+                                  val challenge: TransactionRequestChallenge,
+                                  val charge: TransactionRequestCharge
+                                )
+
   case class TransactionRequestChallenge (
     val id: String,
     val allowed_attempts : Int,
@@ -54,6 +67,21 @@ object TransactionRequests extends SimpleInjector {
     val value : AmountOfMoney,
     val description : String
   )
+
+  trait TransactionRequestDetails {
+    val value: AmountOfMoney
+  }
+
+  case class TransactionRequestDetailsSandBoxTan (
+                                      val to: TransactionRequestAccount,
+                                      val value : AmountOfMoney,
+                                      val description : String
+                                    ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsSEPA (
+                                                  val value : AmountOfMoney,
+                                                  val description : String
+                                           ) extends TransactionRequestDetails
 
   val transactionRequestProvider = new Inject(buildOne _) {}
 
