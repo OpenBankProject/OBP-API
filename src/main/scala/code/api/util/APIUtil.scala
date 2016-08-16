@@ -47,6 +47,7 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.http.{CurrentReq, JsonResponse, Req, S}
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
+import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
 
@@ -162,6 +163,14 @@ object APIUtil extends Loggable {
         case Full(parameters) => parameters.contains("OAuth")
         case _ => false
       }
+      case _ => false
+    }
+  }
+
+  def registeredApplication(consumerKey: String): Boolean = {
+    println(Consumer.findAll())
+    Consumer.find(By(Consumer.key, consumerKey)) match {
+      case Full(application) => application.isActive
       case _ => false
     }
   }
