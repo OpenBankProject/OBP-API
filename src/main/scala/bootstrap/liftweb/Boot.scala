@@ -422,5 +422,6 @@ object ToSchemify {
     MappedTransactionType,
     MappedMeeting,
     MappedUserCustomerLink,
+    MappedKafkaBankAccountData,
     MappedEntitlement)
 }
