@@ -568,9 +568,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String,
+                                    accountType: String, accountLabel: String,  currency: String, accountHolderName: String): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
-    val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
+    val bank: Bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
         logger.info(s"bank with id ${b.bankId} and national identifier ${b.nationalIdentifier} found")
         b
@@ -586,7 +587,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
 
     //TODO: pass in currency as a parameter?
-    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, "EUR", 0L, accountHolderName)
+    val account = createAccountIfNotExisting(
+      bank.bankId,
+      AccountId(UUID.randomUUID().toString),
+      accountNumber,
+      accountType,
+      accountLabel,
+      currency,
+      0L,
+      accountHolderName
+    )
 
     (bank, account)
   }
@@ -666,14 +676,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountID: AccountId, accountNumber: String,
-                                        currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+                                        accountType: String, accountLabel: String, currency: String,
+                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
     for {
       bank <- getBank(bankId) //bank is not really used, but doing this will ensure account creations fails if the bank doesn't
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountID, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountID, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -684,7 +695,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
-                            currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
+                                         accountType: String, accountLabel: String, currency: String,
+                                         balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
     getBankAccount(bankId, accountID) match {
       case Full(a) =>
         logger.info(s"account with id $accountID at bank with id $bankId already exists. No need to create a new one.")
@@ -695,6 +707,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
           .bank(bankId.value)
           .theAccountId(accountID.value)
           .accountNumber(accountNumber)
+          .accountType(accountType)
+          .accountLabel(accountLabel)
           .accountCurrency(currency)
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)

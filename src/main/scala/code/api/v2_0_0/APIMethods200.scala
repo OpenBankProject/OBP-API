@@ -1002,8 +1002,8 @@ trait APIMethods200 {
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
-        |Note: Type is currently ignored and the Amount must be zero. You can update the account label with another call (see 1_2_1-updateAccountLabel)""".stripMargin,
-      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
+        |Note: The Amount must be zero.""".stripMargin,
+      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -1035,13 +1035,14 @@ trait APIMethods200 {
             isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
+            accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitalBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
 

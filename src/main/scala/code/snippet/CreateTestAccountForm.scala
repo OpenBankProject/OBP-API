@@ -20,9 +20,11 @@ object CreateTestAccountForm{
     var bankId = ""
     var currency = ""
     var initialBalance = ""
+    var accountType = ""
+    var accountLabel = ""
 
     val processForm : () => JsCmd = () => {
-      val createdAccount = createAccount(AccountId(accountId), BankId(bankId), currency, initialBalance)
+      val createdAccount = createAccount(AccountId(accountId), BankId(bankId), accountType, accountLabel, currency, initialBalance)
       createdAccount match {
         case Full(acc) => showSuccess(acc)
         case Failure(msg, _, _) => showError(msg)
@@ -66,7 +68,7 @@ object CreateTestAccountForm{
    * Attempts to create a new account, based on form params
    * @return a box containing the created account or reason for account creation failure
    */
-  def createAccount(accountId : AccountId, bankId : BankId, currency : String, initialBalance : String) : Box[BankAccount] =  {
+  def createAccount(accountId : AccountId, bankId : BankId, accountType: String, accountLabel: String, currency : String, initialBalance : String) : Box[BankAccount] =  {
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
@@ -79,7 +81,7 @@ object CreateTestAccountForm{
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")
-        bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, user.name)
+        bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, user.name)
       } yield {
         BankAccountCreation.setAsOwner(bankId, accountId, user)
         bankAccount

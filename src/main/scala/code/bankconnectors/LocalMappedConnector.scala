@@ -331,7 +331,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountType: String, accountLabel: String, currency: String, accountHolderName: String): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -349,7 +349,7 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     //TODO: pass in currency as a parameter?
-    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, "EUR", 0L, accountHolderName)
+    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, accountType, accountLabel, currency, 0L, accountHolderName)
 
     (bank, account)
   }
@@ -434,6 +434,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+                                        accountType: String, accountLabel: String,
                                         currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
     for {
@@ -441,7 +442,7 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountId, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -452,7 +453,8 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
-                            currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
+                                         accountType: String, accountLabel: String, currency: String,
+                                         balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
@@ -462,6 +464,8 @@ object LocalMappedConnector extends Connector with Loggable {
           .bank(bankId.value)
           .theAccountId(accountId.value)
           .accountNumber(accountNumber)
+          .kind(accountType)
+          .accountLabel(accountLabel)
           .accountCurrency(currency)
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)

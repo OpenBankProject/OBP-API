@@ -7,7 +7,6 @@ import code.api.{DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
-import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Loggable}
 
@@ -111,8 +110,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
       Failure("not supported")
     }
 
-    override def createBankAndAccount(bankName : String, bankNationalIdentifier : String,
-                                      accountNumber : String, accountHolderName : String): (Bank, BankAccount) = ???
+    override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
+                                      accountType: String, accountLabel: String, currency: String,
+                                      accountHolderName : String): (Bank, BankAccount) = ???
 
     //sets a user as an account owner/holder
     override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
@@ -123,8 +123,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = ???
 
     //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-    override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,
-                                          accountNumber: String, currency: String,
+    override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+                                          accountType: String, accountLabel: String, currency: String,
                                           initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
 
     //used by transaction import api call to check for duplicates
