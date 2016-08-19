@@ -7,7 +7,6 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
-import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
@@ -23,7 +22,6 @@ import org.bson.types.ObjectId
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.math.BigDecimal.RoundingMode
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -353,7 +351,8 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //Need to pass in @hostedBank because the Account model doesn't have any references to BankId, just to the mongo id of the Bank object (which itself does have the bank id)
-  private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
+  private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String,
+                            accountType: String, accountLabel: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
     import net.liftweb.mongodb.BsonDSL._
     Account.find(
       (Account.accountNumber.name -> accountNumber)~
@@ -371,11 +370,11 @@ private object LocalConnector extends Connector with Loggable {
             .accountBalance(initialBalance)
             .holder(holderName)
             .accountNumber(accountNumber)
-            .kind("current")
+            .kind(accountType)
+            .accountLabel(accountLabel)
             .accountName("")
             .permalink(accountId.value)
             .bankID(hostedBank.id.is)
-            .accountLabel("")
             .accountCurrency(currency)
             .accountIban("")
             .accountLastUpdate(now)
@@ -386,7 +385,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String): (Bank, BankAccount) = {
+  override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountType: String, accountLabel: String, currency: String, accountHolderName : String): (Bank, BankAccount) = {
 
     // TODO: use a more unique id for the long term
     val hostedBank = {
@@ -414,7 +413,7 @@ private object LocalConnector extends Connector with Loggable {
     }
 
     val createdAccount = createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
-      accountNumber, "EUR", BigDecimal("0.00"), accountHolderName)
+      accountNumber, accountType, accountLabel, currency, BigDecimal("0.00"), accountHolderName)
 
     (hostedBank, createdAccount)
   }
@@ -456,9 +455,10 @@ private object LocalConnector extends Connector with Loggable {
 
   //creates a bank account for an existing bank, with the appropriate values set
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,  accountNumber: String,
-                                        currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+                                        accountType: String, accountLabel: String, currency: String,
+                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
     HostedBank.find(bankId) match {
-      case Full(b) => Full(createAccount(b, accountId, accountNumber, currency, initialBalance, accountHolderName))
+      case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))
       case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
     }
 

@@ -8,7 +8,6 @@ import code.api.util.ErrorMessages
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{OtherBankAccount, Transaction, User, _}
-import code.tesobe.CashTransaction
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -522,10 +521,11 @@ trait Connector {
   */
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
-  def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountHolderName : String) : (Bank, BankAccount)
+  def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
+                           accountType: String, accountLabel:String, currency: String, accountHolderName : String) : (Bank, BankAccount)
 
   //generates an unused account number and then creates the sandbox account using that number
-  def createSandboxBankAccount(bankId : BankId, accountId : AccountId, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
+  def createSandboxBankAccount(bankId : BankId, accountId : AccountId, accountType: String, accountLabel: String, currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount] = {
     val uniqueAccountNumber = {
       def exists(number : String) = Connector.connector.vend.accountExists(bankId, number)
 
@@ -540,12 +540,23 @@ trait Connector {
       appendUntilOkay(firstTry)
     }
 
-    createSandboxBankAccount(bankId, accountId, uniqueAccountNumber, currency, initialBalance, accountHolderName)
+    createSandboxBankAccount(
+      bankId,
+      accountId,
+      uniqueAccountNumber,
+      accountType,
+      accountLabel,
+      currency,
+      initialBalance,
+      accountHolderName
+    )
+
   }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   def createSandboxBankAccount(bankId : BankId, accountId : AccountId,  accountNumber: String,
-                               currency : String, initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
+                               accountType: String, accountLabel: String, currency : String,
+                               initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
 
   //sets a user as an account owner/holder
   def setAccountHolder(bankAccountUID: BankAccountUID, user : User) : Unit

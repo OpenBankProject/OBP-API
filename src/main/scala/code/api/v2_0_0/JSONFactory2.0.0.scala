@@ -35,16 +35,16 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
-import code.meetings.Meeting
 import code.entitlement.Entitlement
+import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Full, Box}
+import net.liftweb.common.{Box, Full}
 
 // import code.api.util.APIUtil.ApiLink
 
 import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
@@ -143,6 +143,7 @@ case class BasicAccountJSON(
 // Json used in account creation
 case class CreateAccountJSON(
                              user_id : String,
+                             label   : String,
                               `type` : String,
                              balance : AmountOfMoneyJSON
                            )
