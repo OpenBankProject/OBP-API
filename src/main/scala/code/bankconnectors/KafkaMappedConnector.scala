@@ -197,8 +197,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   override def getBank(id: BankId): Box[Bank] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
-    // Create Kafka producer
-    val producer: KafkaProducer = new KafkaProducer()
     // Create argument list
     val argList = Map(  "bankId" -> id.toString,
                         "username" -> OBPUser.getCurrentUserUsername )
