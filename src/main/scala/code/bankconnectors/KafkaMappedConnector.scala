@@ -197,8 +197,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   override def getBank(id: BankId): Box[Bank] = {
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
-    // Create Kafka producer
-    val producer: KafkaProducer = new KafkaProducer()
     // Create argument list
     val argList = Map(  "bankId" -> id.toString,
                         "username" -> OBPUser.getCurrentUserUsername )
@@ -874,23 +872,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
-  var retries:Int = 3
-    while (consumer == null && retries > 0 ) {
-      retries -= 1
-      consumer = new KafkaConsumer()
+    if (producer.send(reqId, command, argList, "1")) {
+      // Request sent, now we wait for response with the same reqId
+      val res = consumer.getResponse(reqId)
+      return res
     }
-    retries = 3
-    while (producer == null && retries > 0) {
-      retries -= 1
-      producer = new KafkaProducer()
-    }
-    if (producer == null || consumer == null)
-      return json.parse("""{"error":"connection failed. try again later."}""")
-    // Send request to Kafka
-    producer.send(reqId, command, argList, "1")
-    // Request sent, now we wait for response with the same reqId
-    val res = consumer.getResponse(reqId)
-    res
+    return json.parse("""{"error":"could not send message to kafka"}""")
   }
 
 
