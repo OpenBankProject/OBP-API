@@ -10,6 +10,7 @@
 connector=mapped
 #connector=mongodb
 #connector=kafka
+#connector=kafka_lib_v0
 #connector=...
 
 #if using kafka connector, set zookeeper host
