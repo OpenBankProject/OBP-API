@@ -37,12 +37,19 @@ object Connector  extends SimpleInjector {
 
   val connector = new Inject(buildOne _) {}
 
-  def buildOne: Connector =
-    Props.get("connector").openOrThrowException("no connector set") match {
-      case "mapped" => LocalMappedConnector
-      case "mongodb" => LocalConnector
-      case "kafka" => KafkaMappedConnector
+  def buildOne: Connector = {
+    val connectorProps = Props.get("connector").openOrThrowException("no connector set")
+
+    if (connectorProps.startsWith("kafka_lib")) {
+      KafkaLibMappedConnector
+    } else {
+      connectorProps match {
+        case "mapped" => LocalMappedConnector
+        case "mongodb" => LocalConnector
+        case "kafka" => KafkaMappedConnector
+      }
     }
+  }
 
 }
 
