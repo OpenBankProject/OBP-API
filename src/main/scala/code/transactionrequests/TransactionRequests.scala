@@ -69,7 +69,7 @@ object TransactionRequests extends SimpleInjector {
   )
 
   trait TransactionRequestDetails {
-    val value: AmountOfMoney
+    val value : AmountOfMoney
   }
 
   case class TransactionRequestDetailsSandBoxTan (
@@ -81,6 +81,10 @@ object TransactionRequests extends SimpleInjector {
   case class TransactionRequestDetailsSEPA (
                                                   val value : AmountOfMoney,
                                                   val description : String
+                                           ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsFreeForm (
+                                                 val value : AmountOfMoney
                                            ) extends TransactionRequestDetails
 
   val transactionRequestProvider = new Inject(buildOne _) {}
