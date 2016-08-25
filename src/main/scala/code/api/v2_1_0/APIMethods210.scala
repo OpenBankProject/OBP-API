@@ -58,14 +58,19 @@ trait APIMethods210 {
     val codeContext = CodeContext(resourceDocs, apiRelations)
 
 
+    // TODO Add example body below
+
     resourceDocs += ResourceDoc(
       sandboxDataImport,
       apiVersion,
       "sandboxDataImport",
       "POST",
       "/sandbox/data-import",
-      "Import data into the sandbox.",
+      "Create sandbox",
       s"""Import bulk data into the sandbox (Authenticated access).
+          |
+          |This call can be used to create banks, users, accounts and transactions which are stored in the local RDBMS.
+          |
           |The user needs to have CanCreateSandbox entitlement.
           |
           |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
