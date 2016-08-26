@@ -209,11 +209,6 @@
       <artifactId>signpost-commonshttp4</artifactId>
       <version>1.2.1.2</version>
     </dependency>
-    <dependency>
-      <groupId>com.tesobe.obp</groupId>
-      <artifactId>obp-ri-kafka</artifactId>
-      <version>2016.0-SNAPSHOT</version>
-    </dependency>
   </dependencies>
 
   <build>
