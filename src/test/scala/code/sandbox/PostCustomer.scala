@@ -101,7 +101,7 @@ object PostCustomer extends SendServerRequests {
 
 
     //load json for customers
-    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/unicredit_to_load_04/OBP_sandbox_customers_pretty.json"
+    val customerDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/OP/load_op_11/OBP_sandbox_customers_pretty.json"
 
     // This contains a list of customers.
     val customerListData = JsonParser.parse(Source.fromFile(customerDataPath) mkString)
@@ -122,7 +122,7 @@ object PostCustomer extends SendServerRequests {
 
     //load sandbox users from json
 
-    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/unicredit_to_load_04/OBP_sandbox_pretty.json"
+    val mainDataPath = "/Users/simonredfern/Documents/OpenBankProject/DATA/API_sandbox/OP/load_op_11/OBP_sandbox_pretty.json"
 
     val mainData = JsonParser.parse(Source.fromFile(mainDataPath) mkString)
     val users = (mainData \ "users").children
