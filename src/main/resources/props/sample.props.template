@@ -10,6 +10,7 @@
 connector=mapped
 #connector=mongodb
 #connector=kafka
+#connector=kafka_lib_v0
 #connector=...
 
 #if using kafka connector, set zookeeper host
@@ -103,7 +104,7 @@ payments_enabled=true
 #transaction requests are replacing simple payments starting from 1.4.0
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
-transactionRequests_supported_types=SANDBOX_TAN,INTRABANK
+transactionRequests_supported_types=SANDBOX_TAN,INTRABANK,SEPA,FREE_FORM
 
 
 # For video conference meetings (createMeeting)

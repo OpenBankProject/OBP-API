@@ -54,8 +54,13 @@ case class TransactionRequestDetailsSandBoxTanJSON(
 
 case class TransactionRequestDetailsSEPAJSON(
                                                   value : AmountOfMoneyJSON,
+                                                  IBAN: String,
                                                   description : String
                                           ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsFreeFormJSON(
+                                                  value : AmountOfMoneyJSON
+                                            ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
@@ -112,6 +117,17 @@ object JSONFactory210{
     TransactionRequestDetailsSEPA (
       value = amount,
       description = details.description
+    )
+  }
+
+  def getTransactionRequestDetailsFreeFormFromJson(details: TransactionRequestDetailsFreeFormJSON) : TransactionRequestDetailsFreeForm = {
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+
+    TransactionRequestDetailsFreeForm (
+      value = amount
     )
   }
 

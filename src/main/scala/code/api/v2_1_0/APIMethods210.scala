@@ -236,11 +236,17 @@ trait APIMethods210 {
                 } ?~ {
                   ErrorMessages.InvalidJsonFormat
                 }
+                case "FREE_FORM" => tryo {
+                  json.extract[TransactionRequestDetailsFreeFormJSON]
+                } ?~ {
+                  ErrorMessages.InvalidJsonFormat
+                }
               }
 
               transDetails <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => tryo{getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON])}
                 case "SEPA" => tryo{getTransactionRequestDetailsSEPAFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON])}
+                case "FREE_FORM" => tryo{getTransactionRequestDetailsFreeFormFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsFreeFormJSON])}
               }
 
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
@@ -250,9 +256,15 @@ trait APIMethods210 {
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency must be the same."}
 
-              transDetailsSerialized <- tryo{
-                implicit val formats = Serialization.formats(NoTypeHints)
-                write(transDetailsJson)
+              transDetailsSerialized<- transactionRequestType.value match {
+                case "FREE_FORM" => tryo{
+                  implicit val formats = Serialization.formats(NoTypeHints)
+                  write(json)
+                }
+                case _ => tryo{
+                  implicit val formats = Serialization.formats(NoTypeHints)
+                  write(transDetailsJson)
+                }
               }
 
               createdTransactionRequest <- transactionRequestType.value match {
@@ -261,11 +273,17 @@ trait APIMethods210 {
                     toBankId <- Full(BankId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id))
                     toAccountId <- Full(AccountId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+
                     createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
 
                 }
-                case "SEPA" => Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                case "SEPA" => {
+                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                }
+                case "FREE_FORM" => {
+                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                }
               }
             } yield {
               // Explicitly format as v2.0.0 json
