@@ -257,15 +257,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   }
 
   def verifyUserCreated(user : SandboxUserImport) = {
-    val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.email)
+    val foundUserBox = Users.users.vend.getUserByProviderId(defaultProvider, user.user_name)
     foundUserBox.isDefined should equal(true)
 
     val foundUser = foundUserBox.get
 
     foundUser.provider should equal(defaultProvider)
-    foundUser.idGivenByProvider should equal(user.email)
+    foundUser.idGivenByProvider should equal(user.user_name)
     foundUser.emailAddress should equal(user.email)
-    foundUser.name should equal(user.display_name)
+    foundUser.name should equal(user.user_name)
   }
 
   def verifyAccountCreated(account : SandboxAccountImport) = {
@@ -457,8 +457,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
 
 
-  val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", display_name = "User 1")
-  val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", display_name = "User 2")
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", user_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", user_name = "User 2")
 
   val standardUsers = user1 :: user2 :: Nil
 
@@ -773,7 +773,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val user1Json = Extraction.decompose(user1)
 
     val differentDisplayName = "Jessica Bloggs"
-    differentDisplayName should not equal(user1.display_name)
+    differentDisplayName should not equal(user1.user_name)
     val userWithSameEmailAsUser1 = user1Json.replace("display_name", differentDisplayName)
 
     //neither of the users should exist initially
@@ -803,7 +803,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     firstUser.get.emailAddress should equal(user1.email)
     secondUser.get.emailAddress should equal(secondUserEmail)
 
-    firstUser.get.name should equal(user1.display_name)
+    firstUser.get.name should equal(user1.user_name)
     secondUser.get.name should equal(differentDisplayName)
   }
 
@@ -824,7 +824,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(List(user1Json, Extraction.decompose(otherUser))).code should equal(FAILED)
 
     //and the other user should not have been created
-    Users.users.vend.getUserByProviderId(defaultProvider, otherUser.email)
+    Users.users.vend.getUserByProviderId(defaultProvider, otherUser.user_name)
   }
 
   it should "fail if a user's password is missing or empty" in {
@@ -860,7 +860,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     //TODO: we shouldn't reference OBPUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdOBPUserBox = OBPUser.find(By(OBPUser.email, user1.email))
+    val createdOBPUserBox = OBPUser.find(By(OBPUser.username, user1.user_name))
     createdOBPUserBox.isDefined should equal(true)
 
     val createdOBPUser = createdOBPUserBox.get

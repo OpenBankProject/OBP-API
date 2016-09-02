@@ -16,12 +16,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val KEY = randomString(40).toLowerCase
   val SECRET = randomString(40).toLowerCase
   val EMAIL = randomString(10).toLowerCase + "@example.com"
+  val USERNAME = randomString(10).toLowerCase
   val PASSWORD = randomString(20)
 
   before {
     if (OBPUser.find(By(OBPUser.email, EMAIL)).isEmpty)
       OBPUser.create.
         email(EMAIL).
+        username(USERNAME).
         password(PASSWORD).
         validated(true).
         firstName(randomString(10)).
