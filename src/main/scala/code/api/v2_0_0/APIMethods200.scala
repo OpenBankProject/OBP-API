@@ -1340,7 +1340,7 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      Extraction.decompose(CreateUserJSON("someone@example.com", "my-secure-password", "James", "Brown")),
+      Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
@@ -1354,10 +1354,11 @@ trait APIMethods200 {
           for {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
           } yield {
-            if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
+            if (OBPUser.find(By(OBPUser.username, postedData.username)).isEmpty) {
               val userCreated = OBPUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
+                .username(postedData.username)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props

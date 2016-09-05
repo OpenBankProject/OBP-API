@@ -285,7 +285,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     foundAccount.balance.toString should equal(account.balance.amount)
     foundAccount.currency should equal(account.balance.currency)
 
-    foundAccount.owners.map(_.emailAddress) should equal(account.owners.toSet)
+    foundAccount.owners.map(_.name) should equal(account.owners.toSet)
 
     if(account.generate_public_view) {
       foundAccount.publicViews.size should equal(1)
@@ -293,7 +293,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       foundAccount.publicViews.size should equal(0)
     }
 
-    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.emailAddress).get
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
 
     //there should be an owner view
     val views = foundAccount.views(owner).get
@@ -463,15 +463,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardUsers = user1 :: user2 :: Nil
 
   val account1AtBank1 = SandboxAccountImport(id = "account1", bank = "bank1", label = "Account 1 at Bank 1",
-    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.email),
+    number = "1", `type` = "savings", IBAN = "1234567890", generate_public_view = true, owners = List(user1.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "1000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account2AtBank1 = SandboxAccountImport(id = "account2", bank = "bank1", label = "Account 2 at Bank 1",
-    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.email),
+    number = "2", `type` = "current", IBAN = "91234567890", generate_public_view = false, owners = List(user2.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "2000.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val account1AtBank2 = SandboxAccountImport(id = "account1", bank = "bank2", label = "Account 1 at Bank 2",
-    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.email, user2.email),
+    number = "22", `type` = "savings", IBAN = "21234567890", generate_public_view = false, owners = List(user1.user_name, user2.user_name),
     balance = SandboxBalanceImport(currency = "EUR", amount = "1500.00"), generate_accountants_view = true, generate_auditors_view = true)
 
   val standardAccounts = account1AtBank1 :: account2AtBank1 :: account1AtBank2 :: Nil
@@ -744,7 +744,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(userWithInvalidEmail).code should equal(FAILED)
 
     //there should still be no user
-    Users.users.vend.getUserByProviderId(defaultProvider, invalidEmail) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
 
     val validEmail = "test@example.com"
     val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
@@ -752,15 +752,15 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(userWithValidEmail).code should equal(SUCCESS)
 
     //a user should now have been created
-    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, validEmail)
+    val createdUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
     createdUser.isDefined should equal(true)
     createdUser.get.provider should equal(defaultProvider)
-    createdUser.get.idGivenByProvider should equal(validEmail)
-    createdUser.get.emailAddress should equal(validEmail)
+    createdUser.get.idGivenByProvider should equal(user1.user_name)
+    createdUser.get.name should equal(user1.user_name)
 
   }
 
-  it should "not allow multiple users with the same email" in {
+  it should "not allow multiple users with the same username" in {
 
     def getResponse(userJsons : List[JValue]) = {
       val json = createImportJson(Nil, userJsons, Nil, Nil, Nil, Nil, Nil, Nil)
@@ -768,43 +768,40 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     }
 
     //emails of the user we will eventually create to show multiple users with different ids are possible
-    val secondUserEmail = "user-two@example.com"
+    val secondUserName = "user-two"
 
     val user1Json = Extraction.decompose(user1)
 
-    val differentDisplayName = "Jessica Bloggs"
-    differentDisplayName should not equal(user1.user_name)
-    val userWithSameEmailAsUser1 = user1Json.replace("display_name", differentDisplayName)
+    val differentUsername = "user-one"
+    differentUsername should not equal(user1.user_name)
+    val userWithSameUsernameAsUser1 = user1Json
 
     //neither of the users should exist initially
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
-    Users.users.vend.getUserByProviderId(defaultProvider, secondUserEmail) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) should equal(Empty)
 
-    getResponse(List(user1Json, userWithSameEmailAsUser1)).code should equal(FAILED)
+    getResponse(List(user1Json, userWithSameUsernameAsUser1)).code should equal(FAILED)
 
     //no user with firstUserId should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.email) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
 
     //when we only alter the id (display name stays the same), it should work
-    val userWithEmail2 = userWithSameEmailAsUser1.replace("email", secondUserEmail)
+    val userWithUsername2 = userWithSameUsernameAsUser1.replace("user_name", secondUserName)
 
-    getResponse(List(user1Json, userWithEmail2)).code should equal(SUCCESS)
+    getResponse(List(user1Json, userWithUsername2)).code should equal(SUCCESS)
 
     //and both users should be created
-    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.email)
-    val secondUser = Users.users.vend.getUserByProviderId(defaultProvider, secondUserEmail)
+    val firstUser = Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name)
+    val secondUser = Users.users.vend.getUserByProviderId(defaultProvider, secondUserName)
 
     firstUser.isDefined should equal(true)
     secondUser.isDefined should equal(true)
 
-    firstUser.get.idGivenByProvider should equal(user1.email)
-    secondUser.get.idGivenByProvider should equal(secondUserEmail)
-
-    firstUser.get.emailAddress should equal(user1.email)
-    secondUser.get.emailAddress should equal(secondUserEmail)
+    firstUser.get.idGivenByProvider should equal(user1.user_name)
+    secondUser.get.idGivenByProvider should equal(secondUserName)
 
     firstUser.get.name should equal(user1.user_name)
-    secondUser.get.name should equal(differentDisplayName)
+    secondUser.get.name should equal(secondUserName)
   }
 
   it should "fail if a specified user already exists" in {
@@ -838,16 +835,16 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val userWithoutPassword = removeField(goodUser, "password")
     getResponse(List(userWithoutPassword)).code should equal(FAILED)
     //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
 
     val userWithBlankPassword = replaceField(goodUser, "password", "")
     getResponse(List(userWithBlankPassword)).code should equal(FAILED)
     //no user should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(false)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(false)
 
     //check that a normal password is okay
     getResponse(List(goodUser)).code should equal(SUCCESS)
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.email).isDefined should equal(true)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name).isDefined should equal(true)
   }
 
   it should "set user passwords properly" in {
@@ -1006,7 +1003,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     Connector.connector.vend.getBankAccount(BankId(accountWithInvalidOwner.bank), AccountId(accountWithInvalidOwner.id)).isDefined should equal(false)
 
     //a mix of valid an invalid owners should also not work
-    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.email))
+    val accountWithSomeValidSomeInvalidOwners = accountWithInvalidOwner.copy(owners = List(accountWithInvalidOwner.owners + user1.user_name))
     getResponse(List(Extraction.decompose(accountWithSomeValidSomeInvalidOwners))).code should equal(FAILED)
 
     //it should not have been created

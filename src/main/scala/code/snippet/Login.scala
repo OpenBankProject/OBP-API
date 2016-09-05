@@ -32,14 +32,12 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import code.model.dataAccess.OBPUser
-import net.liftweb.common.Loggable
-import scala.xml.NodeSeq
+import code.model.dataAccess.{Admin, OBPUser}
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{Props, CssSel}
-import net.liftweb.http.S
-import code.model.dataAccess.Admin
-import net.liftweb.http.SHtml
+import net.liftweb.util.{CssSel, Props}
+
+import scala.xml.NodeSeq
 
 class Login {
 
@@ -50,7 +48,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.email.get
+      ".username *" #> OBPUser.currentUser.get.username.get
     }
   }
 

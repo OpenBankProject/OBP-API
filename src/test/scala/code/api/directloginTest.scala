@@ -20,7 +20,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val PASSWORD = randomString(20)
 
   before {
-    if (OBPUser.find(By(OBPUser.email, EMAIL)).isEmpty)
+    if (OBPUser.find(By(OBPUser.username, USERNAME)).isEmpty)
       OBPUser.create.
         email(EMAIL).
         username(USERNAME).
@@ -41,14 +41,14 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
 
-  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"does-not-exist@example.com\", " +
+  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"does-not-exist\", " +
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
 
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
-    "password=%s, consumer_key=%s").format(EMAIL, PASSWORD, "invalid"))
+    "password=%s, consumer_key=%s").format(USERNAME, PASSWORD, "invalid"))
 
   val validHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
-    format(EMAIL, PASSWORD, KEY))
+    format(USERNAME, PASSWORD, KEY))
 
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
 

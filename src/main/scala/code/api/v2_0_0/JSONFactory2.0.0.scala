@@ -74,6 +74,7 @@ class ResultAndLinksJSON(
 
 case class CreateUserJSON(
                      email: String,
+                     username: String,
                      password: String,
                      first_name: String,
                      last_name: String
@@ -485,7 +486,7 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       user_name : String
+                       username : String
                      )
 
   case class UserJSONs(
@@ -496,9 +497,9 @@ object JSONFactory200{
   def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
     user_id = user.user.foreign.get.userId,
     email = user.email,
+    username = stringOrNull(user.username),
     provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider),
-    user_name = stringOrNull(user.username)
+    provider = stringOrNull(user.provider)
   )
 
 
@@ -506,9 +507,9 @@ object JSONFactory200{
     new UserJSON(
       user_id = user.userId,
       email = user.emailAddress,
+      username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider),
-      user_name = stringOrNull(user.name) //TODO: Rename to displayName ?
+      provider = stringOrNull(user.provider)
     )
   }
 
