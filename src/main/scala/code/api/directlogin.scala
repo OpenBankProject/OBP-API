@@ -303,7 +303,7 @@ object DirectLogin extends RestHelper with Loggable {
         val user = token.user
         //just a log
         user match {
-          case Full(u) => logger.info("user " + u.emailAddress + " was found from the DirectLogin token")
+          case Full(u) => logger.info("user " + u.name + " was found from the DirectLogin token")
           case _ => logger.info("no user was found for the DirectLogin token")
         }
         user

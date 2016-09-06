@@ -462,7 +462,7 @@ input.submit {
 #main-partners a {
     vertical-align: top;
     display: inline-block;
-    *display: inline;
+    /* *display: inline; */
     /* zoom: 1; */
     margin: 30px 30px 30px 30px;
 }
