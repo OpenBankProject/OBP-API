@@ -1377,7 +1377,7 @@ trait APIMethods200 {
               }
             }
             else {
-              Full(errorJsonResponse("User with the same email already exists.", 409))
+              Full(errorJsonResponse("User with the same username already exists.", 409))
             }
           }
       }
