@@ -452,7 +452,6 @@ import net.liftweb.util.Helpers._
   }
 
   protected def findUserByUsername(name: String): Box[TheUserType] = {
-    println("[findUserByUsername]------------------------------------------> " + name)
     find(By(this.username, name))
   }
 
