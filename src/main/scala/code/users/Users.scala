@@ -16,4 +16,6 @@ trait Users {
   def getUserByApiId(id : Long) : Box[User]
   
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
+
+  def getUserByUserId(userId : String) : Box[User]
 }

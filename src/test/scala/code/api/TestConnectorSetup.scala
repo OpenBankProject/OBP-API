@@ -8,6 +8,7 @@ import net.liftweb.util.Helpers._
 
 trait TestConnectorSetup {
 
+  //TODO: implement these right here using Connector.connector.vend and get rid of specific connector setup files
   protected def createBank(id : String) : Bank
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
@@ -24,7 +25,7 @@ trait TestConnectorSetup {
 
   final protected def createBanks() : Traversable[Bank] = {
     for{i <- 0 until 3} yield {
-      createBank(randomString(5))
+      createBank("testBank"+i)
     }
   }
 

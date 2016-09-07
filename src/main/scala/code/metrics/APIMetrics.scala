@@ -1,13 +1,18 @@
 package code.metrics
 
-import net.liftweb.util.SimpleInjector
+import net.liftweb.util.{Props, SimpleInjector}
 import java.util.{Calendar, Date}
 
 object APIMetrics extends SimpleInjector {
 
   val apiMetrics = new Inject(buildOne _) {}
 
-  def buildOne: APIMetrics = MappedMetrics
+  def buildOne: APIMetrics =
+    Props.getBool("allow_elasticsearch", false) &&
+      Props.getBool("allow_elasticsearch_metrics", false) match {
+        case false => MappedMetrics
+        case true => ElasticsearchMetrics
+    }
 
   /**
    * Returns a Date which is at the start of the day of the date
@@ -29,7 +34,12 @@ object APIMetrics extends SimpleInjector {
 
 trait APIMetrics {
 
-  def saveMetric(url : String, date : Date) : Unit
+  def saveMetric(userId: String, url : String, date : Date, userName: String, appName: String, developerEmail: String) : Unit
+
+  def saveMetric(url : String, date : Date) : Unit ={
+    //TODO: update all places calling old function before removing this
+    saveMetric ("TODO: userId", url, date, "TODO: userName", "TODO: appName", "TODO: developerEmail")
+  }
 
   //TODO: ordering of list? should this be by date? currently not enforced
   def getAllGroupedByUrl() : Map[String, List[APIMetric]]
@@ -37,10 +47,17 @@ trait APIMetrics {
   //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByDay() : Map[Date, List[APIMetric]]
 
+  //TODO: ordering of list? should this be alphabetically by url? currently not enforced
+  def getAllGroupedByUserId() : Map[String, List[APIMetric]]
+
 }
 
 trait APIMetric {
 
   def getUrl() : String
   def getDate() : Date
+  def getUserId() : String
+  def getUserName() : String
+  def getAppName : String
+  def getDeveloperEmail() : String
 }

@@ -1,20 +1,27 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
-import java.util.TimeZone
-import net.liftweb.common.{Failure, Box, Loggable, Full}
-import net.liftweb.json.JsonAST.JValue
-import scala.concurrent.ops.spawn
+import java.util.{Date, TimeZone, UUID}
+
+import code.management.ImporterAPI.ImporterTransaction
+import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
+import code.transactionrequests.TransactionRequests._
+import code.util.Helper
+import com.mongodb.QueryBuilder
+import com.tesobe.model.UpdateBankAccount
+import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.json.Extraction
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.mongodb.BsonDSL._
-import org.bson.types.ObjectId
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import com.mongodb.QueryBuilder
-import code.metadata.counterparties.{Counterparties, MongoCounterparties, Metadata}
-import com.tesobe.model.UpdateBankAccount
+import org.bson.types.ObjectId
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent._
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -27,7 +34,7 @@ private object LocalConnector extends Connector with Loggable {
   override def getBanks : List[Bank] =
     HostedBank.findAll
 
-  override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[Account] = {
+  override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[Account] = {
     for{
       bank <- getHostedBank(bankId)
       account <- bank.getAccount(accountId)
@@ -131,15 +138,15 @@ private object LocalConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal) : Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal, description: String) : Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
     //this is the transaction that gets attached to the account of the person making the payment
-    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt)
+    val createdFromTrans = saveNewTransaction(fromAccount, toAccount, fromTransAmt, description)
 
     // this creates the transaction that gets attached to the account of the person receiving the payment
-    saveNewTransaction(toAccount, fromAccount, toTransAmt)
+    saveNewTransaction(toAccount, fromAccount, toTransAmt, description)
 
     //assumes OBPEnvelope id is what gets used as the Transaction id in the API. If that gets changed, this needs to
     //be updated (the tests should fail if it doesn't)
@@ -209,7 +216,7 @@ private object LocalConnector extends Connector with Loggable {
       balance)
   }
 
-  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal) : Box[OBPEnvelope] = {
+  private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
 
     val oldBalance = account.balance
 
@@ -239,7 +246,7 @@ private object LocalConnector extends Connector with Loggable {
       }
 
       envJson =
-      ("obp_transaction" ->
+      "obp_transaction" ->
         ("this_account" ->
           ("holder" -> account.owners.headOption.map(_.name).getOrElse("")) ~ //TODO: this is rather fragile...
             ("number" -> account.number) ~
@@ -270,7 +277,7 @@ private object LocalConnector extends Connector with Loggable {
                   ("amount" -> (oldBalance + amount).toString)) ~
               ("value" ->
                 ("currency" -> account.currency) ~
-                  ("amount" -> amount.toString))))
+                  ("amount" -> amount.toString)))
       saved <- saveAndUpdateAccountBalance(envJson, account)
     } yield {
       saved
@@ -287,14 +294,39 @@ private object LocalConnector extends Connector with Loggable {
   */
 
   private def updateAccountTransactions(bank: HostedBank, account: Account): Unit = {
-    spawn{
+    Future {
       val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
-      val outDatedTransactions = now after time(account.lastUpdate.get.getTime + hours(1))
+      val outDatedTransactions = now after time(account.accountLastUpdate.get.getTime + hours(Props.getInt("messageQueue.updateTransactionsInterval", 1)))
       if(outDatedTransactions && useMessageQueue) {
         UpdatesRequestSender.sendMsg(UpdateBankAccount(account.accountNumber.get, bank.national_identifier.get))
       }
     }
   }
+
+
+  /*
+   Transaction Requests
+ */
+
+  override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                            account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
+
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                            account : BankAccount, details: String,
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = ???
+
+  override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
+  override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
+  override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
+  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
+  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+    //TODO: write logic / data access
+    Full(List(TransactionRequestType("SANDBOX_TAN")))
+  }
+  override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String) = ???
+
 
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
@@ -316,5 +348,207 @@ private object LocalConnector extends Connector with Loggable {
 
   private def getHostedBank(bankId : BankId) : Box[HostedBank] = {
     HostedBank.find("permalink", bankId.value) ?~ {"bank " + bankId + " not found"}
+  }
+
+  //Need to pass in @hostedBank because the Account model doesn't have any references to BankId, just to the mongo id of the Bank object (which itself does have the bank id)
+  private def createAccount(hostedBank : HostedBank, accountId : AccountId, accountNumber: String,
+                            accountType: String, accountLabel: String, currency : String, initialBalance : BigDecimal, holderName : String) : BankAccount = {
+    import net.liftweb.mongodb.BsonDSL._
+    Account.find(
+      (Account.accountNumber.name -> accountNumber)~
+        (Account.bankID.name -> hostedBank.id.is)
+    ) match {
+      case Full(bankAccount) => {
+        logger.info(s"account with number ${bankAccount.accountNumber} at bank ${hostedBank.bankId} already exists. No need to create a new one.")
+        bankAccount
+      }
+      case _ => {
+        logger.info("creating account record ")
+        val bankAccount =
+          Account
+            .createRecord
+            .accountBalance(initialBalance)
+            .holder(holderName)
+            .accountNumber(accountNumber)
+            .kind(accountType)
+            .accountLabel(accountLabel)
+            .accountName("")
+            .permalink(accountId.value)
+            .bankID(hostedBank.id.is)
+            .accountCurrency(currency)
+            .accountIban("")
+            .accountLastUpdate(now)
+            .save
+        bankAccount
+      }
+    }
+  }
+
+  //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
+  override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String, accountType: String, accountLabel: String, currency: String, accountHolderName : String): (Bank, BankAccount) = {
+
+    // TODO: use a more unique id for the long term
+    val hostedBank = {
+      // TODO: use a more unique id for the long term
+      HostedBank.find(HostedBank.national_identifier.name, bankNationalIdentifier) match {
+        case Full(b)=> {
+          logger.info(s"bank ${b.name} found")
+          b
+        }
+        case _ =>{
+          //TODO: if name is empty use bank id as name alias
+
+          //TODO: need to handle the case where generatePermalink returns a permalink that is already used for another bank
+
+          logger.info(s"creating HostedBank")
+          HostedBank
+            .createRecord
+            .name(bankName)
+            .alias(bankName)
+            .permalink(Helper.generatePermalink(bankName))
+            .national_identifier(bankNationalIdentifier)
+            .save
+        }
+      }
+    }
+
+    val createdAccount = createAccount(hostedBank, AccountId(UUID.randomUUID().toString),
+      accountNumber, accountType, accountLabel, currency, BigDecimal("0.00"), accountHolderName)
+
+    (hostedBank, createdAccount)
+  }
+
+  //sets a user as an account owner/holder
+  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
+  }
+
+  //for sandbox use -> allows us to check if we can generate a new test account with the given number
+  override def accountExists(bankId: BankId, accountNumber: String): Boolean = {
+    import net.liftweb.mongodb.BsonDSL._
+
+    getHostedBank(bankId).map(_.id.get) match {
+      case Full(mongoId) =>
+        Account.count((Account.accountNumber.name -> accountNumber) ~ (Account.bankID.name -> mongoId)) > 0
+      case _ =>
+        logger.warn("tried to check account existence for an account at a bank that doesn't exist")
+        false
+    }
+  }
+
+  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
+    import net.liftweb.mongodb.BsonDSL._
+    for {
+        account <- Account.find((Account.bankID.name -> bankId.value) ~ (Account.accountId.value -> accountId.value)) ?~
+          s"No account found with number ${accountId} at bank with id ${bankId}: could not save envelope"
+      } yield {
+        account.delete_!
+      }
+
+    false
+/*          account
+      } match {
+        case Full(acc) => acc.
+      }
+      */
+  }
+
+  //creates a bank account for an existing bank, with the appropriate values set
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId,  accountNumber: String,
+                                        accountType: String, accountLabel: String, currency: String,
+                                        initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
+    HostedBank.find(bankId) match {
+      case Full(b) => Full(createAccount(b, accountId, accountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName))
+      case _ => Failure(s"Bank with id ${bankId.value} not found. Cannot create account at non-existing bank.")
+    }
+
+  }
+
+  //used by transaction import api call to check for duplicates
+  override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = {
+
+    val baseQuery = QueryBuilder.start("obp_transaction.details.value.amount")
+      .is(amount)
+      .put("obp_transaction.details.completed")
+      .is(completed)
+      .put("obp_transaction.this_account.bank.national_identifier")
+      .is(bankNationalIdentifier)
+      .put("obp_transaction.this_account.number")
+      .is(accountNumber)
+
+    //this is refactored legacy code, and it seems the empty account holder check had to do with potentially missing
+    //fields in the db. not sure if this is still required.
+    if(otherAccountHolder.isEmpty){
+      def emptyHolderOrEmptyString(holder: Box[String]): Boolean = {
+        holder match {
+          case Full(s) => s.isEmpty
+          case _ => true
+        }
+      }
+
+      val partialMatches = OBPEnvelope.findAll(baseQuery.get())
+
+      partialMatches.filter(e => {
+        emptyHolderOrEmptyString(e.obp_transaction.get.other_account.get.holder.valueBox)
+      }).size
+    }
+    else{
+      val qry = baseQuery.put("obp_transaction.other_account.holder").is(otherAccountHolder).get
+
+      val partialMatches = OBPEnvelope.count(qry)
+      partialMatches.toInt //icky
+    }
+  }
+
+  //used by transaction import api
+  override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = {
+    import net.liftweb.mongodb.BsonDSL._
+
+    implicit val formats =  net.liftweb.json.DefaultFormats.lossless
+    val asJValue = Extraction.decompose(transaction)
+
+    for {
+      env <- OBPEnvelope.envelopesFromJValue(asJValue)
+      nationalIdentifier = transaction.obp_transaction.this_account.bank.national_identifier
+      bank <- HostedBank.find(HostedBank.national_identifier.name -> nationalIdentifier) ?~
+        s"No bank found with national identifier ${nationalIdentifier} could not save envelope"
+      accountNumber = transaction.obp_transaction.this_account.number
+      account <- Account.find((Account.bankID.name -> bank.id.get) ~ (Account.accountNumber.name -> accountNumber)) ?~
+        s"No account found with number ${accountNumber} at bank with id ${bank.bankId}: could not save envelope"
+      savedEnv <- env.saveTheRecord() ?~ "Could not save envelope"
+    } yield {
+      createTransaction(savedEnv, account)
+    }
+  }
+
+  //used by the transaction import api
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
+    getBankAccount(bankId, accountId) match {
+      case Full(acc) =>
+        acc.accountBalance(newBalance).saveTheRecord().isDefined
+        true
+      case _ =>
+        false
+    }
+  }
+
+  override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = {
+    Account.find(
+      (Account.accountNumber.name -> accountNumber)~
+        (Account.nationalIdentifier.name -> bankNationalIdentifier)
+    ) match {
+      case Full(acc) => acc.accountLastUpdate(updateDate).saveTheRecord().isDefined
+      case _ => logger.warn("can't set bank account.lastUpdated because the account was not found"); false
+    }
+  }
+
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
+    getBankAccount(bankId, accountId) match {
+      case Full(acc) =>
+        acc.accountLabel(label).saveTheRecord().isDefined
+        true
+      case _ =>
+        false
+    }
   }
 }

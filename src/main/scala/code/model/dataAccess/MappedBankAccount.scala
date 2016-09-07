@@ -1,9 +1,9 @@
 package code.model.dataAccess
 
-import java.math.MathContext
+import java.util.Date
 
 import code.model._
-import code.util.{MappedAccountNumber, MappedUUID, Helper}
+import code.util.{Helper, MappedAccountNumber}
 import net.liftweb.mapper._
 
 class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccount] with IdPK with CreatedUpdated {
@@ -20,20 +20,19 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   @deprecated
   object holder extends MappedString(this, 100)
 
-  @deprecated
-  object accUUID extends MappedUUID(this)
-
   //this is the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
   object accountBalance extends MappedLong(this)
 
   object accountName extends MappedString(this, 255)
-  object kind extends MappedString(this, 40)
+  object kind extends MappedString(this, 255) // This is the account type aka financial product name
+
+  //object productCode extends MappedString(this, 255)
+
   object accountLabel extends MappedString(this, 255)
 
   //the last time this account was updated via hbci
-  object lastUpdate extends MappedDateTime(this)
+  object accountLastUpdate extends MappedDateTime(this)
 
-  override def uuid = accUUID.get
   override def accountId: AccountId = AccountId(theAccountId.get)
   override def iban: Option[String] = {
     val i = accountIban.get
@@ -49,8 +48,10 @@ class MappedBankAccount extends BankAccount with LongKeyedMapper[MappedBankAccou
   override def balance: BigDecimal = Helper.smallestCurrencyUnitToBigDecimal(accountBalance.get, currency)
   override def name: String = accountName.get
   override def accountType: String = kind.get
+
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
+  override def lastUpdate : Date = accountLastUpdate.get
 }
 
 object MappedBankAccount extends MappedBankAccount with LongKeyedMetaMapper[MappedBankAccount] {

@@ -23,8 +23,10 @@ trait DefaultUsers {
   val defaultProvider = Props.get("hostname","")
 
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
+
   // create the access token
-  lazy val tokenDuration = weeks(4)
+  val expiration = Props.getInt("token_expiration_weeks", 4)
+  lazy val tokenDuration = weeks(expiration)
 
   lazy val obpuser1 =
     APIUser.create.provider_(defaultProvider).

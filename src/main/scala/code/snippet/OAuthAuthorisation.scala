@@ -1,36 +1,41 @@
 /**
-Open Bank Project
+Open Bank Project - API
+Copyright (C) 2011 - 2015, TESOBE Ltd.
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+by
+Simon Redfern : simon AT tesobe DOT com
+Stefan Bethge : stefan AT tesobe DOT com
+Everett Sochowski : everett AT tesobe DOT com
+Ayoub Benali: ayoub AT tesobe DOT com
 
-  Open Bank Project (http://www.openbankproject.com)
-  Copyright 2011,2012 TESOBE / Music Pictures Ltd
 
-  This product includes software developed at
-  TESOBE (http://www.tesobe.com/)
+TESOBE Ltd.
+Osloer Str. 16/17
+Berlin 13359, Germany
+Email: contact@tesobe.com
 
-  by
-  Simon Redfern : simon AT tesobe DOT com
-  Everett Sochowski: everett AT tesobe DOT com
-  Ayoub Benali : ayoub AT tesobe Dot com
+*/
 
-  */
+
 package code.snippet
 
 import code.util.Helper
-import net.liftweb.common.{Failure, Full}
+import net.liftweb.common.{Failure, Full, Empty}
 import net.liftweb.http.S
 import code.model.{Nonce, Consumer, Token}
 import net.liftweb.mapper.By
@@ -53,6 +58,7 @@ object OAuthAuthorisation {
   def shouldNotLogUserOut(): Boolean = {
     S.param(LogUserOutParam) match {
       case Full("false") => true
+      case Empty => true
       case _ => false
     }
   }
@@ -64,7 +70,7 @@ object OAuthAuthorisation {
     }
   }
 
-  // this method is specific to the authorization page ( where the user login to grant access
+  // this method is specific to the authorization page ( where the user logs in to grant access
   // to the application (step 2))
   def tokenCheck = {
 
@@ -114,13 +120,14 @@ object OAuthAuthorisation {
         }
       } else {
         val currentUrl = S.uriAndQueryString.getOrElse("/")
-        if (OBPUser.loggedIn_?) {
+        /*if (OBPUser.loggedIn_?) {
           OBPUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
           //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
           //properly and the redirect after login gets messed up. -E.S.
           S.redirectTo(currentUrl)
-        }
+        }*/
+
         //if login succeeds, reload the page with logUserOut=false to process it
         OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
         //if login fails, just reload the page with the login form visible
@@ -166,7 +173,7 @@ object OAuthAuthorisation {
 
   }
 
-  //looks for expired tokens and nonces and delete them
+  //looks for expired tokens and nonces and deletes them
   def dataBaseCleaner: Unit = {
     import net.liftweb.util.Schedule
     import net.liftweb.mapper.By_<

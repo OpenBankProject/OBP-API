@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -59,6 +59,7 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
   locale, timezone, password)
 
   // comment this line out to require email validations
+  // TODO Get this from Props
   override def skipEmailValidation = true
 
   //Keep track of the referer on login

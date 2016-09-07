@@ -1,29 +1,23 @@
-
-
 import sbt._
 import Keys._
-import com.github.siasia._
-import PluginKeys._
-import WebPlugin._
-import WebappPlugin._
+import com.earldouglas.xwp._
+import com.earldouglas.xwp.WebappPlugin
+import com.earldouglas.xwp.ContainerPlugin.autoImport._
+
 
 object LiftProjectBuild extends Build {
   override lazy val settings = super.settings ++ buildSettings
-  
+
   lazy val buildSettings = Seq(
-    organization := pom.groupId,
-    version      := pom.version
+    organization  := pom.groupId,
+    version       := pom.version
   )
   
-  def yourWebSettings = webSettings ++ Seq(
-    // If you are use jrebel
-    scanDirectories in Compile := Nil
-    )
-  
-  lazy val opanBank = Project(
+  lazy val openBank = Project(
     pom.artifactId,
     base = file("."),
-    settings = defaultSettings ++ yourWebSettings ++ pom.settings)
+    settings = 	defaultSettings ++ pom.settings)
+                .enablePlugins(JettyPlugin)
 
   object pom {
 
@@ -66,7 +60,7 @@ object LiftProjectBuild extends Build {
       populateProps((rep \ "url").text) at populateProps((rep \ "url").text)
     }
 
-    lazy val pomScalaVersion = (pom \ "properties" \ "scala.version").text
+    lazy val pomScalaVersion = (pom \ "properties" \ "scala.compiler").text
 
     lazy val artifactId = (pom \ "artifactId").text
     lazy val groupId = (pom \ "groupId").text
@@ -76,7 +70,8 @@ object LiftProjectBuild extends Build {
     lazy val settings = Seq(
       scalaVersion := pomScalaVersion,
       libraryDependencies ++= pomDeps,
-      resolvers ++= pomRepos
+      resolvers ++= pomRepos,
+      containerPort := 8080
     )
 
   }
@@ -85,12 +80,12 @@ object LiftProjectBuild extends Build {
     name := pom.name,
     resolvers ++= Seq(
       "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases", 
-      "Java.net Maven2 Repository" at "http://download.java.net/maven/2/",
+      "Java.net Maven3 Repository" at "http://download.java.net/maven/3/",
       "Scala-Tools Dependencies Repository for Releases" at "http://scala-tools.org/repo-releases",
       "Scala-Tools Dependencies Repository for Snapshots" at "http://scala-tools.org/repo-snapshots"),
 
     // compile options
-    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked"),
+    scalacOptions ++= Seq("-encoding", "UTF-8", "-deprecation", "-unchecked", "-Xmax-classfile-name", "78") ,
     javacOptions  ++= Seq("-Xlint:unchecked", "-Xlint:deprecation"),
 
     // show full stack traces

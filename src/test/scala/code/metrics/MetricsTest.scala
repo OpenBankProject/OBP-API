@@ -3,7 +3,13 @@ package code.metrics
 import java.text.SimpleDateFormat
 import java.util.Date
 
-import code.api.test.ServerSetup
+import code.api.ServerSetup
+
+
+/*
+TODO. We need to test concurrent / multiple inserts.
+ */
+
 
 class MetricsTest extends ServerSetup with WipeMetrics {
 

@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -203,7 +203,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
     case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: "views" :: Nil JsonPost json -> _ => {
       user =>
         for {
-          json <- tryo{json.extract[ViewCreationJSON]} ?~ "wrong JSON format"
+          json <- tryo{json.extract[CreateViewJSON]} ?~ "wrong JSON format"
           u <- user ?~ "user not found"
           account <- BankAccount(bankId, accountId)
           view <- account createView (u, json)
@@ -221,7 +221,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
         for {
           account <- BankAccount(bankId, accountId)
           u <- user ?~ "user not found"
-          updateJson <- tryo{json.extract[ViewUpdateData]} ?~ "wrong JSON format"
+          updateJson <- tryo{json.extract[UpdateViewJSON]} ?~ "wrong JSON format"
           updatedView <- account.updateView(u, viewId, updateJson)
         } yield {
           val viewJSON = JSONFactory.createViewJSON(updatedView)

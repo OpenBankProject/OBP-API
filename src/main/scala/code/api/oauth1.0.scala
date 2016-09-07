@@ -1,29 +1,28 @@
 /**
-Open Bank Project
+Open Bank Project - API
+Copyright (C) 2011-2016, TESOBE Ltd.
 
-Copyright 2011,2012 TESOBE / Music Pictures Ltd.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
 
-http://www.apache.org/licenses/LICENSE-2.0
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
 
- Open Bank Project (http://www.openbankproject.com)
-      Copyright 2011,2012 TESOBE / Music Pictures Ltd
-
-      This product includes software developed at
-      TESOBE (http://www.tesobe.com/)
-    by
-    Simon Redfern : simon AT tesobe DOT com
-    Everett Sochowski: everett AT tesobe DOT com
-    Ayoub Benali : ayoub AT tesobe Dot com
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+  
  */
 package code.api
 import net.liftweb.http.rest.RestHelper
@@ -31,17 +30,20 @@ import net.liftweb.http.Req
 import net.liftweb.http.PostRequest
 import net.liftweb.common.Box
 import net.liftweb.http.InMemoryResponse
-import net.liftweb.common.{Full,Empty,Loggable}
+import net.liftweb.common.{Empty, Full, Loggable}
 import net.liftweb.http.S
-import code.model.{Nonce, Consumer, Token}
+import code.model.{Consumer, Nonce, Token}
 import net.liftweb.mapper.By
 import java.util.Date
-import java.net.{URLEncoder, URLDecoder}
+import java.net.{URLDecoder, URLEncoder}
 import javax.crypto.spec.SecretKeySpec
 import javax.crypto.Mac
+
 import net.liftweb.util.Helpers
+
 import scala.compat.Platform
 import Helpers._
+import code.api.util.APIUtil
 import net.liftweb.util.Props
 import code.model.TokenType
 import code.model.User
@@ -57,7 +59,7 @@ object OAuthHandshake extends RestHelper with Loggable {
   serve
   {
     //Handling get request for a "request token"
-    case Req("oauth" :: "initiate" :: Nil,_ ,PostRequest) =>
+    case Req("oauth" :: "initiate" :: Nil,_ , PostRequest) =>
     {
       //Extract the OAuth parameters from the header and test if the request is valid
       var (httpCode, message, oAuthParameters) = validator("requestToken", "POST")
@@ -102,7 +104,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
   }
 
-  //Check if the request (access toke or request token) is valid and return a tuple
+  //Check if the request (access token or request token) is valid and return a tuple
   def validator(requestType : String, httpMethod : String) : (Int, String, Map[String,String]) = {
     //return a Map containing the OAuth parameters : oauth_prameter -> value
     def getAllParameters : Map[String,String]= {
@@ -172,7 +174,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       output
     }
 
-    def suportedOAuthVersion(OAuthVersion : Option[String]) : Boolean = {
+    def supportedOAuthVersion(OAuthVersion : Option[String]) : Boolean = {
       //auth_version is OPTIONAL.  If present, MUST be set to "1.0".
       OAuthVersion match
       {
@@ -180,6 +182,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         case _ => true
       }
     }
+
     def wrongTimestamp(requestTimestamp : Option[String]) : Option[String] = {
       requestTimestamp match {
         case Some(timestamp) => {
@@ -209,8 +212,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       }
     }
 
-    def alReadyUsedNonce(parameters : Map[String, String]) : Boolean = {
-
+    def alreadyUsedNonce(parameters : Map[String, String]) : Boolean = {
       /*
       * The nonce value MUST be unique across all requests with the
       * same timestamp, client credentials, and token combinations.
@@ -225,12 +227,6 @@ object OAuthHandshake extends RestHelper with Loggable {
        ) !=0
     }
 
-    def registeredApplication(consumerKey : String ) : Boolean = {
-      Consumer.find(By(Consumer.key,consumerKey)) match {
-        case Full(application) => application.isActive
-        case _ => false
-      }
-    }
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
       //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
       //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
@@ -249,8 +245,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         parameters
       }
 
-
-      //prepare the base string
+      //prepare the base string (should we really have openOr here?)
       var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri,"UTF-8")+"&"
       baseString+= generateOAuthParametersString(OAuthparameters)
 
@@ -268,14 +263,14 @@ object OAuthHandshake extends RestHelper with Loggable {
           }
         case _ => secret+= "&"
       }
-      logger.info("base string : " + baseString)
+      logger.info("base string: " + baseString)
       //signing process
-        val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
-          "HmacSHA256"
-        else
-          "HmacSHA1"
+      val signingAlgorithm : String = if(OAuthparameters.get("oauth_signature_method").get.toLowerCase == "hmac-sha256")
+        "HmacSHA256"
+      else
+        "HmacSHA1"
 
-      logger.info("signing method:" + signingAlgorithm)
+      logger.info("signing method: " + signingAlgorithm)
       logger.info("signing key: " + secret)
       logger.info("signing key in bytes: " + secret.getBytes("UTF-8"))
 
@@ -283,9 +278,9 @@ object OAuthHandshake extends RestHelper with Loggable {
       m.init(new SecretKeySpec(secret.getBytes("UTF-8"),signingAlgorithm))
       val calculatedSignature = Helpers.base64Encode(m.doFinal(baseString.getBytes))
 
-      logger.info("calculatedSignature:" + calculatedSignature)
-      logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
-      logger.info("received signature after decoding:" + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
+      logger.info("calculatedSignature: " + calculatedSignature)
+      //logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
+      logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
 
       calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
     }
@@ -307,7 +302,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
 
     //@return the missing parameters depending of the request type
-    def missingOauthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
+    def missingOAuthParameters(parameters : Map[String, String], requestType : String) : Set[String] = {
       val parametersBase =
         List(
           "oauth_consumer_key",
@@ -332,13 +327,13 @@ object OAuthHandshake extends RestHelper with Loggable {
       oauthSignatureMethod.toLowerCase == "hmac-sha1"
     }
 
-    var message =""
+    var message = ""
     var httpCode : Int = 500
 
     var parameters = getAllParameters
 
-    //does all the OAuth parameters are presents?
-    val missingParams = missingOauthParameters(parameters,requestType)
+    //are all the necessary OAuth parameters present?
+    val missingParams = missingOAuthParameters(parameters,requestType)
     if( missingParams.size != 0 )
     {
       message = "the following parameters are missing : " + missingParams.mkString(", ")
@@ -351,19 +346,19 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //valid OAuth
-    else if(!suportedOAuthVersion(parameters.get("oauth_version")))
+    else if(!supportedOAuthVersion(parameters.get("oauth_version")))
     {
       message = "OAuth version not supported"
       httpCode = 400
     }
     //supported signature method
-    else if (! supportedSignatureMethod(parameters.get("oauth_signature_method").get))
+    else if (!supportedSignatureMethod(parameters.get("oauth_signature_method").get))
     {
-      message = "Unsupported signature method, please use hmac-sha128 or hmac-sha256"
+      message = "Unsupported signature method, please use hmac-sha1 or hmac-sha256"
       httpCode = 400
     }
     //check if the application is registered and active
-    else if(! registeredApplication(parameters.get("oauth_consumer_key").get))
+    else if(! APIUtil.registeredApplication(parameters.get("oauth_consumer_key").get))
     {
       logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
       message = "Invalid consumer credentials"
@@ -376,7 +371,7 @@ object OAuthHandshake extends RestHelper with Loggable {
       httpCode = 400
     }
     //unused nonce
-    else if (alReadyUsedNonce(parameters))
+    else if (alreadyUsedNonce(parameters))
     {
       message = "Nonce already used"
       httpCode = 401
@@ -404,18 +399,21 @@ object OAuthHandshake extends RestHelper with Loggable {
     }
     else
       httpCode = 200
-    logger.error("error message : " + message)
+    if(message.nonEmpty)
+      logger.error("error message : " + message)
 
     (httpCode, message, parameters)
   }
-    private def generateTokenAndSecret() =
-    {
-      // generate some random strings
-      val token_message = Helpers.randomString(40)
-      val secret_message = Helpers.randomString(40)
 
-      (token_message, secret_message)
-    }
+  private def generateTokenAndSecret() =
+  {
+    // generate some random strings
+    val token_message = Helpers.randomString(40)
+    val secret_message = Helpers.randomString(40)
+
+    (token_message, secret_message)
+  }
+
   private def saveRequestToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Nonce, Token, TokenType}
@@ -447,6 +445,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
     nonceSaved && tokenSaved
   }
+
   private def saveAuthorizationToken(oAuthParameters : Map[String, String], tokenKey : String, tokenSecret : String) =
   {
     import code.model.{Nonce, Token, TokenType}
@@ -480,6 +479,24 @@ object OAuthHandshake extends RestHelper with Loggable {
     nonceSaved && tokenSaved
   }
 
+  def getConsumer: List[Consumer] = {
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
+    val (httpCode, message, oAuthParameters) = validator("protectedResource", httpMethod)
+    import code.model.Token
+    val consumer: Option[Consumer] = for {
+      tokenId: String <- oAuthParameters.get("oauth_token")
+      token: Token <- Token.find(By(Token.key, tokenId))
+      consumer: Consumer <- token.consumerId.foreign
+    } yield {
+      consumer
+    }
+    consumer.toList
+  }
+
+
   def getUser : Box[User] = {
     val httpMethod = S.request match {
       case Full(r) => r.request.method
@@ -502,7 +519,7 @@ object OAuthHandshake extends RestHelper with Loggable {
           val user = token.user
           //just a log
           user match {
-            case Full(u) => logger.info("user " + u.emailAddress + " was found from the oauth token")
+            case Full(u) => logger.info("user " + u.name + " was found from the oauth token")
             case _ => logger.info("no user was found for the oauth token")
           }
           user

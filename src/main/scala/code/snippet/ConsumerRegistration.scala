@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -44,7 +44,7 @@ import code.util.Helper.NOOP_SELECTOR
 class ConsumerRegistration extends Loggable {
 
   //TODO: for security reasons this snippet and the template must be re-factored
-  //to use the lift build in form function(SHtml._) so we can hide to what
+  //to use the lift built-in form function(SHtml._) so we can hide to what
   //the input fields are mapped to in the server side !!
 
   private object nameVar extends RequestVar("")
@@ -84,6 +84,8 @@ class ConsumerRegistration extends Loggable {
     }
 
     def showResults(consumer : Consumer) = {
+      val urlOAuthEndpoint = Props.get("hostname", "") + "/oauth/initiate"
+      val urlDirectLoginEndpoint = Props.get("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
       ".app-name *" #> consumer.name.get &
       ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
@@ -92,7 +94,11 @@ class ConsumerRegistration extends Loggable {
       ".app-developer *" #> consumer.developerEmail.get &
       ".auth-key *" #> consumer.key.get &
       ".secret-key *" #> consumer.secret.get &
-      ".registration" #> ""
+      ".registration" #> "" &
+      ".oauth-endpoint a *" #> urlOAuthEndpoint &
+      ".oauth-endpoint a [href]" #> urlOAuthEndpoint &
+      ".directlogin-endpoint a *" #> urlDirectLoginEndpoint &
+      ".directlogin-endpoint a [href]" #> urlDirectLoginEndpoint
     }
 
     def saveAndShowResults(consumer : Consumer) = {

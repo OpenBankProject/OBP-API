@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -45,9 +45,13 @@ case class UserId(val value : Long) {
   override def toString = value.toString
 }
 
+
+// TODO Document clearly the difference between this and OBPUser
+
 trait User {
 
   def apiId : UserId
+  def userId: String
 
   def idGivenByProvider: String
   def provider : String
@@ -63,7 +67,7 @@ trait User {
       Full()
     } 
     else {
-      Failure("user don't have access to any view allowing to initiate transactions")
+      Failure("user doesn't have access to any view that allows initiating transactions")
     }
   }
      
@@ -96,4 +100,7 @@ object User {
     //versions of the API return this failure message, so if you change it, make sure
     //that all stable versions retain the same behavior
     Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
+
+  def findByUserId(userId : String) =
+    Users.users.vend.getUserByUserId(userId)
 }

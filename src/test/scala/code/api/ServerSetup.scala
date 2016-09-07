@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -30,14 +30,13 @@ Berlin 13359, Germany
 
  */
 
-package code.api.test
+package code.api
 
 import code.TestServer
-import code.api.{DefaultConnectorTestSetup, TestConnectorSetup, LocalConnectorTestSetup}
-import org.scalatest._
 import dispatch._
-import net.liftweb.json.{DefaultFormats, Serialization, NoTypeHints}
 import net.liftweb.common._
+import net.liftweb.json.{DefaultFormats, ShortTypeHints}
+import org.scalatest._
 
 trait ServerSetup extends FeatureSpec with SendServerRequests
   with BeforeAndAfterEach with GivenWhenThen
@@ -45,7 +44,7 @@ trait ServerSetup extends FeatureSpec with SendServerRequests
   with ShouldMatchers with Loggable {
 
   var server = TestServer
-  implicit val formats = DefaultFormats
+  implicit val formats = DefaultFormats.withHints(ShortTypeHints(List()))
   val h = Http
   def baseRequest = host(server.host, server.port)
 

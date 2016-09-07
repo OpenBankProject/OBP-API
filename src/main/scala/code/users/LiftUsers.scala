@@ -15,5 +15,9 @@ private object LiftUsers extends Users {
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     APIUser.find(By(APIUser.provider_, provider), By(APIUser.providerId, idGivenByProvider))
   }
+
+  def getUserByUserId(userId : String) : Box[User] = {
+    APIUser.find(By(APIUser.userId_, userId))
+  }
   
 }
