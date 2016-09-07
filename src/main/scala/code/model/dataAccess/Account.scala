@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -32,28 +32,17 @@ Berlin 13359, Germany
 
 package code.model.dataAccess
 
-import com.mongodb.QueryBuilder
-import net.liftweb.mongodb.record.MongoMetaRecord
-import net.liftweb.mongodb.record.field.ObjectIdPk
-import net.liftweb.mongodb.record.field.ObjectIdRefListField
-import net.liftweb.mongodb.record.MongoRecord
-import net.liftweb.mongodb.record.field.ObjectIdRefField
-import net.liftweb.mongodb.record.field.DateField
-import net.liftweb.common._
-import net.liftweb.mongodb.record.field.BsonRecordField
-import net.liftweb.mongodb.record.BsonRecord
-import net.liftweb.record.field.{ StringField, BooleanField, DecimalField }
-import net.liftweb.mongodb.{Limit, Skip}
+import java.util.Date
+
+import code.bankconnectors.{OBPLimit, OBPOffset, OBPOrdering, _}
 import code.model._
+import com.mongodb.QueryBuilder
+import net.liftweb.common._
 import net.liftweb.mongodb.BsonDSL._
-import OBPEnvelope._
-import code.bankconnectors._
-import code.bankconnectors.OBPOffset
-import scala.Some
-import code.bankconnectors.OBPLimit
-import code.bankconnectors.OBPOrdering
-import net.liftweb.mongodb.Limit
-import net.liftweb.mongodb.Skip
+import net.liftweb.mongodb.{Limit, Skip}
+import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
+import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk, ObjectIdRefField}
+import net.liftweb.record.field.{DecimalField, StringField}
 
 
 class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Account] with Loggable{
@@ -69,6 +58,9 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     override def name = "number"
   }
   object kind extends StringField(this, 255)
+
+  // object productCode extends StringField(this, 255)
+
   object accountName extends StringField(this, 255){
     //this is the legacy db field name
     override def name = "name"
@@ -87,7 +79,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     //this is the legacy db field name
     override def name = "iban"
   }
-  object lastUpdate extends DateField(this)
+  object accountLastUpdate extends DateField(this)
 
   def transactionsForAccount: QueryBuilder = {
     QueryBuilder
@@ -157,8 +149,6 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
     }
   }
 
-  override def uuid: String = id.get.toString
-
   override def bankId: BankId = {
     bankID.obj match  {
       case Full(bank) => BankId(bank.permalink.get)
@@ -178,6 +168,7 @@ class Account extends BankAccount with MongoRecord[Account] with ObjectIdPk[Acco
   override def accountType: String = kind.get
   override def label: String = accountLabel.get
   override def accountHolder: String = holder.get
+  override def lastUpdate: Date = accountLastUpdate.get
 }
 
 object Account extends Account with MongoMetaRecord[Account] {
@@ -193,21 +184,22 @@ class HostedBank extends Bank with MongoRecord[HostedBank] with ObjectIdPk[Hoste
   object website extends StringField(this, 255)
   object email extends StringField(this, 255)
   object permalink extends StringField(this, 255)
-  object SWIFT_BIC extends StringField(this, 255)
+  object swiftBIC extends StringField(this, 255)
   object national_identifier extends StringField(this, 255)
 
   def getAccount(bankAccountId: AccountId) : Box[Account] = {
-    Account.find((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
+    Account.find((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.get)) ?~ {"account " + bankAccountId +" not found at bank " + permalink}
   }
 
   def isAccount(bankAccountId : AccountId) : Boolean =
-    Account.count((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.is)) == 1
+    Account.count((Account.permalink.name -> bankAccountId.value) ~ (Account.bankID.name -> id.get)) == 1
 
   override def bankId: BankId = BankId(permalink.get)
   override def shortName: String = alias.get
   override def fullName: String = name.get
   override def logoUrl: String = logoURL.get
   override def websiteUrl: String = website.get
+  override def swiftBic: String = swiftBIC.get
   override def nationalIdentifier: String = national_identifier.get
 }
 

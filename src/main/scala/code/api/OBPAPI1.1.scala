@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -355,6 +355,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
           ("views_available" -> views.map(viewToJson(_)))
         ))
       }
+
       def bankAccountSet2JsonResponse(bankAccounts: Set[BankAccount]): LiftResponse = {
         val accJson = bankAccounts.map(accountToJson(_,user))
         JsonResponse(("accounts" -> accJson))
@@ -642,7 +643,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("comments" -> comments.map(commentToJson))
       }
 
-      def commentsResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
+      def commentsResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
         val comments = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
             comments <- Box(metadata.comments) ?~ {"view " + viewId + " does not authorize comments access"}
@@ -661,13 +662,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
-          commentsResponce(bankId, accountId, viewId, transactionId, user)
+          commentsResponse(bankId, accountId, viewId, transactionId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        commentsResponce(bankId, accountId, viewId, transactionId, None)
+        commentsResponse(bankId, accountId, viewId, transactionId, None)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -736,7 +737,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("tags" -> tags.map(tagToJson))
       }
 
-      def tagsResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
+      def tagsResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
         val tags = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
             tags <- Box(metadata.tags) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -755,13 +756,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
-          tagsResponce(bankId, accountId, viewId, transactionId, user)
+          tagsResponse(bankId, accountId, viewId, transactionId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        tagsResponce(bankId, accountId, viewId, transactionId, None)
+        tagsResponse(bankId, accountId, viewId, transactionId, None)
     }
   })
   serve("obp" / "v1.1" prefix {
@@ -838,7 +839,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("images" -> images.map(imageToJson))
       }
 
-      def imagesResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
+      def imagesResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
         val images = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
             images <- Box(metadata.images) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -857,13 +858,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode,oAuthParameters.get("oauth_token"))
-          imagesResponce(bankId, accountId, viewId, transactionId, user)
+          imagesResponse(bankId, accountId, viewId, transactionId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        imagesResponce(bankId, accountId, viewId, transactionId, None)
+        imagesResponse(bankId, accountId, viewId, transactionId, None)
     }
   })
   serve("obp" / "v1.1" prefix {
@@ -921,7 +922,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def whereTagResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
+      def whereTagResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
         val whereTag = for {
             metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,user)
             whereTag <- Box(metadata.whereTag) ?~ {"view " + viewId + " does not authorize tags access"}
@@ -940,13 +941,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          whereTagResponce(bankId, accountId, viewId, transactionId, user)
+          whereTagResponse(bankId, accountId, viewId, transactionId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        whereTagResponce(bankId, accountId, viewId, transactionId, None)
+        whereTagResponse(bankId, accountId, viewId, transactionId, None)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1071,7 +1072,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("swift_bic" -> otherAccount.swift_bic.getOrElse(""))
       }
 
-      def otherAccountResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
+      def otherAccountResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, transactionId : TransactionId, user : Box[User]) : JsonResponse = {
         moderatedTransactionOtherAccount(bankId,accountId,viewId,transactionId,user) match {
             case Full(otherAccount) => JsonResponse(otherAccountToJson(otherAccount), Nil, Nil, 200)
             case Failure(msg,_,_) => JsonResponse(Extraction.decompose(ErrorMessage(msg)), Nil, Nil, 400)
@@ -1085,13 +1086,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          otherAccountResponce(bankId, accountId, viewId, transactionId, user)
+          otherAccountResponse(bankId, accountId, viewId, transactionId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        otherAccountResponce(bankId, accountId, viewId, transactionId, None)
+        otherAccountResponse(bankId, accountId, viewId, transactionId, None)
     }
   })
   serve("obp" / "v1.1" prefix {
@@ -1108,7 +1109,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         ("physical_location" -> metadata.physicalLocation.map(l => geoTagToJson("physical_location",l)))
       }
 
-      def otherAccountMetadataResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, other_account_ID : String, user : Box[User]) : JsonResponse = {
+      def otherAccountMetadataResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, other_account_ID : String, user : Box[User]) : JsonResponse = {
         val otherAccountMetaData = for{
           otherAccount <- moderatedOtherAccount(bankId, accountId, viewId, other_account_ID, user)
           metaData <- Box(otherAccount.metadata) ?~! {"view " + viewId + "does not allow other account metadata access" }
@@ -1127,13 +1128,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          otherAccountMetadataResponce(bankId, accountId, viewId, other_account_ID, user)
+          otherAccountMetadataResponse(bankId, accountId, viewId, other_account_ID, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, 400)
       }
       else
-        otherAccountMetadataResponce(bankId, accountId, viewId, other_account_ID, None)
+        otherAccountMetadataResponse(bankId, accountId, viewId, other_account_ID, None)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1141,7 +1142,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def postMoreInfoResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postMoreInfoResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[MoreInfoJSON]
           } match {
@@ -1182,13 +1183,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          postMoreInfoResponce(bankId, accountId, viewId, otherAccountId, user)
+          postMoreInfoResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        postMoreInfoResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        postMoreInfoResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1196,7 +1197,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def updateMoreInfoResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateMoreInfoResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[MoreInfoJSON]
           } match {
@@ -1235,13 +1236,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          updateMoreInfoResponce(bankId, accountId, viewId, otherAccountId, user)
+          updateMoreInfoResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        updateMoreInfoResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        updateMoreInfoResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1249,7 +1250,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def postURLResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postURLResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[UrlJSON]
           } match {
@@ -1290,13 +1291,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          postURLResponce(bankId, accountId, viewId, otherAccountId, user)
+          postURLResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        postURLResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        postURLResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1304,7 +1305,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def updateURLResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateURLResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[UrlJSON]
           } match {
@@ -1343,13 +1344,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          updateURLResponce(bankId, accountId, viewId, otherAccountId, user)
+          updateURLResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        updateURLResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        updateURLResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1357,7 +1358,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def postImageUrlResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postImageUrlResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[ImageUrlJSON]
           } match {
@@ -1398,13 +1399,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          postImageUrlResponce(bankId, accountId, viewId, otherAccountId, user)
+          postImageUrlResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        postImageUrlResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        postImageUrlResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1412,7 +1413,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def updateImageUrlResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def updateImageUrlResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[ImageUrlJSON]
           } match {
@@ -1451,13 +1452,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          updateImageUrlResponce(bankId, accountId, viewId, otherAccountId, user)
+          updateImageUrlResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        updateImageUrlResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        updateImageUrlResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{
@@ -1465,7 +1466,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
-      def postOpenCorporatesUrlResponce(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
+      def postOpenCorporatesUrlResponse(bankId : BankId, accountId : AccountId, viewId : ViewId, otherAccountId: String, user : Box[User]) : JsonResponse =
         tryo{
             json.extract[OpenCorporatesUrlJSON]
           } match {
@@ -1506,13 +1507,13 @@ object OBPAPI1_1 extends RestHelper with Loggable {
         if(httpCode == 200)
         {
           val user = getUser(httpCode, oAuthParameters.get("oauth_token"))
-          postOpenCorporatesUrlResponce(bankId, accountId, viewId, otherAccountId, user)
+          postOpenCorporatesUrlResponse(bankId, accountId, viewId, otherAccountId, user)
         }
         else
           JsonResponse(ErrorMessage(message), Nil, Nil, httpCode)
       }
       else
-        postOpenCorporatesUrlResponce(bankId, accountId, viewId, otherAccountId, Empty)
+        postOpenCorporatesUrlResponse(bankId, accountId, viewId, otherAccountId, Empty)
     }
   })
   serve("obp" / "v1.1" prefix{

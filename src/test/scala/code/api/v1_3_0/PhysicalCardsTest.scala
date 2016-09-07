@@ -1,17 +1,14 @@
 package code.api.v1_3_0
 
-import code.api.DefaultUsers
-import code.api.test.ServerSetup
-import code.api.util.APIUtil
-import code.bankconnectors.{OBPQueryParam, Connector}
-import net.liftweb.common.{Failure, Loggable, Empty, Box}
-import code.model._
-import dispatch._
-import APIUtil.OAuth.{Token, Consumer}
-import code.model.PhysicalCard
-import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import java.util.Date
-import APIUtil.OAuth._
+
+import code.api.util.APIUtil.OAuth._
+import code.api.{DefaultUsers, ServerSetup}
+import code.bankconnectors.{Connector, OBPQueryParam}
+import code.management.ImporterAPI.ImporterTransaction
+import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
+import code.transactionrequests.TransactionRequests._
+import net.liftweb.common.{Box, Empty, Failure, Loggable}
 
 class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
@@ -57,7 +54,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     //these methods aren't required by our test
     override def getBank(bankId : BankId) : Box[Bank] = Empty
     override def getBanks : List[Bank] = Nil
-    override def getBankAccountType(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
+    override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount] =
       Empty
     override def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount] =
@@ -90,8 +87,53 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
 
     override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
 
-    protected def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal) : Box[TransactionId] =
+    override def makePaymentImpl(fromAccount : AccountType, toAccount : AccountType, amt : BigDecimal, description : String) : Box[TransactionId] =
       Failure("not supported")
+    override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                              account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
+                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
+      Failure("not supported")
+    }
+    override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                              account : BankAccount, details: String,
+                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+      Failure("not supported")
+    }
+    override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
+    override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
+    override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = ???
+
+    override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
+    override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
+    override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
+    override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
+      Failure("not supported")
+    }
+
+    override def createBankAndAccount(bankName : String, bankNationalIdentifier : String, accountNumber : String,
+                                      accountType: String, accountLabel: String, currency: String,
+                                      accountHolderName : String): (Bank, BankAccount) = ???
+
+    //sets a user as an account owner/holder
+    override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = ???
+
+    //for sandbox use -> allows us to check if we can generate a new test account with the given number
+    override def accountExists(bankId: BankId, accountNumber: String): Boolean = ???
+
+    override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = ???
+
+    //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
+    override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+                                          accountType: String, accountLabel: String, currency: String,
+                                          initialBalance: BigDecimal, accountHolderName: String): Box[AccountType] = ???
+
+    //used by transaction import api call to check for duplicates
+    override def getMatchingTransactionCount(bankNationalIdentifier : String, accountNumber : String, amount: String, completed: Date, otherAccountHolder: String): Int = ???
+    //used by transaction import api
+    override def createImportedTransaction(transaction: ImporterTransaction): Box[Transaction] = ???
+    override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
+    override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
+    override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
   }
 
   override def beforeAll() {

@@ -4,7 +4,7 @@ import net.liftweb.common.Box
 import code.model._
 import net.liftweb.util.SimpleInjector
 import code.model.Permission
-import code.model.ViewCreationJSON
+import code.model.CreateViewJSON
 
 object Views  extends SimpleInjector {
 
@@ -26,9 +26,9 @@ trait Views {
   def view(viewId : ViewId, bankAccount: BankAccount) : Box[View]
   def view(viewUID : ViewUID) : Box[View]
 
-  def createView(bankAccount : BankAccount, view: ViewCreationJSON) : Box[View]
+  def createView(bankAccount : BankAccount, view: CreateViewJSON) : Box[View]
   def removeView(viewId : ViewId, bankAccount: BankAccount): Box[Unit]
-  def updateView(bankAccount : BankAccount, viewId : ViewId, viewUpdateJson : ViewUpdateData) : Box[View]
+  def updateView(bankAccount : BankAccount, viewId : ViewId, viewUpdateJson : UpdateViewJSON) : Box[View]
   def views(bankAccount : BankAccount) : List[View]
   def permittedViews(user: User, bankAccount: BankAccount): List[View]
   def publicViews(bankAccount : BankAccount) : List[View]

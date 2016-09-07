@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -29,11 +29,12 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 */
 
+import net.liftweb.util.Props
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.webapp.WebAppContext
 
 object RunWebApp extends App {
-  val server = new Server(8080)
+  val server = new Server(Props.getInt("dev.port", 8080))
 
   val context = new WebAppContext()
   context.setServer(server)

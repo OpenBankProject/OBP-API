@@ -1,15 +1,15 @@
 package code.metadata.counterparties
 
-import java.util.Date
+import java.util.{UUID, Date}
 
 import code.model._
 import code.model.dataAccess.APIUser
 import code.util.{MappedAccountNumber, DefaultStringField, MappedUUID}
-import net.liftweb.common.{Box, Full}
+import net.liftweb.common.{Loggable, Box, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
-object MapperCounterparties extends Counterparties {
+object MapperCounterparties extends Counterparties with Loggable {
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: OtherBankAccount): OtherBankAccountMetadata = {
 
     /**
@@ -17,8 +17,7 @@ object MapperCounterparties extends Counterparties {
      * for the account in question
      */
     def newPublicAliasName(): String = {
-      import scala.util.Random
-      val firstAliasAttempt = "ALIAS_" + Random.nextLong().toString.take(6)
+      val firstAliasAttempt = "ALIAS_" + UUID.randomUUID.toString.toUpperCase.take(6)
 
       /**
        * Returns true if @publicAlias is already the name of a public alias within @account
@@ -35,7 +34,8 @@ object MapperCounterparties extends Counterparties {
        * Appends things to @publicAlias until it a unique public alias name within @account
        */
       def appendUntilUnique(publicAlias: String): String = {
-        val newAlias = publicAlias + Random.nextLong().toString.take(1)
+        val newAlias = publicAlias + UUID.randomUUID.toString.toUpperCase.take(1)
+        // Recursive call.
         if (isDuplicate(newAlias)) appendUntilUnique(newAlias)
         else newAlias
       }
@@ -46,7 +46,7 @@ object MapperCounterparties extends Counterparties {
 
 
     //can't find by MappedCounterpartyMetadata.counterpartyId = otherParty.id because in this implementation
-    //if the metadata doesn't exist, the id field of ther OtherBankAccount is not known yet, and will be empty
+    //if the metadata doesn't exist, the id field of the OtherBankAccount is not known yet, and will be empty
     def findMappedCounterpartyMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
                                        otherParty: OtherBankAccount) : Box[MappedCounterpartyMetadata] = {
       MappedCounterpartyMetadata.find(
@@ -60,16 +60,26 @@ object MapperCounterparties extends Counterparties {
 
     existing match {
       case Full(e) => e
-      case _ => MappedCounterpartyMetadata.create
-        .thisAccountBankId(originalPartyBankId.value)
-        .thisAccountId(originalPartyAccountId.value)
-        .holder(otherParty.label)
-        .publicAlias(newPublicAliasName())
-        .accountNumber(otherParty.number).saveMe
+      // Create it!
+      case _ => {
+        logger.debug("Before creating MappedCounterpartyMetadata")
+        // Store a record that contains counterparty information from the perspective of an account at a bank
+        MappedCounterpartyMetadata.create
+          // Core info
+          .thisAccountBankId(originalPartyBankId.value)
+          .thisAccountId(originalPartyAccountId.value)
+          .holder(otherParty.label) // The main human readable identifier for this counter party from the perspective of the account holder
+          .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
+          .accountNumber(otherParty.number)
+          // otherParty.metadata is None at this point
+          //.imageUrl("www.example.com/image.jpg")
+          //.moreInfo("This is hardcoded moreInfo")
+          .saveMe
+      }
     }
   }
 
-  //get all counterparty metadatas for a single OBP account
+  // Get all counterparty metadata for a single OBP account
   override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[OtherBankAccountMetadata] = {
     MappedCounterpartyMetadata.findAll(
       By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),

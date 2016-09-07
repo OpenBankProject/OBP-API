@@ -1,21 +1,32 @@
 package code.api.v1_4_0
 
+import java.text.SimpleDateFormat
+
 import code.api.DefaultUsers
 import code.api.util.APIUtil
-import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerMessagesJson}
-import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo, CustomerInfo}
+import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, AddCustomerMessageJson, CustomerMessagesJson, CustomerJson}
+import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
 import code.model.BankId
+import code.usercustomerlinks.{MappedUserCustomerLink}
 import dispatch._
 import code.api.util.APIUtil.OAuth._
+import net.liftweb.common.Box
 import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.mapper.By
+import net.liftweb.common.{Full, Empty}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
-
   implicit val format = APIUtil.formats
 
-  val mockBankId = BankId("mockbank1")
+  val mockBankId = BankId("testBank1")
   val mockCustomerNumber = "9393490320"
+  val mockCustomerId = "cba6c9ef-73fa-4032-9546-c6f6496b354a"
+
+
+  val exampleDateString : String ="22/08/2013"
+  val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
+  val exampleDate = simpleDateFormat.parse(exampleDateString)
 
   //TODO: need better tests
   feature("Customer messages") {
@@ -24,7 +35,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       MappedCustomerMessage.count() should equal(0)
 
       When("We get the messages")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET  <@ user1
+      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / "messages").GET <@ user1
       val response = makeGetRequest(request)
 
       Then("We should get a 200")
@@ -36,10 +47,41 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     }
 
     scenario("Adding a message") {
+      //first add a customer to send message to
+      var request = (v1_4Request / "banks" / mockBankId.value / "customer").POST <@ user1
+      var customerJson = CustomerJson(
+              customer_id = mockCustomerId,
+              customer_number = mockCustomerNumber,
+              legal_name = "Someone",
+              mobile_phone_number = "125245",
+              email = "hello@hullo.com",
+              face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+              date_of_birth = exampleDate,
+              relationship_status = "Single",
+              dependants = 1,
+              dob_of_dependants = List(exampleDate),
+              highest_education_attained = "Bachelor’s Degree",
+              employment_status = "Employed",
+              kyc_status = true,
+              last_ok_date = exampleDate
+      )
+      var response = makePostRequest(request, write(customerJson))
+
+      val customer: Box[MappedCustomer] = MappedCustomer.find(
+        By(MappedCustomer.mBank, mockBankId.value),
+        By(MappedCustomer.mNumber, mockCustomerNumber)
+      )
+      val customerId = customer match {
+        case Full(c) => c.customerId
+        case Empty => "Empty"
+        case _ => "Failure"
+      }
+      MappedUserCustomerLink.createUserCustomerLink(obpuser1.userId, customerId, exampleDate, true)
+
       When("We add a message")
-      val request = (v1_4Request / "banks" / mockBankId.value / "customer" / mockCustomerNumber / "messages").POST
+      request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
       val messageJson = AddCustomerMessageJson("some message", "some department", "some person")
-      val response = makePostRequest(request, write(messageJson))
+      response = makePostRequest(request, write(messageJson))
 
       Then("We should get a 201")
       response.code should equal(201)
@@ -63,7 +105,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     super.beforeAll()
     //TODO: this shouldn't be tied to an implementation
     //need to create a customer info obj since the customer messages call needs to find user by customer number
-    MappedCustomerInfo.create
+    MappedCustomer.create
       .mBank(mockBankId.value)
       .mUser(obpuser1)
       .mNumber(mockCustomerNumber).save()

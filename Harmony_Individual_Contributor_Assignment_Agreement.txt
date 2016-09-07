@@ -82,22 +82,31 @@ TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT WILL YOU OR US BE
 
 
 
-You
 ________________________
-Name:	________________________
-Address:	________________________
-	________________________
 
-Us
+You:
+
+
+Name:	        ________________________________
+
+Address:        ________________________________
+
+Github username ________________________________
+
+Email / Phone	________________________________
+
+
 ________________________
+
+Us:
+
 Name:	Simon Redfern
-Title:	CEO TESOBE / Music Pictures Ltd
-Address:	Osloerstrasse 16/17
-                 Berlin 13359, German
+Title:	CEO, TESOBE Ltd
+Address:	Osloerstrasse 16/17, Berlin 13359, Germany
 
 
 
-
+________________________
 
 
 [SUBMISSION_INSTRUCTIONS] – In person.

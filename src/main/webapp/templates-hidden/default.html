@@ -1,6 +1,6 @@
 <!--
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE Ltd.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd.
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
@@ -29,88 +29,104 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 -->
 <!DOCTYPE html>
+
 <html lang="en">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-    <title class="lift:Menu.title">Open Bank Project: %*%</title>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+        <title class="lift:Menu.title">Open Bank Project: %*%</title>
 
-    <link href="/media/css/website.css?20140425" rel="stylesheet" type="text/css" />
-    <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
-	<script src="/media/js/website.js" type="text/javascript"></script>
-</head>
-<body>
-    <div id="wrapper">
-        <div id="header">
-            <h1 id="logo" onclick="javascript:window.location='/';">Open Bank Project</h1>
-            <div id="account" class="account-upper">
-            	<div id="admin-logout"class="lift:Login.adminLogout">
-            			Currently logged in as admin <span id="admin-username">NAME</span>. <a id="admin-logout-clickme" href="#">Logout</a>
-            	</div>
-                <!-- LOGGED OUT -->
-				<div class="lift:Login.loggedOut">
-                    <form class="login" action="." method="post">
-	                    <div class="field username">
-	                        <label>Username</label>
-	                        <input class="username" type="text" name="username" tabindex=1/>
-	                    </div>
-	                    <div class="field password">
-	                        <label>Password</label>
-	                        <a href="#" class="forgot" tabindex=5>Forgotten?</a>
-	                        <a href="#" class="signup" tabindex=4>Sign up</a>
-	                        <input class="password" type="password" name="password" tabindex=2 />
-	                    </div>
-	                    <div class="button submit">
-	                        <input class="submit" type="submit" value="Login" tabindex=3/>
-	                    </div>
-	                </form>
-                </div>
-                <!-- LOGGED IN -->
-                <div class="lift:Login.loggedIn">
-                    <div class="profile-info">
-                        Logged in as <span class="username">username@domain.com</span>
-                        <a href="" class="logout">Logout</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="nav">
-            <ul>
-                <li class="lift:Nav.item?name=Home navitem">
-                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                </li>
-                <li class="lift:Nav.item?name=Consumer%20Registration navitem">
-                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                </li>
-                <li class="lift:Nav.item?name=Metrics navitem">
-                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                </li>
-                <li class="lift:Nav.item?name=Connect navitem">
-                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                </li>
-                <li class="lift:Nav.item?name=Sandbox%20Account%20Creation&showEvenIfRestricted=true navitem">
-                    <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
-                </li>
-            </ul>
-        </div>
-        <div id="content">
-            <lift:bind name="content" />
-            The main content gets bound here
-        </div>
+        <link id="main_style_sheet" data-lift="WebUI.mainStyleSheet" href="/media/css/website.css" rel="stylesheet" type="text/css" />
+        <link id="override_style_sheet" data-lift="WebUI.overrideStyleSheet" href="" rel="stylesheet" type="text/css" />
 
-		<div id="footer">
-            <p><a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2013 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL 3.</p>
-            <br/>
-            <p>
-                <a href="http://www.facebook.com/pages/Open-Bank-Project/118851468190327">Facebook Page</a> |
-                <a href="http://twitter.com/#!/OpenBankProject">Follow us on Twitter</a> |
-                <a href="http://eviscape.com/profile/openbankproject/">Eviscape Profile</a> |
-                <a href="http://polarize.it/polarize/openbankprojectdemoa_78828874370">Polarize it!</a> |
-                <a href="https://github.com/OpenBankProject">Sources on Github</a> |
-                <a href="https://github.com/OpenBankProject/OBP-API/wiki">API Documentation</a>
-            </p>
+
+        <script id="jquery" src="/classpath/jquery.js" type="text/javascript"></script>
+        <script src="/media/js/website.js" type="text/javascript"></script>
+        <script src="/media/js/toastr.min.js"></script>
+        <link href="/media/css/toastr.min.css" rel="stylesheet"/>
+
+    </head>
+    <body id="page_init">
+    <div id="background">
+        <div id="wrapper">
+            <header id="header">
+                <div id="header-decoration"></div>
+
+                <div id="logo-left" class="lift:WebUI.headerLogoLeft">
+                    <a href="/"><img src="" alt=""></a>
+                </div>
+                <div id="logo-right" class="lift:WebUI.headerLogoRight">
+                    <a href="/"><img src="" alt=""></a>
+                </div>
+                <div id="messages-container" class="lift:Msgs"></div>
+                <script>
+                  $(function() {
+                    toastr.options.timeOut = 3000;
+                    if(notice = $("#lift__noticesContainer___error").text()) {
+                      toastr.error(notice)
+                    }
+                    else if(notice = $("#lift__noticesContainer__").text()) {
+                      toastr.success(notice)
+                    }
+                  })
+                </script>
+              </lift:Msgs>
+            </header>
+            <nav id="nav">
+                <ul>
+                    <li class="lift:Nav.item?name=Home navitem navitem-home">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                    <li class="lift:Nav.item?name=Consumer%20Registration&showEvenIfRestricted=true navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                    <li class="lift:Nav.item?name=Metrics navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                    <li class="lift:Nav.item?name=Connect navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                    <li class="lift:Nav.item?name=Sandbox%20Account%20Creation&showEvenIfRestricted=true navitem">
+                        <a class="navlink" href="#">Link name. Has class "selected" if it's the current page.</a>
+                    </li>
+                    <!-- login state -->
+                    <li class="lift:Nav.item?name=Login navitem nav-login-state-item">
+                        <!-- LOGGED OUT -->
+                        <div class="lift:Login.loggedOut">
+                            <a href="#" class="navlink login">Login</a>
+                        </div>
+                    </li>
+                    <li class="navitem nav-login-state-item">
+                        <!-- LOGGED IN -->
+                        <div id="admin-logout" class="lift:Login.adminLogout">
+                            admin <span id="admin-username">NAME</span>. <a id="admin-logout-clickme" href="#">Logout</a>
+                        </div>
+                        <div class="lift:Login.loggedIn">
+                            <div class="profile-info">
+                                <span class="username">username</span>&nbsp;<a href="" class="logout">Logout</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </nav>
+            <section id="content">
+              <lift:bind name="content"/>
+                The main content gets bound here
+            </section>
+            <footer id="footer">
+                <div id="copyright">
+                    <a href="http://openbankproject.com">Open Bank Project</a> is &copy;2011-2016 <a href="http://tesobe.com">TESOBE</a> and distributed under the AGPL and commercial licenses.
+                </div>
+                <div>
+                    <a href="http://twitter.com/#!/OpenBankProject">Twitter</a> |
+                    <a href="https://github.com/OpenBankProject/OBP-API/">Github</a> |
+                    <a class="api-documentation-link lift:WebUI.apiDocumentationLink" href="">API Documentation</a> |
+                    <a class="api-explorer-link lift:WebUI.apiExplorerLink" href="">API Explorer</a> |
+                    <a class="sofi-link lift:WebUI.sofiLink" href="">Sofi</a>
+                </div>
+            </footer>
         </div>
+        <!-- <a id="feedBack" href="http://polarize.it/polarize/openbankprojectdemoa_78828874370"></a> -->
     </div>
-    <a id="feedBack" href="http://polarize.it/polarize/openbankprojectdemoa_78828874370"></a>
-</body>
-</html>
+    </body>
+    </html>

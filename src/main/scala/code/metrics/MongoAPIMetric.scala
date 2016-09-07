@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -32,26 +32,39 @@ Berlin 13359, Germany
 
  package code.metrics
 
-import net.liftweb.mongodb.record.field.{ObjectIdPk,DateField}
- import net.liftweb.record.field.StringField
- import net.liftweb.mongodb.record.{MongoRecord,MongoMetaRecord}
- import java.util.{Calendar, Date}
+import java.util.Date
+
+import net.liftweb.mongodb.record.field.{DateField, ObjectIdPk}
+import net.liftweb.mongodb.record.{MongoMetaRecord, MongoRecord}
+import net.liftweb.record.field.StringField
 
  private class MongoAPIMetric extends MongoRecord[MongoAPIMetric] with ObjectIdPk[MongoAPIMetric] with APIMetric {
-  def meta = MongoAPIMetric
-  object url extends StringField(this,255)
-  object date extends DateField(this)
+   def meta = MongoAPIMetric
+   object userId extends StringField(this,255)
+   object url extends StringField(this,255)
+   object date extends DateField(this)
+   object userName extends StringField(this,255)
+   object appName extends StringField(this,255)
+   object developerEmail extends StringField(this,255)
 
-  def getUrl() = url.get
-  def getDate() = date.get
+   def getUrl() = url.get
+   def getDate() = date.get
+   def getUserId() = userId.get
+   def getUserName(): String = userName.get
+   def getAppName(): String = appName.get
+   def getDeveloperEmail(): String = developerEmail.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(url : String, date : Date) : Unit = {
+  def saveMetric(userId: String, url : String, date : Date, userName: String, appName: String, developerEmail: String) : Unit = {
     MongoAPIMetric.createRecord.
+      userId(userId).
       url(url).
       date(date).
+      userName(userName).
+      appName(appName).
+      developerEmail(developerEmail).
       save
   }
 
@@ -63,4 +76,7 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
     MongoAPIMetric.findAll.groupBy[Date](APIMetrics.getMetricDay)
   }
 
+  def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
+    MongoAPIMetric.findAll.groupBy[String](_.getUserId)
+  }
 }

@@ -2,13 +2,9 @@ package code.api
 
 import java.util.Date
 
-import bootstrap.liftweb.ToSchemify
-import code.bankconnectors.{OBPLimit, OBPOffset, Connector}
 import code.model._
 import code.model.dataAccess._
 import com.mongodb.QueryBuilder
-import net.liftweb.mapper.MetaMapper
-import net.liftweb.mongodb._
 import net.liftweb.util.Helpers._
 
 import scala.math.BigDecimal
@@ -96,7 +92,7 @@ trait LocalConnectorTestSetup extends TestConnectorSetupWithStandardPermissions 
       obp_transaction(transaction).save
 
     //slightly ugly
-    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).lastUpdate(now).save
+    account.asInstanceOf[Account].accountBalance(newBalance.amount.get).accountLastUpdate(now).save
 
     env.save
   }

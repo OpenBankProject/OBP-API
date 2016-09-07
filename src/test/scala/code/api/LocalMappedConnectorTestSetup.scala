@@ -1,23 +1,48 @@
 package code.api
 
 import java.util.Date
+
 import bootstrap.liftweb.ToSchemify
-import code.model.dataAccess._
 import code.model._
+import code.model.dataAccess._
+import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
+import code.entitlement.{Entitlement, MappedEntitlement}
+import code.transaction.MappedTransaction
 
 import scala.util.Random
 
-trait LocalMappedConnectorTestSetup extends LocalConnectorTestSetup {
-
+trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermissions {
+  //TODO: replace all these helpers with connector agnostic methods like createRandomBank
+  // that call Connector.createBank etc.
+  // (same in LocalConnectorTestSetup)
+  // Tests should simply use the currently selected connector
   override protected def createBank(id : String) : Bank = {
-    MappedBank.create
-      .fullBankName(randomString(5))
-      .shortBankName(randomString(5))
-      .permalink(id)
-      .national_identifier(randomString(5)).saveMe
+        MappedBank.create
+          .fullBankName(randomString(5))
+          .shortBankName(randomString(5))
+          .permalink(id)
+          .national_identifier(randomString(5)).saveMe
   }
+
+// TODO: Should return an option or box so can test if the insert succeeded
+// or if it failed due to unique exception etc. However, we'll need to modify / lift callers so they can handle an Option
+//  override protected def createBank(id : String) : Option[Bank] = {
+//    val newBankOpt : Option[Bank] = try {
+//      Some(MappedBank.create
+//        .fullBankName(randomString(5))
+//        .shortBankName(randomString(5))
+//        .permalink(id)
+//        .national_identifier(randomString(5)).saveMe)
+//    } catch {
+//      case se : SQLException => None
+//    }
+//    newBankOpt
+//  }
+
+
+
 
   override protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     MappedBankAccount.create
@@ -28,6 +53,16 @@ trait LocalMappedConnectorTestSetup extends LocalConnectorTestSetup {
       .holder(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4)).saveMe
+  }
+
+  def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {
+    // Return a Box so we can handle errors later.
+    val addEntitlement = MappedEntitlement.create
+      .mBankId(bankId)
+      .mUserId(userId)
+      .mRoleName(roleName)
+      .saveMe()
+    Some(addEntitlement)
   }
 
   override protected def createTransaction(account: BankAccount, startDate: Date, finishDate: Date) = {
@@ -57,7 +92,7 @@ trait LocalMappedConnectorTestSetup extends LocalConnectorTestSetup {
       .counterpartyIban(randomString(5))
       .counterpartyNationalId(randomString(5))
       .saveMe
-      .toTransaction.get
+      .toTransaction.orNull
   }
 
   override protected def wipeTestData() = {

@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -72,7 +72,11 @@ class AppTest extends TestCase("app") {
       file.endsWith(".xml")
 
     def handledXHtml(file: String) =
-      file.endsWith(".html") || file.endsWith(".htm") || file.endsWith(".xhtml")
+      file.endsWith(".htm") || file.endsWith(".xhtml")
+
+    def handledHtml(file: String) =
+      file.endsWith(".html")
+
 
     def wellFormed(file: File) {
       if (file.isDirectory)
@@ -87,6 +91,12 @@ class AppTest extends TestCase("app") {
       }
       if (file.isFile && handledXHtml(file.getName)) {
         PCDataXmlParser(new java.io.FileInputStream(file.getAbsolutePath)) match {
+          case Full(_) => // file is ok
+          case _ => failed = file :: failed
+        }
+      }
+      if (file.isFile && handledHtml(file.getName)) {
+        Html5.parse(new java.io.FileInputStream(file.getAbsolutePath)) match {
           case Full(_) => // file is ok
           case _ => failed = file :: failed
         }

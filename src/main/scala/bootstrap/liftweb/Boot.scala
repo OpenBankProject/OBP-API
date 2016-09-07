@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -31,32 +31,49 @@ Berlin 13359, Germany
  */
 package bootstrap.liftweb
 
+import java.io.{File, FileInputStream}
+import java.util.Locale
+import javax.mail.internet.MimeMessage
+
+import code.api.ResourceDocs1_4_0.ResourceDocs
+import code.api._
+import code.api.sandbox.SandboxApiCalls
+import code.atms.MappedAtm
+import code.branches.MappedBranch
+import code.crm.MappedCrmEvent
+import code.customer.{MappedCustomer, MappedCustomerMessage}
+import code.entitlement.MappedEntitlement
+import code.kycdocuments.MappedKycDocument
+import code.kycmedias.MappedKycMedia
+import code.kycchecks.MappedKycCheck
+import code.kycstatuses.MappedKycStatus
+import code.meetings.MappedMeeting
+import code.socialmedia.MappedSocialMedia
+import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyWhereTag, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.metrics.MappedMetric
-import code.bankbranches.{MappedBankBranch, MappedDataLicense}
-import code.customerinfo.{MappedCustomerMessage, MappedCustomerInfo}
-import net.liftweb._
-import util._
-import common._
-import http._
-import sitemap._
-import Loc._
-import mapper._
-import net.liftweb.util.Helpers._
-import net.liftweb.util.Schedule
-import net.liftweb.util.Helpers
-import java.io.FileInputStream
-import java.io.File
-import javax.mail.internet.MimeMessage
 import code.model._
 import code.model.dataAccess._
-import code.api._
+import code.products.MappedProduct
+import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
+import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.usercustomerlinks.MappedUserCustomerLink
+import net.liftweb.common._
+import net.liftweb.http._
+import net.liftweb.mapper._
+import net.liftweb.sitemap.Loc._
+import net.liftweb.sitemap._
+import net.liftweb.util.Helpers._
+import net.liftweb.util.{Helpers, Schedule, _}
+import code.api.Constant._
+import code.transaction.MappedTransaction
+
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -64,8 +81,6 @@ import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
  */
 class Boot extends Loggable{
   def boot {
-
-
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
@@ -124,23 +139,19 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-
-    // This sets up MongoDB config
-    MongoConfig.init
-
-    // set up the way to connect to the relational DB we're using
+    // set up the way to connect to the relational DB we're using (ok if other connector than relational)
     if (!DB.jndiJdbcConnAvailable_?) {
       val driver =
         Props.mode match {
-          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>  Props.get("db.driver") openOr "org.h2.Driver"
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => Props.get("db.driver") openOr "org.h2.Driver"
           case _ => "org.h2.Driver"
         }
       val vendor =
         Props.mode match {
           case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
             new StandardDBVendor(driver,
-               Props.get("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
-               Props.get("db.user"), Props.get("db.password"))
+              Props.get("db.url") openOr "jdbc:h2:lift_proto.db;AUTO_SERVER=TRUE",
+              Props.get("db.user"), Props.get("db.password"))
           case _ =>
             new StandardDBVendor(
               driver,
@@ -154,6 +165,15 @@ class Boot extends Loggable{
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
 
+    // ensure our relational database's tables are created/fit the schema
+    if(Props.get("connector").getOrElse("") == "mapped" ||
+       Props.get("connector").getOrElse("") == "kafka" )
+      schemifyAll()
+
+    // This sets up MongoDB config (for the mongodb connector)
+    if(Props.get("connector").getOrElse("") == "mongodb")
+      MongoConfig.init
+
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
       case Props.RunModes.Staging => "Staging mode"
@@ -163,27 +183,50 @@ class Boot extends Loggable{
     }
 
     logger.info("running mode: " + runningMode)
+    logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
-
-    // ensure our relational database's tables are created/fit the schema
-    schemifyAll()
-
-    // where to search snippet
+    // where to search snippets
     LiftRules.addToPackages("code")
+
+    //OAuth API call
+    LiftRules.statelessDispatch.append(OAuthHandshake)
+
+    // JWT auth endpoints
+    if(Props.getBool("allow_direct_login", true)) {
+      LiftRules.statelessDispatch.append(DirectLogin)
+    }
 
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
     LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    // Can we depreciate the above?
     LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
     LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
     LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+    LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
+    LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+
+    //add management apis
+    LiftRules.statelessDispatch.append(ImporterAPI)
+    LiftRules.statelessDispatch.append(AccountsAPI)
 
     // add other apis
     LiftRules.statelessDispatch.append(BankMockAPI)
-    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry bellow
-    //OAuth API call
-    LiftRules.statelessDispatch.append(OAuthHandshake)
+
+
+
+    // Add Resource Docs
+    LiftRules.statelessDispatch.append(ResourceDocs)
+
+    // LiftRules.statelessDispatch.append(Metrics) TODO: see metric menu entry below
+
+    //add sandbox api calls only if we're running in sandbox mode
+    if(Props.getBool("allow_sandbox_data_import", false)) {
+      LiftRules.statelessDispatch.append(SandboxApiCalls)
+    } else {
+      logger.info("Not adding sandbox api calls")
+    }
 
     //launch the scheduler to clean the database from the expired tokens and nonces
     Schedule.schedule(()=> OAuthAuthorisation.dataBaseCleaner, 2 minutes)
@@ -191,18 +234,28 @@ class Boot extends Loggable{
     val accountCreation = {
       if(Props.getBool("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
-        List(Menu("Sandbox Account Creation", "Create Sandbox Test Account") / "create-sandbox-account" >> OBPUser.loginFirst)
+        // Not mentioning test and sandbox for App store purposes right now.
+        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> OBPUser.loginFirst)
       } else {
         Nil
       }
     }
+
+    // API Metrics (logs of API calls)
+    // If set to true we will write each URL with params to a datastore / log file
+    if (Props.getBool("write_metrics", false)) {
+      logger.info("writeMetrics is true. We will write API metrics")
+    } else {
+      logger.info("writeMetrics is false. We will NOT write API metrics")
+    }
+
 
     // Build SiteMap
     val sitemap = List(
           Menu.i("Home") / "index",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Developers") / "consumer-registration",
+          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> OBPUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
@@ -230,14 +283,34 @@ class Boot extends Loggable{
     // What is the function to test if a user is logged in?
     LiftRules.loggedInTest = Full(() => OBPUser.loggedIn_?)
 
+    // Template(/Response?) encoding
+    LiftRules.early.append(_.setCharacterEncoding("utf-8"))
+
     // Use HTML5 for rendering
     LiftRules.htmlProperties.default.set((r: Req) =>
       new Html5Properties(r.userAgent))
 
     LiftRules.explicitlyParsedSuffixes = Helpers.knownSuffixes &~ (Set("com"))
 
+    //set base localization to english (instead of computer default)
+    Locale.setDefault(Locale.ENGLISH)
+
+    //override locale calculated from client request with default (until we have translations)
+    LiftRules.localeCalculator = {
+      case fullReq @ Full(req) => Locale.ENGLISH
+      case _ => Locale.ENGLISH
+    }
+
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
+
+    try {
+      val useMessageQueue = Props.getBool("messageQueue.createBankAccounts", false)
+      if(useMessageQueue)
+        BankAccountCreationListener.startListen
+    } catch {
+      case e: java.lang.ExceptionInInitializerError => logger.warn(s"BankAccountCreationListener Exception: $e")
+    }
 
     Mailer.devModeSend.default.set( (m : MimeMessage) => {
       logger.info("Would have sent email if not in dev mode: " + m.getContent)
@@ -276,8 +349,8 @@ class Boot extends Loggable{
   }
 
   private def sendExceptionEmail(exception: Throwable): Unit = {
+    import Mailer.{From, PlainMailBodyType, Subject, To}
     import net.liftweb.util.Helpers.now
-    import Mailer.{From, To, Subject, PlainMailBodyType}
 
     val outputStream = new java.io.ByteArrayOutputStream
     val printStream = new java.io.PrintStream(outputStream)
@@ -313,11 +386,42 @@ class Boot extends Loggable{
 }
 
 object ToSchemify {
-  val models = List(OBPUser, Admin, Nonce, Token, Consumer,
-    ViewPrivileges, ViewImpl, APIUser, MappedAccountHolder,
-    MappedComment, MappedNarrative, MappedTag,
-    MappedTransactionImage, MappedWhereTag, MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag, MappedBank, MappedBankAccount, MappedTransaction,
-    MappedMetric, MappedCustomerInfo, MappedCustomerMessage,
-    MappedBankBranch, MappedDataLicense)
+  val models = List(OBPUser,
+    Admin,
+    Nonce,
+    Token,
+    Consumer,
+    ViewPrivileges,
+    ViewImpl,
+    APIUser,
+    MappedAccountHolder,
+    MappedComment,
+    MappedNarrative,
+    MappedTag,
+    MappedWhereTag,
+    MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag,
+    MappedBank,
+    MappedBankAccount,
+    MappedTransaction,
+    MappedTransactionRequest,
+    MappedTransactionRequest210,
+    MappedTransactionImage,
+    MappedMetric,
+    MappedCustomer,
+    MappedCustomerMessage,
+    MappedBranch,
+    MappedAtm,
+    MappedProduct,
+    MappedCrmEvent,
+    MappedKycDocument,
+    MappedKycMedia,
+    MappedKycCheck,
+    MappedKycStatus,
+    MappedSocialMedia,
+    MappedTransactionType,
+    MappedMeeting,
+    MappedUserCustomerLink,
+    MappedKafkaBankAccountData,
+    MappedEntitlement)
 }

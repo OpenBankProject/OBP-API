@@ -4,6 +4,11 @@ import net.liftweb.common._
 import net.liftweb.util.{Mailer, Props}
 import net.liftweb.util.Helpers._
 
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.Extraction._
+import net.liftweb.json.Printer._
+
+
 object Helper{
 
   /**
@@ -94,4 +99,14 @@ object Helper{
 
     (amount * BigDecimal("10").pow(decimalPlaces)).toLong
   }
+
+
+  /*
+  Returns a pretty json representation of the input
+   */
+  def prettyJson(input: JValue) : String = {
+    implicit val formats = net.liftweb.json.DefaultFormats
+    pretty(render(decompose(input)))
+  }
+
 }

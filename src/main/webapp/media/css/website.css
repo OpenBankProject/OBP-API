@@ -1,23 +1,18 @@
 @import url('reset.css');
 
-@media all and (max-width: 320px) {
-    #signupForm td input{
-        width: 150px;
-    }
-}
-@media all and (min-width: 321px) {
-    #signupForm td input{
-        width: 200px;
-    }
+html {
+    height: 100%
 }
 
-body {
-	font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-	font-weight: 300;
+
+body, div, h1, h2, h3, h4, p, span {
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+	font-weight: 400;
 }
 
 a {
-	color: #1C8B77;
+	color: #666666;
+	text-decoration: none;
 }
 
 a:hover {
@@ -87,13 +82,17 @@ input.submit {
 
 #header {
 	overflow: auto;
-	padding: 45px 0 40px;
-	background: transparent url(../images/header.png) repeat-x 50% 100%;
+	padding: 0px 0 20px;
 }
 
-#accountShortDiscription {
-	font-size: 20px;
-	display: inline-block;
+#header-decoration {
+    background-color: #53C4EF;
+    width: 100%;
+    height: 35px;
+}
+
+#lift__noticesContainer__ {
+    display: none;
 }
 
 #social {
@@ -101,56 +100,421 @@ input.submit {
 }
 
 #nav {
-	overflow: auto;
-	padding: 3px 0 0;
-	background: transparent url(../images/nav.png) repeat-x 50% 50%;
-}
-
-#about_text {
-	text-align: justify;
-	width: 500px;
-	margin-top: 15px;
-	float: left;
-	margin-left: 20px;
-	margin-right: 20px;
+    padding: 4px 10px 0 10px;
+    background: #EEEEEE;
+    height: 40px;
 }
 
 #nav ul {
-	float: left;
+    height: 40px;
+    margin-left: 20px;
 }
 
 #nav ul li {
 	float: left;
-	margin: 0 0 0 3px;
+	margin: 3px 0 0 3px;
+	height: 100%;
+}
+
+#nav ul li:nth-child(1):before {
+    background-image: url(../images/nav-home-icon.png);
+    content: " ";
+    height: 25px;
+    width: 25px;
+    display: inline-block;
+    margin-right: -5px;
+    float: left;
+}
+
+#nav ul li:nth-child(2) a:after,
+#nav ul li:nth-child(3) a:after,
+#nav ul li:nth-child(4) a:after,
+#nav ul li:nth-child(5) a:after,
+#nav ul li:nth-child(6) a:after {
+    position: absolute;
+    display: block;
+    width: 2px;
+    height: 39px;
+    margin-top: -26px; /* position ::after item vertically */
+    margin-left: -20px; /* position ::after item horizontally */
+    content: " ";
+    background-image: url(../images/nav-separator.png);
 }
 
 #nav ul li a {
-	display: block;
+	display: inline-block;
 	padding: 8px 20px 10px;
 	border-radius: 5px 5px 0 0;
-	background: transparent url(../images/nav-item.png) repeat-x 50% 50%;
-	color: #ffffff;
+	color: black;
 	text-decoration: none;
 	font-size: 14px;
-	text-shadow: 1px 1px 1px #666666;
 }
 
 #nav ul li a.selected {
 	float: left;
-	background-image: url(../images/nav-selected.png);
-	color: #333333;
 	text-shadow: none;
+	color: #101010;
 }
 
-#logo {
+#nav .nav-login-state-item {
+    float: right;
+    margin-right: 10px;
+    color: darkgray;
+}
+
+#nav .nav-login-state-item .logout {
+    color: black;
+}
+
+#logo-left {
+	margin: 20px 0 0 120px;
 	float: left;
-	overflow: hidden;
-	width: 279px;
-	height: 38px;
-	margin: 0 0 0 10px;
-	background: transparent url(../images/logo.png) no-repeat 50% 0;
-	text-indent: -9999em;
+	display: inline-block;
+	/* height: 75px; */
+}
+
+#logo-left img {
+    max-height: 80px;
+}
+
+#logo-right {
+	margin: 20px 120px 0 0;
+	float: right;
+	display: inline-block;
+}
+
+#logo-right img {
+    max-height: 80px;
+}
+
+#main {
+    color: #333333;
+}
+
+#main-about {
+    padding-top: 70px;
+    /* background-image: url(../images/bnpp/bnpp-background.jpg); */
+    min-height: 463px;
+}
+
+#main-about h1 {
+    color: white;
+	font-size: 36px;
+}
+
+#main-about p.about-text {
+    padding: 10px 180px 40px 180px;
+    font-size: 20px;
+    line-height: 1.5em;
+    color: white;
+    text-align: center;
+    font-weight: 200;
+}
+
+#main-about p.about-text a {
+    color: white;
+}
+#main-about p.about-text a:hover {
+    text-decoration: underline;
+}
+
+#main-links {
+    background-color: #3C3C3C;
+    text-align: center;
+    height: 105px;
+}
+
+#main-links a {
+    padding: 5px 25px 5px 25px;
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+    border: 2px solid gray;
+    border-radius: 25px;
+    margin: 30px 20px 0px 20px;
+	font-size: 24px;
+}
+
+#main-sandbox {
+  background-color: #9A9A9A;
+  color: #333333;
+  padding: 25px 50px 100px 100px;
+  text-align: left;
+}
+
+#main-sandbox h1 {
+    color: white;
+    font-size: 36px;
+    margin-bottom: 15px;
+    margin-left: -5px;
+    margin-top: 15px;
+}
+
+
+#main-get_started {
+	text-align: left;
+	margin: 50px auto;
+	background-color: #f1f4f8;
+}
+
+.main-get_started-row {
+	display: table-row;
+}
+.main-get_started-cell {
+	display: table-cell;
+	vertical-align: top;
+	color: #838b98;
+}
+.main-get_started-cell:nth-child(1) {
+	width: 45%;
+	padding: 0 10px;
+}
+
+.main-get_started-cell:nth-child(2) {
+	width: 95px;
+	height: 300px;
+}
+.main-get_started-cell:nth-child(2) img {
+	margin: 0 10px;
+	display: block;
+}
+
+.main-get_started-cell:nth-child(3) {
+	width: 45%;
+	padding: 0 10px;
+}
+
+.main-get_started-icon {
+	text-align: center;
+}
+
+#main-get_started h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	margin: 30px 0 30px 0;
+	display: table-caption;
+}
+ 
+#main-get_started h2 {
+	font-weight: bold;
+	font-size: 24px;
+	color: #333333;
+}
+
+#main-get_started .green-button {
+	padding-bottom: 40px;
+}
+
+
+#main-apis {
+	text-align: left;
+	margin: 50px auto;
+	display: table;
+}
+.main-apis-row {
+	display: table-row;
+}
+.main-apis-cell {
+	display: table-cell;
+	vertical-align: top;
+	padding-bottom: 30px;
+}
+.main-apis-cell:nth-child(1) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(2) {
+	width: 40%;
+}
+.main-apis-cell:nth-child(3) {
+	width: 10%;
+}
+.main-apis-cell:nth-child(4) {
+	width: 40%;
+}
+
+#main-apis h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	margin: 0px 0 30px 0;
+	display: table-caption;
+}
+#main-apis h2 {
+	font-weight: bold;
+	font-size: 24px;
+	margin-top: 13px;
+}
+
+
+#main-showcases {
+	margin: 50px auto;
+	padding: 60px 0;
+	color: white;
+	background-color: #31b9ce;
+}
+
+#main-showcases h1 {
+	margin-bottom: 60px;
+	font-size: 36px;
+}
+
+#main-showcases h2 {
+	font-size: 24px;
+}
+
+.main-showcases-item {
+	display: inline-block;
+	margin: 30px 10px;
+	width: 230px;
+	font-size: small;
+}
+
+.main-showcases-item a {
+	color: white;
+}
+.main-showcases-item a:hover {
+	text-decoration: underline;
+}
+
+
+#main-faq {
+	text-align: left;
+	margin: 50px auto;
+	padding:0 40px;
+	background-color: #f1f4f8;
+}
+
+#main-faq h1 {
+	text-align: center;
+	font-weight: bold;
+	font-size: 36px;
+	margin: 30px 0 30px 0;
+	display: table-caption;
+}
+ 
+#main-faq h2 {
+	font-size: 18px; /* text won't fit on line with 24px */
+	font-weight: bold;
+	color: #333333;
+}
+ 
+#main-faq .collapse {
+	background-repeat:no-repeat;
+	padding-left: 30px;
+	margin-bottom: 30px;
+	list-style: none;
+}
+#main-faq .collapse.plus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/plus.png');
+}
+#main-faq .collapse.minus {
+	background-image: url('https://static.openbankproject.com/images/sandbox/faq/minus.png');
+}
+#main-faq .collapse:hover {
 	cursor: pointer;
+}
+
+#main-faq ol {
+	list-style-type: decimal;
+	display: none;
+}
+
+#main-faq p {
+	display: none;
+}
+
+.main-faq-row {
+	display: table-row;
+}
+
+.main-faq-cell {
+	display: table-cell;
+	vertical-align: top;
+	color: #838b98;
+	font-size: 16px;
+	width:485px;
+}
+
+
+
+
+#main-start_building {
+	margin: 50px 0;
+	padding: 0 80px;
+}
+#main-start_building h1 {
+	font-size: 36px;
+	font-weight: bold;
+	line-height: 40px;
+}
+
+
+#main-partners {
+	margin: 50px auto;
+	text-align: center;
+}
+
+#main-partners img {
+	width: 160px;
+}
+
+#main-partners a {
+    vertical-align: top;
+    display: inline-block;
+    /* *display: inline; */
+    /* zoom: 1; */
+    margin: 30px 30px 30px 30px;
+}
+
+
+
+#main-support {
+	margin: 0;
+	margin-bottom: -20px; /* touch footer */
+	padding: 60px;
+	color: white;
+	background-color: #31b9ce;
+}
+
+#main-support h2 {
+	font-size: 24px;
+}
+
+.main-support-item {
+	display: inline-block;
+	margin: 30px 10px;
+	width: 280px;
+}
+.main-support-item a {
+	color: white;
+}
+
+
+
+.green-button {
+	width: 300px;
+	margin: 30px auto;
+	text-align: center;
+}
+.green-button a {
+	border: 3px solid green;
+	border-radius: 25px;
+	color: green;
+	padding: 10px;
+	font-size: 24px;
+}
+
+
+
+
+
+
+.stretch {
+    width: 100%;
+    display: inline-block;
+    font-size: 0;
+    line-height: 0
 }
 
 .account-upper{
@@ -161,16 +525,17 @@ input.submit {
 
 .account-in-content{
 	height: 100%;
-	padding: 2px 20px 0;
+	padding: 10px 20px 30px 10px;
+    text-align: center;
 }
 
-#account .profile-info {
+.account .profile-info {
 	float: right;
 	margin: 0 10px 0 0;
 	font-size: 12px;
 }
 
-#account .account-info {
+.account .account-info {
 	padding: 7px 15px 8px;
 	border: 1px solid #dddddd;
 	border-radius: 10px;
@@ -179,42 +544,121 @@ input.submit {
 	color: #666666;
 }
 
-#account .logout {
+.account .logout {
 	font-size: 12px;
 }
 
+.account form.login .field {
+	width: 164px;
+}
 
-.account-upper form.login{
+.account form.login .buttons {
+	margin-top: 30px;
+	height: 2em;
+	display: flex;
+}
+
+.account form.login .field input {
+  clear: left;
+  width: 150px;
+  background: #ffffff;
+  border: 1px solid #999999;
+  border-radius: 3px;
+  padding: 2px;
+}
+
+.account form.login .field .signup {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account form.login .button-field {
+    height: 2em;
+}
+
+.account form.login .button .submit {
+  float: left;
+  background: #c1e7e1;
+  border: 1px solid #22a890;
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: #58988e;
+  font-size: 12px;
+  cursor: pointer;
+  margin: 14px 0 0;
+}
+
+.account form.login .field .forgot {
+  float: right;
+  margin: 1px 8px 0 0;
+  padding: 2px 0 0;
+  font-size: 11px;
+}
+
+.account-in-content form.login .field input {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #CCC;
+  border-radius: 6px;
+  padding: 2px;
+  height: 1.8em;
+}
+
+.account-in-content form.login .button .signup {
+    border: 1px solid white;
+    border-radius: 20px;
+    padding: 2px 18px;
+    color: #535456;
+    font-size: 20px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    float: right;
+    margin: 0;
+    text-transform: uppercase;
+    background-color: white;
+    font-weight: 500;
+    height: 26px;
+}
+
+.account-in-content form.login .button .submit {
+  background: white;
+  border: gray;
+  border-radius: 20px;
+  padding: 7px 20px;
+  color: #535456;
+  font-size: 18px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  height: initial;
+  margin: 0;
+  width: inherit;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.account-in-content form.login .field .forgot {
+	float: right;
+	margin: 1px 6px 0 0;
+	padding: 2px 0 0;
+	font-size: 12px;
+	color: white;
+}
+
+.account-upper form.login {
 	float: right;
 }
-
-.account-in-content form.login{
-	width: 555px;
-	margin:0 auto
-}
-
-
 
 .account-upper form.login .field,
 .account-upper form.login .button {
 	float: left;
 }
 
-.account-in-content form.login .field{
-	margin-top: 10px;
-}
-
-#account form.login .field {
-	width: 164px;
-}
-
-
 .account-upper form.login .field label {
 	font-size: 11px;
-}
-
-.account-in-content form.login .field label {
-	font-size: 12px;
 }
 
 .account-upper form.login .field input {
@@ -222,59 +666,102 @@ input.submit {
 	font-size: 12px;
 }
 
+.account-in-content form.login{
+	/* width: 555px;*/
+	margin:0 auto
+}
+
+.account-in-content form.login .field{
+	margin-top: 15px;
+	width: 100%;
+}
+
+.account-in-content form.login .field label {
+	/* font-size: 12px; */
+}
+
 .account-in-content form.login .field input {
 	font-size: 14px;
 }
 
-#account form.login .field input {
-	clear: left;
-	width: 150px;
-	background: #ffffff;
-	border: 1px solid #999999;
-	border-radius: 3px;
-	padding: 2px;
+.account-in-content form.forgotPassword {
+    padding-top: 20px;
+    width: 470px;
 }
 
-#account form.login .field .forgot {
-	float: right;
-	margin: 1px 8px 0 0;
-	padding: 2px 0 0;
-	font-size: 11px;
-}
-
-#account form.login .field .signup {
-	float: right;
-	margin: 1px 8px 0 0;
-	padding: 2px 0 0;
-	font-size: 11px;
-}
-
-#account form.login .button .submit {
-	float: left;
-	background: #c1e7e1;
-	border: 1px solid #22a890;
-	border-radius: 3px;
-	padding: 2px 5px;
-	color: #58988e;
-	font-size: 12px;
-	cursor: pointer;
-	margin: 14px 0 0;
-}
-
-#content {
-	padding: 20px 0 40px;
+.account-in-content form.forgotPassword .buttons {
+	margin-top: 30px;
+	height: 2em;
+	display: flex;
 }
 
 table {
-	width: 100%;
-	margin: 0 0 40px;
+	width: 90%;
+	margin: 0 0 20px;
 	border-collapse: collapse;
-	clear : both;
+	clear: both;
+	color: black;
+	/* border: none; */
+	margin-left: auto;
+	margin-right: auto;
+}
+
+table th,
+table td {
+	text-align: left;
+}
+
+table tbody tr {
+	/* background: #459860; */
+}
+
+table tbody tr:nth-child(even) {
+	/* background: #459860; */
+}
+
+table td {
+	padding: 15px 0px 15px 14px;
+	/* border-top: 2px solid #ffffff; */
+	line-height: 1em;
+	font-size: 15px;
+	/* vertical-align: top; */
+	/* color: white; */
+}
+
+table th {
+	overflow: auto;
+	padding: 0 0 10px 8px;
+	border-bottom: 2px solid #cbcbcb;
+}
+
+section#content {
+     font-size: 20px;
+     line-height: 1.5em;
+     text-align: center;
+     color: white;
 }
 
 /* don't add spacing after last table in a transaction list */
-#content div div:last-of-type table {
+section#content div div:last-of-type table {
     margin-bottom: 0px;
+}
+
+section#content form {
+    color: white;
+    /* width: 85%; */
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 16px;
+    margin-top: 0px;
+}
+
+/* for lift generated forms */
+section#content>form>table {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 50%;
+    margin-top: 50px;
 }
 
 #verifier {
@@ -284,8 +771,10 @@ table {
 	text-align: center;
 }
 
-#signupForm tr td:first-child {
-    width: 170px;
+#signupForm tr:first-child td {
+    width: 150px;
+    font-size: 18px;
+    color: white;
 }
 
 #signupForm td span input{
@@ -300,215 +789,109 @@ table {
 }
 
 #signupForm td input[type=submit]{
-    width:85px;
+    /* width:85px; */
 }
 
-table th,
-table td {
-	text-align: left;
+.signup-error {
+	margin-bottom: 10px;
+	color: red;
 }
 
-table tbody tr {
-	background: #f3f9f8;
+#registerAppSection {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-table tbody tr:nth-child(even) {
-	background: #f2f8f1;
+#registerAppSection h1 {
+    text-align: left;
+    margin-left: 2%;
+    margin-bottom: 40px;
+    font-size: 20px;
+    line-height: 1.5em;
 }
 
-table td {
-	padding: 14px 10px;
-	border-top: 2px solid #ffffff;
-	line-height: 1em;
-	font-size: 13px;
-	vertical-align: top;
+#registerAppSection .success {
+    /* font-size: 20px !important; */
+    margin-bottom: 25px;
 }
 
-table th {
-	overflow: auto;
-	padding: 0 0 10px 8px;
-	border-bottom: 2px solid #cbcbcb;
+div.registration {
+    padding: 30px 0 50px 0;
+    /* width: 84%; */
 }
 
-table.management th {
-    padding-left: 0px;
+form.register {
+    /* color: #555555; */
+    width: 96%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px;
 }
 
-table.transactions th h5.date {
-	float: left;
+form div.form-column {
+    float: left;
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    /* color: #555555; */
 }
 
-table.transactions th h6.balance {
-	float: right;
+form div.form-column div {
+    display: inline-flex;
+    margin-bottom: 16px;
 }
 
-table.transactions th .balance .text {
-	color: #999999;
-	padding: 0 10px 0 0;
-	font-size: 0.8em;
+form label {
+    font-size: 16px;
+    min-width: 144px;
+    display: inline-flex;
+    text-align: left;
+    margin-right: 5px;
 }
 
-table.transactions td.icon {
-	width: 20px;
+form input[type=text], form select {
+    width: 60%;
 }
 
-table.transactions td.icon .out,
-table.transactions td.icon .in {
-	overflow: hidden;
-	width: 14px;
-	height: 14px;
-	background-color: transparent;
-	background-position: 50% 50%;
-	background-repeat: no-repeat;
-	text-indent: -9999em;
+form input, form select {
+    border-radius: 5px;
+    border: solid 1px white;
+    height: 28px;
+    /* margin-bottom: 16px; */
+    color: #535456;
+    background-color: white;
+    font-size: 17px;
+    display: inline-block;
 }
 
-table.transactions td.icon .out {
-	background-image: url(../images/transaction-out.png);
+form.register textarea {
+    width: 80%;
+    border-radius: 5px;
+    border: solid 1px white;
+    height: 100px;
 }
 
-table.transactions td.icon .in {
-	background-image: url(../images/transaction-in.png);
+form.register div.submit {
+    margin-left: auto;
+    margin-top: 25px;
 }
 
-table.transactions td.symbol {
-	width: 10px;
-	padding-right: 5px;
-	text-align: center;
-	font-weight: bold;
+form input[type=submit] {
+    font-size: 18px;
+    height: 30px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    text-align: left;
+    padding: 2px 20px 0px 20px;
 }
-
-table.transactions td.amount {
-	padding-left: 5px;
-	width: 100px;
-}
-
-table.transactions td.name {
-	width: 160px;
-}
-
-table.transactions td.extra {
-	width: 350px;
-}
-
-table.transactions td.comments {
-	width: 30px;
-	padding-top: 10px;
-	text-align: right;
-}
-
-table.transactions td.comments .comment {
-	display: inline-block;
-	background: transparent url(../images/comment.png) no-repeat 50% 0;
-	width: 13px;
-	height: 9px;
-	padding: 3px 3px 6px 4px;
-	color: #333333;
-	text-align: center;
-	line-height: 1em;
-	font-size: 9px;
-}
-
-table.management th a.sort {
-	margin: 0 0 0 3px;
-}
-
-td a.upload {
-	display: inline-block;
-	padding: 5px 5px 6px 30px;
-	border: 1px dotted #cccccc;
-	border-radius: 5px;
-	background: #ffffff url(../images/upload-off.png) no-repeat 5px 5px;
-	line-height: 22px;
-	white-space: nowrap;
-	font-size: 12px;
-	text-decoration: none;
-	color: #999999;
-}
-
-table.management td a.upload:hover {
-	background-image: url(../images/upload-on.png);
-	text-decoration: underline;
-	color: #666666;
-}
-
-table.management td span.upload {
-	display: inline-block;
-	padding: 2px;
-	border: 1px solid #cccccc;
-	border-radius: 5px;
-	background: #ffffff;
-	line-height: 0;
-	font-size: 0;
-}
-
-table.management td span.upload img {
-	height: 30px;
-}
-
-table.management th {
-	font-size: 14px;
-}
-
-table.management th.account {
-	width: 155px;
-}
-
-table.management td.account {
-	padding-right: 15px;
-}
-
-table.management th.public {
-	width: 120px;
-}
-
-table.management td.public {
-	padding-left: 0;
-	line-height: 16px;
-	font-size: 12px;
-}
-
-table.management th.private {
-	width: 120px;
-}
-
-table.management td.private {
-	padding-left: 0;
-	line-height: 16px;
-	font-size: 12px;
-}
-
-table.management th.website {
-	width: 150px;
-}
-
-table.management td.website {
-	padding-left: 0;
-	line-height: 16px;
-	font-size: 12px;
-}
-
-table.management th.information {
-	width: 200px;
-}
-
-table.management td.information {
-	padding-left: 0;
-	line-height: 16px;
-	font-size: 12px;
-}
-
-table.management th.image {
-	width: 120px;
-}
-
-table.management td.image {
-	padding-top: 3px;
-	padding-bottom: 2px;
-	padding-left: 0;
-	text-align: right;
-}
-
 
 div.extra_account_logo {
     float: left;
@@ -536,20 +919,57 @@ span.alias_indicator_private {
 
 
 #footer {
-	background: #f0f0f0;
-	border-top: 1px dotted #cccccc;
-	border-radius: 0 0 8px 8px;
-	padding: 10px 0 13px;
+	margin-top: 20px;
+	padding: 50px 0px 50px 0px;
+    color: #999999;
+    background-color: #3C3C3C;
+    text-align: center;
+}
+#footer a {
+    color: white;
+}
+#footer #copyright {
+	margin-bottom: 10px;
 }
 
-#footer p {
-	color: #999999;
-	font-size: 11px;
-	text-align: center;
-	line-height: 1.5
+
+#authorizeSection {
+    background-color: #53C4EF;
+    padding: 10px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: auto;
 }
-#authorizeSection{
-    margin-bottom: 80px;
+
+#authorizeSection form.login {
+	padding-top: 20px;
+	width: 400px;
+}
+
+.loginSection {
+    width: 50%;
+}
+
+.signupSection {
+    padding: 30px 0px 30px 0px !important;
+    width: 60%;
+}
+
+.signupSection form input[type=text],
+.signupSection form select,
+.signupSection form input[type=password] {
+  width: 80%;
+}
+.signupSection form tr td {
+    color: white;
+}
+
+#userAccess {
+    padding: 5px;
+    /* width: 400px; */
 }
 
 .login-error {
@@ -557,12 +977,10 @@ span.alias_indicator_private {
 	color: red;
 }
 
-#authorizeSection form.login {
-	margin-top: 20px;
-}
 span.edit_error_class {
 	color: red;
 }
+
 #accountList {
 	margin-top: 5px;
 	float : right;
@@ -599,38 +1017,37 @@ span.edit_error_class {
 	margin-bottom: 5px;
 }
 
-li.comment
-{
+li.comment {
 	padding : 14px 10px;
 	border-top: 2px solid white;
 	background: #f3f9f8;
 	line-height: 1em;
 	font-size: 13px;
 }
-#comment_list
-{
+
+#comment_list {
 	margin-top: 10px;
 }
-div#addCommentbloc
-{
+
+div#addCommentbloc {
 	margin-top: 15px;
 }
-#submitComment
-{
+
+#submitComment {
 	display: block;
 }
-#lastUpdate
-{
+
+#lastUpdate {
 	margin-top: 5px;
 	font-size: 13px;
 	display: block;
 }
-#account_details
-{
+
+#account_details {
 	margin-bottom: 25px;
 }
-a#feedBack
-{
+
+a#feedBack {
 	display: block;
 	position: fixed;
 	left:0;
@@ -640,57 +1057,79 @@ a#feedBack
 	background: url(../images/feedback-button.gif);
 	cursor: pointer;
 }
-span#registrationDetails
-{
+
+span#registrationDetails {
 	font-size: 10px;
 }
-.error
-{
+
+.error {
 	color:red;
 }
-img.moreInfoIcon
-{
-	margin-left: 5px;
+
+img.moreInfoIcon {
+	margin-left: 6px;
+	margin-top: 7px;
+	width: 18px;
+	height: 18px;
 }
-span#submissionMessage
-{
+
+span#submissionMessage {
 	display: block;
 }
-span#submissionSuccess, span#submissionFailed
-{
+
+span#submissionSuccess, span#submissionFailed {
 	display: block;
 	padding: 15px 20px;
 	background: #66ee55;
 }
-span#submissionFailed
-{
+
+span#submissionFailed {
 	background: #ff3311;
 }
-span#accountsMsg
-{
+
+span#accountsMsg {
 	font-size: 13px;
 }
-#registration-errors{
+
+#registration-errors {
 	color: red;
-	border: solid 1px red;
-	margin: 20px;
-	padding: 15px;
+	/* border: solid 1px red; */
+	margin: 0;
+	/* padding: 15px; */
 }
 
 #oauth-done-thanks {
 	margin: 30px;
+	color: black;
 }
 
-#create-account-form-container {
-    margin-left: 50px;
-    margin-top: 30px;
+#create-sandbox-account {
+    background-color: #53C4EF;
+    padding: 20px;
+    color: white;
+    max-width: 85%;
+    margin-top: 50px;
+    display: inline-block;
 }
 
-#create-account-form-container input {
-    margin-top: 5px;
+#create-sandbox-account form label {
+    min-width: 190px;
+}
+
+#create-sandbox-account form div.submit {
+    margin-left: auto;
+}
+
+#create-sandbox-account form div.form-column.middle {
+  margin-left: 25%;
+}
+
+#create-account-explanation a {
+    color: lightgray;
 }
 
 #create-account-instructions {
+    margin-top: 30px;
     margin-left: 10px;
 }
 
@@ -703,12 +1142,22 @@ span#accountsMsg
 #account-created-successfully {
     margin-left: 50px;
     margin-top: 10px;
-    color: green;
+    color: lightgreen;
 }
 
 #admin-logout {
-	margin: 20px;
-	padding: 10px;
+	padding-left: 10px;
 	border: 2px solid;
 	border-color: #FF0000;
+	margin-top:-6px;
+	padding: 4px 0 3px 10px;
+}
+
+#admin-consumer-summary {
+	color: black;
+	margin: 20px 0;
+}
+
+#login_special_instructions {
+    text-align: left;
 }

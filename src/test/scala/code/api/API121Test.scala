@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -46,7 +46,8 @@ import code.model.{Consumer => OBPConsumer, Token => OBPToken, _}
 import APIUtil.OAuth._
 import code.views.Views
 import net.liftweb.json.JsonAST.JString
-import code.api.test.APIResponse
+import code.api.APIResponse
+import net.liftweb.util.Props
 
 class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser2Accounts {
 
@@ -54,7 +55,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
 
-  val viewFileds = List(
+  val viewFields = List(
     "can_see_transaction_this_bank_account","can_see_transaction_other_bank_account",
     "can_see_transaction_metadata","can_see_transaction_label","can_see_transaction_amount",
     "can_see_transaction_type","can_see_transaction_currency","can_see_transaction_start_date",
@@ -242,19 +243,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     viewsIdsToGrant
   }
 
-  def randomView(isPublic: Boolean, alias: String) : ViewCreationJSON = {
-    ViewCreationJSON(
+  def randomView(isPublic: Boolean, alias: String) : CreateViewJSON = {
+    CreateViewJSON(
       name = randomString(3),
       description = randomString(3),
       is_public = isPublic,
       which_alias_to_use=alias,
       hide_metadata_if_alias_used = false,
-      allowed_actions = viewFileds
+      allowed_actions = viewFields
     )
   }
 
   def getAPIInfo : APIResponse = {
-    val request = v1_2Request
+    val request = v1_2Request / "root"
     makeGetRequest(request)
   }
 
@@ -303,6 +304,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
+  //get one bank account
   def getPrivateBankAccountDetails(bankId : String, accountId : String, viewId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
     val request = v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "account" <@(consumerAndToken)
     makeGetRequest(request)
@@ -313,12 +315,12 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     makeGetRequest(request)
   }
 
-  def postView(bankId: String, accountId: String, view: ViewCreationJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def postView(bankId: String, accountId: String, view: CreateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views").POST <@(consumerAndToken)
     makePostRequest(request, write(view))
   }
 
-  def putView(bankId: String, accountId: String, viewId : String, view: ViewUpdateData, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
+  def putView(bankId: String, accountId: String, viewId : String, view: UpdateViewJSON, consumerAndToken: Option[(Consumer, Token)]): APIResponse = {
     val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / "views" / viewId).PUT <@(consumerAndToken)
     makePutRequest(request, write(view))
   }
@@ -423,19 +425,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postMoreInfoForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, moreInfo : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "more_info").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "more_info").POST <@(consumerAndToken)
     val moreInfoJson = MoreInfoJSON(moreInfo)
     makePostRequest(request, write(moreInfoJson))
   }
 
   def updateMoreInfoForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, moreInfo : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "more_info").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").PUT <@(consumerAndToken)
     val moreInfoJson = MoreInfoJSON(moreInfo)
     makePutRequest(request, write(moreInfoJson))
   }
 
   def deleteMoreInfoForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "more_info").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"more_info").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -444,19 +446,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, url : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "url").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").POST <@(consumerAndToken)
     val urlJson = UrlJSON(url)
     makePostRequest(request, write(urlJson))
   }
 
   def updateUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, url : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "url").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" /"url").PUT <@(consumerAndToken)
     val urlJson = UrlJSON(url)
     makePutRequest(request, write(urlJson))
   }
 
   def deleteUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "url").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -465,19 +467,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postImageUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, imageUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "image_url").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").POST <@(consumerAndToken)
     val imageUrlJson = ImageUrlJSON(imageUrl)
     makePostRequest(request, write(imageUrlJson))
   }
 
   def updateImageUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, imageUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "image_url").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").PUT <@(consumerAndToken)
     val imageUrlJson = ImageUrlJSON(imageUrl)
     makePutRequest(request, write(imageUrlJson))
   }
 
   def deleteImageUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "image_url").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "image_url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -486,19 +488,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postOpenCorporatesUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, openCorporateUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "open_corporates_url").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").POST <@(consumerAndToken)
     val openCorporateUrlJson = OpenCorporateUrlJSON(openCorporateUrl)
     makePostRequest(request, write(openCorporateUrlJson))
   }
 
   def updateOpenCorporatesUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, openCorporateUrl : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "open_corporates_url").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").PUT <@(consumerAndToken)
     val openCorporateUrlJson = OpenCorporateUrlJSON(openCorporateUrl)
     makePutRequest(request, write(openCorporateUrlJson))
   }
 
   def deleteOpenCorporatesUrlForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "open_corporates_url").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "open_corporates_url").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -507,19 +509,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postCorporateLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, corporateLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "corporate_location").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").POST <@(consumerAndToken)
     val corpLocationJson = CorporateLocationJSON(corporateLocation)
     makePostRequest(request, write(corpLocationJson))
   }
 
   def updateCorporateLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, corporateLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "corporate_location").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").PUT <@(consumerAndToken)
     val corpLocationJson = CorporateLocationJSON(corporateLocation)
     makePutRequest(request, write(corpLocationJson))
   }
 
   def deleteCorporateLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "corporate_location").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "corporate_location").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -528,19 +530,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
   }
 
   def postPhysicalLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, physicalLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "physical_location").POST <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").POST <@(consumerAndToken)
     val physLocationJson = PhysicalLocationJSON(physicalLocation)
     makePostRequest(request, write(physLocationJson))
   }
 
   def updatePhysicalLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, physicalLocation : LocationPlainJSON, consumerAndToken: Option[(Consumer, Token)])  : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "physical_location").PUT <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").PUT <@(consumerAndToken)
     val physLocationJson = PhysicalLocationJSON(physicalLocation)
     makePutRequest(request, write(physLocationJson))
   }
 
   def deletePhysicalLocationForOneOtherBankAccount(bankId : String, accountId : String, viewId : String, otherBankAccountId : String, consumerAndToken: Option[(Consumer, Token)]) : APIResponse = {
-    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "physical_location").DELETE <@(consumerAndToken)
+    val request = (v1_2Request / "banks" / bankId / "accounts" / accountId / viewId / "other_accounts" / otherBankAccountId / "metadata" / "physical_location").DELETE <@(consumerAndToken)
     makeDeleteRequest(request)
   }
 
@@ -665,76 +667,79 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       })
     }
 
-    scenario("we make a payment", Payments) {
+    if (Props.getBool("payments_enabled", false) == false) {
+      ignore("we make a payment", Payments) {}
+    } else {
+      scenario("we make a payment", Payments) {
+        val testBank = createPaymentTestBank()
+        val bankId = testBank.bankId
+        val accountId1 = AccountId("__acc1")
+        val accountId2 = AccountId("__acc2")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
-      val testBank = createPaymentTestBank()
-      val bankId = testBank.bankId
-      val accountId1 = AccountId("__acc1")
-      val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        def getFromAccount: BankAccount = {
+          BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+        }
 
-      def getFromAccount : BankAccount = {
-        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
-      }
+        def getToAccount: BankAccount = {
+          BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+        }
 
-      def getToAccount : BankAccount = {
-        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
-      }
+        val fromAccount = getFromAccount
+        val toAccount = getToAccount
 
-      val fromAccount = getFromAccount
-      val toAccount = getToAccount
+        val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
 
-      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+        val beforeFromBalance = fromAccount.balance
+        val beforeToBalance = toAccount.balance
 
-      val beforeFromBalance = fromAccount.balance
-      val beforeToBalance = toAccount.balance
+        val amt = BigDecimal("12.50")
 
-      val amt = BigDecimal("12.50")
+        val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
 
-      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+        val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
 
-      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+        val transId: String = (postResult.body \ "transaction_id") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        transId should not equal ("")
 
-      val transId : String = (postResult.body \ "transaction_id") match {
-        case JString(i) => i
-        case _ => ""
-      }
-      transId should not equal("")
-
-      val reply = getTransaction(
+        val reply = getTransaction(
           fromAccount.bankId.value, fromAccount.accountId.value, view, transId, user1)
 
-      Then("we should get a 200 ok code")
-      reply.code should equal (200)
-      val transJson = reply.body.extract[TransactionJSON]
+        Then("we should get a 200 ok code")
+        reply.code should equal(200)
+        val transJson = reply.body.extract[TransactionJSON]
 
-      val fromAccountTransAmt = transJson.details.value.amount
-      //the from account transaction should have a negative value
-      //since money left the account
-      And("the json we receive back should have a transaction amount equal to the amount specified to pay")
-      fromAccountTransAmt should equal((-amt).toString)
+        val fromAccountTransAmt = transJson.details.value.amount
+        //the from account transaction should have a negative value
+        //since money left the account
+        And("the json we receive back should have a transaction amount equal to the amount specified to pay")
+        fromAccountTransAmt should equal((-amt).toString)
 
-      val expectedNewFromBalance = beforeFromBalance - amt
-      And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
-      transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
-      getFromAccount.balance should equal(expectedNewFromBalance)
-      val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
-      toAccountTransactionsReq.code should equal(200)
-      val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
-      val newestToAccountTransaction = toAccountTransactions.transactions(0)
+        val expectedNewFromBalance = beforeFromBalance - amt
+        And("the account sending the payment should have a new_balance amount equal to the previous balance minus the amount paid")
+        transJson.details.new_balance.amount should equal(expectedNewFromBalance.toString)
+        getFromAccount.balance should equal(expectedNewFromBalance)
+        val toAccountTransactionsReq = getTransactions(toAccount.bankId.value, toAccount.accountId.value, view, user1)
+        toAccountTransactionsReq.code should equal(200)
+        val toAccountTransactions = toAccountTransactionsReq.body.extract[TransactionsJSON]
+        val newestToAccountTransaction = toAccountTransactions.transactions(0)
 
-      //here amt should be positive (unlike in the transaction in the "from" account")
-      And("the newest transaction for the account receiving the payment should have the proper amount")
-      newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        //here amt should be positive (unlike in the transaction in the "from" account")
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
 
-      And("the account receiving the payment should have the proper balance")
-      val expectedNewToBalance = beforeToBalance + amt
-      newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
-      getToAccount.balance should equal(expectedNewToBalance)
+        And("the account receiving the payment should have the proper balance")
+        val expectedNewToBalance = beforeToBalance + amt
+        newestToAccountTransaction.details.new_balance.amount should equal(expectedNewToBalance.toString)
+        getToAccount.balance should equal(expectedNewToBalance)
 
-      And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
-      transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+        And("there should now be 2 new transactions in the database (one for the sender, one for the receiver")
+        transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
+      }
     }
 
     scenario("we can't make a payment without access to the owner view", Payments) {
@@ -996,7 +1001,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (200)
       val apiInfo = reply.body.extract[APIInfoJSON]
       apiInfo.version should equal ("1.2.1")
-      apiInfo.git_commit.nonEmpty should equal (true)
+/*      apiInfo.git_commit.nonEmpty should equal (true)*/
     }
   }
 
@@ -1106,7 +1111,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("There are no duplicate accounts")
       assertNoDuplicateAccounts(publicAccountsInfo)
     }
-    scenario("we get the bank accounts the user have access to", API1_2, GetBankAccountsForAllBanks) {
+    scenario("we get the bank accounts the user has access to", API1_2, GetBankAccountsForAllBanks) {
       accountTestsSpecificDBSetup()
       Given("We will use an access token")
       When("the request is sent")
@@ -1454,6 +1459,28 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       And("we should get an error message")
       reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
     }
+
+    scenario("we are not allowed to create a view with an empty name") {
+      Given("We will use an access token")
+      val bankId = randomBank
+      val bankAccount : AccountJSON = randomPrivateAccount(bankId)
+      val viewsBefore = getAccountViews(bankId, bankAccount.id, user1).body.extract[ViewsJSON].views
+      val viewWithEmptyName = CreateViewJSON(
+        name = "",
+        description = randomString(3),
+        is_public = true,
+        which_alias_to_use="alias",
+        hide_metadata_if_alias_used = false,
+        allowed_actions = viewFields
+      )
+
+      When("the request is sent")
+      val reply = postView(bankId, bankAccount.id, viewWithEmptyName, user1)
+      Then("we should get a 400 code")
+      reply.code should equal (400)
+      And("we should get an error message")
+      reply.body.extract[ErrorMessage].error.nonEmpty should equal (true)
+    }
   }
 
   feature("Update a view on a bank account") {
@@ -1464,7 +1491,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
     def viewUpdateJson(originalView : ViewJSON) = {
       //it's not perfect, assumes too much about originalView (i.e. randomView(true, ""))
-      new ViewUpdateData(
+      new UpdateViewJSON(
         description = updatedViewDescription,
         is_public = !originalView.is_public,
         which_alias_to_use = updatedAliasToUse,
@@ -1474,7 +1501,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     }
 
     def someViewUpdateJson() = {
-      new ViewUpdateData(
+      new UpdateViewJSON(
         description = updatedViewDescription,
         is_public = true,
         which_alias_to_use = updatedAliasToUse,

@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -31,6 +31,7 @@ Berlin 13359, Germany
  */
 package code.model.dataAccess
 
+import code.util.MappedUUID
 import net.liftweb.mapper._
 import net.liftweb.util.Props
 
@@ -41,6 +42,7 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def primaryKeyField = id
 
   object id extends MappedLongIndex(this)
+  object userId_ extends MappedUUID(this)
   object email extends MappedEmail(this, 48){
     override def required_? = false
   }
@@ -60,6 +62,17 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
+  // Roles
+ // THESE ARE NO LONGER USED!!------------------------
+  object hasCrmAdminRole extends MappedBoolean(this)
+  object hasCrmReaderRole extends MappedBoolean(this)
+  object hasCustomerMessageAdminRole extends MappedBoolean(this)
+
+  object hasBranchReaderRole extends MappedBoolean(this)
+  object hasAtmReaderRole extends MappedBoolean(this)
+  object hasProductReaderRole extends MappedBoolean(this)
+  // END of no longer used. TODO remove. --------------
+
   def emailAddress = {
     val e = email.get
     if(e != null) e else ""
@@ -68,10 +81,21 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def idGivenByProvider = providerId.get
   def apiId = UserId(id.get)
 
+  def userId = userId_.get
+
   def name : String = name_.get
   def provider = provider_.get
   def views: List[View] = views_.toList
 
+  // Depreciated. Do not use.///////////////
+  def isCrmAdmin : Boolean = hasCrmAdminRole
+  def isCrmReader : Boolean = hasCrmReaderRole
+  def isCustomerMessageAdmin : Boolean = hasCustomerMessageAdminRole
+
+  def isBranchReader : Boolean = hasBranchReaderRole
+  def isAtmReader : Boolean = hasAtmReaderRole
+  def isProductReader : Boolean = hasProductReaderRole
+  ////////////////////////////////////////////////////
 }
 
 object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{

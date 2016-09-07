@@ -4,6 +4,9 @@ import code.api.OBPRestHelper
 import code.api.v1_2_1.APIMethods121
 import net.liftweb.common.Loggable
 
+
+// Added so we can add resource docs for this version of the API
+
 //has APIMethods121 as all api calls that went unchanged from 1.2.1 to 1.3.0 will use the old
 //implementation
 object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with Loggable {
@@ -13,7 +16,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
   val routes = List(
     Implementations1_2_1.root(VERSION),
-    Implementations1_2_1.allBanks,
+    Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.allAccountsAllBanks,
     Implementations1_2_1.privateAccountsAllBanks,
@@ -81,7 +84,7 @@ object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 w
     Implementations1_2_1.updateWhereTagForViewOnTransaction,
     Implementations1_2_1.deleteWhereTagForViewOnTransaction,
     Implementations1_2_1.getCounterpartyForTransaction,
-    Implementations1_2_1.makePayment, //TODO: add v1.3.0 "challenges"
+    Implementations1_2_1.makePayment,
     Implementations1_3_0.getCards,
     Implementations1_3_0.getCardsForBank
   )

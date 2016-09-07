@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -65,6 +65,8 @@ object OBPAPI1_0 extends RestHelper with Loggable {
       //log the API call
       logAPICall
 
+      // NOTE: This function has been pulled out to gitCommit in APIUtil.scala
+      // Not updating this code since its 1.0
       def gitCommit : String = {
         val commit = tryo{
           val properties = new java.util.Properties()

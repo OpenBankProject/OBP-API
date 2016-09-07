@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -28,17 +28,16 @@ Berlin 13359, Germany
   Everett Sochowski : everett AT tesobe DOT com
   Ayoub Benali: ayoub AT tesobe DOT com
 
- */
+*/
 
 package code.snippet
 
-import code.model.dataAccess.OBPUser
-import scala.xml.NodeSeq
+import code.model.dataAccess.{Admin, OBPUser}
+import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.CssSel
-import net.liftweb.http.S
-import code.model.dataAccess.Admin
-import net.liftweb.http.SHtml
+import net.liftweb.util.{CssSel, Props}
+
+import scala.xml.NodeSeq
 
 class Login {
 
@@ -49,7 +48,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.email.get
+      ".username *" #> OBPUser.currentUser.get.username.get
     }
   }
 
@@ -57,7 +56,7 @@ class Login {
     if(OBPUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     } else {
-      ".login [action]" #> OBPUser.loginPageURL &
+      ".login [href]" #> OBPUser.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
           menu <- OBPUser.lostPasswordMenuLoc
@@ -70,7 +69,7 @@ class Login {
       }
     }
   }
-  
+
   def adminLogout : CssSel = {
     if(Admin.loggedIn_?) {
       val current = Admin.currentUser
@@ -84,4 +83,19 @@ class Login {
     }
   }
 
+
+  // Used to display custom message to users when they login.
+  // For instance we can use it to display example login on a sandbox
+    def customiseLogin : CssSel = {
+      val specialLoginInstructions  = scala.xml.Unparsed(Props.get("webui_login_page_special_instructions", ""))
+      // In case we use Extraction.decompose
+      implicit val formats = net.liftweb.json.DefaultFormats
+      "#login_special_instructions *" #> specialLoginInstructions
+    }
+
+
+
+
+
+// End of class
 }

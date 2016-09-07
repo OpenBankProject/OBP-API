@@ -1,6 +1,6 @@
 /**
 Open Bank Project - API
-Copyright (C) 2011, 2013, TESOBE / Music Pictures Ltd
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -32,29 +32,26 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.APIUtil
-import net.liftweb.util.Props
-import org.scalatest._
-import dispatch._, Defaults._
-import net.liftweb.util.Helpers._
-import net.liftweb.http.S
-import net.liftweb.common.{Box, Loggable}
-import code.api.test.{ServerSetup, APIResponse}
+import code.api.util.APIUtil.OAuth._
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.TokenType._
+import dispatch.Defaults._
+import dispatch._
+import net.liftweb.common.{Box, Loggable}
+import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
+import org.scalatest._
 import org.scalatest.selenium._
-import org.openqa.selenium.WebDriver
-import scala.concurrent.duration._
-import scala.concurrent.Await
-import APIUtil.OAuth._
 
-case class OAuhtResponse(
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+case class OAuthResponse(
   code: Int,
   body: String
 )
 
-class OAuthTest extends ServerSetup{
+class OAuthTest extends ServerSetup {
 
   def oauthRequest = baseRequest / "oauth"
 
@@ -73,6 +70,7 @@ class OAuthTest extends ServerSetup{
   lazy val user1 =
     OBPUser.create.
       email(randomString(3)+"@example.com").
+      username(randomString(9)).
       password(user1Password).
       validated(true).
       firstName(randomString(10)).
@@ -82,24 +80,24 @@ class OAuthTest extends ServerSetup{
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
-  private def getAPIResponse(req : Req) : OAuhtResponse = {
+  private def getAPIResponse(req : Req) : OAuthResponse = {
     Await.result(
       for(response <- Http(req > as.Response(p => p)))
-        yield OAuhtResponse(response.getStatusCode, response.getResponseBody)
+        yield OAuthResponse(response.getStatusCode, response.getResponseBody)
     , Duration.Inf)
   }
 
-  def sendPostRequest(req: Req): OAuhtResponse = {
+  def sendPostRequest(req: Req): OAuthResponse = {
     val postReq = req.POST
     getAPIResponse(postReq)
   }
 
-  def getRequestToken(consumer: Consumer, callback: String): OAuhtResponse = {
+  def getRequestToken(consumer: Consumer, callback: String): OAuthResponse = {
     val request = (oauthRequest / "initiate").POST <@ (consumer, callback)
     sendPostRequest(request)
   }
 
-  def getAccessToken(consumer: Consumer, requestToken : Token, verifier : String): OAuhtResponse = {
+  def getAccessToken(consumer: Consumer, requestToken : Token, verifier : String): OAuthResponse = {
     val request = (oauthRequest / "token").POST <@ (consumer, requestToken, verifier)
     sendPostRequest(request)
   }
@@ -116,7 +114,7 @@ class OAuthTest extends ServerSetup{
     def getVerifier(loginPage: String, userName: String, password: String) : Box[String] = {
       tryo{
         go.to(loginPage)
-        emailField("username").value = userName
+        textField("username").value = userName
         val pwField = NameQuery("password").webElement
         pwField.clear()
         pwField.sendKeys(password)
@@ -142,13 +140,13 @@ class OAuthTest extends ServerSetup{
 
   def getVerifier(requestToken: String, userName: String, password: String): Box[String] = {
     val b = Browser()
-    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).build().getUrl
+    val loginPage = (oauthRequest / "authorize" <<? List(("oauth_token", requestToken))).toRequest.getUrl
     b.getVerifier(loginPage, userName, password)
   }
 
   def getVerifier(userName: String, password: String): Box[String] = {
     val b = Browser()
-    val loginPage = (oauthRequest / "authorize").build().getUrl
+    val loginPage = (oauthRequest / "authorize").toRequest.getUrl
     b.getVerifier(loginPage, userName, password)
   }
 
@@ -201,7 +199,7 @@ class OAuthTest extends ServerSetup{
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       Then("we should get a verifier")
       verifier.get.nonEmpty should equal (true)
     }
@@ -210,21 +208,21 @@ class OAuthTest extends ServerSetup{
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       Then("we should get a verifier")
       verifier.isEmpty should equal (false)
     }
     scenario("the user cannot login because there is no token", Verifier, Oauth){
       Given("there will be no token")
       When("the browser is launched to login")
-      val verifier = getVerifier(user1.email.get, user1Password)
+      val verifier = getVerifier(user1.username.get, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
     scenario("the user cannot login because the token does not exist", Verifier, Oauth){
       Given("we will use a random request token")
       When("the browser is launched to login")
-      val verifier = getVerifier(randomString(4), user1.email.get, user1Password)
+      val verifier = getVerifier(randomString(4), user1.username.get, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
@@ -234,7 +232,7 @@ class OAuthTest extends ServerSetup{
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -244,7 +242,7 @@ class OAuthTest extends ServerSetup{
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -263,7 +261,7 @@ class OAuthTest extends ServerSetup{
       Given("we will first get request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)

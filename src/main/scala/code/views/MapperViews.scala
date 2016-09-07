@@ -1,18 +1,13 @@
 package code.views
 
-import scala.collection.immutable.List
-import code.model._
-import code.model.dataAccess.ViewImpl
-import code.model.dataAccess.ViewPrivileges
-import net.liftweb.common.Loggable
-import net.liftweb.mapper.{QueryParam, By}
-import net.liftweb.common.{Box, Full, Empty, Failure}
 import code.api.APIFailure
-import code.model.ViewCreationJSON
-import net.liftweb.common.Full
-import code.model.Permission
-import code.model.ViewUpdateData
 import code.bankconnectors.Connector
+import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.{Permission, CreateViewJSON, UpdateViewJSON, _}
+import net.liftweb.common._
+import net.liftweb.mapper.By
+
+import scala.collection.immutable.List
 
 
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
@@ -51,6 +46,7 @@ private object MapperViews extends Views with Loggable {
   }
 
   def addPermission(viewUID: ViewUID, user: User): Box[View] = {
+    logger.debug(s"addPermission says viewUID is $viewUID user is $user")
     val viewImpl = ViewImpl.find(viewUID)
 
     viewImpl match {
@@ -129,6 +125,13 @@ private object MapperViews extends Views with Loggable {
     } else true
   }
 
+
+
+
+  /*
+  This removes the link between a User and a View (View Privileges)
+   */
+
   def revokeAllPermission(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
@@ -164,17 +167,24 @@ private object MapperViews extends Views with Loggable {
     ViewImpl.find(viewUID)
   }
 
-  def createView(bankAccount: BankAccount, view: ViewCreationJSON): Box[View] = {
+  /*
+  Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
+  * */
+  def createView(bankAccount: BankAccount, view: CreateViewJSON): Box[View] = {
+    if(view.name.contentEquals("")) {
+      return Failure("You cannot create a View with an empty Name")
+    }
+
     val newViewPermalink = {
-      view.name.replaceAllLiterally(" ","").toLowerCase
+      view.name.replaceAllLiterally(" ", "").toLowerCase
     }
 
     val existing = ViewImpl.count(
-        By(ViewImpl.permalink_, newViewPermalink) ::
+      By(ViewImpl.permalink_, newViewPermalink) ::
         ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*
-      ) == 1
+    ) == 1
 
-    if(existing)
+    if (existing)
       Failure(s"There is already a view with permalink $newViewPermalink on this bank account")
     else {
       val createdView = ViewImpl.create.
@@ -186,10 +196,11 @@ private object MapperViews extends Views with Loggable {
       createdView.setFromViewData(view)
       Full(createdView.saveMe)
     }
-
   }
 
-  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : ViewUpdateData) : Box[View] = {
+
+  /* Update the specification of the view (what data/actions are allowed) */
+  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
       view <- ViewImpl.find(viewId, bankAccount)
@@ -201,7 +212,7 @@ private object MapperViews extends Views with Loggable {
 
   def removeView(viewId: ViewId, bankAccount: BankAccount): Box[Unit] = {
 
-    if(viewId.value=="owner")
+    if(viewId.value == "owner")
       Failure("you cannot delete the owner view")
     else {
       for {
@@ -243,16 +254,19 @@ private object MapperViews extends Views with Loggable {
   def getAllPublicAccounts() : List[BankAccount] = {
     //TODO: do this more efficiently
 
+    // An account is considered public if it contains a public view
+
     val bankAndAccountIds : List[(BankId, AccountId)] =
       ViewImpl.findAll(By(ViewImpl.isPublic_, true)).map(v =>
         (v.bankId, v.accountId)
       ).distinct //we remove duplicates here
 
-    bankAndAccountIds.map {
+    val accountsList = bankAndAccountIds.map {
       case (bankId, accountId) => {
-        Connector.connector.vend.getBankAccount(bankId, accountId)
+        (bankId, accountId)
       }
-    }.flatten
+    }
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
@@ -263,9 +277,10 @@ private object MapperViews extends Views with Loggable {
         v.accountId
       }).distinct //we remove duplicates here
 
-    accountIds.map(accountId => {
-      Connector.connector.vend.getBankAccount(bank.bankId, accountId)
-    }).flatten
+    val accountsList = accountIds.map(accountId => {
+      (bank.bankId, accountId)
+    })
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   /**
@@ -291,11 +306,12 @@ private object MapperViews extends Views with Loggable {
         val visibleBankAndAccountIds =
           (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-        visibleBankAndAccountIds.map {
-          case(bankId, accountId) => {
-            Connector.connector.vend.getBankAccount(bankId, accountId)
+        val accountsList = visibleBankAndAccountIds.map {
+          case (bankId, accountId) => {
+            (bankId, accountId)
           }
-        }.flatten
+        }
+        Connector.connector.vend.getBankAccounts(accountsList)
       }
       case _ => getAllPublicAccounts()
     }
@@ -327,11 +343,12 @@ private object MapperViews extends Views with Loggable {
         val visibleBankAndAccountIds =
           (publicViewBankAndAccountIds ++ nonPublicViewBankAndAccountIds).distinct
 
-        visibleBankAndAccountIds.map {
-          case(bankId, accountId) => {
-            Connector.connector.vend.getBankAccount(bankId, accountId)
+        val accountsList = visibleBankAndAccountIds.map {
+          case (bankId, accountId) => {
+            (bankId, accountId)
           }
-        }.flatten
+        }
+        Connector.connector.vend.getBankAccounts(accountsList)
       }
       case _ => getPublicBankAccounts(bank)
     }
@@ -351,11 +368,10 @@ private object MapperViews extends Views with Loggable {
 
     val accountsList = nonPublicViewBankAndAccountIds.map {
       case(bankId, accountId) => {
-        Connector.connector.vend.getBankAccount(bankId, accountId)
+        (bankId, accountId)
       }
     }
-
-    accountsList.flatten
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
   /**
@@ -369,9 +385,10 @@ private object MapperViews extends Views with Loggable {
     val nonPublicViewAccountIds = userNonPublicViewsForBank.
       map(_.accountId).distinct //we remove duplicates here
 
-    nonPublicViewAccountIds.map( accountId =>
-      Connector.connector.vend.getBankAccount(bankId, accountId)
-    ).flatten
+    val accountsList = nonPublicViewAccountIds.map { accountId =>
+        (bankId, accountId)
+    }
+    Connector.connector.vend.getBankAccounts(accountsList)
   }
 
 }
