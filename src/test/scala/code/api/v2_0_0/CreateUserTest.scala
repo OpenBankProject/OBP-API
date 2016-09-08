@@ -20,6 +20,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   val FIRSTNAME = randomString(8).toLowerCase
   val LASTNAME = randomString(16).toLowerCase
+  val USERNAME = randomString(10).toLowerCase
   val EMAIL = randomString(10).toLowerCase + "@example.com"
   val PASSWORD = randomString(20)
 
@@ -43,7 +44,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
   val validHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
-    format(EMAIL, PASSWORD, KEY))
+    format(USERNAME, PASSWORD, KEY))
   val validHeaders = List(accessControlOriginHeader, validHeader)
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
@@ -72,9 +73,10 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   feature("we can create an user and login as newly created user using both directLogin and OAuth") {
 
-    scenario("we create an user with email, first name, last name and password", CreateUser) {
+    scenario("we create an user with email, first name, last name , username and password", CreateUser) {
       When("we create a new user")
       val params = Map("email" -> EMAIL,
+        "username" -> USERNAME,
         "password" -> PASSWORD,
         "first_name" -> FIRSTNAME,
         "last_name" -> LASTNAME)
@@ -114,6 +116,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
     scenario("we try to create a same user again", CreateUser) {
       When("we create a same user")
       val params = Map("email" -> EMAIL,
+        "username" -> USERNAME,
         "password" -> PASSWORD,
         "first_name" -> FIRSTNAME,
         "last_name" -> LASTNAME)

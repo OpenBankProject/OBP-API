@@ -70,6 +70,7 @@ class OAuthTest extends ServerSetup {
   lazy val user1 =
     OBPUser.create.
       email(randomString(3)+"@example.com").
+      username(randomString(9)).
       password(user1Password).
       validated(true).
       firstName(randomString(10)).
@@ -113,7 +114,7 @@ class OAuthTest extends ServerSetup {
     def getVerifier(loginPage: String, userName: String, password: String) : Box[String] = {
       tryo{
         go.to(loginPage)
-        emailField("username").value = userName
+        textField("username").value = userName
         val pwField = NameQuery("password").webElement
         pwField.clear()
         pwField.sendKeys(password)
@@ -198,7 +199,7 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       Then("we should get a verifier")
       verifier.get.nonEmpty should equal (true)
     }
@@ -207,21 +208,21 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
       When("the browser is launched to login")
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       Then("we should get a verifier")
       verifier.isEmpty should equal (false)
     }
     scenario("the user cannot login because there is no token", Verifier, Oauth){
       Given("there will be no token")
       When("the browser is launched to login")
-      val verifier = getVerifier(user1.email.get, user1Password)
+      val verifier = getVerifier(user1.username.get, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
     scenario("the user cannot login because the token does not exist", Verifier, Oauth){
       Given("we will use a random request token")
       When("the browser is launched to login")
-      val verifier = getVerifier(randomString(4), user1.email.get, user1Password)
+      val verifier = getVerifier(randomString(4), user1.username.get, user1Password)
       Then("we should not get a verifier")
       verifier.isEmpty should equal (true)
     }
@@ -231,7 +232,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, oob)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -241,7 +242,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get a request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token")
       val accessToken = getAccessToken(consumer, requestToken, verifier.get)
       Then("we should get an access token")
@@ -260,7 +261,7 @@ class OAuthTest extends ServerSetup {
       Given("we will first get request token and a verifier")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
-      val verifier = getVerifier(requestToken.value, user1.email.get, user1Password)
+      val verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
       When("when we ask for an access token with a request token")
       val randomRequestToken = Token(randomString(5), randomString(5))
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, verifier.get)

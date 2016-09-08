@@ -74,11 +74,15 @@ class ResultAndLinksJSON(
 
 case class CreateUserJSON(
                      email: String,
+                     username: String,
                      password: String,
                      first_name: String,
                      last_name: String
                    )
 
+case class CreateUserJSONs(
+                            users : List[CreateUserJSON]
+                          )
 
 case class CreateMeetingJSON(
                               provider_id: String,
@@ -482,19 +486,20 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       display_name : String
+                       username : String
                      )
 
-
-
+  case class UserJSONs(
+                      users: List[UserJSON]
+                      )
 
 
   def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
     user_id = user.user.foreign.get.userId,
     email = user.email,
+    username = stringOrNull(user.username),
     provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider),
-    display_name = stringOrNull(user.displayName())
+    provider = stringOrNull(user.provider)
   )
 
 
@@ -502,9 +507,9 @@ object JSONFactory200{
     new UserJSON(
       user_id = user.userId,
       email = user.emailAddress,
+      username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider),
-      display_name = stringOrNull(user.name) //TODO: Rename to displayName ?
+      provider = stringOrNull(user.provider)
     )
   }
 
@@ -513,6 +518,10 @@ object JSONFactory200{
       case Full(u) => createUserJSON(u)
       case _ => null
     }
+  }
+
+  def createUserJSONs(users : List[User]) : UserJSONs = {
+    UserJSONs(users.map(createUserJSON))
   }
 
 
@@ -682,7 +691,6 @@ object JSONFactory200{
 
   /** Creates v2.0.0 representation of a TransactionType
     *
-    *
     * @param transactionType An internal TransactionType instance
     * @return a v2.0.0 representation of a TransactionType
     */
@@ -705,7 +713,6 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
 
 
   /** Creates v2.0.0 representation of a TransactionType
-    *
     *
     * @param tr An internal TransactionRequest instance
     * @return a v2.0.0 representation of a TransactionRequest

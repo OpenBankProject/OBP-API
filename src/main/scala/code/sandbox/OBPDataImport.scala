@@ -47,7 +47,7 @@ trait OBPDataImport extends Loggable {
   type MetadataType <: OtherBankAccountMetadata
   type ViewType <: View
   type TransactionType <: TransactionUUID
-  type AccountOwnerEmail = String
+  type AccountOwnerUsername = String
   type BranchType <: Branch
   type AtmType <: Atm
   type ProductType <: Product
@@ -135,17 +135,17 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[APIUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[APIUser]]] = {
-    val existingApiUsers = toImport.flatMap(u => APIUser.find(By(APIUser.email, u.email)))
-    val allEmails = toImport.map(_.email)
-    val duplicateEmails = allEmails diff allEmails.distinct
+    val existingApiUsers = toImport.flatMap(u => APIUser.find(By(APIUser.name_, u.user_name)))
+    val allUsernames = toImport.map(_.user_name)
+    val duplicateUsernames = allUsernames diff allUsernames.distinct
 
     def usersExist(existingEmails : List[String]) =
       Failure(s"User(s) with email(s) $existingEmails already exist (and may be different (e.g. different display_name)")
 
     if(!existingApiUsers.isEmpty) {
-      usersExist(existingApiUsers.map(_.email.get))
-    } else if(!duplicateEmails.isEmpty) {
-      Failure(s"Users must have unique emails: Duplicates found: $duplicateEmails")
+      usersExist(existingApiUsers.map(_.name))
+    } else if(!duplicateUsernames.isEmpty) {
+      Failure(s"Users must have unique usernames: Duplicates found: $duplicateUsernames")
     }else {
 
       val apiUsers = toImport.map(createSaveableUser(_))
@@ -159,8 +159,8 @@ trait OBPDataImport extends Loggable {
    *
    * TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
    */
-  protected def setAccountOwner(owner : AccountOwnerEmail, account: BankAccount, createdUsers: List[APIUser]): AnyVal = {
-    val apiUserOwner = createdUsers.find(user => owner == user.emailAddress)
+  protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[APIUser]): AnyVal = {
+    val apiUserOwner = createdUsers.find(user => owner == user.name)
 
     apiUserOwner match {
       case Some(o) => {
@@ -168,7 +168,7 @@ trait OBPDataImport extends Loggable {
       }
       case None => {
         //This shouldn't happen as OBPUser should generate the APIUsers when saved
-        logger.error(s"api user(s) with email $owner not found.")
+        logger.error(s"api user $owner not found.")
         logger.error("Data import completed with errors.")
       }
     }
@@ -286,9 +286,9 @@ trait OBPDataImport extends Loggable {
   final protected def createCrmEvents(data : SandboxDataImport) = {
       createSaveableCrmEvents(data.crm_events)
   }
-    
-    
-  
+
+
+
 
 
 
@@ -297,8 +297,8 @@ trait OBPDataImport extends Loggable {
     for {
       ownersNonEmpty <- Helper.booleanToBox(acc.owners.nonEmpty) ?~
         s"Accounts must have at least one owner. Violation: (bank id ${acc.bank}, account id ${acc.id})"
-      ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerEmail => data.users.exists(u => u.email == ownerEmail))) ?~ {
-        val violations = acc.owners.filter(ownerEmail => !data.users.exists(u => u.email == ownerEmail))
+      ownersDefinedInDataImport <- Helper.booleanToBox(acc.owners.forall(ownerUsername => data.users.exists(u => u.user_name == ownerUsername))) ?~ {
+        val violations = acc.owners.filter(ownerUsername => !data.users.exists(u => u.user_name == ownerUsername))
         s"Accounts must have owner(s) defined in data import. Violation: ${violations.mkString(",")}"
       }
       accId = AccountId(acc.id)
@@ -312,7 +312,7 @@ trait OBPDataImport extends Loggable {
     } yield acc
   }
 
-  final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
+  final protected def createAccountsAndViews(data : SandboxDataImport, banks : List[BankType]) : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerUsername])]] = {
 
     val banksNotSpecifiedInImport = data.accounts.flatMap(acc => {
       if(data.banks.exists(b => b.id == acc.bank)) None
@@ -356,7 +356,7 @@ trait OBPDataImport extends Loggable {
   }
 
   final protected def createSaveableAccountResults(accs : List[SandboxAccountImport], banks : List[BankType])
-  : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerEmail])]] = {
+  : Box[List[(Saveable[AccountType], List[Saveable[ViewType]], List[AccountOwnerUsername])]] = {
 
     logger.info("Hello from createSaveableAccountResults")
 
@@ -518,18 +518,18 @@ trait OBPDataImport extends Loggable {
 
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
-        case (account, views, accOwnerEmails) =>
+        case (account, views, accOwnerUsernames) =>
           account.save()
           views.foreach(_.save())
 
           views.map(_.value).filterNot(_.isPublic).foreach(v => {
             //grant the owner access to non-public views
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
-            val accOwners = users.map(_.value).filter(u => accOwnerEmails.exists(email => u.emailAddress == email))
+            val accOwners = users.map(_.value).filter(u => accOwnerUsernames.exists(name => u.name == name))
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))
           })
 
-          accOwnerEmails.foreach(setAccountOwner(_, account.value, users.map(_.value)))
+          accOwnerUsernames.foreach(setAccountOwner(_, account.value, users.map(_.value)))
       }
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>
@@ -594,7 +594,7 @@ case class SandboxLocationImport(
 case class SandboxUserImport(
   email : String,
   password : String,
-  display_name : String)
+  user_name : String)
 
 case class SandboxAccountImport(
   id : String,
