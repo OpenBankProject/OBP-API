@@ -31,6 +31,8 @@
  */
 package code.model.dataAccess
 
+import java.util.UUID
+
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.KafkaMappedConnector
 import code.bankconnectors.KafkaMappedConnector.KafkaInboundUser
@@ -56,6 +58,18 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   object user extends MappedLongForeignKey(this, APIUser)
 
   /**
+    * The username field for the User.
+    */
+  lazy val username: userName = new userName()
+  class userName extends MappedString(this, 64) {
+    override def displayName = S.?("username")
+    override def dbIndexed_? = true
+    override def validations = valUnique(S.?("unique.username")) _ :: super.validations
+    override val fieldId = Some(Text("txtUsername"))
+  }
+
+
+  /**
    * The provider field for the User.
    */
   lazy val provider: userProvider = new userProvider()
@@ -64,15 +78,6 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     override val fieldId = Some(Text("txtProvider"))
   }
 
-  def displayName() = {
-    if(firstName.get.isEmpty) {
-      lastName.get
-    } else if(lastName.get.isEmpty) {
-      firstName.get
-    } else {
-      firstName.get + " " + lastName.get
-    }
-  }
 
   def getProvider() = {
     if(provider.get == null) {
@@ -86,14 +91,18 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 
   def createUnsavedApiUser() : APIUser = {
     APIUser.create
-      .name_(displayName())
+      .name_(username)
       .email(email)
       .provider_(getProvider())
-      .providerId(email)
+      .providerId(username)
   }
 
-  def getApiUserByEmail(userEmail: String) : Box[APIUser] = {
-    APIUser.find(By(APIUser.email, userEmail))
+  def getApiUsersByEmail(userEmail: String) : List[APIUser] = {
+    APIUser.findAll(By(APIUser.email, userEmail))
+  }
+
+  def getApiUserByUsername(username: String) : Box[APIUser] = {
+    APIUser.find(By(APIUser.name_, username))
   }
 
   override def save(): Boolean = {
@@ -107,8 +116,9 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
       info("user reference is not null. Trying to update the API User")
       user.obj.map{ u =>{
           info("API User found ")
-          u.name_(displayName())
+          u.name_(username)
           .email(email)
+          .providerId(username)
           .save
         }
       }
@@ -134,6 +144,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
   // Override the validate method of MappedEmail class
   // There's no way to override the default emailPattern from MappedEmail object
   override lazy val email = new MyEmail(this, 48) {
+    override def validations = super.validations
+    override def dbIndexed_? = false
     override def validate = if (isEmailValid(i_is_!)) Nil else List(FieldError(this, Text(S.?("invalid.email.address"))))
   }
 }
@@ -150,8 +162,8 @@ import net.liftweb.util.Helpers._
 
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
-  override def fieldOrder = List(id, firstName, lastName, email, password, provider)
-  override def signupFields = List(firstName, lastName, email, password)
+  override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
+  override def signupFields = List(firstName, lastName, email, username, password)
 
   // comment this line out to require email validations
   override def skipEmailValidation = true
@@ -160,7 +172,7 @@ import net.liftweb.util.Helpers._
     val loginXml = Templates(List("templates-hidden","_login")).map({
         "form [action]" #> {S.uri} &
         "#loginText * " #> {S.?("log.in")} &
-        "#emailAddressText * " #> {S.?("email.address")} &
+        "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
@@ -180,17 +192,17 @@ import net.liftweb.util.Helpers._
    */
   def getCurrentUserUsername: String = {
     if (OAuthHandshake.getUser.getOrElse(None) != None )
-      return OAuthHandshake.getUser.get.emailAddress
+      return OAuthHandshake.getUser.get.name
     if (DirectLogin.getUser.getOrElse(None) != None)
-      return DirectLogin.getUser.get.emailAddress
+      return DirectLogin.getUser.get.name
     return ""
   }
 
   /**
    * Overridden to use the hostname set in the props file
    */
-  override def sendPasswordReset(email: String) {
-    findUserByUserName(email) match {
+  override def sendPasswordReset(name: String) {
+    findUserByUsername(name) match {
       case Full(user) if user.validated_? =>
         user.resetUniqueId().save
         val resetLink = Props.get("hostname", "ERROR")+
@@ -217,10 +229,10 @@ import net.liftweb.util.Helpers._
     <div id="authorizeSection">
       <div id="userAccess">
         <div class="account account-in-content">
-          {S.?("enter.email")}
+          {S.?("enter.username")}
           <form class="forgotPassword" action={S.uri} method="post">
             <div class="field username">
-              <label>{userNameFieldString}</label> <user:email />
+              <label>{userNameFieldString}</label> <user:username />
             </div>
 
             <div class="field buttons">
@@ -295,8 +307,8 @@ import net.liftweb.util.Helpers._
 
   // What if we just want to return the userId without sending username/password??
 
-  def getUserId(username: String, password: String): Box[Long] = {
-    findUserByUserName(username) match {
+  def getUserId(name: String, password: String): Box[Long] = {
+    findUserByUsername(name) match {
       case Full(user) => {
         if (user.validated_? &&
           user.getProvider() == Props.get("hostname","") &&
@@ -307,7 +319,7 @@ import net.liftweb.util.Helpers._
         else {
           Props.get("connector").openOrThrowException("no connector set") match {
             case "kafka" =>
-              for { kafkaUser <- getUserFromKafka(username, password)
+              for { kafkaUser <- getUserFromKafka(name, password)
                     kafkaUserId <- tryo{kafkaUser.id} } yield kafkaUserId.toLong
             case _ => Full(0)
           }
@@ -317,9 +329,9 @@ import net.liftweb.util.Helpers._
     }
   }
 
-  def getUserFromKafka(username: String, password: String):Box[OBPUser] = {
-    KafkaMappedConnector.getUser(username, password) match {
-      case Full(KafkaInboundUser(extEmail, extPassword, extDisplayName)) => {
+  def getUserFromKafka(name: String, password: String):Box[OBPUser] = {
+    KafkaMappedConnector.getUser(name, password) match {
+      case Full(KafkaInboundUser(extEmail, extPassword, extUsername)) => {
         info("external user authenticated. login redir: " + loginRedirect.get)
         val redir = loginRedirect.get match {
           case Full(url) =>
@@ -329,10 +341,9 @@ import net.liftweb.util.Helpers._
             homePage
         }
 
-        val dummyPassword = "nothingreallyjustdummypass"
         val extProvider = Props.get("connector").openOrThrowException("no connector set")
 
-        val user = findUserByUserName(username) match {
+        val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_? &&
             user.provider == extProvider => {
@@ -347,10 +358,11 @@ import net.liftweb.util.Helpers._
             // assuming that user's email is always validated
             info("external user "+ extEmail +" does not exist locally, creating one")
             val newUser = OBPUser.create
-              .firstName(extDisplayName)
+              .firstName(extUsername)
               .email(extEmail)
+              .username(extUsername)
               // No need to store password, so store dummy string instead
-              .password(dummyPassword)
+              .password(UUID.randomUUID().toString)
               .provider(extProvider)
               .validated(true)
             // Save the user in order to be able to log in
@@ -371,7 +383,7 @@ import net.liftweb.util.Helpers._
   override def login = {
     if (S.post_?) {
       S.param("username").
-      flatMap(username => findUserByUserName(username)) match {
+      flatMap(name => findUserByUsername(name)) match {
         case Full(user) if user.validated_? &&
           // Check if user came from localhost
           user.getProvider() == Props.get("hostname","") &&
@@ -422,16 +434,16 @@ import net.liftweb.util.Helpers._
     }
 
     bind("user", loginXhtml,
-         "email" -> (FocusOnLoad(<input type="text" name="username"/>)),
+         "username" -> (FocusOnLoad(<input type="text" name="username"/>)),
          "password" -> (<input type="password" name="password"/>),
          "submit" -> loginSubmitButton(S.?("log.in")))
   }
 
-  def externalUserHelper(username: String, password: String): Box[OBPUser] = {
+  def externalUserHelper(name: String, password: String): Box[OBPUser] = {
     if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
       for {
-       user <- getUserFromKafka(username, password)
-       u <- APIUser.find(By(APIUser.email, user.email))
+       user <- getUserFromKafka(name, password)
+       u <- APIUser.find(By(APIUser.name_, user.username))
        v <- tryo {KafkaMappedConnector.updateUserAccountViews(u)}
       } yield {
         user
@@ -439,6 +451,9 @@ import net.liftweb.util.Helpers._
     } else Full(OBPUser)
   }
 
+  protected def findUserByUsername(name: String): Box[TheUserType] = {
+    find(By(this.username, name))
+  }
 
   //overridden to allow redirect to loginRedirect after signup. This is mostly to allow
   // loginFirst menu items to work if the user doesn't have an account. Without this,

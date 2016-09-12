@@ -1340,7 +1340,7 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      Extraction.decompose(CreateUserJSON("someone@example.com", "my-secure-password", "James", "Brown")),
+      Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
@@ -1354,10 +1354,11 @@ trait APIMethods200 {
           for {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
           } yield {
-            if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
+            if (OBPUser.find(By(OBPUser.username, postedData.username)).isEmpty) {
               val userCreated = OBPUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
+                .username(postedData.username)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props
@@ -1376,7 +1377,7 @@ trait APIMethods200 {
               }
             }
             else {
-              Full(errorJsonResponse("User with the same email already exists.", 409))
+              Full(errorJsonResponse("User with the same username already exists.", 409))
             }
           }
       }
@@ -1667,8 +1668,8 @@ trait APIMethods200 {
       "getUser",
       "GET",
       "/users/USER_EMAIL",
-      "Get User by Email Address",
-      """Get the user by email address
+      "Get Users by Email Address",
+      """Get users by email address
         |
         |Login is required.
         |CanGetAnyUser entitlement is required,
@@ -1688,14 +1689,13 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              //b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
               canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
+              users <- tryo{OBPUser.getApiUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json
-                val json = JSONFactory200.createUserJSON(u)
+                val json = JSONFactory200.createUserJSONs(users)
                 successJsonResponse(Extraction.decompose(json))
               }
       }

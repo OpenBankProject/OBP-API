@@ -195,3 +195,15 @@ defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 #  Super Admin Users (not database so we don't have to edit database)
 super_admin_user_ids=USER_ID1,USER_ID2,
+
+api_disabled_versions=[\
+version1,\
+version2,\
+...,\
+versionN]
+
+api_disabled_endpoints=[\
+endpoint1,\
+endpoint2,\
+...,\
+endpointN]
