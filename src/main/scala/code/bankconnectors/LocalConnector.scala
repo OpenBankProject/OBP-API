@@ -3,10 +3,12 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.branches.Branches.{Branch, BranchId}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
+import code.sandbox.SandboxBranchImport
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
@@ -551,4 +553,8 @@ private object LocalConnector extends Connector with Loggable {
         false
     }
   }
+
+  override def createBranch(branch: SandboxBranchImport) : Box[Boolean] = ???
+
+  override def getBranch(branchId: BranchId): Box[Branch] = ???
 }

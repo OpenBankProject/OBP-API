@@ -5,9 +5,11 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
+import code.branches.Branches.{Branch, BranchId}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{OtherBankAccount, Transaction, User, _}
+import code.sandbox.SandboxBranchImport
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -589,5 +591,9 @@ trait Connector {
   def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean
 
   def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean
+
+  def createBranch(branch: SandboxBranchImport): Box[Boolean]
+
+  def getBranch(branchId: BranchId): Box[Branch]
 
   }

@@ -225,6 +225,8 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
     if (!disabledEndpoints.contains("getTransactionRequestTypesSupportedByBank")) routes = routes:::List(Implementations2_1_0.getTransactionRequestTypesSupportedByBank)
     if (!disabledEndpoints.contains("createTransactionRequest")) routes = routes:::List(Implementations2_1_0.createTransactionRequest)
     if (!disabledEndpoints.contains("getTransactionRequests")) routes = routes:::List(Implementations2_1_0.getTransactionRequests)
+    if (!disabledEndpoints.contains("createBranch")) routes = routes:::List(Implementations2_1_0.createBranch)
+    if (!disabledEndpoints.contains("getBranch")) routes = routes:::List(Implementations2_1_0.getBranch)
   }
   // ### VERSION 2.1.0 - END ###
 

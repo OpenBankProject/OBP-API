@@ -5,8 +5,10 @@ import java.util.Date
 import code.api.util.APIUtil.OAuth._
 import code.api.{DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.branches.Branches.{Branch, BranchId}
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
+import code.sandbox.SandboxBranchImport
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Loggable}
 
@@ -134,6 +136,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
     override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
     override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
+    override def createBranch(branch: SandboxBranchImport) : Box[Boolean] = ???
+    override def getBranch(branchId: BranchId): Box[Branch] = ???
   }
 
   override def beforeAll() {

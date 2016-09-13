@@ -2,6 +2,8 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
@@ -12,6 +14,8 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
+import code.sandbox.LocalMappedConnectorDataImport.BranchType
+import code.sandbox.{MappedSaveable, Saveable, SandboxBranchImport}
 import code.tesobe.CashTransaction
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
@@ -612,5 +616,47 @@ object LocalMappedConnector extends Connector with Loggable {
 
     result.getOrElse(false)
   }
+
+  override def createBranch(branch: SandboxBranchImport) : Box[Boolean] = {
+
+      val lobbyHours =  if (branch.lobby.isDefined) {branch.lobby.get.hours.toString} else ""
+      val driveUpHours =  if (branch.driveUp.isDefined) {branch.driveUp.get.hours.toString} else ""
+
+      val mappedBranch = MappedBranch.create
+        .mBranchId(branch.id)
+        .mBankId(branch.bank_id)
+        .mName(branch.name)
+        // Note: address fields are returned in meta.address
+        // but are stored flat as fields / columns in the table
+        .mLine1(branch.address.line_1)
+        .mLine2(branch.address.line_2)
+        .mLine3(branch.address.line_3)
+        .mCity(branch.address.city)
+        .mCounty(branch.address.county)
+        .mState(branch.address.state)
+        .mPostCode(branch.address.post_code)
+        .mCountryCode(branch.address.country_code)
+        .mlocationLatitude(branch.location.latitude)
+        .mlocationLongitude(branch.location.longitude)
+        .mLicenseId(branch.meta.license.id)
+        .mLicenseName(branch.meta.license.name)
+        .mLobbyHours(lobbyHours)
+        .mDriveUpHours(driveUpHours)
+
+    val validationErrors = mappedBranch.validate
+
+    if(validationErrors.nonEmpty) {
+      Full(false)
+    } else {
+      Full(true)
+    }
+  }
+
+  //gets a particular bank handled by this connector
+  override def getBranch(branchId: BranchId): Box[Branch] =
+    getMappedBranch(branchId)
+
+  private def getMappedBranch(branchId: BranchId): Box[MappedBranch] =
+    MappedBranch.find(By(MappedBranch.mBranchId, branchId.value))
 
 }

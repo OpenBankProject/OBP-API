@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.api.util.ErrorMessages
+import code.branches.Branches.{Branch, BranchId}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -13,7 +14,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
-import code.sandbox.{CreateViewImpls, Saveable}
+import code.sandbox.{SandboxBranchImport, CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
 import code.transactionrequests.TransactionRequests._
@@ -916,6 +917,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         )
     }
   }
+
+  override def createBranch(branch: SandboxBranchImport) : Box[Boolean] = ???
+
+  override def getBranch(branchId: BranchId): Box[Branch] = ???
 
 
   case class KafkaBank(r: KafkaInboundBank) extends Bank {

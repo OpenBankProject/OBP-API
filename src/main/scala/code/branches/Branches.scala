@@ -13,8 +13,13 @@ import net.liftweb.common.Logger
 import net.liftweb.util.SimpleInjector
 
 object Branches extends SimpleInjector {
+  case class BranchId(val value : String) {
+    override def toString = value
+  }
 
-  case class BranchId(value : String)
+  object BranchId {
+    def unapply(id : String) = Some(BranchId(id))
+  }
 
   trait Branch {
     def branchId : BranchId
