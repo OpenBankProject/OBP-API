@@ -909,23 +909,23 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
-  var retries:Int = 3
-    while (consumerProps == null && retries > 0 ) {
-      retries -= 1
-      consumerProps = new KafkaConsumer()
-    }
-    retries = 3
-    while (producerProps == null && retries > 0) {
-      retries -= 1
-      producerProps = new KafkaProducer()
-    }
-    if (producerProps == null || consumerProps == null)
-      return json.parse("""{"error":"connection failed. try again later."}""")
-    // Send request to Kafka
-    producerProps.send(reqId, command, argList, "1")
-    // Request sent, now we wait for response with the same reqId
-    val res = consumerProps.getResponse(reqId)
-    res
+//  var retries:Int = 3
+//    while (consumerProps == null && retries > 0 ) {
+//      retries -= 1
+//      consumer = new KafkaConsumer()
+//    }
+//    retries = 3
+//    while (producerProps == null && retries > 0) {
+//      retries -= 1
+//      producer = new KafkaProducer()
+//    }
+//    if (producer == null || consumer == null)
+//      return json.parse("""{"error":"connection failed. try again later."}""")
+//    // Send request to Kafka
+//    producer.send(reqId, command, argList, "1")
+//    // Request sent, now we wait for response with the same reqId
+//    val res = consumer.getResponse(reqId)
+    json.JBool(false)
   }
 
 
