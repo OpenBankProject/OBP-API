@@ -1002,8 +1002,8 @@ trait APIMethods200 {
         |
         |If USER_ID is not specified the account will be owned by the logged in User.
         |
-        |Note: Type is currently ignored and the Amount must be zero. You can update the account label with another call (see 1_2_1-updateAccountLabel)""".stripMargin,
-      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", AmountOfMoneyJSON121("EUR", "0"))),
+        |Note: The Amount must be zero.""".stripMargin,
+      Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
@@ -1035,13 +1035,14 @@ trait APIMethods200 {
             isAllowed <- booleanToBox(hasEntitlement(bankId.value, loggedInUser.userId, CanCreateAccount) == true || (user_id == loggedInUser.userId) , s"User must either create account for self or have role $CanCreateAccount")
             initialBalanceAsString <- tryo (jsonBody.balance.amount) ?~ ErrorMessages.InvalidAccountBalanceAmount
             accountType <- tryo(jsonBody.`type`) ?~ ErrorMessages.InvalidAccountType
+            accountLabel <- tryo(jsonBody.`type`) //?~ ErrorMessages.InvalidAccountLabel
             initialBalanceAsNumber <- tryo {BigDecimal(initialBalanceAsString)} ?~! ErrorMessages.InvalidAccountInitalBalance
             isTrue <- booleanToBox(0 == initialBalanceAsNumber) ?~ s"Initial balance must be zero"
             currency <- tryo (jsonBody.balance.currency) ?~ ErrorMessages.InvalidAccountBalanceCurrency
             // TODO Since this is a PUT, we should replace the resource if it already exists but will need to check persmissions
             accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
               s"Account with id $accountId already exists at bank $bankId")
-            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
+            bankAccount <- Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalanceAsNumber, postedOrLoggedInUser.name)
           } yield {
             BankAccountCreation.setAsOwner(bankId, accountId, postedOrLoggedInUser)
 
@@ -1339,7 +1340,7 @@ trait APIMethods200 {
         | May require validation of email address.
         |
         |""",
-      Extraction.decompose(CreateUserJSON("someone@example.com", "my-secure-password", "James", "Brown")),
+      Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
@@ -1353,10 +1354,11 @@ trait APIMethods200 {
           for {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
           } yield {
-            if (OBPUser.find(By(OBPUser.email, postedData.email)).isEmpty) {
+            if (OBPUser.find(By(OBPUser.username, postedData.username)).isEmpty) {
               val userCreated = OBPUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
+                .username(postedData.username)
                 .email(postedData.email)
                 .password(postedData.password)
                 .validated(true) // TODO Get this from Props
@@ -1375,7 +1377,7 @@ trait APIMethods200 {
               }
             }
             else {
-              Full(errorJsonResponse("User with the same email already exists.", 409))
+              Full(errorJsonResponse("User with the same username already exists.", 409))
             }
           }
       }
@@ -1666,8 +1668,8 @@ trait APIMethods200 {
       "getUser",
       "GET",
       "/users/USER_EMAIL",
-      "Get User by Email Address",
-      """Get the user by email address
+      "Get Users by Email Address",
+      """Get users by email address
         |
         |Login is required.
         |CanGetAnyUser entitlement is required,
@@ -1687,14 +1689,13 @@ trait APIMethods200 {
         user =>
             for {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
-              //b <- tryo{Bank.all.headOption} ?~! {ErrorMessages.BankNotFound} //TODO: This is a temp workaround
               canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              u <- OBPUser.getApiUserByEmail(CurrentReq.value.uri.split("/").last) ?~! {ErrorMessages.UserNotFoundByEmail}
+              users <- tryo{OBPUser.getApiUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json
-                val json = JSONFactory200.createUserJSON(u)
+                val json = JSONFactory200.createUserJSONs(users)
                 successJsonResponse(Extraction.decompose(json))
               }
       }

@@ -14,8 +14,8 @@ import code.model._
 import code.model.dataAccess._
 import code.tesobe.CashTransaction
 import code.transaction.MappedTransaction
-import code.transactionrequests.MappedTransactionRequest
-import code.transactionrequests.TransactionRequests.{TransactionRequest, TransactionRequestBody, TransactionRequestChallenge, TransactionRequestCharge}
+import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common.{Box, Failure, Full, Loggable}
@@ -250,6 +250,25 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+                                               account : BankAccount, details: String,
+                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+    val mappedTransactionRequest = MappedTransactionRequest210.create
+      .mTransactionRequestId(transactionRequestId.value)
+      .mType(transactionRequestType.value)
+      .mFrom_BankId(account.bankId.value)
+      .mFrom_AccountId(account.accountId.value)
+      .mDetails(details)
+      .mStatus(status)
+      .mStartDate(now)
+      .mEndDate(now)
+      .mCharge_Summary(charge.summary)
+      .mCharge_Amount(charge.value.amount)
+      .mCharge_Currency(charge.value.currency)
+      .saveMe
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+  }
+
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
@@ -286,6 +305,13 @@ object LocalMappedConnector extends Connector with Loggable {
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
+    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
+      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
+
+    Full(transactionRequests.flatMap(_.toTransactionRequest210))
+  }
+
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
     val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     transactionRequest.flatMap(_.toTransactionRequest)
@@ -305,7 +331,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account (if it doesn't exist) and creates a bank (if it doesn't exist)
   //again assume national identifier is unique
-  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountHolderName: String): (Bank, BankAccount) = {
+  override def createBankAndAccount(bankName: String, bankNationalIdentifier: String, accountNumber: String, accountType: String, accountLabel: String, currency: String, accountHolderName: String): (Bank, BankAccount) = {
     //don't require and exact match on the name, just the identifier
     val bank = MappedBank.find(By(MappedBank.national_identifier, bankNationalIdentifier)) match {
       case Full(b) =>
@@ -323,7 +349,7 @@ object LocalMappedConnector extends Connector with Loggable {
     }
 
     //TODO: pass in currency as a parameter?
-    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, "EUR", 0L, accountHolderName)
+    val account = createAccountIfNotExisting(bank.bankId, AccountId(UUID.randomUUID().toString), accountNumber, accountType, accountLabel, currency, 0L, accountHolderName)
 
     (bank, account)
   }
@@ -408,6 +434,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
+                                        accountType: String, accountLabel: String,
                                         currency: String, initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
     for {
@@ -415,7 +442,7 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountId, accountNumber, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -426,7 +453,8 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
-                            currency: String, balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
+                                         accountType: String, accountLabel: String, currency: String,
+                                         balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
     getBankAccount(bankId, accountId) match {
       case Full(a) =>
         logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
@@ -436,6 +464,8 @@ object LocalMappedConnector extends Connector with Loggable {
           .bank(bankId.value)
           .theAccountId(accountId.value)
           .accountNumber(accountNumber)
+          .kind(accountType)
+          .accountLabel(accountLabel)
           .accountCurrency(currency)
           .accountBalance(balanceInSmallestCurrencyUnits)
           .holder(accountHolderName)

@@ -139,12 +139,17 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
         case msg@AMQPMessage(message: CreateBankAccount) => {
           logger.info(s"got message to create account/bank: ${message.accountNumber} / ${message.bankIdentifier}")
 
+          //TODO: Revise those dummy values
+          val accountType = "AMPQ"
+          val accountLabel = message.accountNumber
+          val currency = "EUR"
+
           val foundUser  = Users.users.vend.getUserByProviderId(message.accountOwnerProvider, message.accountOwnerId)
           val result = for {
             user <- foundUser ?~!
               s"user ${message.accountOwnerId} at ${message.accountOwnerProvider} not found. Could not create the account with owner view"
           } yield {
-            val (_, bankAccount) = Connector.connector.vend.createBankAndAccount(message.bankName, message.bankIdentifier, message.accountNumber, user.name)
+            val (_, bankAccount) = Connector.connector.vend.createBankAndAccount(message.bankName, message.bankIdentifier, message.accountNumber, accountType, accountLabel, currency, user.name)
             logger.info(s"created account with id ${bankAccount.bankId.value} with number ${bankAccount.number} at bank with identifier ${message.bankIdentifier}")
             BankAccountCreation.setAsOwner(bankAccount.bankId, bankAccount.accountId, user)
           }

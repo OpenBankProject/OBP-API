@@ -18,6 +18,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
 
   val mockBankId = BankId("testBank1")
   val newAccountId1 = "NEW_ACCOUNT_ID_01"
+  val newAccountLabel1 = "NEW_ACCOUNT_LABEL_01"
 
 
   override def beforeAll() {
@@ -36,7 +37,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId,"CURRENT", AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(obpuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -84,7 +85,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId,"CURRENT", AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(obpuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 

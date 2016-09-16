@@ -62,7 +62,7 @@ import code.model.dataAccess._
 import code.products.MappedProduct
 import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
 import net.liftweb.http._
@@ -196,16 +196,19 @@ class Boot extends Loggable{
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
+    // Get disbled API versions from props
+    val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
+
     // Add the various API versions
-    LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
-    LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
-    LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
+    if (!disabledVersions.contains("v1_0")) LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
+    if (!disabledVersions.contains("v1_1")) LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
+    if (!disabledVersions.contains("v1_2")) LiftRules.statelessDispatch.append(v1_2.OBPAPI1_2)
     // Can we depreciate the above?
-    LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
-    LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
-    LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
-    LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
-    LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+    if (!disabledVersions.contains("v1_2_1")) LiftRules.statelessDispatch.append(v1_2_1.OBPAPI1_2_1)
+    if (!disabledVersions.contains("v1_3_0")) LiftRules.statelessDispatch.append(v1_3_0.OBPAPI1_3_0)
+    if (!disabledVersions.contains("v1_4_0")) LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
+    if (!disabledVersions.contains("v2_0_0")) LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
+    if (!disabledVersions.contains("v2_1_0")) LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
@@ -405,6 +408,7 @@ object ToSchemify {
     MappedBankAccount,
     MappedTransaction,
     MappedTransactionRequest,
+    MappedTransactionRequest210,
     MappedTransactionImage,
     MappedMetric,
     MappedCustomer,
@@ -421,5 +425,6 @@ object ToSchemify {
     MappedTransactionType,
     MappedMeeting,
     MappedUserCustomerLink,
+    MappedKafkaBankAccountData,
     MappedEntitlement)
 }

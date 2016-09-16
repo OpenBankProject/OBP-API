@@ -35,16 +35,16 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
-import code.meetings.Meeting
 import code.entitlement.Entitlement
+import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Full, Box}
+import net.liftweb.common.{Box, Full}
 
 // import code.api.util.APIUtil.ApiLink
 
 import code.api.v1_2_1.{AmountOfMoneyJSON, JSONFactory => JSONFactory121, MinimalBankJSON => MinimalBankJSON121, OtherAccountJSON => OtherAccountJSON121, ThisAccountJSON => ThisAccountJSON121, TransactionDetailsJSON => TransactionDetailsJSON121, UserJSON => UserJSON121, ViewJSON => ViewJSON121}
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, ChallengeJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.kycchecks.KycCheck
 import code.kycdocuments.KycDocument
 import code.kycmedias.KycMedia
@@ -74,11 +74,15 @@ class ResultAndLinksJSON(
 
 case class CreateUserJSON(
                      email: String,
+                     username: String,
                      password: String,
                      first_name: String,
                      last_name: String
                    )
 
+case class CreateUserJSONs(
+                            users : List[CreateUserJSON]
+                          )
 
 case class CreateMeetingJSON(
                               provider_id: String,
@@ -143,6 +147,7 @@ case class BasicAccountJSON(
 // Json used in account creation
 case class CreateAccountJSON(
                              user_id : String,
+                             label   : String,
                               `type` : String,
                              balance : AmountOfMoneyJSON
                            )
@@ -481,19 +486,20 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       display_name : String
+                       username : String
                      )
 
-
-
+  case class UserJSONs(
+                      users: List[UserJSON]
+                      )
 
 
   def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
     user_id = user.user.foreign.get.userId,
     email = user.email,
+    username = stringOrNull(user.username),
     provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider),
-    display_name = stringOrNull(user.displayName())
+    provider = stringOrNull(user.provider)
   )
 
 
@@ -501,9 +507,9 @@ object JSONFactory200{
     new UserJSON(
       user_id = user.userId,
       email = user.emailAddress,
+      username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider),
-      display_name = stringOrNull(user.name) //TODO: Rename to displayName ?
+      provider = stringOrNull(user.provider)
     )
   }
 
@@ -512,6 +518,10 @@ object JSONFactory200{
       case Full(u) => createUserJSON(u)
       case _ => null
     }
+  }
+
+  def createUserJSONs(users : List[User]) : UserJSONs = {
+    UserJSONs(users.map(createUserJSON))
   }
 
 
@@ -681,7 +691,6 @@ object JSONFactory200{
 
   /** Creates v2.0.0 representation of a TransactionType
     *
-    *
     * @param transactionType An internal TransactionType instance
     * @return a v2.0.0 representation of a TransactionType
     */
@@ -704,7 +713,6 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
 
 
   /** Creates v2.0.0 representation of a TransactionType
-    *
     *
     * @param tr An internal TransactionRequest instance
     * @return a v2.0.0 representation of a TransactionRequest

@@ -123,6 +123,12 @@
         <scope>test</scope>
     </dependency>
     <dependency>
+        <groupId>net.manub</groupId>
+        <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
+        <version>0.7.1</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-mongodb_${scala.version}</artifactId>
       <version>${lift.version}</version>

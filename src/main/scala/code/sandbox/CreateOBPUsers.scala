@@ -18,7 +18,7 @@ trait CreateOBPUsers {
       }
     }
 
-    val existingObpUser = OBPUser.find(By(OBPUser.email, u.email))
+    val existingObpUser = OBPUser.find(By(OBPUser.username, u.user_name))
 
     if(existingObpUser.isDefined) {
       logger.warn(s"Existing OBPUser with email ${u.email} detected in data import where no APIUser was found")
@@ -26,7 +26,8 @@ trait CreateOBPUsers {
     } else {
       val obpUser = OBPUser.create
         .email(u.email)
-        .lastName(u.display_name)
+        .lastName(u.user_name)
+        .username(u.user_name)
         .password(u.password)
         .validated(true)
 

@@ -24,6 +24,9 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
     val accountNumber = "12313213"
     val accountHolderName = "Rolf Rolfson"
+    val accountLabel = accountNumber + " " + accountHolderName
+    val accountType = "some-type"
+    val currency = "EUR"
 
 //    scenario("Creating a duplicate bank should fail") {
 //
@@ -58,7 +61,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Connector.connector.vend.getBanks.size should equal(0)
 
       When("We create an account at that bank")
-      val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(bankName, bankNationalIdentifier, accountNumber, accountHolderName)
+      val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(bankName, bankNationalIdentifier, accountNumber, accountType, accountLabel, currency, accountHolderName)
 
       Then("A bank should now exist, with the correct parameters")
       val allBanks = Connector.connector.vend.getBanks
@@ -86,7 +89,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
 
 
       When("We create an account at that bank")
-      val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(existingBank.fullName, existingBank.nationalIdentifier, accountNumber, accountHolderName)
+      val (_, returnedAccount) = Connector.connector.vend.createBankAndAccount(existingBank.fullName, existingBank.nationalIdentifier, accountNumber, accountType, accountLabel, currency, accountHolderName)
 
       Then("No new bank should be created")
       val allBanksAfter = Connector.connector.vend.getBanks
@@ -113,13 +116,15 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
     val initialBalance = BigDecimal("1000.00")
     val accountHolderName = "Some Person"
     val defaultAccountNumber = "1231213213"
+    val accountType = "some-type"
+    val accountLabel = defaultAccountNumber + " " + accountHolderName
 
     scenario("Creating a bank account when the associated bank does not exist") {
       Given("A bank that doesn't exist")
       Connector.connector.vend.getBank(bankId).isDefined should equal(false)
 
       When("We try to create an account at that bank")
-      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, currency, initialBalance, accountHolderName)
+      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName)
 
       Then("No account is created")
       Connector.connector.vend.getBankAccount(bankId, accountId).isDefined should equal(false)
@@ -132,7 +137,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Connector.connector.vend.getBank(bankId).isDefined should equal(true)
 
       When("We try to create an account at that bank")
-      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, currency, initialBalance, accountHolderName)
+      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, defaultAccountNumber, accountType, accountLabel, currency, initialBalance, accountHolderName)
 
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)
@@ -153,7 +158,7 @@ class BankAccountCreationTest extends ServerSetup with DefaultUsers with Default
       Connector.connector.vend.getBank(bankId).isDefined should equal(true)
 
       When("We try to create an account at that bank")
-      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, currency, initialBalance, accountHolderName)
+      Connector.connector.vend.createSandboxBankAccount(bankId, accountId, accountType, accountLabel, currency, initialBalance, accountHolderName)
 
       Then("An account with the proper parameters should be created")
       val createdAccBox = Connector.connector.vend.getBankAccount(bankId, accountId)

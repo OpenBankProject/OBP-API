@@ -29,6 +29,7 @@ import kafka.consumer.{Consumer, _}
 import kafka.message._
 import kafka.producer.{KeyedMessage, Producer, ProducerConfig}
 import kafka.utils.Json
+import net.liftweb.common.Loggable
 import net.liftweb.json
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -36,7 +37,7 @@ import net.liftweb.util.Props
 
 class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").openOrThrowException("no kafka.zookeeper_host set"),
                     val topic: String     = Props.get("kafka.response_topic").openOrThrowException("no kafka.response_topic set"),
-                    val delay: Long       = 0) {
+                    val delay: Long       = 0) extends Loggable {
 
   val zkProps = new Properties()
   zkProps.put("log4j.logger.org.apache.zookeeper", "ERROR")
@@ -58,46 +59,12 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
   }
 
   def getResponse(reqId: String): json.JValue = {
-    // create consumer with unique groupId in order to prevent race condition with kafka
-//    val config = createConsumerConfig(zookeeper, UUID.randomUUID.toString)
-//    val consumer = Consumer.create(config)
-//    // recreate stream for topic if not existing
-//    val consumerMap = consumer.createMessageStreams(Map(topic -> 1))
-//
-//    val streams = consumerMap.get(topic).get
-//    // process streams
-//    for (stream <- streams) {
-//      val it = stream.iterator()
-//      try {
-//        // wait for message
-//        while (it.hasNext()) {
-//          val mIt = it.next()
-//          val msg = new String(mIt.message(), "UTF8")
-//          val key = new String(mIt.key(), "UTF8")
-//          // check if the id matches
-//          if (key == reqId) {
-//            // Parse JSON message
-//            val j = json.parse(msg)
-//            // disconnect from Kafka
-//            consumer.shutdown()
-//            // return as JSON
-//            return j
-//          }
-//        }
-//      }
-//      catch {
-//        case e:kafka.consumer.ConsumerTimeoutException => println("Exception: " + e.toString)
-//        return json.parse("""{"error":"timeout"}""") //TODO: replace with standard message
-//      }
-//    }
-//    // disconnect from kafka
-//    consumer.shutdown()
     return json.parse("""{"info":"disconnected"}""") //TODO: replace with standard message
   }
 }
 
 
-case class KafkaProducer(
+class KafkaProducer(
                           topic: String          = Props.get("kafka.request_topic").openOrThrowException("no kafka.request_topic set"),
                           brokerList: String     = Props.get("kafka.host")openOr("localhost:9092"),
                           clientId: String       = UUID.randomUUID().toString,
@@ -106,7 +73,7 @@ case class KafkaProducer(
                           batchSize: Integer     = 200,
                           messageSendMaxRetries: Integer = 3,
                           requestRequiredAcks: Integer   = -1
-                          ) {
+                          ) extends Loggable {
 
 
   // determine compression codec
@@ -138,7 +105,7 @@ case class KafkaProducer(
 
   implicit val formats = DefaultFormats
 
-  def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Unit = {
+  def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Boolean = {
     // create message using request and arguments strings
     val reqCommand   = Map(request -> arguments)
     val message      = Json.encode(reqCommand)
@@ -146,14 +113,20 @@ case class KafkaProducer(
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
   }
 
-  def send(key: Array[Byte], message: Array[Byte], partition: Array[Byte]): Unit = {
+  def send(key: Array[Byte], message: Array[Byte], partition: Array[Byte]): Boolean = {
     try {
       // actually send the message to kafka
       producer.send(kafkaMesssage(key, message, partition))
     } catch {
-      case e: Exception =>
+      case e: kafka.common.FailedToSendMessageException =>
+        logger.error("KafkaProducer: Failed to send message")
+        return false
+      case e: Throwable =>
+        logger.error("KafkaProducer: Unknown error while trying to send message")
         e.printStackTrace()
+        return false
     }
+    true
   }
 
 }

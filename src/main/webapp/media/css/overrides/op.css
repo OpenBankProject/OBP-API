@@ -9,6 +9,15 @@ body, div, h1, h2, h3, h4, p, span {
 #create-sandbox-account,
 #header-decoration,
 #main-showcases,
+#nav,
+#main-get_started,
+#main-faq,
 #main-support {
-    background-color: #ff6a10 !important;
+    background-color: #f0f0f0;
 }
+
+#main-showcases,
+#main-support {
+    background-color: #6e6e6e !important;
+}
+
