@@ -59,49 +59,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
   }
 
   def getResponse(reqId: String): json.JValue = {
-    // create consumer with unique groupId in order to prevent race condition with kafka
-    val config = createConsumerConfig(zookeeper, UUID.randomUUID.toString)
-    val consumer = Consumer.create(config)
-    // recreate stream for topic if not existing
-    val consumerMap = consumer.createMessageStreams(Map(topic -> 1))
-
-    val streams = consumerMap.get(topic).get
-    // process streams
-    for (stream <- streams) {
-      val it = stream.iterator()
-      try {
-        // wait for message
-        while (it.hasNext()) {
-          val mIt = it.next()
-          // skip null entries
-          if (mIt != null && mIt.key != null && mIt.message != null) {
-            val msg = new String(mIt.message(), "UTF8")
-            val key = new String(mIt.key(), "UTF8")
-            // check if the id matches
-            if (key == reqId) {
-              // Parse JSON message
-              val j = json.parse(msg)
-              // disconnect from Kafka
-              consumer.shutdown()
-              // return as JSON
-              return j
-            }
-          } else {
-            logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
-          }
-        }
-        return json.parse("""{"error":"KafkaConsumer could not fetch response"}""") //TODO: replace with standard message
-      }
-      catch {
-        case e:kafka.consumer.ConsumerTimeoutException =>
-          logger.error("KafkaConsumer: timeout")
-          return json.parse("""{"error":"KafkaConsumer timeout"}""") //TODO: replace with standard message
-      }
-    }
-    // disconnect from kafka
-    consumer.shutdown()
-    logger.info("KafkaProducer: shutdown")
-    return json.parse("""{"info":"KafkaConsumer shutdown"}""") //TODO: replace with standard message
+    return json.parse("""{"info":"disconnected"}""") //TODO: replace with standard message
   }
 }
 
@@ -140,7 +98,7 @@ class KafkaProducer(
       // no partiton specified
       new KeyedMessage(topic, key, message)
     } else {
-      // specific partition 
+      // specific partition
       new KeyedMessage(topic, key, partition, message)
     }
   }
