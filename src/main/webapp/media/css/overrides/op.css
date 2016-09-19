@@ -21,3 +21,14 @@ body, div, h1, h2, h3, h4, p, span {
     background-color: #6e6e6e !important;
 }
 
+div#authorizeSection,
+section#content,
+section#content form,
+.account-in-content form.login .field .forgot,
+#signupForm tr:first-child td,
+.signupSection form tr td,
+#registerAppSection,
+#create-sandbox-account
+{
+	color: black;
+}
