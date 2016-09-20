@@ -196,6 +196,11 @@ class Boot extends Loggable{
       LiftRules.statelessDispatch.append(DirectLogin)
     }
 
+    //  OpenIdConnect endpoints
+    if(Props.getBool("allow_openidconnect", false)) {
+      LiftRules.statelessDispatch.append(OpenIdConnect)
+    }
+
     // Add the various API versions
     LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)

@@ -48,7 +48,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.username.get
+      ".username *" #> OBPUser.getCurrentUserUsername
     }
   }
 
@@ -94,8 +94,54 @@ class Login {
     }
 
 
+  def openIdConnectButton : CssSel = {
+    if(Props.getBool("allow_openidconnect", false)){
+      val but =
+        """
+          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="lock.show();" src="%s" />
+        """.format(
+          Props.get("openidconnect.button_logo").openOrThrowException("no openidconnect.button_logo set")
+        )
+      val button  = scala.xml.Unparsed(s"""$but""")
+      "#openid_button" #> button
+    } else {
+      "#openid_button" #> ""
+	   }
+  }
+
+  def openIdConnectScripts : CssSel = {
+    if(Props.getBool("allow_openidconnect", false)){
+      val ext =
+        """
+          <script src="%s"></script>
+        """.format(
+          Props.get("openidconnect.login_ui_url").openOrThrowException("no openidconnect.login_ui_url set")
+        )
+      val scr =
+        """
+        <script type="text/javascript">
+          var lock = new Auth0Lock('%s', '%s', {
+            auth: {
+              redirectUrl: '%s',
+              responseType: 'code',
+              params: {
+                scope: 'openid email'
+              }
+            }
+          });
+        </script>
+        """.format(
+          Props.get("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
+          Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
+          Props.get("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set")
+        )
+      val scripts = scala.xml.Unparsed(s"""$ext $scr""")
+      "#openid_scripts" #> scripts
+    } else {
+      "#openid_scripts" #> ""
+    }
+  }
 
 
-
-// End of class
+  // End of class
 }
