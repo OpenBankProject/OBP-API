@@ -54,8 +54,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   val factory : Factory = Transport.defaultFactory()
   val north: SimpleNorth = new SimpleNorth(
-    Props.get("kafka.request_topic").openOr("Request"),
     Props.get("kafka.response_topic").openOr("Response"),
+    Props.get("kafka.request_topic").openOr("Request"),
     consumerProps, producerProps)
   val connector : JConnector = factory.connector(north)
 
@@ -197,7 +197,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
-   
+
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
    val banks : collection.mutable.ArrayBuffer[Bank] =
