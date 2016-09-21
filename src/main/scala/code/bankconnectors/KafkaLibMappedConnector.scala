@@ -60,10 +60,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   val connector : JConnector = factory.connector(north)
 
 // todo uncommment this and remove producer, consumer below
-//  north.receive() // start Kafka
+  north.receive() // start Kafka
 
-  var producer = new KafkaProducer()
-  var consumer = new KafkaConsumer()
+  //var producer = new KafkaProducer()
+  //var consumer = new KafkaConsumer()
   type AccountType = KafkaBankAccount
 
   // Local TTL Cache
@@ -873,11 +873,11 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
 
   def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
-    if (producer.send(reqId, command, argList, "1")) {
+    //if (producer.send(reqId, command, argList, "1")) {
       // Request sent, now we wait for response with the same reqId
-      val res = consumer.getResponse(reqId)
-      return res
-    }
+    //  val res = consumer.getResponse(reqId)
+    //  return res
+    //}
     return json.parse("""{"error":"could not send message to kafka"}""")
   }
 
