@@ -19,6 +19,9 @@ import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionR
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
+import com.tesobe.obp.kafka.SimpleNorth
+import com.tesobe.obp.transport.Transport
+import com.tesobe.obp.transport.Transport.Factory
 import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
@@ -26,7 +29,38 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
 
+import scala.collection.JavaConversions._
+
+/**
+  * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
+  * Kafka.
+  */
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
+
+  type JAccount = com.tesobe.obp.transport.Account
+  type JBank = com.tesobe.obp.transport.Bank
+  type JTransaction = com.tesobe.obp.transport.Transaction
+
+  type JConnector = com.tesobe.obp.transport.Connector
+  type JHashMap = java.util.HashMap[String, Object]
+
+  val producerProps : JHashMap = new JHashMap
+  val consumerProps : JHashMap = new JHashMap
+
+  // todo better way of translating scala props to java properties for kafka
+
+  consumerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
+  producerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
+
+  val factory : Factory = Transport.defaultFactory()
+  val north: SimpleNorth = new SimpleNorth(
+    Props.get("kafka.request_topic").openOr("Request"),
+    Props.get("kafka.response_topic").openOr("Response"),
+    consumerProps, producerProps)
+  val connector : JConnector = factory.connector(north)
+
+// todo uncommment this and remove producer, consumer below
+//  north.receive() // start Kafka
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
@@ -160,6 +194,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
+  /*
+   val banks : collection.mutable.ArrayBuffer[Bank] =
+      collection.mutable.ArrayBuffer[Bank]()
+
+    connector.getBanks().foreach(b => banks.+=(KafkaBank(KafkaInboundBank(b.id,
+      b.shortName, b.fullName, b.logo, b.url))))
+
+    val res : List[Bank] = banks.toList
+   */
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
     // Generate random uuid to be used as request-response match id
@@ -193,6 +236,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     res
   }
 
+  /*
+   val bank : Optional[JBank] = connector.getBank(id.value)
+    if(bank.isPresent) {
+      val b : JBank = bank.get
+      Full(KafkaBank(KafkaInboundBank(b.id, b.shortName, b.fullName, b.logo, b.url)))
+    } else {
+      Empty
+    }
+   */
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
     // Generate random uuid to be used as request-respose match id
@@ -210,6 +262,29 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(new KafkaBank(r))
   }
 
+  /*
+    val jt : Optional[JTransaction] = connector.getTransaction(bankId.toString,
+      accountID.toString, transactionId.toString, OBPUser.getCurrentUserUsername)
+    val r : Option[KafkaInboundTransaction] = if (jt.isPresent) {
+      val t = jt.get
+      val other : Option[KafkaInboundTransactionCounterparty] =
+        if(t.otherId != null || t.otherAccount != null) {
+        Some(KafkaInboundTransactionCounterparty(Option(t.otherId),
+          Option(t.otherAccount)))
+      } else {
+        None
+      }
+      Some(KafkaInboundTransaction(t.id,
+        KafkaInboundAccountId(t.account, t.bank),
+        other,
+        KafkaInboundTransactionDetails(t.`type`, t.description,
+          "", // t.posted,  // todo date format conversion
+          "", // t.completed,
+          t.balance, t.value)))
+    } else {
+      None
+    }
+   */
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
     // Generate random uuid to be used as request-response match id
@@ -269,6 +344,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     //TODO is this needed updateAccountTransactions(bankId, accountID)
   }
 
+  /*
+     val account : Optional[JAccount] = connector.getAccount(bankId.toString,
+      accountID.toString, OBPUser.getCurrentUserUsername)
+    if(account.isPresent) {
+      val a : JAccount = account.get
+      val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
+      Full(KafkaBankAccount(KafkaInboundAccount(a.id, a.bank, a.label, a.number,
+        a.`type`, balance, a.iban, List(), true, true, true)))
+    } else {
+      Empty
+    }
+   */
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
