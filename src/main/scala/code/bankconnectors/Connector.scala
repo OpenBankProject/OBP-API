@@ -44,17 +44,8 @@ object Connector  extends SimpleInjector {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
       case "kafka" => KafkaMappedConnector
+      case "kafka_lib" => KafkaLibMappedConnector
     }
-//
-//    if (connectorProps.startsWith("kafka_lib")) {
-//      KafkaLibMappedConnector
-//    } else {
-//      connectorProps match {
-//        case "mapped" => LocalMappedConnector
-//        case "mongodb" => LocalConnector
-//        case "kafka" => KafkaMappedConnector
-//      }
-//    }
   }
 
 }
