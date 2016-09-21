@@ -49,6 +49,8 @@ import code.api.util.{APIUtil, ErrorMessages}
 import kafka.utils.Json
 import net.liftweb.json
 
+import code.api.OBPRestHelper
+
 /**
   * This object provides the API calls necessary to authenticate
   * users using OpenIdConnect (http://openid.net).
@@ -66,26 +68,14 @@ object OpenIdConnectConfig {
   }
 }
 
-object OpenIdConnect extends RestHelper with Loggable {
+object OpenIdConnect extends OBPRestHelper with Loggable {
 
-  // Our version of serve
-  def openIdConnectServe(handler : PartialFunction[Req, JsonResponse]) : Unit = {
-    val obpHandler : PartialFunction[Req, () => Box[LiftResponse]] = {
-      new PartialFunction[Req, () => Box[LiftResponse]] {
-        def apply(r : Req) = {
-          handler(r)
-        }
-        def isDefinedAt(r : Req) = handler.isDefinedAt(r)
-      }
-    }
-    super.serve(obpHandler)
-  }
+  val VERSION = "1.0" // TODO: Should this be the lowest version supported or when introduced?
 
-  openIdConnectServe {
-    //Handling get request for a token
+  serve {
     case Req("my" :: "logins" :: "openidconnect" :: Nil, _, PostRequest | GetRequest) => {
       var httpCode = 500
-      var message = ""
+      var message = "unknown"
       for {
         code <- S.params("code")
         state <- S.param("state")
@@ -99,30 +89,25 @@ object OpenIdConnect extends RestHelper with Loggable {
                 for {
                   emailVerified <- tryo{(json_user \ "email_verified").extractOrElse[Boolean](false)}
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
-                  obp_user <- OBPUser.find(By(OBPUser.email, userEmail))
-                  api_user <- obp_user.user.foreign
+                  obp_user: OBPUser <- OBPUser.find(By(OBPUser.email, userEmail))
+                  api_user: APIUser <- obp_user.user.foreign
                   if emailVerified && api_user.apiId.value > 0
                 } yield {
                   saveAuthorizationToken(accessToken, state, api_user.apiId.value)
-                  //println("[HOMEPAGE]---------------------> " + OBPUser.homePage) //Token.findAll())
                   httpCode = 200
-                  message = accessToken
-                  //OBPUser.logUserIn(obp_user) //, () => {
-                    //S.notice(S.?("logged.in"))
-                    //preLoginState()
-                    //OBPUser.loginRedirect
-                  //})
+                  message="oauth_token="+accessToken+"&oauth_token_secret="+state
+                  val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
+                  OBPUser.logUserIn(obp_user, () => {
+                    S.notice(S.?("logged.in"))
+                    S.redirectTo(OBPUser.homePage)
+                  })
                 }
-
-              case _ => println("[TOKENS]---------------------> ERROR")
+              case _ => errorJsonResponse(message, httpCode)
             }
         }
       }
 
-      if (httpCode == 200)
-        successJsonResponse(Extraction.decompose(JSONFactory.createTokenJSON(message)))
-      else
-        errorJsonResponse(message, httpCode)
+      errorJsonResponse(message, httpCode)
     }
   }
 
@@ -158,11 +143,12 @@ object OpenIdConnect extends RestHelper with Loggable {
     import code.model.{Token, TokenType}
     val token = Token.create
     token.tokenType(TokenType.Access)
+    // TODO Consumer is not needed with oauth2/openid or is it?
     //Consumer.find(By(Consumer.key, directLoginParameters.getOrElse("consumer_key", ""))) match {
     //  case Full(consumer) => token.consumerId(consumer.id)
     //  case _ => None
     //}
-    token.consumerId(0)
+    //token.consumerId(0)
     token.userForeignKey(userId)
     token.key(tokenKey)
     token.secret(tokenSecret)
