@@ -606,7 +606,7 @@ input.submit {
   height: 1.8em;
 }
 
-.account-in-content form.login .button .signup {
+.account-in-content form.login .button .signup, #openid-button {
     border: 1px solid white;
     border-radius: 20px;
     padding: 2px 18px;
