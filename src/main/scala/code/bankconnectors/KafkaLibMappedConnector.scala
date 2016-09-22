@@ -1,9 +1,10 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale, UUID, Optional}
+import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
+import code.bankconnectors.KafkaMappedConnector.{KafkaBank, KafkaBankAccount, KafkaInboundAccount, KafkaInboundBank}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -15,7 +16,7 @@ import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequest210}
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -82,16 +83,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   def toOption[T](opt: Optional[T]): Option[T] = if (opt.isPresent) Some(opt.get()) else None
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
-    for {
-      argList <- tryo {Map[String, String]( "email" -> username.toLowerCase, "password" -> password )}
-      // Generate random uuid to be used as request-response match id
-      reqId <- tryo {UUID.randomUUID().toString}
-      u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
-      recEmail <- tryo{u.email}
-    } yield {
-      if (username == u.email) new KafkaInboundUser( recEmail, password, recEmail)
-      else null
-    }
+    // We have no way of authenticating users
+    null
   }
 
   def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
@@ -123,17 +116,26 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   def updateUserAccountViews( user: APIUser ) = {
-    val accounts = for {
-      email <- tryo {user.emailAddress}
-      argList <- tryo {Map[String, String]("username" -> email)}
-      // Generate random uuid to be used as request-response match id
-      reqId <- tryo {UUID.randomUUID().toString}
-    } yield {
-      cachedUserAccounts.getOrElseUpdate(argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
-    }
+    val accounts: List[KafkaInboundAccount] = connector.getAccounts(null, user.name).map(a =>
+        KafkaInboundAccount(
+                             a.id,
+                             a.bank,
+                             a.label,
+                             a.number,
+                             a.`type`,
+                             KafkaInboundBalance(a.amount, a.currency),
+                             a.iban,
+                             user.email :: user.name :: Nil,
+                             false,  //public_view
+                             false, //accountants_view
+                             false  //auditors_view
+        )
+    ).toList
 
-    val views = for {
-      acc <- accounts.getOrElse(List.empty)
+    logger.debug(s"Kafka getUserAccounts says res is $accounts")
+
+    for {
+      acc <- accounts
       email <- tryo {user.emailAddress}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
       existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
@@ -200,17 +202,21 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-   val banks : collection.mutable.ArrayBuffer[Bank] =
-      collection.mutable.ArrayBuffer[Bank]()
+    val banks: List[Bank] = connector.getBanks().map(b =>
+        KafkaBank(
+          KafkaInboundBank(
+            b.id,
+            b.shortName,
+            b.fullName,
+            b.logo,
+            b.url
+          )
+        )
+      ).toList
 
-    connector.getBanks().foreach(b => banks.+=(KafkaBank(KafkaInboundBank(b.id,
-      b.shortName, b.fullName, b.logo, b.url))))
-
-    val res : List[Bank] = banks.toList
-    logger.debug(s"Kafka getBanks says res is $res")
-
+    logger.debug(s"Kafka getBanks says res is $banks")
     // Return list of results
-    res
+    banks
   }
 
   // Gets bank identified by bankId
@@ -223,24 +229,22 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    // Generate random uuid to be used as request-response match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argList = Map( "bankId" -> bankId.toString,
-                       "username" -> OBPUser.getCurrentUserUsername,
-                       "accountId" -> accountID.toString,
-                       "transactionId" -> transactionId.toString )
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getTransaction", argList).extractOpt[KafkaInboundTransaction]
-    r match {
-      // Check does the response data match the requested data
-      case Some(x) if transactionId.value != x.id => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
-      case Some(x) if transactionId.value == x.id => createNewTransaction(x)
-      case _ => Failure(ErrorMessages.ConnectorEmptyResponse, Empty, Empty)
+    toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value )) match {
+      case Some(t) => createNewTransaction(KafkaInboundTransaction(
+        t.id,
+        KafkaInboundAccountId(bankId.value, t.account),
+        Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
+        KafkaInboundTransactionDetails(
+          t.`type`,
+          t.description,
+          t.posted.toString,
+          t.completed.toString,
+          t.balance,
+          t.value
+        )
+      ))
+      case None => Empty
     }
-
   }
 
   override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
@@ -259,13 +263,23 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
 
-    val reqId: String = UUID.randomUUID().toString
-    val argList = Map( "bankId" -> bankId.toString,
-                       "username" -> OBPUser.getCurrentUserUsername,
-                       "accountId" -> accountID.toString,
-                       "queryParams" -> queryParams.toString )
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
+    val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value).map(t =>
+      KafkaInboundTransaction(
+            t.id,
+            KafkaInboundAccountId(bankId.value, t.account),
+            Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
+            KafkaInboundTransactionDetails(
+              t.`type`,
+              t.description,
+              t.posted.toString,
+              t.completed.toString,
+              t.balance,
+              t.value)
+      )
+    ).toList
+
+
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
     if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
@@ -286,31 +300,61 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
-      Full(KafkaBankAccount(KafkaInboundAccount(a.id, a.bank, a.label, a.number,
-        a.`type`, balance, a.iban, List(), true, true, true)))
+      Full(
+        KafkaBankAccount(
+          KafkaInboundAccount(
+            a.id,
+            a.bank,
+            a.label,
+            a.number,
+            a.`type`,
+            balance,
+            a.iban,
+            List(),
+            true,
+            true,
+            true
+          )
+        )
+      )
     } else {
       Empty
     }
   }
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
-    // Generate random uuid to be used as request-respose match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argList = Map("bankIds" -> accts.map(a => a._1).mkString(","),
-      "username"  -> OBPUser.getCurrentUserUsername,
-      "accountIds" -> accts.map(a => a._2).mkString(","))
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val r = {
-      cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
-    }
+
+    val r:List[KafkaInboundAccount] = accts.map { a => {
+      val account: Optional[JAccount] = connector.getAccount(a._1.value,
+        a._2.value, OBPUser.getCurrentUserUsername)
+      if (account.isPresent) {
+        val a: JAccount = account.get
+        val balance: KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
+        Full(KafkaInboundAccount(
+          a.id,
+          a.bank,
+          a.label,
+          a.number,
+          a.`type`,
+          balance,
+          a.iban,
+          List(),
+          true,
+          true,
+          true
+        )
+        )
+      } else {
+        Empty
+      }
+    }.get
+  }
+
     // Check does the response data match the requested data
-    val accRes = for(row <- r) yield {
-      (BankId(row.bank), AccountId(row.id))
-    }
-    if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
+    //val accRes = for(row <- r) yield {
+    //  (row.bank, row.id)
+    //}
+    //if ((accRes.toSet diff accts.toSet).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountsConnectorResponse)
 
     r.map { t =>
       createMappedAccountDataIfNotExisting(t.bank, t.id, t.label)
@@ -318,20 +362,31 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
-    // Generate random uuid to be used as request-respose match id
-    val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argList = Map("bankId" -> bankId.toString,
-                      "username" -> OBPUser.getCurrentUserUsername,
-                      "number" -> number)
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val r = {
-      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
+    val account : Optional[JAccount] = connector.getAccount(bankId.toString,
+      number, OBPUser.getCurrentUserUsername)
+    if(account.isPresent) {
+      val a : JAccount = account.get
+      val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
+      Full(
+        KafkaBankAccount(
+          KafkaInboundAccount(
+            a.id,
+            a.bank,
+            a.label,
+            a.number,
+            a.`type`,
+            balance,
+            a.iban,
+            List(),
+            true,
+            true,
+            true
+          )
+        )
+      )
+    } else {
+      Empty
     }
-    createMappedAccountDataIfNotExisting(r.bank, r.id, r.label)
-    Full(new KafkaBankAccount(r))
   }
 
   def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
