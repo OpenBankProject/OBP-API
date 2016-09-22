@@ -199,6 +199,11 @@ class Boot extends Loggable{
     // Get disbled API versions from props
     val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
 
+    //  OpenIdConnect endpoint and validator
+    if(Props.getBool("allow_openidconnect", false)) {
+      LiftRules.dispatch.append(OpenIdConnect)
+    }
+
     // Add the various API versions
     if (!disabledVersions.contains("v1_0")) LiftRules.statelessDispatch.append(v1_0.OBPAPI1_0)
     if (!disabledVersions.contains("v1_1")) LiftRules.statelessDispatch.append(v1_1.OBPAPI1_1)
