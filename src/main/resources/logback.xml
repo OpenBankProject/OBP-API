@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright (c) TESOBE Ltd. 2016. -->
+<configuration debug="false">
+
+ <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+   <encoder>
+     <pattern>
+       %-5level %d{HH:mm:ss.SSS} [%thread] %logger{30}.%M:%L - %msg%n
+     </pattern>
+   </encoder>
+ </appender>
+
+ <appender name="log" class="ch.qos.logback.core.ConsoleAppender">
+   <encoder>
+     <pattern>
+       %-5level %d{HH:mm:ss.SSS} [%thread] %msg%n
+     </pattern>
+   </encoder>
+ </appender>
+
+ <logger name="com.tesobe.obp" level="trace"/>
+ <logger name="com.tesobe.obp.transport.spi.LegacyConnector" level="trace"/>
+ <logger name="com.tesobe.obp.transport.spi.LegacyResponder" level="trace"/>
+
+ <logger name="com.tesobe.obp.transport.spi.LoggingReceiver" level="info"
+   additivity="false">
+   <appender-ref ref="log"/>
+ </logger>
+
+ <logger name="com.tesobe.obp.socgen" level="trace"/>
+ <logger name="com.tesobe.obp.socgen.Cache" level="trace"/>
+
+ <root level="info">
+   <appender-ref ref="console"/>
+ </root>
+
+</configuration>
