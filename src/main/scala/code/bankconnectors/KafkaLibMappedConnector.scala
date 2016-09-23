@@ -229,7 +229,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value )) match {
+    toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.currentUser.get.username.get )) match {
       case Some(t) => createNewTransaction(KafkaInboundTransaction(
         t.id,
         KafkaInboundAccountId(bankId.value, t.account),
@@ -264,7 +264,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
 
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value).map(t =>
+    val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value, OBPUser.currentUser.get.username.get).map(t =>
       KafkaInboundTransaction(
             t.id,
             KafkaInboundAccountId(bankId.value, t.account),
@@ -296,7 +296,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
      val account : Optional[JAccount] = connector.getAccount(bankId.value,
-      accountID.value, OBPUser.getCurrentUserUsername)
+      accountID.value, OBPUser.currentUser.get.username.get)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -326,7 +326,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     val r:List[KafkaInboundAccount] = accts.map { a => {
       val account: Optional[JAccount] = connector.getAccount(a._1.value,
-        a._2.value, OBPUser.getCurrentUserUsername)
+        a._2.value, OBPUser.currentUser.get.username.get)
       if (account.isPresent) {
         val a: JAccount = account.get
         val balance: KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -363,7 +363,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     val account : Optional[JAccount] = connector.getAccount(bankId.value,
-      number, OBPUser.getCurrentUserUsername)
+      number, OBPUser.currentUser.get.username.get)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -504,7 +504,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argObj = KafkaOutboundTransaction(username = OBPUser.getCurrentUserUsername,
+    val argObj = KafkaOutboundTransaction(//username = OBPUser.getCurrentUserUsername,
+                                          username = OBPUser.currentUser.get.username.get,
                                           accountId = account.accountId.value,
                                           currency = currency,
                                           amount = amt.toString,
