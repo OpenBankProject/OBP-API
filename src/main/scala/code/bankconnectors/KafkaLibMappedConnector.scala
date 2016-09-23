@@ -295,8 +295,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
-     val account : Optional[JAccount] = connector.getAccount(bankId.toString,
-      accountID.toString, OBPUser.getCurrentUserUsername)
+     val account : Optional[JAccount] = connector.getAccount(bankId.value,
+      accountID.value, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -362,7 +362,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
-    val account : Optional[JAccount] = connector.getAccount(bankId.toString,
+    val account : Optional[JAccount] = connector.getAccount(bankId.value,
       number, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
