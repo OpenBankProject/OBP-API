@@ -100,7 +100,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     if (account.owners.contains(owner)) {
-      val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
       apiUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
@@ -109,7 +109,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
        }
         case None => {
           //This shouldn't happen as OBPUser should generate the APIUsers when saved
-          logger.error(s"api user(s) with email $owner not found.")
+          logger.error(s"api user(s) with username $owner not found.")
        }
       }
     }
@@ -125,7 +125,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
                              a.`type`,
                              KafkaInboundBalance(a.amount, a.currency),
                              a.iban,
-                             user.email :: user.name :: Nil,
+                             user.name :: Nil,
                              false,  //public_view
                              false, //accountants_view
                              false  //auditors_view
@@ -136,11 +136,11 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     for {
       acc <- accounts
-      email <- tryo {user.emailAddress}
-      views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
+      username <- tryo {user.name}
+      views <- tryo {createSaveableViews(acc, acc.owners.contains(username))}
       existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
     } yield {
-      setAccountOwner(email, acc)
+      setAccountOwner(username, acc)
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
