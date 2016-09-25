@@ -84,6 +84,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
     // We have no way of authenticating users
+    logger.info(s"getUser username ${username} will do nothing and return null")
     null
   }
 
@@ -104,6 +105,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       apiUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
+            logger.info(s"setAccountOwner account owner does not exist. creating for ${o.apiId.value} ${account.id}")
             MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaLibMappedConnector")
           }
        }
@@ -116,6 +118,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   def updateUserAccountViews( user: APIUser ) = {
+    logger.debug(s"KafkaLib updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
     val accounts: List[KafkaInboundAccount] = connector.getAccounts(null, user.name).map(a =>
         KafkaInboundAccount(
                              a.id,
@@ -164,7 +167,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   def createSaveableViews(acc : KafkaInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
-    logger.info(s"Kafka createSaveableViews acc is  $acc")
+    logger.info(s"Kafka createSaveableViews acc is $acc")
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
 
@@ -324,9 +327,14 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
 
+    logger.info(s"hello from KafkaLibMappedConnnector.getBankAccounts accts is $accts")
+
     val r:List[KafkaInboundAccount] = accts.map { a => {
+
+      val primaryUserIdentifier = OBPUser.currentUser.get.username.get
+      logger.info (s"KafkaLibMappedConnnector.getBankAccounts is calling connector.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
       val account: Optional[JAccount] = connector.getAccount(a._1.value,
-        a._2.value, OBPUser.currentUser.get.username.get)
+        a._2.value, primaryUserIdentifier)
       if (account.isPresent) {
         val a: JAccount = account.get
         val balance: KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
