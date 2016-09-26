@@ -165,15 +165,12 @@ class Boot extends Loggable{
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
 
-    // ensure our relational database's tables are created/fit the schema
-    if(Props.get("connector").getOrElse("") == "mapped" ||
-       Props.get("connector").getOrElse("") == "kafka" ||
-       Props.get("connector").getOrElse("") == "kafka_lib")
-      schemifyAll()
-
-    // This sets up MongoDB config (for the mongodb connector)
-    if(Props.get("connector").getOrElse("") == "mongodb")
-      MongoConfig.init
+    Props.get("connector").openOrThrowException("no connector set") match {
+      // ensure our relational database's tables are created/fit the schema
+      case "mapped" | "kafka" | " kafka_lib" => schemifyAll ()
+      // This sets up MongoDB config (for the mongodb connector)
+      case "mongodb" => MongoConfig.init
+    }
 
     val runningMode = Props.mode match {
       case Props.RunModes.Production => "Production mode"
