@@ -27,6 +27,9 @@ private object LocalConnector extends Connector with Loggable {
 
   type AccountType = Account
 
+  // Not used, only in kafka connector
+  override def updateUserAccountViews( user: APIUser ) = null
+
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
 

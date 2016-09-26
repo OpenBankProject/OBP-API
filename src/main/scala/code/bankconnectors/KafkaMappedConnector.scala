@@ -119,7 +119,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def updateUserAccountViews( user: APIUser ) = {
+  override def updateUserAccountViews( user: APIUser ) = {
     val accounts = for {
       email <- tryo {user.emailAddress}
       argList <- tryo {Map[String, String]("username" -> email)}

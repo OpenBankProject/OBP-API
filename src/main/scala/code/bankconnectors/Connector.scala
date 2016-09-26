@@ -7,6 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
+import code.model.dataAccess.APIUser
 import code.model.{OtherBankAccount, Transaction, User, _}
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
@@ -580,5 +581,7 @@ trait Connector {
   def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean
 
   def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean
+
+  def updateUserAccountViews( user: APIUser )
 
   }

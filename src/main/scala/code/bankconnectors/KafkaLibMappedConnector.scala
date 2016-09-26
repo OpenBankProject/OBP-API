@@ -117,7 +117,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     }
   }
 
-  def updateUserAccountViews( user: APIUser ) = {
+  override def updateUserAccountViews( user: APIUser ) = {
     logger.debug(s"KafkaLib updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
     val accounts: List[KafkaInboundAccount] = connector.getAccounts(null, user.name).map(a =>
         KafkaInboundAccount(

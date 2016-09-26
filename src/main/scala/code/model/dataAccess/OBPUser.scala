@@ -34,7 +34,7 @@ package code.model.dataAccess
 import java.util.UUID
 
 import code.api.{DirectLogin, OAuthHandshake}
-import code.bankconnectors.{KafkaLibMappedConnector, KafkaMappedConnector}
+import code.bankconnectors.{Connector, KafkaLibMappedConnector, KafkaMappedConnector}
 import code.bankconnectors.KafkaMappedConnector.KafkaInboundUser
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
@@ -407,8 +407,7 @@ import net.liftweb.util.Helpers._
             } yield {
               println(s"[connector=$connector] --> Updating views for user $username")
               connector match {
-                case "kafka" => KafkaMappedConnector.updateUserAccountViews(api_user)
-                case "kafka_lib" => KafkaLibMappedConnector.updateUserAccountViews(api_user)
+                case "kafka" | "kafka_lib" => Connector.connector.vend.updateUserAccountViews(api_user)
                 case _ =>
               }
             }
@@ -460,7 +459,7 @@ import net.liftweb.util.Helpers._
       for {
        user <- getUserFromKafka(name, password)
        u <- APIUser.find(By(APIUser.name_, user.username))
-       v <- tryo {KafkaMappedConnector.updateUserAccountViews(u)}
+       v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
       }
