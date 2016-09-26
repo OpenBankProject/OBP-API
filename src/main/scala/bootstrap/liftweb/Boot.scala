@@ -337,6 +337,7 @@ class Boot extends Loggable{
   }
 
   def schemifyAll() = {
+    logger.info("Running schemifyAll")
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
   }
 
