@@ -405,7 +405,7 @@ import net.liftweb.util.Helpers._
               username:String <- tryo{user.username.get}
               api_user:APIUser <- user.getApiUserByUsername(username)
             } yield {
-              println("Updating views for user $username")
+              println(s"Updating views for user $username")
               KafkaMappedConnector.updateUserAccountViews(api_user)
             }
 
