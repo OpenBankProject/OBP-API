@@ -34,7 +34,7 @@ package code.model.dataAccess
 import java.util.UUID
 
 import code.api.{DirectLogin, OAuthHandshake}
-import code.bankconnectors.KafkaMappedConnector
+import code.bankconnectors.{KafkaLibMappedConnector, KafkaMappedConnector}
 import code.bankconnectors.KafkaMappedConnector.KafkaInboundUser
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
@@ -320,7 +320,7 @@ import net.liftweb.util.Helpers._
         }
         else {
           connector match {
-            case "kafka" | "kafka_lib" =>
+            case "kafka" =>
               for { kafkaUser <- getUserFromKafka(name, password)
                     kafkaUserId <- tryo{kafkaUser.id} } yield kafkaUserId.toLong
             case _ => Full(0)
@@ -405,8 +405,12 @@ import net.liftweb.util.Helpers._
               username:String <- tryo{user.username.get}
               api_user:APIUser <- user.getApiUserByUsername(username)
             } yield {
-              println(s"Updating views for user $username")
-              KafkaMappedConnector.updateUserAccountViews(api_user)
+              println(s"[connector=$connector] --> Updating views for user $username")
+              connector match {
+                case "kafka" => KafkaMappedConnector.updateUserAccountViews(api_user)
+                case "kafka_lib" => KafkaLibMappedConnector.updateUserAccountViews(api_user)
+                case _ =>
+              }
             }
 
             logUserIn(user, () => {
@@ -452,7 +456,7 @@ import net.liftweb.util.Helpers._
   }
 
   def externalUserHelper(name: String, password: String): Box[OBPUser] = {
-    if (connector.startsWith("kafka")) {
+    if (connector == "kafka") {
       for {
        user <- getUserFromKafka(name, password)
        u <- APIUser.find(By(APIUser.name_, user.username))
