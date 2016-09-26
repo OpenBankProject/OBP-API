@@ -6,6 +6,7 @@ import code.api.util.APIUtil.OAuth._
 import code.api.{DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.management.ImporterAPI.ImporterTransaction
+import code.model.dataAccess.APIUser
 import code.model.{PhysicalCard, Consumer => OBPConsumer, Token => OBPToken, _}
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Loggable}
@@ -50,6 +51,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
   object MockedCardConnector extends Connector with Loggable {
 
     type AccountType = BankAccount
+
+    //used only if bankconnector is set toi kafka*
+    override def updateUserAccountViews(user: APIUser) = {}
 
     //these methods aren't required by our test
     override def getBank(bankId : BankId) : Box[Bank] = Empty
