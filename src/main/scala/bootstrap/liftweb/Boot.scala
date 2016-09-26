@@ -81,10 +81,13 @@ import code.transaction.MappedTransaction
  */
 class Boot extends Loggable{
   def boot {
+
+    logger.info("Hello from OBP-API")
+
     val contextPath = LiftRules.context.path
     val propsPath = tryo{Box.legacyNullTest(System.getProperty("props.resource.dir"))}.toIterable.flatten
 
-    logger.info("external props folder: " + propsPath)
+    logger.info("External props folder (if any): " + propsPath)
 
     /**
      * Where this application looks for props files:
@@ -165,7 +168,11 @@ class Boot extends Loggable{
       DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
     }
 
-    Props.get("connector").openOrThrowException("no connector set") match {
+
+    val connector = Props.get("connector").openOrThrowException("Connector not set!")
+    logger.info("Connector is: " + connector)
+
+    val connectorResult = connector match {
       // ensure our relational database's tables are created/fit the schema
       case "mapped" | "kafka" | "kafka_lib" => schemifyAll ()
       // This sets up MongoDB config (for the mongodb connector)
@@ -180,8 +187,8 @@ class Boot extends Loggable{
       case _ => "other mode"
     }
 
-    logger.info("running mode: " + runningMode)
-    logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
+    logger.info("Running mode is: " + runningMode)
+    logger.info(s"ApiPathZero (the bit before version) is: $ApiPathZero")
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -334,6 +341,7 @@ class Boot extends Loggable{
   }
 
   def schemifyAll() = {
+    logger.info("Running schemifyAll")
     Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.models: _*)
   }
 
