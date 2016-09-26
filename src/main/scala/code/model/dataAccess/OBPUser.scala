@@ -197,6 +197,18 @@ import net.liftweb.util.Helpers._
       return OAuthHandshake.getUser.get.name
     if (DirectLogin.getUser.getOrElse(None) != None)
       return DirectLogin.getUser.get.name
+
+
+    for {
+      cuser:OBPUser <- currentUser
+      uname <- tryo{cuser.username.get}
+    } yield {
+      uname
+    } match {
+      case name:String => return name
+      case _ =>
+    }
+
     return ""
   }
 
