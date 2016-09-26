@@ -156,6 +156,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
 
+  val connector = Props.get("connector").openOrThrowException("no connector set")
+
   override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def dbTableName = "users" // define the DB table name
@@ -317,8 +319,8 @@ import net.liftweb.util.Helpers._
           Full(user.id.toLong)
         }
         else {
-          Props.get("connector").openOrThrowException("no connector set") match {
-            case "kafka" =>
+          connector match {
+            case "kafka" | "kafka_lib" =>
               for { kafkaUser <- getUserFromKafka(name, password)
                     kafkaUserId <- tryo{kafkaUser.id} } yield kafkaUserId.toLong
             case _ => Full(0)
@@ -341,7 +343,7 @@ import net.liftweb.util.Helpers._
             homePage
         }
 
-        val extProvider = Props.get("connector").openOrThrowException("no connector set")
+        val extProvider = connector
 
         val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
@@ -397,6 +399,16 @@ import net.liftweb.util.Helpers._
               case _ =>
                 homePage
             }
+
+          if (connector.startsWith("kafka") )
+            for {
+              username:String <- tryo{user.username.get}
+              api_user:APIUser <- user.getApiUserByUsername(username)
+            } yield {
+              println("Updating views for user $username")
+              KafkaMappedConnector.updateUserAccountViews(api_user)
+            }
+
             logUserIn(user, () => {
               S.notice(S.?("logged.in"))
               preLoginState()
@@ -409,7 +421,7 @@ import net.liftweb.util.Helpers._
 
         case _ => {
           // If not found locally, try to authenticate user via Kafka, if enabled in props
-          if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+          if (connector.startsWith("kafka")) {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -440,7 +452,7 @@ import net.liftweb.util.Helpers._
   }
 
   def externalUserHelper(name: String, password: String): Box[OBPUser] = {
-    if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+    if (connector.startsWith("kafka")) {
       for {
        user <- getUserFromKafka(name, password)
        u <- APIUser.find(By(APIUser.name_, user.username))
