@@ -167,7 +167,7 @@ class Boot extends Loggable{
 
     Props.get("connector").openOrThrowException("no connector set") match {
       // ensure our relational database's tables are created/fit the schema
-      case "mapped" | "kafka" | " kafka_lib" => schemifyAll ()
+      case "mapped" | "kafka" | "kafka_lib" => schemifyAll ()
       // This sets up MongoDB config (for the mongodb connector)
       case "mongodb" => MongoConfig.init
     }
