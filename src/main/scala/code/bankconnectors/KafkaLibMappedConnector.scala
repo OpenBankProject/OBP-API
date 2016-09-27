@@ -235,7 +235,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
       case Some(t) => createNewTransaction(KafkaInboundTransaction(
         t.id,
-        KafkaInboundAccountId(bankId.value, t.account),
+        KafkaInboundAccountId(t.account, bankId.value),
         Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
         KafkaInboundTransactionDetails(
           t.`type`,
@@ -270,7 +270,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
       KafkaInboundTransaction(
             t.id,
-            KafkaInboundAccountId(bankId.value, t.account),
+            KafkaInboundAccountId(t.account, bankId.value),
             Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
             KafkaInboundTransactionDetails(
               t.`type`,
@@ -285,7 +285,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    if (!isCorrect) {
+      rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountID.value=" + accountID.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
+      throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    }
     // Populate fields and generate result
     val res = for {
       r <- rList
@@ -949,11 +952,11 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
+      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted.replaceAll("+0000", ""))
 
     var dateCompleted: Date = null
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
+      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed.replaceAll("+0000", ""))
 
     for {
         counterparty <- tryo{r.counterparty}

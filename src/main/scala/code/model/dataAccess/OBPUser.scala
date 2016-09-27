@@ -36,6 +36,7 @@ import java.util.UUID
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.{Connector, KafkaLibMappedConnector, KafkaMappedConnector}
 import code.bankconnectors.KafkaMappedConnector.KafkaInboundUser
+import code.model.User
 import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.FocusOnLoad
 import net.liftweb.http.{S, SHtml, SessionVar, Templates}
@@ -193,23 +194,43 @@ import net.liftweb.util.Helpers._
    * Find current user
    */
   def getCurrentUserUsername: String = {
-    if (OAuthHandshake.getUser.getOrElse(None) != None )
-      return OAuthHandshake.getUser.get.name
-    if (DirectLogin.getUser.getOrElse(None) != None)
-      return DirectLogin.getUser.get.name
-
-
+    var username = ""
+    // Try logged in OBPUser
     for {
       cuser:OBPUser <- currentUser
       uname <- tryo{cuser.username.get}
     } yield {
       uname
     } match {
-      case name:String => return name
+      case name:String => username = name
       case _ =>
     }
-
-    return ""
+    // Try legged in user from OAuth
+    if (OAuthHandshake.getUser.getOrElse(None) != None ) {
+      for {
+        cuser:User <- OAuthHandshake.getUser
+        uname:String <- tryo{cuser.name}
+      } yield {
+        uname
+      } match {
+        case name:String => username = name
+        case _ =>
+      }
+    }
+    // Try legged in user from DirectLogin
+    if (DirectLogin.getUser.getOrElse(None) != None ) {
+      for {
+        cuser:User <- DirectLogin.getUser
+        uname:String <- tryo{cuser.name}
+      } yield {
+        uname
+      } match {
+        case name:String => username = name
+        case _ =>
+      }
+    }
+    // No logged in user found
+    return username
   }
 
   /**

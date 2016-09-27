@@ -309,7 +309,7 @@ object DirectLogin extends RestHelper with Loggable {
         user
       }
       case _ => {
-        logger.warn("no token " + tokenID.getOrElse("") + " found")
+        //logger.warn("no token " + tokenID.getOrElse("") + " found")
         Empty
       }
     }
