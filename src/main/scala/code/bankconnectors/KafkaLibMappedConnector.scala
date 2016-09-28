@@ -321,6 +321,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         )
       )
     } else {
+      logger.info(s"getBankAccount says ! account.isPresent")
       Empty
     }
   }
