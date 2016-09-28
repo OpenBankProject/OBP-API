@@ -525,7 +525,7 @@ object OAuthHandshake extends RestHelper with Loggable {
           user
         }
         case _ =>{
-          logger.warn("no token " + tokenID.get + " found")
+          //logger.warn("no token " + tokenID.get + " found")
           Empty
         }
       }

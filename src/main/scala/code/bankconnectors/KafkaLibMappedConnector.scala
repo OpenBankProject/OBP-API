@@ -1,6 +1,7 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
@@ -232,16 +233,18 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.currentUser.get.username.get )) match {
-      case Some(t) => createNewTransaction(KafkaInboundTransaction(
+    toOption[JTransaction](connector.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
+      case Some(t) =>
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+        createNewTransaction(KafkaInboundTransaction(
         t.id,
-        KafkaInboundAccountId(bankId.value, t.account),
+        KafkaInboundAccountId(t.account, bankId.value),
         Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
         KafkaInboundTransactionDetails(
           t.`type`,
           t.description,
-          t.posted.toString,
-          t.completed.toString,
+          t.posted.format(formatter),
+          t.completed.format(formatter),
           t.balance,
           t.value
         )
@@ -263,20 +266,20 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
           case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
         }
     }
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
-
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value, OBPUser.currentUser.get.username.get).map(t =>
+    val rList: List[KafkaInboundTransaction] = connector.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
       KafkaInboundTransaction(
             t.id,
-            KafkaInboundAccountId(bankId.value, t.account),
+            KafkaInboundAccountId(t.account, bankId.value),
             Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
             KafkaInboundTransactionDetails(
               t.`type`,
               t.description,
-              t.posted.toString,
-              t.completed.toString,
+              t.posted.format(formatter),
+              t.completed.format(formatter),
               t.balance,
               t.value)
       )
@@ -285,7 +288,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
-    if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    if (!isCorrect) {
+      //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountID.value=" + accountID.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
+      throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
+    }
     // Populate fields and generate result
     val res = for {
       r <- rList
@@ -299,7 +305,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
      val account : Optional[JAccount] = connector.getAccount(bankId.value,
-      accountID.value, OBPUser.currentUser.get.username.get)
+      accountID.value, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -332,7 +338,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     val r:List[KafkaInboundAccount] = accts.map { a => {
 
-      val primaryUserIdentifier = OBPUser.currentUser.get.username.get
+      val primaryUserIdentifier = OBPUser.getCurrentUserUsername
       logger.info (s"KafkaLibMappedConnnector.getBankAccounts is calling connector.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
       val account: Optional[JAccount] = connector.getAccount(a._1.value,
         a._2.value, primaryUserIdentifier)
@@ -372,7 +378,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     val account : Optional[JAccount] = connector.getAccount(bankId.value,
-      number, OBPUser.currentUser.get.username.get)
+      number, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
@@ -513,8 +519,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argObj = KafkaOutboundTransaction(//username = OBPUser.getCurrentUserUsername,
-                                          username = OBPUser.currentUser.get.username.get,
+    val argObj = KafkaOutboundTransaction(username = OBPUser.getCurrentUserUsername,
                                           accountId = account.accountId.value,
                                           currency = currency,
                                           amount = amt.toString,
@@ -950,7 +955,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   // Helper for creating a transaction
   def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
-    if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
+    if (r.details.posted != null && r.details.posted == 0) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
 
     var dateCompleted: Date = null
@@ -966,6 +971,13 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
         otherAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
       } yield {
+
+        // Fix balance if null
+        val new_balance = if (r.details.new_balance != null)
+          r.details.new_balance
+        else
+          "0.0"
+
         // Create new transaction
         new Transaction(
           r.id,                             // uuid:String
@@ -978,7 +990,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
           Some(r.details.description),      // description:Option[String]
           datePosted,                       // startDate:Date
           dateCompleted,                    // finishDate:Date
-          BigDecimal(r.details.new_balance) // balance:BigDecimal)
+          BigDecimal(new_balance)           // balance:BigDecimal)
         )
     }
   }

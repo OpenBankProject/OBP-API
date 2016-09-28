@@ -48,7 +48,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.username.get
+      ".username *" #> OBPUser.getCurrentUserUsername
     }
   }
 

@@ -84,25 +84,29 @@ object OAuthAuthorisation {
     def validTokenCase(appToken: Token, unencodedTokenParam: String): CssSel = {
       if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
         var verifier = ""
+        //println("====================> [validTokenCase] ...")
         // if the user is logged in and no verifier have been generated
         if (appToken.verifier.isEmpty) {
           val randomVerifier = appToken.gernerateVerifier
           //the user is logged in so we have the current user
-          val obpUser = OBPUser.currentUser.get
-
-          //link the token with the concrete API User
-          obpUser.user.obj.map {
+          for {
+            obpUser <- OBPUser.currentUser
+          } yield {
+            //println("====================> [validTokenCase] OBPUser=" + obpUser)
+            //link the token with the concrete API User
+            obpUser.user.obj.map {
             u => {
               //We want ApiUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"
               appToken.userForeignKey(u.id.get)
             }
+            if (appToken.save())
+              verifier = randomVerifier
+            else
+              verifier = appToken.verifier
+            }
           }
-          if (appToken.save())
-            verifier = randomVerifier
-        } else
-          verifier = appToken.verifier
-
+        }
         // show the verifier if the application does not support
         // redirection
         if (appToken.callbackURL.is == "oob")
