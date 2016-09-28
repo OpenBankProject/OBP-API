@@ -278,6 +278,17 @@ import net.liftweb.util.Helpers._
     override lazy val __nameSalt = Helpers.nextFuncName
   }
 
+
+  def agreeTerms = {
+    val url = Props.get("webui_agree_terms_url", "")
+    if (url.isEmpty) {
+      s""
+    } else {
+      scala.xml.Unparsed(s"""<tr><td colspan="2"><input type="checkbox" id="agree-terms-input" /><span id="agree-terms-text">I hereby agree to the <a href="$url" title="T &amp; C">Terms and Conditions</a></span></td></tr>""")
+    }
+  }
+
+
   override def signupXhtml (user:OBPUser) =  {
     <div id="authorizeSection" class="signupSection">
       <div class="signup-error"><span class="lift:Msg?id=signup"/></div>
@@ -288,6 +299,7 @@ import net.liftweb.util.Helpers._
               <td colspan="2">{ S.?("sign.up") }</td>
             </tr>
               {localForm(user, false, signupFields)}
+              {agreeTerms}
             <tr>
               <td>&nbsp;</td>
               <td><user:submit/></td>

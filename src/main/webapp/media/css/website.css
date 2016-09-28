@@ -1161,3 +1161,12 @@ span#accountsMsg {
 #login_special_instructions {
     text-align: left;
 }
+
+
+#agree-terms-input {
+	vertical-align: middle;
+}
+#agree-terms-text {
+	vertical-align: middle;
+	margin-left: 10px;
+}
