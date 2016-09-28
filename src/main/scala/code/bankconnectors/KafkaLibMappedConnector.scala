@@ -955,7 +955,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   // Helper for creating a transaction
   def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
-    if (r.details.posted != null && r.details.posted == 0) // && r.details.posted.matches("^[0-9]{8}$"))
+    if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
 
     var dateCompleted: Date = null
