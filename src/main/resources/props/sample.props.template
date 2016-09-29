@@ -181,6 +181,8 @@ webui_main_style_sheet = /media/css/website.css
 # Override certain elements (with important styles)
 webui_override_style_sheet =
 
+## Link to agree to Terms & Conditions, shown on signup page
+webui_agree_terms_url =
 
 ## API Options
 apiOptions.getBranchesIsPublic = true

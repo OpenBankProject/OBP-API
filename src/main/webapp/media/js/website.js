@@ -39,4 +39,18 @@ $(document).ready(function() {
 			$(this).removeClass("plus").addClass("minus");
 		}
 	});
+
+
+	// Enforce check of Terms and Conditions (if existing) on register form
+	$('.signupSection #signupForm').submit(function() {
+		var agreeTerms = $('.signupSection #signupForm #agree-terms-input');
+		if (agreeTerms.length > 0) {
+			if (!agreeTerms.attr('checked')) {
+				var msg = 'Please agree to the Terms & Conditions';
+				$('.signupSection .signup-error #signup').html(msg);
+				return false;
+			}
+		}
+		return true;
+	});
 });
