@@ -1977,7 +1977,7 @@ trait APIMethods121 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
       "Add narrative.",
-      s"""Creates a description of the transaction TRANSACTION_ID.
+      s"""Creates a narrative (the account owner's comment on a transaction) of the transaction TRANSACTION_ID.
          |
          |Note: Unlike other items of metadata, there is only one "narrative" per transaction accross all views.
          |If you set narrative via a view e.g. view-x it will be seen via view-y (as long as view-y has permission to see the narrative).
@@ -2016,8 +2016,8 @@ trait APIMethods121 {
       "updateTransactionNarrative",
       "PUT",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Update narrative.",
-      """Updates the description of the transaction TRANSACTION_ID.
+      "Update transaction narrative.",
+      """Updates the narrative (aka owner comment) of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
@@ -2051,8 +2051,8 @@ trait APIMethods121 {
       "deleteTransactionNarrative",
       "DELETE",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/metadata/narrative",
-      "Delete narrative.",
-      """Deletes the description of the transaction TRANSACTION_ID.
+      "Delete transaction narrative.",
+      """Deletes the narrative (aka owner comment) of the transaction TRANSACTION_ID.
          |
          |Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
