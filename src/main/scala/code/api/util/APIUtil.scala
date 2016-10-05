@@ -90,8 +90,8 @@ object ErrorMessages {
   val ViewNotFound = "OBP-30005: View not found for Account. Please specify a valid value for VIEW_ID"
 
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
-  val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at BANK_ID"
-  val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at BANK_ID"
+  val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
+  val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at the bank specified by BANK_ID"
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

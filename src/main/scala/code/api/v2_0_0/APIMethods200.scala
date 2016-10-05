@@ -1709,9 +1709,9 @@ trait APIMethods200 {
       "POST",
       "/banks/user_customer_links",
       "Create user customer link.",
-      s"""Link a customer and an user
+      s"""Link a customer and a user
         |This call may require additional permissions/role in the future.
-        |For now the authenticated user can create at most one linked customer.
+        |For now the authenticated user can create at most one linked customer at any one bank.
         |${authenticationRequiredMessage(true)}
         |""",
       Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
