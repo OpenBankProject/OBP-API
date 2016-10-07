@@ -56,28 +56,70 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
 
   // ### VERSION 1.2.1 - BEGIN ###
-  val endpointsOf1_2_1 = "getBanks" :: "bankById" :: "allAccountsAllBanks" ::
-                         "updateAccountLabel" :: "getViewsForBankAccount" :: "createViewForBankAccount" ::
-                         "updateViewForBankAccount" :: "deleteViewForBankAccount" :: "addPermissionForUserForBankAccountForMultipleViews" ::
-                         "addPermissionForUserForBankAccountForOneView" :: "removePermissionForUserForBankAccountForOneView" :: "removePermissionForUserForBankAccountForAllViews" ::
-                         "getCounterpartiesForBankAccount" :: "getCounterpartyByIdForBankAccount" :: "getCounterpartyMetadata" ::
-                         "getCounterpartyPublicAlias" :: "addCounterpartyPublicAlias" :: "updateCounterpartyPublicAlias" ::
-                         "deleteCounterpartyPublicAlias" :: "getCounterpartyPrivateAlias" :: "addCounterpartyPrivateAlias" ::
-                         "updateCounterpartyPrivateAlias" :: "deleteCounterpartyPrivateAlias" :: "addCounterpartyMoreInfo" ::
-                         "updateCounterpartyMoreInfo" :: "deleteCounterpartyMoreInfo" :: "addCounterpartyUrl" ::
-                         "updateCounterpartyUrl" :: "deleteCounterpartyUrl" :: "addCounterpartyImageUrl" ::
-                         "updateCounterpartyImageUrl" :: "deleteCounterpartyImageUrl" :: "addCounterpartyOpenCorporatesUrl" ::
-                         "updateCounterpartyOpenCorporatesUrl" :: "deleteCounterpartyOpenCorporatesUrl" :: "addCounterpartyCorporateLocation" ::
-                         "updateCounterpartyCorporateLocation" :: "deleteCounterpartyCorporateLocation" :: "addCounterpartyPhysicalLocation" ::
-                         "updateCounterpartyPhysicalLocation" :: "deleteCounterpartyPhysicalLocation" :: "getTransactionsForBankAccount" ::
-                         "getTransactionByIdForBankAccount" :: "getTransactionNarrative" :: "addTransactionNarrative" ::
-                         "updateTransactionNarrative" :: "deleteTransactionNarrative" :: "getCommentsForViewOnTransaction" ::
-                         "addCommentForViewOnTransaction" :: "deleteCommentForViewOnTransaction" :: "deleteCommentForViewOnTransaction" ::
-                         "getTagsForViewOnTransaction" :: "addTagForViewOnTransaction" :: "deleteTagForViewOnTransaction" ::
-                         "getImagesForViewOnTransaction" :: "addImageForViewOnTransaction" :: "deleteImageForViewOnTransaction" ::
-                         "getWhereTagForViewOnTransaction" :: "addWhereTagForViewOnTransaction" :: "updateWhereTagForViewOnTransaction" ::
-                         "deleteWhereTagForViewOnTransaction" :: "getCounterpartyForTransaction" :: "makePayment" ::
-                          Nil
+  val endpointsOf1_2_1 = "addCommentForViewOnTransaction"::
+                        "addCounterpartyCorporateLocation"::
+                        "addCounterpartyImageUrl"::
+                        "addCounterpartyMoreInfo"::
+                        "addCounterpartyOpenCorporatesUrl"::
+                        "addCounterpartyPhysicalLocation"::
+                        "addCounterpartyPrivateAlias"::
+                        "addCounterpartyPublicAlias"::
+                        "addCounterpartyUrl"::
+                        "addImageForViewOnTransaction"::
+                        "addPermissionForUserForBankAccountForMultipleViews"::
+                        "addPermissionForUserForBankAccountForOneView"::
+                        "addTagForViewOnTransaction"::
+                        "addTransactionNarrative"::
+                        "addWhereTagForViewOnTransaction"::
+                        "allAccountsAllBanks"::
+                        "bankById"::
+                        "createViewForBankAccount"::
+                        "deleteCommentForViewOnTransaction"::
+                        "deleteCommentForViewOnTransaction"::
+                        "deleteCounterpartyCorporateLocation"::
+                        "deleteCounterpartyImageUrl"::
+                        "deleteCounterpartyMoreInfo"::
+                        "deleteCounterpartyOpenCorporatesUrl"::
+                        "deleteCounterpartyPhysicalLocation"::
+                        "deleteCounterpartyPrivateAlias"::
+                        "deleteCounterpartyPublicAlias"::
+                        "deleteCounterpartyUrl"::
+                        "deleteImageForViewOnTransaction"::
+                        "deleteTagForViewOnTransaction"::
+                        "deleteTransactionNarrative"::
+                        "deleteViewForBankAccount"::
+                        "deleteWhereTagForViewOnTransaction"::
+                        "getBanks"::
+                        "getCommentsForViewOnTransaction"::
+                        "getCounterpartiesForBankAccount"::
+                        "getCounterpartyByIdForBankAccount"::
+                        "getCounterpartyForTransaction"::
+                        "getCounterpartyMetadata"::
+                        "getCounterpartyPrivateAlias"::
+                        "getCounterpartyPublicAlias"::
+                        "getImagesForViewOnTransaction"::
+                        "getTagsForViewOnTransaction"::
+                        "getTransactionByIdForBankAccount"::
+                        "getTransactionNarrative"::
+                        "getTransactionsForBankAccount"::
+                        "getViewsForBankAccount"::
+                        "getWhereTagForViewOnTransaction"::
+                        "makePayment"::
+                        "removePermissionForUserForBankAccountForAllViews"::
+                        "removePermissionForUserForBankAccountForOneView"::
+                        "updateAccountLabel"::
+                        "updateCounterpartyCorporateLocation"::
+                        "updateCounterpartyImageUrl"::
+                        "updateCounterpartyMoreInfo"::
+                        "updateCounterpartyOpenCorporatesUrl"::
+                        "updateCounterpartyPhysicalLocation"::
+                        "updateCounterpartyPrivateAlias"::
+                        "updateCounterpartyPublicAlias"::
+                        "updateCounterpartyUrl"::
+                        "updateTransactionNarrative"::
+                        "updateViewForBankAccount"::
+                        "updateWhereTagForViewOnTransaction"::
+                        Nil
 
   for ( item <- Implementations1_2_1.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_2_1.exists(_ == item.apiFunction)) {
     routes = routes:::List(item.partialFunction)
@@ -87,7 +129,9 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // ### VERSION 1.3.0 - BEGIN ###
   // New in 1.3.0
-  val endpointsOf1_3_0 = "getCards" :: "getCardsForBank" :: Nil
+  val endpointsOf1_3_0 = "getCards" ::
+                         "getCardsForBank" ::
+                          Nil
   for ( item <- Implementations1_3_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_3_0.exists(_ == item.apiFunction)) {
     routes = routes:::List(item.partialFunction)
   }
@@ -97,8 +141,14 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // ### VERSION 1.4.0 - BEGIN ###
   // New in 1.4.0
-  val endpointsOf1_4_0 = "getCustomer" :: "getCustomerMessages" :: "addCustomerMessage" :: "getBranches" ::
-                         "getAtms" :: "getProducts" :: "getCrmEvents" :: "getTransactionRequestTypes" ::
+  val endpointsOf1_4_0 = "getCustomer" ::
+                         "getCustomerMessages" ::
+                         "addCustomerMessage" ::
+                         "getBranches" ::
+                         "getAtms" ::
+                         "getProducts" ::
+                         "getCrmEvents" ::
+                         "getTransactionRequestTypes" ::
                          Nil
   for ( item <- Implementations1_4_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf1_4_0.exists(_ == item.apiFunction)) {
     routes = routes:::List(item.partialFunction)
@@ -109,18 +159,50 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // ### VERSION 2.0.0 - BEGIN ###
   // Updated in 2.0.0 (less info about the views)
-  val endpointsOf2_0_0 = "allAccountsAllBanks" :: "privateAccountsAllBanks" :: "publicAccountsAllBanks" :: "allAccountsAtOneBank" ::
-    "privateAccountsAtOneBank" :: "publicAccountsAtOneBank" :: "answerTransactionRequestChallenge" :: "accountById" ::
-    "getPermissionsForBankAccount" :: "getPermissionForUserForBankAccount" :: "getKycDocuments" :: "getKycMedia" ::
-    "getKycStatuses" :: "getKycChecks" :: "getSocialMediaHandles" :: "addKycDocument" ::
-    "addKycMedia" :: "addKycStatus" :: "addKycCheck" :: "addSocialMediaHandle" ::
-    "getCoreAccountById" :: "getCoreTransactionsForBankAccount" :: "createAccount" :: "getTransactionTypes" ::
-    "createUser" :: "createMeeting" :: "getMeetings" :: "getMeeting" ::
-    "createCustomer" :: "getCurrentUser" :: "getUser" :: "createUserCustomerLinks" ::
-    "addEntitlement" :: "getEntitlements" :: "deleteEntitlement" :: "getAllEntitlements" ::
-    "elasticSearchWarehouse" :: "elasticSearchMetrics" :: "getCustomers" ::
-    Nil
-    for ( item <- Implementations2_0_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_0_0.exists(_ == item.apiFunction)) {
+  val endpointsOf2_0_0 = "allAccountsAllBanks"::
+                          "accountById"::
+                          "addEntitlement"::
+                          "addKycCheck"::
+                          "addKycDocument"::
+                          "addKycMedia"::
+                          "addKycStatus"::
+                          "addSocialMediaHandle"::
+                          "allAccountsAllBanks"::
+                          "allAccountsAtOneBank"::
+                          "answerTransactionRequestChallenge"::
+                          "createAccount"::
+                          "createCustomer"::
+                          "createMeeting"::
+                          "createUser"::
+                          "createUserCustomerLinks"::
+                          "deleteEntitlement"::
+                          "elasticSearchMetrics"::
+                          "elasticSearchWarehouse"::
+                          "getAllEntitlements"::
+                          "getCoreAccountById"::
+                          "getCoreTransactionsForBankAccount"::
+                          "getCurrentUser"::
+                          "getCustomers"::
+                          "getEntitlements"::
+                          "getKycChecks"::
+                          "getKycDocuments"::
+                          "getKycMedia"::
+                          "getKycStatuses"::
+                          "getMeeting"::
+                          "getMeetings"::
+                          "getPermissionForUserForBankAccount"::
+                          "getPermissionsForBankAccount"::
+                          "getSocialMediaHandles"::
+                          "getTransactionTypes"::
+                          "getUser"::
+                          "privateAccountsAllBanks"::
+                          "privateAccountsAtOneBank"::
+                          "publicAccountsAllBanks"::
+                          "publicAccountsAtOneBank"::
+                          Nil
+
+
+  for ( item <- Implementations2_0_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_0_0.exists(_ == item.apiFunction)) {
       routes = routes:::List(item.partialFunction)
     }
   // ### VERSION 2.0.0 - END ###
@@ -129,7 +211,11 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // ### VERSION 2.1.0 - BEGIN ###
   // New in 2.1.0
-  val endpointsOf2_1_0 = "sandboxDataImport" :: "getTransactionRequestTypesSupportedByBank" :: "createTransactionRequest" :: "getTransactionRequests" :: Nil
+  val endpointsOf2_1_0 = "sandboxDataImport" ::
+                         "getTransactionRequestTypesSupportedByBank" ::
+                         "createTransactionRequest" ::
+                         "getTransactionRequests" ::
+                         Nil
   for ( item <- Implementations2_1_0.resourceDocs if !disabledVersions.contains("v" + item.apiVersion) && !disabledEndpoints.contains(item.apiFunction) &&  endpointsOf2_1_0.exists(_ == item.apiFunction)) {
     routes = routes:::List(item.partialFunction)
   }
