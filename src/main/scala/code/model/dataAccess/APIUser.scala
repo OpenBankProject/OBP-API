@@ -62,17 +62,6 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
 
   object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
 
-  // Roles
- // THESE ARE NO LONGER USED!!------------------------
-  object hasCrmAdminRole extends MappedBoolean(this)
-  object hasCrmReaderRole extends MappedBoolean(this)
-  object hasCustomerMessageAdminRole extends MappedBoolean(this)
-
-  object hasBranchReaderRole extends MappedBoolean(this)
-  object hasAtmReaderRole extends MappedBoolean(this)
-  object hasProductReaderRole extends MappedBoolean(this)
-  // END of no longer used. TODO remove. --------------
-
   def emailAddress = {
     val e = email.get
     if(e != null) e else ""
@@ -87,15 +76,6 @@ class APIUser extends LongKeyedMapper[APIUser] with User with ManyToMany with On
   def provider = provider_.get
   def views: List[View] = views_.toList
 
-  // Depreciated. Do not use.///////////////
-  def isCrmAdmin : Boolean = hasCrmAdminRole
-  def isCrmReader : Boolean = hasCrmReaderRole
-  def isCustomerMessageAdmin : Boolean = hasCustomerMessageAdminRole
-
-  def isBranchReader : Boolean = hasBranchReaderRole
-  def isAtmReader : Boolean = hasAtmReaderRole
-  def isProductReader : Boolean = hasProductReaderRole
-  ////////////////////////////////////////////////////
 }
 
 object APIUser extends APIUser with LongKeyedMetaMapper[APIUser]{
