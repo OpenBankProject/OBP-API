@@ -1735,6 +1735,7 @@ trait APIMethods200 {
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
+            canCreateCustomer <- booleanToBox(hasEntitlement(customer.bank, u.userId, CanCreateCustomer), s"$CanCreateCustomer entitlement required")
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {

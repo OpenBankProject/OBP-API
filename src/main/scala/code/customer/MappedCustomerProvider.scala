@@ -115,6 +115,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mLastOkDate extends MappedDateTime(this)
 
   override def customerId: String = mCustomerId.get // id.toString
+  override def bank: String = mBank.get
   override def number: String = mNumber.get
   override def mobileNumber: String = mMobileNumber.get
   override def legalName: String = mLegalName.get
