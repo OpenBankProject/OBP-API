@@ -2,10 +2,11 @@ package code.api.v1_4_0
 
 import java.text.SimpleDateFormat
 import code.api.DefaultUsers
-import code.api.util.ErrorMessages
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
 import code.api.v2_0_0.{CreateUserCustomerLinkJSON, V200ServerSetup, CreateCustomerJson}
 import code.customer.{MappedCustomer}
+import code.entitlement.Entitlement
 import code.model.{BankId}
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization._
@@ -79,9 +80,14 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val uclJSON = CreateUserCustomerLinkJSON(user_id = obpuser1.userId, customer_id = customerId)
       val requestPostUcl = (v2_0Request / "banks" / "user_customer_links").POST <@ (user1)
       val responsePostUcl = makePostRequest(requestPostUcl, write(uclJSON))
+      Then("We should get a 400")
+      responsePostUcl.code should equal(400)
 
+      When("We add required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateCustomer.toString)
+      val responsePostUclSec = makePostRequest(requestPostUcl, write(uclJSON))
       Then("We should get a 201")
-      responsePostUcl.code should equal(201)
+      responsePostUclSec.code should equal(201)
 
 
       When("We make the request")
