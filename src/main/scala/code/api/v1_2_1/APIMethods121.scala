@@ -117,7 +117,7 @@ trait APIMethods121 {
     resourceDocs += ResourceDoc(
       getBanks,
       apiVersion,
-      "allBanks",
+      "getBanks",
       "GET",
       "/banks",
       "Get Banks",
