@@ -513,7 +513,7 @@ trait APIMethods200 {
     resourceDocs += ResourceDoc(
       getSocialMediaHandles,
       apiVersion,
-      "getSocialMedia",
+      "getSocialMediaHandles",
       "GET",
       "/banks/BANK_ID/customers/CUSTOMER_ID/social_media_handles",
       "Get social media handles for a customer",
@@ -764,7 +764,7 @@ trait APIMethods200 {
     resourceDocs += ResourceDoc(
       getCoreAccountById,
       apiVersion,
-      "coreAccountById",
+      "getCoreAccountById",
       "GET",
       "/my/banks/BANK_ID/accounts/ACCOUNT_ID/account",
       "Get Account by Id (Core)",
