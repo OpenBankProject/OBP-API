@@ -33,14 +33,18 @@ package code.api.v2_1_0
 
 import java.util.Date
 
+import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.{TransactionRequestWithChargeJSONs, TransactionRequestChargeJSON, TransactionRequestBodyJSON}
+import code.api.v2_0_0.{TransactionRequestChargeJSON}
 import code.model.AmountOfMoney
 import code.transactionrequests.TransactionRequests._
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
 case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
+
+case class AvailableRoleJSON(role: String, requires_bank_id: Boolean)
+case class AvailableRolesJSON(roles: List[AvailableRoleJSON])
 
 trait TransactionRequestDetailsJSON {
   val value : AmountOfMoneyJSON
@@ -88,6 +92,18 @@ object JSONFactory210{
 
   def createTransactionRequestTypeJSON(transactionRequestTypes : List[String]) : TransactionRequestTypesJSON = {
     TransactionRequestTypesJSON(transactionRequestTypes.map(createTransactionRequestTypeJSON))
+  }
+
+
+  def createAvailableRoleJSON(role : String ) : AvailableRoleJSON = {
+    new AvailableRoleJSON(
+      role = role,
+      requires_bank_id = ApiRole.valueOf(role).requiresBankId
+    )
+  }
+
+  def createAvailableRolesJSON(roles : List[String]) : AvailableRolesJSON = {
+    AvailableRolesJSON(roles.map(createAvailableRoleJSON))
   }
 
   //transaction requests

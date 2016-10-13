@@ -59,4 +59,18 @@ object ApiRole {
     case _ => throw new IllegalArgumentException()
   }
 
+  val availableRoles = "CanSearchAllTransactions" ::
+                      "CanSearchAllAccounts" ::
+                      "CanQueryOtherUser" ::
+                      "CanSearchWarehouse" ::
+                      "CanSearchMetrics" ::
+                      "CanCreateCustomer" ::
+                      "CanCreateAccount" ::
+                      "CanGetAnyUser" ::
+                      "CanCreateAnyTransactionRequest" ::
+                      "CanAddSocialMediaHandle" ::
+                      "CanGetSocialMediaHandles" ::
+                      "CanCreateSandbox" ::
+                       Nil
+
 }

@@ -2,11 +2,10 @@ package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
 import code.api.util.ApiRole._
-import code.api.util.ErrorMessages
+import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJSON
-import code.api.v2_0_0.JSONFactory200._
-import code.api.v2_0_0.{JSONFactory200, TransactionRequestBodyJSON}
+import code.api.v2_0_0.{TransactionRequestBodyJSON}
 import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.fx.fx
@@ -355,6 +354,45 @@ trait APIMethods210 {
           }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      getAvailableRoles,
+      apiVersion,
+      "getAvailableRoles",
+      "GET",
+      "/available-roles",
+      "Get all Roles",
+      """Returns all available roles
+        |
+        |Login is required.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagUser, apiTagEntitlement))
+
+    lazy val getAvailableRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "available-roles" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+          }
+          yield {
+            // Format the data as V2.1.0 json
+            val json = JSONFactory210.createAvailableRolesJSON(ApiRole.availableRoles.sorted)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+
   }
 }
 
