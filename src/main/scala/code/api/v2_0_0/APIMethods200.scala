@@ -1818,13 +1818,13 @@ trait APIMethods200 {
         user =>
             for {
               u <- user ?~ ErrorMessages.UserNotLoggedIn
-              // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "User is not super admin!"
+              canGetEntitlementsForAnyUserAtAnyBank <- booleanToBox(hasEntitlement("", u.userId, CanGetEntitlementsForAnyUserAtAnyBank), s"$CanGetEntitlementsForAnyUserAtAnyBank entitlement required")
               entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
             }
             yield {
               var json = EntitlementJSONs(Nil)
               // Format the data as V2.0.0 json
-              if (isSuperAdmin(u.userId)) {
+              if (isSuperAdmin(userId)) {
                 // If the user is SuperAdmin add it to the list
                 json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(entitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
                 successJsonResponse(Extraction.decompose(json))
