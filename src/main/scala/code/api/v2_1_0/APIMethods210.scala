@@ -357,12 +357,12 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      getAvailableRoles,
+      getRoles,
       apiVersion,
-      "getAvailableRoles",
+      "getRoles",
       "GET",
-      "/available-roles",
-      "Get all Roles",
+      "/roles",
+      "Get Roles",
       """Returns all available roles
         |
         |Login is required.
@@ -377,12 +377,12 @@ trait APIMethods210 {
       true,
       List(apiTagUser, apiTagEntitlement))
 
-    lazy val getAvailableRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "available-roles" :: Nil JsonGet _ => {
+    lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "roles" :: Nil JsonGet _ => {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
+            // isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
           }
           yield {
             // Format the data as V2.1.0 json

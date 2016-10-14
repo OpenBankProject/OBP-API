@@ -234,7 +234,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "getTransactionRequestTypesSupportedByBank" ::
                          "createTransactionRequest" ::
                          "getTransactionRequests" ::
-                         "getAvailableRoles" ::
+                         "getRoles" ::
                          Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
