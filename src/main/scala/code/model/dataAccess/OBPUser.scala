@@ -319,25 +319,25 @@ import net.liftweb.util.Helpers._
 
   // What if we just want to return the userId without sending username/password??
 
-  def getUserId(name: String, password: String): Box[Long] = {
+  def getAPIUserId(name: String, password: String): Box[Long] = {
     findUserByUsername(name) match {
       case Full(user) => {
         if (user.validated_? &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
         {
-          Full(user.id.toLong)
+          Full(user.user)
         }
         else {
           Props.get("connector").openOrThrowException("no connector set") match {
             case "kafka" =>
               for { kafkaUser <- getUserFromKafka(name, password)
-                    kafkaUserId <- tryo{kafkaUser.id} } yield kafkaUserId.toLong
-            case _ => Full(0)
+                    kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
+            case _ => Empty
           }
         }
       }
-      case _ => Full(0)
+      case _ => Empty 
     }
   }
 
@@ -460,7 +460,7 @@ import net.liftweb.util.Helpers._
       } yield {
         user
       }
-    } else Full(OBPUser)
+    } else Empty 
   }
 
   protected def findUserByUsername(name: String): Box[TheUserType] = {

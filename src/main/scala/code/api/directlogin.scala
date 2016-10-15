@@ -284,11 +284,11 @@ object DirectLogin extends RestHelper with Loggable {
     val username = directLoginParameters.getOrElse("username", "")
     val password = directLoginParameters.getOrElse("password", "")
 
-    var userId = for {id <- OBPUser.getUserId(username, password)} yield id
+    var userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
 
     if (userId.isEmpty) {
-      OBPUser.externalUserHelper(username, password)
-      userId = for {id <- OBPUser.getUserId(username, password)} yield id
+      if ( ! OBPUser.externalUserHelper(username, password).isEmpty) 
+      	userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
     }
 
     userId
