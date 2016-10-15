@@ -255,7 +255,7 @@ trait APIMethods210 {
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {"Transfer body currency and holder account currency must be the same."}
 
-              transDetailsSerialized<- transactionRequestType.value match {
+              transDetailsSerialized <- transactionRequestType.value match {
                 case "FREE_FORM" => tryo{
                   implicit val formats = Serialization.formats(NoTypeHints)
                   write(json)
