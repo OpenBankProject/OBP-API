@@ -656,6 +656,13 @@ Returns a string showed to the developer
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
+  def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    val list: List[Boolean] = for (role <- roles) yield {
+      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
+    }
+    list.exists(_ == true)
+  }
+
   def getCustomers(ids: List[String]): List[Customer] = {
     val customers = {
       for {id <- ids

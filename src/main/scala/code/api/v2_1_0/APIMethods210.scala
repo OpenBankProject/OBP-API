@@ -5,9 +5,10 @@ import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJSON
-import code.api.v2_0_0.{TransactionRequestBodyJSON}
+import code.api.v2_0_0.{EntitlementJSON, JSONFactory200, EntitlementJSONs, TransactionRequestBodyJSON}
 import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
+import code.entitlement.Entitlement
 import code.fx.fx
 import code.model._
 
@@ -387,6 +388,59 @@ trait APIMethods210 {
           yield {
             // Format the data as V2.1.0 json
             val json = JSONFactory210.createAvailableRolesJSON(ApiRole.availableRoles.sorted)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getEntitlementsByBankAndUser,
+      apiVersion,
+      "getEntitlementsByBankAndUser",
+      "GET",
+      "/banks/BANK_ID/users/USER_ID/entitlements",
+      "Get Entitlements specified by BANK_ID and USER_ID",
+      """
+        |
+        |Login is required.
+        |
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagUser, apiTagEntitlement))
+
+
+    lazy val getEntitlementsByBankAndUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "users" :: userId :: "entitlements" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~ {ErrorMessages.BankNotFound}
+            usr <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
+            requiredEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
+                                   CanGetEntitlementsForAnyUserAtAnyBank::
+                                   Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" or ")
+            hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
+            entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
+            filteredEntitlements <- tryo{entitlements.filter(_.bankId == bankId.value)}
+          }
+          yield {
+            var json = EntitlementJSONs(Nil)
+            // Format the data as V2.1.0 json
+            if (isSuperAdmin(userId)) {
+              // If the user is SuperAdmin add it to the list
+              json = EntitlementJSONs(JSONFactory200.createEntitlementJSONs(filteredEntitlements).list:::List(EntitlementJSON("", "SuperAdmin", "")))
+              successJsonResponse(Extraction.decompose(json))
+            } else {
+              json = JSONFactory200.createEntitlementJSONs(filteredEntitlements)
+            }
+            // Return
             successJsonResponse(Extraction.decompose(json))
           }
       }
