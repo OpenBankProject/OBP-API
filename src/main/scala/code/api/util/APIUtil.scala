@@ -656,11 +656,22 @@ Returns a string showed to the developer
     !Entitlement.entitlement.vend.getEntitlement(bankId, userId, role.toString).isEmpty
   }
 
+  // Function checks does a user specified by a parameter userId has at least one role provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned at least one role from the list
   def hasAtLeastOneEntitlement(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
     val list: List[Boolean] = for (role <- roles) yield {
       !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
     }
     list.exists(_ == true)
+  }
+
+  // Function checks does a user specified by a parameter userId has all roles provided by a parameter roles at a bank specified by a parameter bankId
+  // i.e. does user has assigned all roles from the list
+  def hasAllEntitlements(bankId: String, userId: String, roles: List[ApiRole]): Boolean = {
+    val list: List[Boolean] = for (role <- roles) yield {
+      !Entitlement.entitlement.vend.getEntitlement(if (role.requiresBankId == true) bankId else "", userId, role.toString).isEmpty
+    }
+    list.forall(_ == true)
   }
 
   def getCustomers(ids: List[String]): List[Customer] = {
