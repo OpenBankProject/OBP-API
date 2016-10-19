@@ -104,7 +104,8 @@ payments_enabled=true
 #transaction requests are replacing simple payments starting from 1.4.0
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
-transactionRequests_supported_types=SANDBOX_TAN,INTRABANK,SEPA,FREE_FORM
+# Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, INTRABANK, SEPA, FREE_FORM
+transactionRequests_supported_types=SANDBOX_TAN
 
 
 # For video conference meetings (createMeeting)
