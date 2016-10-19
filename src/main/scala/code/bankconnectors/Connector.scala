@@ -83,6 +83,9 @@ trait Connector {
   //the implementation of makePaymentImpl
   type AccountType <: BankAccount
 
+  // Gets current challenge level for transaction request
+  def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
+
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank]
 
@@ -318,8 +321,9 @@ trait Connector {
   def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest210] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
+    val (limit, currency) = getChallengeLevel("", "", transactionRequestType.value, details.value.currency)
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < 1000) {
+      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
         TransactionRequests.STATUS_COMPLETED
       } else {
         TransactionRequests.STATUS_INITIATED

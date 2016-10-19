@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.api.util.ErrorMessages
+import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -191,6 +192,32 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     logger.debug(s"Kafka getBanks says res is $res")
     res
+  }
+
+  // Gets current challenge level for transaction request
+  override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+    // Generate random uuid to be used as request-response match id
+    val reqId: String = UUID.randomUUID().toString
+    // Create argument list
+    val argList = Map(  "userId" -> userId,
+                        "accountId" -> accountId,
+                        "transactionRequestType" -> transactionRequestType,
+                        "currency" -> currency)
+    // Send request to Kafka, marked with reqId
+    // so we can fetch the corresponding response
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r: Option[KafkaInboundChallengeLevel] = process(reqId, "getChallengeLevel", argList).extractOpt[KafkaInboundChallengeLevel]
+    // Return result
+    r match {
+      // Check does the response data match the requested data
+      case Some(x)  => (x.limit, x.currency)
+      case _ => {
+        val limit = BigDecimal("50")
+        val rate = fx.exchangeRate ("EUR", currency)
+        val convertedLimit = fx.convert(limit, rate)
+        (convertedLimit, currency)
+      }
+    }
   }
 
   // Gets bank identified by bankId
@@ -1151,5 +1178,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                       otherAccountId: String,
                                       otherAccountCurrency: String,
                                       transactionType: String)
+
+  case class KafkaInboundChallengeLevel(
+                                       limit: BigDecimal,
+                                       currency: String
+                                        )
 }
 
