@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
@@ -26,6 +27,14 @@ import scala.concurrent._
 private object LocalConnector extends Connector with Loggable {
 
   type AccountType = Account
+
+  // Gets current challenge level for transaction request
+  override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+    val limit = BigDecimal("50")
+    val rate = fx.exchangeRate ("EUR", currency)
+    val convertedLimit = fx.convert(limit, rate)
+    (convertedLimit, currency)
+  }
 
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)

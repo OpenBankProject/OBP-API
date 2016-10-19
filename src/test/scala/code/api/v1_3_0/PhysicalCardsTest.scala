@@ -52,6 +52,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     type AccountType = BankAccount
 
     //these methods aren't required by our test
+    override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
     override def getBank(bankId : BankId) : Box[Bank] = Empty
     override def getBanks : List[Bank] = Nil
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
