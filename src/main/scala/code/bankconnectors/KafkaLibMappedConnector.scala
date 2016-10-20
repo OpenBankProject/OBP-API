@@ -504,39 +504,21 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(account : AccountType,
-                              counterparty : BankAccount,
-                              amt : BigDecimal,
-                              description : String) : Box[TransactionId] = {
-
-    val transactionTime = now
-    val currency = account.currency
-
-    //update the balance of the account for which a transaction is being created
-    val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
-    //account.balance = newAccountBalance
-
-        val reqId: String = UUID.randomUUID().toString
-    // Create argument list with reqId
-    // in order to fetch corresponding response
-    val argObj = KafkaOutboundTransaction(username = OBPUser.getCurrentUserUsername,
-                                          accountId = account.accountId.value,
-                                          currency = currency,
-                                          amount = amt.toString,
-                                          otherAccountId = counterparty.accountId.value,
-                                          otherAccountCurrency = counterparty.currency,
-                                          transactionType = "AC")
-
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val argMap = Extraction.decompose(argObj).values
-    val r = process(reqId, "saveTransaction", argMap.asInstanceOf[Map[String,String]]) //.extract[KafkaInboundTransactionId]
-
-    r.extract[KafkaInboundTransactionId] match {
-      case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
-      case _ => Full(TransactionId("0"))
+  // TODO: Extend jvmNorth function with parameters transactionRequestId and description
+  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+    val name = OBPUser.getCurrentUserUsername
+    val user = OBPUser.getApiUserByUsername(name)
+    val userId = for (u <- user) yield u.userId
+    val accountId = fromAccount.accountId.value
+    val currency = fromAccount.currency
+    val amount = amt.toString
+    val otherAccountId = toAccount.accountId.value
+    val otherAccountCurrency = toAccount.currency
+    val transactionType = "AC"
+    toOption[String](jvmNorth.saveTransaction(userId.getOrElse(""), accountId, currency, amount, otherAccountId, otherAccountCurrency, transactionType)) match {
+      case Some(x) => Full(TransactionId(x))
+      case None => Empty
     }
-
   }
 
   /*
