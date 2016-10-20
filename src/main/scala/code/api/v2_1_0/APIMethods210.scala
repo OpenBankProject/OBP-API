@@ -286,7 +286,7 @@ trait APIMethods210 {
                 }
               }
             } yield {
-              // Explicitly format as v2.0.0 json
+              // Explicitly format as v2.1.0 json
               val json = JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
               createdJsonResponse(Extraction.decompose(json))
             }

@@ -84,7 +84,11 @@ trait Connector {
   type AccountType <: BankAccount
 
   // Gets current challenge level for transaction request
-  def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
+  // Transaction request challenge threshold. Level at which challenge is created and needs to be answered
+  // before we attempt to create a transaction on the south side
+  // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
+  // Connector implementation may well provide dynamic response
+  def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
 
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank]
@@ -321,7 +325,7 @@ trait Connector {
   def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest210] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
-    val (limit, currency) = getChallengeLevel("", "", transactionRequestType.value, details.value.currency)
+    val (limit, currency) = getChallengeThreshold("", "", transactionRequestType.value, details.value.currency)
     val status =
       if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
         TransactionRequests.STATUS_COMPLETED

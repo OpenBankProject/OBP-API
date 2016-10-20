@@ -29,7 +29,7 @@ private object LocalConnector extends Connector with Loggable {
   type AccountType = Account
 
   // Gets current challenge level for transaction request
-  override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
     val limit = BigDecimal("50")
     val rate = fx.exchangeRate ("EUR", currency)
     val convertedLimit = fx.convert(limit, rate)

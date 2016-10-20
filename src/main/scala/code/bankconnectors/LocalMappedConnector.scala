@@ -31,12 +31,12 @@ object LocalMappedConnector extends Connector with Loggable {
   type AccountType = MappedBankAccount
 
   // Gets current challenge level for transaction request
-  override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
-    val propertyName = "transactionRequests_limit_" + transactionRequestType.toLowerCase
-    val limit = BigDecimal(Props.get(propertyName, "1000"))
+  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+    val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
+    val threshold = BigDecimal(Props.get(propertyName, "1000"))
     val rate = fx.exchangeRate ("EUR", currency)
-    val convertedLimit = fx.convert(limit, rate)
-    (convertedLimit, currency)
+    val convertedThreshold = fx.convert(threshold, rate)
+    (convertedThreshold, currency)
   }
 
   //gets a particular bank handled by this connector

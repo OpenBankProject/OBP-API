@@ -195,7 +195,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeLevel(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list
@@ -206,7 +206,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r: Option[KafkaInboundChallengeLevel] = process(reqId, "getChallengeLevel", argList).extractOpt[KafkaInboundChallengeLevel]
+    val r: Option[KafkaInboundChallengeLevel] = process(reqId, "getChallengeThreshold", argList).extractOpt[KafkaInboundChallengeLevel]
     // Return result
     r match {
       // Check does the response data match the requested data
