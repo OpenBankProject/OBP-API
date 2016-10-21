@@ -71,7 +71,7 @@ object LiftProjectBuild extends Build {
       scalaVersion := pomScalaVersion,
       libraryDependencies ++= pomDeps,
       resolvers ++= pomRepos,
-      containerPort := 8080
+      containerPort := 8888
     )
 
   }

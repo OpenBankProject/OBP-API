@@ -14,6 +14,7 @@
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
     <lift.version>2.6.3</lift.version>
+    <akka.version>2.4.10</akka.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -209,7 +210,22 @@
       <artifactId>signpost-commonshttp4</artifactId>
       <version>1.2.1.2</version>
     </dependency>
-  </dependencies>
+  <dependency>
+    <groupId>com.typesafe.akka</groupId>
+    <artifactId>akka-actor_${scala.version}</artifactId>
+    <version>${akka.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>com.typesafe.akka</groupId>
+    <artifactId>akka-remote_${scala.version}</artifactId>
+    <version>${akka.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>com.github.romix.akka</groupId>
+    <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
+    <version>0.4.1</version>
+  </dependency>
+</dependencies>
 
   <build>
     <sourceDirectory>src/main/scala</sourceDirectory>

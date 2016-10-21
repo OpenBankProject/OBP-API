@@ -13,7 +13,7 @@ import scala.collection.immutable.List
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
-private object MapperViews extends Views with Loggable {
+object MapperViews extends Views with Loggable {
 
   def permissions(account : BankAccount) : List[Permission] = {
 
