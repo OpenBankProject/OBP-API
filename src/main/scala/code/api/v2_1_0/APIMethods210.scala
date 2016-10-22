@@ -162,7 +162,23 @@ trait APIMethods210 {
       s"""Initiate a Payment via a Transaction Request.
           |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
-          |
+        |
+        |In OBP, a `transaction request` may or may not result in a `transaction`. A `transaction` only has one possible state: completed.
+        |
+        |A `transaction request` on the other hand can have one of several states.
+        |
+        |Think of `transactions` as items in a bank statement that represent the movement of money.
+        |
+        |Think of `transaction requests` as orders to move money which may or may not succeeed and result in a `transaction`.
+        |
+        |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
+        |
+        |Transaction Requests contain charge information giving the client the opporunity to proceed or not (as long as the challenge level is appropriate).
+        |
+        |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
+        |This provides some commonality and one URL for many differrent payment or transfer types with enough flexilbity to validate them differently.
+        |
+        |
         |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
           |
         |This call satisfies that requirement from several perspectives:
@@ -175,11 +191,11 @@ trait APIMethods210 {
           |
         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
           |
-        |In sandbox mode, if the amount is less than 100 (any currency), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |In sandbox mode, if the amount is less than 1000 (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
           |
         |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
           |
-        |Currently TRANSACTION_REQUEST_TYPE must be set to SANDBOX_TAN
+        |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
           |
         |The following static FX rates are available in sandbox mode:
           |
