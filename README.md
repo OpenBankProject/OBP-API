@@ -54,7 +54,7 @@ To compile and run jetty, install Maven 3 and execute:
 
 * In src/main/resources/props create a test.default.props for tests. Set connector=mapped
 
-* In src/main/resources/props create a <yourloginname>.default.props for development. Set connector=mapped
+* In src/main/resources/props create a \<yourloginname\>.props (or default.props) for development. Set connector=mapped
 
 * Now **Rebuild** the project so everything is compiled.
 
