@@ -15,6 +15,7 @@
     <scala.compiler>2.11.8</scala.compiler>
     <lift.version>2.6.3</lift.version>
     <akka.version>2.4.10</akka.version>
+    <kafka.version>0.10.0.1</kafka.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -74,7 +75,7 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
-      <version>0.10.0.0</version>
+      <version>${kafka.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -120,12 +121,6 @@
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-webapp</artifactId>
         <version>9.2.15.v20160210</version>
-        <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>net.manub</groupId>
-        <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
-        <version>0.7.1</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -356,7 +351,7 @@
           <configuration>
             <contextPath>/</contextPath>
             <scanIntervalSeconds>5</scanIntervalSeconds>
-            <jvmArgs>-Xmx512m -Xms512m</jvmArgs>
+            <jvmArgs>-Xmx2048m -Xms2048m</jvmArgs>
           </configuration>
         </plugin>
         <plugin>

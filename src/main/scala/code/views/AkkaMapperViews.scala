@@ -3,27 +3,84 @@ package code.views
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, _}
 import net.liftweb.common._
 
-
 import scala.collection.immutable.List
-import akka.actor.{ActorSystem}
-import akka.pattern.ask
-import akka.util.Timeout
 import code.model._
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.Full
+import net.liftweb.mapper._
+import net.liftweb.util._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.util.Timeout
+import akka.actor.{Props => ActorProps}
+import dispatch.host
+import net.liftweb.http.LiftRules
 
+object RemoteDataStandalone extends Loggable {
+  implicit val timeout = Timeout(5000 milliseconds)
 
+  def startRemoteWorkerSystem(): Unit = {
+    val remote = ActorSystem("OBPDataWorkerSystem", ConfigFactory.load("obpremotedata"))
+    val actor = remote.actorOf(ActorProps[AkkaMapperViewsActor], name = "OBPDataActor")
+    logger.info("Started OBPDataWorkerSystem")
+  }
+
+  def startLocalWorkerSystem(): Unit = {
+    val remote = ActorSystem("OBPDataWorkerSystem", ConfigFactory.load("obplocaldata"))
+    val actor = remote.actorOf(ActorProps[AkkaMapperViewsActor], name = "OBPDataActor")
+    logger.info("Started OBPDataWorkerSystem locally")
+  }
+
+  def setupRemotedataDB(): Unit = {
+    // set up the way to connect to the relational DB we're using (ok if other connector than relational)
+    if (!DB.jndiJdbcConnAvailable_?) {
+      val driver =
+        Props.mode match {
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development => Props.get("remotedata.db.driver") openOr "org.h2.Driver"
+          case _ => "org.h2.Driver"
+        }
+      val vendor =
+        Props.mode match {
+          case Props.RunModes.Production | Props.RunModes.Staging | Props.RunModes.Development =>
+            new StandardDBVendor(driver,
+              Props.get("remotedata.db.url") openOr "jdbc:h2:./lift_proto.remotedata.db;AUTO_SERVER=TRUE",
+              Props.get("remotedata.db.user"), Props.get("remotedata.db.password"))
+          case _ =>
+            new StandardDBVendor(
+              driver,
+              "jdbc:h2:mem:OBPData;DB_CLOSE_DELAY=-1",
+              Empty, Empty)
+        }
+
+      logger.debug("Using database driver: " + driver)
+      LiftRules.unloadHooks.append(vendor.closeAllConnections_! _)
+
+      DB.defineConnectionManager(net.liftweb.util.DefaultConnectionIdentifier, vendor)
+    }
+  }
+
+  // Entry point if running as standalone remote data server, without jetty
+  def main (args: Array[String]): Unit = {
+    setupRemotedataDB()
+    startRemoteWorkerSystem()
+  }
+
+}
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
 private object AkkaMapperViews extends Views with Loggable {
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
-  //val remotePath = "akka.tcp://OBPDataWorkerSystem@10.38.16.156:2552/user/OBPDataActor"
-  val remotePath = "akka.tcp://OBPDataWorkerSystem@127.0.0.1:2552/user/OBPDataActor"
+  val cfg = ConfigFactory.load("obplocaldata")
+  val rhost = cfg.getString("remote.natty.tcp.hostname")
+  val rport = cfg.getString("remote.natty.tcp.port")
+  var remotePath = "akka.tcp://OBPDataWorkerSystem@" + rhost +":"+ rport +"/user/OBPDataActor"
+  if (!Props.getBool("enable_akka_remote_data", false))
+    remotePath = "akka.tcp://OBPDataWorkerSystem@localhost:2552/user/OBPDataActor"
   val viewsActor = remote.actorSelection(remotePath)
   implicit val timeout = Timeout(5000 milliseconds)
   val r = RemoteViewCases

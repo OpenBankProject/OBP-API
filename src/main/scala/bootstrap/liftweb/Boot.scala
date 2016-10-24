@@ -73,7 +73,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
 import code.transaction.MappedTransaction
-import code.views.AkkaMapperViewsActor
+import code.views.{AkkaMapperViewsActor, RemoteDataStandalone}
 import com.typesafe.config.ConfigFactory
 
 
@@ -141,10 +141,6 @@ class Boot extends Loggable{
       firstChoicePropsDir.flatten.toList ::: secondChoicePropsDir.flatten.toList
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // If set, run only Akka remote actor for split database model
-    if(! Props.getBool("run_only_akka_remote_data_actor", false)) {
-
       // set up the way to connect to the relational DB we're using (ok if other connector than relational)
       if (!DB.jndiJdbcConnAvailable_?) {
         val driver =
@@ -172,8 +168,8 @@ class Boot extends Loggable{
       }
 
       // ensure our relational database's tables are created/fit the schema
-      if(Props.get("connector").getOrElse("") == "mapped" ||
-         Props.get("connector").getOrElse("").startsWith("kafka") )
+      if (Props.get("connector").getOrElse("") == "mapped" ||
+        Props.get("connector").getOrElse("").startsWith("kafka"))
         schemifyAll()
 
       // This sets up MongoDB config (for the mongodb connector)
@@ -354,20 +350,10 @@ class Boot extends Loggable{
           </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
         }
       }
-    }
 
-    // Split data over AKKA
-    import scala.concurrent.duration._
-    import akka.actor.ActorSystem
-    import akka.util.Timeout
-    import akka.actor.{Props => ActorProps}
-    implicit val timeout = Timeout(5000 milliseconds)
-    def startRemoteWorkerSystem(): Unit = {
-      val remote = ActorSystem("OBPDataWorkerSystem", ConfigFactory.load("obpdata"))
-      val actor = remote.actorOf(ActorProps[AkkaMapperViewsActor], name = "OBPDataActor")
-      logger.info("Started OBPDataWorkerSystem")
-    }
-    startRemoteWorkerSystem()
+      if (!Props.getBool("enable_akka_remote_data", false)) {
+        RemoteDataStandalone.startLocalWorkerSystem()
+      }
 
   }
 

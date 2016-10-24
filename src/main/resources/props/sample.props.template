@@ -13,6 +13,17 @@ connector=mapped
 #connector=kafka_lib_v0
 #connector=...
 
+#enable remote akka actor for data split
+#set to true and also edit and set host/port in obpremotedata.conf
+#enable_akka_remote_data=true
+
+#if enabled, set the remote database parameters
+#db has to be accessible from box set in obpremotedata.conf
+#remotedata.db.driver=org.h2.Driver
+#remotedata.db.url=jdbc:h2:./lift_proto.db.remotedata;DB_CLOSE_ON_EXIT=FALSE
+#remotedata.db.username=
+#remotedata.db.password=
+
 #if using kafka connector, set zookeeper host
 #kafka.zookeeper_host=123.45.67.89:2181
 
