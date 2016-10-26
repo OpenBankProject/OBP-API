@@ -100,7 +100,7 @@ class Login {
         """
           <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="lock.show();" src="%s" />
         """.format(
-          Props.get("openidconnect.button_logo").openOrThrowException("no openidconnect.button_logo set")
+          Props.get("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
         )
       val button  = scala.xml.Unparsed(s"""$but""")
       "#openid_button" #> button
@@ -115,7 +115,7 @@ class Login {
         """
           <script src="%s"></script>
         """.format(
-          Props.get("openidconnect.login_ui_url").openOrThrowException("no openidconnect.login_ui_url set")
+          Props.get("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set")
         )
       val scr =
         """
