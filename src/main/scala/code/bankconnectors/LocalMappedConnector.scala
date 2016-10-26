@@ -171,7 +171,10 @@ object LocalMappedConnector extends Connector with Loggable {
   override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
     Set.empty
 
-
+/*
+Perform a payment (in the sandbox)
+Store one or more transactions
+ */
   override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal, description : String): Box[TransactionId] = {
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
@@ -262,12 +265,14 @@ object LocalMappedConnector extends Connector with Loggable {
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,
                                                status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+
+    // Note: We don't save transaction_ids here.
     val mappedTransactionRequest = MappedTransactionRequest210.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
-      .mDetails(details)
+      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
       .mStatus(status)
       .mStartDate(now)
       .mEndDate(now)
@@ -279,6 +284,7 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
+    // This saves transaction_ids
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
         case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
