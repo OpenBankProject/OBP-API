@@ -229,12 +229,11 @@ import net.liftweb.util.Helpers._
     <div id="authorizeSection">
       <div id="userAccess">
         <div class="account account-in-content">
-          {S.?("enter.username")}
+          Enter your email address or username and we'll email you a link to reset your password
           <form class="forgotPassword" action={S.uri} method="post">
             <div class="field username">
-              <label>{userNameFieldString}</label> <user:username />
+              <label>Username or email address</label> <user:email />
             </div>
-
             <div class="field buttons">
               <div class="button button-field">
                 <user:submit />

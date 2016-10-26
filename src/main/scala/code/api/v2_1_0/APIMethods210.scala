@@ -160,7 +160,7 @@ trait APIMethods210 {
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
       s"""Initiate a Payment via a Transaction Request.
-          |
+        |
         |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
         |
         |In OBP, a `transaction request` may or may not result in a `transaction`. A `transaction` only has one possible state: completed.
@@ -178,37 +178,35 @@ trait APIMethods210 {
         |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
         |This provides some commonality and one URL for many differrent payment or transfer types with enough flexilbity to validate them differently.
         |
+        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the UR
+        |
+        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_IDO specified in the request body.
+        |
+        |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
+        |
+        |In sandbox mode, if the amount is less than 1000 (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |
+        |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
+        |
+        |The following static FX rates are available in sandbox mode:
+        |
+        |${exchangeRates}
         |
         |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
-          |
-        |This call satisfies that requirement from several perspectives:
-          |
-        |1) A transaction can be initiated by a third party application.
-          |
-        |2) The customer is informed of the charge that will incurred.
-          |
-        |3) The call uses delegated authentication (OAuth)
-          |
-        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
-          |
-        |In sandbox mode, if the amount is less than 1000 (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
-          |
-        |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
-          |
-        |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
-          |
-        |The following static FX rates are available in sandbox mode:
-          |
-        |${exchangeRates}
-          |
         |
-        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL
-          |
-        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_IDO specified in the request body.
-          |
+        |This call satisfies that requirement from several perspectives:
+        |
+        |1) A transaction can be initiated by a third party application.
+        |
+        |2) The customer is informed of the charge that will incurred.
+        |
+        |3) The call uses delegated authentication (OAuth)
+        |
+        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+        |
         |
         |${authenticationRequiredMessage(true)}
-          |
+        |
         |""",
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
