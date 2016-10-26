@@ -45,18 +45,20 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
+  /*
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
     for {
-      argList <- tryo {Map[String, String]( "email" -> username.toLowerCase, "password" -> password )}
+      argList <- tryo {Map[String, String]( "username" -> username.toLowerCase, "password" -> password )}
       // Generate random uuid to be used as request-response match id
       reqId <- tryo {UUID.randomUUID().toString}
       u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
-      recEmail <- tryo{u.email}
+      recUsername <- tryo{u.display_name}
     } yield {
-      if (username == u.email) new KafkaInboundUser( recEmail, password, recEmail)
+      if (username == u.display_name) new KafkaInboundUser( recUsername, password, recUsername)
       else null
     }
   }
+  */
 
   def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
     val res =
@@ -71,7 +73,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     if (account.owners.contains(owner)) {
-      val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
       apiUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
@@ -80,7 +82,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
        }
         case None => {
           //This shouldn't happen as OBPUser should generate the APIUsers when saved
-          logger.error(s"api user(s) with email $owner not found.")
+          logger.error(s"api user(s) $owner not found.")
        }
       }
     }
@@ -88,8 +90,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   def updateUserAccountViews( user: APIUser ) = {
     val accounts = for {
-      email <- tryo {user.emailAddress}
-      argList <- tryo {Map[String, String]("username" -> email)}
+      username <- tryo {user.name}
+      argList <- tryo {Map[String, String]("username" -> username)}
       // Generate random uuid to be used as request-response match id
       reqId <- tryo {UUID.randomUUID().toString}
     } yield {
@@ -98,11 +100,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     val views = for {
       acc <- accounts.getOrElse(List.empty)
-      email <- tryo {user.emailAddress}
-      views <- tryo {createSaveableViews(acc, acc.owners.contains(email))}
+      username <- tryo {user.name}
+      views <- tryo {createSaveableViews(acc, acc.owners.contains(username))}
       existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
     } yield {
-      setAccountOwner(email, acc)
+      setAccountOwner(username, acc)
       views.foreach(_.save())
       views.map(_.value).foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
