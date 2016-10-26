@@ -1,34 +1,34 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE / Music Pictures Ltd
-*Osloerstrasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  * by
-  *Simon Redfern : simon AT tesobe DOT com
-  *Stefan Bethge : stefan AT tesobe DOT com
-  *Everett Sochowski : everett AT tesobe DOT com
-  *Ayoub Benali: ayoub AT tesobe DOT com
-  *
- */
+Open Bank Project - API
+Copyright (C) 2011-2015, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE / Music Pictures Ltd
+Osloerstrasse 16/17
+Berlin 13359, Germany
+
+  This product includes software developed at
+  TESOBE (http://www.tesobe.com/)
+  by
+  Simon Redfern : simon AT tesobe DOT com
+  Stefan Bethge : stefan AT tesobe DOT com
+  Everett Sochowski : everett AT tesobe DOT com
+  Ayoub Benali: ayoub AT tesobe DOT com
+
+  */
 package code.model.dataAccess
 
 import java.util.UUID
@@ -329,18 +329,22 @@ import net.liftweb.util.Helpers._
           Full(user.user)
         }
         else {
+          Empty
+        /*
           Props.get("connector").openOrThrowException("no connector set") match {
             case "kafka" =>
               for { kafkaUser <- getUserFromKafka(name, password)
                     kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
             case _ => Empty
           }
+        */
         }
       }
       case _ => Empty 
     }
   }
 
+  /*
   def getUserFromKafka(name: String, password: String):Box[OBPUser] = {
     KafkaMappedConnector.getUser(name, password) match {
       case Full(KafkaInboundUser(extEmail, extPassword, extUsername)) => {
@@ -390,6 +394,7 @@ import net.liftweb.util.Helpers._
       }
     }
   }
+  */
 
   //overridden to allow a redirection if login fails
   override def login = {
@@ -409,6 +414,7 @@ import net.liftweb.util.Helpers._
               case _ =>
                 homePage
             }
+            registeredUserHelper(user.username)
             logUserIn(user, () => {
               S.notice(S.?("logged.in"))
               preLoginState()
@@ -419,7 +425,11 @@ import net.liftweb.util.Helpers._
         case Full(user) if !user.validated_? =>
           S.error(S.?("account.validation.error"))
 
-        case _ => {
+        case _ =>
+          S.error(S.?("account.validation.error"))
+
+          /*
+        {
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
             val preLoginState = capturePreLoginState()
@@ -442,6 +452,7 @@ import net.liftweb.util.Helpers._
             }
           }
         }
+          */
       }
     }
 
@@ -451,6 +462,7 @@ import net.liftweb.util.Helpers._
          "submit" -> loginSubmitButton(S.?("log.in")))
   }
 
+  /*
   def externalUserHelper(name: String, password: String): Box[OBPUser] = {
     if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
       for {
@@ -461,6 +473,16 @@ import net.liftweb.util.Helpers._
         user
       }
     } else Empty 
+  }
+  */
+
+  def registeredUserHelper(username: String) = {
+    if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+      for {
+       u <- APIUser.find(By(APIUser.name_, username))
+       v <- tryo {KafkaMappedConnector.updateUserAccountViews(u)}
+      } yield v
+    }
   }
 
   protected def findUserByUsername(name: String): Box[TheUserType] = {

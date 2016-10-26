@@ -286,10 +286,12 @@ object DirectLogin extends RestHelper with Loggable {
 
     var userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
 
+    /*
     if (userId.isEmpty) {
       if ( ! OBPUser.externalUserHelper(username, password).isEmpty) 
       	userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
     }
+    ``*/
 
     userId
   }
