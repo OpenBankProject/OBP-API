@@ -73,7 +73,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     if (account.owners.contains(owner)) {
-      val apiUserOwner = APIUser.findAll.find(user => owner == user.emailAddress)
+      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
       apiUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
@@ -82,7 +82,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
        }
         case None => {
           //This shouldn't happen as OBPUser should generate the APIUsers when saved
-          logger.error(s"api user(s) with email $owner not found.")
+          logger.error(s"api user(s) $owner not found.")
        }
       }
     }
@@ -100,7 +100,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     val views = for {
       acc <- accounts.getOrElse(List.empty)
-      username <- tryo {user.emailAddress}
+      username <- tryo {user.name}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(username))}
       existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
     } yield {
