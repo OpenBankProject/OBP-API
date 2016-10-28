@@ -1911,10 +1911,14 @@ trait APIMethods121 {
       "getTransactionByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transactions/TRANSACTION_ID/transaction",
-      "Get transaction by id.",
-      """Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
+      "Get Transaction by Id.",
+      s"""Returns one transaction specified by TRANSACTION_ID of the account ACCOUNT_ID and [moderated](#1_2_1-getViewsForBankAccount) by the view (VIEW_ID).
          |
-         |Authentication via OAuth is required if the view is not public.""",
+         |${authenticationRequiredMessage(false)}
+         |Authentication is required if the view is not public.
+         |
+         |
+         |""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,

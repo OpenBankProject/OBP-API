@@ -237,6 +237,8 @@ trait APIMethods210 {
               validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
               // Use a list instead of a string to avoid partial matches
               validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
+              // Check transactionRequestType is not "TRANSACTION_REQUEST_TYPE" which is the place holder (probably redundant because of check below)
+              // Check that transactionRequestType is included in the Props
               isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : Invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
 
               transDetailsJson <- transactionRequestType.value match {
@@ -281,6 +283,7 @@ trait APIMethods210 {
                 }
               }
 
+              // Note: These store in the table TransactionRequestv210
               createdTransactionRequest <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => {
                   for {

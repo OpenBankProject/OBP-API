@@ -327,7 +327,10 @@ trait Connector {
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val (limit, currency) = getChallengeThreshold("", "", transactionRequestType.value, details.value.currency)
     val status =
-      if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
+      //if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
+
+
+      if (BigDecimal(details.value.amount) < limit) {
         TransactionRequests.STATUS_COMPLETED
       } else {
         TransactionRequests.STATUS_INITIATED
@@ -362,7 +365,8 @@ trait Connector {
       val createdTransactionId = transactionRequestType.value match {
         case "SANDBOX_TAN" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
-        case "SEPA" => Empty
+        case "SEPA" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
       }
 
       //set challenge to null
