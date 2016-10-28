@@ -1067,7 +1067,7 @@ trait APIMethods200 {
       "getTransactionTypes",
       "GET",
       "/banks/BANK_ID/transaction-types",
-      "Get transaction-types offered by the bank",
+      "Get Transaction Types offered by the bank",
       // TODO get the documentation of the parameters from the scala doc of the case class we return
       s"""Get Transaction Types for the bank specified by BANK_ID:
           |
@@ -1344,8 +1344,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagOnboarding, apiTagUser))
 
     lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1642,8 +1642,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagPerson, apiTagUser))
 
 
@@ -1679,8 +1679,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagPerson, apiTagUser))
 
 
@@ -1808,8 +1808,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -1855,8 +1855,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -1891,8 +1891,8 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson :: Nil,
       true,
-      true,
-      true,
+      false,
+      false,
       List(apiTagUser, apiTagEntitlement))
 
 

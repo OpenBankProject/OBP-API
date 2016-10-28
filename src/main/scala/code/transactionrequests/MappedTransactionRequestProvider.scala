@@ -115,7 +115,7 @@ class MappedTransactionRequest210 extends LongKeyedMapper[MappedTransactionReque
   object mFrom_BankId extends DefaultStringField(this)
   object mFrom_AccountId extends DefaultStringField(this)
 
-  //details fields
+  //details fields - The part of the Transaction Request which may change depending on type. (the body of the http request)
   object mDetails extends DefaultStringField(this)
 
   object mTransactionIDs extends DefaultStringField(this)
