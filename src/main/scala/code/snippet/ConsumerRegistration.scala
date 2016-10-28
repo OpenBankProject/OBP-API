@@ -108,6 +108,7 @@ class ConsumerRegistration extends Loggable {
         save
 
       notifyRegistrationOccurred(consumer)
+      sendEmailToDeveloper(consumer)
 
       showResults(consumer)
     }
@@ -157,6 +158,45 @@ class ConsumerRegistration extends Loggable {
 
     if(S.post_?) analyseResult
     else registerWithoutWarnings
+
+  }
+
+  def sendEmailToDeveloper(registered : Consumer) = {
+    import net.liftweb.util.Mailer
+    import net.liftweb.util.Mailer._
+
+    val mailSent = for {
+      send_? : String <- Props.get("mail.api.consumer.registered.notification.send") if send_?.equalsIgnoreCase("true")
+      from <- Props.get("mail.api.consumer.registered.sender.address") ?~ "Could not send mail: Missing props param for 'from'"
+    } yield {
+
+      val thisApiInstance = Props.get("hostname", "unknown host")
+      val urlOAuthEndpoint = thisApiInstance + "/oauth/initiate"
+      val urlDirectLoginEndpoint = thisApiInstance + "/my/logins/direct"
+      val registrationMessage = s"New user signed up for API keys on $thisApiInstance. \n" +
+        s"Email: ${registered.developerEmail.get} \n" +
+        s"App name: ${registered.name.get} \n" +
+        s"App type: ${registered.appType.get.toString} \n" +
+        s"App description: ${registered.description.get} \n" +
+        s"Consumer Key: ${registered.key.get} \n" +
+        s"Consumer Secret : ${registered.secret.get} \n" +
+        s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
+        s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
+        s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
+        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login"
+
+      val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
+
+      //this is an async call
+      Mailer.sendMail(
+        From(from),
+        Subject("Thank you for registering to use the Open Bank API. Here is your developer information. Please save it in a secure location."),
+        params :_*
+      )
+    }
+
+    if(mailSent.isEmpty)
+      this.logger.warn(s"Sending email with API consumer registration data is omitted: $mailSent")
 
   }
 
