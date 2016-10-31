@@ -191,10 +191,30 @@ import net.liftweb.util.Helpers._
    * Find current user
    */
   def getCurrentUserUsername: String = {
-    if (OAuthHandshake.getUser.getOrElse(None) != None )
-      return OAuthHandshake.getUser.get.name
-    if (DirectLogin.getUser.getOrElse(None) != None)
-      return DirectLogin.getUser.get.name
+    for { 
+      current <- OBPUser.currentUser
+      username <- tryo{current.username.get}
+      if (username.nonEmpty)
+    } yield {
+      return username
+    }
+
+    for {
+      current <- OAuthHandshake.getUser
+      username <- tryo{current.name}
+      if (username.nonEmpty)
+    } yield {
+      return username
+    }
+
+    for {
+      current <- DirectLogin.getUser
+      username <- tryo{current.name}
+      if (username.nonEmpty)
+    } yield {
+      return username
+    }
+
     return ""
   }
 

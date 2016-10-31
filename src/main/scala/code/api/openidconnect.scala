@@ -49,7 +49,6 @@ import code.api.util.{APIUtil, ErrorMessages}
 import kafka.utils.Json
 import java.net.HttpURLConnection
 import net.liftweb.{http, json}
-import code.api.OBPRestHelper
 
 /**
   * This object provides the API calls necessary to authenticate
@@ -60,10 +59,11 @@ case class OpenIdConnectConfig( secret: String,
                                 clientId: String,
                                 callbackURL: String,
                                 domain: String,
-                                url_login: String,
-                                url_button: String,
                                 url_userinfo: String,
-                                url_token: String
+                                url_token: String,
+                                url_login: String,
+                                url_button: String
+                              )
 
 object OpenIdConnectConfig {
   def get() = {
@@ -73,9 +73,9 @@ object OpenIdConnectConfig {
       Props.get("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set"),
       Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
       Props.get("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
-      Props.get("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set")
+      Props.get("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set"),
       Props.get("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set"),
-      Props.get("openidconnect.url.button").openOrThrowException("no openidconnect.url.button set"),
+      Props.get("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
     )
   }
 }
@@ -115,9 +115,9 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                     S.redirectTo(OBPUser.homePage)
                   })
                 }
-              case _ => message=String.format("Can not find user with token %s", accessToken)
+              case _ => message=String.format("Could not find user with token %s", accessToken)
             }
-          case _ =>
+            case _ => message=String.format("Could not get token for code %s", code)
         }
       }
 
