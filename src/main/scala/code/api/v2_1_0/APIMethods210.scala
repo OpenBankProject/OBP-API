@@ -439,11 +439,11 @@ trait APIMethods210 {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~ {ErrorMessages.BankNotFound}
             usr <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
-            requiredEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
-                                   CanGetEntitlementsForAnyUserAtAnyBank::
-                                   Nil
-            requiredEntitlementsTxt = requiredEntitlements.mkString(" or ")
-            hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
+            allowedEntitlements = CanGetEntitlementsForAnyUserAtOneBank ::
+                                  CanGetEntitlementsForAnyUserAtAnyBank::
+                                  Nil
+            allowedEntitlementsTxt = allowedEntitlements.mkString(" or ")
+            hasAtLeastOneEntitlement <- booleanToBox(hasAtLeastOneEntitlement(bankId.value, u.userId, allowedEntitlements), s"$allowedEntitlementsTxt entitlements required")
             entitlements <- Entitlement.entitlement.vend.getEntitlements(userId)
             filteredEntitlements <- tryo{entitlements.filter(_.bankId == bankId.value)}
           }

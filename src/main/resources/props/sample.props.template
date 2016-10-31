@@ -84,6 +84,8 @@ apiPathZero=obp
 ## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
+# This property allows sending API registration data to developer's email. Please note it can reveal sensitive data.
+#mail.api.consumer.registered.notification.send=false
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
