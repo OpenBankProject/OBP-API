@@ -32,6 +32,7 @@ Berlin 13359, Germany
 
 package code.snippet
 
+import code.api.OpenIdConnectConfig
 import code.model.dataAccess.{Admin, OBPUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
@@ -48,7 +49,7 @@ class Login {
       ".logout [href]" #> {
         OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.currentUser.get.username.get
+      ".username *" #> OBPUser.getCurrentUserUsername
     }
   }
 
@@ -93,14 +94,14 @@ class Login {
       "#login_special_instructions *" #> specialLoginInstructions
     }
 
-
   def openIdConnectButton : CssSel = {
     if(Props.getBool("allow_openidconnect", false)){
+      val config = OpenIdConnectConfig.get()
       val but =
         """
-          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="lock.show();" src="%s" />
+          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="openIdUI.show();" src="%s" />
         """.format(
-          Props.get("openidconnect.url.buttonImage").openOrThrowException("no openidconnect.url.buttonImage set")
+          config.url_button
         )
       val button  = scala.xml.Unparsed(s"""$but""")
       "#openid_button" #> button
@@ -111,16 +112,22 @@ class Login {
 
   def openIdConnectScripts : CssSel = {
     if(Props.getBool("allow_openidconnect", false)){
+      val config = OpenIdConnectConfig.get()
+      val url = config.url_login
+
       val ext =
-        """
-          <script src="%s"></script>
-        """.format(
-          Props.get("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set")
-        )
+        if (config.url_login.endsWith(".js") )
+          """
+            <script src="%s"></script>
+          """.format( url )
+        else
+          """"""
+
       val scr =
+        if (config.url_login.endsWith(".js") )
         """
         <script type="text/javascript">
-          var lock = new Auth0Lock('%s', '%s', {
+          var openIdUI = new Auth0Lock('%s', '%s', {
             auth: {
               redirectUrl: '%s',
               responseType: 'code',
@@ -131,10 +138,13 @@ class Login {
           });
         </script>
         """.format(
-          Props.get("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
-          Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
-          Props.get("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set")
+          config.clientId,
+          config.domain,
+          config.callbackURL
         )
+        else
+          """"""
+
       val scripts = scala.xml.Unparsed(s"""$ext $scr""")
       "#openid_scripts" #> scripts
     } else {

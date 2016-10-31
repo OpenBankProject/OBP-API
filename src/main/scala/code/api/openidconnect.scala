@@ -47,20 +47,24 @@ import net.liftweb.util.Helpers._
 import scala.compat.Platform
 import code.api.util.{APIUtil, ErrorMessages}
 import kafka.utils.Json
-import net.liftweb.json
+import java.net.HttpURLConnection
+import net.liftweb.{http, json}
+import code.api.OBPRestHelper
 
 /**
   * This object provides the API calls necessary to authenticate
   * users using OpenIdConnect (http://openid.net).
   */
 
-case class OpenIdConnectConfig( secret: String, 
-                                clientId: String, 
-                                callbackURL: String, 
+case class OpenIdConnectConfig( secret: String,
+                                clientId: String,
+                                callbackURL: String,
                                 domain: String,
+                                url_login: String,
+                                url_button: String,
                                 url_userinfo: String,
                                 url_token: String
-                              )
+
 object OpenIdConnectConfig {
   def get() = {
     OpenIdConnectConfig(
@@ -70,6 +74,8 @@ object OpenIdConnectConfig {
       Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
       Props.get("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
       Props.get("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set")
+      Props.get("openidconnect.url.login").openOrThrowException("no openidconnect.url.login set"),
+      Props.get("openidconnect.url.button").openOrThrowException("no openidconnect.url.button set"),
     )
   }
 }
@@ -177,12 +183,24 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                readTimeout: Int = 10000
              ) = {
     var content:String = ""
+    import java.net.URL
     try {
-      import java.net.URL
-      val connection:HttpsURLConnection = new URL(url + {
-        if (method == "GET") data
-        else ""
-      }).openConnection.asInstanceOf[HttpsURLConnection]
+      val connection = {
+        if (url.startsWith("https://")) {
+          val conn: HttpsURLConnection = new URL(url + {
+            if (method == "GET") data
+            else ""
+          }).openConnection.asInstanceOf[HttpsURLConnection]
+          conn
+        }
+        else {
+          val conn: HttpURLConnection = new URL(url + {
+            if (method == "GET") data
+            else ""
+          }).openConnection.asInstanceOf[HttpURLConnection]
+          conn
+        }
+      }
       connection.setConnectTimeout(connectTimeout)
       connection.setReadTimeout(readTimeout)
       connection.setRequestMethod(method)
