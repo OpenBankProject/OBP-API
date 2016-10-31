@@ -232,15 +232,20 @@ endpoint2,\
 endpointN]
 
 
-## OpenId Connect can be used to retrieve User informaiton from an external OpenID Connect server.
-## To use an external OpenID Connect server:
-## You will need to change these values. The following values provided for a temp test account, just double-check callbackURL.
-## Note: The email address used for login should match one registered on OBP localy
-
+## OpenId Connect can be used to retrieve User informaiton from an 
+## external OpenID Connect server. 
+## To use an external OpenID Connect server,
+## you will need to change these values.
+## The following values provided for a temp test account. 
+## CallbackURL 127.0.0.1:8080 should work in most cases.
+## Note: The email address used for login must match one 
+## registered on OBP localy.
 #allow_openidconnect=true
 #openidconnect.clientSecret=CEX3Oud7N8p69qCnNTWvnic3-1ortVlGnD1GXgzxpDW-GjD5_3xG1-G5Kln3K9FA
 #openidconnect.clientId=yzKGC1ZKYqwYRpvbDaTq2r8mEQLY31D4
 #openidconnect.domain=justatest.eu.auth0.com
-#openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
-#openidconnect.login_ui_url=https://cdn.auth0.com/js/lock/10.2/lock.min.js
-#openidconnect.button_logo=http://wiki.openid.net/f/openid-logo-wordmark.png
+#openidconnect.callbackURL=http://workstation7:8080/my/logins/openidconnect
+#openidconnect.url.login=https://cdn.auth0.com/js/lock/10.2/lock.min.js
+#openidconnect.url.userinfo=https://justatest.eu.auth0.com/userinfo
+#openidconnect.url.token=https://justatest.eu.auth0.com/oauth/token
+#openidconnect.url.buttonImage=http://wiki.openid.net/f/openid-logo-wordmark.png
