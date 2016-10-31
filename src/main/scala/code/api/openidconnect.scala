@@ -1,28 +1,28 @@
 /**
-  * Open Bank Project - API
-  * Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
-  **
-  *This program is free software: you can redistribute it and/or modify
-  *it under the terms of the GNU Affero General Public License as published by
-  *the Free Software Foundation, either version 3 of the License, or
-  *(at your option) any later version.
-  **
-  *This program is distributed in the hope that it will be useful,
-  *but WITHOUT ANY WARRANTY; without even the implied warranty of
-  *MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  *GNU Affero General Public License for more details.
-  **
-  *You should have received a copy of the GNU Affero General Public License
-*along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  **
- *Email: contact@tesobe.com
-*TESOBE Ltd.
-*Osloer Strasse 16/17
-*Berlin 13359, Germany
-  **
- *This product includes software developed at
-  *TESOBE (http://www.tesobe.com/)
-  *
+Open Bank Project - API
+Copyright (C) 2011-2016, TESOBE / Music Pictures Ltd
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+Email: contact@tesobe.com
+TESOBE Ltd.
+Osloer Strasse 16/17
+Berlin 13359, Germany
+
+This product includes software developed at
+TESOBE (http://www.tesobe.com/)
+
  */
 package code.api
 
@@ -49,21 +49,27 @@ import code.api.util.{APIUtil, ErrorMessages}
 import kafka.utils.Json
 import net.liftweb.json
 
-import code.api.OBPRestHelper
-
 /**
   * This object provides the API calls necessary to authenticate
   * users using OpenIdConnect (http://openid.net).
   */
 
-case class OpenIdConnectConfig(secret: String, clientId: String, callbackURL: String, domain: String)
+case class OpenIdConnectConfig( secret: String, 
+                                clientId: String, 
+                                callbackURL: String, 
+                                domain: String,
+                                url_userinfo: String,
+                                url_token: String
+                              )
 object OpenIdConnectConfig {
   def get() = {
     OpenIdConnectConfig(
       Props.get("openidconnect.clientSecret").openOrThrowException("no openidconnect.clientSecret set"),
       Props.get("openidconnect.clientId").openOrThrowException("no openidconnect.clientId set"),
       Props.get("openidconnect.callbackURL").openOrThrowException("no openidconnect.callbackURL set"),
-      Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set")
+      Props.get("openidconnect.domain").openOrThrowException("no openidconnect.domain set"),
+      Props.get("openidconnect.url.userinfo").openOrThrowException("no openidconnect.url.userinfo set"),
+      Props.get("openidconnect.url.token").openOrThrowException("no openidconnect.url.token set")
     )
   }
 }
@@ -78,11 +84,12 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
       var message = "unknown"
       for {
         code <- S.params("code")
-        state <- S.param("state")
+        //state <- S.param("state")
       } yield {
         // Get the token
+        message=code
         getToken(code) match {
-          case Full((idToken, accessToken)) =>
+          case Full((idToken, accessToken, tokenType)) =>
             getUser(accessToken) match {
 
               case Full(json_user:JObject) =>
@@ -93,17 +100,18 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                   api_user: APIUser <- obp_user.user.foreign
                   if emailVerified && api_user.apiId.value > 0
                 } yield {
-                  saveAuthorizationToken(accessToken, state, api_user.apiId.value)
+                  saveAuthorizationToken(accessToken, accessToken, api_user.apiId.value)
                   httpCode = 200
-                  message="oauth_token="+accessToken+"&oauth_token_secret="+state
+                  message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
                   OBPUser.logUserIn(obp_user, () => {
                     S.notice(S.?("logged.in"))
                     S.redirectTo(OBPUser.homePage)
                   })
                 }
-              case _ => errorJsonResponse(message, httpCode)
+              case _ => message=String.format("Can not find user with token %s", accessToken)
             }
+          case _ =>
         }
       }
 
@@ -111,26 +119,27 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
     }
   }
 
-  def getToken(code: String): Box[(String, String)] = {
+  def getToken(code: String): Box[(String, String, String)] = {
     val config = OpenIdConnectConfig.get()
     val data =    "client_id=" + config.clientId + "&" +
                   "client_secret=" + config.secret + "&" +
                   "redirect_uri=" + config.callbackURL + "&" +
                   "code=" + code + "&" +
                   "grant_type=authorization_code"
-    val response = fromUrl(String.format("https://%s/oauth/token", config.domain), data, "POST")
+    val response = fromUrl(String.format("%s", config.url_token), data, "POST")
     val tokenResponse = json.parse(response)
     for {
       idToken <- tryo{(tokenResponse \ "id_token").extractOrElse[String]("")}
       accessToken <- tryo{(tokenResponse \ "access_token").extractOrElse[String]("")}
+      tokenType <- tryo{(tokenResponse \ "token_type").extractOrElse[String]("")}
     } yield {
-      (idToken, accessToken)
+      (idToken, accessToken, tokenType)
     }
   }
 
   def getUser(accessToken: String): Box[JValue] = {
     val config = OpenIdConnectConfig.get()
-    val userResponse = json.parse(fromUrl(String.format("https://%s/userinfo", config.domain), "?access_token="+accessToken, "GET"))
+    val userResponse = json.parse(fromUrl(String.format("%s", config.url_userinfo), "?access_token="+accessToken, "GET"))
 
     userResponse match {
       case response: JValue => Full(response)

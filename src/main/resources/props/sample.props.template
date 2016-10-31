@@ -4,72 +4,84 @@
 ### OBP-API configuration
 
 
-### base configuration
+### Base configuration
 
-#which data connector to use
+## Which data connector to use
 connector=mapped
 #connector=mongodb
 #connector=kafka
 #connector=kafka_lib_v0
 #connector=...
 
-#if using kafka connector, set zookeeper host
+## If using kafka connector, set zookeeper host
 #kafka.zookeeper_host=123.45.67.89:2181
 
-#cache time to live in seconds, caching disabled if not set
+## Cache time to live in seconds, caching disabled if not set
 #kafka.cache.ttl.seconds=3
 
-#if using kafka connector, the following is mandatory
+## If using kafka connector, the following is mandatory
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
 
-#ElasticSearch
+## ElasticSearch
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true
 #allow_elasticsearch_metrics=true
 
-#ElasticSearch warehouse
+## ElasticSearch warehouse
 #es.warehouse.index=warehouse
 #es.warehouse.host=localhost
 #es.warehouse.port.tcp=9300
 #es.warehouse.port.http=9200
 
-#ElasticSearch metrics
+## ElasticSearch metrics
 #es.metrics.index=metrics
 #es.metrics.host=localhost
 #es.metrics.port.tcp=9300
 #es.metrics.port.http=9200
 
 
-#you can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
+## You can use a no config needed h2 database by setting db.driver=org.h2.Driver and not including db.url
 #db.driver=org.postgresql.Driver
 #db.driver=org.h2.Driver
 #db.url=jdbc:h2:./lift_proto.db;DB_CLOSE_ON_EXIT=FALSE
 #be sure to create your database and update the line below!
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
-#our own remotely accessible URL
-#this is needed for oauth to work. it's important to access the api over this url, e.g.
-# if this is 127.0.0.1 don't use localhost to access it.
-# (this needs to be a URL)
+## Enable remote Akka actor for data split
+## Set to true and also edit and set host/port in obpremotedata.conf
+#enable_remotedata=true
+
+## If remotedata is enabled, set the remote database parameters
+## db has to be accessible from box set in obpremotedata.conf
+#remotedata.db.driver=org.h2.Driver
+#remotedata.db.url=jdbc:h2:./lift_proto.db.remotedata;DB_CLOSE_ON_EXIT=FALSE
+#remotedata.db.username=user
+#remotedata.db.password=secret
+
+
+## Our own remotely accessible URL
+## This is needed for oauth to work. it's important to access the api over this url, e.g.
+## If this is 127.0.0.1 don't use localhost to access it.
+## (this needs to be an URL)
 hostname=http://127.0.0.1:8080
 
-#this is only useful for running the api locally via RunWebApp
-#if you use it, make sure this matches your hostname port!
-#if you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
+## This is only useful for running the api locally via RunWebApp
+## If you use it, make sure this matches your hostname port!
+## If you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
 dev.port=8080
 
 
-#The start of the api path (before the version)
-#It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
-#Including it here so we have a canonical source of the value
-#This was introduced March 2016, some code might use hardcoded value instead.
-#Default value is obp (highly recomended)
+## The start of the api path (before the version)
+## It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
+## Including it here so we have a canonical source of the value
+## This was introduced March 2016, some code might use hardcoded value instead.
+## Default value is obp (highly recomended)
 apiPathZero=obp
 
-#sending mail out
-#not need in dev mode, but important for production
+## Sending mail out
+## Not need in dev mode, but important for production
 mail.api.consumer.registered.sender.address=no-reply@example.com
 mail.api.consumer.registered.notification.addresses=you@example.com
 # This property allows sending API registration data to developer's email. Please note it can reveal sensitive data.
@@ -77,83 +89,83 @@ mail.api.consumer.registered.notification.addresses=you@example.com
 mail.smtp.host=127.0.0.1
 mail.smtp.port=25
 
-#oauth token timeout
+## Oauth token timeout
 token_expiration_weeks=4
 
 
 
-### sandbox
+### Sandbox
 
-#set this to true if you want to allow users to create sandbox test accounts with a starting balance
+## Set this to true if you want to allow users to create sandbox test accounts with a starting balance
 allow_sandbox_account_creation=true
 
-#set this to true if you want to allow the "data import" api call
+## Set this to true if you want to allow the "data import" api call
 allow_sandbox_data_import=true
 
-#secret key that allows access to the "data import" api. You should change this to your own secret key
+# Secret key that allows access to the "data import" api. You should change this to your own secret key
 sandbox_data_import_secret=change_me
 
 
 
-### api features
+### API features
 
-#secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
+## Secret key that allows access to the "add cash transactions" api. You should change this to your own secret key
 cashApplicationKey=change_me
 
-#set this to false if you don't want the api payments call to work (starting with v1.2.1)
+## Set this to false if you don't want the api payments call to work (starting with v1.2.1)
 payments_enabled=true
 
-#transaction requests are replacing simple payments starting from 1.4.0
+## Transaction requests are replacing simple payments starting from 1.4.0
 transactionRequests_enabled=true
 transactionRequests_connector=mapped
 
-# Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, INTRABANK, SEPA, FREE_FORM
+## Transaction Request Types that are supported on this server. Possible values might include SANDBOX_TAN, INTRABANK, SEPA, FREE_FORM
 transactionRequests_supported_types=SANDBOX_TAN
 
-# Transaction request challenge threshold. Level at which challenge is created and needs to be answered.
-# The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
-# Connector implementation may well provide dynamic response
-# These settings are of the form transactionRequests_challenge_threshold_UPPERCASETYPE=INTEGER
+## Transaction request challenge threshold. Level at which challenge is created and needs to be answered.
+## The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
+## Connector implementation may well provide dynamic response
+## These settings are of the form transactionRequests_challenge_threshold_UPPERCASETYPE=INTEGER
 transactionRequests_challenge_threshold_SANDBOX_TAN=1000
 transactionRequests_challenge_threshold_SEPA=1000
 
 
-# For video conference meetings (createMeeting)
+## For video conference meetings (createMeeting)
 meeting.tokbox_enabled=false
 meeting.tokbox_api_key=changeme
 meeting.tokbox_api_secret=changeme
 
 
 
-### management modules
+### Management modules
 
-#rabbitMQ settings (used to communicate with HBCI project)
+## RabbitMQ settings (used to communicate with HBCI project)
 connection.host=localhost
 connection.user=theusername
 connection.password=thepassword
 
-#secret key that allows access to the "add transactions" api. You should change this to your own secret key
+## Secret key that allows access to the "add transactions" api. You should change this to your own secret key
 importer_secret=change_me
 
-#set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
+## Set this to true if you want to have the api send a message to the hbci project to refresh transactions for an account
 messageQueue.updateBankAccountsTransaction=false
 
-#the minimum time between updates in hours
+## The minimum time between updates in hours
 messageQueue.updateTransactionsInterval=1
 
-#set this to true if you want to have the api listen for "create account" messages from the hbci project
+## Set this to true if you want to have the api listen for "create account" messages from the hbci project
 messageQueue.createBankAccounts=true
 
-#set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
+## Set this to true if you want to allow users to delete accounts (local ones like HBCI connected)
 allow_account_deletion=true
 
-#secret key that allows access to api calls to get info about oauth tokens. You should change this
-#to your own secret key
+## Secret key that allows access to api calls to get info about oauth tokens. You should change this
+## to your own secret key
 BankMockKey=change_me
 
 
 
-### web interface configuration
+## Web interface configuration
 webui_header_logo_left_url = /media/images/logo.png
 webui_header_logo_right_url =
 webui_index_page_about_section_background_image_url = /media/images/about-background.jpg
@@ -201,12 +213,12 @@ apiOptions.getAtmsIsPublic = true
 apiOptions.getProductsIsPublic = true
 apiOptions.getTransactionTypesIsPublic = true
 
-# Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
-# e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
+## Default Bank. Incase the server wants to support a default bank so developers don't have to specify BANK_ID
+## e.g. developers could use /my/accounts as well as /my/banks/BANK_ID/accounts
 defaultBank.bank_id=THE_DEFAULT_BANK_ID
 
 
-#  Super Admin Users (not database so we don't have to edit database)
+## Super Admin Users (not database so we don't have to edit database)
 super_admin_user_ids=USER_ID1,USER_ID2,
 
 api_disabled_versions=[\
@@ -222,15 +234,20 @@ endpoint2,\
 endpointN]
 
 
-# OpenId Connect can be used to retrieve User informaiton from an external OpenID Connect server.
-# To use an external OpenID Connect server:
-# You will need to change these values. The following values provided for a temp test account, just double-check callbackURL.
-# Note: The email address used for login should match one registered on OBP localy
-
-#  allow_openidconnect=true
-#  openidconnect.clientSecret=CEX3Oud7N8p69qCnNTWvnic3-1ortVlGnD1GXgzxpDW-GjD5_3xG1-G5Kln3K9FA
-#  openidconnect.clientId=yzKGC1ZKYqwYRpvbDaTq2r8mEQLY31D4
-#  openidconnect.domain=justatest.eu.auth0.com
-#  openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
-#  openidconnect.login_ui_url=https://cdn.auth0.com/js/lock/10.2/lock.min.js
-#  openidconnect.button_logo=http://wiki.openid.net/f/openid-logo-wordmark.png
+## OpenId Connect can be used to retrieve User informaiton from an 
+## external OpenID Connect server. 
+## To use an external OpenID Connect server,
+## you will need to change these values.
+## The following values provided for a temp test account. 
+## CallbackURL 127.0.0.1:8080 should work in most cases.
+## Note: The email address used for login must match one 
+## registered on OBP localy.
+#allow_openidconnect=true
+#openidconnect.clientSecret=CEX3Oud7N8p69qCnNTWvnic3-1ortVlGnD1GXgzxpDW-GjD5_3xG1-G5Kln3K9FA
+#openidconnect.clientId=yzKGC1ZKYqwYRpvbDaTq2r8mEQLY31D4
+#openidconnect.domain=justatest.eu.auth0.com
+#openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
+#openidconnect.url.login=https://cdn.auth0.com/js/lock/10.2/lock.min.js
+#openidconnect.url.userinfo=https://justatest.eu.auth0.com/userinfo
+#openidconnect.url.token=https://justatest.eu.auth0.com/oauth/token
+#openidconnect.url.buttonImage=http://wiki.openid.net/f/openid-logo-wordmark.png
