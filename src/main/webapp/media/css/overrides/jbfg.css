@@ -1,33 +1,19 @@
-@import url('https://static.openbankproject.com/css/op/op-fonts.css');
-
-body, div, h1, h2, h3, h4, p, span {
-	font-family: "ChevinMedium", "OPHand", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
-}
-
-
 #header-decoration {
 	background-color: #fff;
 	height: 0;
 }
 
-
-
 #logo-left {
 	margin-left: 0;
 }
-#logo-left img {
-	width: 600px;
-	max-height: 150px;
-}
-
 #logo-right {
 	margin-right: 0;
 }
+
 #logo-right img {
 	width: 350px;
 	margin-top: 19px;
 }
-
 
 #nav ul {
 	margin-left: -40px;
@@ -52,7 +38,6 @@ body, div, h1, h2, h3, h4, p, span {
 	margin-right: -10px;
 }
 
-
 #nav,
 #main-showcases,
 #main-support,
@@ -60,7 +45,11 @@ body, div, h1, h2, h3, h4, p, span {
 #authorizeSection,
 #registerAppSection,
 #create-sandbox-account {
-	background-color: #ff6a10;
+	background-color: #1932a9;
+}
+
+#registerAppSection table {
+	color: #fff;
 }
 
 
@@ -74,28 +63,13 @@ body, div, h1, h2, h3, h4, p, span {
 }
 
 
-div#authorizeSection,
-section#content,
-section#content form,
-.account-in-content form.login .field .forgot,
-#signupForm tr:first-child td,
-.signupSection form tr td,
-#registerAppSection,
-#create-sandbox-account,
-#registerAppSection table,
-nav .username
-{
-	color: white;
-}
-
-
 #main-showcases {
 	margin-bottom: 0;
 }
 
 #main-faq {
 	margin-top: 0;
-	background-color: #3c3c3c;
+	background-color: #60cb86;
 	color: #fff;
 }
 #main-faq a {
@@ -107,10 +81,10 @@ nav .username
 }
 
 #main-faq .collapse.plus {
-	background-image: url('https://static.openbankproject.com/images/op/faq/plus.png');
+	background-image: url('https://static.openbankproject.com/images/jbfg/faq/plus.png');
 }
 #main-faq .collapse.minus {
-	background-image: url('https://static.openbankproject.com/images/op/faq/minus.png');
+	background-image: url('https://static.openbankproject.com/images/jbfg/faq/minus.png');
 }
 
 #main-faq .main-faq-cell {
@@ -118,21 +92,14 @@ nav .username
 }
 
 
-#main-partners img {
-	width: 1000px;
-}
-
-
-
 .green-button a {
-	border: 3px solid #ff6a10;
+	border: 3px solid #1932a9;
 	border-radius: 25px;
-	background-color: #ff6a10;
+	background-color: #1932a9;
 	color: #fff;
 	padding: 10px;
 	font-size: 24px;
 }
-
 
 a {
 	color: #ccc;

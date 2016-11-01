@@ -29,14 +29,15 @@ $(document).ready(function() {
 
 
 	// FAQ shenanigans
-	$('#main-faq .collapse').click(function() {
-		var answer = $(this).find('h2').next();
-		if ($(this).attr("class").indexOf("minus") >= 0) {
+	$('#main-faq .collapse h2').click(function() {
+		var answer = $(this).next();
+		var listItem = $(this).parent();
+		if (listItem.attr("class").indexOf("minus") >= 0) {
 			answer.hide();
-			$(this).removeClass("minus").addClass("plus");
+			listItem.removeClass("minus").addClass("plus");
 		} else {
 			answer.show();
-			$(this).removeClass("plus").addClass("minus");
+			listItem.removeClass("plus").addClass("minus");
 		}
 	});
 
