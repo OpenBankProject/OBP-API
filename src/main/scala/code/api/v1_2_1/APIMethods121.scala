@@ -833,16 +833,16 @@ trait APIMethods121 {
       "getCounterpartiesForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts",
-      "Get counterparties of one account.",
-      s"""Returns data about all the other bank accounts that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
+      "Get Counterparties of one Account.",
+      s"""Returns data about all the counterparties (other accounts) that have shared at least one transaction with the ACCOUNT_ID at BANK_ID.
         |${authenticationRequiredMessage(false)}
         |Authentication is required if the view VIEW_ID is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
-      false,
-      false,
+      true,
+      true,
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -866,16 +866,16 @@ trait APIMethods121 {
       "getCounterpartyByIdForBankAccount",
       "GET",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/other_accounts/OTHER_ACCOUNT_ID",
-      "Get counterparty by id.",
-      s"""Returns data about one other counterparty (bank account) (OTHER_ACCOUNT_ID) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
+      "Get Counterparty by Id.",
+      s"""Returns data about a counterparty (aka Other Account) that had shared at least one transaction with ACCOUNT_ID at BANK_ID.
          |${authenticationRequiredMessage(false)}
          |Authentication is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
       false,
-      false,
-      false,
+      true,
+      true,
       List(apiTagAccount, apiTagCounterparty))
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

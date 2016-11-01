@@ -411,7 +411,7 @@ input.submit {
 #main-faq .collapse.minus {
 	background-image: url('https://static.openbankproject.com/images/sandbox/faq/minus.png');
 }
-#main-faq .collapse:hover {
+#main-faq .collapse h2:hover {
 	cursor: pointer;
 }
 
