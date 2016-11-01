@@ -23,6 +23,8 @@ connector=mapped
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 
+## Enable user authentication via kafka
+#kafka.user.authentication=true
 
 ## ElasticSearch
 #allow_elasticsearch=true

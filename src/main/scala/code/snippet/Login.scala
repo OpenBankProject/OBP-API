@@ -94,13 +94,18 @@ class Login {
       "#login_special_instructions *" #> specialLoginInstructions
     }
 
+
   def openIdConnectButton : CssSel = {
     if(Props.getBool("allow_openidconnect", false)){
       val config = OpenIdConnectConfig.get()
+      var onclick = "getCode();"
+      if (config.url_login.endsWith(".js") )
+        onclick = "openIdUI.show();"
       val but =
         """
-          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="openIdUI.show();" src="%s" />
+          <input class="button" style="float: none !important;" value="OpenID" id="openid-button" type="image" onclick="%s" src="%s" />
         """.format(
+          onclick,
           config.url_button
         )
       val button  = scala.xml.Unparsed(s"""$but""")
@@ -143,7 +148,28 @@ class Login {
           config.callbackURL
         )
         else
-          """"""
+          """
+            <script type="text/javascript">
+            var request = new XMLHttpRequest();
+            function getCode() {
+                request.open("GET", "%s", true);
+                request.setRequestHeader("Content-type", "application/json");
+                request.send("grant_type=client_credentials&client_id=%s&client_secret=%s");
+                request.onreadystatechange = function () {
+                    if (request.readyState == request.DONE) {
+                        var response = request.responseText;
+                        //alert(response);
+                        var obj = JSON.parse(response);
+                        return (obj.code);
+                    }
+                }
+            }
+            </script>
+          """.format(
+            config.url_login,
+            config.clientId,
+            config.clientSecret
+          )
 
       val scripts = scala.xml.Unparsed(s"""$ext $scr""")
       "#openid_scripts" #> scripts

@@ -45,10 +45,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
-  /*
+
   def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
+    var key = "username"
+    if (username.contains("@") && username.contains("."))
+      key = "email"
     for {
-      argList <- tryo {Map[String, String]( "username" -> username.toLowerCase, "password" -> password )}
+      argList <- tryo {Map[String, String]( key -> username, "password" -> password )}
       // Generate random uuid to be used as request-response match id
       reqId <- tryo {UUID.randomUUID().toString}
       u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
@@ -58,7 +61,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       else null
     }
   }
-  */
+
 
   def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
     val res =

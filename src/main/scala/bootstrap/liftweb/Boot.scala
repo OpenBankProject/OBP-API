@@ -275,7 +275,7 @@ class Boot extends Loggable{
     // each page, just comment this line out.
     LiftRules.setSiteMapFunc(() => sitemapMutators(SiteMap(sitemap : _*)))
     // Use jQuery 1.4
-    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQueryArtifacts
+    LiftRules.jsArtifacts = net.liftweb.http.js.jquery.JQuery14Artifacts
 
     //Show the spinny image when an Ajax call starts
     LiftRules.ajaxStart =

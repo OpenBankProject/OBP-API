@@ -55,7 +55,7 @@ import net.liftweb.{http, json}
   * users using OpenIdConnect (http://openid.net).
   */
 
-case class OpenIdConnectConfig( secret: String,
+case class OpenIdConnectConfig( clientSecret: String,
                                 clientId: String,
                                 callbackURL: String,
                                 domain: String,
@@ -128,7 +128,7 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
   def getToken(code: String): Box[(String, String, String)] = {
     val config = OpenIdConnectConfig.get()
     val data =    "client_id=" + config.clientId + "&" +
-                  "client_secret=" + config.secret + "&" +
+                  "client_secret=" + config.clientSecret + "&" +
                   "redirect_uri=" + config.callbackURL + "&" +
                   "code=" + code + "&" +
                   "grant_type=authorization_code"

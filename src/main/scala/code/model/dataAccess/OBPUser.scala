@@ -348,22 +348,22 @@ import net.liftweb.util.Helpers._
           Full(user.user)
         }
         else {
-          Empty
-        /*
+          if (Props.getBool("kafka.user.authentication", false)) {
           Props.get("connector").openOrThrowException("no connector set") match {
             case "kafka" =>
               for { kafkaUser <- getUserFromKafka(name, password)
                     kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
             case _ => Empty
           }
-        */
+        } else {
+            Empty }
         }
       }
       case _ => Empty 
     }
   }
 
-  /*
+
   def getUserFromKafka(name: String, password: String):Box[OBPUser] = {
     KafkaMappedConnector.getUser(name, password) match {
       case Full(KafkaInboundUser(extEmail, extPassword, extUsername)) => {
@@ -413,7 +413,6 @@ import net.liftweb.util.Helpers._
       }
     }
   }
-  */
 
   //overridden to allow a redirection if login fails
   override def login = {
@@ -444,13 +443,10 @@ import net.liftweb.util.Helpers._
         case Full(user) if !user.validated_? =>
           S.error(S.?("account.validation.error"))
 
-        case _ =>
-          S.error(S.?("account.validation.error"))
-
-          /*
+        case _ => if (Props.get("connector").openOrThrowException("no connector set") == "kafka")
         {
           // If not found locally, try to authenticate user via Kafka, if enabled in props
-          if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
+          if (Props.getBool("kafka.user.authentication", false)) {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -469,9 +465,12 @@ import net.liftweb.util.Helpers._
                 S.redirectTo(redir)
               })
             }
+          } else {
+            S.error(S.?("account.validation.error"))
           }
+        } else {
+          S.error(S.?("account.validation.error"))
         }
-          */
       }
     }
 
@@ -481,7 +480,7 @@ import net.liftweb.util.Helpers._
          "submit" -> loginSubmitButton(S.?("log.in")))
   }
 
-  /*
+
   def externalUserHelper(name: String, password: String): Box[OBPUser] = {
     if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
       for {
@@ -493,7 +492,7 @@ import net.liftweb.util.Helpers._
       }
     } else Empty 
   }
-  */
+
 
   def registeredUserHelper(username: String) = {
     if (Props.get("connector").openOrThrowException("no connector set") == "kafka") {
