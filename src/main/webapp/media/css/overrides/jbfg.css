@@ -52,9 +52,16 @@
 	color: #fff;
 }
 
+
 #main-links a {
 	border-color: white;
 }
+
+
+#main-get_started {
+	margin-top: 0;
+}
+
 
 #main-showcases {
 	margin-bottom: 0;
