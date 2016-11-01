@@ -32,9 +32,8 @@ Berlin 13359, Germany
 package code.model
 import net.liftweb._
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
-import net.liftweb.util.FieldError
+import net.liftweb.util.{Props, FieldError, Helpers, SecurityHelpers}
 import net.liftweb.common.{Full,Failure,Box,Empty}
-import net.liftweb.util.{Helpers, SecurityHelpers}
 import Helpers.now
 import code.model.dataAccess.APIUser
 import net.liftweb.http.S
@@ -76,7 +75,9 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   }
 
   object secret extends MappedString(this, 250)
-  object isActive extends MappedBoolean(this)
+  object isActive extends MappedBoolean(this){
+    override def defaultValue = Props.getBool("consumers_enabled_by_default", false)
+  }
   object name extends MappedString(this, 100){
     override def validations = minLength3(this) _ :: super.validations
     override def dbIndexed_? = true

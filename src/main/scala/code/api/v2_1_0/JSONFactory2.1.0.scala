@@ -82,6 +82,8 @@ case class TransactionRequestWithChargeJSON210(
 case class TransactionRequestWithChargeJSONs210(
                                               transaction_requests_with_charges : List[TransactionRequestWithChargeJSON210]
                                             )
+case class PutEnabledJSON(enabled: Boolean)
+case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, enabled: Boolean, created: Date)
 
 object JSONFactory210{
   def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
