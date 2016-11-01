@@ -48,6 +48,15 @@ object ApiRole {
   case object CanGetEntitlementsForAnyUserAtAnyBank extends ApiRole{
     val requiresBankId = false
   }
+  case object CanGetConsumers extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanDisableConsumers extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanEnableConsumers extends ApiRole{
+    val requiresBankId = false
+  }
 
   def valueOf(value: String): ApiRole = value match {
     case "CanSearchAllTransactions" => CanSearchAllTransactions
@@ -64,6 +73,9 @@ object ApiRole {
     case "CanCreateSandbox" => CanCreateSandbox
     case "CanGetEntitlementsForAnyUserAtOneBank" => CanGetEntitlementsForAnyUserAtOneBank
     case "CanGetEntitlementsForAnyUserAtAnyBank" => CanGetEntitlementsForAnyUserAtAnyBank
+    case "CanGetConsumers" => CanGetConsumers
+    case "CanDisableConsumers" => CanDisableConsumers
+    case "CanEnableConsumers" => CanEnableConsumers
     case _ => throw new IllegalArgumentException()
   }
 
@@ -81,6 +93,9 @@ object ApiRole {
                       "CanCreateSandbox" ::
                       "CanGetEntitlementsForAnyUserAtOneBank" ::
                       "CanGetEntitlementsForAnyUserAtAnyBank" ::
+                      "CanGetConsumers" ::
+                      "CanDisableConsumers" ::
+                      "CanEnableConsumers" ::
                        Nil
 
 }

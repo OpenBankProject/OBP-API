@@ -234,3 +234,6 @@ endpointN]
 #  openidconnect.callbackURL=http://127.0.0.1:8080/my/logins/openidconnect
 #  openidconnect.login_ui_url=https://cdn.auth0.com/js/lock/10.2/lock.min.js
 #  openidconnect.button_logo=http://wiki.openid.net/f/openid-logo-wordmark.png
+
+# When new consumers inserted they should use this setting.
+consumers_enabled_by_default=true

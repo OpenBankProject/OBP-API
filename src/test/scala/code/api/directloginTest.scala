@@ -19,6 +19,12 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val USERNAME = randomString(10).toLowerCase
   val PASSWORD = randomString(20)
 
+  val KEY_DISABLED = randomString(40).toLowerCase
+  val SECRET_DISABLED = randomString(40).toLowerCase
+  val EMAIL_DISABLED = randomString(10).toLowerCase + "@example.com"
+  val USERNAME_DISABLED = randomString(10).toLowerCase
+  val PASSWORD_DISABLED = randomString(20)
+
   before {
     if (OBPUser.find(By(OBPUser.username, USERNAME)).isEmpty)
       OBPUser.create.
@@ -37,6 +43,25 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         key(KEY).
         secret(SECRET).
         saveMe
+
+
+    if (OBPUser.find(By(OBPUser.username, USERNAME_DISABLED)).isEmpty)
+      OBPUser.create.
+        email(EMAIL_DISABLED).
+        username(USERNAME_DISABLED).
+        password(PASSWORD_DISABLED).
+        validated(true).
+        firstName(randomString(10)).
+        lastName(randomString(10)).
+        saveMe
+
+    if (OBPConsumer.find(By(OBPConsumer.key, KEY_DISABLED)).isEmpty)
+      OBPConsumer.create.
+        name("Test application disabled").
+        isActive(false).
+        key(KEY_DISABLED).
+        secret(SECRET_DISABLED).
+        saveMe
   }
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
@@ -50,11 +75,16 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val validHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
     format(USERNAME, PASSWORD, KEY))
 
+  val disabledConsumerValidHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
+    format(USERNAME_DISABLED, PASSWORD_DISABLED, KEY_DISABLED))
+
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
 
   val invalidConsumerKeyHeaders = List(accessControlOriginHeader, invalidConsumerKeyHeader)
 
   val validHeaders = List(accessControlOriginHeader, validHeader)
+
+  val disabledConsumerKeyHeaders = List(accessControlOriginHeader, disabledConsumerValidHeader)
 
   def directLoginRequest = baseRequest / "my" / "logins" / "direct"
 
@@ -92,6 +122,16 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
+    }
+
+    scenario("Consumer API key is disabled") {
+      Given("The app we are testing is registered and disabled")
+      When("We try to login with username/password")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", disabledConsumerKeyHeaders)
+      Then("We should get a 401")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.InvalidConsumerKey)
     }
 
     scenario("Missing DirecLogin header") {

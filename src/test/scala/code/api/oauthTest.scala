@@ -33,6 +33,7 @@ Berlin 13359, Germany
 package code.api
 
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ErrorMessages
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
@@ -66,6 +67,14 @@ class OAuthTest extends ServerSetup {
       secret(randomString(40).toLowerCase).
       saveMe
 
+  lazy val disabledTestConsumer =
+    OBPConsumer.create.
+      name("test application disabled").
+      isActive(false).
+      key(randomString(40).toLowerCase).
+      secret(randomString(40).toLowerCase).
+      saveMe
+
   lazy val user1Password = randomString(10)
   lazy val user1 =
     OBPUser.create.
@@ -78,6 +87,7 @@ class OAuthTest extends ServerSetup {
       saveMe
 
   lazy val consumer = new Consumer (testConsumer.key,testConsumer.secret)
+  lazy val disabledConsumer = new Consumer (disabledTestConsumer.key, disabledTestConsumer.secret)
   lazy val notRegisteredConsumer = new Consumer (randomString(5),randomString(5))
 
   private def getAPIResponse(req : Req) : OAuthResponse = {
@@ -190,6 +200,15 @@ class OAuthTest extends ServerSetup {
       val reply = getRequestToken(notRegisteredConsumer, "localhost:8080/app")
       Then("we should get a 401 code")
       reply.code should equal (401)
+    }
+    scenario("We don't get a request token since the application is not enabled", RequestToken, Oauth) {
+      Given("The application is not enabled")
+      When("The request is sent")
+      val reply = getRequestToken(disabledConsumer, oob)
+      Then("We should get a 401 code")
+      reply.code should equal (401)
+      And("We should get message")
+      reply.body should equal (ErrorMessages.InvalidConsumerCredentials)
     }
   }
 

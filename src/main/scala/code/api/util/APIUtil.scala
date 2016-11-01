@@ -78,6 +78,7 @@ object ErrorMessages {
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
+  val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
