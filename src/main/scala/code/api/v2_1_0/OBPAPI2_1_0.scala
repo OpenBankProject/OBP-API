@@ -236,6 +236,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "getTransactionRequests" ::
                          "getRoles" ::
                          "getEntitlementsByBankAndUser" ::
+                         "getConsumer" ::
                          "getConsumers" ::
                          "enableDisableConsumers" ::
                          Nil

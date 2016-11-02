@@ -36,8 +36,8 @@ import java.util.Date
 import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.{TransactionRequestChargeJSON}
-import code.model.AmountOfMoney
+import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.model.{AmountOfMoney, Consumer}
 import code.transactionrequests.TransactionRequests._
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
@@ -84,6 +84,7 @@ case class TransactionRequestWithChargeJSONs210(
                                             )
 case class PutEnabledJSON(enabled: Boolean)
 case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, enabled: Boolean, created: Date)
+case class ConsumerJSONs(list: List[ConsumerJSON])
 
 object JSONFactory210{
   def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
@@ -182,5 +183,19 @@ object JSONFactory210{
 
   def createTransactionRequestJSONs(trs : List[TransactionRequest210]) : TransactionRequestWithChargeJSONs210 = {
     TransactionRequestWithChargeJSONs210(trs.map(createTransactionRequestWithChargeJSON))
+  }
+
+  def createConsumerJSON(c: Consumer): ConsumerJSON = {
+    ConsumerJSON(id=c.id,
+      name=c.name,
+      appType=c.appType.toString(),
+      description=c.description,
+      developerEmail=c.developerEmail,
+      enabled=c.isActive,
+      created=c.createdAt
+    )
+  }
+  def createConsumerJSONs(l : List[Consumer]): ConsumerJSONs = {
+    ConsumerJSONs(l.map(createConsumerJSON))
   }
 }
