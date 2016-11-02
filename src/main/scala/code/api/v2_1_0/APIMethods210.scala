@@ -467,12 +467,12 @@ trait APIMethods210 {
     }
 
     resourceDocs += ResourceDoc(
-      getConsumers,
+      getConsumer,
       apiVersion,
-      "getConsumers",
+      "getConsumer",
       "GET",
       "/management/consumers/CONSUMER_ID",
-      "Get Consumers",
+      "Get Consumer",
       s"""Get the Consumer specified by CONSUMER_ID.
         |
         |""",
@@ -485,16 +485,52 @@ trait APIMethods210 {
       Nil)
 
 
-    lazy val getConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            CanGetConsumers <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
-            consumer <- Consumer.find(By(Consumer.id, consumerId.toLong))
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID"
+            consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
           } yield {
             // Format the data as json
             val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.isActive, consumer.createdAt)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getConsumers,
+      apiVersion,
+      "getConsumers",
+      "GET",
+      "/management/consumers",
+      "Get Consumers",
+      s"""Get the all Consumers.
+          |
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      Nil)
+
+
+    lazy val getConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
+            consumers <- Some(Consumer.findAll())
+          } yield {
+            // Format the data as json
+            val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
