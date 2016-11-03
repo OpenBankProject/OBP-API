@@ -65,13 +65,13 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 
 ## Our own remotely accessible URL
 ## This is needed for oauth to work. it's important to access the api over this url, e.g.
-## If this is 127.0.0.1 don't use localhost to access it.
-## (this needs to be an URL)
+## If this is 127.0.0.1 do NOT use localhost to access it.
+## (this needs to be a URL)
 hostname=http://127.0.0.1:8080
 
 ## This is only useful for running the api locally via RunWebApp
 ## If you use it, make sure this matches your hostname port!
-## If you want to change the port when running via the command line, use "mvn -Djetty.port=8089 jetty:run" instead
+## If you want to change the port when running via the command line, use "mvn -Djetty.port=8080 jetty:run" instead
 dev.port=8080
 
 
