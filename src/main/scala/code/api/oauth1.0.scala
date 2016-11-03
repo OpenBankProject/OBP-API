@@ -43,7 +43,7 @@ import net.liftweb.util.Helpers
 
 import scala.compat.Platform
 import Helpers._
-import code.api.util.APIUtil
+import code.api.util.{ErrorMessages, APIUtil}
 import net.liftweb.util.Props
 import code.model.TokenType
 import code.model.User
@@ -361,7 +361,7 @@ object OAuthHandshake extends RestHelper with Loggable {
     else if(! APIUtil.registeredApplication(parameters.get("oauth_consumer_key").get))
     {
       logger.error("application: " + parameters.get("oauth_consumer_key").get + " not found")
-      message = "Invalid consumer credentials"
+      message = ErrorMessages.InvalidConsumerCredentials
       httpCode = 401
     }
     //valid timestamp

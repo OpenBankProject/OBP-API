@@ -78,6 +78,7 @@ object ErrorMessages {
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
+  val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -99,7 +100,7 @@ object ErrorMessages {
   val MeetingNotFound = "OBP-30104: Meeting not found."
 
 
-  val InvalidAccountInitalBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
+  val InvalidAccountInitialBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
   val InvalidAccountBalanceAmount = "OBP-30106: Invalid Balance Amount."
 

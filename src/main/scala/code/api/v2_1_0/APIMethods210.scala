@@ -1,5 +1,6 @@
 package code.api.v2_1_0
 
+import java.io.Serializable
 import java.text.SimpleDateFormat
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
@@ -15,7 +16,9 @@ import code.model._
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.mapper.By
 import net.liftweb.util.Props
+import org.elasticsearch.index.mapper.internal.EnabledAttributeMapper
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -463,6 +466,116 @@ trait APIMethods210 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getConsumer,
+      apiVersion,
+      "getConsumer",
+      "GET",
+      "/management/consumers/CONSUMER_ID",
+      "Get Consumer",
+      s"""Get the Consumer specified by CONSUMER_ID.
+        |
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      Nil)
+
+
+    lazy val getConsumer: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID"
+            consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
+          } yield {
+            // Format the data as json
+            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.isActive, consumer.createdAt)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getConsumers,
+      apiVersion,
+      "getConsumers",
+      "GET",
+      "/management/consumers",
+      "Get Consumers",
+      s"""Get the all Consumers.
+          |
+        |""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      Nil)
+
+
+    lazy val getConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: Nil JsonGet _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
+            consumers <- Some(Consumer.findAll())
+          } yield {
+            // Format the data as json
+            val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      enableDisableConsumers,
+      apiVersion,
+      "enableDisableConsumers",
+      "PUT",
+      "/management/consumers/CONSUMER_ID",
+      "Enable or Disable Consumers",
+      s"""Enable/Disable a Consumer specified by CONSUMER_ID.
+        |
+        |""",
+      Extraction.decompose(PutEnabledJSON(false)),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      Nil)
+
+
+    lazy val enableDisableConsumers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: consumerId :: Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            putData <- tryo{json.extract[PutEnabledJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            hasEntitlement <- putData.enabled match {
+              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
+              case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers), s"$CanDisableConsumers entitlement required")
+            }
+            consumer <- Consumer.find(By(Consumer.id, consumerId.toLong))
+          } yield {
+            // Format the data as json
+            consumer.isActive(putData.enabled).save
+            val json = PutEnabledJSON(consumer.isActive)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
 
   }
 }

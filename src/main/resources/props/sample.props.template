@@ -75,11 +75,11 @@ hostname=http://127.0.0.1:8080
 dev.port=8080
 
 
-## The start of the api path (before the version)
-## It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
-## Including it here so we have a canonical source of the value
-## This was introduced March 2016, some code might use hardcoded value instead.
-## Default value is obp (highly recomended)
+#The start of the api path (before the version)
+#It is *strongly* recommended not to change this - since Apps will be expecting the api at /obp/+version
+#Including it here so we have a canonical source of the value
+#This was introduced March 2016, some code might use hardcoded value instead.
+#Default value is obp (highly recomended)
 apiPathZero=obp
 
 ## Sending mail out
@@ -253,3 +253,6 @@ endpointN]
 #openidconnect.url.userinfo=https://justatest.eu.auth0.com/userinfo
 #openidconnect.url.token=https://justatest.eu.auth0.com/oauth/token
 #openidconnect.url.buttonImage=http://wiki.openid.net/f/openid-logo-wordmark.png
+
+# When new consumers inserted they should use this setting.
+consumers_enabled_by_default=true
