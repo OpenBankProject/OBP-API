@@ -180,7 +180,7 @@ trait APIMethods210 {
         |
         |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the UR
         |
-        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_IDO specified in the request body.
+        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
         |
         |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
         |
