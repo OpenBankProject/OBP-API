@@ -1,6 +1,6 @@
 package code.metadata.counterparties
 
-import code.model.{AccountId, BankId, OtherBankAccountMetadata, OtherBankAccount}
+import code.model.{AccountId, BankId, CounterpartyMetadata, Counterparty}
 import net.liftweb.common.{Box, Loggable}
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers.tryo
@@ -10,12 +10,12 @@ import org.bson.types.ObjectId
 object MongoCounterparties extends Counterparties with Loggable {
 
 
-  def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[OtherBankAccountMetadata] = {
+  def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata] = {
     val query = QueryBuilder.start("originalPartyBankId").is(originalPartyBankId.value).put("originalPartyAccountId").is(originalPartyAccountId.value).get
     Metadata.findAll(query)
   }
 
-  def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[OtherBankAccountMetadata] = {
+  def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[CounterpartyMetadata] = {
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
@@ -27,7 +27,7 @@ object MongoCounterparties extends Counterparties with Loggable {
     } yield m
   }
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : OtherBankAccount) : OtherBankAccountMetadata = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : CounterpartyMetadata = {
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id

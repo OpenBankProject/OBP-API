@@ -103,7 +103,7 @@ trait TransactionImage {
 /*
 Counterparty metadata
  */
-trait OtherBankAccountMetadata {
+trait CounterpartyMetadata {
   def metadataId: String
   def getHolder: String
   def getAccountNumber: String

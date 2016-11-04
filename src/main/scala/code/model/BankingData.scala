@@ -570,7 +570,7 @@ The other bank account or counterparty in a transaction
 as see from the perspective of the original party.
  */
 
-class OtherBankAccount(
+class Counterparty(
   val id : String,
   val label : String,               // Reference given to the counterparty by the original party.
   val nationalIdentifier : String,  // National identifier for a bank account (how is this different to number below?)
@@ -581,10 +581,10 @@ class OtherBankAccount(
   val kind : String,                // Type of bank account.
   val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
   val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
-  val alreadyFoundMetadata : Option[OtherBankAccountMetadata]
+  val alreadyFoundMetadata : Option[CounterpartyMetadata]
   ) {
 
-  val metadata : OtherBankAccountMetadata = {
+  val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
@@ -607,7 +607,7 @@ class Transaction(
   //id is unique for transactions of @thisAccount
   val id : TransactionId,
   val thisAccount : BankAccount,
-  val otherAccount : OtherBankAccount,
+  val otherAccount : Counterparty,
   //E.g. cash withdrawal, electronic payment, etc.
   val transactionType : String,
   val amount : BigDecimal,

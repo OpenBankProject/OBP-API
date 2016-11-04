@@ -84,8 +84,8 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      def createOtherBankAccount(alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-        new OtherBankAccount(
+      def createOtherBankAccount(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+        new Counterparty(
           id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = counterpartyAccountHolder.get,
           nationalIdentifier = counterpartyNationalId.get,
