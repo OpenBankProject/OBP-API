@@ -172,14 +172,14 @@ trait APIMethods210 {
         |
         |Think of `transactions` as items in a bank statement that represent the movement of money.
         |
-        |Think of `transaction requests` as orders to move money which may or may not succeed and result in a `transaction`.
+        |Think of `transaction requests` as orders to move money which may or may not succeeed and result in a `transaction`.
         |
         |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
         |
-        |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
+        |Transaction Requests contain charge information giving the client the opporunity to proceed or not (as long as the challenge level is appropriate).
         |
         |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
-        |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
+        |This provides some commonality and one URL for many differrent payment or transfer types with enough flexilbity to validate them differently.
         |
         |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the UR
         |
@@ -195,7 +195,7 @@ trait APIMethods210 {
         |
         |${exchangeRates}
         |
-        |PSD2 Context: Third party access access to payments is a core tenant of PSD2.
+        |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
         |
         |This call satisfies that requirement from several perspectives:
         |
@@ -576,63 +576,6 @@ trait APIMethods210 {
           }
       }
     }
-
-
-
-
-
-
-
-    resourceDocs += ResourceDoc(
-      createCounterparty,
-      apiVersion,
-      "createCounterparty",
-      "POST",
-      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Create.",
-      s"""Create.
-          |
-        |""",
-      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
-      emptyObjectJson,
-      emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
-      List())
-
-    lazy val createCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
-        user =>
-          if (Props.getBool("transactionRequests_enabled", false)) {
-            for {
-              u <- user ?~ ErrorMessages.UserNotLoggedIn
-              bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              account <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
-              view <- tryo(account.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-              json <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
-              //TODO check more things here
-              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
-              //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createCounterparty(u, bank, account, )
-            } yield {
-
-              // Format explicitly as v2.0.0 json
-              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
-              //successJsonResponse(Extraction.decompose(json))
-
-              val successJson = Extraction.decompose(json)
-              successJsonResponse(successJson, 202)
-            }
-          } else {
-            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
-          }
-      }
-    }
-
-
-
-
 
   }
 }
