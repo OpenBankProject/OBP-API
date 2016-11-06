@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Email: contact@tesobe.com
-TESOBE / Music Pictures Ltd
+TESOBE Ltd
 Osloerstrasse 16/17
 Berlin 13359, Germany
 
