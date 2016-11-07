@@ -46,5 +46,5 @@ with LongKeyedMapper[MappedKycStatus] with IdPK with CreatedUpdated {
 }
 
 object MappedKycStatus extends MappedKycStatus with LongKeyedMetaMapper[MappedKycStatus] {
-  override def dbIndexes = UniqueIndex(mCustomerNumber) :: super.dbIndexes
+  override def dbIndexes = super.dbIndexes
 }
