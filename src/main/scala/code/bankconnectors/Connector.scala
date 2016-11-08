@@ -105,9 +105,9 @@ trait Connector {
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
-  def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[Counterparty]
+  def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
-  def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[Counterparty]
+  def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 

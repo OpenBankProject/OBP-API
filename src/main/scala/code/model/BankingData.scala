@@ -520,7 +520,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getOtherBankAccounts(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpaties(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**
@@ -532,7 +532,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getOtherBankAccount(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
+      Connector.connector.vend.getCounterparty(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
 

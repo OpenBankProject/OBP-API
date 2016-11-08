@@ -157,13 +157,13 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   // Get all counterparties related to an account
-  override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[Counterparty] =
+  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
     Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getOtherBankAccount(bankId: BankId, accountID: AccountId, otherAccountID: String): Box[Counterparty] =
+  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, otherAccountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getOtherBankAccount(bankId, accountID, _))
 
   override def getPhysicalCards(user: User): Set[PhysicalCard] =
     Set.empty

@@ -51,7 +51,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override def getOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String): Box[Counterparty] = {
+  override def getCounterparty(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -59,7 +59,7 @@ private object LocalConnector extends Connector with Loggable {
      */
 
       for{
-        objId <- tryo{ new ObjectId(otherAccountID) }
+        objId <- tryo{ new ObjectId(counterpartyID) }
         otherAccountmetadata <- {
           //"otherAccountID" is actually the mongodb id of the other account metadata" object.
           val query = QueryBuilder.
@@ -84,7 +84,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getOtherBankAccounts(bankId: BankId, accountId : AccountId): List[Counterparty] = {
+  override def getCounterpaties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
