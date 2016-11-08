@@ -51,7 +51,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override def getOtherBankAccount(bankId: BankId, accountId : AccountId, otherAccountID : String): Box[OtherBankAccount] = {
+  override def getCounterparty(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -59,7 +59,7 @@ private object LocalConnector extends Connector with Loggable {
      */
 
       for{
-        objId <- tryo{ new ObjectId(otherAccountID) }
+        objId <- tryo{ new ObjectId(counterpartyID) }
         otherAccountmetadata <- {
           //"otherAccountID" is actually the mongodb id of the other account metadata" object.
           val query = QueryBuilder.
@@ -84,7 +84,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getOtherBankAccounts(bankId: BankId, accountId : AccountId): List[OtherBankAccount] = {
+  override def getCounterpaties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -190,7 +190,7 @@ private object LocalConnector extends Connector with Loggable {
         otherAccount_.number.get)
     }
 
-    val otherAccount = new OtherBankAccount(
+    val otherAccount = new Counterparty(
       id = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
@@ -339,8 +339,8 @@ private object LocalConnector extends Connector with Loggable {
 
 
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-    otherAccount : OtherBankAccountMetadata, otherAccountFromTransaction : OBPAccount) : OtherBankAccount = {
-    new OtherBankAccount(
+    otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
+    new Counterparty(
       id = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,

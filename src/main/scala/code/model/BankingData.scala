@@ -520,7 +520,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccounts(view : View, user : Box[User]) : Box[List[ModeratedOtherBankAccount]] =
     if(authorizedAccess(view, user))
-      Full(Connector.connector.vend.getOtherBankAccounts(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
+      Full(Connector.connector.vend.getCounterpaties(bankId, accountId).map(oAcc => view.moderate(oAcc)).flatten)
     else
       viewNotAllowed(view)
   /**
@@ -532,7 +532,7 @@ trait BankAccount {
   */
   final def moderatedOtherBankAccount(otherAccountID : String, view : View, user : Box[User]) : Box[ModeratedOtherBankAccount] =
     if(authorizedAccess(view, user))
-      Connector.connector.vend.getOtherBankAccount(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
+      Connector.connector.vend.getCounterparty(bankId, accountId, otherAccountID).flatMap(oAcc => view.moderate(oAcc))
     else
       viewNotAllowed(view)
 
@@ -570,7 +570,7 @@ The other bank account or counterparty in a transaction
 as see from the perspective of the original party.
  */
 
-class OtherBankAccount(
+class Counterparty(
   val id : String,
   val label : String,               // Reference given to the counterparty by the original party.
   val nationalIdentifier : String,  // National identifier for a bank account (how is this different to number below?)
@@ -581,10 +581,10 @@ class OtherBankAccount(
   val kind : String,                // Type of bank account.
   val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
   val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
-  val alreadyFoundMetadata : Option[OtherBankAccountMetadata]
+  val alreadyFoundMetadata : Option[CounterpartyMetadata]
   ) {
 
-  val metadata : OtherBankAccountMetadata = {
+  val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
     alreadyFoundMetadata match {
       case Some(meta) =>
@@ -607,7 +607,7 @@ class Transaction(
   //id is unique for transactions of @thisAccount
   val id : TransactionId,
   val thisAccount : BankAccount,
-  val otherAccount : OtherBankAccount,
+  val otherAccount : Counterparty,
   //E.g. cash withdrawal, electronic payment, etc.
   val transactionType : String,
   val amount : BigDecimal,
