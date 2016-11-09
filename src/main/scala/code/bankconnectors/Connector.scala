@@ -322,7 +322,7 @@ trait Connector {
     result
   }
 
-  def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest210] = {
+  def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val (limit, currency) = getChallengeThreshold("", "", transactionRequestType.value, details.value.currency)
@@ -403,7 +403,7 @@ trait Connector {
 
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, details: String,
-                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210]
+                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
@@ -445,7 +445,7 @@ trait Connector {
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
         fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
@@ -470,7 +470,7 @@ trait Connector {
 
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
-  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]]
+  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
   protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest]
 

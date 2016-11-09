@@ -363,6 +363,7 @@ object JSONFactory200{
       id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
+      details = null,
       body = getTransactionRequestBodyFromJson(json.body),
       transaction_ids = json.transaction_ids,
       status = json.status,

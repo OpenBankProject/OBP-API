@@ -162,7 +162,7 @@ object JSONFactory210{
     * @return a v2.1.0 representation of a TransactionRequest
     */
 
-  def createTransactionRequestWithChargeJSON(tr : TransactionRequest210) : TransactionRequestWithChargeJSON210 = {
+  def createTransactionRequestWithChargeJSON(tr : TransactionRequest) : TransactionRequestWithChargeJSON210 = {
     new TransactionRequestWithChargeJSON210(
       id = tr.id.value,
       `type` = tr.`type`,
@@ -187,7 +187,7 @@ object JSONFactory210{
     )
   }
 
-  def createTransactionRequestJSONs(trs : List[TransactionRequest210]) : TransactionRequestWithChargeJSONs210 = {
+  def createTransactionRequestJSONs(trs : List[TransactionRequest]) : TransactionRequestWithChargeJSONs210 = {
     TransactionRequestWithChargeJSONs210(trs.map(createTransactionRequestWithChargeJSON))
   }
 

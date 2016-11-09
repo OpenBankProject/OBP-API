@@ -12,9 +12,8 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
-import code.tesobe.CashTransaction
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
@@ -264,10 +263,10 @@ Store one or more transactions
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
 
     // Note: We don't save transaction_ids here.
-    val mappedTransactionRequest = MappedTransactionRequest210.create
+    val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
@@ -280,7 +279,7 @@ Store one or more transactions
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
       .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
@@ -320,11 +319,11 @@ Store one or more transactions
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
-    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
+      By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
-    Full(transactionRequests.flatMap(_.toTransactionRequest210))
+    Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {

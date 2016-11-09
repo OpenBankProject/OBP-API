@@ -29,6 +29,7 @@ object TransactionRequests extends SimpleInjector {
     val id: TransactionRequestId,
     val `type` : String,
     val from: TransactionRequestAccount,
+    val details: String, // Note: This is not structured! (allows multiple "to" accounts etc.)
     val body: TransactionRequestBody, // Note: This is structured with one "to" account etc.
     val transaction_ids: String,
     val status: String,
@@ -37,19 +38,6 @@ object TransactionRequests extends SimpleInjector {
     val challenge: TransactionRequestChallenge,
     val charge: TransactionRequestCharge
   )
-
-  case class TransactionRequest210 (
-                                  val id: TransactionRequestId,
-                                  val `type` : String,
-                                  val from: TransactionRequestAccount,
-                                  val details: String, // Note: This is not structured! (allows multiple "to" accounts etc.)
-                                  val transaction_ids: String,
-                                  val status: String,
-                                  val start_date: Date,
-                                  val end_date: Date,
-                                  val challenge: TransactionRequestChallenge,
-                                  val charge: TransactionRequestCharge
-                                )
 
   case class TransactionRequestChallenge (
     val id: String,
