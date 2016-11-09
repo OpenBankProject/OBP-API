@@ -141,4 +141,4 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 * Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 
 * A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
-
+ 
