@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.{OtherBankAccount, Transaction, User, _}
+import code.model.{Transaction, User, _}
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -105,9 +105,9 @@ trait Connector {
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
-  def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]
+  def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
-  def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount]
+  def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 

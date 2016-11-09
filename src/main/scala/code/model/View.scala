@@ -489,7 +489,7 @@ trait View {
       None
   }
 
-  def moderate(otherBankAccount : OtherBankAccount) : Option[ModeratedOtherBankAccount] = {
+  def moderate(otherBankAccount : Counterparty) : Option[ModeratedOtherBankAccount] = {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data

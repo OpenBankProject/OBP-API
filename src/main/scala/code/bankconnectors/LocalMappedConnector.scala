@@ -129,7 +129,7 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
+  def getCounterparty(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     for { //find a transaction with this counterparty
@@ -139,7 +139,7 @@ object LocalMappedConnector extends Connector with Loggable {
         By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
         By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
     } yield {
-      new OtherBankAccount(
+      new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
         id = metadata.metadataId,
         label = metadata.getHolder,
@@ -157,13 +157,13 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   // Get all counterparties related to an account
-  override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[OtherBankAccount] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterparty(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getOtherBankAccount(bankId: BankId, accountID: AccountId, otherAccountID: String): Box[OtherBankAccount] =
+  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, otherAccountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
 
   override def getPhysicalCards(user: User): Set[PhysicalCard] =
     Set.empty
