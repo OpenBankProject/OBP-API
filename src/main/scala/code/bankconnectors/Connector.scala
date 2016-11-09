@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.{OtherBankAccount, Transaction, User, _}
+import code.model.{Transaction, User, _}
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -105,9 +105,9 @@ trait Connector {
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
-  def getOtherBankAccount(bankId: BankId, accountID : AccountId, otherAccountID : String) : Box[OtherBankAccount]
+  def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
-  def getOtherBankAccounts(bankId: BankId, accountID : AccountId): List[OtherBankAccount]
+  def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
@@ -487,7 +487,7 @@ trait Connector {
 
 
   def answerTransactionRequestChallenge(transReqId: TransactionRequestId, answer: String) : Box[Boolean] = {
-    val tr = getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+    val tr = getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
     tr match {
       case Full(tr: TransactionRequest) =>
@@ -530,7 +530,7 @@ trait Connector {
 
   def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
         BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)

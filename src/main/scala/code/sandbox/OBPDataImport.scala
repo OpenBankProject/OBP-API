@@ -44,7 +44,7 @@ trait OBPDataImport extends Loggable {
 
   type BankType <: Bank
   type AccountType <: BankAccount
-  type MetadataType <: OtherBankAccountMetadata
+  type MetadataType <: CounterpartyMetadata
   type ViewType <: View
   type TransactionType <: TransactionUUID
   type AccountOwnerUsername = String

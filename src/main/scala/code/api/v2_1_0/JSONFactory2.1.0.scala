@@ -110,6 +110,12 @@ object JSONFactory210{
   }
 
   //transaction requests
+
+  // TODO Add Error handling and return Error message to the caller here or elsewhere?
+  // e.g. if amount is not a number, return "OBP-XXXX Not a Number"
+  // e.g. if currency is not a 3 letter ISO code, return "OBP-XXXX Not an ISO currency"
+
+
   def getTransactionRequestDetailsSandBoxTanFromJson(details: TransactionRequestDetailsSandBoxTanJSON) : TransactionRequestDetailsSandBoxTan = {
     val toAcc = TransactionRequestAccount (
       bank_id = details.to.bank_id,

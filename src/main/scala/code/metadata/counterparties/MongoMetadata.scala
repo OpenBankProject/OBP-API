@@ -5,9 +5,9 @@ import code.util.Helper
 import net.liftweb.mongodb.record.{BsonMetaRecord, BsonRecord, MongoMetaRecord, MongoRecord}
 import net.liftweb.mongodb.record.field.ObjectIdPk
 import net.liftweb.record.field.StringField
-import code.model.{OtherBankAccountMetadata, UserId, ViewId, GeoTag}
+import code.model.{CounterpartyMetadata, UserId, ViewId, GeoTag}
 //TODO: this should be private
-class Metadata private() extends OtherBankAccountMetadata with MongoRecord[Metadata] with ObjectIdPk[Metadata] {
+class Metadata private() extends CounterpartyMetadata with MongoRecord[Metadata] with ObjectIdPk[Metadata] {
   import net.liftweb.mongodb.record.field.BsonRecordField
   import java.util.Date
 
