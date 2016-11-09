@@ -5,8 +5,8 @@ import java.text.SimpleDateFormat
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.TransactionRequestAccountJSON
-import code.api.v2_0_0.{EntitlementJSON, JSONFactory200, EntitlementJSONs, TransactionRequestBodyJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestBodyJSON}
 import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
@@ -316,6 +316,50 @@ trait APIMethods210 {
       }
     }
 
+
+    resourceDocs += ResourceDoc(
+      answerTransactionRequestChallenge,
+      apiVersion,
+      "answerTransactionRequestChallenge",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests/TRANSACTION_REQUEST_ID/challenge",
+      "Answer Transaction Request Challenge.",
+      "In Sandbox mode, any string that can be converted to a positive integer will be accepted as an answer.",
+      Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      true,
+      true,
+      List(apiTagTransactionRequest))
+
+    lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
+        TransactionRequestType(transactionRequestType) :: "transaction-requests" :: TransactionRequestId(transReqId) :: "challenge" :: Nil JsonPost json -> _ => {
+        user =>
+          if (Props.getBool("transactionRequests_enabled", false)) {
+            for {
+              u: User <- user ?~ ErrorMessages.UserNotLoggedIn
+              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
+              view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+              answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
+              //TODO check more things here
+              answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
+              //create transaction and insert its id into the transaction request
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId)
+            } yield {
+              // Format explicitly as v2.0.0 json
+              val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
+              //successJsonResponse(Extraction.decompose(json))
+              val successJson = Extraction.decompose(json)
+              successJsonResponse(successJson, 202)
+            }
+          } else {
+            Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))
+          }
+      }
+    }
 
     resourceDocs += ResourceDoc(
       getTransactionRequests,

@@ -5,6 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
+import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionRequestDetailsSEPAJSON, TransactionRequestDetailsSandBoxTanJSON}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{Transaction, User, _}
@@ -541,6 +542,31 @@ trait Connector {
       tr
     }
   }
+
+  def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+
+      transId <- makePaymentv200(
+        initiator,
+        BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+        BankAccountUID (
+          BankId(tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id),
+          AccountId(tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id)
+        ),
+        BigDecimal (tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].value.amount),
+        tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description
+      ) ?~ "Couldn't create Transaction"
+
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //get transaction request again now with updated values
+      tr <- getTransactionRequestImpl(transReqId)
+    } yield {
+      tr
+    }
+  }
+
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */
