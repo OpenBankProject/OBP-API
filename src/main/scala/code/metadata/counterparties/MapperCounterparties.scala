@@ -10,7 +10,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
 object MapperCounterparties extends Counterparties with Loggable {
-  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: OtherBankAccount): OtherBankAccountMetadata = {
+  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): CounterpartyMetadata = {
 
     /**
      * Generates a new alias name that is guaranteed not to collide with any existing public alias names
@@ -48,7 +48,7 @@ object MapperCounterparties extends Counterparties with Loggable {
     //can't find by MappedCounterpartyMetadata.counterpartyId = otherParty.id because in this implementation
     //if the metadata doesn't exist, the id field of the OtherBankAccount is not known yet, and will be empty
     def findMappedCounterpartyMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
-                                       otherParty: OtherBankAccount) : Box[MappedCounterpartyMetadata] = {
+                                       otherParty: Counterparty) : Box[MappedCounterpartyMetadata] = {
       MappedCounterpartyMetadata.find(
         By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
         By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
@@ -80,14 +80,14 @@ object MapperCounterparties extends Counterparties with Loggable {
   }
 
   // Get all counterparty metadata for a single OBP account
-  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[OtherBankAccountMetadata] = {
+  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = {
     MappedCounterpartyMetadata.findAll(
       By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
       By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value)
     )
   }
 
-  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[OtherBankAccountMetadata] = {
+  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] = {
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
@@ -99,7 +99,7 @@ object MapperCounterparties extends Counterparties with Loggable {
   }
 }
 
-class MappedCounterpartyMetadata extends OtherBankAccountMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
+class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
   override def getSingleton = MappedCounterpartyMetadata
 
   object counterpartyId extends MappedUUID(this)

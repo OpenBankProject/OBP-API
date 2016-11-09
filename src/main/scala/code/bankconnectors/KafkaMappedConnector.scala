@@ -362,7 +362,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(new KafkaBankAccount(r))
   }
 
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : OtherBankAccountMetadata) : Box[OtherBankAccount] = {
+  def getCounterparty(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
@@ -374,7 +374,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       }
     }.get.head
 
-    val res = new OtherBankAccount(
+    val res = new Counterparty(
       //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
       id = metadata.metadataId,
       label = metadata.getHolder,
@@ -431,13 +431,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   // Get all counterparties related to an account
-  override def getOtherBankAccounts(bankId: BankId, accountID: AccountId): List[OtherBankAccount] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterparty(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getOtherBankAccount(bankId: BankId, accountID: AccountId, otherAccountID: String): Box[OtherBankAccount] =
+  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, otherAccountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
 
   override def getPhysicalCards(user: User): Set[PhysicalCard] =
     Set.empty
@@ -924,17 +924,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         counterparty <- tryo{r.counterparty}
         thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-        dummyOtherBankAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, None)}
+        dummyOtherBankAccount <- tryo{createCounterparty(counterparty.get, thisAccount, None)}
         //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
         //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-        otherAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
+        counterparty <- tryo{createCounterparty(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
       } yield {
         // Create new transaction
         new Transaction(
           r.id,                             // uuid:String
           TransactionId(r.id),              // id:TransactionId
           thisAccount,                      // thisAccount:BankAccount
-          otherAccount,                     // otherAccount:OtherBankAccount
+          counterparty,                     // otherAccount:OtherBankAccount
           r.details.`type`,                 // transactionType:String
           BigDecimal(r.details.value),      // val amount:BigDecimal
           thisAccount.currency,             // currency:String
@@ -958,8 +958,8 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Helper for creating other bank account
-  def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[OtherBankAccountMetadata]) = {
-    new OtherBankAccount(
+  def createCounterparty(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+    new Counterparty(
       id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
