@@ -13,6 +13,7 @@ import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 
@@ -546,16 +547,16 @@ trait Connector {
   def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-
+      detailsJson <- json.parseOpt(tr.details)
       transId <- makePaymentv200(
         initiator,
         BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
         BankAccountUID (
-          BankId(tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id),
-          AccountId(tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id)
+          BankId(detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id),
+          AccountId(detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id)
         ),
-        BigDecimal (tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].value.amount),
-        tr.details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description
+        BigDecimal (detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].value.amount),
+        detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description
       ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
