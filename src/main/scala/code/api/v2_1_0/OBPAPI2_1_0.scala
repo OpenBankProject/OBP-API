@@ -185,7 +185,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           "addSocialMediaHandle"::
                           "allAccountsAllBanks"::
                           "allAccountsAtOneBank"::
-                          "answerTransactionRequestChallenge"::
                           "createAccount"::
                           "createCustomer"::
                           "createMeeting"::
@@ -233,6 +232,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val endpointsOf2_1_0 = "sandboxDataImport" ::
                          "getTransactionRequestTypesSupportedByBank" ::
                          "createTransactionRequest" ::
+                         "answerTransactionRequestChallenge" ::
                          "getTransactionRequests" ::
                          "getRoles" ::
                          "getEntitlementsByBankAndUser" ::
