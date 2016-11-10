@@ -547,22 +547,53 @@ trait Connector {
   def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+
+      //dummy1 = print(s"Getting Details.. \n")
+
+      details = tr.details
+      //dummy2 = print(s"details are ${details} \n")
+
       detailsJson <- json.parseOpt(tr.details)
+      //dummy3 = print(s"detailsJson are ${detailsJson} \n")
+
+      detailsJsonExtract = detailsJson.extract[TransactionRequestDetailsSandBoxTanJSON]
+      //dummy4 = print(s"detailsJsonExtract are ${detailsJsonExtract} \n")
+
+      toBankId = detailsJsonExtract.to.bank_id
+      //dummy5 = print(s"toBankId is ${toBankId} \n")
+
+      toAccountId = detailsJsonExtract.to.account_id
+      //dummy6 = print(s"toAccountId is ${toAccountId} \n")
+
+      valueAmount = detailsJsonExtract.value.amount
+      //dummy7 = print(s"valueAmount is ${valueAmount} \n")
+
+      valueCurrency = detailsJsonExtract.value.currency
+      //dummy8 = print(s"valueCurrency is ${valueCurrency} \n")
+
+      description = detailsJsonExtract.description
+      //dummy9 = print(s"description is ${description} \n")
+
       transId <- makePaymentv200(
         initiator,
         BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
         BankAccountUID (
-          BankId(detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id),
-          AccountId(detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id)
+          BankId(toBankId),
+          AccountId(toAccountId)
         ),
-        BigDecimal (detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].value.amount),
-        detailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description
+        BigDecimal (valueAmount),
+        description
       ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")
+
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //dummy12 = print(s"didSaveStatus is ${didSaveStatus} \n")
+
       //get transaction request again now with updated values
       tr <- getTransactionRequestImpl(transReqId)
+      //dummy13 = print(s"About to yield tr. tr.details is ${tr.details} \n")
     } yield {
       tr
     }

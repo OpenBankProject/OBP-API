@@ -327,6 +327,7 @@ Store one or more transactions
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
+    // TODO need to pass a status variable so we can return say only INITIATED
     val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     transactionRequest.flatMap(_.toTransactionRequest)
   }
