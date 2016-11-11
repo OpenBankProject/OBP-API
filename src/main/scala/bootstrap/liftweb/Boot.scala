@@ -185,6 +185,10 @@ class Boot extends Loggable{
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
 
+
+    logger.debug(s"If you can read this, logging level is debug")
+
+
     // where to search snippets
     LiftRules.addToPackages("code")
 

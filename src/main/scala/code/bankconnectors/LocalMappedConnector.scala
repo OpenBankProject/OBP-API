@@ -35,6 +35,7 @@ object LocalMappedConnector extends Connector with Loggable {
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
     val rate = fx.exchangeRate ("EUR", currency)
     val convertedThreshold = fx.convert(threshold, rate)
+    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     (convertedThreshold, currency)
   }
 
@@ -114,7 +115,6 @@ object LocalMappedConnector extends Connector with Loggable {
     }
   }
 
-  // Question: Why is this called getBankAccountType? Why not getBankAccount? TODO rename
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),

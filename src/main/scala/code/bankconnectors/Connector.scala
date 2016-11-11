@@ -553,10 +553,7 @@ trait Connector {
       details = tr.details
       //dummy2 = print(s"details are ${details} \n")
 
-      detailsJson <- json.parseOpt(tr.details)
-      //dummy3 = print(s"detailsJson are ${detailsJson} \n")
-
-      detailsJsonExtract = detailsJson.extract[TransactionRequestDetailsSandBoxTanJSON]
+      detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
       //dummy4 = print(s"detailsJsonExtract are ${detailsJsonExtract} \n")
 
       toBankId = detailsJsonExtract.to.bank_id

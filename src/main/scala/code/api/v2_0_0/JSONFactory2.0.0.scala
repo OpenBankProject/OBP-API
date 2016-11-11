@@ -40,6 +40,7 @@ import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -290,7 +291,7 @@ case class TransactionRequestWithChargeJSON(
                                    id: String,
                                    `type`: String,
                                    from: TransactionRequestAccountJSON,
-                                   details: String,
+                                   details: JValue,
                                    body: TransactionRequestBodyJSON,
                                    transaction_ids: String,
                                    status: String,
