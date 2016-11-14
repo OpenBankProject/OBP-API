@@ -86,12 +86,18 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
     value = AmountOfMoney(currency = mCharge_Currency, amount = mCharge_Amount)
     )
 
+
+    val details = mDetails.get
+
+    val parsedDetails = json.parse(details)
+
+
     Some(
       TransactionRequest(
         id = TransactionRequestId(mTransactionRequestId.get),
         `type`= mType.get,
         from = t_from,
-        details = mDetails.get,
+        details = parsedDetails,
         body = t_body,
         status = mStatus.get,
         transaction_ids = mTransactionIDs.get,

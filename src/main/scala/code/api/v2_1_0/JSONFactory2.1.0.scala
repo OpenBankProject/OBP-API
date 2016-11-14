@@ -39,6 +39,7 @@ import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccoun
 import code.api.v2_0_0.TransactionRequestChargeJSON
 import code.model.{AmountOfMoney, Consumer}
 import code.transactionrequests.TransactionRequests._
+import net.liftweb.json.JValue
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
 case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
@@ -70,7 +71,7 @@ case class TransactionRequestWithChargeJSON210(
                                              id: String,
                                              `type`: String,
                                              from: TransactionRequestAccountJSON,
-                                             details: String,
+                                             details: JValue,
                                              transaction_ids: String,
                                              status: String,
                                              start_date: Date,
@@ -168,7 +169,8 @@ object JSONFactory210{
       `type` = tr.`type`,
       from = TransactionRequestAccountJSON (
         bank_id = tr.from.bank_id,
-        account_id = tr.from.account_id),
+        account_id = tr.from.account_id
+      ),
       details = tr.details,
       transaction_ids = tr.transaction_ids,
       status = tr.status,

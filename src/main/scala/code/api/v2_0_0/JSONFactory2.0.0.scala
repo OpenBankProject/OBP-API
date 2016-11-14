@@ -40,6 +40,7 @@ import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -290,6 +291,7 @@ case class TransactionRequestWithChargeJSON(
                                    id: String,
                                    `type`: String,
                                    from: TransactionRequestAccountJSON,
+                                   details: JValue,
                                    body: TransactionRequestBodyJSON,
                                    transaction_ids: String,
                                    status: String,
@@ -726,6 +728,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       from = TransactionRequestAccountJSON (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
+      details = tr.details,
       body =  TransactionRequestBodyJSON (
           to = TransactionRequestAccountJSON (
             bank_id = tr.body.to.bank_id,
