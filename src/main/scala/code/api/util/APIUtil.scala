@@ -172,7 +172,6 @@ object APIUtil extends Loggable {
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
-    println(Consumer.findAll())
     Consumer.find(By(Consumer.key, consumerKey)) match {
       case Full(application) => application.isActive
       case _ => false
