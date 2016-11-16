@@ -439,11 +439,33 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
 
-  override def getPhysicalCards(user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getPhysicalCards(user: User): List[PhysicalCard] =
+    List()
 
-  override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
+    List()
+
+  def AddPhysicalCard(bankCardNumber: String,
+                      nameOnCard: String,
+                      issueNumber: String,
+                      serialNumber: String,
+                      validFrom: Date,
+                      expires: Date,
+                      enabled: Boolean,
+                      cancelled: Boolean,
+                      onHotList: Boolean,
+                      technology: String,
+                      networks: List[String],
+                      allows: List[String],
+                      accountId: String,
+                      bankId: String,
+                      replacement: Option[CardReplacementInfo],
+                      pinResets: List[PinResetInfo],
+                      collected: Option[CardCollectionInfo],
+                      posted: Option[CardPostedInfo]
+                     ) : Box[PhysicalCard] = {
+    Empty
+  }
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
