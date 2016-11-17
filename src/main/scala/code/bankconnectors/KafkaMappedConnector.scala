@@ -542,6 +542,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
+
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,
                                                status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
