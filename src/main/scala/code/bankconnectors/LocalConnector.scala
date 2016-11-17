@@ -12,7 +12,7 @@ import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.common._
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -133,12 +133,34 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCards(user : User) : List[PhysicalCard] = {
+    List()
   }
 
-  override def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard] = {
+    List()
+  }
+
+  def AddPhysicalCard(bankCardNumber: String,
+                      nameOnCard: String,
+                      issueNumber: String,
+                      serialNumber: String,
+                      validFrom: Date,
+                      expires: Date,
+                      enabled: Boolean,
+                      cancelled: Boolean,
+                      onHotList: Boolean,
+                      technology: String,
+                      networks: List[String],
+                      allows: List[String],
+                      accountId: String,
+                      bankId: String,
+                      replacement: Option[CardReplacementInfo],
+                      pinResets: List[PinResetInfo],
+                      collected: Option[CardCollectionInfo],
+                      posted: Option[CardPostedInfo]
+                     ) : Box[PhysicalCard] = {
+    Empty
   }
 
   override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {

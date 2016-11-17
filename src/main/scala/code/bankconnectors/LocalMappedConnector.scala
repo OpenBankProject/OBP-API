@@ -170,11 +170,114 @@ object LocalMappedConnector extends Connector with Loggable {
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
 
-  override def getPhysicalCards(user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getPhysicalCards(user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
 
-  override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
+
+  def AddPhysicalCard(bankCardNumber: String,
+                              nameOnCard: String,
+                              issueNumber: String,
+                              serialNumber: String,
+                              validFrom: Date,
+                              expires: Date,
+                              enabled: Boolean,
+                              cancelled: Boolean,
+                              onHotList: Boolean,
+                              technology: String,
+                              networks: List[String],
+                              allows: List[String],
+                              accountId: String,
+                              bankId: String,
+                              replacement: Option[CardReplacementInfo],
+                              pinResets: List[PinResetInfo],
+                              collected: Option[CardCollectionInfo],
+                              posted: Option[CardPostedInfo]
+                             ) : Box[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+                                                                              bankCardNumber,
+                                                                              nameOnCard,
+                                                                              issueNumber,
+                                                                              serialNumber,
+                                                                              validFrom,
+                                                                              expires,
+                                                                              enabled,
+                                                                              cancelled,
+                                                                              onHotList,
+                                                                              technology,
+                                                                              networks,
+                                                                              allows,
+                                                                              accountId,
+                                                                              bankId: String,
+                                                                              replacement,
+                                                                              pinResets,
+                                                                              collected,
+                                                                              posted
+                                                                            )
+    for (l <- list) yield
+    new PhysicalCard(
+      bankCardNumber = l.mBankCardNumber,
+      nameOnCard = l.mNameOnCard,
+      issueNumber = l.mIssueNumber,
+      serialNumber = l.mSerialNumber,
+      validFrom = l.validFrom,
+      expires = l.expires,
+      enabled = l.enabled,
+      cancelled = l.cancelled,
+      onHotList = l.onHotList,
+      technology = "",
+      networks = List(),
+      allows = l.allows,
+      account = l.account,
+      replacement = l.replacement,
+      pinResets = l.pinResets,
+      collected = l.collected,
+      posted = l.posted
+    )
+  }
 
 /*
 Perform a payment (in the sandbox)

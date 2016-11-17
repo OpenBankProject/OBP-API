@@ -122,9 +122,29 @@ trait Connector {
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction]
 
-  def getPhysicalCards(user : User) : Set[PhysicalCard]
+  def getPhysicalCards(user : User) : List[PhysicalCard]
 
-  def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard]
+  def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard]
+
+  def AddPhysicalCard(bankCardNumber: String,
+                              nameOnCard: String,
+                              issueNumber: String,
+                              serialNumber: String,
+                              validFrom: Date,
+                              expires: Date,
+                              enabled: Boolean,
+                              cancelled: Boolean,
+                              onHotList: Boolean,
+                              technology: String,
+                              networks: List[String],
+                              allows: List[String],
+                              accountId: String,
+                              bankId: String,
+                              replacement: Option[CardReplacementInfo],
+                              pinResets: List[PinResetInfo],
+                              collected: Option[CardCollectionInfo],
+                              posted: Option[CardPostedInfo]
+                             ) : Box[PhysicalCard]
 
   //gets the users who are the legal owners/holders of the account
   def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]

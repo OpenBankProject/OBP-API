@@ -1,24 +1,24 @@
 package code.api.v2_1_0
 
-import java.io.Serializable
 import java.text.SimpleDateFormat
+import java.util.Date
+
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
 import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestBodyJSON}
 import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.model._
-
+import code.model.{BankId, _}
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.elasticsearch.index.mapper.internal.EnabledAttributeMapper
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
@@ -620,6 +620,88 @@ trait APIMethods210 {
           }
       }
     }
+
+
+
+    resourceDocs += ResourceDoc(
+      addCardsForBank,
+      apiVersion,
+      "addCardsForBank",
+      "POST",
+      "/banks/BANK_ID/cards",
+      "Add cards for a bank",
+      s"""Import bulk data into the sandbox (Authenticated access).
+          |
+          |This is can be used to create cards which are stored in the local RDBMS.
+          |${authenticationRequiredMessage(true)}
+          |""",
+      Extraction.decompose(PostPhysicalCardJSON(bank_card_number="4012888888881881",
+        name_on_card="Internet pay",
+        issue_number="34",
+        serial_number ="6546",
+        valid_from_date=new Date(),
+        expires_date=new Date(),
+        enabled=true,
+        cancelled=false,
+        on_hot_list=false,
+        technology ="",
+        networks=List(),
+        allows=List(),
+        account_id="",
+        replacement = ReplacementJSON(requested_date = new Date(), reason_requested = "stolen"),
+        pin_reset=List(PinResetJSON(requested_date = new Date(), reason_requested = "routine_security"), PinResetJSON(requested_date = new Date(), reason_requested = "forgot")),
+        collected=new Date(),
+        posted=new Date() )),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+
+
+    lazy val addCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), s"CanCreateCardsForBank entitlement required")
+            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ "invalid json"
+            postedAllows <- postJson.allows match {
+              case List() => booleanToBox(true)
+              case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~ {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
+            }
+            account <- BankAccount(bankId, AccountId(postJson.account_id)) ?~! {ErrorMessages.AccountNotFound}
+            card <- Connector.connector.vend.AddPhysicalCard(
+                                bankCardNumber=postJson.bank_card_number,
+                                nameOnCard=postJson.name_on_card,
+                                issueNumber=postJson.issue_number,
+                                serialNumber=postJson.serial_number,
+                                validFrom=postJson.valid_from_date,
+                                expires=postJson.expires_date,
+                                enabled=postJson.enabled,
+                                cancelled=postJson.cancelled,
+                                onHotList=postJson.on_hot_list,
+                                technology=postJson.technology,
+                                networks= postJson.networks,
+                                allows= postJson.allows,
+                                accountId= postJson.account_id,
+                                bankId=bankId.value,
+                                replacement= None,
+                                pinResets= List(),
+                                collected= Option(CardCollectionInfo(postJson.collected)),
+                                posted= Option(CardPostedInfo(postJson.posted))
+                              )
+          } yield {
+            val cardJson = JSONFactory1_3_0.createPhysicalCardJSON(card, u)
+            successJsonResponse(Extraction.decompose(cardJson))
+          }
+      }
+    }
+
+
+
+
 
   }
 }

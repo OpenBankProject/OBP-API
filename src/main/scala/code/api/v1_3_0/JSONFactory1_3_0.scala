@@ -28,6 +28,25 @@ case class PhysicalCardJSON(
    collected : Date,
    posted : Date)
 
+case class PostPhysicalCardJSON(
+                             bank_card_number : String,
+                             name_on_card : String,
+                             issue_number : String,
+                             serial_number : String,
+                             valid_from_date : Date,
+                             expires_date : Date,
+                             enabled : Boolean,
+                             cancelled : Boolean,
+                             on_hot_list : Boolean,
+                             technology : String,
+                             networks : List[String],
+                             allows : List[String],
+                             account_id : String,
+                             replacement : ReplacementJSON,
+                             pin_reset : List[PinResetJSON],
+                             collected : Date,
+                             posted : Date)
+
 case class ReplacementJSON(
   requested_date : Date,
   reason_requested : String)
@@ -48,8 +67,8 @@ object JSONFactory1_3_0 {
     PinResetJSON(
       requested_date = resetInfo.requestedDate,
       reason_requested = resetInfo.reasonRequested match {
-        case FORGOT => "forgot"
-        case GOOD_SECURITY_PRACTICE => "routine_security"
+        case PinResetReason.FORGOT => "forgot"
+        case PinResetReason.GOOD_SECURITY_PRACTICE => "routine_security"
       }
     )
   }
@@ -58,18 +77,18 @@ object JSONFactory1_3_0 {
     ReplacementJSON(
       requested_date = replacementInfo.requestedDate,
       reason_requested = replacementInfo.reasonRequested match {
-        case LOST => "lost"
-        case STOLEN => "stolen"
-        case RENEW => "renewal"
+        case CardReplacementReason.LOST => "lost"
+        case CardReplacementReason.STOLEN => "stolen"
+        case CardReplacementReason.RENEW => "renewal"
       }
     )
   }
 
   def cardActionsToString(action : CardAction) : String = {
     action match {
-      case CREDIT => "credit"
-      case DEBIT => "debit"
-      case CASH_WITHDRAWAL => "cash_withdrawal"
+      case CardAction.CREDIT => "credit"
+      case CardAction.DEBIT => "debit"
+      case CardAction.CASH_WITHDRAWAL => "cash_withdrawal"
     }
   }
 
@@ -79,33 +98,33 @@ object JSONFactory1_3_0 {
     code.api.v1_2_1.JSONFactory.createAccountJSON(bankAccount, viewsJson)
   }
 
-  def createPhysicalCardsJSON(cards : Set[PhysicalCard], user : User) : PhysicalCardsJSON = {
+  def createPhysicalCardJSON(card: PhysicalCard, user : User): PhysicalCardJSON = {
+    PhysicalCardJSON(
+      bank_card_number = stringOrNull(card.bankCardNumber),
+      name_on_card = stringOrNull(card.nameOnCard),
+      issue_number = stringOrNull(card.issueNumber),
+      serial_number = stringOrNull(card.serialNumber),
+      valid_from_date = card.validFrom,
+      expires_date = card.expires,
+      enabled = card.enabled,
+      cancelled = card.cancelled,
+      on_hot_list = card.onHotList,
+      technology = stringOrNull(card.technology),
+      networks = card.networks,
+      allows = card.allows.map(cardActionsToString).toList,
+      account = createAccountJson(card.account, user),
+      replacement = card.replacement.map(createReplacementJson).getOrElse(null),
+      pin_reset = card.pinResets.map(createPinResetJson),
+      collected = card.collected.map(_.date).getOrElse(null),
+      posted = card.posted.map(_.date).getOrElse(null)
+    )
+  }
 
-    val cardJsons = cards.map(card => {
+  def createPhysicalCardsJSON(cards : List[PhysicalCard], user : User) : PhysicalCardsJSON = {
 
-      PhysicalCardJSON(
-        bank_card_number = stringOrNull(card.bankCardNumber),
-        name_on_card = stringOrNull(card.nameOnCard),
-        issue_number = stringOrNull(card.issueNumber),
-        serial_number = stringOrNull(card.serialNumber),
-        valid_from_date = card.validFrom,
-        expires_date = card.expires,
-        enabled = card.enabled,
-        cancelled = card.cancelled,
-        on_hot_list = card.onHotList,
-        technology = stringOrNull(card.technology),
-        networks = card.networks.toList,
-        allows = card.allows.map(cardActionsToString).toList,
-        account = card.account.map(createAccountJson(_, user)).getOrElse(null),
-        replacement = card.replacement.map(createReplacementJson).getOrElse(null),
-        pin_reset = card.pinResets.map(createPinResetJson),
-        collected = card.collected.map(_.date).getOrElse(null),
-        posted = card.posted.map(_.date).getOrElse(null)
-      )
+    val cardJsons = cards.map(card => createPhysicalCardJSON(card, user))
 
-    })
-
-    PhysicalCardsJSON(cardJsons.toList)
+    PhysicalCardsJSON(cardJsons)
   }
 
 }
