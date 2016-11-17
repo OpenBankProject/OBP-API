@@ -101,6 +101,10 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     APIUser.findAll(By(APIUser.email, userEmail))
   }
 
+  def getApiUsers(): List[APIUser] = {
+    APIUser.findAll()
+  }
+
   def getApiUserByUsername(username: String) : Box[APIUser] = {
     APIUser.find(By(APIUser.name_, username))
   }
