@@ -14,7 +14,7 @@
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
     <lift.version>2.6.3</lift.version>
-    <obp-ri.version>2016.9-ALPHA11-SNAPSHOT</obp-ri.version>
+    <obp-ri.version>2016.11-RC1-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -214,6 +214,11 @@
       <groupId>oauth.signpost</groupId>
       <artifactId>signpost-commonshttp4</artifactId>
       <version>1.2.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-core</artifactId>
+      <version>${obp-ri.version}</version>
     </dependency>
     <dependency>
       <groupId>com.tesobe.obp</groupId>

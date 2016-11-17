@@ -58,7 +58,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers {
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
     override def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =
       Empty
-    override def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty] =
+    override def getCounterparties(bankId: BankId, accountID : AccountId): List[Counterparty] =
       Nil
     override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] =
       Empty
