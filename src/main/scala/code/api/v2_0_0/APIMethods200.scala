@@ -2,6 +2,7 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
@@ -13,6 +14,7 @@ import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.entitlement.Entitlement
+import code.model.BankId
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import net.liftweb.http.CurrentReq
 //import code.api.v2_0_0.{CreateCustomerJson}
@@ -1587,8 +1589,11 @@ trait APIMethods200 {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
-            canCreateCustomer <- tryo(hasEntitlement(bank.bankId.value, u.userId, CanCreateCustomer))
-            isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || canCreateCustomer == true || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
+            requiredEntitlements = CanCreateCustomer ::
+                                   CanCreateUserCustomerLink ::
+                                   Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
@@ -1707,7 +1712,7 @@ trait APIMethods200 {
       apiVersion,
       "createUserCustomerLinks",
       "POST",
-      "/banks/user_customer_links",
+      "/banks/BANK_ID/user_customer_links",
       "Create user customer link.",
       s"""Link a customer and a user
         |This call may require additional permissions/role in the future.
@@ -1726,18 +1731,20 @@ trait APIMethods200 {
     // Allow multiple UserCustomerLinks per user (and bank)
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~! "User must be logged in to post user customer link"
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateUserCustomerLinkJSON]} ?~! ErrorMessages.InvalidJsonFormat
             user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~ "Field user_id is not defined in the posted json!"
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            canCreateCustomer <- booleanToBox(hasEntitlement(customer.bank, u.userId, CanCreateCustomer), s"$CanCreateCustomer entitlement required")
+            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), s"$CanCreateUserCustomerLink entitlement required")
+            isEqual <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)
