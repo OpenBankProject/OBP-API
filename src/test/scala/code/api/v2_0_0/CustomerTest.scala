@@ -1,11 +1,14 @@
 package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
+
 import code.api.DefaultUsers
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
-import code.customer.{MappedCustomer}
-import code.model.{BankId}
+import code.customer.MappedCustomer
+import code.model.BankId
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole
+import code.entitlement.Entitlement
 import net.liftweb.json.Serialization.write
 
 class CustomerTest extends V200ServerSetup with DefaultUsers {
@@ -52,12 +55,22 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       val requestPost = (v2_0Request / "banks" / testBank.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      Then("We should get a 400")
+      responsePost.code should equal(400)
 
+      When("We add one required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateCustomer.toString)
+      val responsePost1 = makePostRequest(requestPost, write(customerPostJSON))
+      Then("We should get a 400")
+      responsePost1.code should equal(400)
+
+      When("We add all required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      val responsePost2 = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 201")
-      responsePost.code should equal(201)
-
+      responsePost2.code should equal(201)
       And("We should get the right information back")
-      val infoPost = responsePost.body.extract[CustomerJson]
+      val infoPost = responsePost2.body.extract[CustomerJson]
 
       When("We make the request")
       val requestGet = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)

@@ -78,13 +78,13 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       When("We link user to customer")
       val uclJSON = CreateUserCustomerLinkJSON(user_id = obpuser1.userId, customer_id = customerId)
-      val requestPostUcl = (v2_0Request / "banks" / "user_customer_links").POST <@ (user1)
+      val requestPostUcl = (v2_0Request / "banks" / testBank.value / "user_customer_links").POST <@ (user1)
       val responsePostUcl = makePostRequest(requestPostUcl, write(uclJSON))
       Then("We should get a 400")
       responsePostUcl.code should equal(400)
 
       When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val responsePostUclSec = makePostRequest(requestPostUcl, write(uclJSON))
       Then("We should get a 201")
       responsePostUclSec.code should equal(201)
