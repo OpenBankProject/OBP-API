@@ -13,8 +13,9 @@ import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
+import code.model.dataAccess.OBPUser
 import code.model.{BankId, _}
-import net.liftweb.http.Req
+import net.liftweb.http.{CurrentReq, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -699,7 +700,42 @@ trait APIMethods210 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getUsers,
+      apiVersion,
+      "getUsers",
+      "GET",
+      "/users",
+      "Get all Users",
+      """Get all users
+        |
+        |Login is required.
+        |CanGetAnyUser entitlement is required,
+        |
+      """.stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      true,
+      false,
+      false,
+      List(apiTagPerson, apiTagUser))
 
+
+    lazy val getUsers: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: Nil JsonGet _ => {
+        user =>
+          for {
+            l <- user ?~ ErrorMessages.UserNotLoggedIn
+            canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
+            users <- tryo{OBPUser.getApiUsers()}
+          } yield {
+            // Format the data as V2.0.0 json
+            val json = JSONFactory200.createUserJSONs(users)
+            successJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
 
 
 
