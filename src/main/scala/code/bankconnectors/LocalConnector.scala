@@ -84,7 +84,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getCounterpaties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
+  override def getCounterparties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the

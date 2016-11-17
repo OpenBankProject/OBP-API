@@ -431,7 +431,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   // Get all counterparties related to an account
-  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
+  override def getCounterparties(bankId: BankId, accountID: AccountId): List[Counterparty] =
     Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterparty(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
@@ -541,6 +541,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       .mEndDate(now).saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
+
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,

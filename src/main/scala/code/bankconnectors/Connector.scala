@@ -42,10 +42,17 @@ object Connector  extends SimpleInjector {
   def buildOne: Connector = {
     val connectorProps = Props.get("connector").openOrThrowException("no connector set")
 
+    val kafka_version = """^(kafka)_(lib)_(v[0-9\.]+)$""".r
+
     connectorProps match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
       case "kafka" => KafkaMappedConnector
+      case kafka_version(kafka, lib, version) => 
+                                                 println("===>" + kafka)
+                                                 println("===>" + lib)
+                                                 println("===>" + version)
+                                                 KafkaLibMappedConnector(version)
     }
 //
 //    if (connectorProps.startsWith("kafka_lib")) {
@@ -109,7 +116,7 @@ trait Connector {
 
   def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
-  def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty]
+  def getCounterparties(bankId: BankId, accountID : AccountId): List[Counterparty]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
