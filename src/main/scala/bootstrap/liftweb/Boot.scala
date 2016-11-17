@@ -72,6 +72,8 @@ import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
+import code.cards.MappedPhysicalCard
+import code.cards.PinReset
 import code.transaction.MappedTransaction
 
 
@@ -434,5 +436,7 @@ object ToSchemify {
     MappedMeeting,
     MappedUserCustomerLink,
     MappedKafkaBankAccountData,
-    MappedEntitlement)
+    MappedEntitlement,
+    MappedPhysicalCard,
+    PinReset)
 }
