@@ -526,7 +526,8 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       username : String
+                       username : String,
+                       entitlements : EntitlementJSONs
                      )
 
   case class UserJSONs(
@@ -539,7 +540,8 @@ object JSONFactory200{
     email = user.email,
     username = stringOrNull(user.username),
     provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider)
+    provider = stringOrNull(user.provider),
+    entitlements = createEntitlementJSONs(user.user.foreign.get.assignedEntitlements)
   )
 
 
@@ -549,7 +551,8 @@ object JSONFactory200{
       email = user.emailAddress,
       username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider)
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(user.assignedEntitlements)
     )
   }
 
