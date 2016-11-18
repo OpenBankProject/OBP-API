@@ -128,8 +128,8 @@ object ErrorMessages {
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
-  val InsertingDataError  = "OBP-40006: Inserting data error "
-  val UpdatingDataError  = "OBP-40008: Updating data error"
+  val InvalidCreateTransactionTypeInsertingDataError  = "OBP-40006: Inserting data error "
+  val InvalidCreateTransactionTypeUpdatingDataError  = "OBP-40007: Updating data error"
 
 }
 
