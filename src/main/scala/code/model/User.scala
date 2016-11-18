@@ -38,7 +38,7 @@ import net.liftweb.json.JsonAST.JObject
 import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
 import code.views.Views
-import code.bankconnectors.Connector
+import code.entitlement.Entitlement
 import code.users.Users
 
 case class UserId(val value : Long) {
@@ -83,6 +83,13 @@ trait User {
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
   def nonPublicAccounts : List[BankAccount] = Views.views.vend.getNonPublicBankAccounts(this)
+
+  def assignedEntitlements : List[Entitlement] = {
+    Entitlement.entitlement.vend.getEntitlements(userId) match {
+      case Full(l) => l.sortWith(_.roleName < _.roleName)
+      case _ => List()
+    }
+  }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
   def toJson : JObject =
