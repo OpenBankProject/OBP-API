@@ -119,8 +119,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       And("We should get a 400")
       responsePut2.code should equal(400)
       val errorInsert = for {JObject(o) <- responsePut2.body; JField("error", JString(error)) <- o} yield error
-      And("We should get a message: " + ErrorMessages.InvalidCreateTransactionTypeInsertingDataError)
-      errorInsert should contain(ErrorMessages.InvalidCreateTransactionTypeInsertingDataError)
+      And("We should get a message: " + ErrorMessages.CreateTransactionTypeInsertError)
+      errorInsert should contain(ErrorMessages.CreateTransactionTypeInsertError)
 
 
       Then("insert new data and We make the request")
@@ -138,8 +138,8 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       And("We should get a 400")
       responsePut3.code should equal(400)
       val errorUpdate = for {JObject(o) <- responsePut3.body; JField("error", JString(error)) <- o} yield error
-      And("We should get a message: " + ErrorMessages.InvalidCreateTransactionTypeUpdatingDataError)
-      errorUpdate should contain(ErrorMessages.InvalidCreateTransactionTypeUpdatingDataError)
+      And("We should get a message: " + ErrorMessages.CreateTransactionTypeUpdateError)
+      errorUpdate should contain(ErrorMessages.CreateTransactionTypeUpdateError)
     }
   }
   /**
