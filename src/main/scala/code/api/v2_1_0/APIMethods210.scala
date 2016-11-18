@@ -3,12 +3,14 @@ package code.api.v2_1_0
 import java.text.SimpleDateFormat
 import java.util.Date
 
+import code.TransactionTypes.TransactionType
+import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.{EntitlementJSON, EntitlementJSONs, JSONFactory200, TransactionRequestBodyJSON}
+import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
@@ -16,6 +18,8 @@ import code.fx.fx
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, _}
 import net.liftweb.http.{CurrentReq, Req}
+import code.model._
+import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -23,6 +27,7 @@ import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+
 // Makes JValue assignment to Nil work
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
@@ -78,7 +83,7 @@ trait APIMethods210 {
           |The user needs to have CanCreateSandbox entitlement.
           |
           |An example of an import set of data (json) can be found [here](https://raw.githubusercontent.com/OpenBankProject/OBP-API/develop/src/main/scala/code/api/sandbox/example_data/2016-04-28/example_import.json)
-         |${authenticationRequiredMessage(true)}
+          |${authenticationRequiredMessage(true)}
           |""",
       emptyObjectJson,
       emptyObjectJson,
@@ -737,10 +742,55 @@ trait APIMethods210 {
       }
     }
 
+    val getTransactionTypesIsPublic = Props.getBool("apiOptions.getTransactionTypesIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      createTransactionType,
+      apiVersion,
+      "createTransactionType",
+      "PUT",
+      "/banks/BANK_ID/transaction-types",
+      "Create Transaction Type offered by the bank",
+      // TODO get the documentation of the parameters from the scala doc of the case class we return
+      s"""Create Transaction Types for the bank specified by BANK_ID:
+          |
+          |  * id : Unique transaction type id across the API instance. SHOULD be a UUID. MUST be unique.
+          |  * bank_id : The bank that supports this TransactionType
+          |  * short_code : A short code (SHOULD have no-spaces) which MUST be unique across the bank. May be stored with Transactions to link here
+          |  * summary : A succinct summary
+          |  * description : A longer description
+          |  * charge : The charge to the customer for each one of these
+          |
+          |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
+      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List(apiTagBank)
+    )
 
 
+
+    lazy val createTransactionType: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "transaction-types" ::  Nil JsonPut json -> _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
+            postedData <- tryo {json.extract[TransactionTypeJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            cancreateTransactionType <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateTransactionType) == true,ErrorMessages.InsufficientAuthorisationToCreateTransactionType)
+            returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
+          } yield {
+            successJsonResponse(Extraction.decompose(returnTranscationType))
+          }
+        }
+      }
+    }
   }
 }
+
 
 object APIMethods210 {
 }
