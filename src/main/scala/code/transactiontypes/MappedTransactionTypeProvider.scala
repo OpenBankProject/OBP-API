@@ -51,12 +51,12 @@ object MappedTransactionTypeProvider extends TransactionTypeProvider {
             mappedTransactionTypeUpdate.save
           }
           mappedTransactionType.toTransactionType.get
-        } ?~! ErrorMessages.UpdatingDataError
+        } ?~! ErrorMessages.InvalidCreateTransactionTypeUpdatingDataError
       case _ =>
         tryo {
           mappedTransactionType.save
           mappedTransactionType.toTransactionType.get
-        } ?~! ErrorMessages.InsertingDataError
+        } ?~! ErrorMessages.InvalidCreateTransactionTypeInsertingDataError
     }
   }
 
