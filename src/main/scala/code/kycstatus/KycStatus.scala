@@ -1,9 +1,8 @@
 package code.kycstatuses
 
 import java.util.Date
-
-import code.model.{BankId, User}
 import net.liftweb.util.SimpleInjector
+import net.liftweb.common.{Box}
 
 
 object KycStatuses extends SimpleInjector {
@@ -16,13 +15,15 @@ object KycStatuses extends SimpleInjector {
 
 trait KycStatusProvider {
 
-  def getKycStatuses(customerNumber: String) : List[KycStatus]
+  def getKycStatuses(customerId: String) : List[KycStatus]
 
-  def addKycStatus(customerNumber: String, ok: Boolean, date: Date) : Boolean
+  def addKycStatus(bankId: String, customerId: String, customerNumber: String, ok: Boolean, date: Date) : Box[KycStatus]
 
 }
 
 trait KycStatus {
+  def bankId: String
+  def customerId: String
   def customerNumber : String
   def ok : Boolean
   def date : Date
