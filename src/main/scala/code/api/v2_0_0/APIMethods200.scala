@@ -1788,14 +1788,18 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
             user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
+            role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
             isBankOrSystemRoleOk <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
               {if (ApiRole.valueOf(postedData.role_name).requiresBankId) ErrorMessages.EntitlementIsBankRole else ErrorMessages.EntitlementIsSystemRole}
+            allowedEntitlements = CanCreateEntitlementAtOneBank ::
+                                  CanCreateEntitlementAtAnyBank ::
+                                  Nil
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~ {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
             bank <- booleanToBox(Bank(BankId(postedData.bank_id)).isEmpty == false || postedData.bank_id.nonEmpty == false) ?~! {ErrorMessages.BankNotFound}
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
-            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user.")
+            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
