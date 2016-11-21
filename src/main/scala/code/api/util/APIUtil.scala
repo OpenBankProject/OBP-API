@@ -127,12 +127,9 @@ object ErrorMessages {
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
-
-
-
-
-
-
+  val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
+  val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique bankId / shortCode"
+  val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique bankId / shortCode"
 
 }
 
