@@ -45,7 +45,19 @@ object ApiRole {
   case object CanGetEntitlementsForAnyUserAtOneBank extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateEntitlementAtOneBank extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanDeleteEntitlementAtOneBank extends ApiRole{
+    val requiresBankId = true
+  }
   case object CanGetEntitlementsForAnyUserAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateEntitlementAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanDeleteEntitlementAtAnyBank extends ApiRole{
     val requiresBankId = false
   }
   case object CanGetConsumers extends ApiRole{
@@ -81,7 +93,11 @@ object ApiRole {
     case "CanGetSocialMediaHandles" => CanGetSocialMediaHandles
     case "CanCreateSandbox" => CanCreateSandbox
     case "CanGetEntitlementsForAnyUserAtOneBank" => CanGetEntitlementsForAnyUserAtOneBank
+    case "CanCreateEntitlementAtOneBank" => CanCreateEntitlementAtOneBank
+    case "CanDeleteEntitlementAtOneBank" => CanDeleteEntitlementAtOneBank
     case "CanGetEntitlementsForAnyUserAtAnyBank" => CanGetEntitlementsForAnyUserAtAnyBank
+    case "CanCreateEntitlementAtAnyBank" => CanCreateEntitlementAtAnyBank
+    case "CanDeleteEntitlementAtAnyBank" => CanDeleteEntitlementAtAnyBank
     case "CanGetConsumers" => CanGetConsumers
     case "CanDisableConsumers" => CanDisableConsumers
     case "CanEnableConsumers" => CanEnableConsumers
@@ -104,7 +120,11 @@ object ApiRole {
                       "CanGetSocialMediaHandles" ::
                       "CanCreateSandbox" ::
                       "CanGetEntitlementsForAnyUserAtOneBank" ::
+                      "CanCreateEntitlementAtOneBank" ::
+                      "CanDeleteEntitlementAtOneBank" ::
                       "CanGetEntitlementsForAnyUserAtAnyBank" ::
+                      "CanCreateEntitlementAtAnyBank" ::
+                      "CanDeleteEntitlementAtAnyBank" ::
                       "CanGetConsumers" ::
                       "CanDisableConsumers" ::
                       "CanEnableConsumers" ::
