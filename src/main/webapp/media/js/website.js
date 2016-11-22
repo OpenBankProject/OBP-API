@@ -46,7 +46,7 @@ $(document).ready(function() {
 	$('.signupSection #signupForm').submit(function() {
 		var agreeTerms = $('.signupSection #signupForm #agree-terms-input');
 		if (agreeTerms.length > 0) {
-			if (!agreeTerms.attr('checked')) {
+			if (!agreeTerms.prop('checked')) {
 				var msg = 'Please agree to the Terms & Conditions';
 				$('.signupSection .signup-error #signup').html(msg);
 				return false;
