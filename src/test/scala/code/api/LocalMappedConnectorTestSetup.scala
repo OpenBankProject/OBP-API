@@ -9,6 +9,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
+import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.transaction.MappedTransaction
 
 import scala.util.Random
@@ -24,6 +25,14 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .shortBankName(randomString(5))
           .permalink(id)
           .national_identifier(randomString(5)).saveMe
+  }
+
+  override protected def createCounterpartyMetadata(BankId:String,AccountId:String,iBan:String):CounterpartyMetadata = {
+    MappedCounterpartyMetadata.create.
+    thisAccountBankId(BankId).
+    thisAccountId(AccountId).
+    accountNumber(iBan).
+    saveMe
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded

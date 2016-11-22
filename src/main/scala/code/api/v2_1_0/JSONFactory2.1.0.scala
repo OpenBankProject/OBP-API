@@ -37,7 +37,7 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
-import code.model.{AmountOfMoney, Consumer}
+import code.model.{AmountOfMoney, Consumer, CounterpartyMetadataIban, Iban}
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.json.JValue
 
@@ -58,14 +58,29 @@ case class TransactionRequestDetailsSandBoxTanJSON(
                                       ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsSEPAJSON(
-                                                  value : AmountOfMoneyJSON,
-                                                  IBAN: String,
-                                                  description : String
-                                          ) extends TransactionRequestDetailsJSON
+                                              value: AmountOfMoneyJSON,
+                                              iban: String,
+                                              description: String
+                                            ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsSEPAResponseJSON(
+                                              iban: String,
+                                              to: TransactionRequestAccountJSON,
+                                              value: AmountOfMoneyJSON,
+                                              description: String
+                                            ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsFreeFormJSON(
                                                   value : AmountOfMoneyJSON
                                             ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsFreeFormResponseJSON(
+                                                         to: TransactionRequestAccountJSON,
+                                                         value: AmountOfMoneyJSON,
+                                                         description: String
+                                                       ) extends TransactionRequestDetailsJSON
+
+
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
@@ -135,12 +150,35 @@ object JSONFactory210{
   }
 
   def getTransactionRequestDetailsSEPAFromJson(details: TransactionRequestDetailsSEPAJSON) : TransactionRequestDetailsSEPA = {
+    val toAccIban = Iban (
+      iban = details.iban
+    )
     val amount = AmountOfMoney (
       currency = details.value.currency,
       amount = details.value.amount
     )
-
     TransactionRequestDetailsSEPA (
+      iban = details.iban,
+      value = amount,
+      description = details.description
+    )
+  }
+
+  def getTransactionRequestDetailsAddedTobankSEPAJSONFromJson(details: TransactionRequestDetailsSEPAResponseJSON) : TransactionRequestDetailsSEPAResponse = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
+    )
+    val toAccIban = Iban (
+      iban = details.iban
+    )
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+    TransactionRequestDetailsSEPAResponse (
+      iban = details.iban,
+      to=toAcc,
       value = amount,
       description = details.description
     )
@@ -156,6 +194,23 @@ object JSONFactory210{
       value = amount
     )
   }
+
+  def getTransactionRequestDetailsFreeFormAddedTobankJson(details: TransactionRequestDetailsFreeFormResponseJSON) : TransactionRequestDetailsFreeFormResponse = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
+    )
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+    TransactionRequestDetailsFreeFormResponse (
+      to=toAcc,
+      value = amount,
+      description = details.description
+    )
+  }
+
 
   /** Creates v2.1.0 representation of a TransactionType
     *
