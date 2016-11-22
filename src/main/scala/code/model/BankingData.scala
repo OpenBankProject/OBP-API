@@ -112,6 +112,12 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+case class  CounterpartyMetadataIban(val value : String) {
+override def toString = value
+}
+object  CounterpartyMetadataIban {
+  def unapply(id : String) = Some(CounterpartyMetadataIban(id))
+}
 
 case class CustomerId(val value : String) {
   override def toString = value

@@ -14,16 +14,19 @@ import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
+import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, _}
 import net.liftweb.http.{CurrentReq, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+
 // Makes JValue assignment to Nil work
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
@@ -44,7 +47,6 @@ import net.liftweb.json.Serialization.{read, write}
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
-
   // helper methods begin here
   // helper methods end here
 
@@ -277,6 +279,8 @@ trait APIMethods210 {
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
 
+              amountOfMoneyJSON = AmountOfMoneyJSON(transDetails.value.currency, transDetails.value.amount)
+
               transDetailsSerialized <- transactionRequestType.value match {
                 case "FREE_FORM" => tryo{
                   implicit val formats = Serialization.formats(NoTypeHints)
@@ -301,10 +305,38 @@ trait APIMethods210 {
 
                 }
                 case "SEPA" => {
-                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                  for {
+                  //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
+                    mappedCounterpartyMetadata <- MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.accountNumber, transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].IBAN)) ?~! {
+                      ErrorMessages.CounterpartyNotFoundByIban
+                    }
+                    toBankId <- Full(BankId(mappedCounterpartyMetadata.thisAccountBankId))
+                    toAccountId <- Full(AccountId(mappedCounterpartyMetadata.thisAccountId))
+                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {
+                      ErrorMessages.CounterpartyNotFound
+                    }
+
+                    // following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                    detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
+                    transactionRequestDetailsSandBoxTanJSON = TransactionRequestDetailsSandBoxTanJSON(transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    sandboxTanDetailFormat = getTransactionRequestDetailsSandBoxTanFromJson(transactionRequestDetailsSandBoxTanJSON)
+
+                    //TODO  following transDetailsToSandboxTanFormat.toString is bad idea? but this is just for test, it needs to modify later
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, sandboxTanDetailFormat, write(sandboxTanDetailFormat))
+                  } yield createdTransactionRequest
                 }
                 case "FREE_FORM" => {
-                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                  for {
+                    // following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
+                    // the Free form the discription is empty, so make it "" in the following code
+                    transactionRequestDetailsSandBoxTanJSON = TransactionRequestDetailsSandBoxTanJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
+                    transDetailsToSandboxTanFormat <- Full(getTransactionRequestDetailsSandBoxTanFromJson(transactionRequestDetailsSandBoxTanJSON))
+
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(fromAccount), transactionRequestType, transDetailsToSandboxTanFormat, write(transDetailsToSandboxTanFormat))
+                  } yield
+                    createdTransactionRequest
                 }
               }
             } yield {
@@ -609,7 +641,7 @@ trait APIMethods210 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! ErrorMessages.InvalidJsonFormat
             hasEntitlement <- putData.enabled match {
-              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
+              case true => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers), s"$CanDisableConsumers entitlement required")
             }
             consumer <- Consumer.find(By(Consumer.id, consumerId.toLong))
@@ -622,7 +654,6 @@ trait APIMethods210 {
           }
       }
     }
-
 
 
     resourceDocs += ResourceDoc(
@@ -766,7 +797,6 @@ trait APIMethods210 {
       false,
       List(apiTagBank)
     )
-
 
 
     lazy val createTransactionType: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

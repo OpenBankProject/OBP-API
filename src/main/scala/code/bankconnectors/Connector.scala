@@ -396,6 +396,8 @@ trait Connector {
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
         case "SEPA" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
+        case "FREE_FORM" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), "")
       }
 
       //set challenge to null
