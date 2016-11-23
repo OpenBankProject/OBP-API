@@ -10,3 +10,8 @@ body {
 #header-decoration {
     background-color: #499A5F !important;
 }
+
+#agree-terms-text a {
+	color: #fff;
+	text-decoration: underline;
+}
