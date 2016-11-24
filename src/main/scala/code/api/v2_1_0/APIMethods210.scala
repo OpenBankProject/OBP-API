@@ -812,7 +812,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
+      false,
       false,
       true,
       List(apiTagBank)
@@ -859,7 +859,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
+      false,
       false,
       true,
       List(apiTagBank)
@@ -874,7 +874,7 @@ trait APIMethods210 {
             else
               user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! {ErrorMessages.BranchNotFoundByBranchmId}
+            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! {ErrorMessages.BranchNotFoundByBranchId}
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createBranchJson(branch)
@@ -909,7 +909,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
+      false,
       false,
       true,
       List(apiTagBank)
@@ -925,7 +925,7 @@ trait APIMethods210 {
             else
               user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            product <- Box(Products.productsProvider.vend.getProduct(bankId, productCode, true)) ?~! {ErrorMessages.ProductNotFoundByProductmId}
+            product <- Box(Products.productsProvider.vend.getProduct(bankId, productCode, true)) ?~! {ErrorMessages.ProductNotFoundByProductCode}
           } yield {
             // Format the data as json
             val json = JSONFactory1_4_0.createProductJson(product)
