@@ -37,8 +37,10 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
-import code.model.{AmountOfMoney, Consumer}
+import code.metadata.counterparties.CounterpartiesFields
+import code.model._
 import code.transactionrequests.TransactionRequests._
+import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
@@ -86,6 +88,70 @@ case class TransactionRequestWithChargeJSONs210(
 case class PutEnabledJSON(enabled: Boolean)
 case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, enabled: Boolean, created: Date)
 case class ConsumerJSONs(list: List[ConsumerJSON])
+
+case class PostCounterpartyJSON(name: String,
+                                counterparty_bank_id: String,
+                                primary_routing_scheme: String,
+                                primary_routing_address: String
+                               )
+
+case class CounterpartiesJSON(
+                              counterpaties: List[CounterpartyJSON]
+                             )
+
+case class CounterpartyJSON(
+                             counterparty_id: String,
+                             display: AccountHolderJSON,
+                             created_by_user_id: String,
+                             used_by_account: UsedByAccountJSON,
+                             primary_routing: PrimaryRoutingJSON,
+                             metadata: CounterpartyMetadataJSON
+                           )
+
+case class CounterpartyMetadataJSON(
+                                     public_alias: String,
+                                     private_alias: String,
+                                     more_info: String,
+                                     URL: String,
+                                     image_URL: String,
+                                     open_corporates_URL: String,
+                                     corporate_location: LocationJSON,
+                                     physical_location: LocationJSON
+                                   )
+
+case class PrimaryRoutingJSON(
+                               scheme: String,
+                               address: String
+                             )
+
+case class UsedByAccountJSON(
+                              bank_id: String,
+                              account_id: String
+                            )
+
+
+case class AccountHolderJSON(
+                              name: String,
+                              is_alias: Boolean
+                            )
+
+
+case class LocationJSON(
+                         latitude: Double,
+                         longitude: Double,
+                         date: Date,
+                         user: UserJSON
+                       )
+
+case class UserJSON(
+                     id: String,
+                     provider: String,
+                     display_name: String
+                   )
+
+
+
+
 
 object JSONFactory210{
   def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
@@ -206,4 +272,98 @@ object JSONFactory210{
   def createConsumerJSONs(l : List[Consumer]): ConsumerJSONs = {
     ConsumerJSONs(l.map(createConsumerJSON))
   }
+
+  def createCounterpartJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartiesFields) : CounterpartyJSON = {
+    new CounterpartyJSON(
+      counterparty_id = metadata.metadataId,
+      display = createAccountHolderJSON(moderated.label.display, moderated.isAlias),
+      created_by_user_id = couterparty.createdByUserId,
+      used_by_account = UsedByAccountJSON(couterparty.bankId, couterparty.accountId),
+      primary_routing = PrimaryRoutingJSON(couterparty.primaryRoutingScheme, couterparty.primaryRoutingAddress),
+      metadata = CounterpartyMetadataJSON(public_alias = metadata.getPublicAlias,
+        private_alias = metadata.getPrivateAlias,
+        more_info = metadata.getMoreInfo,
+        URL = metadata.getUrl,
+        image_URL = metadata.getImageURL,
+        open_corporates_URL = metadata.getOpenCorporatesURL,
+        corporate_location = createLocationJSON(metadata.getCorporateLocation),
+        physical_location = createLocationJSON(metadata.getPhysicalLocation)
+      )
+    )
+  }
+
+  def createCounterpartyMetaDataJSON(metadata : ModeratedOtherBankAccountMetadata) : CounterpartyMetadataJSON = {
+    new CounterpartyMetadataJSON(
+      public_alias = stringOptionOrNull(metadata.publicAlias),
+      private_alias = stringOptionOrNull(metadata.privateAlias),
+      more_info = stringOptionOrNull(metadata.moreInfo),
+      URL = stringOptionOrNull(metadata.url),
+      image_URL = stringOptionOrNull(metadata.imageURL),
+      open_corporates_URL = stringOptionOrNull(metadata.openCorporatesURL),
+      corporate_location = metadata.corporateLocation.map(createLocationJSON).getOrElse(null),
+      physical_location = metadata.physicalLocation.map(createLocationJSON).getOrElse(null)
+    )
+  }
+
+  def createLocationJSON(loc : Option[GeoTag]) : LocationJSON = {
+    loc match {
+      case Some(location) => {
+        val user = createUserJSON(location.postedBy)
+        //test if the GeoTag is set to its default value
+        if(location.latitude == 0.0 & location.longitude == 0.0 & user == null)
+          null
+        else
+          new LocationJSON(
+            latitude = location.latitude,
+            longitude = location.longitude,
+            date = location.datePosted,
+            user = user
+          )
+      }
+      case _ => null
+    }
+  }
+
+  def createUserJSON(user : Box[User]) : UserJSON = {
+    user match {
+      case Full(u) => createUserJSON(u)
+      case _ => null
+    }
+  }
+
+  def createUserJSON(user : User) : UserJSON = {
+    new UserJSON(
+      user.idGivenByProvider,
+      stringOrNull(user.provider),
+      stringOrNull(user.emailAddress) //TODO: shouldn't this be the display name?
+    )
+  }
+
+  def createAccountHolderJSON(name : String, isAlias : Boolean) : AccountHolderJSON = {
+    new AccountHolderJSON(
+      name = name,
+      is_alias = isAlias
+    )
+  }
+
+
+
+
+
+  def stringOrNull(text : String) =
+    if(text == null || text.isEmpty)
+      null
+    else
+      text
+
+  def stringOptionOrNull(text : Option[String]) =
+    text match {
+      case Some(t) => stringOrNull(t)
+      case _ => null
+    }
+
+
+
+
+
 }

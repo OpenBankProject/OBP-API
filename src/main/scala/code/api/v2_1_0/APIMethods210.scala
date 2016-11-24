@@ -14,9 +14,10 @@ import code.api.v2_1_0.JSONFactory210._
 import code.bankconnectors.Connector
 import code.entitlement.Entitlement
 import code.fx.fx
+import code.metadata.counterparties.Counterparties
 import code.model.dataAccess.OBPUser
-import code.model.{BankId, _}
-import net.liftweb.http.{CurrentReq, Req}
+import code.model.{BankId, ViewId, _}
+import net.liftweb.http.{Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -784,6 +785,59 @@ trait APIMethods210 {
         }
       }
     }
+
+
+    resourceDocs += ResourceDoc(
+      addCounterparty,
+      apiVersion,
+      "addCounterparty",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Add counterpart for an account",
+      s"""(Authenticated access).
+          |
+          |This is can be used to create counterparty which are stored in the local RDBMS.
+          |${authenticationRequiredMessage(true)}
+          |""",
+      Extraction.decompose(PostCounterpartyJSON(
+        name = "",
+        counterparty_bank_id ="",
+        primary_routing_scheme="IBAN",
+        primary_routing_address="7987987-2348987-234234")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      false,
+      List())
+
+
+    lazy val addCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
+            account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
+            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ "invalid json"
+            couterparty <- Counterparties.counterparties.vend.addCounterparty(createdByUserId=u.userId,
+              bankId=bankId.value,
+              accountId=accountId.value,
+              name=postJson.name,
+              counterPartyBankId =postJson.counterparty_bank_id,
+              primaryRoutingScheme=postJson.primary_routing_scheme,
+              primaryRoutingAddress=postJson.primary_routing_address)
+            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
+            view <- View.fromUrl(viewId, account) ?~ "Cannot get view from url"
+            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterPartyId).flatMap(oAcc => view.moderate(oAcc))
+          } yield {
+            val list = createCounterpartJSON(moderated, metadata, couterparty)
+            successJsonResponse(Extraction.decompose(list))
+          }
+      }
+    }
+
+
   }
 }
 
