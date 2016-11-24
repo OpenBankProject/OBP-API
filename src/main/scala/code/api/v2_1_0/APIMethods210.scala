@@ -47,6 +47,7 @@ import net.liftweb.json.Serialization.{read, write}
 trait APIMethods210 {
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   self: RestHelper =>
+
   // helper methods begin here
   // helper methods end here
 
@@ -638,7 +639,7 @@ trait APIMethods210 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             putData <- tryo{json.extract[PutEnabledJSON]} ?~! ErrorMessages.InvalidJsonFormat
             hasEntitlement <- putData.enabled match {
-              case true => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
+              case true  => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanEnableConsumers), s"$CanEnableConsumers entitlement required")
               case false => booleanToBox(hasEntitlement("", u.userId, ApiRole.CanDisableConsumers), s"$CanDisableConsumers entitlement required")
             }
             consumer <- Consumer.find(By(Consumer.id, consumerId.toLong))
@@ -651,6 +652,7 @@ trait APIMethods210 {
           }
       }
     }
+
 
 
     resourceDocs += ResourceDoc(

@@ -266,6 +266,7 @@ trait Connector {
 
       //set challenge to null
       result = Full(result.get.copy(challenge = null))
+
       //save transaction_id if we have one
       createdTransactionId match {
         case Full(ti) => {
