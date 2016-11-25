@@ -436,7 +436,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     }
   }
 
-  def getCounterparty(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for Counterpartys, we need to construct it from an
     //CounterpartyMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
@@ -505,13 +505,15 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
 
   // Get all counterparties related to an account
-  override def getCounterparties(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterparty(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getCounterparty to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()

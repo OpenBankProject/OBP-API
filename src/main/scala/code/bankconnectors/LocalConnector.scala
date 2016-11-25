@@ -12,7 +12,7 @@ import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common._
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable, _}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -51,7 +51,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override def getCounterparty(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -84,7 +84,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getCounterparties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -110,6 +110,8 @@ private object LocalConnector extends Connector with Loggable {
       createOtherBankAccount(bankId, accountId, meta, otherAccountFromTransaction)
     })
   }
+
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)

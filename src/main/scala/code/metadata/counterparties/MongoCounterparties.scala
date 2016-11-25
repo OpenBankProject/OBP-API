@@ -1,7 +1,7 @@
 package code.metadata.counterparties
 
 import code.model.{AccountId, BankId, CounterpartyMetadata, Counterparty}
-import net.liftweb.common.{Box, Loggable}
+import net.liftweb.common.{Box, Loggable, Empty}
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Full
@@ -100,4 +100,8 @@ object MongoCounterparties extends Counterparties with Loggable {
     if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
     else firstAliasAttempt
   }
+
+  def getCounterparty(counterPartyId : String): Box[CounterpartiesFields] = Empty
+
+  def addCounterparty(userId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields] = Empty
 }
