@@ -97,6 +97,46 @@ object MapperCounterparties extends Counterparties with Loggable {
       By(MappedCounterpartyMetadata.counterpartyId, counterpartyMetadataId)
     )
   }
+
+  def addMetadata(bankId: BankId, accountId : AccountId): Box[CounterpartyMetadata] = {
+    Full(
+    MappedCounterpartyMetadata.create
+      .thisAccountBankId(bankId.value)
+      .thisAccountId(accountId.value)
+      .saveMe
+    )
+  }
+
+
+  override def getCounterparty(counterPartyId : String): Box[CounterpartiesFields] = {
+    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterPartyId))
+  }
+
+  override def addCounterparty(createdByUserId: String,
+                               bankId: String,
+                               accountId : String,
+                               name: String,
+                               counterPartyBankId : String,
+                               primaryRoutingScheme : String,
+                               primaryRoutingAddress : String): Box[CounterpartiesFields] = {
+    val metadata = MappedCounterpartyMetadata.create
+                                              .thisAccountBankId(bankId)
+                                              .thisAccountId(accountId)
+                                              .holder(name)
+                                              .saveMe
+
+    Some(
+    MappedCounterparty.create
+      .mCreatedByUserId(createdByUserId)
+      .mBankId(bankId)
+      .mAccountId(accountId)
+      .mCounterPartyBankId(counterPartyBankId)
+      .mCounterPartyId(metadata.metadataId)
+      .mPrimaryRoutingScheme(primaryRoutingScheme)
+      .mPrimaryRoutingAddress(primaryRoutingAddress)
+      .saveMe()
+    )
+  }
 }
 
 class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapper[MappedCounterpartyMetadata] with IdPK with CreatedUpdated {
@@ -226,3 +266,28 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
 }
 
 object MappedCounterpartyWhereTag extends MappedCounterpartyWhereTag with LongKeyedMetaMapper[MappedCounterpartyWhereTag]
+
+
+class MappedCounterparty extends CounterpartiesFields with LongKeyedMapper[MappedCounterparty] with IdPK with CreatedUpdated {
+  def getSingleton = MappedCounterparty
+
+  object mCreatedByUserId extends MappedString(this, 36)
+  object mBankId extends MappedString(this, 36)
+  object mAccountId extends MappedString(this, 255)
+  object mCounterPartyBankId extends MappedString(this, 36)
+  object mCounterPartyId extends MappedString(this, 36)
+  object mPrimaryRoutingScheme extends MappedString(this, 255)
+  object mPrimaryRoutingAddress extends MappedString(this, 255)
+
+  override def createdByUserId = mCreatedByUserId.get
+  override def bankId = mBankId.get
+  override def accountId = mAccountId.get
+  override def counterPartyBankId = mCounterPartyBankId.get
+  override def counterPartyId = mCounterPartyId.get
+  override def primaryRoutingScheme = mPrimaryRoutingScheme.get
+  override def primaryRoutingAddress = mPrimaryRoutingAddress.get
+}
+
+object MappedCounterparty extends MappedCounterparty with LongKeyedMetaMapper[MappedCounterparty] {
+  override def dbIndexes = UniqueIndex(mCounterPartyId)  ::  super.dbIndexes
+}

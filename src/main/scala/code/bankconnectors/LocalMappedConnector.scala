@@ -34,7 +34,7 @@ object LocalMappedConnector extends Connector with Loggable {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
     logger.info(s"threshold is $threshold")
-    
+
     // TODO constrain this to supported currencies.
     val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
     logger.info(s"thresholdCurrency is $thresholdCurrency")
@@ -134,7 +134,7 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
-  def getCounterparty(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisAccountBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     for { //find a transaction with this counterparty
@@ -162,13 +162,36 @@ object LocalMappedConnector extends Connector with Loggable {
   }
 
   // Get all counterparties related to an account
-  override def getCounterparties(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterparty(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
+  Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
-    // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterparty(bankId, accountID, _))
+  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  // Get the metadata and pass it to getOtherBankAccount to construct the other account.
+  Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+
+
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+    for {
+      t <- Counterparties.counterparties.vend.getMetadata(thisAccountBankId, thisAccountId, couterpartyId)
+    } yield {
+      new Counterparty(
+        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+        id = t.metadataId,
+        label = t.getHolder,
+        nationalIdentifier = "",
+        swift_bic = None,
+        iban = None,
+        number = t.getAccountNumber,
+        bankName = "",
+        kind = "",
+        originalPartyBankId = thisAccountBankId,
+        originalPartyAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(t)
+      )
+    }
+  }
+
 
   override def getPhysicalCards(user: User): List[PhysicalCard] = {
     val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)

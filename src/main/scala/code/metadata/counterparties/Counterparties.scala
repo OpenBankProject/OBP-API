@@ -20,4 +20,18 @@ trait Counterparties {
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
 
   def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[CounterpartyMetadata]
+
+  def getCounterparty(counterPartyId : String): Box[CounterpartiesFields]
+
+  def addCounterparty(createdByUserId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields]
+}
+
+trait CounterpartiesFields {
+  def createdByUserId: String
+  def bankId: String
+  def accountId: String
+  def counterPartyBankId: String
+  def counterPartyId: String
+  def primaryRoutingScheme: String
+  def primaryRoutingAddress: String
 }
