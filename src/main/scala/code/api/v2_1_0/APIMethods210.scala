@@ -793,10 +793,10 @@ trait APIMethods210 {
       "addCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Add counterpart for an account",
+      "Add counterparty for an accountt",
       s"""(Authenticated access).
           |
-          |This is can be used to create counterparty which are stored in the local RDBMS.
+          |Create a counterparty.
           |${authenticationRequiredMessage(true)}
           |""",
       Extraction.decompose(PostCounterpartyJSON(
@@ -828,7 +828,9 @@ trait APIMethods210 {
               primaryRoutingScheme=postJson.primary_routing_scheme,
               primaryRoutingAddress=postJson.primary_routing_address)
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
-            view <- View.fromUrl(viewId, account) ?~ "Cannot get view from url"
+            availableViews <- Full(account.permittedViews(user))
+            view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
             moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterPartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
             val list = createCounterpartJSON(moderated, metadata, couterparty)

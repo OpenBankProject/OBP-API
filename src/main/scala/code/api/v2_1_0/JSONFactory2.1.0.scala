@@ -101,7 +101,7 @@ case class CounterpartiesJSON(
 
 case class CounterpartyJSON(
                              counterparty_id: String,
-                             display: AccountHolderJSON,
+                             display: CounterpartyNameJSON,
                              created_by_user_id: String,
                              used_by_account: UsedByAccountJSON,
                              primary_routing: PrimaryRoutingJSON,
@@ -130,7 +130,7 @@ case class UsedByAccountJSON(
                             )
 
 
-case class AccountHolderJSON(
+case class CounterpartyNameJSON(
                               name: String,
                               is_alias: Boolean
                             )
@@ -146,7 +146,7 @@ case class LocationJSON(
 case class UserJSON(
                      id: String,
                      provider: String,
-                     display_name: String
+                     username: String
                    )
 
 
@@ -276,7 +276,7 @@ object JSONFactory210{
   def createCounterpartJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartiesFields) : CounterpartyJSON = {
     new CounterpartyJSON(
       counterparty_id = metadata.metadataId,
-      display = createAccountHolderJSON(moderated.label.display, moderated.isAlias),
+      display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
       created_by_user_id = couterparty.createdByUserId,
       used_by_account = UsedByAccountJSON(couterparty.bankId, couterparty.accountId),
       primary_routing = PrimaryRoutingJSON(couterparty.primaryRoutingScheme, couterparty.primaryRoutingAddress),
@@ -338,16 +338,6 @@ object JSONFactory210{
       stringOrNull(user.emailAddress) //TODO: shouldn't this be the display name?
     )
   }
-
-  def createAccountHolderJSON(name : String, isAlias : Boolean) : AccountHolderJSON = {
-    new AccountHolderJSON(
-      name = name,
-      is_alias = isAlias
-    )
-  }
-
-
-
 
 
   def stringOrNull(text : String) =
