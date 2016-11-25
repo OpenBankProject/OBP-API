@@ -93,6 +93,9 @@ object ErrorMessages {
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
   val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at the bank specified by BANK_ID"
+  val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
+  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
+  val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

@@ -11,13 +11,19 @@ import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
 import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
+import code.atms.Atms
+import code.atms.Atms.AtmId
 import code.bankconnectors.Connector
+import code.branches.Branches
+import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
-import net.liftweb.http.{Req}
+import code.products.Products
+import code.products.Products.ProductCode
+import net.liftweb.http.{CurrentReq, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -627,9 +633,9 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      createCardsForBank,
+      addCardsForBank,
       apiVersion,
-      "createCardsForBank",
+      "addCardsForBank",
       "POST",
       "/banks/BANK_ID/cards",
       "Add cards for a bank",
@@ -663,7 +669,7 @@ trait APIMethods210 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
-    lazy val createCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val addCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -781,6 +787,150 @@ trait APIMethods210 {
             returnTranscationType <- TransactionType.TransactionTypeProvider.vend.createOrUpdateTransactionType(postedData)
           } yield {
             successJsonResponse(Extraction.decompose(returnTranscationType))
+          }
+        }
+      }
+    }
+
+
+    val getAtmsIsPublic = Props.getBool("apiOptions.getAtmsIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      getAtm,
+      apiVersion,
+      "getAtm",
+      "GET",
+      "/banks/BANK_ID/atms/ATM_ID",
+      "Get Bank ATM",
+      s"""Returns information about ATM for a single bank specified by BANK_ID and ATM_ID including:
+          |
+          |* Address
+          |* Geo Location
+          |* License the data under this endpoint is released under
+          |
+          |${authenticationRequiredMessage(!getAtmsIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      true,
+      List(apiTagBank)
+    )
+
+    lazy val getAtm: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "atms" :: AtmId(atmId) :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get atm from the active provider
+            u <- if (getAtmsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            atm  <- Box(Atms.atmsProvider.vend.getAtm(atmId)) ?~! {ErrorMessages.AtmNotFoundByAtmId}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createAtmJson(atm)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    val getBranchesIsPublic = Props.getBool("apiOptions.getBranchesIsPublic", true)
+
+    resourceDocs += ResourceDoc(
+      getBranch,
+      apiVersion,
+      "getBranch",
+      "GET",
+      "/banks/BANK_ID/branches/BRANCH_ID",
+      "Get Bank Branch",
+      s"""Returns information about branches for a single bank specified by BANK_ID and BRANCH_ID including:
+          |
+          |* Name
+          |* Address
+          |* Geo Location
+          |* License the data under this endpoint is released under
+          |
+        |${authenticationRequiredMessage(!getBranchesIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      true,
+      List(apiTagBank)
+    )
+
+    lazy val getBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId) :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- if (getBranchesIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            branch <- Box(Branches.branchesProvider.vend.getBranch(branchId)) ?~! {ErrorMessages.BranchNotFoundByBranchId}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createBranchJson(branch)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    val getProductsIsPublic = Props.getBool("apiOptions.getProductsIsPublic", true)
+
+
+    resourceDocs += ResourceDoc(
+      getProduct,
+      apiVersion,
+      "getProduct",
+      "GET",
+      "/banks/BANK_ID/products/PRODUCT_CODE",
+      "Get Bank Product",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID and PRODUCT_CODE including:
+          |
+          |* Name
+          |* Code
+          |* Category
+          |* Family
+          |* Super Family
+          |* More info URL
+          |* Description
+          |* Terms and Conditions
+          |* License the data under this endpoint is released under
+          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      false,
+      false,
+      true,
+      List(apiTagBank)
+    )
+
+    lazy val getProduct: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "products" :: ProductCode(productCode) :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get product from the active provider
+            u <- if (getProductsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            product <- Box(Products.productsProvider.vend.getProduct(bankId, productCode, true)) ?~! {ErrorMessages.ProductNotFoundByProductCode}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory1_4_0.createProductJson(product)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
