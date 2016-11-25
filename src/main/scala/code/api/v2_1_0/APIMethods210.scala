@@ -627,9 +627,9 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      addCardsForBank,
+      createCardsForBank,
       apiVersion,
-      "addCardsForBank",
+      "createCardsForBank",
       "POST",
       "/banks/BANK_ID/cards",
       "Add cards for a bank",
@@ -663,7 +663,7 @@ trait APIMethods210 {
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
-    lazy val addCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createCardsForBank: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonPost json -> _ => {
         user =>
           for {
@@ -788,12 +788,12 @@ trait APIMethods210 {
 
 
     resourceDocs += ResourceDoc(
-      addCounterparty,
+      createCounterparty,
       apiVersion,
-      "addCounterparty",
+      "createCounterparty",
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
-      "Add counterparty for an accountt",
+      "Create counterparty for an account",
       s"""(Authenticated access).
           |
           |Create a counterparty.
@@ -812,7 +812,7 @@ trait APIMethods210 {
       List())
 
 
-    lazy val addCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val createCounterparty: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonPost json -> _ => {
         user =>
           for {
