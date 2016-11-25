@@ -585,7 +585,7 @@ trait APIMethods210 {
           } yield {
             // Format the data as json
             val json = createConsumerJSONs(consumers.sortWith(_.id < _.id))
-            // Returne
+            // Return
             successJsonResponse(Extraction.decompose(json))
           }
       }
