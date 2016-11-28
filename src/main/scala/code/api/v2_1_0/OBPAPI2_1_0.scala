@@ -152,8 +152,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   // ### VERSION 1.4.0 - BEGIN ###
   // New in 1.4.0
   //First step - make a list of allowed endpoints
-  val endpointsOf1_4_0 = "getCustomer" ::
-                         "getCustomerMessages" ::
+  val endpointsOf1_4_0 = "getCustomerMessages" ::
                          "addCustomerMessage" ::
                          "getBranches" ::
                          "getAtms" ::
@@ -185,7 +184,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           "addSocialMediaHandle"::
                           "allAccountsAtOneBank"::
                           "createAccount"::
-                          "createCustomer"::
                           "createMeeting"::
                           "createUser"::
                           "createUserCustomerLinks"::
@@ -196,7 +194,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           "getCoreAccountById"::
                           "getCoreTransactionsForBankAccount"::
                           "getCurrentUser"::
-                          "getCustomers"::
                           "getEntitlements"::
                           "getKycChecks"::
                           "getKycDocuments"::
@@ -246,6 +243,9 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "getAtm"::
                          "getBranch"::
                          "getProduct"::
+                         "createCustomer"::
+                         "getCustomer" ::
+                         "getCustomers" ::
                          Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

@@ -1563,7 +1563,9 @@ trait APIMethods200 {
               postedData.highest_education_attained,
               postedData.employment_status,
               postedData.kyc_status,
-              postedData.last_ok_date) ?~! "Could not create customer"
+              postedData.last_ok_date,
+              None,
+              None) ?~! "Could not create customer"
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
