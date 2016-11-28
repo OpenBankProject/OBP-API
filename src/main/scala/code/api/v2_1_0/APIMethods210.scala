@@ -92,11 +92,8 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
-
 
     lazy val sandboxDataImport: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       // Import data into the sandbox
@@ -132,9 +129,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
 
 
@@ -229,9 +224,7 @@ trait APIMethods210 {
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -338,9 +331,7 @@ trait APIMethods210 {
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -403,9 +394,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -447,9 +436,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagUser, apiTagEntitlement))
 
     lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -483,9 +470,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -533,9 +518,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       Nil)
 
 
@@ -569,9 +552,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       Nil)
 
 
@@ -604,9 +585,7 @@ trait APIMethods210 {
       Extraction.decompose(PutEnabledJSON(false)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       Nil)
 
 
@@ -664,9 +643,7 @@ trait APIMethods210 {
         posted=new Date() )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -725,9 +702,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser))
 
 
@@ -769,9 +744,7 @@ trait APIMethods210 {
       Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagBank)
     )
 
@@ -813,9 +786,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      true,
+      Catalogs(notCore,notPSD2,OBWG),
       List(apiTagBank)
     )
 
@@ -860,9 +831,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      true,
+      Catalogs (notCore,notPSD2,OBWG),
       List(apiTagBank)
     )
 
@@ -910,9 +879,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      true,
+      Catalogs(notCore,notPSD2,OBWG),
       List(apiTagBank)
     )
 
@@ -957,9 +924,7 @@ trait APIMethods210 {
         primary_routing_address="7987987-2348987-234234")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List())
 
 
@@ -989,8 +954,6 @@ trait APIMethods210 {
           }
       }
     }
-
-
   }
 }
 
