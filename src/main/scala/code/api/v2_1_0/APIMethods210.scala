@@ -303,9 +303,10 @@ trait APIMethods210 {
                   for {
                   //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
-                    mappedCounterpartyMetadata <- MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.accountNumber, toIban)) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
-                    toBankId <- Full(BankId(mappedCounterpartyMetadata.thisAccountBankId))
-                    toAccountId <- Full(AccountId(mappedCounterpartyMetadata.thisAccountId))
+                    counterpartiesFields <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    isBeneficiary <- booleanToBox(counterpartiesFields.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    toBankId <- Full(BankId(counterpartiesFields.otherBankId ))
+                    toAccountId <- Full(AccountId(counterpartiesFields.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
                     // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.

@@ -23,6 +23,8 @@ trait Counterparties {
 
   def getCounterparty(counterPartyId : String): Box[CounterpartiesFields]
 
+  def getCounterpartyByIban(iBan : String): Box[CounterpartiesFields]
+
   def addCounterparty(createdByUserId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields]
 }
 
