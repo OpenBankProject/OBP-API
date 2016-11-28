@@ -309,9 +309,9 @@ object JSONFactory1_4_0 {
       example_request_body = rd.exampleRequestBody,
       success_response_body = rd.successResponseBody,
       implemented_by = ImplementedByJson(rd.apiVersion, rd.apiFunction),
-      is_core = rd.isCore,
-      is_psd2 = rd.isPSD2,
-      is_obwg = rd.isOBWG, // No longer tracking isCore
+      is_core = rd.catalogs.core,
+      is_psd2 = rd.catalogs.psd2,
+      is_obwg = rd.catalogs.obwg,// No longer tracking isCore
       tags = rd.tags.map(i => i.tag)
       )
   }

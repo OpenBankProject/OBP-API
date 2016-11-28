@@ -429,6 +429,14 @@ object APIUtil extends Loggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
+  case class Catalogs(core : Boolean =false, psd2 : Boolean=false, obwg:Boolean=false)
+
+  val Core = true
+  val PSD2 = true
+  val OBWG = true
+  val notCore = false
+  val notPSD2 = false
+  val notOBWG = false
 
   // Used to document the API calls
   case class ResourceDoc(
@@ -442,9 +450,7 @@ object APIUtil extends Loggable {
     exampleRequestBody: JValue, // An example of the body required (maybe empty)
     successResponseBody: JValue, // A successful response body
     errorResponseBodies: List[JValue], // Possible error responses
-    isCore: Boolean,
-    isPSD2: Boolean,
-    isOBWG: Boolean,
+    catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )
 
