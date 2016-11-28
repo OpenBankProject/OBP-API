@@ -1,10 +1,12 @@
-package code.api.v2_0_1
+package code.api.v2_1_0
 
-import code.api.util.ErrorMessages
-import code.api.{DefaultUsers, ErrorMessage, ServerSetupWithTestData}
 import code.api.util.APIUtil.OAuth._
+import code.api.util.ApiRole._
+import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v2_0_0.TransactionRequestBodyJSON
+import code.api.{DefaultUsers, ServerSetupWithTestData}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, BankAccount, TransactionRequestId}
@@ -12,9 +14,6 @@ import net.liftweb.json.JsonAST.{JArray, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
-import code.api.util.ApiRole._
-import code.api.v2_0_0.TransactionRequestBodyJSON
-import code.api.v2_1_0.V210ServerSetup
 
 class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
 
@@ -534,12 +533,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         transactionRequests.size should not equal(0)
 
         //check transaction_ids again
-        transaction_id = (response.body \ "transaction_ids") match {
+        transaction_id = (response.body \ "transaction_requests_with_charges") match {
           case JArray(i) => i
           case _ => ""
         }
-        //TODO my1
-//        transaction_id should not equal("")
+        transaction_id should not equal("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         challenge = (response.body \ "challenge").children
@@ -897,12 +895,13 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         status should equal (code.transactionrequests.TransactionRequests.STATUS_INITIATED)
 
         var transaction_ids = (response.body \ "transaction_ids") match {
+          case JArray(i) if i.length ==1 => ""
           case JArray(i) => i
           case _ => ""
         }
 
         //TODO my2 why just changed the id->List ,it is not working
-//        transaction_ids should equal("")
+        transaction_ids should equal("")
 
         var challenge = (response.body \ "challenge").children
         challenge.size should not equal(0)

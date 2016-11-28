@@ -1,6 +1,6 @@
 package code.api
 
-import java.util.Date
+import java.util.{Date, UUID}
 
 import bootstrap.liftweb.ToSchemify
 import code.model._
@@ -9,7 +9,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.metadata.counterparties.MappedCounterpartyMetadata
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata}
 import code.transaction.MappedTransaction
 
 import scala.util.Random
@@ -27,11 +27,13 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5)).saveMe
   }
 
-  override protected def createCounterpartyMetadata(BankId:String,AccountId:String,iBan:String):CounterpartyMetadata = {
-    MappedCounterpartyMetadata.create.
-    thisAccountBankId(BankId).
-    thisAccountId(AccountId).
-    accountNumber(iBan).
+  override protected def createCounterparty(bankId:String, accountId:String, iBan:String):MappedCounterparty = {
+    MappedCounterparty.create.
+      mCounterPartyId(UUID.randomUUID().toString).
+      mAccountRoutingAddress(iBan).
+      mOtherBankId(bankId).
+      mOtherAccountId(accountId).
+      mIsBeneficiary(true).
     saveMe
   }
 

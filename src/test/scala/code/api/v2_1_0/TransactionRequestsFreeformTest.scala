@@ -523,12 +523,12 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         transactionRequests.size should not equal (0)
 
         //check transaction_ids again
-        transaction_id = (response.body \ "transaction_ids") match {
-          case JArray(i) => i
+        var transaction_id2 = (response.body \ "transaction_ids") match {
+          case JString(i) => i
+          case JArray(i) => i.length
           case _ => ""
         }
-        //TODO my3
-//        transaction_id should not equal ("")
+        transaction_id2 should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         challenge = (response.body \ "challenge").children
@@ -726,7 +726,6 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
 
         //call answerTransactionRequestChallenge again, give a good answer
         answerJson = ChallengeAnswerJSON(id = challenge_id, answer = "12345") //good answer, not a number
-        //TODO: why V4_1 does not work ??
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests" / transRequestId / "challenge").POST <@ (user1)
         response = makePostRequest(request, write(answerJson))
@@ -871,10 +870,11 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         status should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
 
         var transaction_ids = (response.body \ "transaction_ids") match {
-          case JArray(i) => i
+          case JString(i) => i
+          case JArray(i) => i.length
           case _ => ""
         }
-        //TODO my2
+
 //        transaction_ids should equal("")
 
         var challenge = (response.body \ "challenge").children
@@ -933,11 +933,11 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
         transaction_ids = (response.body \ "transaction_ids") match {
-          case JArray(i) => i
+          case JString(i) => i
+          case JArray(i) => i.length
           case _ => ""
         }
-        //TODO my2
-//        transaction_ids should not equal ("")
+        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -955,12 +955,10 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
           case JArray(i) => i
           case _ => ""
         }
-        //TODO m4
         transaction_ids should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         // challenge = (response.body \ "challenge").children
-        // TODO challenge.size should not equal(0)
 
         //check that we created a new transaction (since no challenge)
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -1286,3 +1284,4 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
     } */
   }
 }
+

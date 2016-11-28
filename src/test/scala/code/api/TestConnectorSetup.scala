@@ -3,7 +3,7 @@ package code.api
 import java.util.{Calendar, Date}
 
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.metadata.counterparties.MappedCounterpartyMetadata
+import code.metadata.counterparties.{MappedCounterparty}
 import code.model._
 import net.liftweb.util.Helpers._
 
@@ -14,8 +14,7 @@ trait TestConnectorSetup {
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
 
-  //TODO:  Here I use the createCounterpartyMetadata.accountNumber to replace the Iban. I will fix it when new version is comming.
-  protected def createCounterpartyMetadata(BankId:String,AccountId:String,iBan:String):CounterpartyMetadata
+  protected def createCounterparty(BankId:String, AccountId:String, iBan:String):MappedCounterparty
 
   final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val account = createAccount(bankId, accountId, currency)
