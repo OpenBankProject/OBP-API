@@ -215,17 +215,24 @@ private object LocalConnector extends Connector with Loggable {
     }
 
     val otherAccount = new Counterparty(
-      id = metadata.metadataId,
+      counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccount_.bank.get.IBAN.get),
-      number = otherAccount_.number.get,
-      bankName = otherAccount_.bank.get.name.get,
+      bankRoutingAddress = None, //TODO: need to add this to the json/model
+      accountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
+      otherBankId = otherAccount_.number.get,
+      thisBankId = otherAccount_.bank.get.name.get,
       kind = otherAccount_.kind.get,
-      originalPartyBankId = theAccount.bankId,
-      originalPartyAccountId = theAccount.accountId,
-      alreadyFoundMetadata = Some(metadata)
+      thisAccountId = theAccount.bankId,
+      otherAccountId = theAccount.accountId,
+      alreadyFoundMetadata = Some(metadata),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
     val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
@@ -365,17 +372,24 @@ private object LocalConnector extends Connector with Loggable {
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
     new Counterparty(
-      id = otherAccount.metadataId,
+      counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccountFromTransaction.bank.get.IBAN.get),
-      number = otherAccountFromTransaction.number.get,
-      bankName = otherAccountFromTransaction.bank.get.name.get,
+      bankRoutingAddress = None, //TODO: need to add this to the json/model
+      accountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
+      otherBankId = otherAccountFromTransaction.number.get,
+      thisBankId = otherAccountFromTransaction.bank.get.name.get,
       kind = "",
-      originalPartyBankId = originalPartyBankId,
-      originalPartyAccountId = originalPartyAccountId,
-      alreadyFoundMetadata = Some(otherAccount)
+      thisAccountId = originalPartyBankId,
+      otherAccountId = originalPartyAccountId,
+      alreadyFoundMetadata = Some(otherAccount),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
   }
 

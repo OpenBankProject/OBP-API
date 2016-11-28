@@ -493,7 +493,7 @@ trait View {
     if (canSeeTransactionOtherBankAccount)
     {
       //other account data
-      val otherAccountId = otherBankAccount.id
+      val otherAccountId = otherBankAccount.counterPartyId
       val otherAccountLabel: AccountName = {
         val realName = otherBankAccount.label
 
@@ -531,10 +531,10 @@ trait View {
 
       implicit def optionStringToString(x : Option[String]) : String = x.getOrElse("")
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
-      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.swift_bic else None
-      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.iban else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.bankName) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.number) else None
+      val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.bankRoutingAddress else None
+      val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.accountRoutingAddress else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.otherBankId) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){

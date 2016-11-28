@@ -19,6 +19,7 @@ import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.entitlement.Entitlement
 import code.fx.fx
+import code.metadata.counterparties.MappedCounterpartyMetadata
 import code.metadata.counterparties.Counterparties
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
@@ -27,11 +28,13 @@ import code.products.Products.ProductCode
 import net.liftweb.http.{CurrentReq, Req}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
+
 // Makes JValue assignment to Nil work
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
@@ -94,6 +97,7 @@ trait APIMethods210 {
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+
 
     lazy val sandboxDataImport: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       // Import data into the sandbox
@@ -217,8 +221,8 @@ trait APIMethods210 {
         |
         |""",
       Extraction.decompose(TransactionRequestBodyJSON (
-        TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
-        AmountOfMoneyJSON("EUR", "100.53"),
+        TransactionRequestAccountJSON("bank_id", "account_id"),
+        AmountOfMoneyJSON("eur", "100.53"),
         "A description for the transaction to be created"
       )
       ),
@@ -278,16 +282,7 @@ trait APIMethods210 {
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
 
-              transDetailsSerialized <- transactionRequestType.value match {
-                case "FREE_FORM" => tryo{
-                  implicit val formats = Serialization.formats(NoTypeHints)
-                  write(json)
-                }
-                case _ => tryo{
-                  implicit val formats = Serialization.formats(NoTypeHints)
-                  write(transDetailsJson)
-                }
-              }
+              amountOfMoneyJSON <- Full(AmountOfMoneyJSON(transDetails.value.currency, transDetails.value.amount))
 
               // Note: These store in the table TransactionRequestv210
               createdTransactionRequest <- transactionRequestType.value match {
@@ -296,16 +291,52 @@ trait APIMethods210 {
                     toBankId <- Full(BankId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id))
                     toAccountId <- Full(AccountId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
-
+                    transDetailsSerialized <- tryo {
+                      implicit val formats = Serialization.formats(NoTypeHints)
+                      write(json)
+                    }
                     createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
 
                 }
                 case "SEPA" => {
-                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                  for {
+                  //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
+                    toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
+                    mappedCounterpartyMetadata <- MappedCounterpartyMetadata.find(By(MappedCounterpartyMetadata.accountNumber, toIban)) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    toBankId <- Full(BankId(mappedCounterpartyMetadata.thisAccountBankId))
+                    toAccountId <- Full(AccountId(mappedCounterpartyMetadata.thisAccountId))
+                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+
+                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                    detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
+                    transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    transResponseDetails = getTransactionRequestDetailsSEPAResponseJSONFromJson(transactionRequestDetailsSEPAResponseJSON)
+
+                    //Serialize the new format SEPA data.
+                    transDetailsResponseSerialized <-tryo{
+                      implicit val formats = Serialization.formats(NoTypeHints)
+                      write(transResponseDetails)
+                    }
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                  } yield createdTransactionRequest
                 }
                 case "FREE_FORM" => {
-                  Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Empty, transactionRequestType, transDetails, transDetailsSerialized)
+                  for {
+                    // Following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
+                    // the Free form the discription is empty, so make it "" in the following code
+                    transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
+                    transResponseDetails <- Full(getTransactionRequestDetailsFreeFormResponseJson(transactionRequestDetailsFreeFormResponseJSON))
+
+                    transDetailsResponseSerialized<-tryo{
+                      implicit val formats = Serialization.formats(NoTypeHints)
+                      write(transResponseDetails)
+                    }
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(fromAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                  } yield
+                    createdTransactionRequest
                 }
               }
             } yield {
@@ -741,7 +772,7 @@ trait APIMethods210 {
           |  * charge : The charge to the customer for each one of these
           |
           |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
-      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
+      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("eur", "123"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),

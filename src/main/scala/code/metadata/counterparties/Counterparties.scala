@@ -28,10 +28,16 @@ trait Counterparties {
 
 trait CounterpartiesFields {
   def createdByUserId: String
-  def bankId: String
-  def accountId: String
-  def counterPartyBankId: String
+  def thisBankId: String
+  def thisAccountId: String
+  def otherBankId: String
+  def otherAccountId: String
+  def otherAccountProvider: String
   def counterPartyId: String
-  def primaryRoutingScheme: String
-  def primaryRoutingAddress: String
+  def accountRoutingScheme: String
+  def accountRoutingAddress: String
+  def bankRoutingScheme: String
+  def bankRoutingAddress: String
+  def isBeneficiary : Boolean
+
 }

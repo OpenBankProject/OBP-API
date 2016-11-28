@@ -40,6 +40,8 @@ import code.api.v2_0_0.TransactionRequestChargeJSON
 import code.metadata.counterparties.CounterpartiesFields
 import code.model._
 import code.transactionrequests.TransactionRequests._
+import code.model.{AmountOfMoney, Consumer, CounterpartyMetadataIban, Iban}
+import code.metadata.counterparties.CounterpartiesFields
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 
@@ -60,21 +62,36 @@ case class TransactionRequestDetailsSandBoxTanJSON(
                                       ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsSEPAJSON(
-                                                  value : AmountOfMoneyJSON,
-                                                  IBAN: String,
-                                                  description : String
-                                          ) extends TransactionRequestDetailsJSON
+                                              value: AmountOfMoneyJSON,
+                                              iban: String,
+                                              description: String
+                                            ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsSEPAResponseJSON(
+                                              iban: String,
+                                              to: TransactionRequestAccountJSON,
+                                              value: AmountOfMoneyJSON,
+                                              description: String
+                                            ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsFreeFormJSON(
                                                   value : AmountOfMoneyJSON
                                             ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsFreeFormResponseJSON(
+                                                         to: TransactionRequestAccountJSON,
+                                                         value: AmountOfMoneyJSON,
+                                                         description: String
+                                                       ) extends TransactionRequestDetailsJSON
+
+
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
                                              `type`: String,
                                              from: TransactionRequestAccountJSON,
                                              details: JValue,
-                                             transaction_ids: String,
+                                             transaction_ids: List[String],
                                              status: String,
                                              start_date: Date,
                                              end_date: Date,
@@ -201,12 +218,36 @@ object JSONFactory210{
   }
 
   def getTransactionRequestDetailsSEPAFromJson(details: TransactionRequestDetailsSEPAJSON) : TransactionRequestDetailsSEPA = {
+    val toAccIban = Iban (
+      iban = details.iban
+    )
     val amount = AmountOfMoney (
       currency = details.value.currency,
       amount = details.value.amount
     )
 
     TransactionRequestDetailsSEPA (
+      iban = details.iban,
+      value = amount,
+      description = details.description
+    )
+  }
+
+  def getTransactionRequestDetailsSEPAResponseJSONFromJson(details: TransactionRequestDetailsSEPAResponseJSON) : TransactionRequestDetailsSEPAResponse = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
+    )
+    val toAccIban = Iban (
+      iban = details.iban
+    )
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+    TransactionRequestDetailsSEPAResponse (
+      iban = details.iban,
+      to=toAcc,
       value = amount,
       description = details.description
     )
@@ -223,6 +264,23 @@ object JSONFactory210{
     )
   }
 
+  def getTransactionRequestDetailsFreeFormResponseJson(details: TransactionRequestDetailsFreeFormResponseJSON) : TransactionRequestDetailsFreeFormResponse = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
+    )
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+    TransactionRequestDetailsFreeFormResponse (
+      to=toAcc,
+      value = amount,
+      description = details.description
+    )
+  }
+
+
   /** Creates v2.1.0 representation of a TransactionType
     *
     * @param tr An internal TransactionRequest instance
@@ -238,7 +296,7 @@ object JSONFactory210{
         account_id = tr.from.account_id
       ),
       details = tr.details,
-      transaction_ids = tr.transaction_ids,
+      transaction_ids = tr.transaction_ids::Nil,
       status = tr.status,
       start_date = tr.start_date,
       end_date = tr.end_date,
@@ -278,8 +336,8 @@ object JSONFactory210{
       counterparty_id = metadata.metadataId,
       display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
       created_by_user_id = couterparty.createdByUserId,
-      used_by_account = UsedByAccountJSON(couterparty.bankId, couterparty.accountId),
-      primary_routing = PrimaryRoutingJSON(couterparty.primaryRoutingScheme, couterparty.primaryRoutingAddress),
+      used_by_account = UsedByAccountJSON(couterparty.thisBankId, couterparty.thisAccountId),
+      primary_routing = PrimaryRoutingJSON(couterparty.accountRoutingScheme, couterparty.accountRoutingAddress),
       metadata = CounterpartyMetadataJSON(public_alias = metadata.getPublicAlias,
         private_alias = metadata.getPrivateAlias,
         more_info = metadata.getMoreInfo,

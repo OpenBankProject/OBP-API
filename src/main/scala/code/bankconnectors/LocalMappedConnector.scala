@@ -146,17 +146,24 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = metadata.metadataId,
+        counterPartyId = metadata.metadataId,
         label = metadata.getHolder,
         nationalIdentifier = t.counterpartyNationalId.get,
-        swift_bic = None,
-        iban = t.getCounterpartyIban(),
-        number = metadata.getAccountNumber,
-        bankName = t.counterpartyBankName.get,
+        bankRoutingAddress = None,
+        accountRoutingAddress = t.getCounterpartyIban(),
+        otherBankId = metadata.getAccountNumber,
+        thisBankId = t.counterpartyBankName.get,
         kind = t.counterpartyAccountKind.get,
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata)
+        thisAccountId = thisAccountBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(metadata),
+
+        //TODO V210 following five fields are new, need to be fiexed
+        name = "",
+        bankRoutingScheme = "",
+        accountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
       )
     }
   }
@@ -177,17 +184,24 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = t.metadataId,
+        counterPartyId = t.metadataId,
         label = t.getHolder,
         nationalIdentifier = "",
-        swift_bic = None,
-        iban = None,
-        number = t.getAccountNumber,
-        bankName = "",
+        bankRoutingAddress = None,
+        accountRoutingAddress = None,
+        otherBankId = t.getAccountNumber,
+        thisBankId = "",
         kind = "",
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(t)
+        thisAccountId = thisAccountBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(t),
+
+        //TODO V210 following five fields are new, need to be fiexed
+        name = "",
+        bankRoutingScheme = "",
+        accountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
       )
     }
   }

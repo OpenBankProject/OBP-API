@@ -367,7 +367,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     //OtherBankAccountMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
       t.filter { e =>
-        if (e.otherAccount.number == metadata.getAccountNumber)
+        if (e.otherAccount.otherBankId == metadata.getAccountNumber)
           true
         else
           false
@@ -376,17 +376,24 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     val res = new Counterparty(
       //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-      id = metadata.metadataId,
+      counterPartyId = metadata.metadataId,
       label = metadata.getHolder,
       nationalIdentifier = t.otherAccount.nationalIdentifier,
-      swift_bic = None,
-      iban = t.otherAccount.iban,
-      number = metadata.getAccountNumber,
-      bankName = t.otherAccount.bankName,
+      bankRoutingAddress = None,
+      accountRoutingAddress = t.otherAccount.accountRoutingAddress,
+      otherBankId = metadata.getAccountNumber,
+      thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      originalPartyBankId = thisAccountBankId,
-      originalPartyAccountId = thisAccountId,
-      alreadyFoundMetadata = Some(metadata)
+      thisAccountId = thisAccountBankId,
+      otherAccountId = thisAccountId,
+      alreadyFoundMetadata = Some(metadata),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
     Full(res)
   }
@@ -985,17 +992,26 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   // Helper for creating other bank account
   def createCounterparty(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
-      id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+      counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
-      swift_bic = None,
-      iban = None,
-      number = c.account_number.getOrElse(""),
-      bankName = "",
+      bankRoutingAddress = None,
+      accountRoutingAddress = None,
+      otherBankId = c.account_number.getOrElse(""),
+      thisBankId = "",
       kind = "",
-      originalPartyBankId = BankId(o.bankId.value),
-      originalPartyAccountId = AccountId(o.accountId.value),
-      alreadyFoundMetadata = alreadyFoundMetadata
+      thisAccountId = BankId(o.bankId.value),
+      otherAccountId = AccountId(o.accountId.value),
+      alreadyFoundMetadata = alreadyFoundMetadata,
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
+
+
     )
   }
 
