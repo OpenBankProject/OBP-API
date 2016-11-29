@@ -14,6 +14,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
+import code.products.Products.ProductCode
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
@@ -25,7 +26,11 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
-import net.liftweb.common.{Box, Empty, Full, Failure, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
 
@@ -1015,6 +1020,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     )
   }
 
+  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
+
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
@@ -1226,5 +1235,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                        limit: BigDecimal,
                                        currency: String
                                         )
+
+
 }
 

@@ -9,6 +9,7 @@ import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionReques
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{Transaction, User, _}
+import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -16,6 +17,8 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 
 import scala.math.BigInt
 import scala.util.Random
@@ -687,5 +690,9 @@ trait Connector {
   def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean
 
   def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean
+
+  def getProducts(bankId : BankId) : Box[List[Product]]
+
+  def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product]
 
   }

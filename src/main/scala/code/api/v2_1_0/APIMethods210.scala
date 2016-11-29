@@ -928,10 +928,57 @@ trait APIMethods210 {
             else
               user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            product <- Box(Products.productsProvider.vend.getProduct(bankId, productCode, true)) ?~! {ErrorMessages.ProductNotFoundByProductCode}
+            product <- Connector.connector.vend.getProduct(bankId, productCode)?~! {ErrorMessages.ProductNotFoundByProductCode}
           } yield {
             // Format the data as json
-            val json = JSONFactory1_4_0.createProductJson(product)
+            val json = JSONFactory210.createProductJson(product)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getProducts,
+      apiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Bank Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+          |
+          |* Name
+          |* Code
+          |* Category
+          |* Family
+          |* Super Family
+          |* More info URL
+          |* Description
+          |* Terms and Conditions
+          |* License the data under this endpoint is released under
+          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get products from the active provider
+            u <- if(getProductsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            products <- Connector.connector.vend.getProducts(bankId)?~!  {ErrorMessages.ProductNotFoundByProductCode}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory210.createProductsJson(products)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }

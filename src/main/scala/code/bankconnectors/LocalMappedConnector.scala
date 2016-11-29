@@ -12,6 +12,8 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
@@ -772,6 +774,17 @@ Store one or more transactions
       }
 
     result.getOrElse(false)
+  }
+
+  override def getProducts(bankId: BankId): Box[List[Product]] = {
+    Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
+  }
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] ={
+    MappedProduct.find(
+      By(MappedProduct.mBankId, bankId.value),
+      By(MappedProduct.mCode, productCode.value)
+    )
   }
 
 }
