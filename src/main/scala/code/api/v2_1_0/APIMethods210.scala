@@ -954,8 +954,14 @@ trait APIMethods210 {
       Extraction.decompose(PostCounterpartyJSON(
         name = "",
         other_bank_id ="",
+        other_account_id="12345",
+        other_account_provider="OBP",
         account_routing_scheme="IBAN",
-        account_routing_address="7987987-2348987-234234")),
+        account_routing_address="7987987-2348987-234234",
+        bank_routing_scheme="BIC",
+        bank_routing_address="123456",
+        is_beneficiary = true
+      )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),
@@ -976,7 +982,10 @@ trait APIMethods210 {
               name=postJson.name,
               otherBankId =postJson.other_bank_id,
               accountRoutingScheme=postJson.account_routing_scheme,
-              accountRoutingAddress=postJson.account_routing_address)
+              accountRoutingAddress=postJson.account_routing_address,
+              bankRoutingScheme=postJson.bank_routing_scheme,
+              bankRoutingAddress=postJson.bank_routing_address
+            )
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
