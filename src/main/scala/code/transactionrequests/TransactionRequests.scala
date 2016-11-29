@@ -67,14 +67,29 @@ object TransactionRequests extends SimpleInjector {
                                       val description : String
                                     ) extends TransactionRequestDetails
 
-  case class TransactionRequestDetailsSEPA (
-                                                  val value : AmountOfMoney,
-                                                  val description : String
-                                           ) extends TransactionRequestDetails
+  case class TransactionRequestDetailsSEPA(
+                                            val iban: String,
+                                            val value: AmountOfMoney,
+                                            val description: String
+                                          ) extends TransactionRequestDetails
 
-  case class TransactionRequestDetailsFreeForm (
-                                                 val value : AmountOfMoney
-                                           ) extends TransactionRequestDetails
+  case class TransactionRequestDetailsSEPAResponse(
+                                            val iban: String,
+                                            val to: TransactionRequestAccount,
+                                            val value: AmountOfMoney,
+                                            val description: String
+                                          ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsFreeForm(
+                                                val value: AmountOfMoney
+                                              ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsFreeFormResponse(
+                                                     val to: TransactionRequestAccount,
+                                                     val value: AmountOfMoney,
+                                                     val description: String
+                                                   ) extends TransactionRequestDetails
+
 
   val transactionRequestProvider = new Inject(buildOne _) {}
 

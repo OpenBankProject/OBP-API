@@ -33,11 +33,11 @@ object MongoCounterparties extends Counterparties with Loggable {
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.id)
+    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterPartyId)
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.number)
+      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.otherBankId)
     }
 
     metadata
@@ -102,6 +102,8 @@ object MongoCounterparties extends Counterparties with Loggable {
   }
 
   def getCounterparty(counterPartyId : String): Box[CounterpartiesFields] = Empty
+
+  def getCounterpartyByIban(counterPartyId : String): Box[CounterpartiesFields] = Empty
 
   def addCounterparty(userId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields] = Empty
 }

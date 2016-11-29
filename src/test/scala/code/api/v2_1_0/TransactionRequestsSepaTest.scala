@@ -5,25 +5,25 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
-import code.api.v2_0_0.TransactionRequestBodyJSON
 import code.api.{DefaultUsers, ServerSetupWithTestData}
 import code.bankconnectors.Connector
 import code.fx.fx
-import code.model.{AccountId, BankAccount, TransactionRequestId}
+import code.model.{AccountId, BankAccount, CounterpartyMetadataIban, TransactionRequestId}
 import net.liftweb.json.JsonAST.{JArray, JString}
 import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 
-class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
+class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
 
   object TransactionRequest extends Tag("transactionRequests")
-    val transactionRequestType: String = "SANDBOX_TAN"
+
+  val transactionRequestType: String = "SEPA"
 
   feature("we can make transaction requests") {
     val view = "owner"
 
-    def transactionCount(accounts: BankAccount*) : Int = {
+    def transactionCount(accounts: BankAccount*): Int = {
       accounts.foldLeft(0)((accumulator, account) => {
         //TODO: might be nice to avoid direct use of the connector, but if we use an api call we need to do
         //it with the correct account owners, and be sure that we don't even run into pagination problems
@@ -36,12 +36,18 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {
+
         val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
 
         addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
@@ -75,11 +81,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //          val transactionRequestBody =  TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterParty2.mAccountRoutingAddress, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user3)
+          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user3)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -101,38 +108,40 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
         // Challenge should be null (none required)
         var challenge = (response.body \ "challenge").children
         challenge.size should equal(0)
 
         var transaction_ids = (response.body \ "transaction_ids") match {
-          case JArray(i) => i.length
+          case JString(i) => i
+          case JArray(i) => i
           case _ => ""
         }
         //If user does not have access to owner or other view - they won’t be able to view transaction. Hence they can’t see the transaction_id
-        transaction_ids should not equal("")
+
+        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-requests").GET <@(user1)
+          "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
         val transactionRequests = response.body.children
-        transactionRequests.size should not equal(0)
+        transactionRequests.size should not equal (0)
 
 
         val tr2Body = response.body
 
         //check transaction_ids again
         transaction_ids = (response.body \ "transaction_requests_with_charges" \ "transaction_ids") match {
-          case JArray(i) => i.length
+          case JArray(i) => i
           case _ => ""
         }
-        transaction_ids should not equal("")
+        transaction_ids should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         challenge = (response.body \ "challenge").children
@@ -140,7 +149,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that we created a new transaction (since no challenge)
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -159,7 +168,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
-        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the amount specified to pay")
@@ -192,6 +201,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
+
+
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
@@ -219,11 +234,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //      val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -243,27 +259,28 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
         // Challenge should be null (none required)
         var challenge = (response.body \ "challenge").children
         challenge.size should equal(0)
 
         var transaction_ids = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case JArray(i) => i
           case _ => ""
         }
-        transaction_ids should not equal("")
+        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-requests").GET <@(user1)
+          "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
         val transactionRequests = response.body.children
-        transactionRequests.size should not equal(0)
+        transactionRequests.size should not equal (0)
 
 
         val tr2Body = response.body
@@ -273,7 +290,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JArray(i) => i
           case _ => ""
         }
-        transaction_ids should not equal("")
+        transaction_ids should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         challenge = (response.body \ "challenge").children
@@ -281,7 +298,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that we created a new transaction (since no challenge)
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -291,7 +308,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         transactions.size should equal(1)
 
         //check that the description has been set
-        val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+        val description = (((response.body \ "transactions") (0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
         }
@@ -299,7 +316,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
-        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the amount specified to pay")
@@ -323,6 +340,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       ignore("we create a transaction request with a user without owner view access", TransactionRequest) {}
     } else {
       scenario("we create a transaction request with a user without owner view access", TransactionRequest) {
+
+
         val testBank = createBank("transactions-test-bank")
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
@@ -345,11 +364,19 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //          val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
+
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
+
 
         //call createTransactionRequest with a user without owner view access
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user2)
+          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user2)
         val response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 400 created code")
         response.code should equal(400)
@@ -360,7 +387,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case _ => ""
         }
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error should equal(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
 
       }
 
@@ -405,7 +432,15 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //          val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
+
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
+
 
         //call createTransactionRequest
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -420,7 +455,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case _ => ""
         }
         Then("We should have the error: " + ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-        error should equal (ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+        error should equal(ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
 
 
       }
@@ -446,6 +481,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -485,11 +525,14 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //          val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("AED", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
+
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
@@ -509,7 +552,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+        status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
 
         Then("we should not have a challenge object")
@@ -517,27 +560,29 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         challenge.size should equal(0)
 
         var transaction_id = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case JArray(i) => i
           case _ => ""
         }
-        transaction_id should not equal("")
+        transaction_id should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
-        request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-requests").GET <@(user1)
+        request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
+          "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
         val transactionRequests = response.body.children
-        transactionRequests.size should not equal(0)
+        transactionRequests.size should not equal (0)
 
         //check transaction_ids again
-        transaction_id = (response.body \ "transaction_requests_with_charges") match {
+        transaction_id = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case JArray(i) => i
           case _ => ""
         }
-        transaction_id should not equal("")
+        transaction_id should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         challenge = (response.body \ "challenge").children
@@ -545,7 +590,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that we created a new transaction (since no challenge)
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -556,31 +601,31 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         fromTransactions.size should equal(1)
 
         //check that the description has been set
-        val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+        val description = (((response.body \ "transactions") (0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
         }
         description should not equal ("")
 
         // Transaction Value
-        val actualFromAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+        val actualFromAmount = (((response.body \ "transactions") (0) \ "details") \ "value" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
 
         // We are debiting the amount
-        amt should equal (-1 * BigDecimal(actualFromAmount))
+        amt should equal(-1 * BigDecimal(actualFromAmount))
 
         // New Balance
-        val actualFromBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+        val actualFromBalance = (((response.body \ "transactions") (0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedFromNewBalance should equal (BigDecimal(actualFromBalance))
+        expectedFromNewBalance should equal(BigDecimal(actualFromBalance))
 
         //check that we created a new transaction (since no challenge)
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -591,28 +636,28 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         toTransactions.size should equal(1)
 
         //check that the description has been set
-        val toDescription = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+        val toDescription = (((response.body \ "transactions") (0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
         }
         description should not equal ("")
 
         // Transaction Value
-        val actualToAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+        val actualToAmount = (((response.body \ "transactions") (0) \ "details") \ "value" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedAmtTo should equal (BigDecimal(actualToAmount))
+        expectedAmtTo should equal(BigDecimal(actualToAmount))
 
         // New Balance
-        val actualToBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+        val actualToBalance = (((response.body \ "transactions") (0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedToNewBalance should equal (BigDecimal(actualToBalance))
+        expectedToNewBalance should equal(BigDecimal(actualToBalance))
 
 
-        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the original amount specified to pay")
@@ -677,10 +722,19 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(
-          toAccountJson,
-          bodyValue,
-          "Test Transaction Request description")
+        //          val transactionRequestBody = TransactionRequestBodyJSON(
+        //            toAccountJson,
+        //            bodyValue,
+        //            "Test Transaction Request description")
+
+
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
+
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
+
 
         //call createTransactionRequest API method
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -706,16 +760,16 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        transaction_id should equal ("")
+        transaction_id should equal("")
 
         var challenge = (response.body \ "challenge").children
-        challenge.size should not equal(0)
+        challenge.size should not equal (0)
 
         val challenge_id = (response.body \ "challenge" \ "id") match {
           case JString(s) => s
           case _ => ""
         }
-        challenge_id should not equal("")
+        challenge_id should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v1_4Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -731,10 +785,10 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        transaction_id should equal ("")
+        transaction_id should equal("")
 
         challenge = (response.body \ "challenge").children
-        challenge.size should not equal(0)
+        challenge.size should not equal (0)
 
         //3. answer challenge and check if transaction is being created
         //call answerTransactionRequestChallenge, give a false answer
@@ -786,7 +840,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         transaction_id should not equal ("")
 
         challenge = (response.body \ "challenge").children
-        challenge.size should not equal(0)
+        challenge.size should not equal (0)
 
         //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
@@ -810,7 +864,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
     }
 
 
-//     With Challenge, with FX
+    //     With Challenge, with FX
     if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create an FX transaction request with challenge", TransactionRequest) {}
     } else {
@@ -871,16 +925,23 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        //          val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+        val counterpartyMetadataIban1 = CounterpartyMetadataIban("iBan1");
+        val counterpartyMetadataIban2 = CounterpartyMetadataIban("iBan2");
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value);
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value);
+
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("AED", amt.toString()), counterpartyMetadata2.mAccountRoutingAddress, "Test Transaction Request description")
+
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@(user1)
+          "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
         var response = makePostRequest(request, write(transactionRequestBody))
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
+        //created a transaction request, check some return values. As type is SEPA, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -892,25 +953,22 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
           case JString(i) => i
           case _ => ""
         }
-        status should equal (code.transactionrequests.TransactionRequests.STATUS_INITIATED)
+        status should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
 
-        var transaction_ids = (response.body \ "transaction_ids") match {
-          case JArray(i) if i.length ==1 => ""
-          case JArray(i) => i
+        var transaction_ids1 = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case _ => ""
         }
-
-        //TODO my2 why just changed the id->List ,it is not working
-        transaction_ids should equal("")
+        transaction_ids1 should equal("")
 
         var challenge = (response.body \ "challenge").children
-        challenge.size should not equal(0)
+        challenge.size should not equal (0)
 
         val challenge_id = (response.body \ "challenge" \ "id") match {
           case JString(s) => s
           case _ => ""
         }
-        challenge_id should not equal("")
+        challenge_id should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -922,11 +980,11 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         var transactionRequests = response.body.children
 
         transactionRequests.size should equal(1)
-        transaction_ids = (response.body \ "transaction_ids") match {
-          case JArray(i) => i
+        var transaction_ids2 = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case _ => ""
         }
-        transaction_ids should equal ("")
+        transaction_ids2 should equal("")
 
         //Then("we should have a challenge object")
         //challenge = (response.body \ "challenge").children
@@ -958,30 +1016,31 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         }
         status should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
 
-        transaction_ids = (response.body \ "transaction_ids") match {
+        var transaction_ids = (response.body \ "transaction_ids") match {
+          case JString(i) => i
           case JArray(i) => i
           case _ => ""
         }
-        //TODO my2 why just changed the id->List ,it is not working
-//        transaction_ids should not equal ("")
+        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transaction-requests").GET <@(user1)
+          "owner" / "transaction-requests").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
         response.code should equal(200)
         transactionRequests = response.body.children
 
-        transactionRequests.size should not equal(0)
+        transactionRequests.size should not equal (0)
 
         //check transaction_ids again
         transaction_ids = (response.body \ "transaction_requests_with_charges" \ "transaction_ids") match {
+          case JString(i) => i
           case JArray(i) => i
           case _ => ""
         }
-        transaction_ids should not equal("")
+        transaction_ids should not equal ("")
 
         //make sure that we also get no challenges back from this url (after getting from db)
         // challenge = (response.body \ "challenge").children
@@ -989,7 +1048,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         //check that we created a new transaction (since no challenge)
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -1000,31 +1059,31 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         fromTransactions.size should equal(1)
 
         //check that the description has been set
-        val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+        val description = (((response.body \ "transactions") (0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
         }
         description should not equal ("")
 
         // Transaction Value
-        val actualFromAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+        val actualFromAmount = (((response.body \ "transactions") (0) \ "details") \ "value" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
 
         // We are debiting the amount
-        amt should equal (-1 * BigDecimal(actualFromAmount))
+        amt should equal(-1 * BigDecimal(actualFromAmount))
 
         // New Balance
-        val actualFromBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+        val actualFromBalance = (((response.body \ "transactions") (0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedFromNewBalance should equal (BigDecimal(actualFromBalance))
+        expectedFromNewBalance should equal(BigDecimal(actualFromBalance))
 
         //check that we created a new transaction
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / toAccount.accountId.value /
-          "owner" / "transactions").GET <@(user1)
+          "owner" / "transactions").GET <@ (user1)
         response = makeGetRequest(request)
 
         Then("we should get a 200 ok code")
@@ -1035,28 +1094,28 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         toTransactions.size should equal(1)
 
         //check that the description has been set
-        val toDescription = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+        val toDescription = (((response.body \ "transactions") (0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
         }
         description should not equal ("")
 
         // Transaction Value
-        val actualToAmount  = (((response.body \ "transactions")(0) \ "details") \ "value" \ "amount") match {
+        val actualToAmount = (((response.body \ "transactions") (0) \ "details") \ "value" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedAmtTo should equal (BigDecimal(actualToAmount))
+        expectedAmtTo should equal(BigDecimal(actualToAmount))
 
         // New Balance
-        val actualToBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
+        val actualToBalance = (((response.body \ "transactions") (0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedToNewBalance should equal (BigDecimal(actualToBalance))
+        expectedToNewBalance should equal(BigDecimal(actualToBalance))
 
 
-        val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
+        val rate = fx.exchangeRate(fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
         val fromAccountBalance = getFromAccount.balance
         And("the from account should have a balance smaller by the original amount specified to pay")

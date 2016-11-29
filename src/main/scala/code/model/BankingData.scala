@@ -112,6 +112,12 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
+case class  CounterpartyMetadataIban(val value : String) {
+override def toString = value
+}
+object  CounterpartyMetadataIban {
+  def unapply(id : String) = Some(CounterpartyMetadataIban(id))
+}
 
 case class CustomerId(val value : String) {
   override def toString = value
@@ -571,18 +577,28 @@ as see from the perspective of the original party.
  */
 
 class Counterparty(
-  val id : String,
-  val label : String,               // Reference given to the counterparty by the original party.
-  val nationalIdentifier : String,  // National identifier for a bank account (how is this different to number below?)
-  val swift_bic : Option[String],   // The international bank identifier
-  val iban : Option[String],        // The international account identifier
-  val number : String,              // Bank account number for the counterparty
-  val bankName : String,            // Bank name of counterparty. What if the counterparty is not a bank? Rename to institution?
-  val kind : String,                // Type of bank account.
-  val originalPartyBankId: BankId, //bank id of the party for which this OtherBankAccount is the counterparty
-  val originalPartyAccountId: AccountId, //account id of the party for which this OtherBankAccount is the counterparty
-  val alreadyFoundMetadata : Option[CounterpartyMetadata]
-  ) {
+
+                    // The following four fields are older version, pleae first consider the V210
+                    @(deprecated) val nationalIdentifier : String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    val alreadyFoundMetadata : Option[CounterpartyMetadata],
+                    val label : String, // Reference given to the counterparty by the original party.
+                    val kind : String, // Type of bank account.
+
+                    // The following fields started from V210
+                    val counterPartyId: String,
+                    val name: String,
+                    val accountRoutingScheme :String,// This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    val accountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
+                    val bankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+                    val bankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
+                    val thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
+                    val thisAccountId: BankId, // These 2 fields specify the account that uses this Counterparty
+                    val otherBankId : String, // These 3 fields specify the internal locaiton of the account for the
+                    val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
+                    val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
+                    val isBeneficiary: Boolean  // True if the originAccount can send money to the Counterparty
+  )
+{
 
   val metadata : CounterpartyMetadata = {
     // If we already have alreadyFoundMetadata, return it, else get or create it.
@@ -590,7 +606,7 @@ class Counterparty(
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(originalPartyBankId, originalPartyAccountId, this)
+        Counterparties.counterparties.vend.getOrCreateMetadata(thisAccountId, otherAccountId, this)
     }
   }
 }
@@ -658,4 +674,8 @@ class Transaction(
 case class AmountOfMoney (
   val currency: String,
   val amount: String
+)
+
+case class Iban(
+  val iban: String
 )

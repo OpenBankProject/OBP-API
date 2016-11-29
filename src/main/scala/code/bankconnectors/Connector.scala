@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionRequestDetailsSEPAJSON, TransactionRequestDetailsSandBoxTanJSON}
+import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionRequestDetailsSEPAResponseJSON, TransactionRequestDetailsSandBoxTanJSON}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{Transaction, User, _}
@@ -397,7 +397,9 @@ trait Connector {
         case "SANDBOX_TAN" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
         case "SEPA" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSEPAResponse].description)
+        case "FREE_FORM" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), "")
       }
 
       //set challenge to null
