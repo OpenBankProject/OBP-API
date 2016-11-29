@@ -25,7 +25,16 @@ trait Counterparties {
 
   def getCounterpartyByIban(iBan : String): Box[CounterpartyTrait]
 
-  def createCounterparty(createdByUserId: String, thisBankId: String, thisAccountId : String, name: String, otherBankId : String, accountRoutingScheme : String, accountRoutingAddress : String): Box[CounterpartyTrait]
+  def createCounterparty(createdByUserId: String,
+                         thisBankId: String,
+                         thisAccountId : String,
+                         name: String,
+                         otherBankId : String,
+                         accountRoutingScheme : String,
+                         accountRoutingAddress : String,
+                         bankRoutingScheme : String,
+                         bankRoutingAddress : String
+                        ): Box[CounterpartyTrait]
 }
 
 trait CounterpartyTrait {

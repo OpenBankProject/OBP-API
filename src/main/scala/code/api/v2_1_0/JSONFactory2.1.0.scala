@@ -111,9 +111,15 @@ case class ConsumerJSONs(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
                                 other_bank_id: String,
+                                other_account_id: String,
+                                other_account_provider: String,
                                 account_routing_scheme: String,
-                                account_routing_address: String
+                                account_routing_address: String,
+                                bank_routing_scheme: String,
+                                bank_routing_address: String,
+                                is_beneficiary: Boolean
                                )
+
 
 case class CounterpartiesJSON(
                               counterpaties: List[CounterpartyJSON]
@@ -124,7 +130,8 @@ case class CounterpartyJSON(
                              display: CounterpartyNameJSON,
                              created_by_user_id: String,
                              this_account: UsedByAccountJSON,
-                             account_routing: PrimaryRoutingJSON,
+                             account_routing: AccountRoutingJSON,
+                             bank_routing: BankRoutingJSON,
                              metadata: CounterpartyMetadataJSON
                            )
 
@@ -139,10 +146,16 @@ case class CounterpartyMetadataJSON(
                                      physical_location: LocationJSON
                                    )
 
-case class PrimaryRoutingJSON(
+case class AccountRoutingJSON(
                                scheme: String,
                                address: String
                              )
+
+case class BankRoutingJSON(
+                               scheme: String,
+                               address: String
+                             )
+
 
 case class UsedByAccountJSON(
                               bank_id: String,
@@ -392,7 +405,8 @@ object JSONFactory210{
       display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
       created_by_user_id = couterparty.createdByUserId,
       this_account = UsedByAccountJSON(couterparty.thisBankId, couterparty.thisAccountId),
-      account_routing = PrimaryRoutingJSON(couterparty.accountRoutingScheme, couterparty.accountRoutingAddress),
+      account_routing = AccountRoutingJSON(couterparty.accountRoutingScheme, couterparty.accountRoutingAddress),
+      bank_routing = BankRoutingJSON(couterparty.bankRoutingScheme, couterparty.bankRoutingAddress),
       metadata = CounterpartyMetadataJSON(public_alias = metadata.getPublicAlias,
         private_alias = metadata.getPrivateAlias,
         more_info = metadata.getMoreInfo,

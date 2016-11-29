@@ -121,7 +121,10 @@ object MapperCounterparties extends Counterparties with Loggable {
                                   name: String,
                                   otherBankId : String,
                                   accountRoutingScheme : String,
-                                  accountRoutingAddress : String): Box[CounterpartyTrait] = {
+                                  accountRoutingAddress : String,
+                                  bankRoutingScheme : String,
+                                  bankRoutingAddress : String
+                                 ): Box[CounterpartyTrait] = {
     val metadata = MappedCounterpartyMetadata.create
                                               .thisAccountBankId(thisBankId)
                                               .thisAccountId(thisAccountId)
@@ -137,6 +140,8 @@ object MapperCounterparties extends Counterparties with Loggable {
       .mCounterPartyId(metadata.metadataId)
       .mAccountRoutingScheme(accountRoutingScheme)
       .mAccountRoutingAddress(accountRoutingAddress)
+      .mBankRoutingScheme(bankRoutingScheme)
+      .mBankRoutingAddress(bankRoutingAddress)
       .saveMe()
     )
   }

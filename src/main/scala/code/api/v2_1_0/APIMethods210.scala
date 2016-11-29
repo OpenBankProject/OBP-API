@@ -225,7 +225,7 @@ trait APIMethods210 {
         |""",
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("bank_id", "account_id"),
-        AmountOfMoneyJSON("eur", "100.53"),
+        AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to be created"
       )
       ),
@@ -306,10 +306,10 @@ trait APIMethods210 {
                   for {
                   //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
-                    counterpartiesFields <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
-                    isBeneficiary <- booleanToBox(counterpartiesFields.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(counterpartiesFields.otherBankId ))
-                    toAccountId <- Full(AccountId(counterpartiesFields.otherAccountId))
+                    counterparty <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    toBankId <- Full(BankId(counterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
                     // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
@@ -1001,8 +1001,14 @@ trait APIMethods210 {
       Extraction.decompose(PostCounterpartyJSON(
         name = "",
         other_bank_id ="",
+        other_account_id="12345",
+        other_account_provider="OBP",
         account_routing_scheme="IBAN",
-        account_routing_address="7987987-2348987-234234")),
+        account_routing_address="7987987-2348987-234234",
+        bank_routing_scheme="BIC",
+        bank_routing_address="123456",
+        is_beneficiary = true
+      )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),
@@ -1017,13 +1023,17 @@ trait APIMethods210 {
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ "invalid json"
+            // TODO ensure counterparty is unique for bank_id/account_id/view_id
             couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
               name=postJson.name,
               otherBankId =postJson.other_bank_id,
               accountRoutingScheme=postJson.account_routing_scheme,
-              accountRoutingAddress=postJson.account_routing_address)
+              accountRoutingAddress=postJson.account_routing_address,
+              bankRoutingScheme=postJson.bank_routing_scheme,
+              bankRoutingAddress=postJson.bank_routing_address
+            )
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
