@@ -2,9 +2,8 @@ package code.kycmedias
 
 import java.util.Date
 
-import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
-import code.util.{DefaultStringField}
+import code.util.DefaultStringField
+import net.liftweb.common.{Box,Full}
 import net.liftweb.mapper._
 
 object MappedKycMediasProvider extends KycMediaProvider {
@@ -16,16 +15,32 @@ object MappedKycMediasProvider extends KycMediaProvider {
   }
 
 
-  override def addKycMedias(id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String): Boolean = {
-    MappedKycMedia.create
-      .mId(id)
-      .mCustomerNumber(customerNumber)
-      .mType(`type`)
-      .mUrl(url)
-      .mDate(date)
-      .mRelatesToKycDocumentId(relatesToKycDocumentId)
-      .mRelatesToKycCheckId(relatesToKycCheckId)
-      .save()
+  override def addKycMedias(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, url: String, date: Date, relatesToKycDocumentId: String, relatesToKycCheckId: String): Box[KycMedia] = {
+    val kyc_media = MappedKycMedia.find(By(MappedKycMedia.mId, id)) match {
+      case Full(media) => media
+        .mId(id)
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mCustomerNumber(customerNumber)
+        .mType(`type`)
+        .mUrl(url)
+        .mDate(date)
+        .mRelatesToKycDocumentId(relatesToKycDocumentId)
+        .mRelatesToKycCheckId(relatesToKycCheckId)
+        .saveMe()
+      case _ => MappedKycMedia.create
+        .mId(id)
+        .mBankId(bankId)
+        .mCustomerId(customerId)
+        .mCustomerNumber(customerNumber)
+        .mType(`type`)
+        .mUrl(url)
+        .mDate(date)
+        .mRelatesToKycDocumentId(relatesToKycDocumentId)
+        .mRelatesToKycCheckId(relatesToKycCheckId)
+        .saveMe()
+    }
+    Full(kyc_media)
   }
 }
 
@@ -34,8 +49,8 @@ with LongKeyedMapper[MappedKycMedia] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedKycMedia
 
-  object user extends MappedLongForeignKey(this, APIUser)
-  object bank extends DefaultStringField(this)
+  object mBankId extends MappedString(this, 255)
+  object mCustomerId extends MappedString(this, 255)
 
   object mId extends DefaultStringField(this)
   object mCustomerNumber extends DefaultStringField(this)
@@ -46,6 +61,8 @@ with LongKeyedMapper[MappedKycMedia] with IdPK with CreatedUpdated {
   object mRelatesToKycCheckId extends DefaultStringField(this)
 
 
+  override def bankId: String = mBankId.get
+  override def customerId: String = mCustomerId.get
   override def idKycMedia: String = mId.get
   override def customerNumber: String = mCustomerNumber.get
   override def `type`: String = mType.get

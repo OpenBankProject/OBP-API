@@ -69,10 +69,14 @@ object CreateTestAccountForm{
    * @return a box containing the created account or reason for account creation failure
    */
   def createAccount(accountId : AccountId, bankId : BankId, accountType: String, accountLabel: String, currency : String, initialBalance : String) : Box[BankAccount] =  {
+
+    val currencies = code.fx.fx.exchangeRates.keys.toList
+
     if(accountId.value == "") Failure("Account id cannot be empty")
     else if(bankId.value == "") Failure("Bank id cannot be empty")
     else if(currency == "") Failure("Currency cannot be empty")
     else if(initialBalance == "") Failure("Initial balance cannot be empty")
+    else if(!currencies.exists(_ == currency)) Failure("Allowed currencies are: " + currencies.mkString(", "))
     else {
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"

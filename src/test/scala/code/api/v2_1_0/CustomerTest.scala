@@ -1,17 +1,18 @@
-package code.api.v2_0_0
+package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
 
 import code.api.DefaultUsers
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
-import code.customer.MappedCustomer
-import code.model.BankId
-import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
+import code.customer.MappedCustomer
 import code.entitlement.Entitlement
+import code.model.BankId
 import net.liftweb.json.Serialization.write
+import code.api.util.APIUtil.OAuth._
 
-class CustomerTest extends V200ServerSetup with DefaultUsers {
+class CustomerTest extends V210ServerSetup with DefaultUsers {
 
   val exampleDateString: String = "22/08/2013"
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -36,7 +37,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       Given("The bank in question has customer info")
       val testBank = mockBankId
 
-      val customerPostJSON = CreateCustomerJson(
+      val customerPostJSON = PostCustomerJson(
         user_id = obpuser1.userId,
         customer_number = mockCustomerNumber,
         legal_name = "Someone",
@@ -47,13 +48,15 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
         relationship_status = "Single",
         dependants = 1,
         dob_of_dependants = List(exampleDate),
+        credit_rating = CustomerCreditRatingJSON(rating = "5", source = "Credit biro"),
+        credit_limit = AmountOfMoneyJSON(currency = "EUR", amount = "5000"),
         highest_education_attained = "Bachelor’s Degree",
         employment_status = "Employed",
         kyc_status = true,
         last_ok_date = exampleDate
       )
 
-      val requestPost = (v2_0Request / "banks" / testBank.value / "customers").POST <@ (user1)
+      val requestPost = (v2_1Request / "banks" / testBank.value / "customers").POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
       Then("We should get a 400")
       responsePost.code should equal(400)
@@ -73,7 +76,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val infoPost = responsePost2.body.extract[CustomerJson]
 
       When("We make the request")
-      val requestGet = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / testBank.value / "customer").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")

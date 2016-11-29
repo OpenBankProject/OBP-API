@@ -58,7 +58,13 @@ object MappedCustomerProvider extends CustomerProvider {
     ).flatMap(_.mUser.obj)
   }
 
-  override def addCustomer(bankId: BankId, user : User, number : String, legalName : String, mobileNumber : String, email : String, faceImage: CustomerFaceImage,
+  override def addCustomer(bankId: BankId,
+                           user : User,
+                           number : String,
+                           legalName : String,
+                           mobileNumber : String,
+                           email : String,
+                           faceImage: CustomerFaceImage,
                            dateOfBirth: Date,
                            relationshipStatus: String,
                            dependents: Int,
@@ -66,7 +72,20 @@ object MappedCustomerProvider extends CustomerProvider {
                            highestEducationAttained: String,
                            employmentStatus: String,
                            kycStatus: Boolean,
-                           lastOkDate: Date) : Box[Customer] = {
+                           lastOkDate: Date,
+                           creditRating: Option[CreditRating],
+                           creditLimit: Option[AmountOfMoney]
+                          ) : Box[Customer] = {
+
+    val cr = creditRating match {
+      case Some(c) => MockCreditRating(rating = c.rating, source = c.source)
+      case _       => MockCreditRating(rating = "", source = "")
+    }
+
+    val cl = creditLimit match {
+      case Some(c) => MockCreditLimit(currency = c.currency, amount = c.amount)
+      case _       => MockCreditLimit(currency = "", amount = "")
+    }
 
     val createdCustomer = MappedCustomer.create
       .mBank(bankId.value)
@@ -84,6 +103,10 @@ object MappedCustomerProvider extends CustomerProvider {
       .mEmploymentStatus(employmentStatus)
       .mKycStatus(kycStatus)
       .mLastOkDate(lastOkDate)
+      .mCreditRating(cr.rating)
+      .mCreditSource(cr.source)
+      .mCreditLimitCurrency(cl.currency)
+      .mCreditLimitAmount(cl.amount)
       .saveMe()
 
     Some(createdCustomer)
@@ -111,6 +134,10 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   object mDependents extends MappedInt(this)
   object mHighestEducationAttained  extends DefaultStringField(this)
   object mEmploymentStatus extends DefaultStringField(this)
+  object mCreditRating extends MappedString(this, 100)
+  object mCreditSource extends MappedString(this, 100)
+  object mCreditLimitCurrency extends MappedString(this, 100)
+  object mCreditLimitAmount extends MappedString(this, 100)
   object mKycStatus extends MappedBoolean(this)
   object mLastOkDate extends MappedDateTime(this)
 
@@ -130,6 +157,14 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
   override def dobOfDependents: List[Date] = List(createdAt.get)
   override def highestEducationAttained: String = mHighestEducationAttained.get
   override def employmentStatus: String = mEmploymentStatus.get
+  override def creditRating: CreditRating = new CreditRating {
+    override def rating: String = mCreditRating.get
+    override def source: String = mCreditSource.get
+  }
+  override def creditLimit: AmountOfMoney = new AmountOfMoney {
+    override def currency: String = mCreditLimitCurrency.get
+    override def amount: String = mCreditLimitAmount.get
+  }
   override def kycStatus: Boolean = mKycStatus.get
   override def lastOkDate: Date = mLastOkDate.get
 }

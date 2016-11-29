@@ -45,7 +45,19 @@ object ApiRole {
   case object CanGetEntitlementsForAnyUserAtOneBank extends ApiRole{
     val requiresBankId = true
   }
+  case object CanCreateEntitlementAtOneBank extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanDeleteEntitlementAtOneBank extends ApiRole{
+    val requiresBankId = true
+  }
   case object CanGetEntitlementsForAnyUserAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanCreateEntitlementAtAnyBank extends ApiRole{
+    val requiresBankId = false
+  }
+  case object CanDeleteEntitlementAtAnyBank extends ApiRole{
     val requiresBankId = false
   }
   case object CanGetConsumers extends ApiRole{
@@ -56,6 +68,15 @@ object ApiRole {
   }
   case object CanEnableConsumers extends ApiRole{
     val requiresBankId = false
+  }
+  case object CanCreateTransactionType extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateCardsForBank extends ApiRole{
+    val requiresBankId = true
+  }
+  case object CanCreateUserCustomerLink extends ApiRole{
+    val requiresBankId = true
   }
 
   def valueOf(value: String): ApiRole = value match {
@@ -72,10 +93,17 @@ object ApiRole {
     case "CanGetSocialMediaHandles" => CanGetSocialMediaHandles
     case "CanCreateSandbox" => CanCreateSandbox
     case "CanGetEntitlementsForAnyUserAtOneBank" => CanGetEntitlementsForAnyUserAtOneBank
+    case "CanCreateEntitlementAtOneBank" => CanCreateEntitlementAtOneBank
+    case "CanDeleteEntitlementAtOneBank" => CanDeleteEntitlementAtOneBank
     case "CanGetEntitlementsForAnyUserAtAnyBank" => CanGetEntitlementsForAnyUserAtAnyBank
+    case "CanCreateEntitlementAtAnyBank" => CanCreateEntitlementAtAnyBank
+    case "CanDeleteEntitlementAtAnyBank" => CanDeleteEntitlementAtAnyBank
     case "CanGetConsumers" => CanGetConsumers
     case "CanDisableConsumers" => CanDisableConsumers
     case "CanEnableConsumers" => CanEnableConsumers
+    case "CanCreateTransactionType" => CanCreateTransactionType
+    case "CanCreateCardsForBank" => CanCreateCardsForBank
+    case "CanCreateUserCustomerLink" => CanCreateUserCustomerLink
     case _ => throw new IllegalArgumentException()
   }
 
@@ -92,10 +120,17 @@ object ApiRole {
                       "CanGetSocialMediaHandles" ::
                       "CanCreateSandbox" ::
                       "CanGetEntitlementsForAnyUserAtOneBank" ::
+                      "CanCreateEntitlementAtOneBank" ::
+                      "CanDeleteEntitlementAtOneBank" ::
                       "CanGetEntitlementsForAnyUserAtAnyBank" ::
+                      "CanCreateEntitlementAtAnyBank" ::
+                      "CanDeleteEntitlementAtAnyBank" ::
                       "CanGetConsumers" ::
                       "CanDisableConsumers" ::
                       "CanEnableConsumers" ::
+                      "CanCreateTransactionType"::
+                      "CanCreateCardsForBank" ::
+                      "CanCreateUserCustomerLink" ::
                        Nil
 
 }

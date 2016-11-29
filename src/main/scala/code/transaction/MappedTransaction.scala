@@ -84,19 +84,26 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val amt = Helper.smallestCurrencyUnitToBigDecimal(amount.get, transactionCurrency)
       val newBalance = Helper.smallestCurrencyUnitToBigDecimal(newAccountBalance.get, transactionCurrency)
 
-      def createOtherBankAccount(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+      def createCounterparty(alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
         new Counterparty(
-          id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+          counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = counterpartyAccountHolder.get,
           nationalIdentifier = counterpartyNationalId.get,
-          swift_bic = None, //TODO: need to add this to the json/model
-          iban = getCounterpartyIban(),
-          number = counterpartyAccountNumber.get,
-          bankName = counterpartyBankName.get,
+          bankRoutingAddress = None, //TODO: need to add this to the json/model
+          accountRoutingAddress = getCounterpartyIban(),
+          otherBankId = counterpartyAccountNumber.get,
+          thisBankId = counterpartyBankName.get,
           kind = counterpartyAccountKind.get,
-          originalPartyBankId = theBankId,
-          originalPartyAccountId = theAccountId,
-          alreadyFoundMetadata = alreadyFoundMetadata
+          thisAccountId = theBankId,
+          otherAccountId = theAccountId,
+          alreadyFoundMetadata = alreadyFoundMetadata,
+
+          //TODO V210 following five fields are new, need to be fiexed
+          name = "",
+          bankRoutingScheme = "",
+          accountRoutingScheme="",
+          otherAccountProvider = "",
+          isBeneficiary = true
         )
       }
 
@@ -106,11 +113,11 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       //so that we know what id to give it.
 
       //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-      val dummyOtherBankAccount = createOtherBankAccount(None)
+      val dummyOtherBankAccount = createCounterparty(None)
 
       //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
       //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-      val otherAccount = createOtherBankAccount(Some(dummyOtherBankAccount.metadata))
+      val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
 
       Some(new Transaction(
         transactionUUID.get,

@@ -2,6 +2,7 @@ package code.kycdocuments
 
 import java.util.Date
 import net.liftweb.util.SimpleInjector
+import net.liftweb.common.{Box}
 
 
 object KycDocuments extends SimpleInjector {
@@ -14,13 +15,15 @@ object KycDocuments extends SimpleInjector {
 
 trait KycDocumentProvider {
 
-  def getKycDocuments(customerNumber: String) : List[KycDocument]
+  def getKycDocuments(customerId: String) : List[KycDocument]
 
-  def addKycDocuments(id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date) : Boolean
+  def addKycDocuments(bankId: String, customerId: String, id: String, customerNumber: String, `type`: String, number: String, issueDate: Date, issuePlace: String, expiryDate: Date) : Box[KycDocument]
 
 }
 
 trait KycDocument {
+  def bankId: String
+  def customerId: String
   def idKycDocument : String
   def customerNumber : String
   def `type` : String

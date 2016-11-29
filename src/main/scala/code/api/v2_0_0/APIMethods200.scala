@@ -2,6 +2,7 @@ package code.api.v2_0_0
 
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.APIFailure
@@ -13,6 +14,7 @@ import code.api.v1_2_1.{APIMethods121, AmountOfMoneyJSON => AmountOfMoneyJSON121
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.entitlement.Entitlement
+import code.model.BankId
 import code.search.{elasticsearchMetrics, elasticsearchWarehouse}
 import net.liftweb.http.CurrentReq
 //import code.api.v2_0_0.{CreateCustomerJson}
@@ -145,9 +147,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -175,9 +175,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
 
@@ -220,9 +218,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
 
@@ -261,9 +257,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData)
     )
 
@@ -295,9 +289,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagAccount, apiTagPrivateData))
 
     apiRelations += ApiRelation(privateAccountsAtOneBank, createAccount, "new")
@@ -358,9 +350,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount, apiTagPublicData))
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -390,9 +380,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycDocuments  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -402,7 +390,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customer.number)
+            val kycDocuments = KycDocuments.kycDocumentProvider.vend.getKycDocuments(customerId)
             val json = JSONFactory200.createKycDocumentsJSON(kycDocuments)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -424,9 +412,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-    false,
-    false,
-    false,
+    Catalogs(notCore,notPSD2,notOBWG),
     List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycMedia  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -458,9 +444,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycChecks  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -470,7 +454,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customer.number)
+            val kycChecks = KycChecks.kycCheckProvider.vend.getKycChecks(customerId)
             val json = JSONFactory200.createKycChecksJSON(kycChecks)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -490,9 +474,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getKycStatuses  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -502,7 +484,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
-            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customer.number)
+            val kycStatuses = KycStatuses.kycStatusProvider.vend.getKycStatuses(customerId)
             val json = JSONFactory200.createKycStatusesJSON(kycStatuses)
             successJsonResponse(Extraction.decompose(json))
           }
@@ -523,9 +505,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc))
 
     lazy val getSocialMediaHandles  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -534,7 +514,7 @@ trait APIMethods200 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            CanGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), s"$CanGetSocialMediaHandles entitlement required")
+            canGetSocialMediaHandles <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanGetSocialMediaHandles), s"$CanGetSocialMediaHandles entitlement required")
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
           } yield {
             val kycSocialMedias = SocialMediaHandle.socialMediaHandleProvider.vend.getSocialMedias(customer.number)
@@ -552,42 +532,43 @@ trait APIMethods200 {
       addKycDocument,
       apiVersion,
       "addKycDocument",
-      "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents",
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_documents/KYC_DOCUMENT_ID",
       "Add KYC Document.",
       "Add a KYC document for the customer specified by CUSTOMER_ID. KYC Documents contain the document type (e.g. passport), place of issue, expiry etc. ",
-      Extraction.decompose(KycDocumentJSON("wuwjfuha234678", "1234", "passport", "123567", exampleDate, "London", exampleDate)),
+      Extraction.decompose(PostKycDocumentJSON("1234", "passport", "123567", exampleDate, "London", exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
 
     // TODO customerNumber should be in the url but not also in the postedData
 
     lazy val addKycDocument : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_documents" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_documents" :: documentId :: Nil JsonPut json -> _ => {
         // customerNumber is duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[KycDocumentJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[PostKycDocumentJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycDocumentCreated <- booleanToBox(
+            kycDocumentCreated <-
               KycDocuments.kycDocumentProvider.vend.addKycDocuments(
-                postedData.id,
+                bankId.value,
+                customerId,
+                documentId,
                 postedData.customer_number,
                 postedData.`type`,
                 postedData.number,
                 postedData.issue_date,
                 postedData.issue_place,
-                postedData.expiry_date),
-              "Server error: could not add KycDocument")
+                postedData.expiry_date) ?~
+              "Server error: could not add KycDocument"
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            val json = JSONFactory200.createKycDocumentJSON(kycDocumentCreated)
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
@@ -597,40 +578,39 @@ trait APIMethods200 {
       addKycMedia,
       apiVersion,
       "addKycMedia",
-      "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media",
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_media/KYC_MEDIA_ID",
       "Add KYC Media.",
       "Add some KYC media for the customer specified by CUSTOMER_ID. KYC Media resources relate to KYC Documents and KYC Checks and contain media urls for scans of passports, utility bills etc.",
-      Extraction.decompose(KycMediaJSON("73hyfgayt6ywerwerasd", "1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
+      Extraction.decompose(PostKycMediaJSON("1239879", "image", "http://www.example.com/id-docs/123/image.png", exampleDate, "wuwjfuha234678", "98FRd987auhf87jab")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycMedia : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_media" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_media" :: mediaId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[KycMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[PostKycMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycDocumentCreated <- booleanToBox(
-              KycMedias.kycMediaProvider.vend.addKycMedias(
-                postedData.id,
+            kycMediaCreated <- KycMedias.kycMediaProvider.vend.addKycMedias(
+                bankId.value,
+                customerId,
+                mediaId,
                 postedData.customer_number,
                 postedData.`type`,
                 postedData.url,
                 postedData.date,
                 postedData.relates_to_kyc_document_id,
-                postedData.relates_to_kyc_check_id),
-              "Server error: could not add message")
+                postedData.relates_to_kyc_check_id) ?~ "Server error: could not add message"
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            val json = JSONFactory200.createKycMediaJSON(kycMediaCreated)
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
@@ -640,41 +620,40 @@ trait APIMethods200 {
       addKycCheck,
       apiVersion,
       "addKycCheck",
-      "POST",
-      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check",
+      "PUT",
+      "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_check/KYC_CHECK_ID",
       "Add KYC Check",
       "Add a KYC check for the customer specified by CUSTOMER_ID. KYC Checks store details of checks on a customer made by the KYC team, their comments and a satisfied status.",
-      Extraction.decompose(KycCheckJSON("98FRd987auhf87jab", "1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
+      Extraction.decompose(PostKycCheckJSON("1239879", exampleDate, "online_meeting", "67876", "Simon Redfern", true, "")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycCheck : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_check" :: checkId :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[KycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[PostKycCheckJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycCheckCreated <- booleanToBox(
-              KycChecks.kycCheckProvider.vend.addKycChecks(
-                postedData.id,
+            kycCheckCreated <- KycChecks.kycCheckProvider.vend.addKycChecks(
+                bankId.value,
+                customerId,
+                checkId,
                 postedData.customer_number,
                 postedData.date,
                 postedData.how,
                 postedData.staff_user_id,
                 postedData.staff_name,
                 postedData.satisfied,
-                postedData.comments),
-              "Server error: could not add message")
+                postedData.comments) ?~ "Server error: could not add message"
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            val json = JSONFactory200.createKycCheckJSON(kycCheckCreated)
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
@@ -684,36 +663,35 @@ trait APIMethods200 {
       addKycStatus,
       apiVersion,
       "addKycStatus",
-      "POST",
+      "PUT",
       "/banks/BANK_ID/customers/CUSTOMER_ID/kyc_statuses",
       "Add KYC Status",
       "Add a kyc_status for the customer specified by CUSTOMER_ID. KYC Status is a timeline of the KYC status of the customer",
-      Extraction.decompose(KycStatusJSON("8762893876", true, exampleDate)),
+      Extraction.decompose(PostKycStatusJSON("8762893876", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer, apiTagKyc)
     )
 
     lazy val addKycStatus : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_statuses" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId) :: "customers" :: customerId :: "kyc_statuses" :: Nil JsonPut json -> _ => {
         // customerNumber is in url and duplicated in postedData. remove from that?
         user => {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
-            postedData <- tryo{json.extract[KycStatusJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[PostKycStatusJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
-            kycStatusCreated <- booleanToBox(
-              KycStatuses.kycStatusProvider.vend.addKycStatus(
+            kycStatusCreated <- KycStatuses.kycStatusProvider.vend.addKycStatus(
+                bankId.value,
+                customerId,
                 postedData.customer_number,
                 postedData.ok,
-                postedData.date),
-              "Server error: could not add message")
+                postedData.date) ?~ "Server error: could not add message"
           } yield {
-            successJsonResponse(JsRaw("{}"), 201)
+            val json = JSONFactory200.createKycStatusJSON(kycStatusCreated)
+            successJsonResponse(Extraction.decompose(json))
           }
         }
       }
@@ -730,9 +708,7 @@ trait APIMethods200 {
       Extraction.decompose(SocialMediaJSON("8762893876", "twitter", "susan@example.com",  exampleDate, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagCustomer)
     )
 
@@ -744,7 +720,7 @@ trait APIMethods200 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             postedData <- tryo{json.extract[SocialMediaJSON]} ?~! ErrorMessages.InvalidJsonFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            CanAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), s"$CanAddSocialMediaHandle entitlement required")
+            canAddSocialMediaHandle <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanAddSocialMediaHandle), s"$CanAddSocialMediaHandle entitlement required")
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
             kycSocialMediaCreated <- booleanToBox(
               SocialMediaHandle.socialMediaHandleProvider.vend.addSocialMedias(
@@ -783,9 +759,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      false,
+      Catalogs(Core,PSD2,notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val getCoreAccountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -836,9 +810,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getCoreTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -888,9 +860,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      true,
-      false,
+      Catalogs(notCore,PSD2,notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -929,9 +899,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement)
     )
 
@@ -965,9 +933,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1006,9 +972,7 @@ trait APIMethods200 {
       Extraction.decompose(CreateAccountJSON("A user_id","CURRENT", "Label", AmountOfMoneyJSON121("EUR", "0"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagAccount)
     )
 
@@ -1084,9 +1048,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      false,
+      Catalogs(Core,PSD2,notOBWG),
       List(apiTagBank)
     )
 
@@ -1170,9 +1132,7 @@ trait APIMethods200 {
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1224,9 +1184,7 @@ trait APIMethods200 {
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1293,9 +1251,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      true,
-      true,
+      Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1343,9 +1299,7 @@ trait APIMethods200 {
       Extraction.decompose(CreateUserJSON("someone@example.com", "my-username", "my-secure-password", "James", "Brown")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagOnboarding, apiTagUser))
 
     lazy val createUser: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1411,9 +1365,7 @@ trait APIMethods200 {
       Extraction.decompose(CreateMeetingJSON("tokbox", "onboarding")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false, // Core
-      false, // PSD2
-      false, // OBWG
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1463,9 +1415,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false, // PSD2
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1515,9 +1465,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagMeeting, apiTagKyc, apiTagCustomer, apiTagUser, apiTagExperimental))
 
 
@@ -1567,9 +1515,7 @@ trait APIMethods200 {
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
 
@@ -1587,8 +1533,11 @@ trait APIMethods200 {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
-            canCreateCustomer <- tryo(hasEntitlement(bank.bankId.value, u.userId, CanCreateCustomer))
-            isLoggedUser <- booleanToBox(postedData.user_id.nonEmpty == false || canCreateCustomer == true || postedData.user_id.equalsIgnoreCase(u.userId)) ?~ "User can create a customer for themself only"
+            requiredEntitlements = CanCreateCustomer ::
+                                   CanCreateUserCustomerLink ::
+                                   Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
@@ -1614,7 +1563,9 @@ trait APIMethods200 {
               postedData.highest_education_attained,
               postedData.employment_status,
               postedData.kyc_status,
-              postedData.last_ok_date) ?~! "Could not create customer"
+              postedData.last_ok_date,
+              None,
+              None) ?~! "Could not create customer"
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
@@ -1641,9 +1592,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser))
 
 
@@ -1678,9 +1627,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser))
 
 
@@ -1707,7 +1654,7 @@ trait APIMethods200 {
       apiVersion,
       "createUserCustomerLinks",
       "POST",
-      "/banks/user_customer_links",
+      "/banks/BANK_ID/user_customer_links",
       "Create user customer link.",
       s"""Link a customer and a user
         |This call may require additional permissions/role in the future.
@@ -1717,27 +1664,27 @@ trait APIMethods200 {
       Extraction.decompose(CreateUserCustomerLinkJSON("be106783-b4fa-48e6-b102-b178a11a8e9b", "02141bc6-0a69-4fba-b4db-a17e5fbbbdcc")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagPerson, apiTagUser, apiTagCustomer))
 
     // TODO
     // Allow multiple UserCustomerLinks per user (and bank)
 
     lazy val createUserCustomerLinks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "banks" :: "user_customer_links" :: Nil JsonPost json -> _ => {
+      case "banks" :: BankId(bankId):: "user_customer_links" :: Nil JsonPost json -> _ => {
         user =>
           for {
-            u <- user ?~! "User must be logged in to post user customer link"
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[CreateUserCustomerLinkJSON]} ?~! ErrorMessages.InvalidJsonFormat
             user_id <- booleanToBox(postedData.user_id.nonEmpty) ?~ "Field user_id is not defined in the posted json!"
             user <- User.findByUserId(postedData.user_id) ?~! ErrorMessages.UserNotFoundById
             customer_id <- booleanToBox(postedData.customer_id.nonEmpty) ?~ "Field customer_id is not defined in the posted json!"
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(postedData.customer_id) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            canCreateCustomer <- booleanToBox(hasEntitlement(customer.bank, u.userId, CanCreateCustomer), s"$CanCreateCustomer entitlement required")
+            canCreateUserCustomerLink <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateUserCustomerLink), s"$CanCreateUserCustomerLink entitlement required")
+            isEqual <- booleanToBox(customer.bank == bank.bankId.value, "Bank of the customer specified by the CUSTOMER_ID has to matches BANK_ID")
             userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(postedData.user_id, postedData.customer_id).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, exampleDate, true) ?~! "Could not create user_customer_links"
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(postedData.user_id, postedData.customer_id, new Date(), true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = Extraction.decompose(code.api.v2_0_0.JSONFactory200.createUserCustomerLinkJSON(userCustomerLink))
             successJsonResponse(successJson, 201)
@@ -1764,9 +1711,7 @@ trait APIMethods200 {
       Extraction.decompose(CreateEntitlementJSON("obp-bank-x-gh", "CanQueryOtherUser")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagUser))
 
     lazy val addEntitlement : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1775,14 +1720,18 @@ trait APIMethods200 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
-            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId)) ?~ "Logged user is not super admin!"
             user <- User.findByUserId(userId) ?~! ErrorMessages.UserNotFoundById
             postedData <- tryo{json.extract[CreateEntitlementJSON]} ?~ "wrong format JSON"
+            role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
             isBankOrSystemRoleOk <- booleanToBox(ApiRole.valueOf(postedData.role_name).requiresBankId == postedData.bank_id.nonEmpty) ?~!
               {if (ApiRole.valueOf(postedData.role_name).requiresBankId) ErrorMessages.EntitlementIsBankRole else ErrorMessages.EntitlementIsSystemRole}
+            allowedEntitlements = CanCreateEntitlementAtOneBank ::
+                                  CanCreateEntitlementAtAnyBank ::
+                                  Nil
+            isSuperAdmin <- booleanToBox(isSuperAdmin(u.userId) || hasAtLeastOneEntitlement(postedData.bank_id, u.userId, allowedEntitlements) == true) ?~ {"Logged user is not super admin or does not have entitlements: " + allowedEntitlements.mkString(", ") + "!"}
             bank <- booleanToBox(Bank(BankId(postedData.bank_id)).isEmpty == false || postedData.bank_id.nonEmpty == false) ?~! {ErrorMessages.BankNotFound}
             role <- tryo{valueOf(postedData.role_name)} ?~! "wrong role name"
-            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user.")
+            hasEntitlement <- booleanToBox(hasEntitlement(postedData.bank_id, userId, role) == false, "Entitlement already exists for the user." )
             addedEntitlement <- Entitlement.entitlement.vend.addEntitlement(postedData.bank_id, userId, postedData.role_name)
           } yield {
             val viewJson = JSONFactory200.createEntitlementJSON(addedEntitlement)
@@ -1807,9 +1756,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -1854,9 +1801,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -1890,9 +1835,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      true,
-      false,
-      false,
+      Catalogs(Core,notPSD2,notOBWG),
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -1987,9 +1930,7 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
-        false,
-        false,
-        false,
+        Catalogs(notCore,notPSD2,notOBWG),
         List())
 
     val esw = new elasticsearchWarehouse
@@ -2076,9 +2017,7 @@ trait APIMethods200 {
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
-        false,
-        false,
-        false,
+        Catalogs(notCore,notPSD2,notOBWG),
         List())
 
     val esm = new elasticsearchMetrics
@@ -2109,9 +2048,7 @@ trait APIMethods200 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

@@ -5,13 +5,15 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
+import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionRequestDetailsSEPAResponseJSON, TransactionRequestDetailsSandBoxTanJSON}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
-import code.model.{OtherBankAccount, Transaction, User, _}
+import code.model.{Transaction, User, _}
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
+import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 
@@ -40,10 +42,17 @@ object Connector  extends SimpleInjector {
   def buildOne: Connector = {
     val connectorProps = Props.get("connector").openOrThrowException("no connector set")
 
+    val kafka_version = """^(kafka)_(lib)_(v[0-9\.]+)$""".r
+
     connectorProps match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
       case "kafka" => KafkaMappedConnector
+      case kafka_version(kafka, lib, version) => 
+                                                 println("===>" + kafka)
+                                                 println("===>" + lib)
+                                                 println("===>" + version)
+                                                 KafkaLibMappedConnector(version)
     }
 //
 //    if (connectorProps.startsWith("kafka_lib")) {
@@ -105,17 +114,39 @@ trait Connector {
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
-  def getCounterparty(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
+  def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
-  def getCounterpaties(bankId: BankId, accountID : AccountId): List[Counterparty]
+  def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty]
+
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction]
 
-  def getPhysicalCards(user : User) : Set[PhysicalCard]
+  def getPhysicalCards(user : User) : List[PhysicalCard]
 
-  def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard]
+  def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard]
+
+  def AddPhysicalCard(bankCardNumber: String,
+                              nameOnCard: String,
+                              issueNumber: String,
+                              serialNumber: String,
+                              validFrom: Date,
+                              expires: Date,
+                              enabled: Boolean,
+                              cancelled: Boolean,
+                              onHotList: Boolean,
+                              technology: String,
+                              networks: List[String],
+                              allows: List[String],
+                              accountId: String,
+                              bankId: String,
+                              replacement: Option[CardReplacementInfo],
+                              pinResets: List[PinResetInfo],
+                              collected: Option[CardCollectionInfo],
+                              posted: Option[CardPostedInfo]
+                             ) : Box[PhysicalCard]
 
   //gets the users who are the legal owners/holders of the account
   def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]
@@ -322,7 +353,7 @@ trait Connector {
     result
   }
 
-  def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest210] = {
+  def createTransactionRequestv210(initiator : User, fromAccount : BankAccount, toAccount: Box[BankAccount], transactionRequestType: TransactionRequestType, details: TransactionRequestDetails, detailsPlain: String) : Box[TransactionRequest] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
     val (limit, currency) = getChallengeThreshold("", "", transactionRequestType.value, details.value.currency)
@@ -366,7 +397,9 @@ trait Connector {
         case "SANDBOX_TAN" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
         case "SEPA" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
-          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSEPAResponse].description)
+        case "FREE_FORM" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), "")
       }
 
       //set challenge to null
@@ -403,7 +436,7 @@ trait Connector {
 
   protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                              fromAccount : BankAccount, details: String,
-                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210]
+                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
@@ -445,7 +478,7 @@ trait Connector {
     }
   }
 
-  def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
+  def getTransactionRequests210(initiator : User, fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
     val transactionRequests =
       for {
         fromAccount <- getBankAccount(fromAccount.bankId, fromAccount.accountId) ?~
@@ -470,7 +503,7 @@ trait Connector {
 
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
-  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]]
+  protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
   protected def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest]
 
@@ -487,7 +520,7 @@ trait Connector {
 
 
   def answerTransactionRequestChallenge(transReqId: TransactionRequestId, answer: String) : Box[Boolean] = {
-    val tr = getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+    val tr = getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
     tr match {
       case Full(tr: TransactionRequest) =>
@@ -530,7 +563,7 @@ trait Connector {
 
   def createTransactionAfterChallengev200(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
     for {
-      tr <- getTransactionRequestImpl(transReqId) ?~ "Transaction Request not found"
+      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
         BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), BigDecimal (tr.body.value.amount), tr.body.description) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
@@ -541,6 +574,59 @@ trait Connector {
       tr
     }
   }
+
+  def createTransactionAfterChallengev210(initiator: User, transReqId: TransactionRequestId) : Box[TransactionRequest] = {
+    for {
+      tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+
+      //dummy1 = print(s"Getting Details.. \n")
+
+      details = tr.details
+      //dummy2 = print(s"details are ${details} \n")
+
+      detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
+      //dummy4 = print(s"detailsJsonExtract are ${detailsJsonExtract} \n")
+
+      toBankId = detailsJsonExtract.to.bank_id
+      //dummy5 = print(s"toBankId is ${toBankId} \n")
+
+      toAccountId = detailsJsonExtract.to.account_id
+      //dummy6 = print(s"toAccountId is ${toAccountId} \n")
+
+      valueAmount = detailsJsonExtract.value.amount
+      //dummy7 = print(s"valueAmount is ${valueAmount} \n")
+
+      valueCurrency = detailsJsonExtract.value.currency
+      //dummy8 = print(s"valueCurrency is ${valueCurrency} \n")
+
+      description = detailsJsonExtract.description
+      //dummy9 = print(s"description is ${description} \n")
+
+      transId <- makePaymentv200(
+        initiator,
+        BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+        BankAccountUID (
+          BankId(toBankId),
+          AccountId(toAccountId)
+        ),
+        BigDecimal (valueAmount),
+        description
+      ) ?~ "Couldn't create Transaction"
+
+      didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
+      //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")
+
+      didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
+      //dummy12 = print(s"didSaveStatus is ${didSaveStatus} \n")
+
+      //get transaction request again now with updated values
+      tr <- getTransactionRequestImpl(transReqId)
+      //dummy13 = print(s"About to yield tr. tr.details is ${tr.details} \n")
+    } yield {
+      tr
+    }
+  }
+
   /*
     non-standard calls --do not make sense in the regular context but are used for e.g. tests
   */

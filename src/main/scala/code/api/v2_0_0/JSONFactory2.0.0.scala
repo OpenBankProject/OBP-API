@@ -40,6 +40,7 @@ import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Full}
+import net.liftweb.json
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -160,45 +161,82 @@ case class CoreAccountJSON(
                              _links: JValue
                            )
 
+case class PostKycDocumentJSON(
+                                customer_number: String,
+                                `type`: String,
+                                number: String,
+                                issue_date: Date,
+                                issue_place: String,
+                                expiry_date: Date
+                              )
 case class KycDocumentJSON(
-  id: String,
-  customer_number: String,
-  `type`: String,
-  number: String,
-  issue_date: Date,
-  issue_place: String,
-  expiry_date: Date
-)
+                            bank_id: String,
+                            customer_id: String,
+                            id: String,
+                            customer_number: String,
+                            `type`: String,
+                            number: String,
+                            issue_date: Date,
+                            issue_place: String,
+                            expiry_date: Date
+                          )
 case class KycDocumentsJSON(documents: List[KycDocumentJSON])
 
+case class PostKycMediaJSON(
+                         customer_number: String,
+                         `type`: String,
+                         url: String,
+                         date: Date,
+                         relates_to_kyc_document_id: String,
+                         relates_to_kyc_check_id: String
+                       )
 case class KycMediaJSON(
-  id: String,
-  customer_number: String,
-  `type`: String,
-  url: String,
-  date: Date,
-  relates_to_kyc_document_id: String,
-  relates_to_kyc_check_id: String
-)
+                         bank_id: String,
+                         customer_id: String,
+                         id: String,
+                         customer_number: String,
+                         `type`: String,
+                         url: String,
+                         date: Date,
+                         relates_to_kyc_document_id: String,
+                         relates_to_kyc_check_id: String
+                       )
 case class KycMediasJSON(medias: List[KycMediaJSON])
 
+case class PostKycCheckJSON(
+                         customer_number: String,
+                         date: Date,
+                         how: String,
+                         staff_user_id: String,
+                         staff_name: String,
+                         satisfied: Boolean,
+                         comments: String
+                       )
 case class KycCheckJSON(
-  id: String,
-  customer_number: String,
-  date: Date,
-  how: String,
-  staff_user_id: String,
-  staff_name: String,
-  satisfied: Boolean,
-  comments: String
-)
+                         bank_id: String,
+                         customer_id: String,
+                         id: String,
+                         customer_number: String,
+                         date: Date,
+                         how: String,
+                         staff_user_id: String,
+                         staff_name: String,
+                         satisfied: Boolean,
+                         comments: String
+                       )
 case class KycChecksJSON(checks: List[KycCheckJSON])
 
+case class PostKycStatusJSON(
+                          customer_number: String,
+                          ok: Boolean,
+                          date: Date
+                        )
 case class KycStatusJSON(
-   customer_number: String,
-   ok: Boolean,
-   date: Date
-)
+                          customer_id: String,
+                          customer_number: String,
+                          ok: Boolean,
+                          date: Date
+                        )
 case class KycStatusesJSON(statuses: List[KycStatusJSON])
 
 case class SocialMediaJSON(
@@ -290,6 +328,7 @@ case class TransactionRequestWithChargeJSON(
                                    id: String,
                                    `type`: String,
                                    from: TransactionRequestAccountJSON,
+                                   details: JValue,
                                    body: TransactionRequestBodyJSON,
                                    transaction_ids: String,
                                    status: String,
@@ -363,6 +402,7 @@ object JSONFactory200{
       id = TransactionRequestId(json.id),
       `type`= json.`type`,
       from = fromAcc,
+      details = null,
       body = getTransactionRequestBodyFromJson(json.body),
       transaction_ids = json.transaction_ids,
       status = json.status,
@@ -486,7 +526,8 @@ object JSONFactory200{
                        email : String,
                        provider_id: String,
                        provider : String,
-                       username : String
+                       username : String,
+                       entitlements : EntitlementJSONs
                      )
 
   case class UserJSONs(
@@ -499,7 +540,8 @@ object JSONFactory200{
     email = user.email,
     username = stringOrNull(user.username),
     provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider)
+    provider = stringOrNull(user.provider),
+    entitlements = createEntitlementJSONs(user.user.foreign.get.assignedEntitlements)
   )
 
 
@@ -509,7 +551,8 @@ object JSONFactory200{
       email = user.emailAddress,
       username = stringOrNull(user.name),
       provider_id = user.idGivenByProvider,
-      provider = stringOrNull(user.provider)
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(user.assignedEntitlements)
     )
   }
 
@@ -619,6 +662,8 @@ object JSONFactory200{
 
   def createKycDocumentJSON(kycDocument : KycDocument) : KycDocumentJSON = {
     new KycDocumentJSON(
+      bank_id = kycDocument.bankId,
+      customer_id = kycDocument.customerId,
       id = kycDocument.idKycDocument,
       customer_number = kycDocument.customerNumber,
       `type` = kycDocument.`type`,
@@ -635,6 +680,8 @@ object JSONFactory200{
 
   def createKycMediaJSON(kycMedia : KycMedia) : KycMediaJSON = {
     new KycMediaJSON(
+      bank_id = kycMedia.bankId,
+      customer_id = kycMedia.customerId,
       id = kycMedia.idKycMedia,
       customer_number = kycMedia.customerNumber,
       `type` = kycMedia.`type`,
@@ -650,6 +697,8 @@ object JSONFactory200{
 
   def createKycCheckJSON(kycCheck : KycCheck) : KycCheckJSON = {
     new KycCheckJSON(
+      bank_id = kycCheck.bankId,
+      customer_id = kycCheck.customerId,
       id = kycCheck.idKycCheck,
       customer_number = kycCheck.customerNumber,
       date = kycCheck.date,
@@ -666,6 +715,7 @@ object JSONFactory200{
 
   def createKycStatusJSON(kycStatus : KycStatus) : KycStatusJSON = {
     new KycStatusJSON(
+      customer_id = kycStatus.customerId,
       customer_number = kycStatus.customerNumber,
       ok = kycStatus.ok,
       date = kycStatus.date
@@ -725,6 +775,7 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
       from = TransactionRequestAccountJSON (
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
+      details = tr.details,
       body =  TransactionRequestBodyJSON (
           to = TransactionRequestAccountJSON (
             bank_id = tr.body.to.bank_id,

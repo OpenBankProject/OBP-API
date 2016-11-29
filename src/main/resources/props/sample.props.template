@@ -125,11 +125,15 @@ transactionRequests_connector=mapped
 transactionRequests_supported_types=SANDBOX_TAN
 
 ## Transaction request challenge threshold. Level at which challenge is created and needs to be answered.
-## The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
+## The Currency is EUR unless set with transactionRequests_challenge_currency.
+## The values specified here are converted to the transaction currency.
 ## Connector implementation may well provide dynamic response
 ## These settings are of the form transactionRequests_challenge_threshold_UPPERCASETYPE=INTEGER
 transactionRequests_challenge_threshold_SANDBOX_TAN=1000
 transactionRequests_challenge_threshold_SEPA=1000
+
+# To set a currency for the above value:
+#transactionRequests_challenge_currency=KRW
 
 
 ## For video conference meetings (createMeeting)
@@ -256,3 +260,8 @@ endpointN]
 
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
+
+
+
+
+

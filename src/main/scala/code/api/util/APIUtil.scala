@@ -93,6 +93,11 @@ object ErrorMessages {
   val CustomerNumberAlreadyExists = "OBP-30006: Customer Number already exists. Please specify a different value for BANK_ID or CUSTOMER_NUMBER."
   val CustomerAlreadyExistsForUser = "OBP-30007: The User is already linked to a Customer at the bank specified by BANK_ID"
   val CustomerDoNotExistsForUser = "OBP-30008: User is not linked to a Customer at the bank specified by BANK_ID"
+  val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
+  val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
+  val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
+  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. The IBan specified does not exist on this server."
+  val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty.Please set the Counterparty 'isBeneficiary' true first"
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -125,11 +130,11 @@ object ErrorMessages {
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
   val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
-
-
-
-
-
+  val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
+  val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
+  val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
+  val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique bankId / shortCode"
+  val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique bankId / shortCode"
 
 }
 
@@ -169,7 +174,6 @@ object APIUtil extends Loggable {
   }
 
   def registeredApplication(consumerKey: String): Boolean = {
-    println(Consumer.findAll())
     Consumer.find(By(Consumer.key, consumerKey)) match {
       case Full(application) => application.isActive
       case _ => false
@@ -427,6 +431,14 @@ object APIUtil extends Loggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
+  case class Catalogs(core : Boolean =false, psd2 : Boolean=false, obwg:Boolean=false)
+
+  val Core = true
+  val PSD2 = true
+  val OBWG = true
+  val notCore = false
+  val notPSD2 = false
+  val notOBWG = false
 
   // Used to document the API calls
   case class ResourceDoc(
@@ -440,9 +452,7 @@ object APIUtil extends Loggable {
     exampleRequestBody: JValue, // An example of the body required (maybe empty)
     successResponseBody: JValue, // A successful response body
     errorResponseBodies: List[JValue], // Possible error responses
-    isCore: Boolean,
-    isPSD2: Boolean,
-    isOBWG: Boolean,
+    catalogs: Catalogs,
     tags: List[ResourceDocTag]
   )
 

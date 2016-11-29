@@ -12,9 +12,8 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
-import code.tesobe.CashTransaction
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
@@ -34,8 +33,15 @@ object LocalMappedConnector extends Connector with Loggable {
   override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
-    val rate = fx.exchangeRate ("EUR", currency)
+    logger.info(s"threshold is $threshold")
+
+    // TODO constrain this to supported currencies.
+    val thresholdCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    logger.info(s"thresholdCurrency is $thresholdCurrency")
+
+    val rate = fx.exchangeRate (thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
+    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     (convertedThreshold, currency)
   }
 
@@ -115,7 +121,6 @@ object LocalMappedConnector extends Connector with Loggable {
     }
   }
 
-  // Question: Why is this called getBankAccountType? Why not getBankAccount? TODO rename
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[MappedBankAccount] = {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
@@ -129,7 +134,7 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisAccountBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     for { //find a transaction with this counterparty
@@ -141,35 +146,175 @@ object LocalMappedConnector extends Connector with Loggable {
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-        id = metadata.metadataId,
+        counterPartyId = metadata.metadataId,
         label = metadata.getHolder,
         nationalIdentifier = t.counterpartyNationalId.get,
-        swift_bic = None,
-        iban = t.getCounterpartyIban(),
-        number = metadata.getAccountNumber,
-        bankName = t.counterpartyBankName.get,
+        bankRoutingAddress = None,
+        accountRoutingAddress = t.getCounterpartyIban(),
+        otherBankId = metadata.getAccountNumber,
+        thisBankId = t.counterpartyBankName.get,
         kind = t.counterpartyAccountKind.get,
-        originalPartyBankId = thisAccountBankId,
-        originalPartyAccountId = thisAccountId,
-        alreadyFoundMetadata = Some(metadata)
+        thisAccountId = thisAccountBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(metadata),
+
+        //TODO V210 following five fields are new, need to be fiexed
+        name = "",
+        bankRoutingScheme = "",
+        accountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
       )
     }
   }
 
   // Get all counterparties related to an account
-  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
+  Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
-    // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  // Get the metadata and pass it to getOtherBankAccount to construct the other account.
+  Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
-  override def getPhysicalCards(user: User): Set[PhysicalCard] =
-    Set.empty
 
-  override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
-    Set.empty
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+    for {
+      t <- Counterparties.counterparties.vend.getMetadata(thisAccountBankId, thisAccountId, couterpartyId)
+    } yield {
+      new Counterparty(
+        //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
+        counterPartyId = t.metadataId,
+        label = t.getHolder,
+        nationalIdentifier = "",
+        bankRoutingAddress = None,
+        accountRoutingAddress = None,
+        otherBankId = t.getAccountNumber,
+        thisBankId = "",
+        kind = "",
+        thisAccountId = thisAccountBankId,
+        otherAccountId = thisAccountId,
+        alreadyFoundMetadata = Some(t),
+
+        //TODO V210 following five fields are new, need to be fiexed
+        name = "",
+        bankRoutingScheme = "",
+        accountRoutingScheme="",
+        otherAccountProvider = "",
+        isBeneficiary = true
+      )
+    }
+  }
+
+
+  override def getPhysicalCards(user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCards(user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
+
+  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.getPhysicalCardsForBank(bank, user)
+    for (l <- list) yield
+      new PhysicalCard(
+        bankCardNumber = l.mBankCardNumber,
+        nameOnCard = l.mNameOnCard,
+        issueNumber = l.mIssueNumber,
+        serialNumber = l.mSerialNumber,
+        validFrom = l.validFrom,
+        expires = l.expires,
+        enabled = l.enabled,
+        cancelled = l.cancelled,
+        onHotList = l.onHotList,
+        technology = "",
+        networks = List(),
+        allows = l.allows,
+        account = l.account,
+        replacement = l.replacement,
+        pinResets = l.pinResets,
+        collected = l.collected,
+        posted = l.posted
+      )
+  }
+
+  def AddPhysicalCard(bankCardNumber: String,
+                              nameOnCard: String,
+                              issueNumber: String,
+                              serialNumber: String,
+                              validFrom: Date,
+                              expires: Date,
+                              enabled: Boolean,
+                              cancelled: Boolean,
+                              onHotList: Boolean,
+                              technology: String,
+                              networks: List[String],
+                              allows: List[String],
+                              accountId: String,
+                              bankId: String,
+                              replacement: Option[CardReplacementInfo],
+                              pinResets: List[PinResetInfo],
+                              collected: Option[CardCollectionInfo],
+                              posted: Option[CardPostedInfo]
+                             ) : Box[PhysicalCard] = {
+    val list = code.cards.PhysicalCard.physicalCardProvider.vend.AddPhysicalCard(
+                                                                              bankCardNumber,
+                                                                              nameOnCard,
+                                                                              issueNumber,
+                                                                              serialNumber,
+                                                                              validFrom,
+                                                                              expires,
+                                                                              enabled,
+                                                                              cancelled,
+                                                                              onHotList,
+                                                                              technology,
+                                                                              networks,
+                                                                              allows,
+                                                                              accountId,
+                                                                              bankId: String,
+                                                                              replacement,
+                                                                              pinResets,
+                                                                              collected,
+                                                                              posted
+                                                                            )
+    for (l <- list) yield
+    new PhysicalCard(
+      bankCardNumber = l.mBankCardNumber,
+      nameOnCard = l.mNameOnCard,
+      issueNumber = l.mIssueNumber,
+      serialNumber = l.mSerialNumber,
+      validFrom = l.validFrom,
+      expires = l.expires,
+      enabled = l.enabled,
+      cancelled = l.cancelled,
+      onHotList = l.onHotList,
+      technology = "",
+      networks = List(),
+      allows = l.allows,
+      account = l.account,
+      replacement = l.replacement,
+      pinResets = l.pinResets,
+      collected = l.collected,
+      posted = l.posted
+    )
+  }
 
 /*
 Perform a payment (in the sandbox)
@@ -264,10 +409,10 @@ Store one or more transactions
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
+                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
 
     // Note: We don't save transaction_ids here.
-    val mappedTransactionRequest = MappedTransactionRequest210.create
+    val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
@@ -280,7 +425,7 @@ Store one or more transactions
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
       .saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
@@ -320,14 +465,15 @@ Store one or more transactions
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
-    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
+      By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
-    Full(transactionRequests.flatMap(_.toTransactionRequest210))
+    Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
+    // TODO need to pass a status variable so we can return say only INITIATED
     val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     transactionRequest.flatMap(_.toTransactionRequest)
   }

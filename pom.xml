@@ -14,6 +14,7 @@
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
     <lift.version>2.6.3</lift.version>
+    <obp-ri.version>2016.11-RC1-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
@@ -38,6 +39,11 @@
       <id>scala-tools.snapshots</id>
       <name>Scala-Tools Dependencies Repository for Snapshots</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+    </repository>
+    <repository>
+      <id>git-OpenBankProject</id>
+      <name>OpenBankProject Git based repo</name>
+      <url>https://raw.githubusercontent.com/OpenBankProject/OBP-M2-REPO/master/</url>
     </repository>
   </repositories>
 
@@ -73,7 +79,7 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka_${scala.version}</artifactId>
-      <version>0.10.0.0</version>
+      <version>0.10.1.0</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -124,7 +130,7 @@
     <dependency>
         <groupId>net.manub</groupId>
         <artifactId>scalatest-embedded-kafka_${scala.version}</artifactId>
-        <version>0.7.1</version>
+        <version>0.9.0</version>
         <scope>test</scope>
     </dependency>
     <dependency>
@@ -208,6 +214,21 @@
       <groupId>oauth.signpost</groupId>
       <artifactId>signpost-commonshttp4</artifactId>
       <version>1.2.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-core</artifactId>
+      <version>${obp-ri.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-kafka</artifactId>
+      <version>${obp-ri.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.tesobe.obp</groupId>
+      <artifactId>obp-ri-transport</artifactId>
+      <version>${obp-ri.version}</version>
     </dependency>
   </dependencies>
 

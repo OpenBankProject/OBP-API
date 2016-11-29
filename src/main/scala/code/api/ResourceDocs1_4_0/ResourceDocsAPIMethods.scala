@@ -108,9 +108,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagApiInfo)
     )
 
@@ -166,9 +164,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      false,
-      false,
-      false,
+      Catalogs(notCore,notPSD2,notOBWG),
       List(apiTagApiInfo)
     )
 
@@ -217,20 +213,20 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     // Filter (include, exclude or ignore)
     val filteredResources1 : List[ResourceDoc] = showCore match {
-      case Some(true) => allResources.filter(x => x.isCore == true)
-      case Some(false) => allResources.filter(x => x.isCore == false)
+      case Some(true) => allResources.filter(x => x.catalogs.core == true)
+      case Some(false) => allResources.filter(x => x.catalogs.core == false)
       case _ => allResources
     }
 
     val filteredResources2 : List[ResourceDoc] = showPSD2 match {
-      case Some(true) => filteredResources1.filter(x => x.isPSD2 == true)
-      case Some(false) => filteredResources1.filter(x => x.isPSD2 == false)
+      case Some(true) => filteredResources1.filter(x => x.catalogs.psd2 == true)
+      case Some(false) => filteredResources1.filter(x => x.catalogs.psd2 == false)
       case _ => filteredResources1
     }
 
     val filteredResources3 : List[ResourceDoc] = showOBWG match {
-      case Some(true) => filteredResources2.filter(x => x.isOBWG == true)
-      case Some(false) => filteredResources2.filter(x => x.isOBWG == false)
+      case Some(true) => filteredResources2.filter(x => x.catalogs.obwg == true)
+      case Some(false) => filteredResources2.filter(x => x.catalogs.obwg == false)
       case _ => filteredResources2
     }
 
@@ -299,9 +295,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
-        false,
-        false,
-        false,
+        Catalogs(notCore,notPSD2,notOBWG),
         List(apiTagApiInfo))
     }
 

@@ -12,7 +12,7 @@ import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Failure, Full, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable, _}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -51,7 +51,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override def getCounterparty(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId : AccountId, counterpartyID : String): Box[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -84,7 +84,7 @@ private object LocalConnector extends Connector with Loggable {
       }
   }
 
-  override def getCounterpaties(bankId: BankId, accountId : AccountId): List[Counterparty] = {
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId : AccountId): List[Counterparty] = {
 
     /**
      * In this implementation (for legacy reasons), the "otherAccountID" is actually the mongodb id of the
@@ -111,6 +111,8 @@ private object LocalConnector extends Connector with Loggable {
     })
   }
 
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
     for{
@@ -133,12 +135,34 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getPhysicalCards(user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCards(user : User) : List[PhysicalCard] = {
+    List()
   }
 
-  override def getPhysicalCardsForBank(bankId: BankId, user : User) : Set[PhysicalCard] = {
-    Set.empty
+  override def getPhysicalCardsForBank(bank: Bank, user : User) : List[PhysicalCard] = {
+    List()
+  }
+
+  def AddPhysicalCard(bankCardNumber: String,
+                      nameOnCard: String,
+                      issueNumber: String,
+                      serialNumber: String,
+                      validFrom: Date,
+                      expires: Date,
+                      enabled: Boolean,
+                      cancelled: Boolean,
+                      onHotList: Boolean,
+                      technology: String,
+                      networks: List[String],
+                      allows: List[String],
+                      accountId: String,
+                      bankId: String,
+                      replacement: Option[CardReplacementInfo],
+                      pinResets: List[PinResetInfo],
+                      collected: Option[CardCollectionInfo],
+                      posted: Option[CardPostedInfo]
+                     ) : Box[PhysicalCard] = {
+    Empty
   }
 
   override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
@@ -191,17 +215,24 @@ private object LocalConnector extends Connector with Loggable {
     }
 
     val otherAccount = new Counterparty(
-      id = metadata.metadataId,
+      counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccount_.bank.get.IBAN.get),
-      number = otherAccount_.number.get,
-      bankName = otherAccount_.bank.get.name.get,
+      bankRoutingAddress = None, //TODO: need to add this to the json/model
+      accountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
+      otherBankId = otherAccount_.number.get,
+      thisBankId = otherAccount_.bank.get.name.get,
       kind = otherAccount_.kind.get,
-      originalPartyBankId = theAccount.bankId,
-      originalPartyAccountId = theAccount.accountId,
-      alreadyFoundMetadata = Some(metadata)
+      thisAccountId = theAccount.bankId,
+      otherAccountId = theAccount.accountId,
+      alreadyFoundMetadata = Some(metadata),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
     val transactionType = transaction.details.get.kind.get
     val amount = transaction.details.get.value.get.amount.get
@@ -323,12 +354,12 @@ private object LocalConnector extends Connector with Loggable {
 
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, details: String,
-                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = ???
+                                            status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
   override def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = ???
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = ???
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = ???
   override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
     //TODO: write logic / data access
@@ -341,17 +372,24 @@ private object LocalConnector extends Connector with Loggable {
   private def createOtherBankAccount(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
     otherAccount : CounterpartyMetadata, otherAccountFromTransaction : OBPAccount) : Counterparty = {
     new Counterparty(
-      id = otherAccount.metadataId,
+      counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      swift_bic = None, //TODO: need to add this to the json/model
-      iban = Some(otherAccountFromTransaction.bank.get.IBAN.get),
-      number = otherAccountFromTransaction.number.get,
-      bankName = otherAccountFromTransaction.bank.get.name.get,
+      bankRoutingAddress = None, //TODO: need to add this to the json/model
+      accountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
+      otherBankId = otherAccountFromTransaction.number.get,
+      thisBankId = otherAccountFromTransaction.bank.get.name.get,
       kind = "",
-      originalPartyBankId = originalPartyBankId,
-      originalPartyAccountId = originalPartyAccountId,
-      alreadyFoundMetadata = Some(otherAccount)
+      thisAccountId = originalPartyBankId,
+      otherAccountId = originalPartyAccountId,
+      alreadyFoundMetadata = Some(otherAccount),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
   }
 

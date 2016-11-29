@@ -51,7 +51,7 @@ import code.meetings.MappedMeeting
 import code.socialmedia.MappedSocialMedia
 import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
+import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -62,7 +62,7 @@ import code.model.dataAccess._
 import code.products.MappedProduct
 import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.MappedTransactionRequest
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
 import net.liftweb.http._
@@ -72,6 +72,8 @@ import net.liftweb.sitemap._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
+import code.cards.MappedPhysicalCard
+import code.cards.PinReset
 import code.transaction.MappedTransaction
 
 
@@ -184,6 +186,10 @@ class Boot extends Loggable{
 
     logger.info("running mode: " + runningMode)
     logger.info(s"ApiPathZero (the bit before version) is $ApiPathZero")
+
+
+    logger.debug(s"If you can read this, logging level is debug")
+
 
     // where to search snippets
     LiftRules.addToPackages("code")
@@ -413,7 +419,6 @@ object ToSchemify {
     MappedBankAccount,
     MappedTransaction,
     MappedTransactionRequest,
-    MappedTransactionRequest210,
     MappedTransactionImage,
     MappedMetric,
     MappedCustomer,
@@ -431,5 +436,8 @@ object ToSchemify {
     MappedMeeting,
     MappedUserCustomerLink,
     MappedKafkaBankAccountData,
-    MappedEntitlement)
+    MappedEntitlement,
+    MappedPhysicalCard,
+    PinReset,
+    MappedCounterparty)
 }

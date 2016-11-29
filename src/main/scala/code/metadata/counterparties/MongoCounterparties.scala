@@ -1,7 +1,7 @@
 package code.metadata.counterparties
 
 import code.model.{AccountId, BankId, CounterpartyMetadata, Counterparty}
-import net.liftweb.common.{Box, Loggable}
+import net.liftweb.common.{Box, Loggable, Empty}
 import com.mongodb.QueryBuilder
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Full
@@ -33,11 +33,11 @@ object MongoCounterparties extends Counterparties with Loggable {
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
 
-    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.id)
+    val existing = getMetadata(originalPartyBankId, originalPartyAccountId, otherParty.counterPartyId)
 
     val metadata = existing match {
       case Full(m) => m
-      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.number)
+      case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.otherBankId)
     }
 
     metadata
@@ -100,4 +100,18 @@ object MongoCounterparties extends Counterparties with Loggable {
     if (isDuplicate(firstAliasAttempt)) appendUntilUnique(firstAliasAttempt)
     else firstAliasAttempt
   }
+
+  def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = Empty
+
+  def getCounterpartyByIban(counterPartyId : String): Box[CounterpartyTrait] = Empty
+
+  def createCounterparty(userId: String,
+                         bankId: String,
+                         accountId : String,
+                         name: String,
+                         counterPartyBankId : String,
+                         accountRoutingScheme : String,
+                         accountRoutingAddress : String,
+                         bankRoutingScheme : String,
+                         bamkRoutingAddress : String): Box[CounterpartyTrait] = Empty
 }

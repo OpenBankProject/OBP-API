@@ -5,6 +5,7 @@ import java.util.Date
 
 import code.model._
 import net.liftweb.common.Logger
+import net.liftweb.json.JsonAST.JValue
 import net.liftweb.util.{Props, SimpleInjector}
 import TransactionRequests.TransactionRequest
 
@@ -29,7 +30,8 @@ object TransactionRequests extends SimpleInjector {
     val id: TransactionRequestId,
     val `type` : String,
     val from: TransactionRequestAccount,
-    val body: TransactionRequestBody,
+    val details: JValue, // Note: This is unstructured! (allows multiple "to" accounts etc.)
+    val body: TransactionRequestBody, // Note: This is structured with one "to" account etc.
     val transaction_ids: String,
     val status: String,
     val start_date: Date,
@@ -37,19 +39,6 @@ object TransactionRequests extends SimpleInjector {
     val challenge: TransactionRequestChallenge,
     val charge: TransactionRequestCharge
   )
-
-  case class TransactionRequest210 (
-                                  val id: TransactionRequestId,
-                                  val `type` : String,
-                                  val from: TransactionRequestAccount,
-                                  val details: String,
-                                  val transaction_ids: String,
-                                  val status: String,
-                                  val start_date: Date,
-                                  val end_date: Date,
-                                  val challenge: TransactionRequestChallenge,
-                                  val charge: TransactionRequestCharge
-                                )
 
   case class TransactionRequestChallenge (
     val id: String,
@@ -78,14 +67,29 @@ object TransactionRequests extends SimpleInjector {
                                       val description : String
                                     ) extends TransactionRequestDetails
 
-  case class TransactionRequestDetailsSEPA (
-                                                  val value : AmountOfMoney,
-                                                  val description : String
-                                           ) extends TransactionRequestDetails
+  case class TransactionRequestDetailsSEPA(
+                                            val iban: String,
+                                            val value: AmountOfMoney,
+                                            val description: String
+                                          ) extends TransactionRequestDetails
 
-  case class TransactionRequestDetailsFreeForm (
-                                                 val value : AmountOfMoney
-                                           ) extends TransactionRequestDetails
+  case class TransactionRequestDetailsSEPAResponse(
+                                            val iban: String,
+                                            val to: TransactionRequestAccount,
+                                            val value: AmountOfMoney,
+                                            val description: String
+                                          ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsFreeForm(
+                                                val value: AmountOfMoney
+                                              ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsFreeFormResponse(
+                                                     val to: TransactionRequestAccount,
+                                                     val value: AmountOfMoney,
+                                                     val description: String
+                                                   ) extends TransactionRequestDetails
+
 
   val transactionRequestProvider = new Inject(buildOne _) {}
 

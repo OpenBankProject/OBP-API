@@ -16,16 +16,16 @@ import code.model._
 import code.model.dataAccess._
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
-import code.transactionrequests.{MappedTransactionRequest210, MappedTransactionRequest}
+import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
-import net.liftweb.common._
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
+import net.liftweb.common.{Box, Empty, Full, Failure, Loggable}
 
 object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
 
@@ -362,12 +362,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(new KafkaBankAccount(r))
   }
 
-  def getOtherBankAccount(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
       t.filter { e =>
-        if (e.otherAccount.number == metadata.getAccountNumber)
+        if (e.otherAccount.otherBankId == metadata.getAccountNumber)
           true
         else
           false
@@ -376,17 +376,24 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
     val res = new Counterparty(
       //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
-      id = metadata.metadataId,
+      counterPartyId = metadata.metadataId,
       label = metadata.getHolder,
       nationalIdentifier = t.otherAccount.nationalIdentifier,
-      swift_bic = None,
-      iban = t.otherAccount.iban,
-      number = metadata.getAccountNumber,
-      bankName = t.otherAccount.bankName,
+      bankRoutingAddress = None,
+      accountRoutingAddress = t.otherAccount.accountRoutingAddress,
+      otherBankId = metadata.getAccountNumber,
+      thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      originalPartyBankId = thisAccountBankId,
-      originalPartyAccountId = thisAccountId,
-      alreadyFoundMetadata = Some(metadata)
+      thisAccountId = thisAccountBankId,
+      otherAccountId = thisAccountId,
+      alreadyFoundMetadata = Some(metadata),
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
     )
     Full(res)
   }
@@ -431,19 +438,43 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   // Get all counterparties related to an account
-  override def getCounterpaties(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getOtherBankAccount(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterparty(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getOtherBankAccount(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
-  override def getPhysicalCards(user: User): Set[PhysicalCard] =
-    Set.empty
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
-  override def getPhysicalCardsForBank(bankId: BankId, user: User): Set[PhysicalCard] =
-    Set.empty
+  override def getPhysicalCards(user: User): List[PhysicalCard] =
+    List()
+
+  override def getPhysicalCardsForBank(bank: Bank, user: User): List[PhysicalCard] =
+    List()
+
+  def AddPhysicalCard(bankCardNumber: String,
+                      nameOnCard: String,
+                      issueNumber: String,
+                      serialNumber: String,
+                      validFrom: Date,
+                      expires: Date,
+                      enabled: Boolean,
+                      cancelled: Boolean,
+                      onHotList: Boolean,
+                      technology: String,
+                      networks: List[String],
+                      allows: List[String],
+                      accountId: String,
+                      bankId: String,
+                      replacement: Option[CardReplacementInfo],
+                      pinResets: List[PinResetInfo],
+                      collected: Option[CardCollectionInfo],
+                      posted: Option[CardPostedInfo]
+                     ) : Box[PhysicalCard] = {
+    Empty
+  }
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
@@ -520,10 +551,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
+
   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                                account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest210] = {
-    val mappedTransactionRequest = MappedTransactionRequest210.create
+                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
+    val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
@@ -532,7 +564,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       .mStatus(status)
       .mStartDate(now)
       .mEndDate(now).saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest210)
+    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
@@ -571,11 +603,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
-  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest210]] = {
-    val transactionRequests = MappedTransactionRequest210.findAll(By(MappedTransactionRequest210.mFrom_AccountId, fromAccount.accountId.value),
-      By(MappedTransactionRequest210.mFrom_BankId, fromAccount.bankId.value))
+  override def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]] = {
+    val transactionRequests = MappedTransactionRequest.findAll(By(MappedTransactionRequest.mFrom_AccountId, fromAccount.accountId.value),
+      By(MappedTransactionRequest.mFrom_BankId, fromAccount.bankId.value))
 
-    Full(transactionRequests.flatMap(_.toTransactionRequest210))
+    Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
   override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
@@ -924,17 +956,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         counterparty <- tryo{r.counterparty}
         thisAccount <- getBankAccount(BankId(r.this_account.bank), AccountId(r.this_account.id))
         //creates a dummy OtherBankAccount without an OtherBankAccountMetadata, which results in one being generated (in OtherBankAccount init)
-        dummyOtherBankAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, None)}
+        dummyOtherBankAccount <- tryo{createCounterparty(counterparty.get, thisAccount, None)}
         //and create the proper OtherBankAccount with the correct "id" attribute set to the metadataId of the OtherBankAccountMetadata object
         //note: as we are passing in the OtherBankAccountMetadata we don't incur another db call to get it in OtherBankAccount init
-        otherAccount <- tryo{createOtherBankAccount(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
+        counterparty <- tryo{createCounterparty(counterparty.get, thisAccount, Some(dummyOtherBankAccount.metadata))}
       } yield {
         // Create new transaction
         new Transaction(
           r.id,                             // uuid:String
           TransactionId(r.id),              // id:TransactionId
           thisAccount,                      // thisAccount:BankAccount
-          otherAccount,                     // otherAccount:OtherBankAccount
+          counterparty,                     // otherAccount:OtherBankAccount
           r.details.`type`,                 // transactionType:String
           BigDecimal(r.details.value),      // val amount:BigDecimal
           thisAccount.currency,             // currency:String
@@ -958,19 +990,28 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Helper for creating other bank account
-  def createOtherBankAccount(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
-      id = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
+      counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
-      swift_bic = None,
-      iban = None,
-      number = c.account_number.getOrElse(""),
-      bankName = "",
+      bankRoutingAddress = None,
+      accountRoutingAddress = None,
+      otherBankId = c.account_number.getOrElse(""),
+      thisBankId = "",
       kind = "",
-      originalPartyBankId = BankId(o.bankId.value),
-      originalPartyAccountId = AccountId(o.accountId.value),
-      alreadyFoundMetadata = alreadyFoundMetadata
+      thisAccountId = BankId(o.bankId.value),
+      otherAccountId = AccountId(o.accountId.value),
+      alreadyFoundMetadata = alreadyFoundMetadata,
+
+      //TODO V210 following five fields are new, need to be fiexed
+      name = "",
+      bankRoutingScheme = "",
+      accountRoutingScheme="",
+      otherAccountProvider = "",
+      isBeneficiary = true
+
+
     )
   }
 
