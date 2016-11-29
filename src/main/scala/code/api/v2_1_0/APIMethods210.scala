@@ -225,7 +225,7 @@ trait APIMethods210 {
         |""",
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("bank_id", "account_id"),
-        AmountOfMoneyJSON("eur", "100.53"),
+        AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to be created"
       )
       ),
