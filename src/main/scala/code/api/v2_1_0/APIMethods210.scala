@@ -947,16 +947,15 @@ trait APIMethods210 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
       "Create counterparty for an account",
-      s"""(Authenticated access).
+      s"""Create counterparty.
           |
-          |Create a counterparty.
           |${authenticationRequiredMessage(true)}
           |""",
       Extraction.decompose(PostCounterpartyJSON(
         name = "",
-        counterparty_bank_id ="",
-        primary_routing_scheme="IBAN",
-        primary_routing_address="7987987-2348987-234234")),
+        other_bank_id ="",
+        account_routing_scheme="IBAN",
+        account_routing_address="7987987-2348987-234234")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),
@@ -971,13 +970,13 @@ trait APIMethods210 {
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ "invalid json"
-            couterparty <- Counterparties.counterparties.vend.addCounterparty(createdByUserId=u.userId,
-              bankId=bankId.value,
-              accountId=accountId.value,
+            couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
+              thisBankId=bankId.value,
+              thisAccountId=accountId.value,
               name=postJson.name,
-              counterPartyBankId =postJson.counterparty_bank_id,
-              primaryRoutingScheme=postJson.primary_routing_scheme,
-              primaryRoutingAddress=postJson.primary_routing_address)
+              otherBankId =postJson.other_bank_id,
+              accountRoutingScheme=postJson.account_routing_scheme,
+              accountRoutingAddress=postJson.account_routing_address)
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}

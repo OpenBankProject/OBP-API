@@ -108,35 +108,35 @@ object MapperCounterparties extends Counterparties with Loggable {
   }
 
 
-  override def getCounterparty(counterPartyId : String): Box[CounterpartiesFields] = {
+  override def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = {
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterPartyId))
   }
-  override def getCounterpartyByIban(Iban : String): Box[CounterpartiesFields] = {
+  override def getCounterpartyByIban(Iban : String): Box[CounterpartyTrait] = {
       MappedCounterparty.find(By(MappedCounterparty.mAccountRoutingAddress, Iban))
     }
 
-  override def addCounterparty(createdByUserId: String,
-                               bankId: String,
-                               accountId : String,
-                               name: String,
-                               counterPartyBankId : String,
-                               primaryRoutingScheme : String,
-                               primaryRoutingAddress : String): Box[CounterpartiesFields] = {
+  override def createCounterparty(createdByUserId: String,
+                                  thisBankId: String,
+                                  thisAccountId : String,
+                                  name: String,
+                                  otherBankId : String,
+                                  accountRoutingScheme : String,
+                                  accountRoutingAddress : String): Box[CounterpartyTrait] = {
     val metadata = MappedCounterpartyMetadata.create
-                                              .thisAccountBankId(bankId)
-                                              .thisAccountId(accountId)
+                                              .thisAccountBankId(thisBankId)
+                                              .thisAccountId(thisAccountId)
                                               .holder(name)
                                               .saveMe
 
     Some(
     MappedCounterparty.create
       .mCreatedByUserId(createdByUserId)
-      .mBankId(bankId)
-      .mAccountId(accountId)
-      .mOtherBankId(counterPartyBankId)
+      .mThisBankId(thisBankId)
+      .mThisAccountId(thisAccountId)
+      .mOtherBankId(otherBankId)
       .mCounterPartyId(metadata.metadataId)
-      .mAccountRoutingScheme(primaryRoutingScheme)
-      .mAccountRoutingAddress(primaryRoutingAddress)
+      .mAccountRoutingScheme(accountRoutingScheme)
+      .mAccountRoutingAddress(accountRoutingAddress)
       .saveMe()
     )
   }
@@ -271,12 +271,12 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
 object MappedCounterpartyWhereTag extends MappedCounterpartyWhereTag with LongKeyedMetaMapper[MappedCounterpartyWhereTag]
 
 
-class MappedCounterparty extends CounterpartiesFields with LongKeyedMapper[MappedCounterparty] with IdPK with CreatedUpdated {
+class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCounterparty] with IdPK with CreatedUpdated {
   def getSingleton = MappedCounterparty
 
   object mCreatedByUserId extends MappedString(this, 36)
-  object mBankId extends MappedString(this, 36)
-  object mAccountId extends MappedString(this, 255)
+  object mThisBankId extends MappedString(this, 36)
+  object mThisAccountId extends MappedString(this, 255)
   object mOtherBankId extends MappedString(this, 36)
   object mCounterPartyId extends MappedString(this, 36)
   object mAccountRoutingScheme extends MappedString(this, 255)
@@ -290,8 +290,8 @@ class MappedCounterparty extends CounterpartiesFields with LongKeyedMapper[Mappe
 
 
   override def createdByUserId = mCreatedByUserId.get
-  override def thisBankId = mBankId.get
-  override def thisAccountId = mAccountId.get
+  override def thisBankId = mThisBankId.get
+  override def thisAccountId = mThisAccountId.get
   override def otherBankId = mOtherBankId.get
   override def counterPartyId = mCounterPartyId.get
   override def accountRoutingScheme = mAccountRoutingScheme.get

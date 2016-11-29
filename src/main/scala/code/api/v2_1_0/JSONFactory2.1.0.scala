@@ -38,11 +38,11 @@ import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
 import code.customer.Customer
-import code.metadata.counterparties.CounterpartiesFields
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
 import code.model.{AmountOfMoney, Consumer, CounterpartyMetadataIban, Iban}
-import code.metadata.counterparties.CounterpartiesFields
+import code.metadata.counterparties.CounterpartyTrait
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 
@@ -108,9 +108,9 @@ case class ConsumerJSON(id: Long, name: String, appType: String, description: St
 case class ConsumerJSONs(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
-                                counterparty_bank_id: String,
-                                primary_routing_scheme: String,
-                                primary_routing_address: String
+                                other_bank_id: String,
+                                account_routing_scheme: String,
+                                account_routing_address: String
                                )
 
 case class CounterpartiesJSON(
@@ -121,8 +121,8 @@ case class CounterpartyJSON(
                              counterparty_id: String,
                              display: CounterpartyNameJSON,
                              created_by_user_id: String,
-                             used_by_account: UsedByAccountJSON,
-                             primary_routing: PrimaryRoutingJSON,
+                             this_account: UsedByAccountJSON,
+                             account_routing: PrimaryRoutingJSON,
                              metadata: CounterpartyMetadataJSON
                            )
 
@@ -368,13 +368,13 @@ object JSONFactory210{
     ConsumerJSONs(l.map(createConsumerJSON))
   }
 
-  def createCounterpartJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartiesFields) : CounterpartyJSON = {
+  def createCounterpartJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartyTrait) : CounterpartyJSON = {
     new CounterpartyJSON(
       counterparty_id = metadata.metadataId,
       display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
       created_by_user_id = couterparty.createdByUserId,
-      used_by_account = UsedByAccountJSON(couterparty.thisBankId, couterparty.thisAccountId),
-      primary_routing = PrimaryRoutingJSON(couterparty.accountRoutingScheme, couterparty.accountRoutingAddress),
+      this_account = UsedByAccountJSON(couterparty.thisBankId, couterparty.thisAccountId),
+      account_routing = PrimaryRoutingJSON(couterparty.accountRoutingScheme, couterparty.accountRoutingAddress),
       metadata = CounterpartyMetadataJSON(public_alias = metadata.getPublicAlias,
         private_alias = metadata.getPrivateAlias,
         more_info = metadata.getMoreInfo,

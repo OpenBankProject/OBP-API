@@ -101,9 +101,9 @@ object MongoCounterparties extends Counterparties with Loggable {
     else firstAliasAttempt
   }
 
-  def getCounterparty(counterPartyId : String): Box[CounterpartiesFields] = Empty
+  def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = Empty
 
-  def getCounterpartyByIban(counterPartyId : String): Box[CounterpartiesFields] = Empty
+  def getCounterpartyByIban(counterPartyId : String): Box[CounterpartyTrait] = Empty
 
-  def addCounterparty(userId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields] = Empty
+  def createCounterparty(userId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartyTrait] = Empty
 }

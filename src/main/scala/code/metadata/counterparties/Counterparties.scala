@@ -21,14 +21,14 @@ trait Counterparties {
 
   def getMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, counterpartyMetadataId : String) : Box[CounterpartyMetadata]
 
-  def getCounterparty(counterPartyId : String): Box[CounterpartiesFields]
+  def getCounterparty(counterPartyId : String): Box[CounterpartyTrait]
 
-  def getCounterpartyByIban(iBan : String): Box[CounterpartiesFields]
+  def getCounterpartyByIban(iBan : String): Box[CounterpartyTrait]
 
-  def addCounterparty(createdByUserId: String, bankId: String, accountId : String, name: String, counterPartyBankId : String, primaryRoutingScheme : String, primaryRoutingAddress : String): Box[CounterpartiesFields]
+  def createCounterparty(createdByUserId: String, thisBankId: String, thisAccountId : String, name: String, otherBankId : String, accountRoutingScheme : String, accountRoutingAddress : String): Box[CounterpartyTrait]
 }
 
-trait CounterpartiesFields {
+trait CounterpartyTrait {
   def createdByUserId: String
   def thisBankId: String
   def thisAccountId: String
