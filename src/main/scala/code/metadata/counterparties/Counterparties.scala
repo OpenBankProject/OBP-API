@@ -23,24 +23,37 @@ trait Counterparties {
 
   def getCounterparty(counterPartyId : String): Box[CounterpartyTrait]
 
-  def getCounterpartyByIban(iBan : String): Box[CounterpartyTrait]
+  def getCounterpartyByIban(iban : String): Box[CounterpartyTrait]
 
-  def createCounterparty(createdByUserId: String,
-                         thisBankId: String,
-                         thisAccountId : String,
-                         name: String,
-                         otherBankId : String,
-                         accountRoutingScheme : String,
-                         accountRoutingAddress : String,
-                         bankRoutingScheme : String,
-                         bankRoutingAddress : String
+  def createCounterparty(
+                          createdByUserId: String,
+                          thisBankId: String,
+                          thisAccountId: String,
+                          thisViewId: String,
+                          name: String,
+                          otherBankId: String,
+                          otherAccountId: String,
+                          accountRoutingScheme: String,
+                          accountRoutingAddress: String,
+                          bankRoutingScheme: String,
+                          bankRoutingAddress: String,
+                          isBeneficiary:Boolean
                         ): Box[CounterpartyTrait]
+
+  def checkCounterpartyAvailable(
+                                  name: String,
+                                  thisBankId: String,
+                                  thisAccountId: String,
+                                  thisViewId: String
+                                ): Boolean
 }
 
 trait CounterpartyTrait {
   def createdByUserId: String
+  def name: String
   def thisBankId: String
   def thisAccountId: String
+  def thisViewId: String
   def otherBankId: String
   def otherAccountId: String
   def otherAccountProvider: String

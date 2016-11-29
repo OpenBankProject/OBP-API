@@ -169,7 +169,7 @@ class Boot extends Loggable{
 
     // ensure our relational database's tables are created/fit the schema
     if(Props.get("connector").getOrElse("") == "mapped" ||
-       Props.get("connector").getOrElse("") == "kafka" )
+       Props.get("connector").getOrElse("").startsWith("kafka") )
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)

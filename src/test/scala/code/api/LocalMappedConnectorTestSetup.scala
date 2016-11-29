@@ -9,7 +9,7 @@ import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
-import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
 import code.transaction.MappedTransaction
 
 import scala.util.Random
@@ -27,13 +27,14 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5)).saveMe
   }
 
-  override protected def createCounterparty(bankId:String, accountId:String, iBan:String):MappedCounterparty = {
+  override protected def createCounterparty(bankId:String, accountId:String, accountRoutingAddress:String, isBeneficiary:Boolean):CounterpartyTrait = {
     MappedCounterparty.create.
       mCounterPartyId(UUID.randomUUID().toString).
-      mAccountRoutingAddress(iBan).
+      mName(UUID.randomUUID().toString).
+      mAccountRoutingAddress(accountRoutingAddress).
       mOtherBankId(bankId).
       mOtherAccountId(accountId).
-      mIsBeneficiary(true).
+      mIsBeneficiary(isBeneficiary).
     saveMe
   }
 

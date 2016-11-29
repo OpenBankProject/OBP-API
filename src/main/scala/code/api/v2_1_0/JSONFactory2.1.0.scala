@@ -42,7 +42,7 @@ import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
-import code.model.{AmountOfMoney, Consumer, CounterpartyMetadataIban, Iban}
+import code.model.{AmountOfMoney, Consumer, AccountRoutingAddress, Iban}
 import code.metadata.counterparties.CounterpartyTrait
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue

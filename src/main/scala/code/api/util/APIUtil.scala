@@ -96,9 +96,9 @@ object ErrorMessages {
   val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
   val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
   val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
-  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. The IBan specified does not exist on this server."
+  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. The IBAN specified does not exist on this server."
   val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty.Please set the Counterparty 'isBeneficiary' true first"
-  val CounterpartiesNotFound = "OBP-30014: No products available. License may not be set."
+  val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

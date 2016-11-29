@@ -84,8 +84,6 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        println(response.body)
-
         //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
@@ -150,7 +148,6 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         transactions.size should equal(1)
 
         //check that the description has been set
-        println(response.body)
         /*val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
