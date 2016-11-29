@@ -589,7 +589,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.highest_education_attained,
                 postedData.employment_status,
                 postedData.kyc_status,
-                postedData.last_ok_date) ?~! "Could not create customer"
+                postedData.last_ok_date,
+                None,
+                None) ?~! "Could not create customer"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)
             successJsonResponse(Extraction.decompose(successJson))

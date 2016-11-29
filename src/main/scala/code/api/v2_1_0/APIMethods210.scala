@@ -5,11 +5,11 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
-import code.api.util.{ApiRole, ErrorMessages}
+import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
@@ -17,6 +17,7 @@ import code.atms.Atms.AtmId
 import code.bankconnectors.Connector
 import code.branches.Branches
 import code.branches.Branches.BranchId
+import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.MappedCounterpartyMetadata
@@ -25,11 +26,13 @@ import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products
 import code.products.Products.ProductCode
-import net.liftweb.http.{CurrentReq, Req}
+import code.usercustomerlinks.UserCustomerLink
+import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
@@ -49,7 +52,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers._
 import net.liftweb.json._
-import net.liftweb.json.Serialization.{read, write}
+import net.liftweb.json.Serialization.{write}
 
 
 trait APIMethods210 {
@@ -986,6 +989,165 @@ trait APIMethods210 {
           }
       }
     }
+
+    resourceDocs += ResourceDoc(
+      createCustomer,
+      apiVersion,
+      "createCustomer",
+      "POST",
+      "/banks/BANK_ID/customers",
+      "Create Customer.",
+      s"""Add a customer linked to the user specified by user_id
+          |The Customer resource stores the customer number, legal name, email, phone number, their date of birth, relationship status, education attained, a url for a profile image, KYC status etc.
+          |This call may require additional permissions/role in the future.
+          |For now the authenticated user can create at most one linked customer.
+          |Dates need to be in the format 2013-01-21T23:08:00Z
+          |${authenticationRequiredMessage(true)}
+          |""",
+      Extraction.decompose(PostCustomerJson("user_id to attach this customer to e.g. 123213",
+        "new customer number 687687678", "Joe David Bloggs",
+        "+44 07972 444 876", "person@example.com",
+        CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+        exampleDate,
+        "Single",
+        1,
+        List(exampleDate),
+        CustomerCreditRatingJSON(rating = "5", source = "Credit biro"),
+        AmountOfMoneyJSON(currency = "EUR", amount = "5000"),
+        "Bachelor’s Degree",
+        "Employed",
+        true,
+        exampleDate)),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore,notPSD2,notOBWG),
+      List(apiTagPerson, apiTagCustomer))
+
+
+
+    // TODO
+    // Separate customer creation (keep here) from customer linking (remove from here)
+    // Remove user_id from CreateCustomerJson
+    // Logged in user must have CanCreateCustomer (should no longer be able create customer for own user)
+    // Add ApiLink to createUserCustomerLink
+
+    lazy val createCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customers" :: Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            requiredEntitlements = CanCreateCustomer ::
+              CanCreateUserCustomerLink ::
+              Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
+            checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
+            customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
+            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks
+            //Find all user to customer links by user_id
+            userCustomerLinks <- tryo(userCustomerLinks.filter(u => u.userId.equalsIgnoreCase(user_id)))
+            customerIds: List[String] <-  tryo(userCustomerLinks.map(p => p.customerId))
+            //Try to find an existing customer at BANK_ID
+            alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomer(x, bank.bankId).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            // TODO we still store the user inside the customer, we should only store the user in the usercustomer link
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            customer <- Customer.customerProvider.vend.addCustomer(bankId,
+              customer_user,
+              postedData.customer_number,
+              postedData.legal_name,
+              postedData.mobile_phone_number,
+              postedData.email,
+              MockCustomerFaceImage(postedData.face_image.date, postedData.face_image.url),
+              postedData.date_of_birth,
+              postedData.relationship_status,
+              postedData.dependants,
+              postedData.dob_of_dependants,
+              postedData.highest_education_attained,
+              postedData.employment_status,
+              postedData.kyc_status,
+              postedData.last_ok_date,
+              Option(MockCreditRating(postedData.credit_rating.rating, postedData.credit_rating.source)),
+              Option(MockCreditLimit(postedData.credit_limit.currency, postedData.credit_limit.amount))) ?~! "Could not create customer"
+            userCustomerLink <- booleanToBox(UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(user_id, customer.customerId).isEmpty == true) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
+          } yield {
+            val json = JSONFactory210.createCustomerJson(customer)
+            val successJson = Extraction.decompose(json)
+            successJsonResponse(successJson, 201)
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCustomers,
+      apiVersion,
+      "getCustomers",
+      "GET",
+      "/users/current/customers",
+      "Get all customers for logged in user",
+      """Information about the currently authenticated user.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore,notPSD2,notOBWG),
+      List(apiTagPerson, apiTagCustomer))
+
+    lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "users" :: "current" :: "customers" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            //bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            customerIds: List[String] <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId).map(x=>x.customerId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+          } yield {
+            val json = JSONFactory210.createCustomersJson(APIUtil.getCustomers(customerIds))
+            println("APIUtil.getCustomers(customerIds) " + APIUtil.getCustomers(customerIds))
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getCustomer,
+      apiVersion,
+      "getCustomer",
+      "GET",
+      "/banks/BANK_ID/customer",
+      "Get customer for logged in user",
+      """Information about the currently authenticated user.
+        |
+        |Authentication via OAuth is required.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore,notPSD2,notOBWG),
+      List(apiTagCustomer))
+
+    lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "customer" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            ucls <- tryo{UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(u.userId)} ?~! ErrorMessages.CustomerDoNotExistsForUser
+            ucl <- tryo{ucls.find(x=>Customer.customerProvider.vend.getBankIdByCustomerId(x.customerId) == bankId.value)}
+            isEmpty <- booleanToBox(ucl.size > 0, ErrorMessages.CustomerDoNotExistsForUser)
+            u <- ucl
+            info <- Customer.customerProvider.vend.getCustomerByCustomerId(u.customerId) ?~! ErrorMessages.CustomerNotFoundByCustomerId
+          } yield {
+            val json = JSONFactory210.createCustomerJson(info)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
   }
 }
 

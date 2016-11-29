@@ -36,7 +36,10 @@ trait CustomerProvider {
                   highestEducationAttained: String,
                   employmentStatus: String,
                   kycStatus: Boolean,
-                  lastOkDate: Date): Box[Customer]
+                  lastOkDate: Date,
+                  creditRating: Option[CreditRating],
+                  creditLimit: Option[AmountOfMoney]
+                 ): Box[Customer]
 
 }
 
@@ -54,6 +57,8 @@ trait Customer {
   def dobOfDependents: List[Date]
   def highestEducationAttained: String
   def employmentStatus: String
+  def creditRating : CreditRating
+  def creditLimit: AmountOfMoney
   def kycStatus: Boolean
   def lastOkDate: Date
 }
@@ -63,4 +68,16 @@ trait CustomerFaceImage {
   def date : Date
 }
 
+trait AmountOfMoney {
+  def currency: String
+  def amount: String
+}
+
+trait CreditRating {
+  def rating: String
+  def source: String
+}
+
 case class MockCustomerFaceImage(date : Date, url : String) extends CustomerFaceImage
+case class MockCreditRating(rating: String, source: String) extends CreditRating
+case class MockCreditLimit(currency: String, amount: String) extends AmountOfMoney

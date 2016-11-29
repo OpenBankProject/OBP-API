@@ -35,8 +35,9 @@ import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.customer.Customer
 import code.metadata.counterparties.CounterpartiesFields
 import code.model._
 import code.transactionrequests.TransactionRequests._
@@ -167,7 +168,43 @@ case class UserJSON(
                    )
 
 
+case class PostCustomerJson(
+                             user_id: String,
+                             customer_number : String,
+                             legal_name : String,
+                             mobile_phone_number : String,
+                             email : String,
+                             face_image : CustomerFaceImageJson,
+                             date_of_birth: Date,
+                             relationship_status: String,
+                             dependants: Int,
+                             dob_of_dependants: List[Date],
+                             credit_rating: CustomerCreditRatingJSON,
+                             credit_limit: AmountOfMoneyJSON,
+                             highest_education_attained: String,
+                             employment_status: String,
+                             kyc_status: Boolean,
+                             last_ok_date: Date)
 
+case class CustomerJson(customer_id: String,
+                        customer_number : String,
+                        legal_name : String,
+                        mobile_phone_number : String,
+                        email : String,
+                        face_image : CustomerFaceImageJson,
+                        date_of_birth: Date,
+                        relationship_status: String,
+                        dependants: Int,
+                        dob_of_dependants: List[Date],
+                        credit_rating: Option[CustomerCreditRatingJSON],
+                        credit_limit: Option[AmountOfMoneyJSON],
+                        highest_education_attained: String,
+                        employment_status: String,
+                        kyc_status: Boolean,
+                        last_ok_date: Date)
+case class CustomerJSONs(customers: List[CustomerJson])
+
+case class CustomerCreditRatingJSON(rating: String, source: String)
 
 
 object JSONFactory210{
@@ -410,8 +447,31 @@ object JSONFactory210{
       case _ => null
     }
 
+  def createCustomerJson(cInfo : Customer) : CustomerJson = {
 
-
+    CustomerJson(
+      customer_id = cInfo.customerId,
+      customer_number = cInfo.number,
+      legal_name = cInfo.legalName,
+      mobile_phone_number = cInfo.mobileNumber,
+      email = cInfo.email,
+      face_image = CustomerFaceImageJson(url = cInfo.faceImage.url,
+        date = cInfo.faceImage.date),
+      date_of_birth = cInfo.dateOfBirth,
+      relationship_status = cInfo.relationshipStatus,
+      dependants = cInfo.dependents,
+      dob_of_dependants = cInfo.dobOfDependents,
+      credit_rating = Option(CustomerCreditRatingJSON(rating = cInfo.creditRating.rating, source = cInfo.creditRating.source)),
+      credit_limit = Option(AmountOfMoneyJSON(currency = cInfo.creditLimit.currency, amount = cInfo.creditLimit.amount)),
+      highest_education_attained = cInfo.highestEducationAttained,
+      employment_status = cInfo.employmentStatus,
+      kyc_status = cInfo.kycStatus,
+      last_ok_date = cInfo.lastOkDate
+    )
+  }
+  def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
+    CustomerJSONs(customers.map(createCustomerJson))
+  }
 
 
 }
