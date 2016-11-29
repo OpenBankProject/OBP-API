@@ -306,10 +306,10 @@ trait APIMethods210 {
                   for {
                   //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
-                    counterpartiesFields <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
-                    isBeneficiary <- booleanToBox(counterpartiesFields.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(counterpartiesFields.otherBankId ))
-                    toAccountId <- Full(AccountId(counterpartiesFields.otherAccountId))
+                    counterparty <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    toBankId <- Full(BankId(counterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
                     // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
@@ -976,6 +976,7 @@ trait APIMethods210 {
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ "invalid json"
+            // TODO ensure counterparty is unique for bank_id/account_id/view_id
             couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
