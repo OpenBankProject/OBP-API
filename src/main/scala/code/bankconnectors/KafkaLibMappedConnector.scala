@@ -1,6 +1,8 @@
 package code.bankconnectors
 
 import java.text.SimpleDateFormat
+import java.time.ZoneOffset.UTC
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
@@ -62,12 +64,14 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   consumerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
   producerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
 
-  val factory : Factory = Transport.defaultFactory()
+  //val factory : Factory = Transport.defaultFactory()
+  val factory : Optional[Factory] = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json)
   val north: SimpleNorth = new SimpleNorth(
     Props.get("kafka.response_topic").openOr("Response"),
     Props.get("kafka.request_topic").openOr("Request"),
     consumerProps, producerProps)
-  val jvmNorth : JConnector = factory.connector(north)
+  val jvmNorth : JConnector = factory.get().connector(north)
+  //val jvmNorth : JConnector = factory.connector(north)
 
 // todo uncommment this and remove producer, consumer below
   north.receive() // start Kafka
@@ -569,17 +573,28 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
    * of the saved transaction.
    */
   // TODO: Extend jvmNorth function with parameters transactionRequestId and description
-  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+
     val name = OBPUser.getCurrentUserUsername
     val user = OBPUser.getApiUserByUsername(name)
     val userId = for (u <- user) yield u.userId
     val accountId = fromAccount.accountId.value
+    val bankId = fromAccount.bankId.value
     val currency = fromAccount.currency
     val amount = amt.asInstanceOf[java.math.BigDecimal]
     val counterpartyId = toAccount.accountId.value
-    val counterpartyCurrency = toAccount.currency
+    val newBalanceCurrency = toAccount.currency
+    val newBalanceAmount = toAccount.balance
+    val counterpartyName = toAccount.name
     val transactionType = "AC"
-    toOption[String](jvmNorth.createTransaction(userId.getOrElse(""), accountId, currency, amount, counterpartyId, counterpartyCurrency, transactionType)) match {
+    val completed = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
+    val posted = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
+    val transactionId = "1"
+    val `type` = ""
+
+    toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
+      description, newBalanceAmount.bigDecimal, newBalanceCurrency, posted, transactionId,
+      `type`, userId.getOrElse(""))) match {
       case Some(x) => Full(TransactionId(x))
       case None => Empty
     }
