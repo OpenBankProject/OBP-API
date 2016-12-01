@@ -5,11 +5,11 @@ import java.util.Date
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{TransactionRequestDetailsFreeFormJSON, TransactionRequestDetailsSEPAResponseJSON, TransactionRequestDetailsSandBoxTanJSON}
+import code.api.v2_1_0._
+import code.branches.Branches.{Branch, BranchId}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{Transaction, User, _}
-import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -17,7 +17,6 @@ import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
-import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 
 import scala.math.BigInt
@@ -695,4 +694,8 @@ trait Connector {
 
   def getProduct(bankId : BankId, productCode : ProductCode) : Box[Product]
 
-  }
+  def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
+
+  def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+
+}

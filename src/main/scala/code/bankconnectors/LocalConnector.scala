@@ -3,6 +3,9 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
@@ -603,7 +606,11 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+
+  override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 }
