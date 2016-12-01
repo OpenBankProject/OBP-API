@@ -134,6 +134,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canAddPhysicalLocation_(actions.exists(_ == "can_add_physical_location"))
     canAddPublicAlias_(actions.exists(_ == "can_add_public_alias"))
     canAddPrivateAlias_(actions.exists(_ == "can_add_private_alias"))
+    canCreateCounterparty_(actions.exists(_ == "can_create_counterparty"))
     canDeleteCorporateLocation_(actions.exists(_ == "can_delete_corporate_location"))
     canDeletePhysicalLocation_(actions.exists(_ == "can_delete_physical_location"))
     canEditOwnerComment_(actions.exists(_ == "can_edit_narrative"))
@@ -307,6 +308,9 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canAddPrivateAlias_ extends MappedBoolean(this){
     override def defaultValue = false
   }
+  object canCreateCounterparty_ extends MappedBoolean(this){
+    override def defaultValue = true
+  }
   object canDeleteCorporateLocation_ extends MappedBoolean(this){
     override def defaultValue = false
   }
@@ -421,6 +425,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddPhysicalLocation : Boolean = canAddPhysicalLocation_.get
   def canAddPublicAlias : Boolean = canAddPublicAlias_.get
   def canAddPrivateAlias : Boolean = canAddPrivateAlias_.get
+  def canCreateCounterparty : Boolean = canCreateCounterparty_.get
   def canDeleteCorporateLocation : Boolean = canDeleteCorporateLocation_.get
   def canDeletePhysicalLocation : Boolean = canDeletePhysicalLocation_.get
 
@@ -518,6 +523,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
       .canAddPhysicalLocation_(true)
       .canAddPublicAlias_(true)
       .canAddPrivateAlias_(true)
+      .canCreateCounterparty_(true)
       .canDeleteCorporateLocation_(true)
       .canDeletePhysicalLocation_(true)
       .canEditOwnerComment_(true)
@@ -596,6 +602,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -677,6 +684,7 @@ Accountants
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -759,6 +767,7 @@ Auditors
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
