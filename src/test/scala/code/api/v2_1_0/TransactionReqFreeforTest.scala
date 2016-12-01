@@ -15,7 +15,7 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 
-class TransactionRequestsFreeformTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
+class TransactionReqFreeforTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
 
   object TransactionRequest extends Tag("transactionRequests")
 
@@ -84,9 +84,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        println(response.body)
-
-        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm and value is < 1000, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -150,7 +148,6 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         transactions.size should equal(1)
 
         //check that the description has been set
-        println(response.body)
         /*val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
           case JString(i) => i
           case _ => ""
@@ -227,7 +224,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm and value is < 1000, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -345,7 +342,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 400 created code")
         response.code should equal(400)
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm and value is < 1000, we expect no challenge
         val error: String = (response.body \ "error") match {
           case JString(i) => i
           case _ => ""
@@ -405,7 +402,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 400 created code")
         response.code should equal(400)
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm and value is < 1000, we expect no challenge
         val error: String = (response.body \ "error") match {
           case JString(i) => i
           case _ => ""
@@ -487,7 +484,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
 
         val responseBody = response.body
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -666,7 +663,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //ok, created a transaction request, check some return values. As type is SANDBOX_TAN but over 100€, we expect a challenge
+        //ok, created a transaction request, check some return values. As type is FreeForm but over 100€, we expect a challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -855,7 +852,7 @@ class TransactionRequestsFreeformTest extends ServerSetupWithTestData with Defau
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
+        //created a transaction request, check some return values. As type is FreeForm, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""

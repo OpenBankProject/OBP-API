@@ -20,8 +20,7 @@ import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metadata.counterparties.MappedCounterpartyMetadata
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyMetadata}
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products
@@ -111,7 +110,7 @@ trait APIMethods210 {
             allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure("Data import is disabled for this API instance.", 403)
             allowDataImport <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure("Data import is disabled for this API instance.", 403)
             canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$CanCreateSandbox entitlement required")
-            importData <- tryo {json.extract[SandboxDataImport]} ?~ "invalid json"
+            importData <- tryo {json.extract[SandboxDataImport]} ?~ {ErrorMessages.InvalidJsonFormat}
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(JsRaw("{}"), 201)
@@ -688,7 +687,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), s"CanCreateCardsForBank entitlement required")
-            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ "invalid json"
+            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
               case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~ {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
@@ -776,7 +775,7 @@ trait APIMethods210 {
           |  * charge : The charge to the customer for each one of these
           |
           |${authenticationRequiredMessage(getTransactionTypesIsPublic)}""",
-      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("eur", "123"))),
+      Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore,notPSD2,notOBWG),
@@ -928,10 +927,57 @@ trait APIMethods210 {
             else
               user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            product <- Box(Products.productsProvider.vend.getProduct(bankId, productCode, true)) ?~! {ErrorMessages.ProductNotFoundByProductCode}
+            product <- Connector.connector.vend.getProduct(bankId, productCode)?~! {ErrorMessages.ProductNotFoundByProductCode}
           } yield {
             // Format the data as json
-            val json = JSONFactory1_4_0.createProductJson(product)
+            val json = JSONFactory210.createProductJson(product)
+            // Return
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getProducts,
+      apiVersion,
+      "getProducts",
+      "GET",
+      "/banks/BANK_ID/products",
+      "Get Bank Products",
+      s"""Returns information about the financial products offered by a bank specified by BANK_ID including:
+          |
+          |* Name
+          |* Code
+          |* Category
+          |* Family
+          |* Super Family
+          |* More info URL
+          |* Description
+          |* Terms and Conditions
+          |* License the data under this endpoint is released under
+          |${authenticationRequiredMessage(!getProductsIsPublic)}""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, notPSD2, OBWG),
+      List(apiTagBank)
+    )
+
+    lazy val getProducts : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "products" :: Nil JsonGet _ => {
+        user => {
+          for {
+          // Get products from the active provider
+            u <- if(getProductsIsPublic)
+              Box(Some(1))
+            else
+              user ?~! ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            products <- Connector.connector.vend.getProducts(bankId)?~!  {ErrorMessages.ProductNotFoundByProductCode}
+          } yield {
+            // Format the data as json
+            val json = JSONFactory210.createProductsJson(products)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -975,17 +1021,22 @@ trait APIMethods210 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
-            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ "invalid json"
-            // TODO ensure counterparty is unique for bank_id/account_id/view_id
+            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+            checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
+              checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
+            ) ?~! ErrorMessages.CounterpartyAlreadyExists
             couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
+              thisViewId = viewId.value,
               name=postJson.name,
               otherBankId =postJson.other_bank_id,
+              otherAccountId =postJson.other_account_id,
               accountRoutingScheme=postJson.account_routing_scheme,
               accountRoutingAddress=postJson.account_routing_address,
               bankRoutingScheme=postJson.bank_routing_scheme,
-              bankRoutingAddress=postJson.bank_routing_address
+              bankRoutingAddress=postJson.bank_routing_address,
+              isBeneficiary=postJson.is_beneficiary
             )
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
             availableViews <- Full(account.permittedViews(user))

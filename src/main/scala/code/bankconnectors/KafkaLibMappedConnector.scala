@@ -18,6 +18,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
+import code.products.Products.ProductCode
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
@@ -33,7 +34,10 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
-
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 import scala.collection.JavaConversions._
 
 /**
@@ -1304,5 +1308,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                        limit: BigDecimal,
                                        currency: String
                                         )
+
+  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
 }
 

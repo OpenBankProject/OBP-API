@@ -27,6 +27,8 @@ object Products extends SimpleInjector {
     def family : String
     def superFamily : String
     def moreInfoUrl: String
+    def details :String
+    def description: String
     def meta : Meta
   }
 

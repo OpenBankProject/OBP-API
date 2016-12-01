@@ -7,9 +7,14 @@ import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, _}
+import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.common.{Box, Empty, Full, Failure, Loggable}
+import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -163,6 +168,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = ???
     override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
     override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
+
+    override def getProducts(bankId: BankId): Box[List[Product]] = ???
+
+    override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
   }
 
   override def beforeAll() {

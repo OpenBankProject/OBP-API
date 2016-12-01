@@ -8,6 +8,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
+import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.mongodb.QueryBuilder
@@ -20,9 +21,12 @@ import net.liftweb.mongodb.BsonDSL._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.bson.types.ObjectId
-
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
+import code.products.MappedProduct
+import code.products.Products.{Product, ProductCode}
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -598,4 +602,8 @@ private object LocalConnector extends Connector with Loggable {
         false
     }
   }
+
+  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
 }

@@ -101,17 +101,29 @@ object MongoCounterparties extends Counterparties with Loggable {
     else firstAliasAttempt
   }
 
-  def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = Empty
+  override def getCounterparty(counterPartyId : String): Box[CounterpartyTrait] = Empty
 
-  def getCounterpartyByIban(counterPartyId : String): Box[CounterpartyTrait] = Empty
+  override def getCounterpartyByIban(counterPartyId : String): Box[CounterpartyTrait] = Empty
 
-  def createCounterparty(userId: String,
-                         bankId: String,
-                         accountId : String,
-                         name: String,
-                         counterPartyBankId : String,
-                         accountRoutingScheme : String,
-                         accountRoutingAddress : String,
-                         bankRoutingScheme : String,
-                         bamkRoutingAddress : String): Box[CounterpartyTrait] = Empty
+  override def createCounterparty(
+                                   createdByUserId: String,
+                                   thisBankId: String,
+                                   thisAccountId: String,
+                                   thisViewId: String,
+                                   name: String,
+                                   otherBankId: String,
+                                   otherAccountId: String,
+                                   accountRoutingScheme: String,
+                                   accountRoutingAddress: String,
+                                   bankRoutingScheme: String,
+                                   bankRoutingAddress: String,
+                                   isBeneficiary: Boolean
+                                 ): Box[CounterpartyTrait] = Empty
+
+  override def checkCounterpartyAvailable(
+                                        name: String,
+                                        thisBankId: String,
+                                        thisAccountId: String,
+                                        thisViewId: String
+                                      ): Boolean = false
 }

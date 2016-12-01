@@ -156,7 +156,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "addCustomerMessage" ::
                          "getBranches" ::
                          "getAtms" ::
-                         "getProducts" ::
                          "getCrmEvents" ::
                          "getTransactionRequestTypes" ::
                          Nil
@@ -243,6 +242,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "getAtm"::
                          "getBranch"::
                          "getProduct"::
+                         "getProducts"::
                          "createCustomer"::
                          "getCustomer" ::
                          "getCustomers" ::

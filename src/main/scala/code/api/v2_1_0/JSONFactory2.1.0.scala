@@ -37,14 +37,16 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.common.{License, Meta}
 import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
-import code.model.{AmountOfMoney, Consumer, CounterpartyMetadataIban, Iban}
+import code.model.{AmountOfMoney, Consumer, AccountRoutingAddress, Iban}
 import code.metadata.counterparties.CounterpartyTrait
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
+import code.products.Products.Product
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
 case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
@@ -218,6 +220,22 @@ case class CustomerJson(customer_id: String,
 case class CustomerJSONs(customers: List[CustomerJson])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
+
+// V210 Products
+
+case class ProductJson(code : String,
+                       name : String,
+                       category: String,
+                       family : String,
+                       super_family : String,
+                       more_info_url: String,
+                       details: String,
+                       description: String,
+                       meta : MetaJson)
+
+case class ProductsJson (products : List[ProductJson])
+case class MetaJson(license : LicenseJson)
+case class LicenseJson(id : String, name : String)
 
 
 object JSONFactory210{
@@ -487,5 +505,27 @@ object JSONFactory210{
     CustomerJSONs(customers.map(createCustomerJson))
   }
 
+  // V210 Products
+  def createProductJson(product: Product) : ProductJson = {
+    ProductJson(product.code.value,
+      product.name,
+      product.category,
+      product.family,
+      product.superFamily,
+      product.moreInfoUrl,
+      product.details,
+      product.description,
+      createMetaJson(product.meta))
+  }
 
+  def createProductsJson(productsList: List[Product]) : ProductsJson = {
+    ProductsJson(productsList.map(createProductJson))
+  }
+  def createMetaJson(meta: Meta) : MetaJson = {
+    MetaJson(createLicenseJson(meta.license))
+  }
+  // Accept a license object and return its json representation
+  def createLicenseJson(license : License) : LicenseJson = {
+    LicenseJson(license.id, license.name)
+  }
 }
