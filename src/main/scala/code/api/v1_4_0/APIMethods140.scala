@@ -453,7 +453,11 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |
         |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
         |
-        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.""",
+        |In sandbox mode, if the amount is < 100 the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
+        |
+        |Please see later versions of this call in 2.0.0 or 2.1.0.
+        |""",
       Extraction.decompose(TransactionRequestBodyJSON (
                                 TransactionRequestAccountJSON("BANK_ID", "ACCOUNT_ID"),
                                 AmountOfMoneyJSON("EUR", "100.53"),

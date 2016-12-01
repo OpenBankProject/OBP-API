@@ -198,7 +198,9 @@ trait APIMethods210 {
         |
         |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
         |
-        |In sandbox mode, if the amount is less than 1000 (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else a challenge will need to be answered.
+        |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
+        |
+        |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
         |
         |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
         |
