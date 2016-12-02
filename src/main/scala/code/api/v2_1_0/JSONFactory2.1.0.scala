@@ -35,7 +35,7 @@ import java.util.Date
 
 import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.api.v1_4_0.JSONFactory1_4_0.{DriveUpJson,LicenseJson,ChallengeJSON, CustomerFaceImageJson, MetaJson, TransactionRequestAccountJSON,AddressJson,LocationJson,LobbyJson}
 import code.api.v2_0_0.TransactionRequestChargeJSON
 import code.branches.Branches.BranchId
 import code.common.{License, Meta}
@@ -48,7 +48,6 @@ import code.metadata.counterparties.CounterpartyTrait
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
-import code.sandbox._
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
 case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
@@ -223,6 +222,7 @@ case class CustomerJSONs(customers: List[CustomerJson])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
+//V210 added details and description feilds
 case class ProductJson(code : String,
                        name : String,
                        category: String,
@@ -232,29 +232,27 @@ case class ProductJson(code : String,
                        details: String,
                        description: String,
                        meta : MetaJson)
-
 case class ProductsJson (products : List[ProductJson])
-case class MetaJson(license : LicenseJson)
-case class LicenseJson(id : String, name : String)
 
+//V210 add bank_id feild and delete id
 case class BranchJsonPut(
                        bank_id: String,
                        name: String,
-                       address: SandboxAddressImport,
-                       location: SandboxLocationImport,
-                       meta: SandboxMetaImport,
-                       lobby: Option[SandboxLobbyImport],
-                       driveUp: Option[SandboxDriveUpImport])
+                       address: AddressJson,
+                       location: LocationJson,
+                       meta: MetaJson,
+                       lobby: LobbyJson,
+                       driveUp: DriveUpJson)
 
 case class BranchJsonPost(
                            id: String,
                            bank_id: String,
                            name: String,
-                           address: SandboxAddressImport,
-                           location: SandboxLocationImport,
-                           meta: SandboxMetaImport,
-                           lobby: Option[SandboxLobbyImport],
-                           driveUp: Option[SandboxDriveUpImport])
+                           address: AddressJson,
+                           location: LocationJson,
+                           meta: MetaJson,
+                           lobby: LobbyJson,
+                           driveUp: DriveUpJson)
 
 object JSONFactory210{
   def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
