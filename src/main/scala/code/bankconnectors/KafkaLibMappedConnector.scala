@@ -7,8 +7,11 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
+import code.api.v2_1_0.{BranchJsonPost}
 import code.fx.fx
 import code.bankconnectors.KafkaMappedConnector.{KafkaBank, KafkaBankAccount, KafkaInboundAccount, KafkaInboundBank}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.Counterparties
@@ -18,7 +21,7 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
-import code.products.Products.ProductCode
+import code.sandbox.{CreateViewImpls, Saveable}
 import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
@@ -34,9 +37,6 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
-import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
-import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import scala.collection.JavaConversions._
 
@@ -1309,8 +1309,12 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                        currency: String
                                         )
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+
+  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 }
 

@@ -2,6 +2,11 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
+import code.TransactionTypes.TransactionType.TransactionTypeProvider
+import code.api.util.ErrorMessages
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
@@ -14,13 +19,14 @@ import code.model._
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
+import code.sandbox.SandboxBranchImport
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import com.tesobe.model.UpdateBankAccount
-import net.liftweb.common.{Box, Failure, Full, Loggable}
-import net.liftweb.mapper._
+import net.liftweb.common._
+import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
@@ -780,10 +786,71 @@ Store one or more transactions
     Full(MappedProduct.findAll(By(MappedProduct.mBankId, bankId.value)))
   }
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] ={
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = {
     MappedProduct.find(
       By(MappedProduct.mBankId, bankId.value),
       By(MappedProduct.mCode, productCode.value)
+    )
+  }
+
+  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = {
+
+    val lobbyHours =  if (branch.lobby.isDefined) {branch.lobby.get.hours.toString} else ""
+    val driveUpHours =  if (branch.driveUp.isDefined) {branch.driveUp.get.hours.toString} else ""
+
+    //check the branch existence and update or insert data
+    getBranch(BankId(branch.bank_id), BranchId(branch.id)) match {
+      case Full(mappedBranch) =>
+        tryo {
+          mappedBranch
+            .mBranchId(branch.id)
+            .mBankId(branch.bank_id)
+            .mName(branch.name)
+            .mLine1(branch.address.line_1)
+            .mLine2(branch.address.line_2)
+            .mLine3(branch.address.line_3)
+            .mCity(branch.address.city)
+            .mCounty(branch.address.county)
+            .mState(branch.address.state)
+            .mPostCode(branch.address.post_code)
+            .mCountryCode(branch.address.country_code)
+            .mlocationLatitude(branch.location.latitude)
+            .mlocationLongitude(branch.location.longitude)
+            .mLicenseId(branch.meta.license.id)
+            .mLicenseName(branch.meta.license.name)
+            .mLobbyHours(lobbyHours)
+            .mDriveUpHours(driveUpHours)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchUpdateError
+      case _ =>
+        tryo {
+          MappedBranch.create
+            .mBranchId(branch.id)
+            .mBankId(branch.bank_id)
+            .mName(branch.name)
+            .mLine1(branch.address.line_1)
+            .mLine2(branch.address.line_2)
+            .mLine3(branch.address.line_3)
+            .mCity(branch.address.city)
+            .mCounty(branch.address.county)
+            .mState(branch.address.state)
+            .mPostCode(branch.address.post_code)
+            .mCountryCode(branch.address.country_code)
+            .mlocationLatitude(branch.location.latitude)
+            .mlocationLongitude(branch.location.longitude)
+            .mLicenseId(branch.meta.license.id)
+            .mLicenseName(branch.meta.license.name)
+            .mLobbyHours(lobbyHours)
+            .mDriveUpHours(driveUpHours)
+            .saveMe()
+        } ?~! ErrorMessages.CreateBranchInsertError
+    }
+  }
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= {
+    MappedBranch.find(
+      By(MappedBranch.mBankId, bankId.value),
+      By(MappedBranch.mBranchId, branchId.value)
     )
   }
 

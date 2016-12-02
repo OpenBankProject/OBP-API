@@ -3,17 +3,15 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
+import code.api.v2_1_0.{BranchJsonPost}
 import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, _}
-import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
-import code.products.MappedProduct
-import code.products.Products.{Product, ProductCode}
-
-import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
@@ -169,9 +167,11 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def setBankAccountLastUpdated(bankNationalIdentifier: String, accountNumber : String, updateDate: Date) : Boolean = ???
     override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = ???
 
-    override def getProducts(bankId: BankId): Box[List[Product]] = ???
+    override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+    override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-    override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
+    override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+    override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
   }
 
   override def beforeAll() {

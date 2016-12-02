@@ -4,6 +4,9 @@ import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
 import code.api.util.ErrorMessages
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.branches.Branches.{Branch, BranchId}
+import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
@@ -16,6 +19,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
 import code.sandbox.{CreateViewImpls, Saveable}
+import code.sandbox.{CreateViewImpls, SandboxBranchImport, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
@@ -1020,9 +1024,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     )
   }
 
-  override def getProducts(bankId: BankId): Box[List[Product]] = ???
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = ???
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
+
+  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
