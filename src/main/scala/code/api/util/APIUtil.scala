@@ -79,6 +79,7 @@ object ErrorMessages {
 
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
+  val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -99,6 +100,8 @@ object ErrorMessages {
   val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. The IBAN specified does not exist on this server."
   val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty.Please set the Counterparty 'isBeneficiary' true first"
   val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
+  val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
+  val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

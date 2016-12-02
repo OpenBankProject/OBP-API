@@ -10,11 +10,12 @@ import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
+import code.sandbox._
 import code.api.v2_0_0._
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
@@ -1210,6 +1211,84 @@ trait APIMethods210 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      updateBranch,
+      apiVersion,
+      "updateBranch",
+      "PUT",
+      "/banks/BANK_ID/branches/BRANCH_ID",
+      "Update Branch",
+      s"""Update an existing branch for a bank account (Authenticated access).
+         |${authenticationRequiredMessage(true)}
+         |""",
+      Extraction.decompose(BranchJsonPut("gh.29.fi", "OBP",
+        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
+        SandboxLocationImport(1.2, 2.1),
+        SandboxMetaImport(SandboxLicenseImport("","")),
+        Option(SandboxLobbyImport("")),
+        Option(SandboxDriveUpImport(""))
+      )),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, OBWG),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+
+
+    lazy val updateBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" :: BranchId(branchId)::  Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+            branch <- tryo {json.extract[BranchJsonPut]} ?~ ErrorMessages.InvalidJsonFormat
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
+            //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
+            branchPost <- toBranchJsonPost(branchId,branch)
+            success <- Connector.connector.vend.createOrUpdateBranch(branchPost)
+          } yield {
+            val json = JSONFactory1_4_0.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      createBranch,
+      apiVersion,
+      "createBranch",
+      "POST",
+      "/banks/BANK_ID/branches",
+      "Create Branch",
+      s"""Create branch for the bank (Authenticated access).
+          |${authenticationRequiredMessage(true)}
+          |""",
+      Extraction.decompose(BranchJsonPost("123","gh.29.fi", "OBP",
+        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
+        SandboxLocationImport(1.2, 2.1),
+        SandboxMetaImport(SandboxLicenseImport("","")),
+        Option(SandboxLobbyImport("")),
+        Option(SandboxDriveUpImport(""))
+      )),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore,notPSD2,OBWG),
+      List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
+
+    lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "banks" :: BankId(bankId) :: "branches" ::  Nil JsonPost json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
+            branch <- tryo {json.extract[BranchJsonPost]} ?~ ErrorMessages.InvalidJsonFormat
+            canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
+            success <- Connector.connector.vend.createOrUpdateBranch(branch)
+          } yield {
+           val json = JSONFactory1_4_0.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
   }
 }
 

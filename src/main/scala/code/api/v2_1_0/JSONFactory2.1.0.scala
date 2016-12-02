@@ -37,16 +37,18 @@ import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.branches.Branches.BranchId
 import code.common.{License, Meta}
 import code.customer.Customer
 import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 import code.transactionrequests.TransactionRequests._
-import code.model.{AmountOfMoney, Consumer, AccountRoutingAddress, Iban}
+import code.model.{AmountOfMoney, Consumer, Iban}
 import code.metadata.counterparties.CounterpartyTrait
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
+import code.sandbox._
 
 case class TransactionRequestTypeJSON(transaction_request_type: String)
 case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
@@ -221,8 +223,6 @@ case class CustomerJSONs(customers: List[CustomerJson])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
-// V210 Products
-
 case class ProductJson(code : String,
                        name : String,
                        category: String,
@@ -237,6 +237,24 @@ case class ProductsJson (products : List[ProductJson])
 case class MetaJson(license : LicenseJson)
 case class LicenseJson(id : String, name : String)
 
+case class BranchJsonPut(
+                       bank_id: String,
+                       name: String,
+                       address: SandboxAddressImport,
+                       location: SandboxLocationImport,
+                       meta: SandboxMetaImport,
+                       lobby: Option[SandboxLobbyImport],
+                       driveUp: Option[SandboxDriveUpImport])
+
+case class BranchJsonPost(
+                           id: String,
+                           bank_id: String,
+                           name: String,
+                           address: SandboxAddressImport,
+                           location: SandboxLocationImport,
+                           meta: SandboxMetaImport,
+                           lobby: Option[SandboxLobbyImport],
+                           driveUp: Option[SandboxDriveUpImport])
 
 object JSONFactory210{
   def createTransactionRequestTypeJSON(transactionRequestType : String ) : TransactionRequestTypeJSON = {
@@ -527,5 +545,17 @@ object JSONFactory210{
   // Accept a license object and return its json representation
   def createLicenseJson(license : License) : LicenseJson = {
     LicenseJson(license.id, license.name)
+  }
+
+  def toBranchJsonPost(branchId: BranchId, branch: BranchJsonPut): Box[BranchJsonPost] = {
+    Full(BranchJsonPost(
+      branchId.value,
+      branch.bank_id,
+      branch.name,
+      branch.address,
+      branch.location,
+      branch.meta,
+      branch.lobby,
+      branch.driveUp))
   }
 }
