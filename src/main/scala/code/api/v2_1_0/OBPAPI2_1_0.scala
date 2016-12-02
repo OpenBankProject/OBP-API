@@ -105,7 +105,6 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                         "getTransactionsForBankAccount"::
                         "getViewsForBankAccount"::
                         "getWhereTagForViewOnTransaction"::
-                        "makePayment"::
                         "removePermissionForUserForBankAccountForAllViews"::
                         "removePermissionForUserForBankAccountForOneView"::
                         "updateAccountLabel"::
