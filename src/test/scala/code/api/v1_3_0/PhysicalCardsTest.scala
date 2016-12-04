@@ -10,6 +10,7 @@ import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
 import code.model.{PhysicalCard, _}
+import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
@@ -58,6 +59,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
   object MockedCardConnector extends Connector with Loggable {
 
     type AccountType = BankAccount
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+    def updateUserAccountViews(user: APIUser): Unit = ???
 
     //these methods aren't required by our test
     override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
