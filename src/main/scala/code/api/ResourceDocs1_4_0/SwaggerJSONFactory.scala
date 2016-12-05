@@ -5,6 +5,8 @@ import java.util.Date
 import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2.{BankJSON, BanksJSON, UserJSON}
+import code.api.v1_2_1.{AccountJSON, AccountsJSON, SuccessMessage}
+import code.model.{TransactionReponseType, TransactionReponseTypes, TransactionRequestType}
 import net.liftweb
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -64,6 +66,8 @@ object SwaggerJSONFactory {
       rd.apiFunction match {
         case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))
         case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
+        case "getTransactionRequestTypes" => Some(ResponseObjectSchemaJson("#/definitions/TransactionRequestType"))
+//        case "allAccountsAllBanks" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
         case _ => None
       }
     }
@@ -82,13 +86,15 @@ object SwaggerJSONFactory {
     val schemas = List("http", "https")
     val paths: ListMap[String, Map[String, MethodJson]] = resourceDocList.groupBy(x => x.requestUrl).toSeq.sortBy(x => x._1).map { mrd =>
       val methods: Map[String, MethodJson] = mrd._2.map(rd =>
-        (rd.requestVerb.toLowerCase,
+        (rd.requestVerb.toLowerCase,//get ,post ,delete or update
           MethodJson(
-            List(s"${rd.apiVersion.toString}"),
-            rd.summary,
-            description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
-            s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
-            Map("200" -> ResponseObjectJson(Some("Success") , getName(rd)), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
+            List(s"${rd.apiVersion.toString}"),//1.2.1 ,1.4.0 or 2.1.0
+            rd.summary,//Get accounts at all banks (Authenticated + Anonymous access).
+            description = pegDownProcessor.markdownToHtml(
+              rd.description.stripMargin).replaceAll("\n", ""),//Returns the list of accounts at that the user has access to at all banks......
+              s"${rd.apiVersion.toString}-${rd.apiFunction.toString}", //1_2_1-allAccountsAllBanks
+              Map("200" -> ResponseObjectJson(Some("Success") , getName(rd)),
+                  "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
       (mrd._1, methods.toSeq.sortBy(m => m._1).toMap)
     }(collection.breakOut)
@@ -151,6 +157,23 @@ object SwaggerJSONFactory {
         case obj@List(BanksJSON(_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/BanksJSON"""" +"}}"
         case obj@UserJSON(_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/UserJSON"""" +"}"
         case obj@List(UserJSON(_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/UserJSON"""" +"}}"
+
+        case obj@TransactionReponseType(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/TransactionRequestType"""" +"}"
+        case obj@List(TransactionReponseType(_)) =>  "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/TransactionRequestType"""" +"}}"
+
+        case obj@TransactionReponseTypes(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/TransactionRequestTypes"""" +"}"
+        case obj@List(TransactionReponseTypes(_)) =>  "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/TransactionRequestTypes"""" +"}}"
+
+        //        case obj@AccountsJSON(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/AccountsJSON"""" +"}"
+        //        case obj@List(AccountsJSON(_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/AccountsJSON"""" +"}}"
+        //        case obj@AccountJSON(_,_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/AccountJSON"""" +"}"
+        //        case obj@List(AccountJSON(_,_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/AccountJSON"""" +"}}"
+        //        case obj@AccountsJSON(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/AccountsJSON"""" +"}"
+        //        case obj@List(AccountsJSON(_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/AccountsJSON"""" +"}}"
+        //        case obj@AccountJSON(_,_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/AccountJSON"""" +"}"
+        //        case obj@List(AccountJSON(_,_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/AccountJSON"""" +"}}"
+
+
         case _ => "unknown"
       }
     }
@@ -185,6 +208,9 @@ object SwaggerJSONFactory {
         rd match {
           case u if u.apiFunction.contains("allBanks") => rd.successResponseBody.extract[BanksJSON]
           case u if u.apiFunction.contains("bankById") => rd.successResponseBody.extract[BankJSON]
+          case u if u.apiFunction.contains("getTransactionRequestTypes") => rd.successResponseBody.extract[TransactionReponseTypes]
+
+//          case u if u.apiFunction.contains("allAccountsAllBanks") => rd.successResponseBody.extract[BankJSON]
           case _ => "Not defined"
         }
       }
