@@ -61,9 +61,9 @@ object Connector  extends SimpleInjector {
       case kafka_version(kafka, lib, version) => 
        val objVersion = version.replaceAll("\\.", "_")
        if (lib == "lib")
-         if (objVersion == "v2016_11_RC2")
-           KafkaLibMappedConnector_v2016_11_RC2
-         else
+         //if (objVersion == "v2016_11_RC2")
+         //  KafkaLibMappedConnector_v2016_11_RC2
+         //else
            KafkaLibMappedConnector
            //getObjectInstance("code.bankconnectors.KafkaLibMappedConnector_" + objVersion)
        else

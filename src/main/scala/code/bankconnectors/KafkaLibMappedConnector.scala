@@ -127,11 +127,11 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val accounts: List[KafkaInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
         KafkaInboundAccount(
                              a.id,
-                             a.bankId,
+                             a.id,
                              a.label,
                              a.number,
                              a.`type`,
-                             KafkaInboundBalance(a.balanceAmount, a.balanceCurrency),
+                             KafkaInboundBalance(a.amount, a.currency),
                              a.iban,
                              user.name :: Nil,
                              false,  //public_view
@@ -213,8 +213,9 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val banks: List[Bank] = jvmNorth.getBanks().map(b =>
         KafkaBank(
           KafkaInboundBank(
-            b.bankId,
-            b.name,
+            b.id,
+            b.shortName,
+            b.fullName,
             b.logo,
             b.url
           )
@@ -253,7 +254,12 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
    toOption[JBank](jvmNorth.getBank(id.value)) match {
-      case Some(b) => Full(KafkaBank(KafkaInboundBank(b.bankId, b.name, b.logo, b.url)))
+      case Some(b) => Full(KafkaBank(KafkaInboundBank(
+       b.id, 
+       b.shortName,
+       b.fullName, 
+       b.logo, 
+       b.url)))
       case None => Empty
     }
   }
@@ -265,15 +271,15 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
         createNewTransaction(KafkaInboundTransaction(
         t.id,
-        KafkaInboundAccountId(t.accountId, bankId.value),
-        Option(KafkaInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
+        KafkaInboundAccountId(t.account, bankId.value),
+        Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
         KafkaInboundTransactionDetails(
           t.`type`,
           t.description,
-          t.postedDate.format(formatter),
-          t.completedDate.format(formatter),
-          t.newBalanceAmount.toString,
-          t.amount.toString
+          t.posted.format(formatter),
+          t.completed.format(formatter),
+          t.balance.toString,
+          t.value.toString
         )
       ))
       case None => Empty
@@ -300,15 +306,15 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val rList: List[KafkaInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
       KafkaInboundTransaction(
             t.id,
-            KafkaInboundAccountId(t.accountId, bankId.value),
-            Option(KafkaInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
+            KafkaInboundAccountId(t.account, bankId.value),
+            Option(KafkaInboundTransactionCounterparty(Option(t.otherId), Option(t.otherAccount))),
             KafkaInboundTransactionDetails(
               t.`type`,
               t.description,
-              t.postedDate.format(formatter),
-              t.completedDate.format(formatter),
-              t.newBalanceAmount.toString,
-              t.amount.toString
+              t.posted.format(formatter),
+              t.completed.format(formatter),
+              t.balance.toString,
+              t.value.toString
            )
       )
     ).toList
@@ -336,12 +342,12 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       accountID.value, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
-      val balance : KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
+      val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
       Full(
         KafkaBankAccount(
           KafkaInboundAccount(
-            a.accountId,
-            a.bankId,
+            a.id,
+            a.bank,
             a.label,
             a.number,
             a.`type`,
@@ -372,10 +378,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         a._2.value, primaryUserIdentifier)
       if (account.isPresent) {
         val a: JAccount = account.get
-        val balance: KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
+        val balance: KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
         Full(KafkaInboundAccount(
-          a.accountId,
-          a.bankId,
+          a.id,
+          a.bank,
           a.label,
           a.number,
           a.`type`,
@@ -409,12 +415,12 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       number, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
-      val balance : KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
+      val balance : KafkaInboundBalance = KafkaInboundBalance(a.currency, a.amount)
       Full(
         KafkaBankAccount(
           KafkaInboundAccount(
-            a.accountId,
-            a.bankId,
+            a.id,
+            a.bank,
             a.label,
             a.number,
             a.`type`,
@@ -576,7 +582,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val amount = amt.asInstanceOf[java.math.BigDecimal]
     val counterpartyId = toAccount.accountId.value
     val newBalanceCurrency = toAccount.currency
-    val newBalanceAmount = toAccount.balance
+    val balance = toAccount.balance
     val counterpartyName = toAccount.name
     val transactionType = "AC"
     val completed = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
@@ -584,12 +590,13 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val transactionId = "1"
     val `type` = ""
 
-    toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
-      description, newBalanceAmount.bigDecimal, newBalanceCurrency, posted, transactionId,
-      `type`, userId.getOrElse(""))) match {
-      case Some(x) => Full(TransactionId(x))
-      case None => Empty
-    }
+    //toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
+    //  description, balance.bigDecimal, newBalanceCurrency, posted, transactionId,
+    //  `type`, userId.getOrElse(""))) match {
+    //  case Some(x) => Full(TransactionId(x))
+    //  case None => Empty
+    //}
+    Empty
   }
 
   /*
@@ -1050,10 +1057,10 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
 
   case class KafkaBank(r: KafkaInboundBank) extends Bank {
-    def fullName           = r.name
-    def shortName          = r.name
+    def fullName           = r.full_name
+    def shortName          = r.short_name
     def logoUrl            = r.logo
-    def bankId             = BankId(r.bankId)
+    def bankId             = BankId(r.id)
     def nationalIdentifier = "None"  //TODO
     def swiftBic           = "None"  //TODO
     def websiteUrl         = r.website
@@ -1109,8 +1116,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
 
   case class KafkaInboundBank(
-                              bankId : String,
-                              name : String,
+                              id : String,
+                              short_name : String,
+                              full_name : String,
                               logo : String,
                               website : String)
 
