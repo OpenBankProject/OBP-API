@@ -55,7 +55,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   implicit val formats = net.liftweb.json.DefaultFormats
 
 
-  def getUser( username: String, password: String ): Box[KafkaInboundUser] = {
+  def getUser( username: String, password: String ): Box[InboundUser] = {
     for {
       argList <- tryo {Map[String, String]( "username" -> username, "password" -> password )}
       // Generate random uuid to be used as request-response match id
@@ -63,7 +63,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
       recUsername <- tryo{u.display_name}
     } yield {
-      if (username == u.display_name) new KafkaInboundUser( recUsername, password, recUsername)
+      if (username == u.display_name) new InboundUser( recUsername, password, recUsername)
       else null
     }
   }
@@ -1122,11 +1122,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                   latitude : Double,
                                   longitude : Double)
 
-  case class KafkaInboundUser(
-                              email : String,
-                              password : String,
-                              display_name : String)
-
   case class KafkaInboundValidatedUser(
                                        email : String,
                                        display_name : String)
@@ -1195,14 +1190,14 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   case class KafkaInboundAccountData(
                                       banks : List[KafkaInboundBank],
-                                      users : List[KafkaInboundUser],
+                                      users : List[InboundUser],
                                       accounts : List[KafkaInboundAccount]
                                    )
 
   // We won't need this. TODO clean up.
   case class KafkaInboundData(
                                banks : List[KafkaInboundBank],
-                               users : List[KafkaInboundUser],
+                               users : List[InboundUser],
                                accounts : List[KafkaInboundAccount],
                                transactions : List[KafkaInboundTransaction],
                                branches: List[KafkaInboundBranch],

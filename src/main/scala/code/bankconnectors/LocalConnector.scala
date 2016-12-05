@@ -43,6 +43,9 @@ private object LocalConnector extends Connector with Loggable {
     (convertedLimit, currency)
   }
 
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+  def updateUserAccountViews(user: APIUser): Unit = ???
+
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
 
