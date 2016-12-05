@@ -590,13 +590,12 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val transactionId = "1"
     val `type` = ""
 
-    //toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
-    //  description, balance.bigDecimal, newBalanceCurrency, posted, transactionId,
-    //  `type`, userId.getOrElse(""))) match {
-    //  case Some(x) => Full(TransactionId(x))
-    //  case None => Empty
-    //}
-    Empty
+    toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
+      description, balance.bigDecimal, newBalanceCurrency, posted, transactionId,
+      `type`, userId.getOrElse(""))) match {
+      case Some(x) => Full(TransactionId(x))
+      case None => Empty
+    }
   }
 
   /*
