@@ -127,7 +127,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val accounts: List[KafkaInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
         KafkaInboundAccount(
                              a.id,
-                             a.id,
+                             a.bank,
                              a.label,
                              a.number,
                              a.`type`,
@@ -278,8 +278,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
           t.description,
           t.posted.format(formatter),
           t.completed.format(formatter),
-          t.balance.toString,
-          t.value.toString
+          t.balance,
+          t.value
         )
       ))
       case None => Empty
@@ -313,8 +313,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
               t.description,
               t.posted.format(formatter),
               t.completed.format(formatter),
-              t.balance.toString,
-              t.value.toString
+              t.balance,
+              t.value
            )
       )
     ).toList
