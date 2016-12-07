@@ -374,7 +374,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |
       """.stripMargin,
       emptyObjectJson,
-      emptyObjectJson,
+      Extraction.decompose(TransactionReponseTypes(TransactionReponseType("SANDBOX_TAN")::Nil)),
       emptyObjectJson :: Nil,
       Catalogs(Core,PSD2,OBWG),
       List(apiTagTransactionRequest))

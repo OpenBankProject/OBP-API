@@ -9,35 +9,31 @@ import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
-import code.sandbox._
-import code.api.v2_0_0._
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.{TransactionRequestBodyJSON,_}
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{Counterparties}
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
-import code.products.Products
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-
 // Makes JValue assignment to Nil work
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
@@ -1222,11 +1218,11 @@ trait APIMethods210 {
          |${authenticationRequiredMessage(true)}
          |""",
       Extraction.decompose(BranchJsonPut("gh.29.fi", "OBP",
-        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
-        SandboxLocationImport(1.2, 2.1),
-        SandboxMetaImport(SandboxLicenseImport("","")),
-        Option(SandboxLobbyImport("")),
-        Option(SandboxDriveUpImport(""))
+        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        LocationJson(1.2, 2.1),
+        MetaJson(LicenseJson("","")),
+        LobbyJson(""),
+        DriveUpJson("")
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1263,11 +1259,11 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(true)}
           |""",
       Extraction.decompose(BranchJsonPost("123","gh.29.fi", "OBP",
-        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
-        SandboxLocationImport(1.2, 2.1),
-        SandboxMetaImport(SandboxLicenseImport("","")),
-        Option(SandboxLobbyImport("")),
-        Option(SandboxDriveUpImport(""))
+        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        LocationJson(1.2, 2.1),
+        MetaJson(LicenseJson("", "")),
+        LobbyJson(""),
+        DriveUpJson("")
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
