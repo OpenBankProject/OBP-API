@@ -1,7 +1,5 @@
-@import url('https://static.openbankproject.com/css/op/op-fonts.css');
-
 body, div, h1, h2, h3, h4, p, span {
-	font-family: "ChevinMedium", "OPHand", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
 
@@ -11,22 +9,6 @@ body, div, h1, h2, h3, h4, p, span {
 }
 
 
-
-#logo-left {
-	margin-left: 0;
-}
-#logo-left img {
-	width: 600px;
-	max-height: 150px;
-}
-
-#logo-right {
-	margin-right: 0;
-}
-#logo-right img {
-	width: 350px;
-	margin-top: 19px;
-}
 
 
 #nav ul {
@@ -60,12 +42,13 @@ body, div, h1, h2, h3, h4, p, span {
 #authorizeSection,
 #registerAppSection,
 #create-sandbox-account {
-	background-color: #ff6a10;
+	background-color: #e57200;
 }
 
 
 #main-links a {
-	border-color: white;
+	border-color: #e03c31;
+	background: #e03c31;
 }
 
 
@@ -95,7 +78,7 @@ nav .username
 
 #main-faq {
 	margin-top: 0;
-	background-color: #3c3c3c;
+	background-color: #53565a;
 	color: #fff;
 }
 #main-faq a {
@@ -118,16 +101,23 @@ nav .username
 }
 
 
+#main-support {
+	background-color: #e03c31;
+}
+
 #main-partners img {
 	width: 1000px;
 }
 
+#footer {
+	background-color: #53565a;
+}
 
 
 .green-button a {
-	border: 3px solid #ff6a10;
+	border: 3px solid #e03c31;
 	border-radius: 25px;
-	background-color: #ff6a10;
+	background-color: #e03c31;
 	color: #fff;
 	padding: 10px;
 	font-size: 24px;
