@@ -413,6 +413,71 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
       }
     }
 
+
+    if (Props.getBool("transactionRequests_enabled", false) == false) {
+      ignore("we create a transaction request but the amount and currency are invalid", TransactionRequest) {}
+    } else {
+      scenario("we create a transaction request but the amount and currency are invalid", TransactionRequest) {
+
+        Given("We create the BankAccount and Counterparty")
+        val testBank = createBank("testBank-bank")
+
+        val fromBankId = testBank.bankId
+        val fromAccountId = AccountId("fromAccountId")
+        val toBankId = testBank.bankId
+        val toAccountId = AccountId("toAccountId")
+        val fromAccount = createAccount(fromBankId, fromAccountId, "EUR")
+        val toAccount = createAccount(toBankId, toAccountId, "EUR")
+
+        val accountRoutingAddress = AccountRoutingAddress("toIban");
+        val isBeneficiary = false
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary);
+
+        Then("Create the view and grant the owner view to use1")
+        // ownerView is 'view = "owner"', we made it before
+        val ownerView = createOwnerView(fromBankId, fromAccountId)
+        grantAccessToView(obpuser1, ownerView)
+
+        Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
+        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        hasEntitlement should equal(true)
+
+        Then("We prepare for the request Json ,but the amount is not a number")
+        var bodyValue = AmountOfMoneyJSON("EUR", "not a number")
+        var transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+
+        Then("We call createTransactionRequest with invalid amount - V210")
+        var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
+          view / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
+        var response = makePostRequest(request, write(transactionRequestBody))
+
+        Then("check some return values. - V210")
+        response.code should equal(400)
+        var error: List[String] = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
+        error(0) should include(ErrorMessages.InvalidNumber)
+
+
+
+        Then("We prepare for the second request Json,but the currency is longer than 3")
+        bodyValue = AmountOfMoneyJSON("longer than 3 letter", "123.4")
+        transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+
+        Then("We call createTransactionRequest with invalid currency - V210")
+        request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
+          view / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
+        response = makePostRequest(request, write(transactionRequestBody))
+
+
+        Then("check some return values. - V210")
+        response.code should equal(400)
+        error = for {JObject(o) <- response.body; JField("error", JString(error)) <- o} yield error
+        error(0) should include(ErrorMessages.InvalidISOCurrencyCode)
+      }
+    }
+
+
+
     // No challenge, No FX (same currencies) - user3 has CanCreateAnyTransactionRequest, but doesn't have access to owner view
     if (Props.getBool("transactionRequests_enabled", false) == false) {
       ignore("we create a transaction request with a user who doesn't have access to owner view but has CanCreateAnyTransactionRequest at BANK_ID", TransactionRequest) {}
