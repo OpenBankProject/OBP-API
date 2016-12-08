@@ -49,19 +49,19 @@ trait Counterparties {
 }
 
 trait CounterpartyTrait {
-  def createdByUserId: String // The user that created this counterparty
-  def name: String // The name the user knows this counterparty by
-  def thisBankId: String // The local Account.bankId that uses this Counterparty
-  def thisAccountId: String // The local Account.accountId that uses this Counterparty
-  def thisViewId: String // The view that this Counterparty was created through
-  def otherBankId: String // The remote Bank that this Counterparty represents.
-  def otherAccountId: String // The remote Account.accountId that this Counterparty represents.
-  def otherAccountProvider: String // The provider that services payments to this Counterparty
-  def counterPartyId: String // A unique id for the Counterparty
-  def accountRoutingScheme: String // A national, regional  or international routing scheme for the account number e.g. IBAN
-  def accountRoutingAddress: String // The national, regional or international routing address id e.g. an IBAN number
-  def bankRoutingScheme: String // A national, regional  or international routing scheme for banks e.g. BIC
-  def bankRoutingAddress: String // The national, regional or international routing address id e.g. a BIC
-  def isBeneficiary : Boolean // Must be set to true to create TransactionRequests
+  def createdByUserId: String
+  def name: String
+  def thisBankId: String
+  def thisAccountId: String
+  def thisViewId: String
+  def otherBankId: String
+  def otherAccountId: String
+  def otherAccountProvider: String
+  def counterPartyId: String
+  def accountRoutingScheme: String
+  def accountRoutingAddress: String
+  def bankRoutingScheme: String
+  def bankRoutingAddress: String
+  def isBeneficiary : Boolean
 
 }

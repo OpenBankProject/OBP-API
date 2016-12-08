@@ -243,6 +243,8 @@ trait APIMethods210 {
              * test: functionality, error messages if user not given or invalid, if any other value is not existing
             */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
 
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
               validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
@@ -279,6 +281,10 @@ trait APIMethods210 {
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+              //Check the validate for amount and currency
+              isValidAmountNumber <-  tryo(BigDecimal(transDetails.value.amount)) ?~!ErrorMessages.InvalidNumber
+              isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(transDetails.value.currency)))?~!ErrorMessages.InvalidISOCurrencyCode
 
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
@@ -374,6 +380,8 @@ trait APIMethods210 {
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               u: User <- user ?~ ErrorMessages.UserNotLoggedIn
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
@@ -685,6 +693,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), s"CanCreateCardsForBank entitlement required")
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
             postedAllows <- postJson.allows match {
@@ -1018,6 +1027,8 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
@@ -1095,6 +1106,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = CanCreateCustomer ::
