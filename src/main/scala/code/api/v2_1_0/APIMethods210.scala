@@ -239,6 +239,7 @@ trait APIMethods210 {
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
             /* TODO:
+             * this function is so complicated and duplicate code on case classes: TransactionRequestDetailsSandBoxTan,TransactionRequestDetailsSandBoxTanJSON,TransactionRequestDetailsSandBoxTanResponse different classes in defferent places
              * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
              * test: functionality, error messages if user not given or invalid, if any other value is not existing
             */
@@ -260,6 +261,11 @@ trait APIMethods210 {
                 } ?~ {
                   ErrorMessages.InvalidJsonFormat
                 }
+                case "COUNTERPARTY" => tryo {
+                  json.extract[TransactionRequestDetailsCounterpartyJSON]
+                } ?~ {
+                  ErrorMessages.InvalidJsonFormat
+                }
                 case "SEPA" => tryo {
                   json.extract[TransactionRequestDetailsSEPAJSON]
                 } ?~ {
@@ -274,6 +280,7 @@ trait APIMethods210 {
 
               transDetails <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => tryo{getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON])}
+                case "COUNTERPARTY" => tryo{getTransactionRequestDetailsCounterpartyFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON])}
                 case "SEPA" => tryo{getTransactionRequestDetailsSEPAFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON])}
                 case "FREE_FORM" => tryo{getTransactionRequestDetailsFreeFormFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsFreeFormJSON])}
               }
@@ -304,12 +311,36 @@ trait APIMethods210 {
                     }
                     createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
+                }
+                case "COUNTERPARTY" => {
+                  for {
+                  //For COUNTERPARTY, Use the counterpartyId to find the counterparty and set up the toAacount
+                    toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterpartyId)
+                    counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    toBankId <- Full(BankId(counterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
+                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+
+                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                    detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
+                    transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    transResponseDetails = getTransactionRequestDetailsCounterpartyResponseFromJson(transactionRequestDetailsCounterpartyResponseJSON)
+
+                    //Serialize the new format SANDBOX_TAN data.
+                    transDetailsResponseSerialized <-tryo{
+                      implicit val formats = Serialization.formats(NoTypeHints)
+                      write(transResponseDetails)
+                    }
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                  } yield createdTransactionRequest
 
                 }
                 case "SEPA" => {
                   for {
-                  //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
-                    toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
+                    //For SEPA, Use the iban to find the counterparty and set up the toAccount
+                    toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].to.iban)
                     counterparty <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
                     toBankId <- Full(BankId(counterparty.otherBankId ))
@@ -334,7 +365,7 @@ trait APIMethods210 {
                   for {
                     // Following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
-                    // the Free form the discription is empty, so make it "" in the following code
+                    // The FREE_FORM discription is empty, so make it "" in the following code
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
                     transResponseDetails <- Full(getTransactionRequestDetailsFreeFormResponseJson(transactionRequestDetailsFreeFormResponseJSON))
 

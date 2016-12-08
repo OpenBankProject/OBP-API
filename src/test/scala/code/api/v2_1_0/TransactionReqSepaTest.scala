@@ -55,7 +55,9 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = true
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary);
+
+        val counterpartyId = CounterpartyIdJson("123");
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -72,7 +74,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
 
         val noExistAccountRoutingAddress = counterParty.accountRoutingAddress
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, noExistAccountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(noExistAccountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest - V210")
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -120,10 +122,10 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val counterpartyMetadataIban1 = AccountRoutingAddress("IBAN1");
         val counterpartyMetadataIban2 = AccountRoutingAddress("IBAN2");
-        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value, true);
-        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value, true);
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value, true,"1");
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value, true,"2");
 
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterpartyMetadata2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterpartyMetadata2.accountRoutingAddress), "Test Transaction Request description")
 
 
         //call createTransactionRequest with a user without owner view access
@@ -188,10 +190,10 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val counterpartyMetadataIban1 = AccountRoutingAddress("IBAN1");
         val counterpartyMetadataIban2 = AccountRoutingAddress("IBAN2");
-        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value, true);
-        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value, true);
+        val counterpartyMetadata1 = createCounterparty(bankId.value, accountId1.value, counterpartyMetadataIban1.value, true,"1");
+        val counterpartyMetadata2 = createCounterparty(bankId.value, accountId2.value, counterpartyMetadataIban2.value, true,"2");
 
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), counterpartyMetadata2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(AmountOfMoneyJSON("EUR", amt.toString()), IbanJson(counterpartyMetadata2.accountRoutingAddress), "Test Transaction Request description")
 
 
         //call createTransactionRequest
@@ -243,7 +245,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
 
         val noExistAccountRoutingAddress = "noExistAccountRoutingAddress"
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, noExistAccountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(noExistAccountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest - V210")
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -280,7 +282,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = true
         val noExistingAccoundId = "noExistingAccoundID"
-        val counterParty = createCounterparty(toBankId.value, noExistingAccoundId, accountRoutingAddress.value, isBeneficiary);
+        val counterParty = createCounterparty(toBankId.value, noExistingAccoundId, accountRoutingAddress.value, isBeneficiary,"1");
 
 
         Then("Create the view and grant the owner view to use1")
@@ -296,7 +298,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         Then("We prepare for the request Json")
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
 
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.accountRoutingAddress), "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -330,7 +332,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary);
+        val counterpartyId = CounterpartyIdJson("123");
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -347,7 +350,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
 
         val noExistAccountRoutingAddress = counterParty.accountRoutingAddress
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, noExistAccountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(noExistAccountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest - V210")
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -381,7 +384,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary);
+        val counterpartyId = CounterpartyIdJson("123");
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -396,7 +400,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         Then("We prepare for the request Json")
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.accountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest with invalid transactionRequestType - V210")
         val invalidTransactionRequestType = "invalidTransactionRequestType"
@@ -431,7 +435,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary);
+        val counterpartyId = CounterpartyIdJson("123");
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
 
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
@@ -445,7 +450,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         Then("We prepare for the request Json ,but the amount is not a number")
         var bodyValue = AmountOfMoneyJSON("EUR", "not a number")
-        var transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+        var transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.accountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest with invalid amount - V210")
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -461,7 +466,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         Then("We prepare for the second request Json,but the currency is longer than 3")
         bodyValue = AmountOfMoneyJSON("longer than 3 letter", "123.4")
-        transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty.accountRoutingAddress, "Test Transaction Request description")
+        transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.accountRoutingAddress), "Test Transaction Request description")
 
         Then("We call createTransactionRequest with invalid currency - V210")
         request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -494,8 +499,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
-        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true);
-        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true);
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true,"1");
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true,"2");
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -522,7 +527,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", "12.50")
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty2.accountRoutingAddress), "Test Transaction Request description")
 
         //call createTransactionRequest v210
         var request = (v2_1Request / "banks" / fromAccount.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -614,8 +619,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
-        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true);
-        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true);
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true,"1");
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true,"2");
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -636,7 +641,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         Given("POST input Json")
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty2.accountRoutingAddress), "Test Transaction Request description")
 
         //call createTransactionRequest -V210
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -728,8 +733,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
-        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true);
-        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true);
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true,"1");
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true,"2");
 
 
         def getFromAccount: BankAccount = {
@@ -760,7 +765,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty2.accountRoutingAddress), "Test Transaction Request description")
 
 
         //call createTransactionRequest
@@ -939,8 +944,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
-        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true);
-        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true);
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true,"1");
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true,"2");
 
         //1. TODO: get possible challenge types from account
 
@@ -948,7 +953,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty2.accountRoutingAddress), "Test Transaction Request description")
 
         //call createTransactionRequest API method
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -1129,8 +1134,8 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
-        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true);
-        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true);
+        val counterParty1 = createCounterparty(bankId.value, accountId1.value, accountRoutingAddress1.value, true,"1");
+        val counterParty2 = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress2.value, true,"2");
 
 
         //Create a transaction (request)
@@ -1140,7 +1145,7 @@ class TransactionReqSepaTest extends ServerSetupWithTestData with DefaultUsers w
         //4. have a new transaction
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, counterParty2.accountRoutingAddress, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty2.accountRoutingAddress), "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

@@ -7,14 +7,14 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPost}
+import code.api.v2_1_0.BranchJsonPost
 import code.fx.fx
 import code.bankconnectors.KafkaMappedConnector.{KafkaBank, KafkaBankAccount, KafkaInboundAccount, KafkaInboundBank}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -521,6 +521,8 @@ object KafkaLibMappedConnector_v2016_11_RC2 extends Connector with CreateViewImp
     Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
 
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()

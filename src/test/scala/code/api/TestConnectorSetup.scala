@@ -14,7 +14,7 @@ trait TestConnectorSetup {
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
 
-  protected def createCounterparty(bankId:String, accountId:String, iban:String, isBeneficiary:Boolean):CounterpartyTrait
+  protected def createCounterparty(bankId:String, accountId:String, iban:String, isBeneficiary:Boolean,counterpartyId:String):CounterpartyTrait
 
   final protected def createAccountAndOwnerView(accountOwner: Option[User], bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
     val account = createAccount(bankId, accountId, currency)
