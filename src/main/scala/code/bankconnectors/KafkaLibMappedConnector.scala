@@ -591,6 +591,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val counterpartyCurrency = toAccount.currency
 
     val datePosted = ZonedDateTime.now
+    val dateCompleted = ZonedDateTime.now
 
     toOption[String](
       jvmNorth.createTransaction(
@@ -606,6 +607,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         counterpartyBank,
         counterpartyCurrency,
         datePosted,
+        dateCompleted,
         description,
         userId.getOrElse("")
       )
