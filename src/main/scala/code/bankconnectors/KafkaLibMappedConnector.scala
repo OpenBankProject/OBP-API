@@ -570,52 +570,46 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  // TODO: Extend jvmNorth function with parameters transactionRequestId and description
-private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
 
-    //TODO socgen requires this:
-/*
-TAG_MESSAGE_ID : unique ID of the message = NOTHING LIKE THAT IN OBP YET
-TAG_CTRL_SUM : sum of the credit transfer = SUM OF THE PAYMENTS = OBP.value.amount
-TAG_PAYMENT_REFERENCE : unique ID of the payment = OBP.transactionId or could be OBP.transactionRequestId??
-TAG_CTRL : sum of the credit transfer = LOOKS LIKE SAME AS TAG_CTRL_SUM = OBP.value.amount
-TAG_EXECUTION_DATE : 2016-01-21 because the database accounting date is 21st of January. If we run End Of Day, it will become 2016-01-21 + 1 = OBP.postedDate
-TAG_DEBTOR_NAME : debtor name = OBP.thisAccount.name
-TAG_DEBTOR_ACCOUNT_NUMBER : debtor account number (internal) = OBP.thisAccount.accountNumber
-TAG_DEBTOR_ACCOUNT_CURRENCY : debtor account currency = OBP.thisAccount.currency
-TAG_DEBTOR_BRANCH : debtor branch = OBP.thisAccount.bankId 
-TAG_TRANSACTION_INSTRUCTION_ID : unique ID of transaction = OBP.transactionId
-TAG_TRANSACTION_ENDTOEND_ID : unique ID of end to end transactionm = OBP.transactionId (i guess)
-TAG_TRANSACTION_CURRENCY : transaction currency  = OBP.transaction.currency
-TAG_TRANSACTION_AMOUNT : transaction amount = OBP.transaction.amount
-TAG_TRANSACTION_FEE_CURRENCY : transaction fee currency (not used for internal account credit transfer) OBP.transaction.charge.currency (would need to add, hardcode to same as OBP.transaction.currency)
-TAG_TRANSACTION_FEE_AMOUNT : transaction fee amount (not used for internal account credit transfer) = hardcode to 0 (would need to add)
-TAG_BENEFICIARY_BRANCH : beneficiary branch = OBP.counterparty.bankId 
-TAG_BENEFICIARY_NAME : beneficiary name = OBP.counterparty.name
-TAG_BENEFICIARY_ACCOUNT_NUMBER : beneficiary account number (internal) = OBP.counterparty.accountRouting
-TAG_BENEFICIARY_ACCOUNT_CURRENCY : beneficiary account currency = OBP.counterparty.currency
-TAG_LABEL_CREDIT_TRANSFER : label of the credit transfer = OBP.transaction.description
-*/
     val name = OBPUser.getCurrentUserUsername
     val user = OBPUser.getApiUserByUsername(name)
     val userId = for (u <- user) yield u.userId
-    val accountId = fromAccount.accountId.value
-    val bankId = fromAccount.bankId.value
-    val currency = fromAccount.currency
-    val amount = amt.asInstanceOf[java.math.BigDecimal]
-    val counterpartyId = toAccount.accountId.value
-    val newBalanceCurrency = toAccount.currency
-    val balance = toAccount.balance
-    val counterpartyName = toAccount.name
-    val transactionType = "AC"
-    val completed = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
-    val posted = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
-    val transactionId = "1"
-    val `type` = ""
 
-    toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
-      description, balance.bigDecimal, newBalanceCurrency, posted, transactionId,
-      `type`, userId.getOrElse(""))) match {
+    val transactionType = "AC"
+    val transactionAmount = amt.asInstanceOf[java.math.BigDecimal]
+    val transactionCurrency = fromAccount.currency 
+
+    val accountId = fromAccount.accountId.value
+    val accountName = fromAccount.label
+    val accountBank= fromAccount.bankId.value
+    val accountCurrency = fromAccount.currency
+
+    val counterpartyId = toAccount.accountId.value
+    val counterpartyName = toAccount.name
+    val counterpartyBank = toAccount.bankId.value
+    val counterpartyCurrency = toAccount.currency
+
+    val datePosted = ZonedDateTime.now
+
+    toOption[String](
+      jvmNorth.createTransaction(
+        transactionType,
+        transactionAmount,
+        transactionCurrency,
+        accountId,
+        accountName,
+        accountBank,
+        accountCurrency,
+        counterpartyId,
+        counterpartyName,
+        counterpartyBank,
+        counterpartyCurrency,
+        datePosted,
+        description,
+        userId.getOrElse("")
+      )
+    ) match {
       case Some(x) => Full(TransactionId(x))
       case None => Empty
     }
