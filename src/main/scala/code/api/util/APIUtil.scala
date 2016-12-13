@@ -103,6 +103,8 @@ object ErrorMessages {
   val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
   val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
+  val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. The COUNTERPARTY_ID specified does not exist on this server."
+
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."

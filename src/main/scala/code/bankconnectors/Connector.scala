@@ -9,6 +9,7 @@ import code.api.v2_1_0._
 import code.branches.Branches.{Branch, BranchId}
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Transaction, User, _}
 import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests
@@ -132,6 +133,8 @@ trait Connector {
   def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty]
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty]
+
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait]
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
@@ -409,6 +412,8 @@ trait Connector {
       val createdTransactionId = transactionRequestType.value match {
         case "SANDBOX_TAN" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description)
+        case "COUNTERPARTY" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
+          BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsCounterpartyResponse].description)
         case "SEPA" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),
           BankAccountUID(toAccount.get.bankId, toAccount.get.accountId), BigDecimal(details.value.amount), details.asInstanceOf[TransactionRequestDetailsSEPAResponse].description)
         case "FREE_FORM" => Connector.connector.vend.makePaymentv200(initiator, BankAccountUID(fromAccount.bankId, fromAccount.accountId),

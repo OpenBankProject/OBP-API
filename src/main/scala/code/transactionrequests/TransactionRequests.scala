@@ -67,6 +67,18 @@ object TransactionRequests extends SimpleInjector {
                                       val description : String
                                     ) extends TransactionRequestDetails
 
+  case class TransactionRequestDetailsCounterparty (
+                                                   val to: CounterpartyId,
+                                                   val value : AmountOfMoney,
+                                                   val description : String
+                                                 ) extends TransactionRequestDetails
+
+  case class TransactionRequestDetailsCounterpartyResponse (
+                                                             val toCounterpartyId: CounterpartyId,
+                                                             val to: TransactionRequestAccount,
+                                                             val value : AmountOfMoney,
+                                                             val description : String
+                                                         ) extends TransactionRequestDetails
   case class TransactionRequestDetailsSEPA(
                                             val iban: String,
                                             val value: AmountOfMoney,
@@ -74,21 +86,21 @@ object TransactionRequests extends SimpleInjector {
                                           ) extends TransactionRequestDetails
 
   case class TransactionRequestDetailsSEPAResponse(
-                                            val iban: String,
-                                            val to: TransactionRequestAccount,
-                                            val value: AmountOfMoney,
-                                            val description: String
-                                          ) extends TransactionRequestDetails
+                                                    val iban: String,
+                                                    val to: TransactionRequestAccount,
+                                                    val value: AmountOfMoney,
+                                                    val description: String
+                                                  ) extends TransactionRequestDetails
 
   case class TransactionRequestDetailsFreeForm(
                                                 val value: AmountOfMoney
                                               ) extends TransactionRequestDetails
 
   case class TransactionRequestDetailsFreeFormResponse(
-                                                     val to: TransactionRequestAccount,
-                                                     val value: AmountOfMoney,
-                                                     val description: String
-                                                   ) extends TransactionRequestDetails
+                                                        val to: TransactionRequestAccount,
+                                                        val value: AmountOfMoney,
+                                                        val description: String
+                                                      ) extends TransactionRequestDetails
 
 
   val transactionRequestProvider = new Inject(buildOne _) {}

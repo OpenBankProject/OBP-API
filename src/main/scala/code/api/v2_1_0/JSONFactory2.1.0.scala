@@ -58,6 +58,8 @@ case class AvailableRolesJSON(roles: List[AvailableRoleJSON])
 trait TransactionRequestDetailsJSON {
   val value : AmountOfMoneyJSON
 }
+case class CounterpartyIdJson (val counterpartyId : String)
+case class IbanJson (val iban : String)
 
 case class TransactionRequestDetailsSandBoxTanJSON(
                                         to: TransactionRequestAccountJSON,
@@ -65,17 +67,36 @@ case class TransactionRequestDetailsSandBoxTanJSON(
                                         description : String
                                       ) extends TransactionRequestDetailsJSON
 
+case class TransactionRequestDetailsSandBoxTanResponseJSON(
+                                                            toAccount: TransactionRequestAccountJSON,
+                                                            value: AmountOfMoneyJSON,
+                                                            description: String
+                                                          ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsCounterpartyJSON(
+                                                    to: CounterpartyIdJson,
+                                                    value : AmountOfMoneyJSON,
+                                                    description : String
+                                                  ) extends TransactionRequestDetailsJSON
+
+case class TransactionRequestDetailsCounterpartyResponseJSON(
+                                                            counterpartyId: String,
+                                                            toAccount: TransactionRequestAccountJSON,
+                                                            value: AmountOfMoneyJSON,
+                                                            description: String
+                                                          ) extends TransactionRequestDetailsJSON
+
 case class TransactionRequestDetailsSEPAJSON(
                                               value: AmountOfMoneyJSON,
-                                              iban: String,
+                                              to: IbanJson,
                                               description: String
                                             ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsSEPAResponseJSON(
-                                              iban: String,
-                                              to: TransactionRequestAccountJSON,
-                                              value: AmountOfMoneyJSON,
-                                              description: String
+                                                      iban: String,
+                                                      toAccount: TransactionRequestAccountJSON,
+                                                      value: AmountOfMoneyJSON,
+                                                      description: String
                                             ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsFreeFormJSON(
@@ -83,9 +104,9 @@ case class TransactionRequestDetailsFreeFormJSON(
                                             ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsFreeFormResponseJSON(
-                                                         to: TransactionRequestAccountJSON,
-                                                         value: AmountOfMoneyJSON,
-                                                         description: String
+                                                          toAccount: TransactionRequestAccountJSON,
+                                                          value: AmountOfMoneyJSON,
+                                                          description: String
                                                        ) extends TransactionRequestDetailsJSON
 
 
@@ -301,9 +322,42 @@ object JSONFactory210{
     )
   }
 
+  def getTransactionRequestDetailsCounterpartyFromJson(details: TransactionRequestDetailsCounterpartyJSON) : TransactionRequestDetailsCounterparty = {
+    val toCounterpartyId = CounterpartyId (details.to.counterpartyId)
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+
+    TransactionRequestDetailsCounterparty (
+      to = toCounterpartyId,
+      value = amount,
+      description = details.description
+    )
+  }
+
+  def getTransactionRequestDetailsCounterpartyResponseFromJson(details: TransactionRequestDetailsCounterpartyResponseJSON) : TransactionRequestDetailsCounterpartyResponse = {
+    val toAcc = TransactionRequestAccount (
+      bank_id = details.toAccount.bank_id,
+      account_id = details.toAccount.account_id
+    )
+    val toCounterpartyId = CounterpartyId (
+      value = details.counterpartyId
+    )
+    val amount = AmountOfMoney (
+      currency = details.value.currency,
+      amount = details.value.amount
+    )
+    TransactionRequestDetailsCounterpartyResponse (
+      toCounterpartyId = toCounterpartyId,
+      to=toAcc,
+      value = amount,
+      description = details.description
+    )
+  }
   def getTransactionRequestDetailsSEPAFromJson(details: TransactionRequestDetailsSEPAJSON) : TransactionRequestDetailsSEPA = {
-    val toAccIban = Iban (
-      iban = details.iban
+    val toAccIban = IbanJson (
+      iban = details.to.iban
     )
     val amount = AmountOfMoney (
       currency = details.value.currency,
@@ -311,7 +365,7 @@ object JSONFactory210{
     )
 
     TransactionRequestDetailsSEPA (
-      iban = details.iban,
+      iban = toAccIban.iban,
       value = amount,
       description = details.description
     )
@@ -319,8 +373,8 @@ object JSONFactory210{
 
   def getTransactionRequestDetailsSEPAResponseJSONFromJson(details: TransactionRequestDetailsSEPAResponseJSON) : TransactionRequestDetailsSEPAResponse = {
     val toAcc = TransactionRequestAccount (
-      bank_id = details.to.bank_id,
-      account_id = details.to.account_id
+      bank_id = details.toAccount.bank_id,
+      account_id = details.toAccount.account_id
     )
     val toAccIban = Iban (
       iban = details.iban
@@ -330,7 +384,7 @@ object JSONFactory210{
       amount = details.value.amount
     )
     TransactionRequestDetailsSEPAResponse (
-      iban = details.iban,
+      iban = toAccIban.iban,
       to=toAcc,
       value = amount,
       description = details.description
@@ -350,8 +404,8 @@ object JSONFactory210{
 
   def getTransactionRequestDetailsFreeFormResponseJson(details: TransactionRequestDetailsFreeFormResponseJSON) : TransactionRequestDetailsFreeFormResponse = {
     val toAcc = TransactionRequestAccount (
-      bank_id = details.to.bank_id,
-      account_id = details.to.account_id
+      bank_id = details.toAccount.bank_id,
+      account_id = details.toAccount.account_id
     )
     val amount = AmountOfMoney (
       currency = details.value.currency,
