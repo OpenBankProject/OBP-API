@@ -320,7 +320,7 @@ trait APIMethods210 {
                     isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
                     toBankId <- Full(BankId(counterparty.otherBankId ))
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
-                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
 
                     // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
@@ -328,7 +328,7 @@ trait APIMethods210 {
                     transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
                     transResponseDetails = getTransactionRequestDetailsCounterpartyResponseFromJson(transactionRequestDetailsCounterpartyResponseJSON)
 
-                    //Serialize the new format SANDBOX_TAN data.
+                    //Serialize the new format COUNTERPARTY data.
                     transDetailsResponseSerialized <-tryo{
                       implicit val formats = Serialization.formats(NoTypeHints)
                       write(transResponseDetails)
