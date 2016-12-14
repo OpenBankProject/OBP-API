@@ -577,12 +577,12 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val userId = for (u <- user) yield u.userId
 
     val transactionType = "AC"
-    val transactionAmount = amt.asInstanceOf[java.math.BigDecimal]
+    val transactionAmount = amt.bigDecimal
     val transactionCurrency = fromAccount.currency 
 
     val accountId = fromAccount.accountId.value
     val accountName = fromAccount.label
-    val accountBank= fromAccount.bankId.value
+    val accountBankId= fromAccount.bankId.value
     val accountCurrency = fromAccount.currency
 
     val counterpartyId = toAccount.accountId.value
@@ -595,20 +595,19 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     toOption[String](
       jvmNorth.createTransaction(
-        transactionType,
-        transactionAmount,
-        transactionCurrency,
         accountId,
-        accountName,
-        accountBank,
-        accountCurrency,
+        transactionAmount,
+        accountBankId,
+        dateCompleted,
         counterpartyId,
         counterpartyName,
-        counterpartyBank,
+        accountCurrency,
+        description,
+        transactionAmount,
         counterpartyCurrency,
         datePosted,
-        dateCompleted,
-        description,
+        "",
+        transactionType,
         userId.getOrElse("")
       )
     ) match {
