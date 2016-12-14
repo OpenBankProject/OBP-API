@@ -61,11 +61,11 @@ class ConsumerRegistration extends Loggable {
 
     def register = {
       ".register" #> {
-          "@app-type" #> SHtml.select(appTypes, Empty, appType(_)) &
-          "@app-name" #> SHtml.text(nameVar.is, nameVar(_)) &
-          "@app-developer" #> SHtml.text(devEmailVar, devEmailVar(_)) &
-          "@app-description" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          "@app-user-authentication-url" #> SHtml.text(redirectionURLVar.is, redirectionURLVar(_))
+          ".appTypeClass" #> SHtml.select(appTypes, Empty, appType(_)) &
+          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) &
+          ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
+          ".appUserAuthenticationUrlClass" #> SHtml.text(redirectionURLVar.is, redirectionURLVar(_))
       } &
       ".success" #> ""
     }
@@ -111,6 +111,17 @@ class ConsumerRegistration extends Loggable {
       }
     }
 
+    //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
+    def showErrorsForDescription (descriptioinError : String) = {
+      register &
+        "#registration-errors *" #> {
+          ".error *" #>
+            List(descriptioinError).map({ e=>
+              ".errorContent *" #> e
+            })
+        }
+    }
+
     def analyseResult = {
 
       def withNameOpt(s: String): Option[Consumer.appType.enum.AppType] = Consumer.appType.enum.values.find(_.toString == s)
@@ -132,7 +143,9 @@ class ConsumerRegistration extends Loggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      if(errors.isEmpty)
+      if(descriptionVar.isEmpty)
+        showErrorsForDescription("Description of the application can not be empty !")
+      else if(errors.isEmpty)
         saveAndShowResults(consumer)
       else
         showErrors(errors)
