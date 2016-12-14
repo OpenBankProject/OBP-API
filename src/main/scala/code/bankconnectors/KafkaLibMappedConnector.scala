@@ -1114,7 +1114,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     def accountType : String        = r.`type`
     def balance : BigDecimal        = BigDecimal(r.balance.amount)
     def currency : String           = r.balance.currency
-    def name : String               = r.owners.head
+    def name : String               = r.owners.headOption.getOrElse("")
     def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
