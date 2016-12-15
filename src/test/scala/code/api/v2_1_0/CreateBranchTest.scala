@@ -2,12 +2,11 @@ package code.api.v2_1_0
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil.OAuth._
-import code.api.util.ApiRole.{CanCreateBranch, CanCreateTransactionType}
-import code.api.util.ErrorMessages
+import code.api.util.ApiRole.{CanCreateBranch}
+import code.api.v1_4_0.JSONFactory1_4_0._
 import code.branches.Branches.BranchId
-import code.model.{AccountId, BankId, ViewId}
-import code.sandbox._
-import net.liftweb.json.JsonAST.{JField, JObject, JString}
+import code.model.{AccountId, ViewId}
+import net.liftweb.json.JsonAST.{JString}
 import net.liftweb.json.Serialization.write
 
 class CreateBranchTest extends V210ServerSetup with DefaultUsers {
@@ -23,24 +22,13 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
   feature("Assuring that endpoint 'Update Branch' works as expected - v2.1.0") {
 
     val customerPutJSON = BranchJsonPut(
-      "gh.29.fi",//bank_id",
-      "OBP",//"name",
-      SandboxAddressImport(
-        "VALTATIE 8",
-        "line_2",
-        "line_3",
-        "city",
-        "county",
-        "state",
-        "123",
-        "FI"),
-      SandboxLocationImport(1.2, 2.1),
-      SandboxMetaImport(
-        SandboxLicenseImport("id","name")),
-      Option(SandboxLobbyImport("hours")),
-      Option(SandboxDriveUpImport("hours"))
+      "gh.29.fi", "OBP",
+      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+      LocationJson(1.2, 2.1),
+      MetaJson(LicenseJson("", "")),
+      LobbyJson(""),
+      DriveUpJson("")
     )
-
     scenario("Update branch successfully ") {
 
       Given("The Bank_ID and Branch_ID")
@@ -101,24 +89,12 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
   feature("Assuring that endpoint 'Create Branch' works as expected - v2.1.0") {
 
-    val customerPostJSON = BranchJsonPost(
-      "15",
-      "gh.29.fi",
-      "OBP",
-      SandboxAddressImport(
-        "VALTATIE 8",
-        "line_2",
-        "line_3",
-        "city",
-        "county",
-        "state",
-        "123",
-        "FI"),
-      SandboxLocationImport(1.2, 2.1),
-      SandboxMetaImport(
-        SandboxLicenseImport("id","name")),
-      Option(SandboxLobbyImport("hours")),
-      Option(SandboxDriveUpImport("hours"))
+    val customerPostJSON = BranchJsonPost("123","gh.29.fi", "OBP",
+      AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+      LocationJson(1.2, 2.1),
+      MetaJson(LicenseJson("", "")),
+      LobbyJson(""),
+      DriveUpJson("")
     )
 
     scenario("Create branch successfully ") {

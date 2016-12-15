@@ -44,7 +44,7 @@ import scala.collection.JavaConversions._
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
   * Kafka.
   */
-object KafkaLibMappedConnector extends Connector with CreateViewImpls with Loggable {
+object KafkaLibMappedConnector_v2016_11_RC2 extends Connector with CreateViewImpls with Loggable {
 
   type JAccount = com.tesobe.obp.transport.Account
   type JBank = com.tesobe.obp.transport.Bank
@@ -61,14 +61,17 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   consumerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
   producerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
 
-  val factory : Factory = Transport.defaultFactory()
+  //val factory : Factory = Transport.defaultFactory()
+  val factory : Factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
   val north: SimpleNorth = new SimpleNorth(
-    Props.get("kafka.response_topic").openOr("Response"),
     Props.get("kafka.request_topic").openOr("Request"),
+    Props.get("kafka.response_topic").openOr("Response"),
     consumerProps, producerProps)
-  val jvmNorth : JConnector = factory.connector(north)
 
   north.receive() // start Kafka
+
+  val jvmNorth : JConnector = factory.connector(north)
+
 
   type AccountType = KafkaBankAccount
 
@@ -111,7 +114,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
             logger.info(s"setAccountOwner account owner does not exist. creating for ${o.apiId.value} ${account.id}")
-            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaLibMappedConnector")
+            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaLibMappedConnector_v2016_11_RC2")
           }
        }
         case None => {
@@ -1176,6 +1179,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                   latitude : Double,
                                   longitude : Double)
 
+
   case class KafkaInboundValidatedUser(
                                        email : String,
                                        display_name : String)
@@ -1301,5 +1305,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+  println("------------------------> [v0] DONE")
 }
 

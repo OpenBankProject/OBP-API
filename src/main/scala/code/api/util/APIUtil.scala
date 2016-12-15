@@ -50,7 +50,7 @@ import net.liftweb.json.{Extraction, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
-
+import scala.xml.XML
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 
@@ -63,6 +63,7 @@ object ErrorMessages {
   // General messages
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
+  val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
@@ -102,6 +103,8 @@ object ErrorMessages {
   val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
   val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
+  val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. The COUNTERPARTY_ID specified does not exist on this server."
+
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -116,7 +119,8 @@ object ErrorMessages {
   val InvalidUserId = "OBP-30107: Invalid User Id."
   val InvalidAccountType = "OBP-30108: Invalid Account Type."
   val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
-
+  val InvalidAccountIdFormat = "OBP-30110: Invalid Account Id. The ACCOUNT_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
+  val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
 
   val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
@@ -256,6 +260,22 @@ object APIUtil extends Loggable {
 
   def oauthHeaderRequiredJsonResponse : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
+
+
+  def isValidCurrencyISOCode(currencyCode: String): Boolean = {
+    val xml = XML.loadFile("src/main/iso/ISOCurrencyCode.xml")
+    val stringArray = (xml \ "Currency" \ "CurrencyCode").map(_.text).mkString(" ").split("\\s+")
+    stringArray.contains(currencyCode)
+  }
+
+  /** Check the id values from GUI, such as ACCOUNT_ID, BANK_ID ...  */
+  def isValidID(id :String):Boolean= {
+    val regex = """^([A-Za-z0-9\-_.]+)$""".r
+    id match {
+      case regex(e) if(e.length<255) => true
+      case _ => false
+    }
+  }
 
   /** Import this object's methods to add signing operators to dispatch.Request */
   object OAuth {

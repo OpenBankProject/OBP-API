@@ -9,35 +9,31 @@ import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
-import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, CustomerFaceImageJson, TransactionRequestAccountJSON}
-import code.sandbox._
-import code.api.v2_0_0._
+import code.api.v1_4_0.JSONFactory1_4_0._
+import code.api.v2_0_0.{TransactionRequestBodyJSON,_}
 import code.api.v2_1_0.JSONFactory210._
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.{Connector}
+import code.bankconnectors.Connector
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metadata.counterparties.{Counterparties, MappedCounterparty, MappedCounterpartyMetadata}
+import code.metadata.counterparties.{Counterparties}
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
-import code.products.Products
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.http.Req
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.Serialization._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 
 import scala.collection.immutable.Nil
 import scala.collection.mutable.ArrayBuffer
-
 // Makes JValue assignment to Nil work
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
@@ -243,10 +239,13 @@ trait APIMethods210 {
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
             /* TODO:
+             * this function is so complicated and duplicate code on case classes: TransactionRequestDetailsSandBoxTan,TransactionRequestDetailsSandBoxTanJSON,TransactionRequestDetailsSandBoxTanResponse different classes in defferent places
              * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
              * test: functionality, error messages if user not given or invalid, if any other value is not existing
             */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
 
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
               validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
@@ -259,6 +258,11 @@ trait APIMethods210 {
               transDetailsJson <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => tryo {
                   json.extract[TransactionRequestDetailsSandBoxTanJSON]
+                } ?~ {
+                  ErrorMessages.InvalidJsonFormat
+                }
+                case "COUNTERPARTY" => tryo {
+                  json.extract[TransactionRequestDetailsCounterpartyJSON]
                 } ?~ {
                   ErrorMessages.InvalidJsonFormat
                 }
@@ -276,6 +280,7 @@ trait APIMethods210 {
 
               transDetails <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => tryo{getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON])}
+                case "COUNTERPARTY" => tryo{getTransactionRequestDetailsCounterpartyFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON])}
                 case "SEPA" => tryo{getTransactionRequestDetailsSEPAFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON])}
                 case "FREE_FORM" => tryo{getTransactionRequestDetailsFreeFormFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsFreeFormJSON])}
               }
@@ -283,6 +288,10 @@ trait APIMethods210 {
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+              //Check the validate for amount and currency
+              isValidAmountNumber <-  tryo(BigDecimal(transDetails.value.amount)) ?~!ErrorMessages.InvalidNumber
+              isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(transDetails.value.currency)))?~!ErrorMessages.InvalidISOCurrencyCode
 
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
@@ -302,12 +311,36 @@ trait APIMethods210 {
                     }
                     createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
+                }
+                case "COUNTERPARTY" => {
+                  for {
+                  //For COUNTERPARTY, Use the counterpartyId to find the counterparty and set up the toAacount
+                    toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterpartyId)
+                    counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    toBankId <- Full(BankId(counterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
+                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+
+                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                    detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
+                    transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    transResponseDetails = getTransactionRequestDetailsCounterpartyResponseFromJson(transactionRequestDetailsCounterpartyResponseJSON)
+
+                    //Serialize the new format SANDBOX_TAN data.
+                    transDetailsResponseSerialized <-tryo{
+                      implicit val formats = Serialization.formats(NoTypeHints)
+                      write(transResponseDetails)
+                    }
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                  } yield createdTransactionRequest
 
                 }
                 case "SEPA" => {
                   for {
-                  //for SEPA, the user do not send the Bank_ID and Acound_ID,so this will search for the bank firstly.
-                    toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].iban)
+                    //For SEPA, Use the iban to find the counterparty and set up the toAccount
+                    toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].to.iban)
                     counterparty <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
                     toBankId <- Full(BankId(counterparty.otherBankId ))
@@ -332,7 +365,7 @@ trait APIMethods210 {
                   for {
                     // Following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
-                    // the Free form the discription is empty, so make it "" in the following code
+                    // The FREE_FORM discription is empty, so make it "" in the following code
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
                     transResponseDetails <- Full(getTransactionRequestDetailsFreeFormResponseJson(transactionRequestDetailsFreeFormResponseJSON))
 
@@ -378,6 +411,8 @@ trait APIMethods210 {
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
               u: User <- user ?~ ErrorMessages.UserNotLoggedIn
+              isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+              isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
@@ -689,6 +724,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), s"CanCreateCardsForBank entitlement required")
             postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
             postedAllows <- postJson.allows match {
@@ -1022,6 +1058,8 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
             postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
@@ -1100,6 +1138,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~! "User must be logged in to post Customer" // TODO. CHECK user has role to create a customer / create a customer for another user id.
+            isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             requiredEntitlements = CanCreateCustomer ::
@@ -1223,11 +1262,11 @@ trait APIMethods210 {
          |${authenticationRequiredMessage(true)}
          |""",
       Extraction.decompose(BranchJsonPut("gh.29.fi", "OBP",
-        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
-        SandboxLocationImport(1.2, 2.1),
-        SandboxMetaImport(SandboxLicenseImport("","")),
-        Option(SandboxLobbyImport("")),
-        Option(SandboxDriveUpImport(""))
+        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        LocationJson(1.2, 2.1),
+        MetaJson(LicenseJson("","")),
+        LobbyJson(""),
+        DriveUpJson("")
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1264,11 +1303,11 @@ trait APIMethods210 {
           |${authenticationRequiredMessage(true)}
           |""",
       Extraction.decompose(BranchJsonPost("123","gh.29.fi", "OBP",
-        SandboxAddressImport("VALTATIE 8", "", "", "AKAA", "", "", "37800", ""),
-        SandboxLocationImport(1.2, 2.1),
-        SandboxMetaImport(SandboxLicenseImport("","")),
-        Option(SandboxLobbyImport("")),
-        Option(SandboxDriveUpImport(""))
+        AddressJson("VALTATIE 8", "", "", "AKAA", "", "", "37800"),
+        LocationJson(1.2, 2.1),
+        MetaJson(LicenseJson("", "")),
+        LobbyJson(""),
+        DriveUpJson("")
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,

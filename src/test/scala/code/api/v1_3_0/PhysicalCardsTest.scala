@@ -3,13 +3,15 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.v2_1_0.{BranchJsonPost}
+import code.api.v2_1_0.BranchJsonPost
 import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
+import code.metadata.counterparties.CounterpartyTrait
 import code.model.{PhysicalCard, _}
+import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
@@ -58,6 +60,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
   object MockedCardConnector extends Connector with Loggable {
 
     type AccountType = BankAccount
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+    def updateUserAccountViews(user: APIUser): Unit = ???
 
     //these methods aren't required by our test
     override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
@@ -172,6 +177,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
+
+    override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
   }
 
   override def beforeAll() {

@@ -5,6 +5,7 @@ import java.util.Date
 import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2.{BankJSON, BanksJSON, UserJSON}
+import code.model.{TransactionReponseType, TransactionReponseTypes, TransactionRequestType}
 import net.liftweb
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -64,6 +65,7 @@ object SwaggerJSONFactory {
       rd.apiFunction match {
         case "allBanks" => Some(ResponseObjectSchemaJson("#/definitions/BanksJSON"))
         case "bankById" => Some(ResponseObjectSchemaJson("#/definitions/BankJSON"))
+        case "getTransactionRequestTypes" => Some(ResponseObjectSchemaJson("#/definitions/TransactionReponseTypes"))
         case _ => None
       }
     }
@@ -117,40 +119,43 @@ object SwaggerJSONFactory {
     //Iterate over Map and use pattern matching to extract type of field of runtime entity and make an appropriate swagger string for it
     val properties = for ((key, value) <- mapOfFields) yield {
       value match {
-        case i: Boolean => "\"" + key + "\":" + """{"type":"boolean"}"""
-        case Some(i: Boolean) => "\"" + key + "\":" + """{"type":"boolean"}"""
-        case List(i: Boolean, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "boolean"}}"""
-        case Some(List(i: Boolean, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "boolean"}}"""
-        case i: String => "\"" + key + "\":" + """{"type":"string"}"""
-        case Some(i: String) => "\"" + key + "\":" + """{"type":"string"}"""
-        case List(i: String, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "string"}}"""
-        case Some(List(i: String, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "string"}}"""
-        case i: Int => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
-        case Some(i: Int) => "\"" + key + "\":" + """{"type":"integer", "format":"int32"}"""
-        case List(i: Long, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case Some(List(i: Long, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int32"}}"""
-        case i: Long => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
-        case Some(i: Long) => "\"" + key + "\":" + """{"type":"integer", "format":"int64"}"""
-        case List(i: Long, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int64"}}"""
-        case Some(List(i: Long, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"integer", "format":"int64"}}"""
-        case i: Float => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
-        case Some(i: Float) => "\"" + key + "\":" + """{"type":"number", "format":"float"}"""
-        case List(i: Float, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "float"}}"""
-        case Some(List(i: Float, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "float"}}"""
-        case i: Double => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
-        case Some(i: Double) => "\"" + key + "\":" + """{"type":"number", "format":"double"}"""
-        case List(i: Double, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "double"}}"""
-        case Some(List(i: Double, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type": "double"}}"""
-        case i: Date => "\"" + key + "\":" + """{"type":"string", "format":"date"}"""
-        case Some(i: Date) => "\"" + key + "\":" + """{"type":"string", "format":"date"}"""
-        case List(i: Date, _*) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
-        case Some(List(i: Date, _*)) => "\"" + key + "\":" + """{"type":"array", "items":{"type":"string", "format":"date"}}"""
-        case obj@BankJSON(_,_,_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/BankJSON"""" +"}"
-        case obj@List(BankJSON(_,_,_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/BankJSON"""" +"}}"
-        case obj@BanksJSON(_) => "\"" + key + "\":{" + """"$ref": "#/definitions/BanksJSON"""" +"}"
-        case obj@List(BanksJSON(_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/BanksJSON"""" +"}}"
-        case obj@UserJSON(_,_,_) => "\"" + key + "\":{" + """"$ref": "#/definitions/UserJSON"""" +"}"
-        case obj@List(UserJSON(_,_,_)) => "\"" + key + "\":" + """{"type":"array", "items":{"$ref": "#/definitions/UserJSON"""" +"}}"
+        case i: Boolean                    => s""" """" + key + """": {"type":"boolean"}"""
+        case Some(i: Boolean)              => s""" """" + key + """": {"type":"boolean"}"""
+        case List(i: Boolean, _*)          => s""" """" + key + """": {"type":"array", "items":{"type": "boolean"}}"""
+        case Some(List(i: Boolean, _*))    => s""" """" + key + """": {"type":"array", "items":{"type": "boolean"}}"""
+        case i: String                     => s""" """" + key + """": {"type":"string"}"""
+        case Some(i: String)               => s""" """" + key + """": {"type":"string"}"""
+        case List(i: String, _*)           => s""" """" + key + """": {"type":"array", "items":{"type": "string"}}"""
+        case Some(List(i: String, _*))     => s""" """" + key + """": {"type":"array", "items":{"type": "string"}}"""
+        case i: Int                        => s""" """" + key + """": {"type":"integer", "format":"int32"}"""
+        case Some(i: Int)                  => s""" """" + key + """": {"type":"integer", "format":"int32"}"""
+        case List(i: Long, _*)             => s""" """" + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case Some(List(i: Long, _*))       => s""" """" + key + """": {"type":"array", "items":{"type":"integer", "format":"int32"}}"""
+        case i: Long                       => s""" """" + key + """": {"type":"integer", "format":"int64"}"""
+        case Some(i: Long)                 => s""" """" + key + """": {"type":"integer", "format":"int64"}"""
+        case List(i: Long, _*)             => s""" """" + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
+        case Some(List(i: Long, _*))       => s""" """" + key + """": {"type":"array", "items":{"type":"integer", "format":"int64"}}"""
+        case i: Float                      => s""" """" + key + """": {"type":"number", "format":"float"}"""
+        case Some(i: Float)                => s""" """" + key + """": {"type":"number", "format":"float"}"""
+        case List(i: Float, _*)            => s""" """" + key + """": {"type":"array", "items":{"type": "float"}}"""
+        case Some(List(i: Float, _*))      => s""" """" + key + """": {"type":"array", "items":{"type": "float"}}"""
+        case i: Double                     => s""" """" + key + """": {"type":"number", "format":"double"}"""
+        case Some(i: Double)               => s""" """" + key + """": {"type":"number", "format":"double"}"""
+        case List(i: Double, _*)           => s""" """" + key + """": {"type":"array", "items":{"type": "double"}}"""
+        case Some(List(i: Double, _*))     => s""" """" + key + """": {"type":"array", "items":{"type": "double"}}"""
+        case i: Date                       => s""" """" + key + """": {"type":"string", "format":"date"}"""
+        case Some(i: Date)                 => s""" """" + key + """": {"type":"string", "format":"date"}"""
+        case List(i: Date, _*)             => s""" """" + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
+        case Some(List(i: Date, _*))       => s""" """" + key + """": {"type":"array", "items":{"type":"string", "format":"date"}}"""
+        case obj@BankJSON(_,_,_,_,_)       => s""" """" + key + """": {"$ref": "#/definitions/BankJSON"""" +"}"
+        case obj@List(BankJSON(_,_,_,_,_)) => s""" """" + key + """": {"type": "array", "items":{"$ref": "#/definitions/BankJSON"""" +"}}"
+        case obj@BanksJSON(_)              => s""" """" + key + """": {"$ref":"#/definitions/BanksJSON"""" +"}"
+        case obj@List(BanksJSON(_))        => s""" """" + key + """": {"type": "array", "items":{"$ref": "#/definitions/BanksJSON"""" +"}}"
+        case obj@UserJSON(_,_,_)           => s""" """" + key + """": {"$ref": "#/definitions/UserJSON"""" +"}"
+        case obj@List(UserJSON(_,_,_))     => s""" """" + key + """": {"type":"array", "items":{"$ref": "#/definitions/UserJSON"""" +"}}"
+
+        case obj@TransactionReponseType(_)       => s""" """" + key + """":{"$ref": "#/definitions/TransactionReponseTypes"""" +"}"
+        case obj@List(TransactionReponseType(_)) => s""" """" + key + """": {"type":"array", "items":{"$ref": "#/definitions/TransactionReponseTypes"""" +"}}"
         case _ => "unknown"
       }
     }
@@ -185,6 +190,7 @@ object SwaggerJSONFactory {
         rd match {
           case u if u.apiFunction.contains("allBanks") => rd.successResponseBody.extract[BanksJSON]
           case u if u.apiFunction.contains("bankById") => rd.successResponseBody.extract[BankJSON]
+          case u if u.apiFunction.contains("getTransactionRequestTypes") => rd.successResponseBody.extract[TransactionReponseTypes]
           case _ => "Not defined"
         }
       }

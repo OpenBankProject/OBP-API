@@ -1,0 +1,132 @@
+body, div, h1, h2, h3, h4, p, span {
+	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+
+#header-decoration {
+	background-color: #fff;
+	height: 0;
+}
+
+
+
+
+#nav ul {
+	margin-left: -40px;
+	margin-right: -30px;
+	text-transform: uppercase;
+}
+#nav ul li a {
+	color: #fff;
+}
+#nav ul li a:visited {
+	color: #fff;
+}
+#nav ul li:nth-child(1)::before {
+	background-image: none;
+}
+#nav ul li:nth-child(2) a::after, #nav ul li:nth-child(3) a::after, #nav ul li:nth-child(4) a::after, #nav ul li:nth-child(5) a::after, #nav ul li:nth-child(6) a::after {
+	background-image: none;
+}
+
+#nav .nav-login-state-item .logout {
+	color: #fff;
+	margin-right: -10px;
+}
+
+
+#nav,
+#main-showcases,
+#main-support,
+#main-links,
+#authorizeSection,
+#registerAppSection,
+#create-sandbox-account {
+	background-color: #e57200;
+}
+
+
+#main-links a {
+	border-color: #e03c31;
+	background: #e03c31;
+}
+
+
+#main-get_started {
+	margin-top: 0;
+}
+
+
+div#authorizeSection,
+section#content,
+section#content form,
+.account-in-content form.login .field .forgot,
+#signupForm tr:first-child td,
+.signupSection form tr td,
+#registerAppSection,
+#create-sandbox-account,
+#registerAppSection table,
+nav .username
+{
+	color: white;
+}
+
+
+#main-showcases {
+	margin-bottom: 0;
+}
+
+#main-faq {
+	margin-top: 0;
+	background-color: #53565a;
+	color: #fff;
+}
+#main-faq a {
+	color: #eee;
+	text-decoration: underline;
+}
+#main-faq h2 {
+	color: #fff;
+}
+
+#main-faq .collapse.plus {
+	background-image: url('https://static.openbankproject.com/images/op/faq/plus.png');
+}
+#main-faq .collapse.minus {
+	background-image: url('https://static.openbankproject.com/images/op/faq/minus.png');
+}
+
+#main-faq .main-faq-cell {
+	color: #fff;
+}
+
+
+#main-support {
+	background-color: #e03c31;
+}
+
+#main-partners img {
+	width: 1000px;
+}
+
+#footer {
+	background-color: #53565a;
+}
+
+
+.green-button a {
+	border: 3px solid #e03c31;
+	border-radius: 25px;
+	background-color: #e03c31;
+	color: #fff;
+	padding: 10px;
+	font-size: 24px;
+}
+
+
+a {
+	color: #ccc;
+}
+a:hover {
+	color: #fff;
+}

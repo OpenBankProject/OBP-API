@@ -10,7 +10,7 @@ import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.Counterparties
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -52,6 +52,9 @@ object LocalMappedConnector extends Connector with Loggable {
     logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     (convertedThreshold, currency)
   }
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+  def updateUserAccountViews(user: APIUser): Unit = ???
 
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] =
@@ -212,6 +215,10 @@ object LocalMappedConnector extends Connector with Loggable {
         isBeneficiary = true
       )
     }
+  }
+
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
+    MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
   }
 
 
@@ -795,9 +802,6 @@ Store one or more transactions
 
   override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = {
 
-    val lobbyHours =  if (branch.lobby.isDefined) {branch.lobby.get.hours.toString} else ""
-    val driveUpHours =  if (branch.driveUp.isDefined) {branch.driveUp.get.hours.toString} else ""
-
     //check the branch existence and update or insert data
     getBranch(BankId(branch.bank_id), BranchId(branch.id)) match {
       case Full(mappedBranch) =>
@@ -810,16 +814,15 @@ Store one or more transactions
             .mLine2(branch.address.line_2)
             .mLine3(branch.address.line_3)
             .mCity(branch.address.city)
-            .mCounty(branch.address.county)
+            .mCounty(branch.address.country)
             .mState(branch.address.state)
-            .mPostCode(branch.address.post_code)
-            .mCountryCode(branch.address.country_code)
+            .mPostCode(branch.address.postcode)
             .mlocationLatitude(branch.location.latitude)
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-            .mLobbyHours(lobbyHours)
-            .mDriveUpHours(driveUpHours)
+            .mLobbyHours(branch.lobby.hours)
+            .mDriveUpHours(branch.driveUp.hours)
             .saveMe()
         } ?~! ErrorMessages.CreateBranchUpdateError
       case _ =>
@@ -832,16 +835,15 @@ Store one or more transactions
             .mLine2(branch.address.line_2)
             .mLine3(branch.address.line_3)
             .mCity(branch.address.city)
-            .mCounty(branch.address.county)
+            .mCounty(branch.address.country)
             .mState(branch.address.state)
-            .mPostCode(branch.address.post_code)
-            .mCountryCode(branch.address.country_code)
+            .mPostCode(branch.address.postcode)
             .mlocationLatitude(branch.location.latitude)
             .mlocationLongitude(branch.location.longitude)
             .mLicenseId(branch.meta.license.id)
             .mLicenseName(branch.meta.license.name)
-            .mLobbyHours(lobbyHours)
-            .mDriveUpHours(driveUpHours)
+            .mLobbyHours(branch.lobby.hours)
+            .mDriveUpHours(branch.driveUp.hours)
             .saveMe()
         } ?~! ErrorMessages.CreateBranchInsertError
     }

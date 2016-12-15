@@ -8,7 +8,7 @@ import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.counterparties.{Counterparties, Metadata, MongoCounterparties}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
 import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
@@ -42,6 +42,9 @@ private object LocalConnector extends Connector with Loggable {
     val convertedLimit = fx.convert(limit, rate)
     (convertedLimit, currency)
   }
+
+  def getUser(name: String, password: String): Box[InboundUser] = ???
+  def updateUserAccountViews(user: APIUser): Unit = ???
 
   override def getBank(bankId : BankId): Box[Bank] =
     getHostedBank(bankId)
@@ -119,6 +122,8 @@ private object LocalConnector extends Connector with Loggable {
   }
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+
+  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     logger.debug("getTransactions for " + bankId + "/" + accountId)
