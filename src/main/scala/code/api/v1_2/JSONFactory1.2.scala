@@ -133,8 +133,7 @@ class ViewJSON(
   val can_delete_image : Boolean,
   val can_add_where_tag : Boolean,
   val can_see_where_tag : Boolean,
-  val can_delete_where_tag : Boolean,
-  val can_create_counterparty : Boolean
+  val can_delete_where_tag : Boolean
 )
 case class AccountsJSON(
   accounts : List[AccountJSON]
@@ -405,7 +404,6 @@ object JSONFactory{
       can_add_physical_location = view.canAddPhysicalLocation,
       can_add_public_alias = view.canAddPublicAlias,
       can_add_private_alias = view.canAddPrivateAlias,
-      can_create_counterparty = view.canCreateCounterparty,
       can_delete_corporate_location = view.canDeleteCorporateLocation,
       can_delete_physical_location = view.canDeletePhysicalLocation,
       can_edit_owner_comment = view.canEditOwnerComment,
