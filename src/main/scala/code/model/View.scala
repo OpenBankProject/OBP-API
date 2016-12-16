@@ -174,6 +174,7 @@ case class UpdateViewJSON(
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
   * @define canInitiateTransaction If true, view can initiate Transaction Request. Note. Owner view may be required. TODO check this.
+  * @define canCreateCounterparty If true, view can create counterparty.
 
 
   */
@@ -262,6 +263,7 @@ trait View {
   def canAddPhysicalLocation : Boolean
   def canAddPublicAlias : Boolean
   def canAddPrivateAlias : Boolean
+  def canCreateCounterparty : Boolean
   def canDeleteCorporateLocation : Boolean
   def canDeletePhysicalLocation : Boolean
 
