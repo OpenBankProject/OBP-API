@@ -376,7 +376,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     //OtherBankAccountMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
       t.filter { e =>
-        if (e.otherAccount.otherBankId == metadata.getAccountNumber)
+        if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
           true
         else
           false
@@ -390,10 +390,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       nationalIdentifier = t.otherAccount.nationalIdentifier,
       bankRoutingAddress = None,
       accountRoutingAddress = t.otherAccount.accountRoutingAddress,
-      otherBankId = metadata.getAccountNumber,
+      thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      thisAccountId = thisAccountBankId,
+      otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
 
@@ -1008,11 +1008,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       nationalIdentifier = "",
       bankRoutingAddress = None,
       accountRoutingAddress = None,
-      otherBankId = c.account_number.getOrElse(""),
-      thisBankId = "",
+      thisAccountId = AccountId(c.account_number.getOrElse("")),
+      thisBankId = BankId(""),
       kind = "",
-      thisAccountId = BankId(o.bankId.value),
-      otherAccountId = AccountId(o.accountId.value),
+      otherBankId = o.bankId,
+      otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
 
       //TODO V210 following five fields are new, need to be fiexed

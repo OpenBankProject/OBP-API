@@ -533,8 +533,8 @@ trait View {
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
       val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.bankRoutingAddress else None
       val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.accountRoutingAddress else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.otherBankId) else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){

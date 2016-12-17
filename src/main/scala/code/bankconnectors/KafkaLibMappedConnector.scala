@@ -46,6 +46,7 @@ import scala.collection.JavaConversions._
   */
 object KafkaLibMappedConnector extends Connector with CreateViewImpls with Loggable {
 
+
   type JAccount = com.tesobe.obp.transport.Account
   type JBank = com.tesobe.obp.transport.Bank
   type JTransaction = com.tesobe.obp.transport.Transaction
@@ -53,27 +54,51 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   type JConnector = com.tesobe.obp.transport.Connector
   type JHashMap = java.util.HashMap[String, Object]
 
-  val producerProps : JHashMap = new JHashMap
-  val consumerProps : JHashMap = new JHashMap
-
-  // todo better way of translating scala props to java properties for kafka
-
-  consumerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
-  producerProps.put("bootstrap.servers", Props.get("kafka.host").openOr("localhost:9092"))
-
-  val factory : Factory = Transport.defaultFactory()
-  val north: SimpleNorth = new SimpleNorth(
-    Props.get("kafka.response_topic").openOr("Response"),
-    Props.get("kafka.request_topic").openOr("Request"),
-    consumerProps, producerProps)
-  val jvmNorth : JConnector = factory.connector(north)
-
-  north.receive() // start Kafka
-
   type AccountType = KafkaBankAccount
 
+  var version: String = ""
+  var jvmNorth : JConnector = null
+
+  def apply (v: String) = {
+    val producerProps : JHashMap = new JHashMap
+    val consumerProps : JHashMap = new JHashMap
+
+    // todo better way of translating scala props to java properties for kafka
+    consumerProps.put("bootstrap.servers",
+       Props.get("kafka.host").openOr("localhost:9092"))
+    producerProps.put("bootstrap.servers", 
+      Props.get("kafka.host").openOr("localhost:9092"))
+
+    version = v
+    version match {
+
+      case "v201611" =>
+        val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
+        val north   = new SimpleNorth(
+                  Props.get("kafka.response_topic").openOr("Response"),
+                  Props.get("kafka.request_topic").openOr("Request"),
+                  consumerProps, producerProps)
+        jvmNorth = factory.connector(north)
+        north.receive() // start Kafka
+
+      case "v201609" =>
+        val factory  = Transport.defaultFactory()
+        val north   = new SimpleNorth(
+                  Props.get("kafka.response_topic").openOr("Response"),
+                  Props.get("kafka.request_topic").openOr("Request"),
+                  consumerProps, producerProps)
+        jvmNorth = factory.connector(north)
+        north.receive() // start Kafka
+
+      case _ =>
+        throw new Exception(s"kafka_lib version ${version} incorrect")
+    }
+
+    this
+  }
+
   // Local TTL Cache
-  val cacheTTL              = Props.get("kafka.cache.ttl.seconds", "3").toInt
+  val cacheTTL              = Props.get("kafka.cache.ttl.seconds", "0").toInt
   val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)
@@ -126,7 +151,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     logger.debug(s"KafkaLib updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
     val accounts: List[KafkaInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
         KafkaInboundAccount(
-                             a.id,
+                             a.accountId,
                              a.bankId,
                              a.label,
                              a.number,
@@ -264,7 +289,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       case Some(t) =>
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
         createNewTransaction(KafkaInboundTransaction(
-        t.id,
+        t.transactionId,
         KafkaInboundAccountId(t.accountId, bankId.value),
         Option(KafkaInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
         KafkaInboundTransactionDetails(
@@ -437,7 +462,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     //CounterpartyMetadata and a transaction
     val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
       t.filter { e =>
-        if (e.otherAccount.otherBankId == metadata.getAccountNumber)
+        if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
           true
         else
           false
@@ -451,10 +476,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       nationalIdentifier = t.otherAccount.nationalIdentifier,
       bankRoutingAddress = None,
       accountRoutingAddress = t.otherAccount.accountRoutingAddress,
-      otherBankId = metadata.getAccountNumber,
+      thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      thisAccountId = thisAccountBankId,
+      otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
 
@@ -1069,11 +1094,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       nationalIdentifier = "",
       bankRoutingAddress = None,
       accountRoutingAddress = None,
-      otherBankId = c.account_number.getOrElse(""),
-      thisBankId = "",
+      thisAccountId = AccountId(c.account_number.getOrElse("")),
+      thisBankId = BankId(""),
       kind = "",
-      thisAccountId = BankId(o.bankId.value),
-      otherAccountId = AccountId(o.accountId.value),
+      otherBankId = o.bankId,
+      otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
 
       //TODO V210 following five fields are new, need to be fiexed

@@ -232,10 +232,10 @@ private object LocalConnector extends Connector with Loggable {
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
       bankRoutingAddress = None, //TODO: need to add this to the json/model
       accountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
-      otherBankId = otherAccount_.number.get,
-      thisBankId = otherAccount_.bank.get.name.get,
+      thisAccountId = AccountId(otherAccount_.number.get),
+      thisBankId = BankId(otherAccount_.bank.get.name.get),
       kind = otherAccount_.kind.get,
-      thisAccountId = theAccount.bankId,
+      otherBankId = theAccount.bankId,
       otherAccountId = theAccount.accountId,
       alreadyFoundMetadata = Some(metadata),
 
@@ -389,10 +389,10 @@ private object LocalConnector extends Connector with Loggable {
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
       bankRoutingAddress = None, //TODO: need to add this to the json/model
       accountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
-      otherBankId = otherAccountFromTransaction.number.get,
-      thisBankId = otherAccountFromTransaction.bank.get.name.get,
+      thisAccountId = AccountId(otherAccountFromTransaction.number.get),
+      thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
       kind = "",
-      thisAccountId = originalPartyBankId,
+      otherBankId = originalPartyBankId,
       otherAccountId = originalPartyAccountId,
       alreadyFoundMetadata = Some(otherAccount),
 

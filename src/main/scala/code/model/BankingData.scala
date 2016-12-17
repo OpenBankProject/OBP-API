@@ -595,9 +595,9 @@ class Counterparty(
                     val accountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
                     val bankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
                     val bankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
-                    val thisBankId : String, // i.e. the Account that sends/receives money to/from this Counterparty
-                    val thisAccountId: BankId, // These 2 fields specify the account that uses this Counterparty
-                    val otherBankId : String, // These 3 fields specify the internal locaiton of the account for the
+                    val thisBankId : BankId, // i.e. the Account that sends/receives money to/from this Counterparty
+                    val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
+                    val otherBankId : BankId, // These 3 fields specify the internal locaiton of the account for the
                     val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
                     val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
                     val isBeneficiary: Boolean  // True if the originAccount can send money to the Counterparty
@@ -610,7 +610,7 @@ class Counterparty(
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(thisAccountId, otherAccountId, this)
+        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this)
     }
   }
 }

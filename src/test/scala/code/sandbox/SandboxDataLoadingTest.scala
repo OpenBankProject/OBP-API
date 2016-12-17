@@ -332,7 +332,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val otherAcc = foundTransaction.otherAccount
     otherAcc.counterPartyId should not be empty
     otherAcc.otherAccountId should equal(accountId)
-    otherAcc.thisAccountId should equal(bankId)
+    otherAcc.otherBankId should equal(bankId)
     val otherAccMeta = otherAcc.metadata
     otherAccMeta.getPublicAlias should not be empty
 
@@ -345,8 +345,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       }
 
       transaction.counterparty.get.account_number match {
-        case Some(number) => otherAcc.otherBankId should equal(number)
-        case None => otherAcc.otherBankId should equal("")
+        case Some(number) => otherAcc.thisAccountId.value should equal(number)
+        case None => otherAcc.thisAccountId.value should equal("")
       }
     }
 
@@ -1218,7 +1218,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.otherBankId should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
 
@@ -1246,7 +1246,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label.nonEmpty should equal(true)
-    created.otherAccount.otherBankId should equal(t.counterparty.get.account_number.get)
+    created.otherAccount.thisAccountId.value should equal(t.counterparty.get.account_number.get)
 
   }
 
@@ -1274,7 +1274,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.otherBankId should equal("")
+    created.otherAccount.thisAccountId.value should equal("")
   }
 
   it should "allow counterparty account number to be unspecified" in {
@@ -1301,7 +1301,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val created = createdTransaction.get
 
     created.otherAccount.label should equal(t.counterparty.get.name.get)
-    created.otherAccount.otherBankId should equal("")
+    created.otherAccount.thisAccountId.value should equal("")
   }
 
   it should "allow counterparties with the same name to have different account numbers" in {
@@ -1403,8 +1403,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     counter1.counterPartyId should not equal(counter2.counterPartyId)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.otherBankId should equal(counterAcc1)
-    counter2.otherBankId should equal(counterAcc2)
+    counter1.thisAccountId.value should equal(counterAcc1)
+    counter2.thisAccountId.value should equal(counterAcc2)
   }
 
   it should "consider counterparties without names but with the same account numbers to be the same" in {
@@ -1437,8 +1437,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     counter1.counterPartyId should equal(counter2.counterPartyId)
     counter1.metadata.getPublicAlias should equal(counter2.metadata.getPublicAlias)
-    counter1.otherBankId should equal(transactionWithCounterparty.counterparty.get.account_number.get)
-    counter2.otherBankId should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter1.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
+    counter2.thisAccountId.value should equal(transactionWithCounterparty.counterparty.get.account_number.get)
   }
 
   it should "consider counterparties without names but with different account numbers to be different" in {
@@ -1479,8 +1479,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     counter1.counterPartyId.isEmpty should equal(false)
     counter2.counterPartyId.isEmpty should equal(false)
     counter1.metadata.getPublicAlias should not equal(counter2.metadata.getPublicAlias)
-    counter1.otherBankId should equal(counterpartyAccNumber1)
-    counter2.otherBankId should equal(counterpartyAccNumber2)
+    counter1.thisAccountId.value should equal(counterpartyAccNumber1)
+    counter2.thisAccountId.value should equal(counterpartyAccNumber2)
   }
 
   it should "always create a new counterparty if none was specified, rather than having all transactions without specified" +

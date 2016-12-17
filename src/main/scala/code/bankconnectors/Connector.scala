@@ -41,34 +41,27 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
 
 object Connector  extends SimpleInjector {
 
-  import scala.reflect.runtime.universe._
-  def getObjectInstance(clsName: String):Connector = {
-    val mirror = runtimeMirror(getClass.getClassLoader)
-    val module = mirror.staticModule(clsName)
-    mirror.reflectModule(module).instance.asInstanceOf[Connector]
-  }
 
   val connector = new Inject(buildOne _) {}
 
   def buildOne: Connector = {
     val connectorProps = Props.get("connector").openOrThrowException("no connector set")
 
-    val kafka_version = """^(kafka)_(lib)_(v[A-Za-z0-9\.]+)$""".r
+    val kafka_version = """^(kafka)_(lib)_(v[0-9]+)$""".r
 
     connectorProps match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
       case "kafka" => KafkaMappedConnector
       case kafka_version(kafka, lib, version) => 
-       val objVersion = version.replaceAll("\\.", "_")
        if (lib == "lib")
-         if (objVersion == "v2016_11_RC2")
-           KafkaLibMappedConnector_v2016_11_RC2
-         else
-           KafkaLibMappedConnector
-           //getObjectInstance("code.bankconnectors.KafkaLibMappedConnector_" + objVersion)
+         if (version != "") {
+           KafkaLibMappedConnector(version)
+         } else {
+           throw new Exception("connector set to kafka_lib without version")
+         }
        else
-         null
+         throw new Exception("connector kafka_lib - unknown error")
     }
   }
 
