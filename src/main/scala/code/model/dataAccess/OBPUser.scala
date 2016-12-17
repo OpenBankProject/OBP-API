@@ -224,6 +224,8 @@ import net.liftweb.util.Helpers._
   /**
     * The string that's generated when the user name is not found.  By
     * default: S.?("email.address.not.found")
+    * The function is overridden in order to prevent leak of information at password reset page if username / email exists or do not exist.
+    * I.e. we want to prevent case in which an anonymous user can get information from the message does some username/email exist or no in our system.
     */
   override def userNameNotFoundString: String = "Thank you. If we found a matching user, password reset instructions have been sent."
 
