@@ -222,6 +222,13 @@ import net.liftweb.util.Helpers._
   }
 
   /**
+    * The string that's generated when the user name is not found.  By
+    * default: S.?("email.address.not.found")
+    */
+  override def userNameNotFoundString: String = "Thank you. If we found a matching user, password reset instructions have been sent."
+
+
+  /**
    * Overridden to use the hostname set in the props file
    */
   override def sendPasswordReset(name: String) {
@@ -236,7 +243,7 @@ import net.liftweb.util.Helpers._
             generateResetEmailBodies(user, resetLink) :::
             (bccEmail.toList.map(BCC(_))) :_*)
 
-        S.notice(S.?("password.reset.email.sent"))
+        S.notice(S.?(userNameNotFoundString))
         S.redirectTo(homePage)
 
       case Full(user) =>

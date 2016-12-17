@@ -104,6 +104,7 @@ object ErrorMessages {
   val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. The COUNTERPARTY_ID specified does not exist on this server."
+  val BankAccountNotFound = "OBP-30018: Bank Account not found."
 
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."

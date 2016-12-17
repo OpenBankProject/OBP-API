@@ -31,54 +31,41 @@ Berlin 13359, Germany
  */
 package code.snippet
 
-import net.liftweb.util.Helpers._
-import code.model.Consumer
-import net.liftweb.http.S
-import net.liftweb.http.RequestVar
+import code.model._
+import net.liftweb.http.{RequestVar, S}
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
 import net.liftweb.util.Props
-import net.liftweb.common.Loggable
-import code.util.Helper.NOOP_SELECTOR
+import net.liftweb.common.{Empty, Loggable}
+import net.liftweb.util.Helpers._
+import net.liftweb.http.SHtml
 
 class ConsumerRegistration extends Loggable {
-
-  //TODO: for security reasons this snippet and the template must be re-factored
-  //to use the lift built-in form function(SHtml._) so we can hide to what
-  //the input fields are mapped to in the server side !!
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[Consumer.appType.enum.AppType](Consumer.appType.enum.values.head)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
+  private object appType extends RequestVar("Web")
 
   def registerForm = {
 
+    val appTypes = Consumer.appType.enum.values.toList.map { appType =>
+      val id = appType.toString
+      (id, id)
+    }
     def registerWithoutWarnings =
       register &
       "#registration-errors" #> ""
 
     def register = {
       ".register" #> {
-        ".app-type-option" #> {
-          val appTypes = Consumer.appType.enum.values.map(appType => appType.toString)
-            appTypes.map(t => {
-              val selected = appTypeVar.get.toString == t
-
-              def markIfSelected =
-                if(selected) "* [selected]" #> "selected"
-                else NOOP_SELECTOR
-
-              markIfSelected &
-              "* *" #> t &
-              "* [value]" #> t
-            })
-          } &
-      	"name=app-name [value]" #> nameVar.get &
-        "name=app-user-authentication-url [value]" #> redirectionURLVar.get &
-      	"name=app-description *" #> descriptionVar.get &
-      	"name=app-developer [value]" #> devEmailVar.get
+          ".appTypeClass" #> SHtml.select(appTypes, Empty, appType(_)) &
+          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) &
+          ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
+          ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
+          ".appUserAuthenticationUrlClass" #> SHtml.text(redirectionURLVar.is, redirectionURLVar(_))
       } &
       ".success" #> ""
     }
@@ -124,33 +111,41 @@ class ConsumerRegistration extends Loggable {
       }
     }
 
-    def analyseResult = {
-      val name = S.param("app-name") getOrElse ""
-      val appType =
-        S.param("app-type").flatMap(
-          typeString => Consumer.appType.enum.values.find(_.toString == typeString)
-        ) getOrElse Consumer.appType.enum.values.head
+    //TODO this should be used somewhere else, it is check the empty of description for the hack attack from GUI.
+    def showErrorsForDescription (descriptioinError : String) = {
+      register &
+        "#registration-errors *" #> {
+          ".error *" #>
+            List(descriptioinError).map({ e=>
+              ".errorContent *" #> e
+            })
+        }
+    }
 
-      val appDescription = S.param("app-description") getOrElse ""
-      val appRedirectionUrl = S.param("app-user-authentication-url") getOrElse ""
-      val developerEmail = S.param("app-developer") getOrElse ""
+    def analyseResult = {
+
+      def withNameOpt(s: String): Option[Consumer.appType.enum.AppType] = Consumer.appType.enum.values.find(_.toString == s)
+
+      val appTypeSelected = withNameOpt(appType.is)
 
       val consumer =
         Consumer.create.
-          name(name).
-          appType(appType).
-          description(appDescription).
-          developerEmail(developerEmail).
-          userAuthenticationURL(appRedirectionUrl)
+          name(nameVar.is).
+          appType(appTypeSelected.get).
+          description(descriptionVar.is).
+          developerEmail(devEmailVar.is).
+          userAuthenticationURL(redirectionURLVar.is)
 
       val errors = consumer.validate
-      nameVar.set(name)
-      appTypeVar.set(appType)
-      descriptionVar.set(appDescription)
-      devEmailVar.set(developerEmail)
-      redirectionURLVar.set(appRedirectionUrl)
+      nameVar.set(nameVar.is)
+      appTypeVar.set(appTypeSelected.get)
+      descriptionVar.set(descriptionVar.is)
+      devEmailVar.set(devEmailVar.is)
+      redirectionURLVar.set(redirectionURLVar.is)
 
-      if(errors.isEmpty)
+      if(descriptionVar.isEmpty)
+        showErrorsForDescription("Description of the application can not be empty !")
+      else if(errors.isEmpty)
         saveAndShowResults(consumer)
       else
         showErrors(errors)
