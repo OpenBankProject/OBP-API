@@ -9,16 +9,21 @@
 #connector=mongodb
 #connector=rest
 #connector=kafka
+#connector=obpjvm
 connector=mapped
 
-#if using kafka connector, set zookeeper host
+# Connector cache time-to-live in seconds, caching disabled if not set
+#connector.cache.ttl.seconds=3
+
+# OBP-JVM transport type. currently supported: kafka, mock
+#obpjvm.transport=kafka
+
+#if using kafka, set zookeeper host and brokers
 #defaults to "localhost:2181" if not set
-#kafka.zookeeper_host=123.45.67.89:2181
+#kafka.zookeeper_host=localhost:2181
+#kafka.bootstrap_hosts=localhost:9092
 
-#cache time to live in seconds, caching disabled if not set
-#kafka.cache.ttl.seconds=3
-
-#if using kafka connector, the following is mandatory
+#if using kafka, the following is mandatory
 #kafka.request_topic=Request
 #kafka.response_topic=Response
 

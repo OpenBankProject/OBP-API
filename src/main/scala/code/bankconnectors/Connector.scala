@@ -47,21 +47,11 @@ object Connector  extends SimpleInjector {
   def buildOne: Connector = {
     val connectorProps = Props.get("connector").openOrThrowException("no connector set")
 
-    val kafka_version = """^(kafka)_(lib)_(v[0-9]+)$""".r
-
     connectorProps match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
       case "kafka" => KafkaMappedConnector
-      case kafka_version(kafka, lib, version) => 
-       if (lib == "lib")
-         if (version != "") {
-           KafkaLibMappedConnector(version)
-         } else {
-           throw new Exception("connector set to kafka_lib without version")
-         }
-       else
-         throw new Exception("connector kafka_lib - unknown error")
+      case "obpjvm" => ObpJvmMappedConnector
     }
   }
 

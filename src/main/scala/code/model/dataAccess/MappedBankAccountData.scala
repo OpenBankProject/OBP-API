@@ -2,9 +2,9 @@ package code.model.dataAccess
 
 import net.liftweb.mapper._
 
-class MappedKafkaBankAccountData extends LongKeyedMapper[MappedKafkaBankAccountData] with IdPK with CreatedUpdated {
+class MappedBankAccountData extends LongKeyedMapper[MappedBankAccountData] with IdPK with CreatedUpdated {
 
-  override def getSingleton = MappedKafkaBankAccountData
+  override def getSingleton = MappedBankAccountData
 
   object bankId extends MappedString(this, 255)
   def getBankId = bankId.get
@@ -20,6 +20,6 @@ class MappedKafkaBankAccountData extends LongKeyedMapper[MappedKafkaBankAccountD
 
 }
 
-object MappedKafkaBankAccountData extends MappedKafkaBankAccountData with LongKeyedMetaMapper[MappedKafkaBankAccountData] {
+object MappedBankAccountData extends MappedBankAccountData with LongKeyedMetaMapper[MappedBankAccountData] {
   override def dbIndexes = UniqueIndex(bankId, accountId) :: super.dbIndexes
 }

@@ -159,6 +159,8 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
 
+  val connector = Props.get("connector").openOrThrowException("no connector set")
+
   override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
 
   override def dbTableName = "users" // define the DB table name
@@ -352,7 +354,7 @@ import net.liftweb.util.Helpers._
 
   def getAPIUserId(name: String, password: String): Box[Long] = {
     findUserByUsername(name) match {
-      case Full(user) => {
+      case Full(user) => 
         if (user.validated_? &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
@@ -360,23 +362,29 @@ import net.liftweb.util.Helpers._
           Full(user.user)
         }
         else {
-          if (Props.getBool("kafka.user.authentication", false)) {
-          Props.get("connector").openOrThrowException("no connector set").startsWith("kafka") match {
-            case true =>
-              for { kafkaUser <- getUserFromKafka(name, password)
-                    kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
-            case false => Empty
+          connector match {
+            case "kafka" =>
+              if (Props.getBool("kafka.user.authentication", false)) 
+                for { kafkaUser <- getUserFromConnector(name, password)
+                      kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
+              else
+                Empty
+            case "obpjvm" =>
+              if (Props.getBool("obpjvm.user.authentication", false)) 
+                for { obpjvmUser <- getUserFromConnector(name, password)
+                      obpjvmUserId <- tryo{obpjvmUser.user} } yield obpjvmUserId.toLong
+              else
+                Empty
+            case _ => Empty
           }
-        } else {
-            Empty }
         }
-      }
+
       case _ => Empty 
     }
   }
 
 
-  def getUserFromKafka(name: String, password: String):Box[OBPUser] = {
+  def getUserFromConnector(name: String, password: String):Box[OBPUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(Connector.connector.vend.InboundUser(extEmail, extPassword, extUsername)) => {
         info("external user authenticated. login redir: " + loginRedirect.get)
@@ -388,7 +396,7 @@ import net.liftweb.util.Helpers._
             homePage
         }
 
-        val extProvider = Props.get("connector").openOrThrowException("no connector set")
+        val extProvider = connector
 
         val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
@@ -494,9 +502,9 @@ import net.liftweb.util.Helpers._
 
 
   def externalUserHelper(name: String, password: String): Box[OBPUser] = {
-    if (Props.get("connector").openOrThrowException("no connector set").startsWith("kafka")) {
+    if (connector == "kafka" || connector == "obpjvm") {
       for {
-       user <- getUserFromKafka(name, password)
+       user <- getUserFromConnector(name, password)
        u <- APIUser.find(By(APIUser.name_, user.username))
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
@@ -507,7 +515,7 @@ import net.liftweb.util.Helpers._
 
 
   def registeredUserHelper(username: String) = {
-    if (Props.get("connector").openOrThrowException("no connector set").startsWith("kafka")) {
+    if (connector == "kafka" || connector == "obpjvm") {
       for {
        u <- APIUser.find(By(APIUser.name_, username))
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}

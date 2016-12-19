@@ -9,7 +9,6 @@ import java.util.{Date, Locale, Optional, UUID}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
 import code.fx.fx
-import code.bankconnectors.KafkaMappedConnector.{KafkaBank, KafkaBankAccount, KafkaInboundAccount, KafkaInboundBank}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
@@ -42,9 +41,9 @@ import scala.collection.JavaConversions._
 
 /**
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
-  * Kafka.
+  * bank resources.
   */
-object KafkaLibMappedConnector extends Connector with CreateViewImpls with Loggable {
+object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggable {
 
 
   type JAccount = com.tesobe.obp.transport.Account
@@ -54,58 +53,40 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   type JConnector = com.tesobe.obp.transport.Connector
   type JHashMap = java.util.HashMap[String, Object]
 
-  type AccountType = KafkaBankAccount
+  type AccountType = ObpJvmBankAccount
 
-  var version: String = ""
   var jvmNorth : JConnector = null
 
-  def apply (v: String) = {
+  def apply () = {
     val producerProps : JHashMap = new JHashMap
     val consumerProps : JHashMap = new JHashMap
 
-    // todo better way of translating scala props to java properties for kafka
+    // todo better way of translating scala props to java properties for OBP-JVM 
     consumerProps.put("bootstrap.servers",
        Props.get("kafka.host").openOr("localhost:9092"))
     producerProps.put("bootstrap.servers", 
       Props.get("kafka.host").openOr("localhost:9092"))
 
-    version = v
-    version match {
-
-      case "v201611" =>
-        val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
-        val north   = new SimpleNorth(
-                  Props.get("kafka.response_topic").openOr("Response"),
-                  Props.get("kafka.request_topic").openOr("Request"),
-                  consumerProps, producerProps)
-        jvmNorth = factory.connector(north)
-        north.receive() // start Kafka
-
-      case "v201609" =>
-        val factory  = Transport.defaultFactory()
-        val north   = new SimpleNorth(
-                  Props.get("kafka.response_topic").openOr("Response"),
-                  Props.get("kafka.request_topic").openOr("Request"),
-                  consumerProps, producerProps)
-        jvmNorth = factory.connector(north)
-        north.receive() // start Kafka
-
-      case _ =>
-        throw new Exception(s"kafka_lib version ${version} incorrect")
-    }
+    val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
+    val north   = new SimpleNorth(
+                    Props.get("kafka.response_topic").openOr("Response"),
+                    Props.get("kafka.request_topic").openOr("Request"),
+                    consumerProps, producerProps)
+    jvmNorth = factory.connector(north)
+    north.receive() // start ObpJvm
 
     this
   }
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("kafka.cache.ttl.seconds", "0").toInt
-  val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
-  val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
-  val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)
-  val cachedBanks           = TTLCache[List[KafkaInboundBank]](cacheTTL)
-  val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
-  val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
-  val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+  val cacheTTL              = Props.get("obpjvm.cache.ttl.seconds", "0").toInt
+  val cachedUser            = TTLCache[ObpJvmInboundValidatedUser](cacheTTL)
+  val cachedBank            = TTLCache[ObpJvmInboundBank](cacheTTL)
+  val cachedAccount         = TTLCache[ObpJvmInboundAccount](cacheTTL)
+  val cachedBanks           = TTLCache[List[ObpJvmInboundBank]](cacheTTL)
+  val cachedAccounts        = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
+  val cachedPublicAccounts  = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
+  val cachedUserAccounts    = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
@@ -118,7 +99,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     null
   }
 
-  def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
+  def accountOwnerExists(user: APIUser, account: ObpJvmInboundAccount): Boolean = {
     val res =
       MappedAccountHolder.findAll(
         By(MappedAccountHolder.user, user),
@@ -129,14 +110,14 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     res.nonEmpty
   }
 
-  def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
+  def setAccountOwner(owner : String, account: ObpJvmInboundAccount) : Unit = {
     if (account.owners.contains(owner)) {
       val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
       apiUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, account)) {
             logger.info(s"setAccountOwner account owner does not exist. creating for ${o.apiId.value} ${account.id}")
-            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "KafkaLibMappedConnector")
+            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "ObpJvmMappedConnector")
           }
        }
         case None => {
@@ -148,15 +129,15 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   }
 
   def updateUserAccountViews( user: APIUser ) = {
-    logger.debug(s"KafkaLib updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
-    val accounts: List[KafkaInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
-        KafkaInboundAccount(
+    logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
+    val accounts: List[ObpJvmInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
+        ObpJvmInboundAccount(
                              a.accountId,
                              a.bankId,
                              a.label,
                              a.number,
                              a.`type`,
-                             KafkaInboundBalance(a.balanceAmount, a.balanceCurrency),
+                             ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
                              a.iban,
                              user.name :: Nil,
                              false,  //public_view
@@ -165,13 +146,13 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         )
     ).toList
 
-    logger.debug(s"Kafka getUserAccounts says res is $accounts")
+    logger.debug(s"ObpJvm getUserAccounts says res is $accounts")
 
     for {
       acc <- accounts
       username <- tryo {user.name}
       views <- tryo {createSaveableViews(acc, acc.owners.contains(username))}
-      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
+      existing_views <- tryo {Views.views.vend.views(new ObpJvmBankAccount(acc))}
     } yield {
       setAccountOwner(username, acc)
       views.foreach(_.save())
@@ -186,7 +167,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     }
   }
 
-  def viewExists(account: KafkaInboundAccount, name: String): Boolean = {
+  def viewExists(account: ObpJvmInboundAccount, name: String): Boolean = {
     val res =
       ViewImpl.findAll(
         By(ViewImpl.bankPermalink, account.bank),
@@ -196,8 +177,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     res.nonEmpty
   }
 
-  def createSaveableViews(acc : KafkaInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
-    logger.info(s"Kafka createSaveableViews acc is $acc")
+  def createSaveableViews(acc : ObpJvmInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
+    logger.info(s"ObpJvm createSaveableViews acc is $acc")
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
 
@@ -236,8 +217,8 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
     val banks: List[Bank] = jvmNorth.getBanks().map(b =>
-        KafkaBank(
-          KafkaInboundBank(
+        ObpJvmBank(
+          ObpJvmInboundBank(
             b.bankId,
             b.name,
             b.logo,
@@ -246,17 +227,17 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
         )
       ).toList
 
-    logger.debug(s"Kafka getBanks says res is $banks")
+    logger.debug(s"ObpJvm getBanks says res is $banks")
     // Return list of results
     banks
   }
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
-    var r:Option[KafkaInboundChallengeLevel] = None
+    var r:Option[ObpJvmInboundChallengeLevel] = None
     /*TODO Needs to be implemented in OBP-JVM
-    var r:Option[KafkaInboundChallengeLevel] = jvmNorth.getChallengeThreshold(userId, accountId, transactionRequestType, currency).map(b =>
-        KafkaInboundChallengeLevel(
+    var r:Option[ObpJvmInboundChallengeLevel] = jvmNorth.getChallengeThreshold(userId, accountId, transactionRequestType, currency).map(b =>
+        ObpJvmInboundChallengeLevel(
           b.limit,
           b.currency
         )
@@ -278,7 +259,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
    toOption[JBank](jvmNorth.getBank(id.value)) match {
-      case Some(b) => Full(KafkaBank(KafkaInboundBank(b.bankId, b.name, b.logo, b.url)))
+      case Some(b) => Full(ObpJvmBank(ObpJvmInboundBank(b.bankId, b.name, b.logo, b.url)))
       case None => Empty
     }
   }
@@ -288,11 +269,11 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     toOption[JTransaction](jvmNorth.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
       case Some(t) =>
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
-        createNewTransaction(KafkaInboundTransaction(
+        createNewTransaction(ObpJvmInboundTransaction(
         t.transactionId,
-        KafkaInboundAccountId(t.accountId, bankId.value),
-        Option(KafkaInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
-        KafkaInboundTransactionDetails(
+        ObpJvmInboundAccountId(t.accountId, bankId.value),
+        Option(ObpJvmInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
+        ObpJvmInboundTransactionDetails(
           t.`type`,
           t.description,
           t.postedDate.format(formatter),
@@ -322,12 +303,12 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList: List[KafkaInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
-      KafkaInboundTransaction(
+    val rList: List[ObpJvmInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
+      ObpJvmInboundTransaction(
             t.id,
-            KafkaInboundAccountId(t.accountId, bankId.value),
-            Option(KafkaInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
-            KafkaInboundTransactionDetails(
+            ObpJvmInboundAccountId(t.accountId, bankId.value),
+            Option(ObpJvmInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
+            ObpJvmInboundTransactionDetails(
               t.`type`,
               t.description,
               t.postedDate.format(formatter),
@@ -356,15 +337,15 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     //TODO is this needed updateAccountTransactions(bankId, accountID)
   }
 
-  override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountID: AccountId): Box[ObpJvmBankAccount] = {
      val account : Optional[JAccount] = jvmNorth.getAccount(bankId.value,
       accountID.value, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
-      val balance : KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
+      val balance : ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
       Full(
-        KafkaBankAccount(
-          KafkaInboundAccount(
+        ObpJvmBankAccount(
+          ObpJvmInboundAccount(
             a.accountId,
             a.bankId,
             a.label,
@@ -385,20 +366,20 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
     }
   }
 
-  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[KafkaBankAccount] = {
+  override def getBankAccounts(accts: List[(BankId, AccountId)]): List[ObpJvmBankAccount] = {
 
-    logger.info(s"hello from KafkaLibMappedConnnector.getBankAccounts accts is $accts")
+    logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
-    val r:List[KafkaInboundAccount] = accts.map { a => {
+    val r:List[ObpJvmInboundAccount] = accts.map { a => {
 
       val primaryUserIdentifier = OBPUser.getCurrentUserUsername
-      logger.info (s"KafkaLibMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
+      logger.info (s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
       val account: Optional[JAccount] = jvmNorth.getAccount(a._1.value,
         a._2.value, primaryUserIdentifier)
       if (account.isPresent) {
         val a: JAccount = account.get
-        val balance: KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
-        Full(KafkaInboundAccount(
+        val balance: ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
+        Full(ObpJvmInboundAccount(
           a.accountId,
           a.bankId,
           a.label,
@@ -426,7 +407,7 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
 
     r.map { t =>
       createMappedAccountDataIfNotExisting(t.bank, t.id, t.label)
-      new KafkaBankAccount(t) }
+      new ObpJvmBankAccount(t) }
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
@@ -434,10 +415,10 @@ object KafkaLibMappedConnector extends Connector with CreateViewImpls with Logga
       number, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
-      val balance : KafkaInboundBalance = KafkaInboundBalance(a.balanceCurrency, a.balanceAmount)
+      val balance : ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
       Full(
-        KafkaBankAccount(
-          KafkaInboundAccount(
+        ObpJvmBankAccount(
+          ObpJvmInboundAccount(
             a.accountId,
             a.bankId,
             a.label,
@@ -852,7 +833,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
         a
       case _ => null //TODO
         /*
-       new  KafkaBankAccount
+       new  ObpJvmBankAccount
           .bank(bankId.value)
           .theAccountId(accountID.value)
           .accountNumber(accountNumber)
@@ -867,10 +848,10 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   private def createMappedAccountDataIfNotExisting(bankId: String, accountId: String, label: String) : Boolean = {
-    MappedKafkaBankAccountData.find(By(MappedKafkaBankAccountData.accountId, accountId),
-                                    By(MappedKafkaBankAccountData.bankId, bankId)) match {
+    MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId),
+                                    By(MappedBankAccountData.bankId, bankId)) match {
       case Empty =>
-        val data = new MappedKafkaBankAccountData
+        val data = new MappedBankAccountData
         data.setAccountId(accountId)
         data.setBankId(bankId)
         data.setLabel(label)
@@ -1007,7 +988,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val result = for {
       acc <- getBankAccount(bankId, accountID)
       bank <- getBank(bankId)
-      d <- MappedKafkaBankAccountData.find(By(MappedKafkaBankAccountData.accountId, accountID.value), By(MappedKafkaBankAccountData.bankId, bank.bankId.value))
+      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountID.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)
       d.save()
@@ -1022,18 +1003,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
 
 
-  def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
-    //if (producer.send(reqId, command, argList, "1")) {
-      // Request sent, now we wait for response with the same reqId
-    //  val res = consumer.getResponse(reqId)
-    //  return res
-    //}
-    return json.parse("""{"error":"could not send message to kafka"}""")
-  }
-
-
   // Helper for creating a transaction
-  def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
+  def createNewTransaction(r: ObpJvmInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
       datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
@@ -1076,7 +1047,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
 
-  case class KafkaBank(r: KafkaInboundBank) extends Bank {
+  case class ObpJvmBank(r: ObpJvmInboundBank) extends Bank {
     def fullName           = r.name
     def shortName          = r.name
     def logoUrl            = r.logo
@@ -1087,7 +1058,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   // Helper for creating other bank account
-  def createCounterparty(c: KafkaInboundTransactionCounterparty, o: KafkaBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
+  def createCounterparty(c: ObpJvmInboundTransactionCounterparty, o: ObpJvmBankAccount, alreadyFoundMetadata : Option[CounterpartyMetadata]) = {
     new Counterparty(
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
@@ -1112,7 +1083,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     )
   }
 
-  case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
+  case class ObpJvmBankAccount(r: ObpJvmInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
     def balance : BigDecimal        = BigDecimal(r.balance.amount)
@@ -1127,7 +1098,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     // Fields modifiable from OBP are stored in mapper
     def label : String              = (for {
-      d <- MappedKafkaBankAccountData.find(By(MappedKafkaBankAccountData.accountId, r.id))
+      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, r.id))
     } yield {
       d.getLabel
     }).getOrElse(r.number)
@@ -1135,7 +1106,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
 
-  case class KafkaInboundBank(
+  case class ObpJvmInboundBank(
                               bankId : String,
                               name : String,
                               logo : String,
@@ -1153,27 +1124,27 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     * @param lobby Info about when the lobby doors are open
     * @param driveUp Info about when automated facilities are open e.g. cash point machine
     */
-  case class KafkaInboundBranch(
+  case class ObpJvmInboundBranch(
                                  id : String,
                                  bank_id: String,
                                  name : String,
-                                 address : KafkaInboundAddress,
-                                 location : KafkaInboundLocation,
-                                 meta : KafkaInboundMeta,
-                                 lobby : Option[KafkaInboundLobby],
-                                 driveUp : Option[KafkaInboundDriveUp])
+                                 address : ObpJvmInboundAddress,
+                                 location : ObpJvmInboundLocation,
+                                 meta : ObpJvmInboundMeta,
+                                 lobby : Option[ObpJvmInboundLobby],
+                                 driveUp : Option[ObpJvmInboundDriveUp])
 
-  case class KafkaInboundLicense(
+  case class ObpJvmInboundLicense(
                                  id : String,
                                  name : String)
 
-  case class KafkaInboundMeta(
-                              license : KafkaInboundLicense)
+  case class ObpJvmInboundMeta(
+                              license : ObpJvmInboundLicense)
 
-  case class KafkaInboundLobby(
+  case class ObpJvmInboundLobby(
                                hours : String)
 
-  case class KafkaInboundDriveUp(
+  case class ObpJvmInboundDriveUp(
                                  hours : String)
 
   /**
@@ -1187,7 +1158,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     * @param post_code Post Code or Zip Code
     * @param country_code 2 letter country code: ISO 3166-1 alpha-2
     */
-  case class KafkaInboundAddress(
+  case class ObpJvmInboundAddress(
                                  line_1 : String,
                                  line_2 : String,
                                  line_3 : String,
@@ -1197,46 +1168,46 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                  post_code : String,
                                  country_code: String)
 
-  case class KafkaInboundLocation(
+  case class ObpJvmInboundLocation(
                                   latitude : Double,
                                   longitude : Double)
 
-  case class KafkaInboundValidatedUser(
+  case class ObpJvmInboundValidatedUser(
                                        email : String,
                                        display_name : String)
 
-  case class KafkaInboundAccount(
+  case class ObpJvmInboundAccount(
                                   id : String,
                                   bank : String,
                                   label : String,
                                   number : String,
                                   `type` : String,
-                                  balance : KafkaInboundBalance,
+                                  balance : ObpJvmInboundBalance,
                                   IBAN : String,
                                   owners : List[String],
                                   generate_public_view : Boolean,
                                   generate_accountants_view : Boolean,
                                   generate_auditors_view : Boolean)
 
-  case class KafkaInboundBalance(
+  case class ObpJvmInboundBalance(
                                  currency : String,
                                  amount : String)
 
-  case class KafkaInboundTransaction(
+  case class ObpJvmInboundTransaction(
                                       id : String,
-                                      this_account : KafkaInboundAccountId,
-                                      counterparty : Option[KafkaInboundTransactionCounterparty],
-                                      details : KafkaInboundTransactionDetails)
+                                      this_account : ObpJvmInboundAccountId,
+                                      counterparty : Option[ObpJvmInboundTransactionCounterparty],
+                                      details : ObpJvmInboundTransactionDetails)
 
-  case class KafkaInboundTransactionCounterparty(
+  case class ObpJvmInboundTransactionCounterparty(
                                            name : Option[String],  // Also known as Label
                                            account_number : Option[String])
 
-  case class KafkaInboundAccountId(
+  case class ObpJvmInboundAccountId(
                                    id : String,
                                    bank : String)
 
-  case class KafkaInboundTransactionDetails(
+  case class ObpJvmInboundTransactionDetails(
                                         `type` : String,
                                         description : String,
                                         posted : String,
@@ -1245,17 +1216,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                         value : String)
 
 
-  case class KafkaInboundAtm(
+  case class ObpJvmInboundAtm(
                               id : String,
                               bank_id: String,
                               name : String,
-                              address : KafkaInboundAddress,
-                              location : KafkaInboundLocation,
-                              meta : KafkaInboundMeta
+                              address : ObpJvmInboundAddress,
+                              location : ObpJvmInboundLocation,
+                              meta : ObpJvmInboundMeta
                            )
 
 
-  case class KafkaInboundProduct(
+  case class ObpJvmInboundProduct(
                                  bank_id : String,
                                  code: String,
                                  name : String,
@@ -1263,49 +1234,49 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                  family : String,
                                  super_family : String,
                                  more_info_url : String,
-                                 meta : KafkaInboundMeta
+                                 meta : ObpJvmInboundMeta
                                )
 
 
-  case class KafkaInboundAccountData(
-                                      banks : List[KafkaInboundBank],
+  case class ObpJvmInboundAccountData(
+                                      banks : List[ObpJvmInboundBank],
                                       users : List[InboundUser],
-                                      accounts : List[KafkaInboundAccount]
+                                      accounts : List[ObpJvmInboundAccount]
                                    )
 
   // We won't need this. TODO clean up.
-  case class KafkaInboundData(
-                               banks : List[KafkaInboundBank],
+  case class ObpJvmInboundData(
+                               banks : List[ObpJvmInboundBank],
                                users : List[InboundUser],
-                               accounts : List[KafkaInboundAccount],
-                               transactions : List[KafkaInboundTransaction],
-                               branches: List[KafkaInboundBranch],
-                               atms: List[KafkaInboundAtm],
-                               products: List[KafkaInboundProduct],
-                               crm_events: List[KafkaInboundCrmEvent]
+                               accounts : List[ObpJvmInboundAccount],
+                               transactions : List[ObpJvmInboundTransaction],
+                               branches: List[ObpJvmInboundBranch],
+                               atms: List[ObpJvmInboundAtm],
+                               products: List[ObpJvmInboundProduct],
+                               crm_events: List[ObpJvmInboundCrmEvent]
                             )
 
 
-  case class KafkaInboundCrmEvent(
+  case class ObpJvmInboundCrmEvent(
                                    id : String, // crmEventId
                                    bank_id : String,
-                                   customer: KafkaInboundCustomer,
+                                   customer: ObpJvmInboundCustomer,
                                    category : String,
                                    detail : String,
                                    channel : String,
                                    actual_date: String
                                  )
 
-  case class KafkaInboundCustomer(
+  case class ObpJvmInboundCustomer(
                                    name: String,
                                    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
                                  )
 
 
-  case class KafkaInboundTransactionId(
+  case class ObpJvmInboundTransactionId(
                                         transactionId : String
                                       )
-  case class KafkaOutboundTransaction(username: String,
+  case class ObpJvmOutboundTransaction(username: String,
                                       accountId: String,
                                       currency: String,
                                       amount: String,
@@ -1314,7 +1285,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                       transactionType: String)
 
 
-  case class KafkaInboundChallengeLevel(
+  case class ObpJvmInboundChallengeLevel(
                                        limit: BigDecimal,
                                        currency: String
                                         )
