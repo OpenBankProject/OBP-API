@@ -264,7 +264,7 @@ object APIUtil extends Loggable {
 
 
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    val xml = XML.loadFile("./src/main/iso/ISOCurrencyCode.xml")
+    val xml = XML.loadFile("./ISOCurrencyCodes.xml")
     val stringArray = (xml \ "Currency" \ "CurrencyCode").map(_.text).mkString(" ").split("\\s+")
     stringArray.contains(currencyCode)
   }
