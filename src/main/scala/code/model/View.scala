@@ -174,6 +174,7 @@ case class UpdateViewJSON(
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
   * @define canInitiateTransaction If true, view can initiate Transaction Request. Note. Owner view may be required. TODO check this.
+  * @define canCreateCounterparty If true, view can create counterparty.
 
 
   */
@@ -262,6 +263,7 @@ trait View {
   def canAddPhysicalLocation : Boolean
   def canAddPublicAlias : Boolean
   def canAddPrivateAlias : Boolean
+  def canCreateCounterparty : Boolean
   def canDeleteCorporateLocation : Boolean
   def canDeletePhysicalLocation : Boolean
 
@@ -533,8 +535,8 @@ trait View {
       val otherAccountNationalIdentifier = if(canSeeOtherAccountNationalIdentifier) Some(otherBankAccount.nationalIdentifier) else None
       val otherAccountSWIFT_BIC = if(canSeeOtherAccountSWIFT_BIC) otherBankAccount.bankRoutingAddress else None
       val otherAccountIBAN = if(canSeeOtherAccountIBAN) otherBankAccount.accountRoutingAddress else None
-      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId) else None
-      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.otherBankId) else None
+      val otherAccountBankName = if(canSeeOtherAccountBankName) Some(otherBankAccount.thisBankId.value) else None
+      val otherAccountNumber = if(canSeeOtherAccountNumber) Some(otherBankAccount.thisAccountId.value) else None
       val otherAccountKind = if(canSeeOtherAccountKind) Some(otherBankAccount.kind) else None
       val otherAccountMetadata =
         if(canSeeOtherAccountMetadata){

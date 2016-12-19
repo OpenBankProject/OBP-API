@@ -91,10 +91,10 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
           nationalIdentifier = counterpartyNationalId.get,
           bankRoutingAddress = None, //TODO: need to add this to the json/model
           accountRoutingAddress = getCounterpartyIban(),
-          otherBankId = counterpartyAccountNumber.get,
-          thisBankId = counterpartyBankName.get,
+          thisAccountId = AccountId(counterpartyAccountNumber.get),
+          thisBankId = BankId(counterpartyBankName.get),
           kind = counterpartyAccountKind.get,
-          thisAccountId = theBankId,
+          otherBankId = theBankId,
           otherAccountId = theAccountId,
           alreadyFoundMetadata = alreadyFoundMetadata,
 

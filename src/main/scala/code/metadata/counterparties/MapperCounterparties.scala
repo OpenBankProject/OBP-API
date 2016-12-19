@@ -53,7 +53,7 @@ object MapperCounterparties extends Counterparties with Loggable {
         By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
         By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
         By(MappedCounterpartyMetadata.holder, otherParty.label),
-        By(MappedCounterpartyMetadata.accountNumber, otherParty.otherBankId))
+        By(MappedCounterpartyMetadata.accountNumber, otherParty.thisAccountId.value))
     }
 
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
@@ -70,7 +70,7 @@ object MapperCounterparties extends Counterparties with Loggable {
           .thisAccountId(originalPartyAccountId.value)
           .holder(otherParty.label) // The main human readable identifier for this counter party from the perspective of the account holder
           .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
-          .accountNumber(otherParty.otherBankId)
+          .accountNumber(otherParty.thisAccountId.value)
           // otherParty.metadata is None at this point
           //.imageUrl("www.example.com/image.jpg")
           //.moreInfo("This is hardcoded moreInfo")
