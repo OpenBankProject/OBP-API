@@ -247,6 +247,14 @@ trait APIMethods210 {
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
 
+              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
+              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
+              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+
+              availableViews <- Full(fromAccount.permittedViews(user))
+              view <- View.fromUrl(viewId, fromAccount) ?~! {ErrorMessages.ViewNotFound}
+              canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
               validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
               // Use a list instead of a string to avoid partial matches
@@ -285,9 +293,6 @@ trait APIMethods210 {
                 case "FREE_FORM" => tryo{getTransactionRequestDetailsFreeFormFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsFreeFormJSON])}
               }
 
-              fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-              fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
 
               //Check the validate for amount and currency
               isValidAmountNumber <-  tryo(BigDecimal(transDetails.value.amount)) ?~!ErrorMessages.InvalidNumber
