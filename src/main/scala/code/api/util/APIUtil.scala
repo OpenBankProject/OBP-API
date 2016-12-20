@@ -82,6 +82,9 @@ object ErrorMessages {
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
   val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
 
+  val invalidValueLength = "OBP-20010: Value too long"
+  val invalidValueCharacters = "OBP-20011: Value contains invalid characters"
+
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
@@ -275,6 +278,36 @@ object APIUtil extends Loggable {
     id match {
       case regex(e) if(e.length<255) => true
       case _ => false
+    }
+  }
+
+//  /** only  A-Z ,a-z and max length <= 512  */
+  def assertAlpha(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
+    }
+  }
+
+  /** only  A-Z ,a-z ,0-9 and max length <= 512  */
+  def assertAlphaNumeric(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z0-9]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
+    }
+  }
+
+  /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
+  def assertString(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z0-9\-._@]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
     }
   }
 
