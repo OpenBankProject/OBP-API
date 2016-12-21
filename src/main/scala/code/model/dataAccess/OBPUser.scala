@@ -463,10 +463,11 @@ import net.liftweb.util.Helpers._
         case Full(user) if !user.validated_? =>
           S.error(S.?("account.validation.error"))
 
-        case _ => if (Props.get("connector").openOrThrowException("no connector set").startsWith("kafka"))
+        case _ => if (connector == "kafka" || connector == "obpjvm")
         {
           // If not found locally, try to authenticate user via Kafka, if enabled in props
-          if (Props.getBool("kafka.user.authentication", false)) {
+          if (Props.getBool("kafka.user.authentication", false) ||
+              Props.getBool("obpjvm.user.authentication", false)) {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {

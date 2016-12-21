@@ -57,29 +57,25 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
 
   var jvmNorth : JConnector = null
 
-  def apply () = {
-    val producerProps : JHashMap = new JHashMap
-    val consumerProps : JHashMap = new JHashMap
+  val producerProps : JHashMap = new JHashMap
+  val consumerProps : JHashMap = new JHashMap
 
-    // todo better way of translating scala props to java properties for OBP-JVM 
-    consumerProps.put("bootstrap.servers",
-       Props.get("kafka.host").openOr("localhost:9092"))
-    producerProps.put("bootstrap.servers", 
-      Props.get("kafka.host").openOr("localhost:9092"))
+  consumerProps.put("bootstrap.servers",
+    Props.get("kafka.host").openOr("localhost:9092"))
+  producerProps.put("bootstrap.servers",
+    Props.get("kafka.host").openOr("localhost:9092"))
 
-    val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
-    val north   = new SimpleNorth(
+  val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
+  val north   = new SimpleNorth(
                     Props.get("kafka.response_topic").openOr("Response"),
                     Props.get("kafka.request_topic").openOr("Request"),
                     consumerProps, producerProps)
-    jvmNorth = factory.connector(north)
-    north.receive() // start ObpJvm
-
-    this
-  }
+  jvmNorth = factory.connector(north)
+  north.receive() // start ObpJvm
+  logger.info(s"ObpJvmMappedConnector running")
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("obpjvm.cache.ttl.seconds", "0").toInt
+  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
   val cachedUser            = TTLCache[ObpJvmInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[ObpJvmInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[ObpJvmInboundAccount](cacheTTL)

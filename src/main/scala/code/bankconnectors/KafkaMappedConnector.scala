@@ -1329,7 +1329,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
               // disconnect from Kafka
               consumer.shutdown()
               // return as JSON
-              return j
+              return j \\ "data"
             }
           } else {
             logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
