@@ -400,8 +400,9 @@ import net.liftweb.util.Helpers._
 
         val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
-          case Full(user) if user.validated_? &&
-            user.provider == extProvider => {
+          case Full(user) if user.validated_?
+            // && user.provider == extProvider 
+            => {
             // Return existing user if found
             info("external user already exists locally, using that one")
             user
