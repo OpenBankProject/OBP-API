@@ -1,0 +1,671 @@
+<?xml-stylesheet type="text/xsl" href="../TM-XML_xsl/TM-XML_ISOCodePresentation.xsl"?>
+<ISOCurrencyCode>
+  <Currency>
+    <CurrencyCode>AED</CurrencyCode>
+    <CurrencyName xml:lang="en">Dirham</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AFN</CurrencyCode>
+    <CurrencyName xml:lang="en">Afghani</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ALL</CurrencyCode>
+    <CurrencyName xml:lang="en">Lek</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AMD</CurrencyCode>
+    <CurrencyName xml:lang="en">Dram</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ANG</CurrencyCode>
+    <CurrencyName xml:lang="en">Netherlands Antillian Guilder</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AOA</CurrencyCode>
+    <CurrencyName xml:lang="en">Kwanza</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ARS</CurrencyCode>
+    <CurrencyName xml:lang="en">Argentine Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AUD</CurrencyCode>
+    <CurrencyName xml:lang="en">Australian Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AWG</CurrencyCode>
+    <CurrencyName xml:lang="en">Aruban Guilder</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>AZM</CurrencyCode>
+    <CurrencyName xml:lang="en">Azerbaijanian Manat</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BAM</CurrencyCode>
+    <CurrencyName xml:lang="en">Convertible Mark</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BBD</CurrencyCode>
+    <CurrencyName xml:lang="en">Barbados Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BDT</CurrencyCode>
+    <CurrencyName xml:lang="en">Taka</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BGN</CurrencyCode>
+    <CurrencyName xml:lang="en">Bulgarian Lev</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BHD</CurrencyCode>
+    <CurrencyName xml:lang="en">Bahraini Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BIF</CurrencyCode>
+    <CurrencyName xml:lang="en">Burundi Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BMD</CurrencyCode>
+    <CurrencyName xml:lang="en">Bermudian Dollar (customarily: Bermuda Dollar)</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BND</CurrencyCode>
+    <CurrencyName xml:lang="en">Brunei Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BOB</CurrencyCode>
+    <CurrencyName xml:lang="en">Boliviano</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BRL</CurrencyCode>
+    <CurrencyName xml:lang="en">Brazilian Real</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BSD</CurrencyCode>
+    <CurrencyName xml:lang="en">Bahamian Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BTN</CurrencyCode>
+    <CurrencyName xml:lang="en">Ngultrum</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BWP</CurrencyCode>
+    <CurrencyName xml:lang="en">Pula</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BYR</CurrencyCode>
+    <CurrencyName xml:lang="en">Belarussian Ruble</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>BZD</CurrencyCode>
+    <CurrencyName xml:lang="en">Belize Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CAD</CurrencyCode>
+    <CurrencyName xml:lang="en">Canadian Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CDF</CurrencyCode>
+    <CurrencyName xml:lang="en">Franc Congolais</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CHF</CurrencyCode>
+    <CurrencyName xml:lang="en">Swiss Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CLP</CurrencyCode>
+    <CurrencyName xml:lang="en">Chilean Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CNY</CurrencyCode>
+    <CurrencyName xml:lang="en">Yuan Renminbi</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>COP</CurrencyCode>
+    <CurrencyName xml:lang="en">Colombian Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CRC</CurrencyCode>
+    <CurrencyName xml:lang="en">Costa Rican Colon</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CUP</CurrencyCode>
+    <CurrencyName xml:lang="en">Cuban Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CVE</CurrencyCode>
+    <CurrencyName xml:lang="en">Cape Verde Escudo</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CYP</CurrencyCode>
+    <CurrencyName xml:lang="en">Cyprus Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>CZK</CurrencyCode>
+    <CurrencyName xml:lang="en">Czech Koruna</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>DJF</CurrencyCode>
+    <CurrencyName xml:lang="en">Djibouti Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>DKK</CurrencyCode>
+    <CurrencyName xml:lang="en">Danish Krone</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>DOP</CurrencyCode>
+    <CurrencyName xml:lang="en">Dominican Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>DZD</CurrencyCode>
+    <CurrencyName xml:lang="en">Algerian Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>EEK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kroon</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>EGP</CurrencyCode>
+    <CurrencyName xml:lang="en">Egyptian Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ERN</CurrencyCode>
+    <CurrencyName xml:lang="en">Nakfa</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ETB</CurrencyCode>
+    <CurrencyName xml:lang="en">Ethopian Birr</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>EUR</CurrencyCode>
+    <CurrencyName xml:lang="en">Euro</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>FJD</CurrencyCode>
+    <CurrencyName xml:lang="en">Fiji Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>FKP</CurrencyCode>
+    <CurrencyName xml:lang="en">Falkland Islands Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GBP</CurrencyCode>
+    <CurrencyName xml:lang="en">Pound Sterling</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GEL</CurrencyCode>
+    <CurrencyName xml:lang="en">Lari</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GHC</CurrencyCode>
+    <CurrencyName xml:lang="en">Cedi</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GIP</CurrencyCode>
+    <CurrencyName xml:lang="en">Gibraltar Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GMD</CurrencyCode>
+    <CurrencyName xml:lang="en">Dalasi</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GNF</CurrencyCode>
+    <CurrencyName xml:lang="en">Guinea Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GTQ</CurrencyCode>
+    <CurrencyName xml:lang="en">Quetzal</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>GYD</CurrencyCode>
+    <CurrencyName xml:lang="en">Guyana Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>HKD</CurrencyCode>
+    <CurrencyName xml:lang="en">Honk Kong Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>HNL</CurrencyCode>
+    <CurrencyName xml:lang="en">Lempira</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>HRK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kuna</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>HTG</CurrencyCode>
+    <CurrencyName xml:lang="en">Gourde</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>HUF</CurrencyCode>
+    <CurrencyName xml:lang="en">Forint</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>IDR</CurrencyCode>
+    <CurrencyName xml:lang="en">Rupiah</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ILS</CurrencyCode>
+    <CurrencyName xml:lang="en">New Israeli Sheqel</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>INR</CurrencyCode>
+    <CurrencyName xml:lang="en">Indian Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>IQD</CurrencyCode>
+    <CurrencyName xml:lang="en">Iraqi Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>IRR</CurrencyCode>
+    <CurrencyName xml:lang="en">Iranian Rial</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ISK</CurrencyCode>
+    <CurrencyName xml:lang="en">Iceland Krona</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>JMD</CurrencyCode>
+    <CurrencyName xml:lang="en">Jamaican Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>JOD</CurrencyCode>
+    <CurrencyName xml:lang="en">Jordanian Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>JPY</CurrencyCode>
+    <CurrencyName xml:lang="en">Yen</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KES</CurrencyCode>
+    <CurrencyName xml:lang="en">Kenyan Shilling</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KGS</CurrencyCode>
+    <CurrencyName xml:lang="en">Som</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KHR</CurrencyCode>
+    <CurrencyName xml:lang="en">Riel</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KMF</CurrencyCode>
+    <CurrencyName xml:lang="en">Comoro Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KPW</CurrencyCode>
+    <CurrencyName xml:lang="en">North Korean Won</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KRW</CurrencyCode>
+    <CurrencyName xml:lang="en">Won</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KWD</CurrencyCode>
+    <CurrencyName xml:lang="en">Kuwaiti Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KYD</CurrencyCode>
+    <CurrencyName xml:lang="en">Cayman Islands Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>KZT</CurrencyCode>
+    <CurrencyName xml:lang="en">Tenge</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LAK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kip</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LBP</CurrencyCode>
+    <CurrencyName xml:lang="en">Lebanese Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LKR</CurrencyCode>
+    <CurrencyName xml:lang="en">Sri Lanka Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LRD</CurrencyCode>
+    <CurrencyName xml:lang="en">Liberian Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LSL</CurrencyCode>
+    <CurrencyName xml:lang="en">Loti</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LTL</CurrencyCode>
+    <CurrencyName xml:lang="en">Lithuanian Litas</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LVL</CurrencyCode>
+    <CurrencyName xml:lang="en">Latvian Lats</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>LYD</CurrencyCode>
+    <CurrencyName xml:lang="en">Libyan Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MAD</CurrencyCode>
+    <CurrencyName xml:lang="en">Morrocan Dirham</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MDL</CurrencyCode>
+    <CurrencyName xml:lang="en">Moldovan Leu</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MGF</CurrencyCode>
+    <CurrencyName xml:lang="en">Malagasy Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MKD</CurrencyCode>
+    <CurrencyName xml:lang="en">Denar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MMK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kyat</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MNT</CurrencyCode>
+    <CurrencyName xml:lang="en">Tugrik</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MOP</CurrencyCode>
+    <CurrencyName xml:lang="en">Pataca</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MRO</CurrencyCode>
+    <CurrencyName xml:lang="en">Ouguiya</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MTL</CurrencyCode>
+    <CurrencyName xml:lang="en">Maltese Lira</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MUR</CurrencyCode>
+    <CurrencyName xml:lang="en">Mauritius Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MVR</CurrencyCode>
+    <CurrencyName xml:lang="en">Rufiyaa</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MWK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kwacha</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MXN</CurrencyCode>
+    <CurrencyName xml:lang="en">Mexican Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MYR</CurrencyCode>
+    <CurrencyName xml:lang="en">Malaysian Ringgit</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>MZM</CurrencyCode>
+    <CurrencyName xml:lang="en">Metical</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NAD</CurrencyCode>
+    <CurrencyName xml:lang="en">Namibia Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NGN</CurrencyCode>
+    <CurrencyName xml:lang="en">Naira</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NIO</CurrencyCode>
+    <CurrencyName xml:lang="en">Cordoba Oro</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NOK</CurrencyCode>
+    <CurrencyName xml:lang="en">Norwegian Krone</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NPR</CurrencyCode>
+    <CurrencyName xml:lang="en">Nepalese Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>NZD</CurrencyCode>
+    <CurrencyName xml:lang="en">New Zealand Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>OMR</CurrencyCode>
+    <CurrencyName xml:lang="en">Rial Omani</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PAB</CurrencyCode>
+    <CurrencyName xml:lang="en">Balboa</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PEN</CurrencyCode>
+    <CurrencyName xml:lang="en">Nuevo Sol</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PGK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kina</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PHP</CurrencyCode>
+    <CurrencyName xml:lang="en">Philippine Peso</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PKR</CurrencyCode>
+    <CurrencyName xml:lang="en">Pakistan Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PLN</CurrencyCode>
+    <CurrencyName xml:lang="en">Zloty</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>PYG</CurrencyCode>
+    <CurrencyName xml:lang="en">Guarani</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>QAR</CurrencyCode>
+    <CurrencyName xml:lang="en">Qatari Rial</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ROL</CurrencyCode>
+    <CurrencyName xml:lang="en">Leu</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>RUB</CurrencyCode>
+    <CurrencyName xml:lang="en">Russian Ruble</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>RWF</CurrencyCode>
+    <CurrencyName xml:lang="en">Rwanda Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SAR</CurrencyCode>
+    <CurrencyName xml:lang="en">Saudi Riyal</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SBD</CurrencyCode>
+    <CurrencyName xml:lang="en">Solomon Islands Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SCR</CurrencyCode>
+    <CurrencyName xml:lang="en">Seychelles Rupee</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SDD</CurrencyCode>
+    <CurrencyName xml:lang="en">Sudanese Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SEK</CurrencyCode>
+    <CurrencyName xml:lang="en">Swedish Krona</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SGD</CurrencyCode>
+    <CurrencyName xml:lang="en">Singapore Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SHP</CurrencyCode>
+    <CurrencyName xml:lang="en">St. Helena Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SIT</CurrencyCode>
+    <CurrencyName xml:lang="en">Tolar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SKK</CurrencyCode>
+    <CurrencyName xml:lang="en">Slovak Koruna</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SLL</CurrencyCode>
+    <CurrencyName xml:lang="en">Leone</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SOS</CurrencyCode>
+    <CurrencyName xml:lang="en">Somali Shilling</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SRG</CurrencyCode>
+    <CurrencyName xml:lang="en">Suriname Guilder</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>STD</CurrencyCode>
+    <CurrencyName xml:lang="en">Dobra</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SVC</CurrencyCode>
+    <CurrencyName xml:lang="en">El Salvador Colon</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SYP</CurrencyCode>
+    <CurrencyName xml:lang="en">Syrian Pound</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>SZL</CurrencyCode>
+    <CurrencyName xml:lang="en">Lilangeni</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>THB</CurrencyCode>
+    <CurrencyName xml:lang="en">Baht</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TJS</CurrencyCode>
+    <CurrencyName xml:lang="en">Somoni</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TMM</CurrencyCode>
+    <CurrencyName xml:lang="en">Manat</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TND</CurrencyCode>
+    <CurrencyName xml:lang="en">Tunisian Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TOP</CurrencyCode>
+    <CurrencyName xml:lang="en">Pa&apos;anga</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TRL</CurrencyCode>
+    <CurrencyName xml:lang="en">Turkish Lira</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TTD</CurrencyCode>
+    <CurrencyName xml:lang="en">Trinidad and Tobago Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TWD</CurrencyCode>
+    <CurrencyName xml:lang="en">New Taiwan Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>TZS</CurrencyCode>
+    <CurrencyName xml:lang="en">Tanzanian Shilling</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>UAH</CurrencyCode>
+    <CurrencyName xml:lang="en">Hryvnia</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>UGX</CurrencyCode>
+    <CurrencyName xml:lang="en">Uganda Shilling</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>USD</CurrencyCode>
+    <CurrencyName xml:lang="en">US Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>UYU</CurrencyCode>
+    <CurrencyName xml:lang="en">Peso Uruguayo</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>UZS</CurrencyCode>
+    <CurrencyName xml:lang="en">Uzbekistan Sum</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>VEB</CurrencyCode>
+    <CurrencyName xml:lang="en">Bolivar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>VND</CurrencyCode>
+    <CurrencyName xml:lang="en">Dong</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>VUV</CurrencyCode>
+    <CurrencyName xml:lang="en">Vatu</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>WST</CurrencyCode>
+    <CurrencyName xml:lang="en">Tala</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XAF</CurrencyCode>
+    <CurrencyName xml:lang="en">CFA Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XAG</CurrencyCode>
+    <CurrencyName xml:lang="en">Silver</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XAU</CurrencyCode>
+    <CurrencyName xml:lang="en">Gold</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XCD</CurrencyCode>
+    <CurrencyName xml:lang="en">East Carribean Dollar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XDR</CurrencyCode>
+    <CurrencyName xml:lang="en">SDR</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XOF</CurrencyCode>
+    <CurrencyName xml:lang="en">CFA Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XPD</CurrencyCode>
+    <CurrencyName xml:lang="en">Palladium</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XPF</CurrencyCode>
+    <CurrencyName xml:lang="en">CFP Franc</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>XPT</CurrencyCode>
+    <CurrencyName xml:lang="en">Platinum</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>YER</CurrencyCode>
+    <CurrencyName xml:lang="en">Yemeni Rial</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>YUM</CurrencyCode>
+    <CurrencyName xml:lang="en">New Dinar</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ZAR</CurrencyCode>
+    <CurrencyName xml:lang="en">Rand</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ZMK</CurrencyCode>
+    <CurrencyName xml:lang="en">Kwacha</CurrencyName>
+  </Currency>
+  <Currency>
+    <CurrencyCode>ZWD</CurrencyCode>
+    <CurrencyName xml:lang="en">Zimbabwe Dollar</CurrencyName>
+  </Currency>
+</ISOCurrencyCode>
