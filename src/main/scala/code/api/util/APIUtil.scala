@@ -83,8 +83,10 @@ object ErrorMessages {
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
   val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
 
-  val invalidValueLength = "OBP-20010: Value too long"
-  val invalidValueCharacters = "OBP-20011: Value contains invalid characters"
+  val InvalidValueLength = "OBP-20010: Value too long"
+  val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"
+
+  val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -266,7 +268,7 @@ object APIUtil extends Loggable {
   def oauthHeaderRequiredJsonResponse : JsonResponse =
     JsonResponse(Extraction.decompose(ErrorMessage("Authentication via OAuth is required")), headers, Nil, 400)
 
-
+  /** check the currency ISO code from the ISOCurrencyCodes.xml file */
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
     //just for initialization the Elem variable
     var xml: Elem = <html/>
@@ -282,38 +284,41 @@ object APIUtil extends Loggable {
   def isValidID(id :String):Boolean= {
     val regex = """^([A-Za-z0-9\-_.]+)$""".r
     id match {
-      case regex(e) if(e.length<255) => true
+      case regex(e) if(e.length<256) => true
       case _ => false
     }
   }
 
-//  /** only  A-Z ,a-z and max length <= 512  */
-  def assertAlpha(maxLength :Int, value:String): String ={
+  /** only  A-Z ,a-z and max length <= 512  */
+  def assertMediumAlpha(value:String): String ={
+    val valueLength = value.length
     val regex = """^([A-Za-z]+)$""".r
     value match {
-      case regex(e) if(maxLength <= 512) => "Success"
-      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
-      case _ => ErrorMessages.invalidValueCharacters
+      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
     }
   }
 
   /** only  A-Z ,a-z ,0-9 and max length <= 512  */
-  def assertAlphaNumeric(maxLength :Int, value:String): String ={
+  def assertMediumAlphaNumeric(value:String): String ={
+    val valueLength = value.length
     val regex = """^([A-Za-z0-9]+)$""".r
     value match {
-      case regex(e) if(maxLength <= 512) => "Success"
-      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
-      case _ => ErrorMessages.invalidValueCharacters
+      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
     }
   }
 
   /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
-  def assertString(maxLength :Int, value:String): String ={
+  def assertMediumString(value:String): String ={
+    val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._@]+)$""".r
     value match {
-      case regex(e) if(maxLength <= 512) => "Success"
-      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
-      case _ => ErrorMessages.invalidValueCharacters
+      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
     }
   }
 
