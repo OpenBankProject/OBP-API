@@ -32,6 +32,7 @@
 
 package code.api.util
 
+import java.io.InputStream
 import code.api.Constant._
 import code.api.DirectLogin
 import code.api.OAuthHandshake._
@@ -44,13 +45,13 @@ import dispatch.url
 import net.liftweb.common.{Empty, _}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsExp
-import net.liftweb.http.{CurrentReq, JsonResponse, Req, S}
+import net.liftweb.http._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{Extraction, parse}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Helpers, Props, SecurityHelpers}
-import scala.xml.XML
+import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 
@@ -81,6 +82,9 @@ object ErrorMessages {
   val InvalidConsumerKey = "OBP-20008: Invalid Consumer Key."
   val InvalidConsumerCredentials = "OBP-20009: Invalid consumer credentials"
   val InsufficientAuthorisationToCreateBranch  = "OBP-20010: Insufficient authorisation to Create Branch offered by the bank. The Request could not be created because you don't have access to CanCreateBranch."
+
+  val invalidValueLength = "OBP-20010: Value too long"
+  val invalidValueCharacters = "OBP-20011: Value contains invalid characters"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -264,7 +268,12 @@ object APIUtil extends Loggable {
 
 
   def isValidCurrencyISOCode(currencyCode: String): Boolean = {
-    val xml = XML.loadFile("./ISOCurrencyCodes.xml")
+    //just for initialization the Elem variable
+    var xml: Elem = <html/>
+    LiftRules.getResource("/media/xml/ISOCurrencyCodes.xml").map{ url =>
+      val input: InputStream = url.openStream()
+      xml = XML.load(input)
+    }
     val stringArray = (xml \ "Currency" \ "CurrencyCode").map(_.text).mkString(" ").split("\\s+")
     stringArray.contains(currencyCode)
   }
@@ -275,6 +284,36 @@ object APIUtil extends Loggable {
     id match {
       case regex(e) if(e.length<255) => true
       case _ => false
+    }
+  }
+
+//  /** only  A-Z ,a-z and max length <= 512  */
+  def assertAlpha(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
+    }
+  }
+
+  /** only  A-Z ,a-z ,0-9 and max length <= 512  */
+  def assertAlphaNumeric(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z0-9]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
+    }
+  }
+
+  /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
+  def assertString(maxLength :Int, value:String): String ={
+    val regex = """^([A-Za-z0-9\-._@]+)$""".r
+    value match {
+      case regex(e) if(maxLength <= 512) => "Success"
+      case regex(e) if(maxLength > 512) => ErrorMessages.invalidValueLength
+      case _ => ErrorMessages.invalidValueCharacters
     }
   }
 
