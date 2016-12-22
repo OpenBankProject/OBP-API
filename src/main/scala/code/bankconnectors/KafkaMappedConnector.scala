@@ -41,13 +41,12 @@ import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
-import code.sandbox.{CreateViewImpls, Saveable}
-import code.sandbox.{CreateViewImpls, SandboxBranchImport, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
+import code.sandbox.{CreateViewImpls, Saveable}
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
@@ -66,7 +65,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   type AccountType = KafkaBankAccount
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("kafka.cache.ttl.seconds", "3").toInt
+  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
   val cachedUser            = TTLCache[KafkaInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[KafkaInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[KafkaInboundAccount](cacheTTL)
@@ -74,22 +73,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
-
-  implicit val formats = net.liftweb.json.DefaultFormats
-
-
-  def getUser( username: String, password: String ): Box[InboundUser] = {
-    for {
-      argList <- tryo {Map[String, String]( "username" -> username, "password" -> password )}
-      // Generate random uuid to be used as request-response match id
-      reqId <- tryo {UUID.randomUUID().toString}
-      u <- tryo{cachedUser.getOrElseUpdate( argList.toString, () => process(reqId, "getUser", argList).extract[KafkaInboundValidatedUser])}
-      recUsername <- tryo{u.display_name}
-    } yield {
-      if (username == u.display_name) new InboundUser( recUsername, password, recUsername)
-      else null
-    }
-  }
 
 
   def accountOwnerExists(user: APIUser, account: KafkaInboundAccount): Boolean = {
@@ -103,6 +86,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     res.nonEmpty
   }
 
+  def viewExists(account: KafkaInboundAccount, name: String): Boolean = {
+    val res =
+      ViewImpl.findAll(
+        By(ViewImpl.bankPermalink, account.bank),
+        By(ViewImpl.accountPermalink, account.id),
+        By(ViewImpl.name_, name)
+      )
+    res.nonEmpty
+  }
+
+
   def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
     if (account.owners.contains(owner)) {
       val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
@@ -114,20 +108,75 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
        }
         case None => {
           //This shouldn't happen as OBPUser should generate the APIUsers when saved
-          logger.error(s"api user(s) $owner not found.")
        }
       }
+    }
+  }
+
+
+  def createSaveableViews(acc : KafkaInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
+    val bankId = BankId(acc.bank)
+    val accountId = AccountId(acc.id)
+
+    val ownerView =
+      if(owner && ! viewExists(acc, "Owner")) {
+        Some(createSaveableOwnerView(bankId, accountId))
+      }
+      else None
+
+    val publicView =
+      if(acc.generate_public_view && ! viewExists(acc, "Public")) {
+        Some(createSaveablePublicView(bankId, accountId))
+      }
+      else None
+
+    val accountantsView =
+      if(acc.generate_accountants_view && ! viewExists(acc, "Accountant")) {
+        Some(createSaveableAccountantsView(bankId, accountId))
+      }
+      else None
+
+    val auditorsView =
+      if(acc.generate_auditors_view && ! viewExists(acc, "Auditor") ) {
+        Some(createSaveableAuditorsView(bankId, accountId))
+      }
+      else None
+
+    List(ownerView, publicView, accountantsView, auditorsView).flatten
+  }
+
+
+
+  implicit val formats = net.liftweb.json.DefaultFormats
+
+  def getUser( username: String, password: String ): Box[InboundUser] = {
+    for {
+      req <- tryo {Map[String, String](
+        "north" -> "getUser",
+        "name" -> username,
+        "password" -> password
+        )}
+      // Generate random uuid to be used as request-response match id
+      reqId <- tryo {UUID.randomUUID().toString}
+      u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(reqId, req).extract[KafkaInboundValidatedUser])}
+      recUsername <- tryo{u.display_name}
+    } yield {
+      if (username == u.display_name) new InboundUser( recUsername, password, recUsername)
+      else null
     }
   }
 
   def updateUserAccountViews( user: APIUser ) = {
     val accounts = for {
       username <- tryo {user.name}
-      argList <- tryo {Map[String, String]("username" -> username)}
+      req <- tryo {Map[String, String]( 
+       "north" -> "getUserAccounts",
+       "name" -> username
+        )}
       // Generate random uuid to be used as request-response match id
       reqId <- tryo {UUID.randomUUID().toString}
     } yield {
-      cachedUserAccounts.getOrElseUpdate(argList.toString, () => process(reqId, "getUserAccounts", argList).extract[List[KafkaInboundAccount]])
+      cachedUserAccounts.getOrElseUpdate(req.toString, () => process(reqId, req).extract[List[KafkaInboundAccount]])
     }
 
     val views = for {
@@ -149,51 +198,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
   }
 
-  def viewExists(account: KafkaInboundAccount, name: String): Boolean = {
-    val res =
-      ViewImpl.findAll(
-        By(ViewImpl.bankPermalink, account.bank),
-        By(ViewImpl.accountPermalink, account.id),
-        By(ViewImpl.name_, name)
-      )
-    res.nonEmpty
-  }
-
-  def createSaveableViews(acc : KafkaInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
-    logger.info(s"Kafka createSaveableViews acc is  $acc")
-    val bankId = BankId(acc.bank)
-    val accountId = AccountId(acc.id)
-
-    val ownerView =
-      if(owner && ! viewExists(acc, "Owner")) {
-        logger.info("Creating owner view")
-        Some(createSaveableOwnerView(bankId, accountId))
-      }
-      else None
-
-    val publicView =
-      if(acc.generate_public_view && ! viewExists(acc, "Public")) {
-        logger.info("Creating public view")
-        Some(createSaveablePublicView(bankId, accountId))
-      }
-      else None
-
-    val accountantsView =
-      if(acc.generate_accountants_view && ! viewExists(acc, "Accountant")) {
-        logger.info("Creating accountants view")
-        Some(createSaveableAccountantsView(bankId, accountId))
-      }
-      else None
-
-    val auditorsView =
-      if(acc.generate_auditors_view && ! viewExists(acc, "Auditor") ) {
-        logger.info("Creating auditors view")
-        Some(createSaveableAuditorsView(bankId, accountId))
-      }
-      else None
-
-    List(ownerView, publicView, accountantsView, auditorsView).flatten
-  }
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
@@ -203,16 +207,19 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     logger.info(s"Kafka getBanks says reqId is: $reqId")
 
     // Create empty argument list
-    val argList = Map( "username" -> OBPUser.getCurrentUserUsername )
+    val req = Map( 
+      "north" -> "getBanks",
+      "name" -> OBPUser.getCurrentUserUsername
+      )
 
-    logger.debug(s"Kafka getBanks says: argList is: $argList")
+    logger.debug(s"Kafka getBanks says: req is: $req")
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
 
     logger.debug(s"Kafka getBanks before cachedBanks.getOrElseUpdate")
     val rList = {
-      cachedBanks.getOrElseUpdate( argList.toString, () => process(reqId, "getBanks", argList).extract[List[KafkaInboundBank]])
+      cachedBanks.getOrElseUpdate( req.toString, () => process(reqId, req).extract[List[KafkaInboundBank]])
     }
 
     logger.debug(s"Kafka getBanks says rList is $rList")
@@ -233,14 +240,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Generate random uuid to be used as request-response match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list
-    val argList = Map(  "userId" -> userId,
-                        "accountId" -> accountId,
-                        "transactionRequestType" -> transactionRequestType,
-                        "currency" -> currency)
+    val req = Map( 
+      "north" -> "getChallengeThreshold",
+      "name" -> OBPUser.getCurrentUserUsername,
+      "userId" -> userId,
+      "accountId" -> accountId,
+      "transactionRequestType" -> transactionRequestType,
+      "currency" -> currency
+      )
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r: Option[KafkaInboundChallengeLevel] = process(reqId, "getChallengeThreshold", argList).extractOpt[KafkaInboundChallengeLevel]
+    val r: Option[KafkaInboundChallengeLevel] = process(reqId, req).extractOpt[KafkaInboundChallengeLevel]
     // Return result
     r match {
       // Check does the response data match the requested data
@@ -259,13 +270,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     // Generate random uuid to be used as request-respose match id
     val reqId: String = UUID.randomUUID().toString
     // Create argument list
-    val argList = Map(  "bankId" -> id.toString,
-                        "username" -> OBPUser.getCurrentUserUsername )
+    val req = Map(
+      "north" -> "getBank",
+      "bankId" -> id.toString,
+      "name" -> OBPUser.getCurrentUserUsername
+      )
     // Send request to Kafka, marked with reqId
     // so we can fetch the corresponding response
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedBank.getOrElseUpdate( argList.toString, () => process(reqId, "getBank", argList).extract[KafkaInboundBank])
+      cachedBank.getOrElseUpdate( req.toString, () => process(reqId, req).extract[KafkaInboundBank])
     }
     // Return result
     Full(new KafkaBank(r))
@@ -277,13 +291,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map( "bankId" -> bankId.toString,
-                       "username" -> OBPUser.getCurrentUserUsername,
-                       "accountId" -> accountID.toString,
-                       "transactionId" -> transactionId.toString )
+    val req = Map(
+      "north" -> "getTransaction",
+      "name" -> OBPUser.getCurrentUserUsername,
+      "bankId" -> bankId.toString,
+      "accountId" -> accountID.toString,
+      "transactionId" -> transactionId.toString
+      )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
-    val r = process(reqId, "getTransaction", argList).extractOpt[KafkaInboundTransaction]
+    val r = process(reqId, req).extractOpt[KafkaInboundTransaction]
     r match {
       // Check does the response data match the requested data
       case Some(x) if transactionId.value != x.id => Failure(ErrorMessages.InvalidGetTransactionConnectorResponse, Empty, Empty)
@@ -310,12 +327,15 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
 
     val reqId: String = UUID.randomUUID().toString
-    val argList = Map( "bankId" -> bankId.toString,
-                       "username" -> OBPUser.getCurrentUserUsername,
-                       "accountId" -> accountID.toString,
-                       "queryParams" -> queryParams.toString )
+    val req = Map(
+      "north" -> "getTransactions",
+      "name" -> OBPUser.getCurrentUserUsername,
+      "bankId" -> bankId.toString,
+      "accountId" -> accountID.toString,
+      "queryParams" -> queryParams.toString
+      )
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList = process(reqId, "getTransactions", argList).extract[List[KafkaInboundTransaction]]
+    val rList = process(reqId, req).extract[List[KafkaInboundTransaction]]
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
     if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
@@ -335,13 +355,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map("bankId" -> bankId.toString,
-                      "username"  -> OBPUser.getCurrentUserUsername,
-                      "accountId" -> accountID.value)
+    val req = Map(
+      "north" -> "getBankAccount",
+      "name"  -> OBPUser.getCurrentUserUsername,
+      "bankId" -> bankId.toString,
+      "accountId" -> accountID.value
+      )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
+      cachedAccount.getOrElseUpdate( req.toString, () => process(reqId, req).extract[KafkaInboundAccount])
     }
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bank), AccountId(r.id))).toSet
@@ -358,13 +381,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map("bankIds" -> accts.map(a => a._1).mkString(","),
-      "username"  -> OBPUser.getCurrentUserUsername,
-      "accountIds" -> accts.map(a => a._2).mkString(","))
+    val req = Map(
+      "north" -> "getBankAccounts",
+      "name"  -> OBPUser.getCurrentUserUsername,
+      "bankIds" -> accts.map(a => a._1).mkString(","),
+      "accountIds" -> accts.map(a => a._2).mkString(",")
+      )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccounts.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccounts", argList).extract[List[KafkaInboundAccount]])
+      cachedAccounts.getOrElseUpdate( req.toString, () => process(reqId, req).extract[List[KafkaInboundAccount]])
     }
     // Check does the response data match the requested data
     val accRes = for(row <- r) yield {
@@ -382,13 +408,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argList = Map("bankId" -> bankId.toString,
-                      "username" -> OBPUser.getCurrentUserUsername,
-                      "number" -> number)
+    val req = Map(
+      "north" -> "getBankAccount",
+      "name" -> OBPUser.getCurrentUserUsername,
+      "bankId" -> bankId.toString,
+      "number" -> number
+    )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
     val r = {
-      cachedAccount.getOrElseUpdate( argList.toString, () => process(reqId, "getBankAccount", argList).extract[KafkaInboundAccount])
+      cachedAccount.getOrElseUpdate( req.toString, () => process(reqId, req).extract[KafkaInboundAccount])
     }
     createMappedAccountDataIfNotExisting(r.bank, r.id, r.label)
     Full(new KafkaBankAccount(r))
@@ -542,18 +571,21 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         val reqId: String = UUID.randomUUID().toString
     // Create argument list with reqId
     // in order to fetch corresponding response
-    val argObj = KafkaOutboundTransaction(username = OBPUser.getCurrentUserUsername,
-                                          accountId = account.accountId.value,
-                                          currency = currency,
-                                          amount = amt.toString,
-                                          otherAccountId = counterparty.accountId.value,
-                                          otherAccountCurrency = counterparty.currency,
-                                          transactionType = "AC")
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val req = Extraction.decompose(
+      KafkaOutboundTransaction(
+        north = "saveTransaction",
+        name = OBPUser.getCurrentUserUsername,
+        accountId = account.accountId.value,
+        currency = currency,
+        amount = amt.toString,
+        otherAccountId = counterparty.accountId.value,
+        otherAccountCurrency = counterparty.currency,
+        transactionType = "AC"
+        )).values.asInstanceOf[Map[String,String]]
 
     // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val argMap = Extraction.decompose(argObj).values
-    val r = process(reqId, "saveTransaction", argMap.asInstanceOf[Map[String,String]]) //.extract[KafkaInboundTransactionId]
+    val r = process(reqId, req)
 
     r.extract[KafkaInboundTransactionId] match {
       case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
@@ -966,16 +998,6 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
 
-  def process(reqId: String, command: String, argList: Map[String,String]): json.JValue = { //List[Map[String,String]] = {
-    if (producer.send(reqId, command, argList, "1")) {
-      // Request sent, now we wait for response with the same reqId
-      val res = consumer.getResponse(reqId)
-      return res
-    }
-    return json.parse("""{"error":"could not send message to kafka"}""")
-  }
-
-
   // Helper for creating a transaction
   def createNewTransaction(r: KafkaInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
@@ -1014,13 +1036,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   case class KafkaBank(r: KafkaInboundBank) extends Bank {
-    def fullName           = r.full_name
-    def shortName          = r.short_name
+    def fullName           = r.name
+    def shortName          = r.name
     def logoUrl            = r.logo
-    def bankId             = BankId(r.id)
+    def bankId             = BankId(r.bankId)
     def nationalIdentifier = "None"  //TODO
     def swiftBic           = "None"  //TODO
-    def websiteUrl         = r.website
+    def websiteUrl         = r.url
   }
 
   // Helper for creating other bank account
@@ -1081,11 +1103,10 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
 
   case class KafkaInboundBank(
-                              id : String,
-                              short_name : String,
-                              full_name : String,
+                              bankId : String,
+                              name : String,
                               logo : String,
-                              website : String)
+                              url : String)
 
 
   /** Bank Branches
@@ -1251,7 +1272,9 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   case class KafkaInboundTransactionId(
                                         transactionId : String
                                       )
-  case class KafkaOutboundTransaction(username: String,
+  case class KafkaOutboundTransaction(
+                                      north: String,
+                                      name: String,
                                       accountId: String,
                                       currency: String,
                                       amount: String,
@@ -1264,6 +1287,16 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
                                        currency: String
                                         )
 
+
+
+  def process(reqId: String, request: Map[String,String]): json.JValue = {
+    if (producer.send(reqId, request, "1")) {
+      // Request sent, now we wait for response with the same reqId
+      val res = consumer.getResponse(reqId)
+      return res
+    }
+    return json.parse("""{"error":"could not send message to kafka"}""")
+  }
 
 }
 
@@ -1329,7 +1362,7 @@ class KafkaConsumer(val zookeeper: String = Props.get("kafka.zookeeper_host").op
               // disconnect from Kafka
               consumer.shutdown()
               // return as JSON
-              return j
+              return j \\ "data"
             }
           } else {
             logger.warn("KafkaConsumer: Got null value/key from kafka. Might be south-side connector issue.")
@@ -1392,10 +1425,8 @@ class KafkaProducer(
 
   implicit val formats = DefaultFormats
 
-  def send(key: String, request: String, arguments: Map[String, String], partition: String = null): Boolean = {
-    // create message using request and arguments strings
-    val reqCommand   = Map(request -> arguments)
-    val message      = Json.encode(reqCommand)
+  def send(key: String, request: Map[String, String], partition: String = null): Boolean = {
+    val message      = Json.encode(request)
     // translate strings to utf8 before sending to kafka
     send(key.getBytes("UTF8"), message.getBytes("UTF8"), if (partition == null) null else partition.getBytes("UTF8"))
   }

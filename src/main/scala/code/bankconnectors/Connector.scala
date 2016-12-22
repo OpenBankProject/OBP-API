@@ -21,6 +21,7 @@ import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
 
+
 import scala.math.BigInt
 import scala.util.Random
 
