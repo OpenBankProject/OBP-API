@@ -66,7 +66,10 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
   val accessControlOriginHeader = ("Access-Control-Allow-Origin", "*")
 
-  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"does-not-exist\", " +
+  val invalidUsernamePasswordHeader = ("Authorization", ("DirectLogin username=\"notExistingUser\", " +
+    "password=\"notExistingPassword\", consumer_key=%s").format(KEY))
+
+  val invalidUsernamePasswordCharaterHeader = ("Authorization", ("DirectLogin username=\" a#s \", " +
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
 
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
@@ -77,6 +80,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
 
   val disabledConsumerValidHeader = ("Authorization", "DirectLogin username=%s, password=%s, consumer_key=%s".
     format(USERNAME_DISABLED, PASSWORD_DISABLED, KEY_DISABLED))
+
+  val invalidUsernamePasswordCharaterHeaders = List(accessControlOriginHeader, invalidUsernamePasswordCharaterHeader)
 
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
 
@@ -122,6 +127,23 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       Then("We should get a 401 - Unauthorized")
       response.code should equal(401)
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
+    }
+
+    scenario("Invalid credentials Charaters") {
+
+      //setupUserAndConsumer
+
+      Given("the app we are testing is registered and active")
+      Then("We should be able to find it")
+      //assert(registeredApplication(KEY) == true)
+
+      When("we try to login with an invalid username charaters and invalid password Charaters")
+      val request = directLoginRequest
+      val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
+
+      Then("We should get a 400 - Invalid credentials")
+      response.code should equal(400)
+      assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
     scenario("Consumer API key is disabled") {

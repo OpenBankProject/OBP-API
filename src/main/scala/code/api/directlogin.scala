@@ -188,17 +188,16 @@ object DirectLogin extends RestHelper with Loggable {
     def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
       for( key <- parameters.keys )yield {
         val parameterValue = parameters.get(key).get
-        val parameterLength = parameterValue.length
         key match {
           case "username" =>
-            assertString(parameterLength,parameterValue)
+            assertMediumString(parameterValue)
           case "password" =>
-            assertAlphaNumeric(parameterLength,parameterValue)
+            assertMediumAlphaNumeric(parameterValue)
           case "consumer_key" =>
-            assertAlphaNumeric(parameterLength,parameterValue)
+            assertMediumAlphaNumeric(parameterValue)
           case "token" =>
-            assertString(parameterLength,parameterValue)
-          case _ =>""
+            assertMediumString(parameterValue)
+          case _ =>ErrorMessages.InvalidDirectLoginParameters
         }
       }
     }
@@ -225,12 +224,12 @@ object DirectLogin extends RestHelper with Loggable {
     //guard maximum length and content of strings (a-z,0-9 etc.) for parameters
     val validParams = validDirectLoginParameters(parameters)
 
-    if("Success" != validParams.mkString("")){
-      message = validParams.mkString("")
+    if (missingParams.nonEmpty) {
+      message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
       httpCode = 400
     }
-    else if (missingParams.nonEmpty) {
-      message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
+    else if("Success" != validParams.mkString("")){
+      message = validParams.mkString("")
       httpCode = 400
     }
     else if (
