@@ -3,9 +3,10 @@ package code.views
 import code.api.APIFailure
 import code.bankconnectors.Connector
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.model.{Permission, CreateViewJSON, UpdateViewJSON, _}
+import code.model.{User, Permission, CreateViewJSON, UpdateViewJSON, _}
 import net.liftweb.common._
 import net.liftweb.mapper.By
+import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
 
@@ -31,6 +32,17 @@ private object MapperViews extends Views with Loggable {
 
     permissions
   }
+
+  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
+    val res =
+      ViewImpl.findAll(
+        By(ViewImpl.bankPermalink, bankId.value),
+        By(ViewImpl.accountPermalink, accountId.value),
+        By(ViewImpl.name_, name)
+      )
+    res.nonEmpty
+  }
+
 
   def permission(account: BankAccount, user: User): Box[Permission] = {
 
@@ -390,5 +402,115 @@ private object MapperViews extends Views with Loggable {
     }
     Connector.connector.vend.getBankAccounts(accountsList)
   }
+
+  def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : View = {
+    ViewImpl.createAndSaveOwnerView(bankId, accountId, description)
+  }
+
+  def createPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : View = {
+    ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, description)
+  }
+
+  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : View = {
+    ViewImpl.createAndSaveDefaultAccountantsView(bankId, accountId, description)
+  }
+
+  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : View = {
+    ViewImpl.createAndSaveDefaultAuditorsView(bankId, accountId, description)
+  }
+
+  def createRandomView(bankId: BankId, accountId: AccountId) : View = {
+    ViewImpl.create.
+      name_(randomString(5)).
+      description_(randomString(3)).
+      permalink_(randomString(3)).
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(false).
+      hideOtherAccountMetadataIfAlias_(false).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(true).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true).
+      saveMe
+  }
+
+  //TODO This is used only for tests, but might impose security problem
+  def grantAccessToAllExistingViews(user : User) = {
+    ViewImpl.findAll.foreach(v => {
+      ViewPrivileges.create.
+        view(v).
+        user(user.apiId.value).
+        save
+    })
+    true
+  }
+
+  def grantAccessToView(user : User, view : View) = {
+    val viewImpl = ViewImpl.find(view.uid)
+    ViewPrivileges.create.
+      view(viewImpl.get). //explodes if no viewImpl exists, but that's okay, the test should fail then
+      user(user.apiId.value).
+      save
+  }
+
 
 }

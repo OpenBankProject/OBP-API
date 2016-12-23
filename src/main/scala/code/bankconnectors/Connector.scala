@@ -11,7 +11,7 @@ import code.fx.fx
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Transaction, User, _}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.{APIUser, MappedAccountHolder}
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -20,7 +20,8 @@ import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
-
+import code.views.Views
+import net.liftweb.mapper.By
 
 import scala.math.BigInt
 import scala.util.Random
@@ -697,5 +698,67 @@ trait Connector {
   def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch]
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
+
+  def accountOwnerExists(user: APIUser, bankId: BankId, accountId: AccountId): Boolean = {
+    val res =
+      MappedAccountHolder.findAll(
+        By(MappedAccountHolder.user, user),
+        By(MappedAccountHolder.accountBankPermalink, bankId.value),
+        By(MappedAccountHolder.accountPermalink, accountId.value)
+      )
+
+    res.nonEmpty
+  }
+
+  //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
+  def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
+    if (account_owners.contains(owner)) {
+      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
+      apiUserOwner match {
+        case Some(o) => {
+          if ( ! accountOwnerExists(o, bankId, accountId)) {
+            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, bankId.value, accountId.value, "KafkaMappedConnector")
+          }
+       }
+        case None => {
+          //This shouldn't happen as OBPUser should generate the APIUsers when saved
+          //logger.error(s"api user(s) $owner not found.")
+       }
+      }
+    }
+  }
+
+  def createViews(bankId: BankId, accountId: AccountId, owner_view: Boolean = false,
+                  public_view: Boolean = false,
+                  accountants_view: Boolean = false,
+                  auditors_view: Boolean = false ) : List[View] = {
+
+    val ownerView =
+      if(owner_view && ! Views.views.vend.viewExists(bankId, accountId, "Owner")) {
+        Some(Views.views.vend.createOwnerView(bankId, accountId, "Owner View"))
+      }
+      else None
+
+    val publicView =
+      if(public_view && ! Views.views.vend.viewExists(bankId, accountId, "Public")) {
+        Some(Views.views.vend.createPublicView(bankId, accountId, "Public View"))
+      }
+      else None
+
+    val accountantsView =
+      if(accountants_view && ! Views.views.vend.viewExists(bankId, accountId, "Accountant")) {
+        Some(Views.views.vend.createAccountantsView(bankId, accountId, "Accountants View"))
+      }
+      else None
+
+    val auditorsView =
+      if(auditors_view && ! Views.views.vend.viewExists(bankId, accountId, "Auditor") ) {
+        Some(Views.views.vend.createAuditorsView(bankId, accountId, "Auditors View"))
+      }
+      else None
+
+    List(ownerView, publicView, accountantsView, auditorsView).flatten
+  }
+
 
 }
