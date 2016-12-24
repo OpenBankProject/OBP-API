@@ -14,15 +14,15 @@ import scala.collection.immutable.List
 //TODO: Replace BankAccounts with bankPermalink + accountPermalink
 
 
-private object MapperViews extends Views with Loggable {
+object MapperViews extends Views with Loggable {
 
   def permissions(account : BankAccount) : List[Permission] = {
 
     val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
       ViewImpl.accountFilter(account.bankId, account.accountId): _*)
     //all the user that have access to at least to a view
-    val users = views.map(_.users.toList).flatten.distinct
-    val usersPerView = views.map(v  =>(v, v.users.toList))
+    val users = views.map(_.users).flatten.distinct
+    val usersPerView = views.map(v  =>(v, v.users))
     val permissions = users.map(u => {
       new Permission(
         u,
@@ -32,17 +32,6 @@ private object MapperViews extends Views with Loggable {
 
     permissions
   }
-
-  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
-    val res =
-      ViewImpl.findAll(
-        By(ViewImpl.bankPermalink, bankId.value),
-        By(ViewImpl.accountPermalink, accountId.value),
-        By(ViewImpl.name_, name)
-      )
-    res.nonEmpty
-  }
-
 
   def permission(account: BankAccount, user: User): Box[Permission] = {
 
@@ -403,6 +392,14 @@ private object MapperViews extends Views with Loggable {
     Connector.connector.vend.getBankAccounts(accountsList)
   }
 
+  def grantAccessToView(user : User, view : View) = {
+    val viewImpl = ViewImpl.find(view.uid)
+    ViewPrivileges.create.
+      view(viewImpl.get). //explodes if no viewImpl exists, but that's okay, the test should fail then
+      user(user.apiId.value).
+      save
+  }
+
   def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : View = {
     ViewImpl.createAndSaveOwnerView(bankId, accountId, description)
   }
@@ -504,12 +501,15 @@ private object MapperViews extends Views with Loggable {
     true
   }
 
-  def grantAccessToView(user : User, view : View) = {
-    val viewImpl = ViewImpl.find(view.uid)
-    ViewPrivileges.create.
-      view(viewImpl.get). //explodes if no viewImpl exists, but that's okay, the test should fail then
-      user(user.apiId.value).
-      save
+
+  def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
+    val res =
+      ViewImpl.findAll(
+        By(ViewImpl.bankPermalink, bankId.value),
+        By(ViewImpl.accountPermalink, accountId.value),
+        By(ViewImpl.name_, name)
+      )
+    res.nonEmpty
   }
 
 
