@@ -94,35 +94,6 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
     null
   }
 
-  def accountOwnerExists(user: APIUser, account: ObpJvmInboundAccount): Boolean = {
-    val res =
-      MappedAccountHolder.findAll(
-        By(MappedAccountHolder.user, user),
-        By(MappedAccountHolder.accountBankPermalink, account.bank),
-        By(MappedAccountHolder.accountPermalink, account.id)
-      )
-
-    res.nonEmpty
-  }
-
-  def setAccountOwner(owner : String, account: ObpJvmInboundAccount) : Unit = {
-    if (account.owners.contains(owner)) {
-      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
-      apiUserOwner match {
-        case Some(o) => {
-          if ( ! accountOwnerExists(o, account)) {
-            logger.info(s"setAccountOwner account owner does not exist. creating for ${o.apiId.value} ${account.id}")
-            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bank, account.id, "ObpJvmMappedConnector")
-          }
-       }
-        case None => {
-          //This shouldn't happen as OBPUser should generate the APIUsers when saved
-          logger.error(s"api user(s) with username $owner not found.")
-       }
-      }
-    }
-  }
-
   def updateUserAccountViews( user: APIUser ) = {
     logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
     val accounts: List[ObpJvmInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
@@ -143,69 +114,28 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
 
     logger.debug(s"ObpJvm getUserAccounts says res is $accounts")
 
-    for {
+    val views = for {
       acc <- accounts
       username <- tryo {user.name}
-      views <- tryo {createSaveableViews(acc, acc.owners.contains(username))}
+      views <- tryo {createViews( BankId(acc.bank),
+        AccountId(acc.id),
+        acc.owners.contains(username),
+        acc.generate_public_view,
+        acc.generate_accountants_view,
+        acc.generate_auditors_view
+      )}
       existing_views <- tryo {Views.views.vend.views(new ObpJvmBankAccount(acc))}
     } yield {
-      setAccountOwner(username, acc)
-      views.foreach(_.save())
-      views.map(_.value).foreach(v => {
+      setAccountOwner(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
+      views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user)).foreach (v => {
+      existing_views.filterNot(_.users.contains(user.apiId)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
-  }
-
-  def viewExists(account: ObpJvmInboundAccount, name: String): Boolean = {
-    val res =
-      ViewImpl.findAll(
-        By(ViewImpl.bankPermalink, account.bank),
-        By(ViewImpl.accountPermalink, account.id),
-        By(ViewImpl.name_, name)
-      )
-    res.nonEmpty
-  }
-
-  def createSaveableViews(acc : ObpJvmInboundAccount, owner: Boolean = false) : List[Saveable[ViewType]] = {
-    logger.info(s"ObpJvm createSaveableViews acc is $acc")
-    val bankId = BankId(acc.bank)
-    val accountId = AccountId(acc.id)
-
-    val ownerView =
-      if(owner && ! viewExists(acc, "Owner")) {
-        logger.info("Creating owner view")
-        Some(createSaveableOwnerView(bankId, accountId))
-      }
-      else None
-
-    val publicView =
-      if(acc.generate_public_view && ! viewExists(acc, "Public")) {
-        logger.info("Creating public view")
-        Some(createSaveablePublicView(bankId, accountId))
-      }
-      else None
-
-    val accountantsView =
-      if(acc.generate_accountants_view && ! viewExists(acc, "Accountant")) {
-        logger.info("Creating accountants view")
-        Some(createSaveableAccountantsView(bankId, accountId))
-      }
-      else None
-
-    val auditorsView =
-      if(acc.generate_auditors_view && ! viewExists(acc, "Auditor") ) {
-        logger.info("Creating auditors view")
-        Some(createSaveableAuditorsView(bankId, accountId))
-      }
-      else None
-
-    List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
 
