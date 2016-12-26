@@ -354,7 +354,7 @@ import net.liftweb.util.Helpers._
 
   def getAPIUserId(name: String, password: String): Box[Long] = {
     findUserByUsername(name) match {
-      case Full(user) => 
+      case Full(user) =>
         if (user.validated_? &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
@@ -364,13 +364,13 @@ import net.liftweb.util.Helpers._
         else {
           connector match {
             case "kafka" =>
-              if (Props.getBool("kafka.user.authentication", false)) 
+              if (Props.getBool("kafka.user.authentication", false))
                 for { kafkaUser <- getUserFromConnector(name, password)
                       kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
               else
                 Empty
             case "obpjvm" =>
-              if (Props.getBool("obpjvm.user.authentication", false)) 
+              if (Props.getBool("obpjvm.user.authentication", false))
                 for { obpjvmUser <- getUserFromConnector(name, password)
                       obpjvmUserId <- tryo{obpjvmUser.user} } yield obpjvmUserId.toLong
               else
@@ -379,7 +379,7 @@ import net.liftweb.util.Helpers._
           }
         }
 
-      case _ => Empty 
+      case _ => Empty
     }
   }
 
@@ -401,7 +401,7 @@ import net.liftweb.util.Helpers._
         val user = findUserByUsername(name) match {
           // Check if the external user is already created locally
           case Full(user) if user.validated_?
-            // && user.provider == extProvider 
+            // && user.provider == extProvider
             => {
             // Return existing user if found
             info("external user already exists locally, using that one")
@@ -437,13 +437,14 @@ import net.liftweb.util.Helpers._
 
   //overridden to allow a redirection if login fails
   override def login = {
-    if (S.post_?) {
-      S.param("username").
-      flatMap(name => findUserByUsername(name)) match {
-        case Full(user) if user.validated_? &&
-          // Check if user came from localhost
-          user.getProvider() == Props.get("hostname","") &&
-          user.testPassword(S.param("password")) => {
+    def loginAction = {
+      if (S.post_?) {
+        S.param("username").
+          flatMap(name => findUserByUsername(name)) match {
+          case Full(user) if user.validated_? &&
+            // Check if user came from localhost
+            user.getProvider() == Props.get("hostname","") &&
+            user.testPassword(S.param("password")) => {
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -461,45 +462,51 @@ import net.liftweb.util.Helpers._
             })
           }
 
-        case Full(user) if !user.validated_? =>
-          S.error(S.?("account.validation.error"))
+          case Full(user) if !user.validated_? =>
+            S.error(S.?("account.validation.error"))
 
-        case _ => if (connector == "kafka" || connector == "obpjvm")
-        {
-          // If not found locally, try to authenticate user via Kafka, if enabled in props
-          if (Props.getBool("kafka.user.authentication", false) ||
+          case _ => if (connector == "kafka" || connector == "obpjvm")
+          {
+            // If not found locally, try to authenticate user via Kafka, if enabled in props
+            if (Props.getBool("kafka.user.authentication", false) ||
               Props.getBool("obpjvm.user.authentication", false)) {
-            val preLoginState = capturePreLoginState()
-            info("login redir: " + loginRedirect.get)
-            val redir = loginRedirect.get match {
-              case Full(url) =>
-                loginRedirect(Empty)
-              url
-              case _ =>
-                homePage
-            }
-            for {
-              user_ <- externalUserHelper(S.param("username").getOrElse(""), S.param("password").getOrElse(""))
-            } yield {
-              logUserIn(user_, () => {
-                S.notice(S.?("logged.in"))
-                preLoginState()
-                S.redirectTo(redir)
-              })
+              val preLoginState = capturePreLoginState()
+              info("login redir: " + loginRedirect.get)
+              val redir = loginRedirect.get match {
+                case Full(url) =>
+                  loginRedirect(Empty)
+                  url
+                case _ =>
+                  homePage
+              }
+              for {
+                user_ <- externalUserHelper(S.param("username").getOrElse(""), S.param("password").getOrElse(""))
+              } yield {
+                logUserIn(user_, () => {
+                  S.notice(S.?("logged.in"))
+                  preLoginState()
+                  S.redirectTo(redir)
+                })
+              }
+            } else {
+              S.error(S.?("account.validation.error"))
             }
           } else {
             S.error(S.?("account.validation.error"))
           }
-        } else {
-          S.error(S.?("account.validation.error"))
         }
       }
     }
 
+    // In this function we bind submit button to loginAction function.
+    // In case that unique token of submit button cannot be paired submit action will be omitted.
+    // Implemented in order to prevent a CSRF attack
+    def insertSubmitButton = {
+      scala.xml.XML.loadString(loginSubmitButton(S.?("Login"), loginAction _).toString().replace("type=\"submit\"","class=\"submit\" type=\"submit\""))
+    }
+
     bind("user", loginXhtml,
-         "username" -> (FocusOnLoad(<input type="text" name="username"/>)),
-         "password" -> (<input type="password" name="password"/>),
-         "submit" -> loginSubmitButton(S.?("log.in")))
+         "submit" -> insertSubmitButton)
   }
 
 
