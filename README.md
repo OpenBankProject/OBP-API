@@ -134,6 +134,19 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 * OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
 
+# Production Options.
+
+* set the status of HttpOnly and Secure cookie flags for produnction 
+,uncomment the following lines of  "webapp/WEB-INF/web.xml" :
+ 
+        <session-config>
+          <cookie-config>
+            <secure>true</secure>
+            <http-only>true</http-only>
+          </cookie-config>
+        </session-config>
+
+
 ## Scala / Lift
 
 * We use scala and liftweb http://www.liftweb.net/
