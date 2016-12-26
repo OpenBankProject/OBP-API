@@ -179,6 +179,8 @@ import net.liftweb.util.Helpers._
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
+        ".password [autocomplete] " #> Props.get("autocomplete_login_form", "off") &
+        ".username [autocomplete] " #> Props.get("autocomplete_login_form", "off") &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
           "a *" #> {S.?("recover.password")}

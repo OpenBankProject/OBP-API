@@ -268,7 +268,6 @@ endpointN]
 # When new consumers inserted they should use this setting.
 consumers_enabled_by_default=true
 
-
-
-
+# Autocomplete for login form has to be explicitly set
+autocomplete_login_form=off
 
