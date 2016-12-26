@@ -50,5 +50,7 @@ trait Views {
   def grantAccessToAllExistingViews(user : User) : Boolean
 
   def viewExists(bank: BankId, accountId: AccountId, name: String): Boolean
+  def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
+  def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
 }

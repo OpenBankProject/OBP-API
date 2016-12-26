@@ -46,7 +46,6 @@ import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
-import code.sandbox.{CreateViewImpls, Saveable}
 import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
@@ -58,7 +57,7 @@ import code.products.Products.{Product, ProductCode}
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 
-object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable {
+object KafkaMappedConnector extends Connector with Loggable {
 
   var producer = new KafkaProducer()
   var consumer = new KafkaConsumer()
@@ -202,13 +201,13 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
+  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = Map(
       "north" -> "getTransaction",
       "version" -> formatVersion,
       "name" -> OBPUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
-      "accountId" -> accountID.toString,
+      "accountId" -> accountId.toString,
       "transactionId" -> transactionId.toString
       )
     // Since result is single account, we need only first list entry
@@ -222,7 +221,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 
   }
 
-  override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
@@ -236,20 +235,20 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
         }
     }
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     val req = Map(
       "north" -> "getTransactions",
       "version" -> formatVersion,
       "name" -> OBPUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
-      "accountId" -> accountID.toString,
+      "accountId" -> accountId.toString,
       "queryParams" -> queryParams.toString
       )
     implicit val formats = net.liftweb.json.DefaultFormats
     val rList = process(req).extract[List[KafkaInboundTransaction]]
     // Check does the response data match the requested data
-    val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
+    val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
     if (!isCorrect) throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
     // Populate fields and generate result
     val res = for {
@@ -259,17 +258,17 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
       transaction
     }
     Full(res)
-    //TODO is this needed updateAccountTransactions(bankId, accountID)
+    //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountID: AccountId): Box[KafkaBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
       "north" -> "getBankAccount",
       "version" -> formatVersion,
       "name"  -> OBPUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
-      "accountId" -> accountID.value
+      "accountId" -> accountId.value
       )
     // Since result is single account, we need only first list entry
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -278,7 +277,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     }
     // Check does the response data match the requested data
     val accResp = List((BankId(r.bank), AccountId(r.id))).toSet
-    val acc = List((bankId, accountID)).toSet
+    val acc = List((bankId, accountId)).toSet
     if ((accResp diff acc).size > 0) throw new Exception(ErrorMessages.InvalidGetBankAccountConnectorResponse)
 
     createMappedAccountDataIfNotExisting(r.bank, r.id, r.label)
@@ -377,11 +376,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
    *  is performed in a different thread.
    */
   /*
-  private def updateAccountTransactions(bankId : BankId, accountID : AccountId) = {
+  private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
       bank <- getBank(bankId)
-      account <- getBankAccountType(bankId, accountID)
+      account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -398,20 +397,20 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   */
 
   //gets the users who are the legal owners/holders of the account
-  override def getAccountHolders(bankId: BankId, accountID: AccountId): Set[User] =
+  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     MappedAccountHolder.findAll(
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
+      By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
@@ -635,63 +634,51 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountID: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
     //delete comments on transactions of this account
     val commentsDeleted = MappedComment.bulkDelete_!!(
       By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountID.value)
+      By(MappedComment.account, accountId.value)
     )
 
     //delete narratives on transactions of this account
     val narrativesDeleted = MappedNarrative.bulkDelete_!!(
       By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountID.value)
+      By(MappedNarrative.account, accountId.value)
     )
 
     //delete narratives on transactions of this account
     val tagsDeleted = MappedTag.bulkDelete_!!(
       By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountID.value)
+      By(MappedTag.account, accountId.value)
     )
 
     //delete WhereTags on transactions of this account
     val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
       By(MappedWhereTag.bank, bankId.value),
-      By(MappedWhereTag.account, accountID.value)
+      By(MappedWhereTag.account, accountId.value)
     )
 
     //delete transaction images on transactions of this account
     val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
       By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountID.value)
+      By(MappedTransactionImage.account, accountId.value)
     )
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(
       By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountID.value)
+      By(MappedTransaction.account, accountId.value)
     )
 
-    //remove view privileges (get views first)
-    val views = ViewImpl.findAll(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountID.value)
-    )
-
-    //loop over them and delete
-    var privilegesDeleted = true
-    views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
-    })
+    //remove view privileges
+    val privilegesDeleted = Views.views.vend.removeAllPermissions(bankId, accountId)
 
     //delete views of account
-    val viewsDeleted = ViewImpl.bulkDelete_!!(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountID.value)
-    )
-
+    val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
+  
     //delete account
-    val account = getBankAccount(bankId, accountID)
+    val account = getBankAccount(bankId, accountId)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -703,7 +690,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountID: AccountId, accountNumber: String,
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
                                         accountType: String, accountLabel: String, currency: String,
                                         initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
@@ -712,7 +699,7 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountID, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -722,18 +709,18 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
     MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
-  private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
+  private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccount(bankId, accountID) match {
+    getBankAccount(bankId, accountId) match {
       case Full(a) =>
-        logger.info(s"account with id $accountID at bank with id $bankId already exists. No need to create a new one.")
+        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ => null //TODO
         /*
        new  KafkaBankAccount
           .bank(bankId.value)
-          .theAccountId(accountID.value)
+          .theAccountId(accountId.value)
           .accountNumber(accountNumber)
           .accountType(accountType)
           .accountLabel(accountLabel)
@@ -771,11 +758,11 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountID: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
@@ -881,12 +868,12 @@ object KafkaMappedConnector extends Connector with CreateViewImpls with Loggable
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountID: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getBank(bankId)
-      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountID.value), By(MappedBankAccountData.bankId, bank.bankId.value))
+      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)
       d.save()

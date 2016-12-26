@@ -177,10 +177,10 @@ private object LocalConnector extends Connector with Loggable {
     Empty
   }
 
-  override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = {
+  override def getAccountHolders(bankId: BankId, accountId: AccountId) : Set[User] = {
     MappedAccountHolder.findAll(
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
+      By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
   override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal, description: String) : Box[TransactionId] = {
