@@ -230,8 +230,8 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      bankRoutingAddress = None, //TODO: need to add this to the json/model
-      accountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
+      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccount_.number.get),
       thisBankId = BankId(otherAccount_.bank.get.name.get),
       kind = otherAccount_.kind.get,
@@ -241,8 +241,8 @@ private object LocalConnector extends Connector with Loggable {
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
     )
@@ -387,8 +387,8 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      bankRoutingAddress = None, //TODO: need to add this to the json/model
-      accountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
+      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccountFromTransaction.number.get),
       thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
       kind = "",
@@ -398,8 +398,8 @@ private object LocalConnector extends Connector with Loggable {
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
     )

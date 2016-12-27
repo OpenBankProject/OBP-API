@@ -160,8 +160,8 @@ object LocalMappedConnector extends Connector with Loggable {
         counterPartyId = metadata.metadataId,
         label = metadata.getHolder,
         nationalIdentifier = t.counterpartyNationalId.get,
-        bankRoutingAddress = None,
-        accountRoutingAddress = t.getCounterpartyIban(),
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = t.getCounterpartyIban(),
         thisAccountId = AccountId(metadata.getAccountNumber),
         thisBankId = BankId(t.counterpartyBankName.get),
         kind = t.counterpartyAccountKind.get,
@@ -171,8 +171,8 @@ object LocalMappedConnector extends Connector with Loggable {
 
         //TODO V210 following five fields are new, need to be fiexed
         name = "",
-        bankRoutingScheme = "",
-        accountRoutingScheme="",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
         otherAccountProvider = "",
         isBeneficiary = true
       )
@@ -198,8 +198,8 @@ object LocalMappedConnector extends Connector with Loggable {
         counterPartyId = t.metadataId,
         label = t.getHolder,
         nationalIdentifier = "",
-        bankRoutingAddress = None,
-        accountRoutingAddress = None,
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = None,
         thisAccountId = AccountId(t.getAccountNumber),
         thisBankId = BankId(""),
         kind = "",
@@ -209,8 +209,8 @@ object LocalMappedConnector extends Connector with Loggable {
 
         //TODO V210 following five fields are new, need to be fiexed
         name = "",
-        bankRoutingScheme = "",
-        accountRoutingScheme="",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
         otherAccountProvider = "",
         isBeneficiary = true
       )
