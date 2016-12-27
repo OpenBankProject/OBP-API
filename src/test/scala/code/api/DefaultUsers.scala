@@ -3,7 +3,7 @@ package code.api
 import code.api.util.APIUtil
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.{ViewPrivileges, ViewImpl, APIUser}
+import code.model.dataAccess.APIUser
 import APIUtil.OAuth.{Token, Consumer}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props

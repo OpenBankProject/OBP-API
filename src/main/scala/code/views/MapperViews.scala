@@ -513,4 +513,24 @@ object MapperViews extends Views with Loggable {
   }
 
 
+  def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
+    val views = ViewImpl.findAll(
+      By(ViewImpl.bankPermalink, bankId.value),
+      By(ViewImpl.accountPermalink, accountId.value)
+    )
+    var privilegesDeleted = true
+    views.map (x => {
+      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
+    } )
+      privilegesDeleted
+  }
+
+
+  def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
+    ViewImpl.bulkDelete_!!(
+      By(ViewImpl.bankPermalink, bankId.value),
+      By(ViewImpl.accountPermalink, accountId.value)
+    )
+  }
+
 }

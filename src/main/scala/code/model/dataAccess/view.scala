@@ -450,7 +450,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   override def dbIndexes = Index(permalink_, bankPermalink, accountPermalink) :: super.dbIndexes
 
   def find(viewUID : ViewUID) : Box[ViewImpl] = {
-    ViewImpl.find(By(ViewImpl.permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
+    find(By(permalink_, viewUID.viewId.value) :: accountFilter(viewUID.bankId, viewUID.accountId): _*) ~>
       APIFailure(s"View with permalink $viewId not found", 404)
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
@@ -460,12 +460,11 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   }
 
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {
-    By(ViewImpl.bankPermalink, bankId.value) :: By(ViewImpl.accountPermalink, accountId.value) :: Nil
+    By(bankPermalink, bankId.value) :: By(accountPermalink, accountId.value) :: Nil
   }
 
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    ViewImpl
-      .create
+      create
       .bankPermalink(bankId.value)
       .accountPermalink(accountId.value)
       .name_("Owner")
@@ -544,7 +543,7 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
   }
 
   def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    ViewImpl.create.
+      create.
       name_("Public").
       description_(description).
       permalink_("public").
@@ -626,7 +625,7 @@ Accountants
   */
 
   def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    ViewImpl.create.
+      create.
       name_("Accountant"). // Use the singular form
       description_(description).
       permalink_("accountant"). // Use the singular form
@@ -709,7 +708,7 @@ Auditors
  */
 
   def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
-    ViewImpl.create.
+      create.
       name_("Auditor"). // Use the singular form
       description_(description).
       permalink_("auditor"). // Use the singular form

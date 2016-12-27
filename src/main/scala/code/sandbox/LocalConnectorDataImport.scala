@@ -24,7 +24,7 @@ case class SaveableMongoObj[T <: MongoRecord[_]](value : T) extends Saveable[T] 
 
 Not currently using this connector so not updating it at the moment.
 
-object LocalConnectorDataImport extends OBPDataImport with CreateViewImpls with CreateOBPUsers {
+object LocalConnectorDataImport extends OBPDataImport with CreateOBPUsers {
 
   type BankType = HostedBank
   type AccountType = Account
