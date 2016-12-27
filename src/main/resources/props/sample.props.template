@@ -269,5 +269,5 @@ endpointN]
 consumers_enabled_by_default=true
 
 # Autocomplete for login form has to be explicitly set
-autocomplete_login_form=off
+autocomplete_at_login_form_enabled=false
 

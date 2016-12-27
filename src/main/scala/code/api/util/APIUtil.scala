@@ -766,4 +766,12 @@ Returns a string showed to the developer
     customers
   }
 
+  def getAutocompleteValue: String = {
+    Props.get("autocomplete_at_login_form_enabled", "false") match {
+      case "true"  => "on"
+      case "false" => "off"
+      case _       => "off"
+    }
+  }
+
 }

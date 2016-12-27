@@ -33,10 +33,10 @@ package code.model.dataAccess
 
 import java.util.UUID
 
+import code.api.util.APIUtil
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import net.liftweb.common._
-import net.liftweb.http.js.JsCmds.FocusOnLoad
 import net.liftweb.http.{S, SHtml, SessionVar, Templates}
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
@@ -179,8 +179,7 @@ import net.liftweb.util.Helpers._
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
-        ".password [autocomplete] " #> Props.get("autocomplete_login_form", "off") &
-        ".username [autocomplete] " #> Props.get("autocomplete_login_form", "off") &
+        "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
           "a *" #> {S.?("recover.password")}
