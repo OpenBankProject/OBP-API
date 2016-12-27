@@ -31,7 +31,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
     MappedCounterparty.create.
       mCounterPartyId(counterpartyId).
       mName(UUID.randomUUID().toString).
-      mAccountRoutingAddress(accountRoutingAddress).
+      mOtherAccountRoutingAddress(accountRoutingAddress).
       mOtherBankId(bankId).
       mOtherAccountId(accountId).
       mIsBeneficiary(isBeneficiary).

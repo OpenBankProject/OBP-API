@@ -33,10 +33,10 @@ trait Counterparties {
                           name: String,
                           otherBankId: String,
                           otherAccountId: String,
-                          accountRoutingScheme: String,
-                          accountRoutingAddress: String,
-                          bankRoutingScheme: String,
-                          bankRoutingAddress: String,
+                          otherAccountRoutingScheme: String,
+                          otherAccountRoutingAddress: String,
+                          otherBankRoutingScheme: String,
+                          otherBankRoutingAddress: String,
                           isBeneficiary:Boolean
                         ): Box[CounterpartyTrait]
 
@@ -58,10 +58,10 @@ trait CounterpartyTrait {
   def otherAccountId: String
   def otherAccountProvider: String
   def counterPartyId: String
-  def accountRoutingScheme: String
-  def accountRoutingAddress: String
-  def bankRoutingScheme: String
-  def bankRoutingAddress: String
+  def otherAccountRoutingScheme: String
+  def otherAccountRoutingAddress: String
+  def otherBankRoutingScheme: String
+  def otherBankRoutingAddress: String
   def isBeneficiary : Boolean
 
 }

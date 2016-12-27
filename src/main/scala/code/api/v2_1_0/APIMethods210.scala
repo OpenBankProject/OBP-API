@@ -1105,10 +1105,10 @@ trait APIMethods210 {
               name=postJson.name,
               otherBankId =postJson.other_bank_id,
               otherAccountId =postJson.other_account_id,
-              accountRoutingScheme=postJson.account_routing_scheme,
-              accountRoutingAddress=postJson.account_routing_address,
-              bankRoutingScheme=postJson.bank_routing_scheme,
-              bankRoutingAddress=postJson.bank_routing_address,
+              otherAccountRoutingScheme=postJson.account_routing_scheme,
+              otherAccountRoutingAddress=postJson.account_routing_address,
+              otherBankRoutingScheme=postJson.bank_routing_scheme,
+              otherBankRoutingAddress=postJson.bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"

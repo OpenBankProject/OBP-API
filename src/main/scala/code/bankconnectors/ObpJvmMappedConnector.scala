@@ -379,8 +379,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       counterPartyId = metadata.metadataId,
       label = metadata.getHolder,
       nationalIdentifier = t.otherAccount.nationalIdentifier,
-      bankRoutingAddress = None,
-      accountRoutingAddress = t.otherAccount.accountRoutingAddress,
+      otherBankRoutingAddress = None,
+      otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
       thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
@@ -390,8 +390,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
 
@@ -975,8 +975,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
-      bankRoutingAddress = None,
-      accountRoutingAddress = None,
+      otherBankRoutingAddress = None,
+      otherAccountRoutingAddress = None,
       thisAccountId = AccountId(c.account_number.getOrElse("")),
       thisBankId = BankId(""),
       kind = "",
@@ -986,8 +986,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
 
