@@ -1,11 +1,10 @@
 package code.api.ResourceDocs1_4_0
 
-import code.api.ResourceDocs1_4_0.SwaggerJSONFactory.SwaggerResourceDoc
 import code.api.v1_4_0.{APIMethods140, JSONFactory1_4_0, OBPAPI1_4_0}
-import net.liftweb
-import net.liftweb.common.{Empty, Box, Full, Loggable}
+import code.api.v2_2_0.{APIMethods220, OBPAPI2_2_0}
+import net.liftweb.common.{Box, Empty, Full, Loggable}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.http.{S, JsonResponse, Req}
+import net.liftweb.http.{JsonResponse, Req, S}
 import net.liftweb.json._
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.JsonDSL._
@@ -27,7 +26,7 @@ import java.text.SimpleDateFormat
 import code.api.util.APIUtil.{ResourceDoc, _}
 import code.model._
 
-trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
+trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods210 with APIMethods200 with APIMethods140 with APIMethods130 with APIMethods121{
   //needs to be a RestHelper to get access to JsonGet, JsonPost, etc.
   // We add previous APIMethods so we have access to the Resource Docs
   self: RestHelper =>
@@ -51,6 +50,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       logger.info(s"getResourceDocsList says requestedApiVersion is $requestedApiVersion")
 
       val resourceDocs = requestedApiVersion match {
+        case "2.2.0" => Implementations2_2_0.resourceDocs ++ Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.1.0" => Implementations2_1_0.resourceDocs ++ Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "2.0.0" => Implementations2_0_0.resourceDocs ++ Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
         case "1.4.0" => Implementations1_4_0.resourceDocs ++ Implementations1_3_0.resourceDocs ++ Implementations1_2_1.resourceDocs
@@ -61,6 +61,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods210 with APIMethods
       logger.info(s"There are ${resourceDocs.length} resource docs available to $requestedApiVersion")
 
       val versionRoutes = requestedApiVersion match {
+        case "2.2.0" => OBPAPI2_2_0.routes
         case "2.1.0" => OBPAPI2_1_0.routes
         case "2.0.0" => OBPAPI2_0_0.routes
         case "1.4.0" => OBPAPI1_4_0.routes
