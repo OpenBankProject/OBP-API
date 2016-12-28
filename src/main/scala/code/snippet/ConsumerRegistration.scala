@@ -49,6 +49,7 @@ class ConsumerRegistration extends Loggable {
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
+  private object submitBottonDefenseFlag extends RequestVar("")
 
   def registerForm = {
 
@@ -56,6 +57,11 @@ class ConsumerRegistration extends Loggable {
       val id = appType.toString
       (id, id)
     }
+
+    def submitBottonDefense: Unit = {
+      submitBottonDefenseFlag("true")
+    }
+
     def registerWithoutWarnings =
       register &
       "#registration-errors" #> ""
@@ -66,7 +72,8 @@ class ConsumerRegistration extends Loggable {
           ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) &
           ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_))
+          ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
+          "type=submit" #> SHtml.submit("Send", () => submitBottonDefense)
       } &
       ".success" #> ""
     }
@@ -144,7 +151,9 @@ class ConsumerRegistration extends Loggable {
       devEmailVar.set(devEmailVar.is)
       redirectionURLVar.set(redirectionURLVar.is)
 
-      if(descriptionVar.isEmpty)
+      if(submitBottonDefenseFlag.isEmpty)
+        showErrorsForDescription("The 'Send' button random name has been modified !")
+      else if(descriptionVar.isEmpty)
         showErrorsForDescription("Description of the application can not be empty !")
       else if(errors.isEmpty)
         saveAndShowResults(consumer)
