@@ -1046,10 +1046,10 @@ trait APIMethods210 {
         other_bank_id ="",
         other_account_id="12345",
         other_account_provider="OBP",
-        account_routing_scheme="IBAN",
-        account_routing_address="7987987-2348987-234234",
-        bank_routing_scheme="BIC",
-        bank_routing_address="123456",
+        other_account_routing_scheme="IBAN",
+        other_account_routing_address="7987987-2348987-234234",
+        other_bank_routing_scheme="BIC",
+        other_bank_routing_address="123456",
         is_beneficiary = true
       )),
       emptyObjectJson,
@@ -1082,10 +1082,10 @@ trait APIMethods210 {
               name=postJson.name,
               otherBankId =postJson.other_bank_id,
               otherAccountId =postJson.other_account_id,
-              otherAccountRoutingScheme=postJson.account_routing_scheme,
-              otherAccountRoutingAddress=postJson.account_routing_address,
-              otherBankRoutingScheme=postJson.bank_routing_scheme,
-              otherBankRoutingAddress=postJson.bank_routing_address,
+              otherAccountRoutingScheme=postJson.other_account_routing_scheme,
+              otherAccountRoutingAddress=postJson.other_account_routing_address,
+              otherBankRoutingScheme=postJson.other_bank_routing_scheme,
+              otherBankRoutingAddress=postJson.other_bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
             metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
