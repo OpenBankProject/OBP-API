@@ -82,7 +82,7 @@ object ImporterAPI extends RestHelper with Loggable {
         JField("alias", JString("no"))))),
       JField("number", JString(otherAcc.thisAccountId.value)),
       JField("kind", JString(otherAcc.kind)),
-      JField("bank", JObject(List( JField("IBAN", JString(otherAcc.accountRoutingAddress.getOrElse(""))),
+      JField("bank", JObject(List( JField("IBAN", JString(otherAcc.otherAccountRoutingAddress.getOrElse(""))),
         JField("national_identifier", JString(otherAcc.nationalIdentifier)),
         JField("name", JString(otherAcc.thisBankId.value)))))))
 

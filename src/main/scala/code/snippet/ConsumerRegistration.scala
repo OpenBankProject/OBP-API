@@ -44,6 +44,7 @@ class ConsumerRegistration extends Loggable {
 
   private object nameVar extends RequestVar("")
   private object redirectionURLVar extends RequestVar("")
+  private object authenticationURLVar extends RequestVar("")
   private object appTypeVar extends RequestVar[Consumer.appType.enum.AppType](Consumer.appType.enum.values.head)
   private object descriptionVar extends RequestVar("")
   private object devEmailVar extends RequestVar("")
@@ -65,7 +66,7 @@ class ConsumerRegistration extends Loggable {
           ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) &
           ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
-          ".appUserAuthenticationUrlClass" #> SHtml.text(redirectionURLVar.is, redirectionURLVar(_))
+          ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_))
       } &
       ".success" #> ""
     }
