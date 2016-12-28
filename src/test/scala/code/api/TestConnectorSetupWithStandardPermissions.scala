@@ -31,7 +31,6 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    //ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, randomString(3))
     Views.views.vend.createPublicView(bankId, accountId, randomString(3))
   }
 

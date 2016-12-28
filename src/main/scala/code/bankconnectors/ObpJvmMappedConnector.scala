@@ -20,7 +20,6 @@ import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
-import code.sandbox.{CreateViewImpls, Saveable}
 import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
@@ -42,7 +41,7 @@ import scala.collection.JavaConversions._
   * Uses the https://github.com/OpenBankProject/OBP-JVM library to connect to
   * bank resources.
   */
-object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggable {
+object ObpJvmMappedConnector extends Connector with Loggable {
 
 
   type JAccount = com.tesobe.obp.transport.Account
@@ -190,8 +189,8 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
-  def getTransaction(bankId: BankId, accountID: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    toOption[JTransaction](jvmNorth.getTransaction(bankId.value, accountID.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
+  def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+    toOption[JTransaction](jvmNorth.getTransaction(bankId.value, accountId.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
       case Some(t) =>
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
         createNewTransaction(ObpJvmInboundTransaction(
@@ -211,7 +210,7 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
     }
   }
 
-  override def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+  override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
@@ -226,9 +225,9 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
     }
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
-    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountID.value)) ++ optionalParams
+    val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList: List[ObpJvmInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountID.value, OBPUser.getCurrentUserUsername).map(t =>
+    val rList: List[ObpJvmInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountId.value, OBPUser.getCurrentUserUsername).map(t =>
       ObpJvmInboundTransaction(
             t.id,
             ObpJvmInboundAccountId(t.accountId, bankId.value),
@@ -246,9 +245,9 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
 
 
     // Check does the response data match the requested data
-    val isCorrect = rList.forall(x=>x.this_account.id == accountID.value && x.this_account.bank == bankId.value)
+    val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
     if (!isCorrect) {
-      //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountID.value=" + accountID.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
+      //rList.foreach(x=> println("====> x.this_account.id=" + x.this_account.id +":accountId.value=" + accountId.value +":x.this_account.bank=" + x.this_account.bank +":bankId.value="+ bankId.value) )
       throw new Exception(ErrorMessages.InvalidGetTransactionsConnectorResponse)
     }
     // Populate fields and generate result
@@ -259,12 +258,12 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
       transaction
     }
     Full(res)
-    //TODO is this needed updateAccountTransactions(bankId, accountID)
+    //TODO is this needed updateAccountTransactions(bankId, accountId)
   }
 
-  override def getBankAccount(bankId: BankId, accountID: AccountId): Box[ObpJvmBankAccount] = {
+  override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
      val account : Optional[JAccount] = jvmNorth.getAccount(bankId.value,
-      accountID.value, OBPUser.getCurrentUserUsername)
+      accountId.value, OBPUser.getCurrentUserUsername)
     if(account.isPresent) {
       val a : JAccount = account.get
       val balance : ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
@@ -412,11 +411,11 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
    *  is performed in a different thread.
    */
   /*
-  private def updateAccountTransactions(bankId : BankId, accountID : AccountId) = {
+  private def updateAccountTransactions(bankId : BankId, accountId : AccountId) = {
 
     for {
       bank <- getBank(bankId)
-      account <- getBankAccountType(bankId, accountID)
+      account <- getBankAccountType(bankId, accountId)
     } {
       spawn{
         val useMessageQueue = Props.getBool("messageQueue.updateBankAccountsTransaction", false)
@@ -433,20 +432,20 @@ object ObpJvmMappedConnector extends Connector with CreateViewImpls with Loggabl
   */
 
   //gets the users who are the legal owners/holders of the account
-  override def getAccountHolders(bankId: BankId, accountID: AccountId): Set[User] =
+  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     MappedAccountHolder.findAll(
       By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountID.value)).map(accHolder => accHolder.user.obj).flatten.toSet
+      By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
   // Get all counterparties related to an account
-  override def getCounterpartiesFromTransaction(bankId: BankId, accountID: AccountId): List[Counterparty] =
-    Counterparties.counterparties.vend.getMetadatas(bankId, accountID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+  override def getCounterpartiesFromTransaction(bankId: BankId, accountId: AccountId): List[Counterparty] =
+    Counterparties.counterparties.vend.getMetadatas(bankId, accountId).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
   // Get one counterparty related to a bank account
-  override def getCounterpartyFromTransaction(bankId: BankId, accountID: AccountId, counterpartyID: String): Box[Counterparty] =
+  override def getCounterpartyFromTransaction(bankId: BankId, accountId: AccountId, counterpartyID: String): Box[Counterparty] =
     // Get the metadata and pass it to getCounterparty to construct the other account.
-    Counterparties.counterparties.vend.getMetadata(bankId, accountID, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountID, _))
+    Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
@@ -662,63 +661,51 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   //remove an account and associated transactions
-  override def removeAccount(bankId: BankId, accountID: AccountId) : Boolean = {
+  override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
     //delete comments on transactions of this account
     val commentsDeleted = MappedComment.bulkDelete_!!(
       By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountID.value)
+      By(MappedComment.account, accountId.value)
     )
 
     //delete narratives on transactions of this account
     val narrativesDeleted = MappedNarrative.bulkDelete_!!(
       By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountID.value)
+      By(MappedNarrative.account, accountId.value)
     )
 
     //delete narratives on transactions of this account
     val tagsDeleted = MappedTag.bulkDelete_!!(
       By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountID.value)
+      By(MappedTag.account, accountId.value)
     )
 
     //delete WhereTags on transactions of this account
     val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
       By(MappedWhereTag.bank, bankId.value),
-      By(MappedWhereTag.account, accountID.value)
+      By(MappedWhereTag.account, accountId.value)
     )
 
     //delete transaction images on transactions of this account
     val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
       By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountID.value)
+      By(MappedTransactionImage.account, accountId.value)
     )
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(
       By(MappedTransaction.bank, bankId.value),
-      By(MappedTransaction.account, accountID.value)
+      By(MappedTransaction.account, accountId.value)
     )
 
-    //remove view privileges (get views first)
-    val views = ViewImpl.findAll(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountID.value)
-    )
-
-    //loop over them and delete
-    var privilegesDeleted = true
-    views.map (x => {
-      privilegesDeleted &&= ViewPrivileges.bulkDelete_!!(By(ViewPrivileges.view, x.id_))
-    })
+    //remove view privileges
+    val privilegesDeleted = Views.views.vend.removeAllPermissions(bankId, accountId)
 
     //delete views of account
-    val viewsDeleted = ViewImpl.bulkDelete_!!(
-      By(ViewImpl.bankPermalink, bankId.value),
-      By(ViewImpl.accountPermalink, accountID.value)
-    )
+    val viewsDeleted = Views.views.vend.removeAllViews(bankId, accountId)
 
     //delete account
-    val account = getBankAccount(bankId, accountID)
+    val account = getBankAccount(bankId, accountId)
 
     val accountDeleted = account match {
       case acc => true //acc.delete_! //TODO
@@ -730,7 +717,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
-  override def createSandboxBankAccount(bankId: BankId, accountID: AccountId, accountNumber: String,
+  override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
                                         accountType: String, accountLabel: String, currency: String,
                                         initialBalance: BigDecimal, accountHolderName: String): Box[BankAccount] = {
 
@@ -739,7 +726,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     } yield {
 
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
-      createAccountIfNotExisting(bankId, accountID, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
+      createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
 
   }
@@ -749,18 +736,18 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
-  private def createAccountIfNotExisting(bankId: BankId, accountID: AccountId, accountNumber: String,
+  private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,
                                          balanceInSmallestCurrencyUnits: Long, accountHolderName: String) : BankAccount = {
-    getBankAccount(bankId, accountID) match {
+    getBankAccount(bankId, accountId) match {
       case Full(a) =>
-        logger.info(s"account with id $accountID at bank with id $bankId already exists. No need to create a new one.")
+        logger.info(s"account with id $accountId at bank with id $bankId already exists. No need to create a new one.")
         a
       case _ => null //TODO
         /*
        new  ObpJvmBankAccount
           .bank(bankId.value)
-          .theAccountId(accountID.value)
+          .theAccountId(accountId.value)
           .accountNumber(accountNumber)
           .accountType(accountType)
           .accountLabel(accountLabel)
@@ -798,11 +785,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
    */
 
   //used by the transaction import api
-  override def updateAccountBalance(bankId: BankId, accountID: AccountId, newBalance: BigDecimal): Boolean = {
+  override def updateAccountBalance(bankId: BankId, accountId: AccountId, newBalance: BigDecimal): Boolean = {
 
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getBank(bankId)
     } yield {
       //acc.balance = newBalance
@@ -908,12 +895,12 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
    */
 
 
-  override def updateAccountLabel(bankId: BankId, accountID: AccountId, label: String): Boolean = {
+  override def updateAccountLabel(bankId: BankId, accountId: AccountId, label: String): Boolean = {
     //this will be Full(true) if everything went well
     val result = for {
-      acc <- getBankAccount(bankId, accountID)
+      acc <- getBankAccount(bankId, accountId)
       bank <- getBank(bankId)
-      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountID.value), By(MappedBankAccountData.bankId, bank.bankId.value))
+      d <- MappedBankAccountData.find(By(MappedBankAccountData.accountId, accountId.value), By(MappedBankAccountData.bankId, bank.bankId.value))
     } yield {
       d.setLabel(label)
       d.save()

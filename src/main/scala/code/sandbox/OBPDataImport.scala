@@ -7,7 +7,7 @@ import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{ProductCode, Product}
 import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
-import code.model.dataAccess.{APIUser, MappedAccountHolder, ViewImpl, OBPUser}
+import code.model.dataAccess.{APIUser, MappedAccountHolder}
 import code.model._
 import code.branches.Branches.{Branch}
 import code.atms.Atms.{Atm}
