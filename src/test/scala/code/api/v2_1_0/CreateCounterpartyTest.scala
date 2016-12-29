@@ -15,10 +15,10 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
     other_bank_id ="gh.29.de",
     other_account_id="007a268b-98bf-44ef-8f6a-9944618378cf",
     other_account_provider="OBP",
-    account_routing_scheme="IBAN",
-    account_routing_address="DE12 1234 5123 4510 2207 8077 877",
-    bank_routing_scheme="BIC",
-    bank_routing_address="123456",
+    other_account_routing_scheme="IBAN",
+    other_account_routing_address="DE12 1234 5123 4510 2207 8077 877",
+    other_bank_routing_scheme="BIC",
+    other_bank_routing_address="123456",
     is_beneficiary = true
   )
 
@@ -54,17 +54,17 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       }
       thisAccount should equal(bankId.value)
 
-      var accountRoutingAddress = (responsePost.body \ "account_routing"  \ "address") match {
+      var accountRoutingAddress = (responsePost.body \ "other_account_routing"  \ "address") match {
         case JString(i) => i
         case _ => ""
       }
-      accountRoutingAddress should  equal(customerPostJSON.account_routing_address)
+      accountRoutingAddress should  equal(customerPostJSON.other_account_routing_address)
 
-      var bankRoutingScheme = (responsePost.body \ "bank_routing" \ "scheme" ) match {
+      var bankRoutingScheme = (responsePost.body \ "other_bank_routing" \ "scheme" ) match {
         case JString(i) => i
         case _ => ""
       }
-      bankRoutingScheme should  equal(customerPostJSON.bank_routing_scheme)
+      bankRoutingScheme should  equal(customerPostJSON.other_bank_routing_scheme)
     }
 
     scenario("No BankAccount in Database") {
