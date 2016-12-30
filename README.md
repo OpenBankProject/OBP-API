@@ -139,7 +139,7 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * Create file /etc/nginx/sites-available/api
 
-* Configure as follows
+* Configure as follows:
 
 	upstream backend {
 	    	least_conn;
@@ -166,15 +166,14 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * Zookeeper configuration
 
-* Inside the Kafka directory, edit the file conf/zookeeper.properties and include these lines
+* Inside the Kafka directory, edit the file conf/zookeeper.properties and include these lines:
 
-	dataDir=/home/user/zookeeper
-
-	server.1=host1:2888:3888 # The name of the servers shall be changed as appropriate
-	server.2=host2:2888:3888
-	server.3=host3:2888:3888
-	initLimit=5
-	syncLimit=2
+            dataDir=/home/user/zookeeper
+            server.1=host1:2888:3888 # The name of the servers shall be changed as appropriate
+            server.2=host2:2888:3888
+            server.3=host3:2888:3888
+            initLimit=5
+            syncLimit=2
 
 * Create a myid file under dataDir which is /home/user/zookeeper in this example
 
@@ -290,10 +289,10 @@ We use jetty8 to run the API in production mode.
 
 * Copy OBP-API-1.0.war to /usr/share/jetty8/webapps/ directory and rename it to root.war
 
-* Edit the /etc/jetty8/jetty.conf file and comment out the lines
+* Edit the /etc/jetty8/jetty.conf file and comment out the lines:
 
-	#etc/jetty-logging.xml
-	#etc/jetty-started.xml
+            etc/jetty-logging.xml
+            etc/jetty-started.xml
 
 * Now restart jetty8
 
