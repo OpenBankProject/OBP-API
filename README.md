@@ -279,7 +279,7 @@ We use jetty8 to run the API in production mode.
 * This file could be similar to the default.props file created above, or it could include production settings, such as information about Postgresql server, if you are using one. For example, it could have the following line for postgresql configuration.
 
 	db.driver=org.postgresql.Driver
-	db.url=jdbc:postgresql://localhost:5432/dbname?user=yourdbusername&password=yourpassword
+	db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
 
 * Now, build the application to generate .war file which will be deployed on jetty8 server.
 
