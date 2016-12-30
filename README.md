@@ -193,9 +193,9 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
             zookeeper.connect=host1:2181,host2:2181,host3:2181
 
-* Start the kafka broker daemons on all the machines
+* Start the kafka broker daemons on all the machines:
 
-	bin/kafka-server-start.sh config/server.properties &
+            bin/kafka-server-start.sh config/server.properties &
 
 * Create the topics:
 
@@ -266,7 +266,7 @@ We use jetty8 to run the API in production mode.
 * Edit the /etc/default/jetty8 file so that it contains the following settings:
 
             NO_START=0
-            JETTY_HOST=127.0.0.1 (If you want your application to be accessed from other hosts, change this to your IP address)
+            JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
             JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
 
 * In src/main/resources/props create a test.default.props file for tests. Set connector=mapped
