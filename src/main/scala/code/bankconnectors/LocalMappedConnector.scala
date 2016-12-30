@@ -37,6 +37,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object LocalMappedConnector extends Connector with Loggable {
 
   type AccountType = MappedBankAccount
+  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
@@ -845,4 +846,35 @@ Store one or more transactions
     )
   }
 
+  override def incrementBadLoginAttempts(username: String): Unit ={
+
+    MappedBadLoginAttempts.find(By(MappedBadLoginAttempts.mUsername, username)) match {
+      case Full(loginAttempt) =>
+        loginAttempt.mLastFailureDate(now).mBadAttemptsSinceLastSuccess(loginAttempt.mBadAttemptsSinceLastSuccess+1).save
+      case _ =>
+        MappedBadLoginAttempts.create.mUsername(username).mBadAttemptsSinceLastSuccess(0).save()
+    }
+  }
+
+  /**
+    * check the bad login attempts,if it exceed the "max.bad.login.attempts"(in default.props), it return false.
+    */
+  override def userIsLocked(username: String): Boolean = {
+
+    MappedBadLoginAttempts.find(By(MappedBadLoginAttempts.mUsername, username)) match {
+      case Empty => true //When the username first login in. No records, so it is empty
+      case loginAttempt if(loginAttempt.get.mBadAttemptsSinceLastSuccess < (maxBadLoginAttempts.toInt-1)) => true
+      case _ => false
+    }
+  }
+
+  override def resetBadLoginAttempts(username: String): Unit = {
+
+    MappedBadLoginAttempts.find(By(MappedBadLoginAttempts.mUsername, username)) match {
+      case Full(loginAttempt) =>
+        loginAttempt.mLastFailureDate(now).mBadAttemptsSinceLastSuccess(0).save
+      case _ =>
+        MappedBadLoginAttempts.create.mUsername(username).mBadAttemptsSinceLastSuccess(0).save()
+    }
+  }
 }
