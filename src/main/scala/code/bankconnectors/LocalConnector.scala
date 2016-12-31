@@ -619,9 +619,5 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  override def incrementBadLoginAttempts(username: String): Unit = Empty
 
-  override def userIsLocked(username: String): Boolean = false
-
-  override def resetBadLoginAttempts(username: String): Unit = Empty
 }

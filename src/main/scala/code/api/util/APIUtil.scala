@@ -88,7 +88,7 @@ object ErrorMessages {
 
   val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
 
-  val LockedLoginUsername = "OBP-20013: The account has been locked, please contact administrator !"
+  val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."

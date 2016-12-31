@@ -760,10 +760,10 @@ trait Connector {
     List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
-  def incrementBadLoginAttempts(username:String):Unit
-
-  def userIsLocked(username:String):Boolean
-
-  def resetBadLoginAttempts(username:String):Unit
+//  def incrementBadLoginAttempts(username:String):Unit
+//
+//  def userIsLocked(username:String):Boolean
+//
+//  def resetBadLoginAttempts(username:String):Unit
 
 }

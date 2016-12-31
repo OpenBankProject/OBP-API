@@ -39,6 +39,7 @@ import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.atms.MappedAtm
+import code.loginattempts.{MappedBadLoginAttempt}
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -441,6 +442,6 @@ object ToSchemify {
     MappedPhysicalCard,
     PinReset,
     MappedCounterparty,
-    MappedBadLoginAttempts
+    MappedBadLoginAttempt
   )
 }

@@ -44,6 +44,9 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 
+import code.loginattempts.LoginAttempt
+
+
 /**
  * An O-R mapped "User" class that includes first name, last name, password
   *
@@ -354,47 +357,50 @@ import net.liftweb.util.Helpers._
   }
 
 
-  // What if we just want to return the userId without sending username/password??
 
-  def getAPIUserId(name: String, password: String): Box[Long] = {
-    findUserByUsername(name) match {
+
+  def getAPIUserId(username: String, password: String): Box[Long] = {
+    findUserByUsername(username) match {
       case Full(user) =>
-        if (user.validated_? &&
-          // Check whether user is locked or not
-          Connector.connector.vend.userIsLocked(name) &&
+        if (
+          user.validated_? &&
+          // User is not locked AND the password is good
+          ! LoginAttempt.userIsLocked(username) &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
-        {
-          // if login in correctly, reset or set the bad login attemps to 0.
-          Connector.connector.vend.resetBadLoginAttempts(name)
-          Full(user.user)
-        }
+            {
+              // We logged in correctly, so reset badLoginAttempts counter (if it exists)
+              LoginAttempt.resetBadLoginAttempts(username)
+              Full(user.user) // Return the user.
+            }
         //recording the login faild times when password is wrong
-        else if (user.validated_? &&
-          // Check whether user is locked or not
-          Connector.connector.vend.userIsLocked(name) &&
-          !user.testPassword(Full(password))
+        else if (
+          user.validated_? &&
+          // User is locked OR password is bad
+          LoginAttempt.userIsLocked(username) ||
+          ! user.testPassword(Full(password))
         ) {
-          Connector.connector.vend.incrementBadLoginAttempts(name)
+          LoginAttempt.incrementBadLoginAttempts(username)
           Empty
         }
-        else if (!Connector.connector.vend.userIsLocked(name)
+        else if (!LoginAttempt.userIsLocked(username)
         ) {
-          info(ErrorMessages.LockedLoginUsername)
-          S.error(S.?(ErrorMessages.LockedLoginUsername))
-          Full(usernameLockedStateCode)
+          info(ErrorMessages.UsernameHasBeenLocked)
+          S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+          //Full(usernameLockedStateCode)
+          Empty
         }
         else {
           connector match {
             case "kafka" =>
               if (Props.getBool("kafka.user.authentication", false))
-                for { kafkaUser <- getUserFromConnector(name, password)
+                for { kafkaUser <- getUserFromConnector(username, password)
                       kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
               else
                 Empty
             case "obpjvm" =>
               if (Props.getBool("obpjvm.user.authentication", false))
-                for { obpjvmUser <- getUserFromConnector(name, password)
+                for { obpjvmUser <- getUserFromConnector(username, password)
                       obpjvmUserId <- tryo{obpjvmUser.user} } yield obpjvmUserId.toLong
               else
                 Empty
@@ -469,10 +475,10 @@ import net.liftweb.util.Helpers._
             // Check if user came from localhost
             user.getProvider() == Props.get("hostname","") &&
             // Check whether user is locked or not
-            Connector.connector.vend.userIsLocked(usernameFromGui) &&
+            LoginAttempt.userIsLocked(usernameFromGui) &&
             user.testPassword(S.param("password")) => {
             // if login in correctly, reset or set the bad login attemps to 0.
-            Connector.connector.vend.resetBadLoginAttempts(usernameFromGui)
+            LoginAttempt.resetBadLoginAttempts(usernameFromGui)
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -493,15 +499,15 @@ import net.liftweb.util.Helpers._
           // This case is to record the login faild times when password is wrong
           case Full(user) if user.validated_? &&
             // Check whether user is locked or not
-            Connector.connector.vend.userIsLocked(usernameFromGui) &&
+            LoginAttempt.userIsLocked(usernameFromGui) &&
             !user.testPassword(S.param("password")) =>{
-              Connector.connector.vend.incrementBadLoginAttempts(usernameFromGui)
+            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("passwords.do.not.match"))
             }
 
           // This case is to send the error to GUI, when the username is locked
-          case Full(user) if !Connector.connector.vend.userIsLocked(usernameFromGui) =>
-            S.error(S.?(ErrorMessages.LockedLoginUsername))
+          case Full(user) if !LoginAttempt.userIsLocked(usernameFromGui) =>
+            S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
