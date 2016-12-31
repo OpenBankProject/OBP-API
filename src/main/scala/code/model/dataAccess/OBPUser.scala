@@ -33,7 +33,7 @@ package code.model.dataAccess
 
 import java.util.UUID
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import net.liftweb.common._
@@ -158,6 +158,9 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
  */
 object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
+
+  /**Marking the locked state to show different error message */
+  val usernameLockedStateCode = 999999999
 
   val connector = Props.get("connector").openOrThrowException("no connector set")
 
@@ -357,10 +360,29 @@ import net.liftweb.util.Helpers._
     findUserByUsername(name) match {
       case Full(user) =>
         if (user.validated_? &&
+          // Check whether user is locked or not
+          Connector.connector.vend.userIsLocked(name) &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
         {
+          // if login in correctly, reset or set the bad login attemps to 0.
+          Connector.connector.vend.resetBadLoginAttempts(name)
           Full(user.user)
+        }
+        //recording the login faild times when password is wrong
+        else if (user.validated_? &&
+          // Check whether user is locked or not
+          Connector.connector.vend.userIsLocked(name) &&
+          !user.testPassword(Full(password))
+        ) {
+          Connector.connector.vend.incrementBadLoginAttempts(name)
+          Empty
+        }
+        else if (!Connector.connector.vend.userIsLocked(name)
+        ) {
+          info(ErrorMessages.LockedLoginUsername)
+          S.error(S.?(ErrorMessages.LockedLoginUsername))
+          Full(usernameLockedStateCode)
         }
         else {
           connector match {
@@ -440,12 +462,17 @@ import net.liftweb.util.Helpers._
   override def login = {
     def loginAction = {
       if (S.post_?) {
+        val usernameFromGui = S.param("username").getOrElse("")
         S.param("username").
           flatMap(name => findUserByUsername(name)) match {
           case Full(user) if user.validated_? &&
             // Check if user came from localhost
             user.getProvider() == Props.get("hostname","") &&
+            // Check whether user is locked or not
+            Connector.connector.vend.userIsLocked(usernameFromGui) &&
             user.testPassword(S.param("password")) => {
+            // if login in correctly, reset or set the bad login attemps to 0.
+            Connector.connector.vend.resetBadLoginAttempts(usernameFromGui)
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -462,6 +489,19 @@ import net.liftweb.util.Helpers._
               S.redirectTo(redir)
             })
           }
+
+          // This case is to record the login faild times when password is wrong
+          case Full(user) if user.validated_? &&
+            // Check whether user is locked or not
+            Connector.connector.vend.userIsLocked(usernameFromGui) &&
+            !user.testPassword(S.param("password")) =>{
+              Connector.connector.vend.incrementBadLoginAttempts(usernameFromGui)
+              S.error(S.?("passwords.do.not.match"))
+            }
+
+          // This case is to send the error to GUI, when the username is locked
+          case Full(user) if !Connector.connector.vend.userIsLocked(usernameFromGui) =>
+            S.error(S.?(ErrorMessages.LockedLoginUsername))
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))

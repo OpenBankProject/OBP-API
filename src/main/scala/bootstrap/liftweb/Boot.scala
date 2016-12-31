@@ -440,5 +440,7 @@ object ToSchemify {
     MappedEntitlement,
     MappedPhysicalCard,
     PinReset,
-    MappedCounterparty)
+    MappedCounterparty,
+    MappedBadLoginAttempts
+  )
 }

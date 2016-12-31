@@ -1190,6 +1190,11 @@ object KafkaMappedConnector extends Connector with Loggable {
     return json.parse("""{"error":"could not send message to kafka"}""")
   }
 
+  override def incrementBadLoginAttempts(username: String): Unit = Empty
+
+  override def userIsLocked(username: String): Boolean = false
+
+  override def resetBadLoginAttempts(username: String): Unit = Empty
 }
 
 

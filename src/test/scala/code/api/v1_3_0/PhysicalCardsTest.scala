@@ -179,6 +179,12 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
+
+    override def incrementBadLoginAttempts(username: String): Unit = Empty
+
+    override def userIsLocked(username: String): Boolean = false
+
+    override def resetBadLoginAttempts(username: String): Unit = Empty
   }
 
   override def beforeAll() {

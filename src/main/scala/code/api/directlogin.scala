@@ -99,6 +99,9 @@ object DirectLogin extends RestHelper with Loggable {
         if (userId == 0) {
           message = ErrorMessages.InvalidLoginCredentials
           httpCode = 401
+        } else if (userId == OBPUser.usernameLockedStateCode) {
+            message = ErrorMessages.LockedLoginUsername
+            httpCode = 401
         } else {
           val claims = Map("" -> "")
           val (token:String, secret:String) = generateTokenAndSecret(claims)
