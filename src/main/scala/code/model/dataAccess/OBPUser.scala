@@ -474,10 +474,10 @@ import net.liftweb.util.Helpers._
           case Full(user) if user.validated_? &&
             // Check if user came from localhost
             user.getProvider() == Props.get("hostname","") &&
-            // Check whether user is locked or not
-            LoginAttempt.userIsLocked(usernameFromGui) &&
+            // If User NOT locked and password is good
+            ! LoginAttempt.userIsLocked(usernameFromGui) &&
             user.testPassword(S.param("password")) => {
-            // if login in correctly, reset or set the bad login attemps to 0.
+            // Reset any bad attempts
             LoginAttempt.resetBadLoginAttempts(usernameFromGui)
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
@@ -496,18 +496,18 @@ import net.liftweb.util.Helpers._
             })
           }
 
-          // This case is to record the login faild times when password is wrong
+          // If user is locked OR bad password, increment bad login attempt counter.
           case Full(user) if user.validated_? &&
-            // Check whether user is locked or not
-            LoginAttempt.userIsLocked(usernameFromGui) &&
-            !user.testPassword(S.param("password")) =>{
+            LoginAttempt.userIsLocked(usernameFromGui) ||
+            ! user.testPassword(S.param("password")) =>{
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-              S.error(S.?("passwords.do.not.match"))
+              S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
             }
 
           // This case is to send the error to GUI, when the username is locked
-          case Full(user) if !LoginAttempt.userIsLocked(usernameFromGui) =>
-            S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
+            //S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+            S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
