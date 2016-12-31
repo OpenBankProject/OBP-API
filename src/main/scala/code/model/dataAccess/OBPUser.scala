@@ -364,7 +364,7 @@ import net.liftweb.util.Helpers._
       case Full(user) =>
         if (
           user.validated_? &&
-          // User is not locked AND the password is good
+          // User is NOT locked AND the password is good
           ! LoginAttempt.userIsLocked(username) &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
@@ -373,21 +373,19 @@ import net.liftweb.util.Helpers._
               LoginAttempt.resetBadLoginAttempts(username)
               Full(user.user) // Return the user.
             }
-        //recording the login faild times when password is wrong
+        // User is locked OR password is bad
         else if (
           user.validated_? &&
-          // User is locked OR password is bad
           LoginAttempt.userIsLocked(username) ||
           ! user.testPassword(Full(password))
         ) {
           LoginAttempt.incrementBadLoginAttempts(username)
           Empty
         }
+        // User is locked
         else if (!LoginAttempt.userIsLocked(username)
         ) {
           info(ErrorMessages.UsernameHasBeenLocked)
-          S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-          //Full(usernameLockedStateCode)
           Empty
         }
         else {
@@ -512,6 +510,9 @@ import net.liftweb.util.Helpers._
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
 
+
+          // TODO Check the User Lock situation for non mapped users
+
           case _ => if (connector == "kafka" || connector == "obpjvm")
           {
             // If not found locally, try to authenticate user via Kafka, if enabled in props
@@ -591,7 +592,7 @@ import net.liftweb.util.Helpers._
     val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
     val theName = signUpPath.mkString("")
 
-    //save the intented login redirect here, as it gets wiped (along with the session) on login
+    //save the intended login redirect here, as it gets wiped (along with the session) on login
     val loginRedirectSave = loginRedirect.is
 
     def testSignup() {

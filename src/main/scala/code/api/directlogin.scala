@@ -42,6 +42,7 @@ import net.liftweb.util.Helpers._
 
 import scala.compat.Platform
 import code.api.util.{APIUtil, ErrorMessages}
+import code.util.Helper.SILENCE_IS_GOLDEN
 
 /**
 * This object provides the API calls necessary to
@@ -189,18 +190,18 @@ object DirectLogin extends RestHelper with Loggable {
     /**Validate user supplied Direct Login parameters before they are used further,
       * guard maximum length and content of strings (a-z,0-9 etc.) */
     def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
-      for( key <- parameters.keys )yield {
+      for (key <- parameters.keys) yield {
         val parameterValue = parameters.get(key).get
         key match {
           case "username" =>
-            assertMediumString(parameterValue)
+            checkMediumString(parameterValue)
           case "password" =>
-            assertMediumAlphaNumeric(parameterValue)
+            checkMediumAlphaNumeric(parameterValue)
           case "consumer_key" =>
-            assertMediumAlphaNumeric(parameterValue)
+            checkMediumAlphaNumeric(parameterValue)
           case "token" =>
-            assertMediumString(parameterValue)
-          case _ =>ErrorMessages.InvalidDirectLoginParameters
+            checkMediumString(parameterValue)
+          case _ => ErrorMessages.InvalidDirectLoginParameters
         }
       }
     }
@@ -231,7 +232,7 @@ object DirectLogin extends RestHelper with Loggable {
       message = ErrorMessages.DirectLoginMissingParameters + missingParams.mkString(", ")
       httpCode = 400
     }
-    else if("Success" != validParams.mkString("")){
+    else if(SILENCE_IS_GOLDEN != validParams.mkString("")){
       message = validParams.mkString("")
       httpCode = 400
     }

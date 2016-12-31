@@ -12,6 +12,16 @@ import net.liftweb.json.Printer._
 object Helper{
 
   /**
+    *
+    *
+    */
+
+  // If we need to return a string and all good, return an empty string
+  // rule of silence http://www.linfo.org/rule_of_silence.html
+  val SILENCE_IS_GOLDEN = ""
+
+
+  /**
    * A css selector that will (unless you have a template containing an element
    * name i_am_an_id_that_should_never_exist) have no effect. Useful when you have
    * a method that needs to return a CssSel but in some code paths don't want to do anything.
