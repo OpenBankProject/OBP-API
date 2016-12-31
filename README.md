@@ -244,7 +244,7 @@ http://localhost:8080/obp/v2.0.0/banks
 
 # Production Options.
 
-* set the status of HttpOnly and Secure cookie flags for produnction,uncomment the following lines of  "webapp/WEB-INF/web.xml" :
+* set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of  "webapp/WEB-INF/web.xml" :
 
         <session-config>
           <cookie-config>
