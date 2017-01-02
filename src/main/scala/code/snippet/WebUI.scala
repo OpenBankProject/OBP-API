@@ -46,6 +46,14 @@ class WebUI extends Loggable{
 
   @transient protected val log = Logger(this.getClass)
 
+  // render the reminder cookie page.
+  def cookieReminder = {
+    var onclick = "removeById('cookies-reminder'); "
+    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showUsesCookiePage('cookies-reminder'); </script>""".format(onclick)
+    val button  = scala.xml.Unparsed(s"""$buttonString""")
+    "#clickMe" #> button
+  }
+
   private object firstKnownIPAddress extends SessionVar("")
   private object updateIPaddressEachtime extends SessionVar("")
 
