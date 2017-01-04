@@ -733,29 +733,25 @@ trait Connector {
                   accountants_view: Boolean = false,
                   auditors_view: Boolean = false ) : List[View] = {
 
-    val ownerView =
-      if(owner_view && ! Views.views.vend.viewExists(bankId, accountId, "Owner")) {
-        Some(Views.views.vend.createOwnerView(bankId, accountId, "Owner View"))
-      }
-      else None
+    val ownerView: Box[View] =
+      if(owner_view)
+        Views.views.vend.createOwnerView(bankId, accountId, "Owner View")
+      else Empty
 
-    val publicView =
-      if(public_view && ! Views.views.vend.viewExists(bankId, accountId, "Public")) {
-        Some(Views.views.vend.createPublicView(bankId, accountId, "Public View"))
-      }
-      else None
+    val publicView: Box[View]  =
+      if(public_view)
+        Views.views.vend.createPublicView(bankId, accountId, "Public View")
+      else Empty
 
-    val accountantsView =
-      if(accountants_view && ! Views.views.vend.viewExists(bankId, accountId, "Accountant")) {
-        Some(Views.views.vend.createAccountantsView(bankId, accountId, "Accountants View"))
-      }
-      else None
+    val accountantsView: Box[View]  =
+      if(accountants_view)
+        Views.views.vend.createAccountantsView(bankId, accountId, "Accountants View")
+      else Empty
 
-    val auditorsView =
-      if(auditors_view && ! Views.views.vend.viewExists(bankId, accountId, "Auditor") ) {
-        Some(Views.views.vend.createAuditorsView(bankId, accountId, "Auditors View"))
-      }
-      else None
+    val auditorsView: Box[View] =
+      if(auditors_view)
+        Views.views.vend.createAuditorsView(bankId, accountId, "Auditors View")
+      else Empty
 
     List(ownerView, publicView, accountantsView, auditorsView).flatten
   }

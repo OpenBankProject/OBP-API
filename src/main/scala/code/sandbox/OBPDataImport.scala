@@ -2,18 +2,19 @@ package code.sandbox
 
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
+
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
-import code.products.Products.{ProductCode, Product}
-import code.bankconnectors.{OBPOffset, OBPLimit, Connector}
+import code.products.Products.{Product, ProductCode}
+import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
 import code.model.dataAccess.{APIUser, MappedAccountHolder}
 import code.model._
-import code.branches.Branches.{Branch}
-import code.atms.Atms.{Atm}
+import code.branches.Branches.Branch
+import code.atms.Atms.Atm
 import code.util.Helper
 import code.views.Views
-import net.liftweb.common.{Loggable, Full, Failure, Box}
+import net.liftweb.common._
 import net.liftweb.mapper.By
 import net.liftweb.util.SimpleInjector
 
@@ -101,24 +102,24 @@ trait OBPDataImport extends Loggable {
   /**
    * Create an owner view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : ViewType
+  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
 
   /**
    * Create a public view for account with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : ViewType
+  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
 
 
   /**
    * Create AccountantsView with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : ViewType
+  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
 
 
   /**
    * Create AuditorsView with BankId @bankId and AccountId @accountId that can be saved.
    */
-  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : ViewType
+  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType]
 
 
   /**
@@ -379,21 +380,25 @@ trait OBPDataImport extends Loggable {
     val bankId = BankId(acc.bank)
     val accountId = AccountId(acc.id)
 
-    val ownerView = createOwnerView(bankId, accountId, "Owner View")
+    val ownerView =
+        createOwnerView(bankId, accountId, "Owner View")
 
     val publicView =
-      if(acc.generate_public_view) Some(createPublicView(bankId, accountId, "Public View"))
-      else None
+      if(acc.generate_public_view)
+        createPublicView(bankId, accountId, "Public View")
+      else Empty
 
     val accountantsView =
-      if(acc.generate_accountants_view) Some(createAccountantsView(bankId, accountId, "Accountants View"))
-      else None
+      if(acc.generate_accountants_view)
+        createAccountantsView(bankId, accountId, "Accountants View")
+      else Empty
 
     val auditorsView =
-      if(acc.generate_auditors_view) Some(createAuditorsView(bankId, accountId, "Auditors View"))
-      else None
+      if(acc.generate_auditors_view)
+        createAuditorsView(bankId, accountId, "Auditors View")
+      else Empty
 
-    List(Some(ownerView), publicView, accountantsView, auditorsView).flatten
+    List(ownerView, publicView, accountantsView, auditorsView).flatten
   }
 
   final protected def createTransactions(data : SandboxDataImport, createdBanks : List[BankType], createdAccounts : List[AccountType]) : Box[List[Saveable[TransactionType]]] = {

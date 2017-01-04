@@ -27,15 +27,15 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
   }
 
   protected def createOwnerView(bankId: BankId, accountId: AccountId ) : View = {
-    Views.views.vend.createOwnerView(bankId, accountId, randomString(3))
+    Views.views.vend.createOwnerView(bankId, accountId, randomString(3)).get
   }
 
   protected def createPublicView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createPublicView(bankId, accountId, randomString(3))
+    Views.views.vend.createPublicView(bankId, accountId, randomString(3)).get
   }
 
   protected def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    Views.views.vend.createRandomView(bankId, accountId)
+    Views.views.vend.createRandomView(bankId, accountId).get
   }
 
 
@@ -51,5 +51,6 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
   }
 }

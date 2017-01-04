@@ -2,8 +2,9 @@ package code.views
 
 import code.api.APIFailure
 import code.bankconnectors.Connector
+import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
-import code.model.{User, Permission, CreateViewJSON, UpdateViewJSON, _}
+import code.model.{CreateViewJSON, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
@@ -95,13 +96,19 @@ object MapperViews extends Views with Loggable {
   }
 
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] = {
+    val res =
     for{
       viewImpl <- ViewImpl.find(viewUID)
-      vp <- ViewPrivileges.find(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, viewImpl.id))
+      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, viewImpl.id))
       deletable <- accessRemovableAsBox(viewImpl, user)
     } yield {
-      vp.delete_!
+      val r =
+        vp.delete_!
+      return Full(r)
     }
+    if (res == Failure("access cannot be revoked"))
+      return Full(false)
+    res
   }
 
   //returns Full if deletable, Failure if not
@@ -133,7 +140,7 @@ object MapperViews extends Views with Loggable {
   This removes the link between a User and a View (View Privileges)
    */
 
-  def revokeAllPermission(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
+  def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
 
@@ -242,7 +249,7 @@ object MapperViews extends Views with Loggable {
         case _ => None
       }
     })
-    userNonPublicViewsForAccount ++ bankAccount.publicViews
+    userNonPublicViewsForAccount ++ publicViews(bankAccount)
   }
 
   def publicViews(bankAccount : BankAccount) : List[View] = {
@@ -392,32 +399,36 @@ object MapperViews extends Views with Loggable {
     Connector.connector.vend.getBankAccounts(accountsList)
   }
 
-  def grantAccessToView(user : User, view : View) = {
-    val viewImpl = ViewImpl.find(view.uid)
-    ViewPrivileges.create.
-      view(viewImpl.get). //explodes if no viewImpl exists, but that's okay, the test should fail then
-      user(user.apiId.value).
-      save
+  def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {
+    getExistingView(bankId, accountId, "Owner") match {
+      case Empty => createDefaultOwnerView(bankId, accountId, description)
+      case Full(v) => Full(v)
+    }
   }
 
-  def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : View = {
-    ViewImpl.createAndSaveOwnerView(bankId, accountId, description)
+  def createPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {
+    getExistingView(bankId, accountId, "Public") match {
+      case Empty=> createDefaultPublicView(bankId, accountId, description)
+      case Full(v)=> Full(v)
+    }
   }
 
-  def createPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : View = {
-    ViewImpl.createAndSaveDefaultPublicView(bankId, accountId, description)
+  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : Box[View] = {
+    getExistingView(bankId, accountId, "Accountant") match {
+      case Empty => createDefaultAccountantsView(bankId, accountId, description)
+      case Full(v) => Full(v)
+    }
   }
 
-  def createAccountantsView(bankId: BankId, accountId: AccountId, description: String = "Accountants View") : View = {
-    ViewImpl.createAndSaveDefaultAccountantsView(bankId, accountId, description)
+  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : Box[View] = {
+    getExistingView(bankId, accountId, "Auditor") match {
+      case Empty => createDefaultAuditorsView(bankId, accountId, description)
+      case Full(v) => Full(v)
+    }
   }
 
-  def createAuditorsView(bankId: BankId, accountId: AccountId, description: String = "Auditors View") : View = {
-    ViewImpl.createAndSaveDefaultAuditorsView(bankId, accountId, description)
-  }
-
-  def createRandomView(bankId: BankId, accountId: AccountId) : View = {
-    ViewImpl.create.
+  def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
+    Full(ViewImpl.create.
       name_(randomString(5)).
       description_(randomString(3)).
       permalink_(randomString(3)).
@@ -487,20 +498,31 @@ object MapperViews extends Views with Loggable {
       canAddWhereTag_(true).
       canSeeWhereTag_(true).
       canDeleteWhereTag_(true).
-      saveMe
+      saveMe)
   }
 
   //TODO This is used only for tests, but might impose security problem
   def grantAccessToAllExistingViews(user : User) = {
     ViewImpl.findAll.foreach(v => {
-      ViewPrivileges.create.
-        view(v).
-        user(user.apiId.value).
-        save
-    })
+      if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.apiId.value) ).isEmpty )
+        ViewPrivileges.create.
+          view(v).
+          user(user.apiId.value).
+          save
+      })
     true
   }
 
+  def grantAccessToView(user : User, view : View) = {
+    val v = ViewImpl.find(view.uid).orNull
+    if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.apiId.value) ) == 0 )
+    ViewPrivileges.create.
+      view(v). //explodes if no viewImpl exists, but that's okay, the test should fail then
+      user(user.apiId.value).
+      save
+    else
+      false
+  }
 
   def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
     val res =
@@ -512,6 +534,30 @@ object MapperViews extends Views with Loggable {
     res.nonEmpty
   }
 
+  def createDefaultOwnerView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    createAndSaveOwnerView(bankId, accountId, "Owner View")
+  }
+
+  def createDefaultPublicView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    createAndSaveDefaultPublicView(bankId, accountId, "Public View")
+  }
+
+  def createDefaultAccountantsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    createAndSaveDefaultAccountantsView(bankId, accountId, "Accountants View")
+  }
+
+  def createDefaultAuditorsView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    createAndSaveDefaultAuditorsView(bankId, accountId, "Auditors View")
+  }
+
+  def getExistingView(bankId: BankId, accountId: AccountId, name: String): Box[View] = {
+    val res = ViewImpl.find(
+        By(ViewImpl.bankPermalink, bankId.value),
+        By(ViewImpl.accountPermalink, accountId.value),
+        By(ViewImpl.name_, name)
+      )
+    res
+  }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean = {
     val views = ViewImpl.findAll(
@@ -531,6 +577,333 @@ object MapperViews extends Views with Loggable {
       By(ViewImpl.bankPermalink, bankId.value),
       By(ViewImpl.accountPermalink, accountId.value)
     )
+  }
+
+
+  def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    create
+      .bankPermalink(bankId.value)
+      .accountPermalink(accountId.value)
+      .name_("Owner")
+      .permalink_("owner")
+      .description_(description)
+      .isPublic_(false) //(default is false anyways)
+      .usePrivateAliasIfOneExists_(false) //(default is false anyways)
+      .usePublicAliasIfOneExists_(false) //(default is false anyways)
+      .hideOtherAccountMetadataIfAlias_(false) //(default is false anyways)
+      .canSeeTransactionThisBankAccount_(true)
+      .canSeeTransactionOtherBankAccount_(true)
+      .canSeeTransactionMetadata_(true)
+      .canSeeTransactionDescription_(true)
+      .canSeeTransactionAmount_(true)
+      .canSeeTransactionType_(true)
+      .canSeeTransactionCurrency_(true)
+      .canSeeTransactionStartDate_(true)
+      .canSeeTransactionFinishDate_(true)
+      .canSeeTransactionBalance_(true)
+      .canSeeComments_(true)
+      .canSeeOwnerComment_(true)
+      .canSeeTags_(true)
+      .canSeeImages_(true)
+      .canSeeBankAccountOwners_(true)
+      .canSeeBankAccountType_(true)
+      .canSeeBankAccountBalance_(true)
+      .canSeeBankAccountCurrency_(true)
+      .canSeeBankAccountLabel_(true)
+      .canSeeBankAccountNationalIdentifier_(true)
+      .canSeeBankAccountSwift_bic_(true)
+      .canSeeBankAccountIban_(true)
+      .canSeeBankAccountNumber_(true)
+      .canSeeBankAccountBankName_(true)
+      .canSeeBankAccountBankPermalink_(true)
+      .canSeeOtherAccountNationalIdentifier_(true)
+      .canSeeOtherAccountSWIFT_BIC_(true)
+      .canSeeOtherAccountIBAN_(true)
+      .canSeeOtherAccountBankName_(true)
+      .canSeeOtherAccountNumber_(true)
+      .canSeeOtherAccountMetadata_(true)
+      .canSeeOtherAccountKind_(true)
+      .canSeeMoreInfo_(true)
+      .canSeeUrl_(true)
+      .canSeeImageUrl_(true)
+      .canSeeOpenCorporatesUrl_(true)
+      .canSeeCorporateLocation_(true)
+      .canSeePhysicalLocation_(true)
+      .canSeePublicAlias_(true)
+      .canSeePrivateAlias_(true)
+      .canAddMoreInfo_(true)
+      .canAddURL_(true)
+      .canAddImageURL_(true)
+      .canAddOpenCorporatesUrl_(true)
+      .canAddCorporateLocation_(true)
+      .canAddPhysicalLocation_(true)
+      .canAddPublicAlias_(true)
+      .canAddPrivateAlias_(true)
+      .canCreateCounterparty_(true)
+      .canDeleteCorporateLocation_(true)
+      .canDeletePhysicalLocation_(true)
+      .canEditOwnerComment_(true)
+      .canAddComment_(true)
+      .canDeleteComment_(true)
+      .canAddTag_(true)
+      .canDeleteTag_(true)
+      .canAddImage_(true)
+      .canDeleteImage_(true)
+      .canAddWhereTag_(true)
+      .canSeeWhereTag_(true)
+      .canDeleteWhereTag_(true)
+      .canInitiateTransaction_(true)
+  }
+
+  def createAndSaveOwnerView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    val res = unsavedOwnerView(bankId, accountId, description).saveMe
+    Full(res)
+  }
+
+  def unsavedDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    create.
+      name_("Public").
+      description_(description).
+      permalink_("public").
+      isPublic_(true).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(true).
+      hideOtherAccountMetadataIfAlias_(true).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true)
+  }
+
+  def createAndSaveDefaultPublicView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    val res = unsavedDefaultPublicView(bankId, accountId, description).saveMe
+    Full(res)
+  }
+
+  /*
+ Accountants
+   */
+
+  def unsavedDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    create.
+      name_("Accountant"). // Use the singular form
+      description_(description).
+      permalink_("accountant"). // Use the singular form
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(true).
+      hideOtherAccountMetadataIfAlias_(true).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true)
+  }
+
+  def createAndSaveDefaultAccountantsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    val res = unsavedDefaultAccountantsView(bankId, accountId, description).saveMe
+    Full(res)
+  }
+
+
+  /*
+Auditors
+ */
+
+  def unsavedDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
+    create.
+      name_("Auditor"). // Use the singular form
+      description_(description).
+      permalink_("auditor"). // Use the singular form
+      isPublic_(false).
+      bankPermalink(bankId.value).
+      accountPermalink(accountId.value).
+      usePrivateAliasIfOneExists_(false).
+      usePublicAliasIfOneExists_(true).
+      hideOtherAccountMetadataIfAlias_(true).
+      canSeeTransactionThisBankAccount_(true).
+      canSeeTransactionOtherBankAccount_(true).
+      canSeeTransactionMetadata_(true).
+      canSeeTransactionDescription_(false).
+      canSeeTransactionAmount_(true).
+      canSeeTransactionType_(true).
+      canSeeTransactionCurrency_(true).
+      canSeeTransactionStartDate_(true).
+      canSeeTransactionFinishDate_(true).
+      canSeeTransactionBalance_(true).
+      canSeeComments_(true).
+      canSeeOwnerComment_(true).
+      canSeeTags_(true).
+      canSeeImages_(true).
+      canSeeBankAccountOwners_(true).
+      canSeeBankAccountType_(true).
+      canSeeBankAccountBalance_(true).
+      canSeeBankAccountCurrency_(true).
+      canSeeBankAccountLabel_(true).
+      canSeeBankAccountNationalIdentifier_(true).
+      canSeeBankAccountSwift_bic_(true).
+      canSeeBankAccountIban_(true).
+      canSeeBankAccountNumber_(true).
+      canSeeBankAccountBankName_(true).
+      canSeeBankAccountBankPermalink_(true).
+      canSeeOtherAccountNationalIdentifier_(true).
+      canSeeOtherAccountSWIFT_BIC_(true).
+      canSeeOtherAccountIBAN_ (true).
+      canSeeOtherAccountBankName_(true).
+      canSeeOtherAccountNumber_(true).
+      canSeeOtherAccountMetadata_(true).
+      canSeeOtherAccountKind_(true).
+      canSeeMoreInfo_(true).
+      canSeeUrl_(true).
+      canSeeImageUrl_(true).
+      canSeeOpenCorporatesUrl_(true).
+      canSeeCorporateLocation_(true).
+      canSeePhysicalLocation_(true).
+      canSeePublicAlias_(true).
+      canSeePrivateAlias_(true).
+      canAddMoreInfo_(true).
+      canAddURL_(true).
+      canAddImageURL_(true).
+      canAddOpenCorporatesUrl_(true).
+      canAddCorporateLocation_(true).
+      canAddPhysicalLocation_(true).
+      canAddPublicAlias_(true).
+      canAddPrivateAlias_(true).
+      canCreateCounterparty_(true).
+      canDeleteCorporateLocation_(true).
+      canDeletePhysicalLocation_(true).
+      canEditOwnerComment_(true).
+      canAddComment_(true).
+      canDeleteComment_(true).
+      canAddTag_(true).
+      canDeleteTag_(true).
+      canAddImage_(true).
+      canDeleteImage_(true).
+      canAddWhereTag_(true).
+      canSeeWhereTag_(true).
+      canDeleteWhereTag_(true)
+  }
+
+  def createAndSaveDefaultAuditorsView(bankId : BankId, accountId: AccountId, description: String) : Box[View] = {
+    val res = unsavedDefaultAuditorsView(bankId, accountId, description).saveMe
+    Full(res)
   }
 
 }

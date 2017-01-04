@@ -257,17 +257,20 @@ object LocalMappedConnectorDataImport extends OBPDataImport with CreateOBPUsers 
     }
   }
 
-  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : ViewType =
-    Views.views.vend.createOwnerView(bankId, accountId, description).asInstanceOf[ViewType]
+  protected def createOwnerView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createOwnerView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
 
-  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : ViewType =
-    Views.views.vend.createPublicView(bankId, accountId, description).asInstanceOf[ViewType]
+  protected def createPublicView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createPublicView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
 
-  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : ViewType =
-    Views.views.vend.createAccountantsView(bankId, accountId, description).asInstanceOf[ViewType]
+  protected def createAccountantsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createAccountantsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
 
-  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : ViewType =
-    Views.views.vend.createAuditorsView(bankId, accountId, description).asInstanceOf[ViewType]
-
+  protected def createAuditorsView(bankId : BankId, accountId : AccountId, description: String) : Box[ViewType] = {
+    Views.views.vend.createAuditorsView(bankId, accountId, description).asInstanceOf[Box[ViewType]]
+  }
 
 }

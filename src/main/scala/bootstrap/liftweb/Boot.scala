@@ -75,6 +75,7 @@ import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
 import code.transaction.MappedTransaction
+import code.views.RemoteDataActorSystem
 
 
 /**
@@ -344,6 +345,12 @@ class Boot extends Loggable{
         XhtmlResponse((<html> <body>Something unexpected happened while serving the page at {r.uri}</body> </html>), S.htmlProperties.docType, List("Content-Type" -> "text/html; charset=utf-8"), Nil, 500, S.legacyIeCompatibilityMode)
       }
     }
+
+    if (!Props.getBool("enable_remotedata", false)) {
+      RemoteDataActorSystem.startLocalWorkerSystem()
+    }
+
+
   }
 
   def schemifyAll() = {
@@ -400,13 +407,16 @@ class Boot extends Loggable{
 }
 
 object ToSchemify {
-  val models = List(OBPUser,
+  val modelsRemotedata = List(
+    ViewImpl,
+    ViewPrivileges)
+
+  val models = List(
+    OBPUser,
     Admin,
     Nonce,
     Token,
     Consumer,
-    ViewPrivileges,
-    ViewImpl,
     APIUser,
     MappedAccountHolder,
     MappedComment,

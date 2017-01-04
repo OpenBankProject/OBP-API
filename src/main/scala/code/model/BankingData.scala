@@ -272,8 +272,7 @@ trait BankAccount {
     if(user.ownerAccess(this)){
       Full(Connector.connector.vend.removeAccount(this.bankId, this.accountId))
     } else {
-      // TODO Correct English in failure messages (but consider compatibility of messages with older API versions)
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
   }
 
@@ -281,7 +280,7 @@ trait BankAccount {
     if(user.ownerAccess(this)){
       Full(Connector.connector.vend.updateAccountLabel(this.bankId, this.accountId, label))
     } else {
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
     }
   }
 
@@ -357,7 +356,7 @@ trait BankAccount {
         p <- Views.views.vend.permission(this, u)
         } yield p
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -375,7 +374,7 @@ trait BankAccount {
         savedView <- Views.views.vend.addPermission(viewUID, otherUser) ?~ "could not save the privilege"
       } yield savedView
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -393,7 +392,7 @@ trait BankAccount {
         grantedViews <- Views.views.vend.addPermissions(viewUIDs, otherUser) ?~ "could not save the privilege"
       } yield grantedViews
     else
-      Failure("user : " + user.emailAddress + "don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -411,7 +410,7 @@ trait BankAccount {
         isRevoked <- Views.views.vend.revokePermission(viewUID, otherUser) ?~ "could not revoke the privilege"
       } yield isRevoked
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   /**
@@ -427,10 +426,10 @@ trait BankAccount {
     if(user.ownerAccess(this))
       for{
         otherUser <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider) //check if the userId corresponds to a user
-        isRevoked <- Views.views.vend.revokeAllPermission(bankId, accountId, otherUser)
+        isRevoked <- Views.views.vend.revokeAllPermissions(bankId, accountId, otherUser)
       } yield isRevoked
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
 
@@ -440,10 +439,10 @@ trait BankAccount {
 
   final def views(user : User) : Box[List[View]] = {
     //check if the user has access to the owner view in this the account
-    if(user.ownerAccess(this))
-      Full(Views.views.vend.views(this))
+    if(user.ownerAccess(this)) {
+      Full(Views.views.vend.views(this)) }
     else
-      Failure("user : " + user.emailAddress + " don't have access to owner view on account " + accountId, Empty, Empty)
+      Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
 
   final def createView(userDoingTheCreate : User,v: CreateViewJSON): Box[View] = {

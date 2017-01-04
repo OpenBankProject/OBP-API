@@ -1,4 +1,4 @@
 #!/bin/sh
 
-export SBT_OPTS="-Xmx2G -XX:+UseConcMarkSweepGC -XX:+CMSClassUnloadingEnabled -XX:MaxPermSize=2G -Xss2M  -Duser.timezone=GMT"
+export SBT_OPTS="-Xmx1024m -Xms1024m -Xss2048k -XX:MaxPermSize=1024m"
 sbt $1 $2 $3 $4

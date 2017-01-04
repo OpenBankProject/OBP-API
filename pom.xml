@@ -13,6 +13,7 @@
   <properties>
     <scala.version>2.11</scala.version>
     <scala.compiler>2.11.8</scala.compiler>
+    <akka.version>2.4.10</akka.version>
     <lift.version>2.6.3</lift.version>
     <obp-ri.version>2016.11-RC4-SNAPSHOT</obp-ri.version>
     <!-- Common plugin settings -->
@@ -230,6 +231,22 @@
       <artifactId>obp-ri-transport</artifactId>
       <version>${obp-ri.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-actor_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.typesafe.akka</groupId>
+      <artifactId>akka-remote_${scala.version}</artifactId>
+      <version>${akka.version}</version>
+    </dependency>
+    <dependency>
+     <groupId>com.github.romix.akka</groupId>
+      <artifactId>akka-kryo-serialization_${scala.version}</artifactId>
+      <version>0.4.1</version>
+    </dependency>
+
   </dependencies>
 
   <build>
