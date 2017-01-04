@@ -590,16 +590,16 @@ class Counterparty(
                     // The following fields started from V210
                     val counterPartyId: String,
                     val name: String,
-                    val accountRoutingScheme :String,// This is the scheme a consumer would use to instruct a payment e.g. IBAN
-                    val accountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
-                    val bankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
-                    val bankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
+                    val otherAccountRoutingScheme :String, // This is the scheme a consumer would use to instruct a payment e.g. IBAN
+                    val otherAccountRoutingAddress : Option[String], // The (IBAN) value e.g. 2349870987820374
+                    val otherBankRoutingScheme: String, // This is the scheme a consumer would use to specify the bank e.g. BIC
+                    val otherBankRoutingAddress : Option[String], // The (BIC) value e.g. 67895
                     val thisBankId : BankId, // i.e. the Account that sends/receives money to/from this Counterparty
                     val thisAccountId: AccountId, // These 2 fields specify the account that uses this Counterparty
                     val otherBankId : BankId, // These 3 fields specify the internal locaiton of the account for the
                     val otherAccountId: AccountId, //counterparty if it is known. It could be at OBP in which case
                     val otherAccountProvider: String, // hasBankId and hasAccountId would refer to an OBP account
-                    val isBeneficiary: Boolean  // True if the originAccount can send money to the Counterparty
+                    val isBeneficiary: Boolean // True if the originAccount can send money to the Counterparty
   )
 {
 

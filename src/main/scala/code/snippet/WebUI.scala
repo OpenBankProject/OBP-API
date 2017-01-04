@@ -32,9 +32,8 @@ Berlin 13359, Germany
 
 package code.snippet
 
-import net.liftweb.common.Loggable
-import net.liftweb.http.S
-
+import net.liftweb.common.{Loggable, Logger}
+import net.liftweb.http.{S, SessionVar}
 import net.liftweb.util.{CssSel, Props}
 
 import net.liftweb.util._
@@ -44,6 +43,34 @@ import Helpers._
 
 
 class WebUI extends Loggable{
+
+  @transient protected val log = Logger(this.getClass)
+
+  // render the reminder cookie page.
+  def cookieReminder = {
+    var onclick = "removeById('cookies-reminder'); "
+    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showUsesCookiePage('cookies-reminder'); </script>""".format(onclick)
+    val button  = scala.xml.Unparsed(s"""$buttonString""")
+    "#clickMe" #> button
+  }
+
+  private object firstKnownIPAddress extends SessionVar("")
+  private object updateIPaddressEachtime extends SessionVar("")
+
+  //get the IP Address when the user first open the webpage.
+  if (firstKnownIPAddress.isEmpty)
+    firstKnownIPAddress(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+
+  def concurrentLoginsCookiesCheck = {
+    updateIPaddressEachtime(S.containerRequest.map(_.remoteAddress).openOr("Unknown"))
+
+    if(!firstKnownIPAddress.isEmpty & !firstKnownIPAddress.get.equals(updateIPaddressEachtime.get)) {
+      log.warn("Warning! The Session ID is used in another IP address, it maybe be stolen or you change the network. Please check it first ! ")
+      S.error("Warning! Another IP address is also using your Session ID. Did you change your network? ")
+    }
+    "#cookie-ipaddress-concurrent-logins" #> ""
+  }
+
   def headerLogoLeft = {
     "img [src]" #> Props.get("webui_header_logo_left_url", "")
   }

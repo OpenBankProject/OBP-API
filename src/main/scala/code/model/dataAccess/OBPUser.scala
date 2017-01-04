@@ -33,16 +33,19 @@ package code.model.dataAccess
 
 import java.util.UUID
 
+import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import net.liftweb.common._
-import net.liftweb.http.js.JsCmds.FocusOnLoad
 import net.liftweb.http.{S, SHtml, SessionVar, Templates}
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
+
+import code.loginattempts.LoginAttempt
+
 
 /**
  * An O-R mapped "User" class that includes first name, last name, password
@@ -159,6 +162,9 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
 
+  /**Marking the locked state to show different error message */
+  val usernameLockedStateCode = 999999999
+
   val connector = Props.get("connector").openOrThrowException("no connector set")
 
   override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
@@ -179,6 +185,7 @@ import net.liftweb.util.Helpers._
         "#loginText * " #> {S.?("log.in")} &
         "#usernameText * " #> {S.?("username")} &
         "#passwordText * " #> {S.?("password")} &
+        "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue &
         "#recoverPasswordLink * " #> {
           "a [href]" #> {lostPasswordPath.mkString("/", "/", "")} &
           "a *" #> {S.?("recover.password")}
@@ -350,28 +357,48 @@ import net.liftweb.util.Helpers._
   }
 
 
-  // What if we just want to return the userId without sending username/password??
 
-  def getAPIUserId(name: String, password: String): Box[Long] = {
-    findUserByUsername(name) match {
+
+  def getAPIUserId(username: String, password: String): Box[Long] = {
+    findUserByUsername(username) match {
       case Full(user) =>
-        if (user.validated_? &&
+        if (
+          user.validated_? &&
+          // User is NOT locked AND the password is good
+          ! LoginAttempt.userIsLocked(username) &&
           user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
-        {
-          Full(user.user)
+            {
+              // We logged in correctly, so reset badLoginAttempts counter (if it exists)
+              LoginAttempt.resetBadLoginAttempts(username)
+              Full(user.user) // Return the user.
+            }
+        // User is locked OR password is bad
+        else if (
+          user.validated_? &&
+          LoginAttempt.userIsLocked(username) ||
+          ! user.testPassword(Full(password))
+        ) {
+          LoginAttempt.incrementBadLoginAttempts(username)
+          Empty
+        }
+        // User is locked
+        else if (!LoginAttempt.userIsLocked(username)
+        ) {
+          info(ErrorMessages.UsernameHasBeenLocked)
+          Empty
         }
         else {
           connector match {
             case "kafka" =>
               if (Props.getBool("kafka.user.authentication", false))
-                for { kafkaUser <- getUserFromConnector(name, password)
+                for { kafkaUser <- getUserFromConnector(username, password)
                       kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
               else
                 Empty
             case "obpjvm" =>
               if (Props.getBool("obpjvm.user.authentication", false))
-                for { obpjvmUser <- getUserFromConnector(name, password)
+                for { obpjvmUser <- getUserFromConnector(username, password)
                       obpjvmUserId <- tryo{obpjvmUser.user} } yield obpjvmUserId.toLong
               else
                 Empty
@@ -439,12 +466,17 @@ import net.liftweb.util.Helpers._
   override def login = {
     def loginAction = {
       if (S.post_?) {
+        val usernameFromGui = S.param("username").getOrElse("")
         S.param("username").
           flatMap(name => findUserByUsername(name)) match {
           case Full(user) if user.validated_? &&
             // Check if user came from localhost
             user.getProvider() == Props.get("hostname","") &&
+            // If User NOT locked and password is good
+            ! LoginAttempt.userIsLocked(usernameFromGui) &&
             user.testPassword(S.param("password")) => {
+            // Reset any bad attempts
+            LoginAttempt.resetBadLoginAttempts(usernameFromGui)
             val preLoginState = capturePreLoginState()
             info("login redir: " + loginRedirect.get)
             val redir = loginRedirect.get match {
@@ -462,8 +494,24 @@ import net.liftweb.util.Helpers._
             })
           }
 
+          // If user is locked OR bad password, increment bad login attempt counter.
+          case Full(user) if user.validated_? &&
+            LoginAttempt.userIsLocked(usernameFromGui) ||
+            ! user.testPassword(S.param("password")) =>{
+            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+              S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
+            }
+
+          // This case is to send the error to GUI, when the username is locked
+          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
+            //S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+            S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
+
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
+
+
+          // TODO Check the User Lock situation for non mapped users
 
           case _ => if (connector == "kafka" || connector == "obpjvm")
           {
@@ -544,7 +592,7 @@ import net.liftweb.util.Helpers._
     val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
     val theName = signUpPath.mkString("")
 
-    //save the intented login redirect here, as it gets wiped (along with the session) on login
+    //save the intended login redirect here, as it gets wiped (along with the session) on login
     val loginRedirectSave = loginRedirect.is
 
     def testSignup() {

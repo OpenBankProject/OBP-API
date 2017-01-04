@@ -35,11 +35,12 @@ Email: contact@tesobe.com
 package code.snippet
 
 import code.util.Helper
-import net.liftweb.common.{Failure, Full, Empty}
+import net.liftweb.common.{Empty, Failure, Full}
 import net.liftweb.http.S
-import code.model.{Nonce, Consumer, Token}
+import code.model.{Consumer, Nonce, Token}
 import net.liftweb.mapper.By
 import java.util.Date
+import code.api.util.APIUtil
 import net.liftweb.util.{CssSel, Helpers, Props}
 import code.model.TokenType
 import code.model.dataAccess.OBPUser
@@ -177,7 +178,9 @@ object OAuthAuthorisation {
     }
 
     cssSel match {
-      case Full(sel) => sel & "type=submit" #> getSubmitButtonWithValidLoginToken
+      case Full(sel) => sel &
+                        "type=submit" #> getSubmitButtonWithValidLoginToken &
+                        "autocomplete=off [autocomplete] " #> APIUtil.getAutocompleteValue
       case Failure(msg, _, _) => error(msg)
       case _ => error("unknown error")
     }

@@ -54,6 +54,7 @@ import net.liftweb.util.{Helpers, Props, SecurityHelpers}
 import scala.xml.{Elem, XML}
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
+import code.util.Helper.SILENCE_IS_GOLDEN
 
 
 object ErrorMessages {
@@ -87,6 +88,8 @@ object ErrorMessages {
   val InvalidValueCharacters = "OBP-20011: Value contains invalid characters"
 
   val InvalidDirectLoginParameters = "OBP-20012: Invalid direct login parameters"
+
+  val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
 
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -289,34 +292,39 @@ object APIUtil extends Loggable {
     }
   }
 
+
+  /** These three functions check rather than assert. I.e. they are silent if OK and return an error message if not.
+    * They do not throw an exception on failure thus they are not assertions
+    */
+
   /** only  A-Z ,a-z and max length <= 512  */
-  def assertMediumAlpha(value:String): String ={
+  def checkMediumAlpha(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z]+)$""".r
     value match {
-      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
 
   /** only  A-Z ,a-z ,0-9 and max length <= 512  */
-  def assertMediumAlphaNumeric(value:String): String ={
+  def checkMediumAlphaNumeric(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9]+)$""".r
     value match {
-      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
       case _ => ErrorMessages.InvalidValueCharacters
     }
   }
 
   /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
-  def assertMediumString(value:String): String ={
+  def checkMediumString(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._@]+)$""".r
     value match {
-      case regex(e) if(valueLength <= 512) => "Success"
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
       case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
       case _ => ErrorMessages.InvalidValueCharacters
     }
@@ -764,6 +772,14 @@ Returns a string showed to the developer
       }
     }
     customers
+  }
+
+  def getAutocompleteValue: String = {
+    Props.get("autocomplete_at_login_form_enabled", "false") match {
+      case "true"  => "on"
+      case "false" => "off"
+      case _       => "off"
+    }
   }
 
 }

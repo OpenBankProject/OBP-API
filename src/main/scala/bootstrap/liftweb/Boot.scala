@@ -39,6 +39,7 @@ import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.atms.MappedAtm
+import code.loginattempts.{MappedBadLoginAttempt}
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -221,6 +222,7 @@ class Boot extends Loggable{
     if (!disabledVersions.contains("v1_4_0")) LiftRules.statelessDispatch.append(v1_4_0.OBPAPI1_4_0)
     if (!disabledVersions.contains("v2_0_0")) LiftRules.statelessDispatch.append(v2_0_0.OBPAPI2_0_0)
     if (!disabledVersions.contains("v2_1_0")) LiftRules.statelessDispatch.append(v2_1_0.OBPAPI2_1_0)
+    if (!disabledVersions.contains("v2_2_0")) LiftRules.statelessDispatch.append(v2_2_0.OBPAPI2_2_0)
 
     //add management apis
     LiftRules.statelessDispatch.append(ImporterAPI)
@@ -449,5 +451,7 @@ object ToSchemify {
     MappedEntitlement,
     MappedPhysicalCard,
     PinReset,
-    MappedCounterparty)
+    MappedCounterparty,
+    MappedBadLoginAttempt
+  )
 }

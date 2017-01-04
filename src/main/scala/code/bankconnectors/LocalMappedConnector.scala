@@ -37,6 +37,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 object LocalMappedConnector extends Connector with Loggable {
 
   type AccountType = MappedBankAccount
+  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
@@ -161,8 +162,8 @@ object LocalMappedConnector extends Connector with Loggable {
         counterPartyId = metadata.metadataId,
         label = metadata.getHolder,
         nationalIdentifier = t.counterpartyNationalId.get,
-        bankRoutingAddress = None,
-        accountRoutingAddress = t.getCounterpartyIban(),
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = t.getCounterpartyIban(),
         thisAccountId = AccountId(metadata.getAccountNumber),
         thisBankId = BankId(t.counterpartyBankName.get),
         kind = t.counterpartyAccountKind.get,
@@ -172,8 +173,8 @@ object LocalMappedConnector extends Connector with Loggable {
 
         //TODO V210 following five fields are new, need to be fiexed
         name = "",
-        bankRoutingScheme = "",
-        accountRoutingScheme="",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
         otherAccountProvider = "",
         isBeneficiary = true
       )
@@ -199,8 +200,8 @@ object LocalMappedConnector extends Connector with Loggable {
         counterPartyId = t.metadataId,
         label = t.getHolder,
         nationalIdentifier = "",
-        bankRoutingAddress = None,
-        accountRoutingAddress = None,
+        otherBankRoutingAddress = None,
+        otherAccountRoutingAddress = None,
         thisAccountId = AccountId(t.getAccountNumber),
         thisBankId = BankId(""),
         kind = "",
@@ -210,8 +211,8 @@ object LocalMappedConnector extends Connector with Loggable {
 
         //TODO V210 following five fields are new, need to be fiexed
         name = "",
-        bankRoutingScheme = "",
-        accountRoutingScheme="",
+        otherBankRoutingScheme = "",
+        otherAccountRoutingScheme="",
         otherAccountProvider = "",
         isBeneficiary = true
       )
@@ -844,5 +845,6 @@ Store one or more transactions
       By(MappedBranch.mBranchId, branchId.value)
     )
   }
+
 
 }

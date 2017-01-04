@@ -26,15 +26,15 @@ import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
 import com.tesobe.obp.kafka.SimpleNorth
-import com.tesobe.obp.transport.Transport
-import com.tesobe.obp.transport.Transport.Factory
+import com.tesobe.obp.transport.{Pager, Transport}
 import net.liftweb.common._
-import net.liftweb.json
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
-import net.liftweb.json._
 import code.products.Products.{Product, ProductCode}
+import com.tesobe.obp.transport.nov2016.{AccountReader, BankReader, TransactionReader}
+import com.tesobe.obp.transport.spi.{DefaultSorter, TimestampFilter}
+
 import scala.collection.JavaConversions._
 
 /**
@@ -43,13 +43,11 @@ import scala.collection.JavaConversions._
   */
 object ObpJvmMappedConnector extends Connector with Loggable {
 
-
-  type JAccount = com.tesobe.obp.transport.Account
-  type JBank = com.tesobe.obp.transport.Bank
-  type JTransaction = com.tesobe.obp.transport.Transaction
-
   type JConnector = com.tesobe.obp.transport.Connector
+  type JData = com.tesobe.obp.transport.Data
   type JHashMap = java.util.HashMap[String, Object]
+  type JResponse = com.tesobe.obp.transport.Decoder.Response
+  type JTransport = com.tesobe.obp.transport.Transport
 
   type AccountType = ObpJvmBankAccount
 
@@ -95,21 +93,28 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   def updateUserAccountViews( user: APIUser ) = {
     logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
-    val accounts: List[ObpJvmInboundAccount] = jvmNorth.getAccounts(null, user.name).map(a =>
-        ObpJvmInboundAccount(
-                             a.accountId,
-                             a.bankId,
-                             a.label,
-                             a.number,
-                             a.`type`,
-                             ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
-                             a.iban,
-                             user.name :: Nil,
-                             false,  //public_view
-                             false, //accountants_view
-                             false  //auditors_view
-        )
-    ).toList
+
+    val parameters = new JHashMap
+
+    parameters.put("userId", user.name)
+
+    val response = jvmNorth.get("updateUserAccountViews", Transport.Target.accounts, parameters)
+
+    // todo response.error().isPresent
+
+    val accounts = response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
+      a.accountId,
+      a.bankId,
+      a.label,
+      a.number,
+      a.`type`,
+      ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+      a.iban,
+      user.name :: Nil,
+      generate_public_view = false,
+      generate_accountants_view = false,
+      generate_auditors_view = false
+    )).toList
 
     logger.debug(s"ObpJvm getUserAccounts says res is $accounts")
 
@@ -140,7 +145,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
-    val banks: List[Bank] = jvmNorth.getBanks().map(b =>
+    val response = jvmNorth.get("getBanks", Transport.Target.banks, null)
+
+    // todo response.error().isPresent
+
+    val banks: List[Bank] = response.data().map(d => new BankReader(d)).map(b =>
         ObpJvmBank(
           ObpJvmInboundBank(
             b.bankId,
@@ -166,7 +175,17 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           b.currency
         )
       )
+
+    val parameters = new JHashMap
+
+    parameters.put("accountId", accountId)
+    parameters.put("currency", currency)
+    parameters.put("transactionRequestType", transactionRequestType)
+    parameters.put("userId", userId)
+
+    val response = jvmNorth.get("getChallengeThreshold", Transport.Target.xxx, parameters)
     */
+
 
     r match {
       // Check does the response data match the requested data
@@ -182,30 +201,54 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
-   toOption[JBank](jvmNorth.getBank(id.value)) match {
-      case Some(b) => Full(ObpJvmBank(ObpJvmInboundBank(b.bankId, b.name, b.logo, b.url)))
+    val parameters = new JHashMap
+
+    parameters.put(com.tesobe.obp.transport.nov2016.Bank.bankId, id.value)
+
+    val response = jvmNorth.get("getBank", Transport.Target.bank, parameters)
+
+    // todo response.error().isPresent
+
+    response.data().map(d => new BankReader(d)).headOption match {
+      case Some(b) => Full(ObpJvmBank(ObpJvmInboundBank(
+        b.bankId,
+        b.name,
+        b.logo,
+        b.url)))
       case None => Empty
     }
   }
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    toOption[JTransaction](jvmNorth.getTransaction(bankId.value, accountId.value, transactionId.value, OBPUser.getCurrentUserUsername )) match {
+    val parameters = new JHashMap
+
+    parameters.put("accountId", accountId.value)
+    parameters.put("bankId", bankId.value)
+    parameters.put("transactionId", transactionId.value)
+    parameters.put("userId", OBPUser.getCurrentUserUsername)
+
+    val response = jvmNorth.get("getTransaction", Transport.Target.transaction, parameters)
+
+    // todo response.error().isPresent
+
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+
+    response.data().map(d => new TransactionReader(d)).headOption match {
       case Some(t) =>
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
         createNewTransaction(ObpJvmInboundTransaction(
-        t.transactionId,
-        ObpJvmInboundAccountId(t.accountId, bankId.value),
-        Option(ObpJvmInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
-        ObpJvmInboundTransactionDetails(
-          t.`type`,
-          t.description,
-          t.postedDate.format(formatter),
-          t.completedDate.format(formatter),
-          t.newBalanceAmount.toString,
-          t.amount.toString
+          t.transactionId(),
+          ObpJvmInboundAccountId(t.accountId, bankId.value),
+          Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId()), Option(t.counterPartyName()))),
+          ObpJvmInboundTransactionDetails(
+            t.`type`,
+            t.description,
+            t.postedDate.format(formatter),
+            t.completedDate.format(formatter),
+            t.newBalanceAmount.toString,
+            t.amount.toString
+          ))
         )
-      ))
       case None => Empty
     }
   }
@@ -227,22 +270,36 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
     implicit val formats = net.liftweb.json.DefaultFormats
-    val rList: List[ObpJvmInboundTransaction] = jvmNorth.getTransactions(bankId.value, accountId.value, OBPUser.getCurrentUserUsername).map(t =>
-      ObpJvmInboundTransaction(
-            t.id,
-            ObpJvmInboundAccountId(t.accountId, bankId.value),
-            Option(ObpJvmInboundTransactionCounterparty(Option(t.counterpartyId), Option(t.counterpartyName))),
-            ObpJvmInboundTransactionDetails(
-              t.`type`,
-              t.description,
-              t.postedDate.format(formatter),
-              t.completedDate.format(formatter),
-              t.newBalanceAmount.toString,
-              t.amount.toString
-           )
-      )
-    ).toList
 
+    val parameters = new JHashMap
+    val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
+    val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
+    val filter = new TimestampFilter("postedDate", earliest, latest)
+    val sorter = new DefaultSorter("completedDate", Pager.SortOrder.ascending)
+    val pageSize = Pager.DEFAULT_SIZE; // all in one page
+    val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
+
+    parameters.put("accountId", "account-x")
+    parameters.put("bankId", "bank-x")
+    parameters.put("userId", "user-x")
+
+    val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
+
+    // todo response.error().isPresent
+
+    val rList: List[ObpJvmInboundTransaction] = response.data().map(d => new TransactionReader(d)).map(t => ObpJvmInboundTransaction(
+      t.transactionId(),
+      ObpJvmInboundAccountId(t.accountId, bankId.value),
+      Option(ObpJvmInboundTransactionCounterparty(Option(t.counterPartyId), Option(t.counterPartyName))),
+      ObpJvmInboundTransactionDetails(
+        t.`type`,
+        t.description,
+        t.postedDate.format(formatter),
+        t.completedDate.format(formatter),
+        t.newBalanceAmount.toString,
+        t.amount.toString
+      ))
+    ).toList
 
     // Check does the response data match the requested data
     val isCorrect = rList.forall(x=>x.this_account.id == accountId.value && x.this_account.bank == bankId.value)
@@ -262,31 +319,32 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
-     val account : Optional[JAccount] = jvmNorth.getAccount(bankId.value,
-      accountId.value, OBPUser.getCurrentUserUsername)
-    if(account.isPresent) {
-      val a : JAccount = account.get
-      val balance : ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
-      Full(
-        ObpJvmBankAccount(
-          ObpJvmInboundAccount(
-            a.accountId,
-            a.bankId,
-            a.label,
-            a.number,
-            a.`type`,
-            balance,
-            a.iban,
-            List(),
-            true,
-            true,
-            true
-          )
-        )
-      )
-    } else {
-      logger.info(s"getBankAccount says ! account.isPresent")
-      Empty
+    val parameters = new JHashMap
+
+    parameters.put("accountId", accountId.value)
+    parameters.put("bankId", bankId.value)
+    parameters.put("userId", OBPUser.getCurrentUserUsername)
+
+    val response = jvmNorth.get("getBankAccount", Transport.Target.account, parameters)
+
+    // todo response.error().isPresent
+
+    response.data().map(d => new AccountReader(d)).headOption match {
+      case Some(a) => Full(ObpJvmBankAccount(ObpJvmInboundAccount(
+        a.accountId,
+        a.bankId,
+        a.label,
+        a.number,
+        a.`type`,
+        ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+        a.iban,
+        List(),
+        generate_public_view = true,
+        generate_accountants_view = true,
+        generate_auditors_view = true)))
+      case None =>
+        logger.info(s"getBankAccount says ! account.isPresent")
+        Empty
     }
   }
 
@@ -297,30 +355,37 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val r:List[ObpJvmInboundAccount] = accts.map { a => {
 
       val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
       logger.info (s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
-      val account: Optional[JAccount] = jvmNorth.getAccount(a._1.value,
-        a._2.value, primaryUserIdentifier)
-      if (account.isPresent) {
-        val a: JAccount = account.get
-        val balance: ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
-        Full(ObpJvmInboundAccount(
-          a.accountId,
-          a.bankId,
-          a.label,
-          a.number,
-          a.`type`,
-          balance,
-          a.iban,
+
+      val parameters = new JHashMap
+
+      parameters.put("accountId", a._1.value)
+      parameters.put("bankId", a._2.value)
+      parameters.put("userId", primaryUserIdentifier)
+
+      val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
+
+      // todo response.error().isPresent
+
+      response.data().map(d => new AccountReader(d)).headOption match {
+        case Some(account) => Full(ObpJvmInboundAccount(
+          account.accountId,
+          account.bankId,
+          account.label,
+          account.number,
+          account.`type`,
+          ObpJvmInboundBalance(account.balanceAmount, account.balanceCurrency),
+          account.iban,
           List(),
-          true,
-          true,
-          true
-        )
-        )
-      } else {
-        Empty
+          generate_public_view = true,
+          generate_accountants_view = true,
+          generate_auditors_view = true))
+        case None =>
+          logger.info(s"getBankAccount says ! account.isPresent")
+          Empty
       }
-    }.get
+    }.get  // why?
   }
 
     // Check does the response data match the requested data
@@ -335,30 +400,32 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
-    val account : Optional[JAccount] = jvmNorth.getAccount(bankId.value,
-      number, OBPUser.getCurrentUserUsername)
-    if(account.isPresent) {
-      val a : JAccount = account.get
-      val balance : ObpJvmInboundBalance = ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount)
-      Full(
-        ObpJvmBankAccount(
-          ObpJvmInboundAccount(
-            a.accountId,
-            a.bankId,
-            a.label,
-            a.number,
-            a.`type`,
-            balance,
-            a.iban,
-            List(),
-            true,
-            true,
-            true
-          )
-        )
-      )
-    } else {
-      Empty
+    val parameters = new JHashMap
+
+    parameters.put("accountId", number)
+    parameters.put("bankId", bankId.value)
+    parameters.put("userId", OBPUser.getCurrentUserUsername)
+
+    val response = jvmNorth.get("getAccountByNumber", Transport.Target.account, parameters)
+
+    // todo response.error().isPresent
+
+    response.data().map(d => new AccountReader(d)).headOption match {
+      case Some(a) => Full(ObpJvmBankAccount(ObpJvmInboundAccount(
+        a.accountId,
+        a.bankId,
+        a.label,
+        a.number,
+        a.`type`,
+        ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+        a.iban,
+        List(),
+        generate_public_view = true,
+        generate_accountants_view = true,
+        generate_auditors_view = true)))
+      case None =>
+        logger.info(s"getBankAccount says ! account.isPresent")
+        Empty
     }
   }
 
@@ -379,8 +446,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       counterPartyId = metadata.metadataId,
       label = metadata.getHolder,
       nationalIdentifier = t.otherAccount.nationalIdentifier,
-      bankRoutingAddress = None,
-      accountRoutingAddress = t.otherAccount.accountRoutingAddress,
+      otherBankRoutingAddress = None,
+      otherAccountRoutingAddress = t.otherAccount.otherAccountRoutingAddress,
       thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
@@ -390,8 +457,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
 
@@ -516,10 +583,21 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val transactionId = "1"
     val `type` = ""
 
-    toOption[String](jvmNorth.createTransaction(accountId, amount, bankId, completed, counterpartyId, counterpartyName, currency,
-      description, newBalanceAmount.bigDecimal, newBalanceCurrency, posted, transactionId,
-      `type`, userId.getOrElse(""))) match {
-      case Some(x) => Full(TransactionId(x))
+    val parameters = new JHashMap
+    val fields = new JHashMap
+
+    parameters.put("type", "pain.001.001.03db") // SocGen transactions
+
+    fields.put("transactionId", transactionId)
+    // ... more fields to fill see SocGen field list
+
+    val response : JResponse = jvmNorth.put("saveTransaction", Transport.Target.transaction, parameters, fields)
+
+    // todo response.error().isPresent
+    // the returned transaction id should be the same that was sent
+
+    response.data().headOption match {
+      case Some(x) => Full(TransactionId(x.text("transactionId")))
       case None => Empty
     }
   }
@@ -975,8 +1053,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
       label = c.account_number.getOrElse(c.name.getOrElse("")),
       nationalIdentifier = "",
-      bankRoutingAddress = None,
-      accountRoutingAddress = None,
+      otherBankRoutingAddress = None,
+      otherAccountRoutingAddress = None,
       thisAccountId = AccountId(c.account_number.getOrElse("")),
       thisBankId = BankId(""),
       kind = "",
@@ -986,8 +1064,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
       //TODO V210 following five fields are new, need to be fiexed
       name = "",
-      bankRoutingScheme = "",
-      accountRoutingScheme="",
+      otherBankRoutingScheme = "",
+      otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
 
@@ -1209,5 +1287,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+
 }
 

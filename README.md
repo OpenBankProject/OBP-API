@@ -34,7 +34,7 @@ The project uses Maven 3 as its build tool.
 
 To compile and run jetty, install Maven 3 and execute:
 
-./mvn.sh jetty:run
+        ./mvn.sh jetty:run
 
 ## To run with IntelliJ IDEA
 
@@ -91,13 +91,12 @@ To compile and run jetty, install Maven 3 and execute:
 ## From the command line
 
 Set memory options
-export MAVEN_OPTS="-Xmx3000m -XX:MaxPermSize=512m"
+
+    export MAVEN_OPTS="-Xmx3000m -XX:MaxPermSize=512m"
 
 Run one test
-mvn -DwildcardSuites=code.api.directloginTest test
 
-
-----
+    mvn -DwildcardSuites=code.api.directloginTest test
 
 ## Ubuntu
 
@@ -133,6 +132,171 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
+# Running with a Zookeeper/Kafka Cluster
+
+1) NGINX Configuration for Load Balancing
+
+* Create file /etc/nginx/sites-available/api
+
+* Configure as follows:
+
+        upstream backend {
+                least_conn;
+                server host1:8080; # The name of the server shall be changed as appropriate
+                server host2:8080;
+                server host3:8080;
+        }
+
+        server {
+                server_name obptest.com www.obptest.com; # The server name should be changed as appropriate
+                access_log /var/log/nginx/api.access.log;
+                error_log /var/log/nginx/api.error.log;
+                location / {
+                    proxy_pass http://backend/;
+                }
+            location /obp/v2.1.0/sandbox/data-import {
+                    proxy_pass http://backend/;
+                }
+        }
+
+2) Zookeeper/Kafka Cluster Setup
+
+* The Zookeeper/Kafka cluster is deployed on 3 nodes. The following configurations need to be done on each of the three nodes
+
+* Zookeeper configuration
+
+* Inside the Kafka directory, edit the file conf/zookeeper.properties and include these lines:
+
+        dataDir=/home/user/zookeeper
+        server.1=host1:2888:3888 # The name of the servers shall be changed as appropriate
+        server.2=host2:2888:3888
+        server.3=host3:2888:3888
+        initLimit=5
+        syncLimit=2
+
+* Create a myid file under dataDir which is /home/user/zookeeper in this example:
+
+        echo “1” > /home/user/zookeeper/myid       #Insert unique id’s on each of the machines
+
+* Start the zookpeer daemons on each of the 3 machines
+
+        bin/zookeeper-server-start.sh config/zookeeper.properties &
+
+* Kafka Configuration
+
+* Inside the Kafka directory, edit the file conf/server.properties and include these lines:
+
+        broker.id=1 # The broker.id should be unique for each host
+
+        num.partitions=4
+
+        zookeeper.connect=host1:2181,host2:2181,host3:2181
+
+* Start the kafka broker daemons on all the machines:
+
+        bin/kafka-server-start.sh config/server.properties &
+
+* Create the topics:
+
+        bin/kafka-topics.sh --create --zookeeper host1:2181,host2:2181,host3:2181 --replication-factor 1 --partitions 1 --topic Request
+
+        bin/kafka-topics.sh --create --zookeeper host1:2181,host2:2181,host3:2181 --replication-factor 1 --partitions 1 --topic Response
+
+3) OBP-API
+
+* Configuration
+
+* Edit the OBP-API/src/main/resources/props/default.props so that it contains the following lines. This should be done on each node:
+
+        connector=kafka
+        kafka.zookeeper_host=localhost:2181
+        kafka.request_topic=Request
+        kafka.response_topic=Response
+
+* Start the server:
+
+        cd OBP-API
+        mvn jetty:run
+
+4) OBP-JVM
+
+* Build the package:
+
+        cd OBP-JVM
+        mvn install
+
+* Run the demo:
+
+        java -jar obp-ri-demo/target/obp-ri-demo-2016.9-SNAPSHOT-jar-with-dependencies.jar&
+
+* Here be aware that the name of the jar file might be different, so make sure to use the correct name of the jar file
+
+5) OBP-Kafka-Python
+
+* Run from the command line:
+
+        cd OBP-Kafka-Python
+        python server.py
+
+6) To test the setup, try a request
+
+http://localhost:8080/obp/v2.0.0/banks
+
+# Production Options.
+
+* set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of  "webapp/WEB-INF/web.xml" :
+
+        <session-config>
+          <cookie-config>
+            <secure>true</secure>
+            <http-only>true</http-only>
+          </cookie-config>
+        </session-config>
+
+# Running the API in Production Mode
+
+We use jetty8 to run the API in production mode.
+
+1) Install java and jetty8
+
+2) jetty 8 configuration
+
+* Edit the /etc/default/jetty8 file so that it contains the following settings:
+
+        NO_START=0
+        JETTY_HOST=127.0.0.1 #If you want your application to be accessed from other hosts, change this to your IP address
+        JAVA_OPTIONS="-Drun.mode=production -XX:PermSize=256M -XX:MaxPermSize=512M -Xmx768m -verbose -Dobp.resource.dir=$JETTY_HOME/resources -Dprops.resource.dir=$JETTY_HOME/resources"
+
+* In src/main/resources/props create a test.default.props file for tests. Set connector=mapped
+
+* In src/main/resources/props create a default.props file for development. Set connector=mapped
+
+* In src/main/resources/props create a production.default.props file for production. Set connector=mapped.
+
+* This file could be similar to the default.props file created above, or it could include production settings, such as information about Postgresql server, if you are using one. For example, it could have the following line for postgresql configuration.
+
+        db.driver=org.postgresql.Driver
+        db.url=jdbc:postgresql://localhost:5432/yourdbname?user=yourdbusername&password=yourpassword
+
+* Now, build the application to generate .war file which will be deployed on jetty8 server:
+
+        cd OBP-API/
+        mvn package
+
+* This will generate OBP-API-1.0.war under OBP-API/target/
+
+* Copy OBP-API-1.0.war to /usr/share/jetty8/webapps/ directory and rename it to root.war
+
+* Edit the /etc/jetty8/jetty.conf file and comment out the lines:
+
+        etc/jetty-logging.xml
+        etc/jetty-started.xml
+
+* Now restart jetty8:
+
+        sudo service jetty8 restart
+
+* You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 ## Scala / Lift
 
@@ -141,4 +305,3 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 * Advanced architecture: http://exploring.liftweb.net/master/index-9.html
 
 * A good book on Lift: "Lift in Action" by Timothy Perrett published by Manning.
-
