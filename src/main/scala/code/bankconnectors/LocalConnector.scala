@@ -355,6 +355,7 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
 
   /*
    Transaction Requests

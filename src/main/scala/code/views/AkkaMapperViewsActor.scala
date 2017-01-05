@@ -1,7 +1,6 @@
 package code.views
 
 import code.model._
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.{Box, Empty, Full, Loggable}
 import net.liftweb.db.StandardDBVendor

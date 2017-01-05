@@ -548,14 +548,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = amt //to account balance should increase
+    for {
+      sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
+    } yield {
+      sentTransactionId
+    }
 
-    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
-    saveTransaction(toAccount, fromAccount, toTransAmt, description)
-
-    sentTransactionId
   }
 
 
@@ -577,19 +575,28 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val newBalanceCurrency = toAccount.currency
     val newBalanceAmount = toAccount.balance
     val counterpartyName = toAccount.name
-    val transactionType = "AC"
-    val completed = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
-    val posted = ZonedDateTime.of(1999, 1, 2, 0, 0, 0, 0, UTC)
-    val transactionId = "1"
-    val `type` = ""
+    val completedDate = null
+    val postedDate = ZonedDateTime.now
+    val transactionId = UUID.randomUUID
+    val `type` = "pain.001.001.03db" // SocGen transactions
 
     val parameters = new JHashMap
     val fields = new JHashMap
 
-    parameters.put("type", "pain.001.001.03db") // SocGen transactions
-
+    fields.put("accountId", accountId)
+    fields.put("amount", amount)
+    fields.put("bankId", bankId)
+    fields.put("completedDate", completedDate)
+    fields.put("counterPartyId", counterpartyId)
+    fields.put("counterPartyName", counterpartyName)
+    fields.put("currency", currency)
+    fields.put("description", description)
+    fields.put("newBalanceAmount", newBalanceAmount)
+    fields.put("newBalanceCurrency", newBalanceCurrency)
+    fields.put("postedDate", postedDate)
     fields.put("transactionId", transactionId)
-    // ... more fields to fill see SocGen field list
+    fields.put("type",  `type`)
+    fields.put("userId", userId)
 
     val response : JResponse = jvmNorth.put("saveTransaction", Transport.Target.transaction, parameters, fields)
 
@@ -598,6 +605,20 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     response.data().headOption match {
       case Some(x) => Full(TransactionId(x.text("transactionId")))
+      case None => Empty
+    }
+  }
+
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = {
+    val parameters = new JHashMap
+    val fields = new JHashMap
+
+    fields.put("transactionRequestId", transactionRequestId)
+
+    val response : JResponse = jvmNorth.put("getTransactionRequestStatus", Transport.Target.transaction, parameters, fields)
+
+    response.data().headOption match {
+      case Some(x) => Full(x.text("status").toBoolean)
       case None => Empty
     }
   }

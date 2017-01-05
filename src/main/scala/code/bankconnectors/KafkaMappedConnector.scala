@@ -499,6 +499,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,

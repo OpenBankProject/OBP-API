@@ -61,6 +61,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     type AccountType = BankAccount
 
+    override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+
   def getUser(name: String, password: String): Box[InboundUser] = ???
     def updateUserAccountViews(user: APIUser): Unit = ???
 

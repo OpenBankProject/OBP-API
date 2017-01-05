@@ -504,6 +504,19 @@ trait Connector {
     }
   }
 
+  def getTransactionRequestStatus(initiator : User, transactionRequestId: TransactionRequestId) : Box[Boolean] = {
+    for {
+      transactionRequest <- getTransactionRequestImpl(transactionRequestId)
+      fromAccount <- tryo{transactionRequest.from}
+      bankAccount <- BankAccount(BankId(fromAccount.bank_id), AccountId(fromAccount.account_id))
+      isOwner <- booleanToBox(initiator.ownerAccess(bankAccount), "user does not have access to owner view")
+      transactionRequestStatus <- getTransactionRequestStatusImpl(transactionRequestId)
+    } yield transactionRequestStatus
+
+  }
+
+  protected def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean]
+
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
   protected def getTransactionRequestsImpl210(fromAccount : BankAccount) : Box[List[TransactionRequest]]
