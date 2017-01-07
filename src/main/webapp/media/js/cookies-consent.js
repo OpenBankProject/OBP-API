@@ -4,7 +4,7 @@ function removeById(id){
   addCookie('we-use-cookies-indicator','1',12);
 }
 
-//add the cookie with cookie name, value and expire time (hour)
+//add the cookie with cookie name, value and expire time (year)
 function addCookie(objName,objValue,objHours) {
     var str = objName + "=" + escape(objValue);
     if(objHours > 0){

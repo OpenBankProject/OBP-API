@@ -46,10 +46,14 @@ class WebUI extends Loggable{
 
   @transient protected val log = Logger(this.getClass)
 
-  // render the reminder cookie page.
-  def cookieReminder = {
-    var onclick = "removeById('cookies-reminder'); "
-    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showUsesCookiePage('cookies-reminder'); </script>""".format(onclick)
+  // Cookie Consent button.
+  // Note we don't currently (7th Jan 2017) need to display the cookie consent message due to our limited use of cookies
+  // If a deployment does make more use of cookies we would need to add a No button and we might want to make use of the
+  // cookie consent kit available at:
+  // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
+  def cookieConsent = {
+    var onclick = "removeById('cookies-consent'); "
+    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showUsesCookiePage('cookies-consent'); </script>""".format(onclick)
     val button  = scala.xml.Unparsed(s"""$buttonString""")
     "#clickMe" #> button
   }
