@@ -467,6 +467,7 @@ import net.liftweb.util.Helpers._
     def loginAction = {
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
+        val passwordFromGui = S.param("password").getOrElse("")
         S.param("username").
           flatMap(name => findUserByUsername(name)) match {
           case Full(user) if user.validated_? &&
@@ -497,15 +498,14 @@ import net.liftweb.util.Helpers._
           // If user is locked OR bad password, increment bad login attempt counter.
           case Full(user) if user.validated_? &&
             LoginAttempt.userIsLocked(usernameFromGui) ||
-            ! user.testPassword(S.param("password")) =>{
-            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
+            ( user.getProvider() == Props.get("hostname","") && ! user.testPassword(Full(passwordFromGui))) => {
+              LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
             }
 
           // This case is to send the error to GUI, when the username is locked
           case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
-            //S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-            S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
+            S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
