@@ -319,6 +319,17 @@ object APIUtil extends Loggable {
     }
   }
 
+  /** only  A-Z, a-z, 0-9, all allowed characters for password and max length <= 512  */
+  def checkMediumPassword(value:String): String ={
+    val valueLength = value.length
+    val regex = """^([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]+)$""".r
+    value match {
+      case regex(e) if(valueLength <= 512) => SILENCE_IS_GOLDEN
+      case regex(e) if(valueLength > 512) => ErrorMessages.InvalidValueLength
+      case _ => ErrorMessages.InvalidValueCharacters
+    }
+  }
+
   /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
   def checkMediumString(value:String): String ={
     val valueLength = value.length

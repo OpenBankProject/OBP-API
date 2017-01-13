@@ -29,7 +29,6 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.api.util.APIUtil._
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer, Token, TokenType, User}
 import net.liftweb.common._
@@ -41,6 +40,8 @@ import net.liftweb.util.{Helpers, Props}
 import net.liftweb.util.Helpers._
 
 import scala.compat.Platform
+
+import code.api.util.APIUtil._
 import code.api.util.{APIUtil, ErrorMessages}
 import code.util.Helper.SILENCE_IS_GOLDEN
 
@@ -196,7 +197,7 @@ object DirectLogin extends RestHelper with Loggable {
           case "username" =>
             checkMediumString(parameterValue)
           case "password" =>
-            checkMediumAlphaNumeric(parameterValue)
+            checkMediumPassword(parameterValue)
           case "consumer_key" =>
             checkMediumAlphaNumeric(parameterValue)
           case "token" =>
@@ -319,12 +320,10 @@ object DirectLogin extends RestHelper with Loggable {
 
     var userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
 
-    /*
     if (userId.isEmpty) {
       if ( ! OBPUser.externalUserHelper(username, password).isEmpty) 
       	userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
     }
-    ``*/
 
     userId
   }
