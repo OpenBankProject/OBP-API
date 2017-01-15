@@ -72,7 +72,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                         "addTagForViewOnTransaction"::
                         "addTransactionNarrative"::
                         "addWhereTagForViewOnTransaction"::
-                        "allAccountsAllBanks"::
+                        // Now in 2.0.0 "allAccountsAllBanks"::
                         "bankById"::
                         "createViewForBankAccount"::
                         "deleteCommentForViewOnTransaction"::

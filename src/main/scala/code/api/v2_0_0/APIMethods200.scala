@@ -1053,7 +1053,6 @@ trait APIMethods200 {
 
 
     lazy val createAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      // TODO document this code (make the extract work): "JsonPut json -> _ =>"
       // Create a new account
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: Nil JsonPut json -> _ => {
         user => {
