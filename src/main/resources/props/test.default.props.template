@@ -86,3 +86,6 @@ sandbox_data_import_secret=change_me
 
 #set this to true if you want to allow users to delete accounts
 allow_account_deletion=true
+
+# This needs to be a list all the types of transaction_requests that we have tests for. Else those tests will fail
+transactionRequests_supported_types=SANDBOX_TAN,FREE_FORM,SEPA,COUNTERPARTY
