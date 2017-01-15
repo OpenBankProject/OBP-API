@@ -205,7 +205,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           "getSocialMediaHandles"::
                           "getTransactionTypes"::
                           "getUser"::
-                          "privateAccountsAllBanks"::
+                          "corePrivateAccountsAllBanks"::
                           "privateAccountsAtOneBank"::
                           "publicAccountsAllBanks"::
                           "publicAccountsAtOneBank"::

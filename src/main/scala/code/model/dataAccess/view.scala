@@ -427,7 +427,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddPhysicalLocation : Boolean = canAddPhysicalLocation_.get
   def canAddPublicAlias : Boolean = canAddPublicAlias_.get
   def canAddPrivateAlias : Boolean = canAddPrivateAlias_.get
-  def canCreateCounterparty : Boolean = canCreateCounterparty_.get
+  def canAddCounterparty : Boolean = canCreateCounterparty_.get
   def canDeleteCorporateLocation : Boolean = canDeleteCorporateLocation_.get
   def canDeletePhysicalLocation : Boolean = canDeletePhysicalLocation_.get
 

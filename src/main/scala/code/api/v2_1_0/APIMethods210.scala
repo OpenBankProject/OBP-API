@@ -1060,7 +1060,7 @@ trait APIMethods210 {
           |
           |is_beneficiary must be set to true in order to send payments to this counterparty
           |
-          |The view specified by VIEW_ID must have the canCreateCounterparty permission
+          |The view specified by VIEW_ID must have the canAddCounterparty permission
           |
           |${authenticationRequiredMessage(true)}
           |""",
@@ -1094,7 +1094,7 @@ trait APIMethods210 {
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-            canCreateCounterparty <- booleanToBox(view.canCreateCounterparty == true, "Current view does not have permission for the action")
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "Current view does not have permission for the action")
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! ErrorMessages.CounterpartyAlreadyExists
