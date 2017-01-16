@@ -78,7 +78,7 @@ trait APIMethods130 {
       List(apiTagCustomer))
 
 
-    def getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    lazy val getCardsForBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "cards" :: Nil JsonGet _ => {
         user => {
           for {
