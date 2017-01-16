@@ -25,7 +25,7 @@ import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
-import com.tesobe.obp.kafka.SimpleNorth
+import com.tesobe.obp.kafka.{Configuration, SimpleConfiguration, SimpleNorth}
 import com.tesobe.obp.transport.{Pager, Transport}
 import net.liftweb.common._
 import net.liftweb.mapper._
@@ -53,21 +53,18 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   var jvmNorth : JConnector = null
 
-  val producerProps : JHashMap = new JHashMap
-  val consumerProps : JHashMap = new JHashMap
+  val cfg: Configuration = new SimpleConfiguration(
+    this,
+    Props.get("kafka.host").openOr("localhost:9092"),     // responseProps
+    Props.get("kafka.response_topic").openOr("Response"), // responseTopic
+    Props.get("kafka.host").openOr("localhost:9092"),     // requestProps
+    Props.get("kafka.request_topic").openOr("Request")    // requestTopic
+  )
 
-  consumerProps.put("bootstrap.servers",
-    Props.get("kafka.host").openOr("localhost:9092"))
-  producerProps.put("bootstrap.servers",
-    Props.get("kafka.host").openOr("localhost:9092"))
-
-  val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
-  val north   = new SimpleNorth(
-                    Props.get("kafka.response_topic").openOr("Response"),
-                    Props.get("kafka.request_topic").openOr("Request"),
-                    consumerProps, producerProps)
-  jvmNorth = factory.connector(north)
+  val north   = new SimpleNorth( cfg )
+  jvmNorth = Transport.defaultFactory.connector(north)
   north.receive() // start ObpJvm
+
   logger.info(s"ObpJvmMappedConnector running")
 
   // Local TTL Cache
