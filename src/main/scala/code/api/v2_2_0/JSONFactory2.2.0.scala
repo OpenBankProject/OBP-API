@@ -31,7 +31,11 @@ Berlin 13359, Germany
  */
 package code.api.v2_2_0
 
+//import code.api.v1_2_1.JSONFactory
 import code.model._
+//import net.liftweb.common.Box
+//import net.liftweb.json.Extraction
+//import net.liftweb.json.JsonAST.JValue
 
 
 case class ViewsJSON(
@@ -57,7 +61,7 @@ class ViewJSON(
                 val can_add_url: Boolean,
                 val can_add_where_tag : Boolean,
                 val can_delete_comment: Boolean,
-                val can_create_counterparty : Boolean,
+                val can_add_counterparty : Boolean,
                 val can_delete_corporate_location : Boolean,
                 val can_delete_image : Boolean,
                 val can_delete_physical_location : Boolean,
@@ -157,7 +161,7 @@ object JSONFactory220{
       can_add_tag = view.canAddTag,
       can_add_url = view.canAddURL,
       can_add_where_tag = view.canAddWhereTag,
-      can_create_counterparty = view.canCreateCounterparty,
+      can_add_counterparty = view.canAddCounterparty,
       can_delete_comment = view.canDeleteComment,
       can_delete_corporate_location = view.canDeleteCorporateLocation,
       can_delete_image = view.canDeleteImage,

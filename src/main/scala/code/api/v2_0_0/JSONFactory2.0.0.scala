@@ -35,12 +35,15 @@ import java.net.URL
 import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
+import code.api.v1_2_1.ViewJSON
+import code.api.v2_2_0.{AccountsJSON, AccountJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.OBPUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
+import net.liftweb.json.Extraction
 
 // import code.api.util.APIUtil.ApiLink
 
@@ -140,8 +143,8 @@ case class BasicAccountsJSON(
 case class BasicAccountJSON(
                              id : String,
                              label : String,
-                             views_available : List[BasicViewJSON],
-                             bank_id : String
+                             bank_id : String,
+                             views_available : List[BasicViewJSON]
 )
 
 
@@ -364,6 +367,39 @@ case class EntitlementJSONs(list: List[EntitlementJSON])
 
 object JSONFactory200{
 
+
+  implicit val formats = net.liftweb.json.DefaultFormats
+
+
+// If we use this we would not use basic views json etc.
+//  def createFullAccountJSON(account : BankAccount, viewsAvailable : List[BasicViewJSON] ) : BasicAccountJSON = {
+//    new BasicAccountJSON(
+//      account.accountId.value,
+//      stringOrNull(account.label),
+//      viewsAvailable,
+//      account.bankId.value
+//    )
+//  }
+
+
+  def bankAccountsListToJson(bankAccounts: List[BankAccount], user : Box[User]): JValue = {
+    val accJson : List[BasicAccountJSON] = bankAccounts.map( account => {
+      val views = account permittedViews user
+      val viewsAvailable : List[BasicViewJSON] =
+        views.map( v => {
+          createBasicViewJSON(v)
+        })
+      createBasicAccountJSON(account,viewsAvailable)
+    })
+
+    val accounts = new BasicAccountsJSON(accJson)
+    Extraction.decompose(accounts)
+  }
+
+
+
+
+
   // Modified in 2.0.0
 
   //transaction requests
@@ -424,7 +460,7 @@ object JSONFactory200{
   // New in 2.0.0
 
 
-  def createViewBasicJSON(view : View) : BasicViewJSON = {
+  def createBasicViewJSON(view : View) : BasicViewJSON = {
     val alias =
       if(view.usePublicAliasIfOneExists)
         "public"
@@ -445,8 +481,8 @@ object JSONFactory200{
     new BasicAccountJSON(
       account.accountId.value,
       stringOrNull(account.label),
-      basicViewsAvailable,
-      account.bankId.value
+      account.bankId.value,
+      basicViewsAvailable
     )
   }
 

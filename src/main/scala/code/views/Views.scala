@@ -11,8 +11,8 @@ object Views  extends SimpleInjector {
   val views = new Inject(buildOne _) {}
  
   //TODO Remove MapperViews when AkkaMapperViews is optimized and stable
-  //def buildOne: Views = MapperViews
-  def buildOne: Views = AkkaMapperViews
+  def buildOne: Views = MapperViews
+  //def buildOne: Views = AkkaMapperViews
   
 }
 

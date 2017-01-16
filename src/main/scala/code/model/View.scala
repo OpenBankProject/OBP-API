@@ -263,7 +263,7 @@ trait View {
   def canAddPhysicalLocation : Boolean
   def canAddPublicAlias : Boolean
   def canAddPrivateAlias : Boolean
-  def canCreateCounterparty : Boolean
+  def canAddCounterparty : Boolean
   def canDeleteCorporateLocation : Boolean
   def canDeletePhysicalLocation : Boolean
 

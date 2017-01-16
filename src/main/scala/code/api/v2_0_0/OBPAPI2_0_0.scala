@@ -137,10 +137,11 @@ object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
     // Updated in 2.0.0 (less info about the views)
     Implementations2_0_0.allAccountsAllBanks,
-    Implementations2_0_0.privateAccountsAllBanks,
+    Implementations2_0_0.corePrivateAccountsAllBanks,
     Implementations2_0_0.publicAccountsAllBanks,
     Implementations2_0_0.allAccountsAtOneBank,
-    Implementations2_0_0.privateAccountsAtOneBank,
+    Implementations2_0_0.corePrivateAccountsAtOneBank, // this is /my accounts
+    Implementations2_0_0.privateAccountsAtOneBank, // This was missing for a while from v2.0.0
     Implementations2_0_0.publicAccountsAtOneBank,
     Implementations2_0_0.createTransactionRequest,
     Implementations2_0_0.answerTransactionRequestChallenge,

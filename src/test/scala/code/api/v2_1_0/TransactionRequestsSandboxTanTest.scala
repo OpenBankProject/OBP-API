@@ -15,10 +15,10 @@ import net.liftweb.json.Serialization.write
 import net.liftweb.util.Props
 import org.scalatest.Tag
 
-class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
+class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with DefaultUsers with V210ServerSetup {
 
   object TransactionRequest extends Tag("transactionRequests")
-  val transactionRequestType: String = "COUNTERPARTY"
+  val transactionRequestType: String = "SANDBOX_TAN"
 
   feature("we can make transaction requests") {
     val view = "owner"
@@ -42,10 +42,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val accountId2 = AccountId("__acc2")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
-
-        val isBeneficiary = true
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
 
         addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
@@ -75,11 +71,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -88,7 +84,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -151,8 +147,14 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
 
         transactions.size should equal(1)
 
+        //check that the description has been set
+        /*val description = (((response.body \ "transactions")(0) \ "details") \ "description") match {
+          case JString(i) => i
+          case _ => ""
+        }
+        description should not equal ("")*/
 
-        //check that the balances have been properly decreased/increased (since we handle that logic for  accounts at least)
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
         val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
@@ -160,6 +162,10 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         And("the from account should have a balance smaller by the amount specified to pay")
         fromAccountBalance should equal((beforeFromBalance - convertedAmount))
 
+        /*
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        */
 
         And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
@@ -182,9 +188,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val accountId2 = AccountId("__acc2")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
-
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -209,11 +212,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -222,7 +225,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -291,7 +294,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         }
         description should not equal ("")
 
-        //check that the balances have been properly decreased/increased (since we handle that logic for   accounts at least)
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
         val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
         val convertedAmount = fx.convert(amt, rate)
@@ -324,9 +327,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
-
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
@@ -338,11 +338,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val fromAccount = getFromAccount
         val toAccount = getToAccount
 
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest with a user without owner view access
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -351,7 +351,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 400 created code")
         response.code should equal(400)
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
         val error: String = (response.body \ "error") match {
           case JString(i) => i
           case _ => ""
@@ -377,9 +377,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
         addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
 
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
-
         Then("We add entitlement to user3")
         val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
@@ -401,11 +398,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val beforeToBalance = toAccount.balance
 
         val transactionRequestId = TransactionRequestId("__trans2")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -414,7 +411,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 400 created code")
         response.code should equal(400)
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY and value is < 1000, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN and value is < 1000, we expect no challenge
         val error: String = (response.body \ "error") match {
           case JString(i) => i
           case _ => ""
@@ -441,8 +438,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
 
         val amt = BigDecimal("10.00") // This is money going out. We want to transfer this away from the From account.
 
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
@@ -483,11 +478,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -499,7 +494,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
 
         val responseBody = response.body
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -653,9 +648,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
-
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
         }
@@ -673,7 +665,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val beforeToBalance = toAccount.balance
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
         //1. TODO: get possible challenge types from account
 
@@ -682,7 +674,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(
+          toAccountJson,
+          bodyValue,
+          "Test Transaction Request description")
+
         //call createTransactionRequest API method
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
@@ -690,7 +686,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //ok, created a transaction request, check some return values. As type is COUNTERPARTY but over 100€, we expect a challenge
+        //ok, created a transaction request, check some return values. As type is SANDBOX_TAN but over 100€, we expect a challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -789,7 +785,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         challenge = (response.body \ "challenge").children
         challenge.size should not equal(0)
 
-        //check that the balances have been properly decreased/increased (since we handle that logic for   accounts at least)
+        //check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least)
         //(do it here even though the payments test does test makePayment already)
 
         val fromAccountBalance = getFromAccount.balance
@@ -820,9 +816,6 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1fx")
         val accountId2 = AccountId("__acc2fx")
-
-        val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
 
         val fromCurrency = "AED"
         val toCurrency = "INR"
@@ -871,11 +864,11 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -884,7 +877,7 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         Then("we should get a 201 created code")
         response.code should equal(201)
 
-        //created a transaction request, check some return values. As type is COUNTERPARTY, we expect no challenge
+        //created a transaction request, check some return values. As type is SANDBOX_TAN, we expect no challenge
         val transRequestId: String = (response.body \ "id") match {
           case JString(i) => i
           case _ => ""
@@ -1066,6 +1059,16 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         And("the from account should have a balance smaller by the original amount specified to pay")
         fromAccountBalance should equal(beforeFromBalance - amt)
 
+
+        //val fromAccountBalance = getFromAccount.balance
+        //And("the from account should have a balance smaller by the amount specified to pay")
+        //fromAccountBalance should equal((beforeFromBalance - amt))
+
+        /*
+        And("the newest transaction for the account receiving the payment should have the proper amount")
+        newestToAccountTransaction.details.value.amount should equal(amt.toString)
+        */
+
         And("the account receiving the payment should have a new balance plus the amount paid")
         val toAccountBalance = getToAccount.balance
         toAccountBalance should equal(beforeToBalance + convertedAmount)
@@ -1074,5 +1077,247 @@ class TransactionCopartyTest extends ServerSetupWithTestData with DefaultUsers w
         transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore + 2)
       }
     }
+
+    /*
+    scenario("we can't make a payment without access to the owner view", Payments) {
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("12.33")
+
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user2)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
+    }
+
+    scenario("we can't make a payment without an oauth user", Payments) {
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("12.33")
+
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, None)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
+    }
+
+    scenario("we can't make a payment of zero units of currency", Payments) {
+      When("we try to make a payment with amount = 0")
+
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("0")
+
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
+    }
+
+    scenario("we can't make a payment with a negative amount of money", Payments) {
+
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+
+      When("we try to make a payment with amount < 0")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("-20.30")
+
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
+    }
+
+    scenario("we can't make a payment to an account that doesn't exist", Payments) {
+
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+      val accountId1 = AccountId("__acc1")
+      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+
+      When("we try to make a payment to an account that doesn't exist")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      val fromAccount = getFromAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount)
+
+      val beforeFromBalance = fromAccount.balance
+
+      val amt = BigDecimal("17.30")
+
+      val payJson = MakePaymentJson(bankId.value, "ACCOUNTTHATDOESNOTEXIST232321321", amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for the sender's account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount))
+
+      And("the balance of the sender's account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+    }
+
+    scenario("we can't make a payment between accounts with different currencies", Payments) {
+      When("we try to make a payment to an account that has a different currency")
+      val testBank = createPaymentTestBank()
+      val bankId = testBank.bankId
+      val accountId1 = AccountId("__acc1")
+      val accountId2 = AccountId("__acc2")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
+
+      def getFromAccount : BankAccount = {
+        BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
+      }
+
+      def getToAccount : BankAccount = {
+        BankAccount(bankId, accountId2).getOrElse(fail("couldn't get to account"))
+      }
+
+      val fromAccount = getFromAccount
+      val toAccount = getToAccount
+
+      val totalTransactionsBefore = transactionCount(fromAccount, toAccount)
+
+      val beforeFromBalance = fromAccount.balance
+      val beforeToBalance = toAccount.balance
+
+      val amt = BigDecimal("4.95")
+
+      val payJson = MakePaymentJson(toAccount.bankId.value, toAccount.accountId.value, amt.toString)
+      val postResult = postTransaction(fromAccount.bankId.value, fromAccount.accountId.value, view, payJson, user1)
+
+      Then("we should get a 400")
+      postResult.code should equal(400)
+
+      And("the number of transactions for each account should remain unchanged")
+      totalTransactionsBefore should equal(transactionCount(fromAccount, toAccount))
+
+      And("the balances of each account should remain unchanged")
+      beforeFromBalance should equal(getFromAccount.balance)
+      beforeToBalance should equal(getToAccount.balance)
+    } */
   }
 }
