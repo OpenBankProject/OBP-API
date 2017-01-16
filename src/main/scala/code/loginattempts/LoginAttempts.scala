@@ -16,7 +16,7 @@ object LoginAttempt extends Loggable {
       // If it exits update the date and increment
       case Full(loginAttempt) =>
 
-        logger.info(s"incrementBadLoginAttempts found loginAttempt with id ${loginAttempt.id}")
+        logger.info(s"incrementBadLoginAttempts found ${loginAttempt.mBadAttemptsSinceLastSuccessOrReset} loginAttempt(s) with id ${loginAttempt.id}")
 
         loginAttempt
           .mLastFailureDate(now)

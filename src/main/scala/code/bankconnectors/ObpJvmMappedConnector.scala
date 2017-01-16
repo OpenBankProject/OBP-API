@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.{Date, Locale, Optional, UUID}
+import java.util.{Date, Locale, Optional, Properties, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
@@ -32,7 +32,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import code.products.Products.{Product, ProductCode}
-import com.tesobe.obp.transport.nov2016.{AccountReader, BankReader, TransactionReader}
+import com.tesobe.obp.transport.nov2016.{AccountReader, BankReader, TransactionReader, UserReader}
 import com.tesobe.obp.transport.spi.{DefaultSorter, TimestampFilter}
 
 import scala.collection.JavaConversions._
@@ -53,16 +53,20 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   var jvmNorth : JConnector = null
 
+  val responseTopic = Props.get("kafka.response_topic").openOr("Response")
+  val requestTopic  = Props.get("kafka.request_topic").openOr("Request")
+
   val cfg: Configuration = new SimpleConfiguration(
     this,
-    Props.get("kafka.host").openOr("localhost:9092"),     // responseProps
-    Props.get("kafka.response_topic").openOr("Response"), // responseTopic
-    Props.get("kafka.host").openOr("localhost:9092"),     // requestProps
-    Props.get("kafka.request_topic").openOr("Request")    // requestTopic
+    "/props/default.props",
+    responseTopic,
+    "/props/default.props",
+    requestTopic
   )
-
   val north   = new SimpleNorth( cfg )
-  jvmNorth = Transport.defaultFactory.connector(north)
+
+  val factory = Transport.factory(Transport.Version.Nov2016, Transport.Encoding.json).get
+  jvmNorth = factory.connector(north)
   north.receive() // start ObpJvm
 
   logger.info(s"ObpJvmMappedConnector running")
@@ -83,9 +87,17 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   def toOption[T](opt: Optional[T]): Option[T] = if (opt.isPresent) Some(opt.get()) else None
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
-    // We have no way of authenticating users
-    logger.info(s"getUser username ${username} will do nothing and return null")
-    null
+    val parameters = new JHashMap
+    parameters.put("user", username)
+    parameters.put("password", password)
+
+    val response = jvmNorth.get("getUser", Transport.Target.user, parameters)
+
+    response.data().map(d => new UserReader(d)).headOption match {
+      case Some(u) if (username == u.displayName) => Full(new InboundUser( u.email, password, u.displayName ))
+      case None => Empty
+    }
+
   }
 
   def updateUserAccountViews( user: APIUser ) = {
