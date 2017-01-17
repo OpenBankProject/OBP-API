@@ -34,11 +34,12 @@ package code.api
 
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
+import code.loginattempts.LoginAttempt
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
 import dispatch._
-import net.liftweb.common.{Box, Loggable}
+import net.liftweb.common.{Box, Failure, Loggable}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.scalatest._
@@ -130,12 +131,18 @@ class OAuthTest extends ServerSetup {
         pwField.sendKeys(password)
         click on XPathQuery("""//input[@type='submit']""")
         val newURL = currentUrl
+        val newPageSource = pageSource
         val verifier =
           if(newURL.contains("verifier"))
           {
             logger.info("redirected during oauth")
             val params = newURL.split("&")
             params(1).split("=")(1)
+          } 
+          else if(newPageSource.contains(ErrorMessages.UsernameHasBeenLocked ))
+          {
+            logger.info("the username has been locked")
+            XPathQuery(ErrorMessages.UsernameHasBeenLocked).element.text
           }
           else{
             logger.info("the verifier is in the page")
@@ -295,6 +302,38 @@ class OAuthTest extends ServerSetup {
       val accessTokenReply = getAccessToken(consumer, randomRequestToken, randomString(5))
       Then("we should get a 401")
       accessTokenReply.code should equal (401)
+    }
+  }
+
+  feature("Login in locked") {
+    scenario("valid Username ,invalid password ,login in too many times. The username will be locked", Verifier, Oauth) {
+      Given("we will use a valid request token to get the valid username and password")
+      val reply = getRequestToken(consumer, selfCallback)
+      val requestToken = extractToken(reply.body)
+      
+      Then("we set the valid username , invalid password and try more than 5 times")
+      val invalidPassword = "wrongpassword"
+      var verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
+      
+      Then("we should get a locked account verifier")
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+      
+
+      Then("We login in with valid username and password, it will still be failed")
+      verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
+
+      Then("we should get a locked account verifier")
+      verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
+      
+      Then("We unlock the username")
+      LoginAttempt.resetBadLoginAttempts(user1.username.get)
+
     }
   }
 }

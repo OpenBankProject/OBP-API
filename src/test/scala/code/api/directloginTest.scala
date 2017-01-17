@@ -1,6 +1,7 @@
 package code.api
 
 import code.api.util.ErrorMessages
+import code.loginattempts.LoginAttempt
 import code.model.dataAccess.OBPUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
@@ -72,6 +73,9 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val invalidUsernamePasswordCharaterHeader = ("Authorization", ("DirectLogin username=\" a#s \", " +
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
 
+  val validUsernameInvalidPasswordHeader = ("Authorization", ("DirectLogin username=%s," +
+    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME,KEY))
+
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
     "password=%s, consumer_key=%s").format(USERNAME, PASSWORD, "invalid"))
 
@@ -84,6 +88,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val invalidUsernamePasswordCharaterHeaders = List(accessControlOriginHeader, invalidUsernamePasswordCharaterHeader)
 
   val invalidUsernamePasswordHeaders = List(accessControlOriginHeader, invalidUsernamePasswordHeader)
+
+  val validUsernameInvalidPasswordHeaders = List(accessControlOriginHeader, validUsernameInvalidPasswordHeader)
 
   val invalidConsumerKeyHeaders = List(accessControlOriginHeader, invalidConsumerKeyHeader)
 
@@ -129,21 +135,40 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidLoginCredentials)
     }
 
-    scenario("Invalid credentials Charaters") {
-
-      //setupUserAndConsumer
-
-      Given("the app we are testing is registered and active")
-      Then("We should be able to find it")
-      //assert(registeredApplication(KEY) == true)
-
-      When("we try to login with an invalid username charaters and invalid password Charaters")
+    scenario("Invalid Characters") {
+      When("we try to login with an invalid username Characters and invalid password Characters")
       val request = directLoginRequest
       val response = makePostRequestAdditionalHeader(request, "", invalidUsernamePasswordCharaterHeaders)
 
-      Then("We should get a 400 - Invalid credentials")
+      Then("We should get a 400 - Invalid Characters")
       response.code should equal(400)
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
+    }
+
+    scenario("valid Username ,invalid password ,login in too many times. The username will be locked") {
+      When("login with an valid username and invalid password ,failed more than 5 times.")
+      val request = directLoginRequest
+      var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+      response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
+
+      Then("We should get a 401 - the username has been locked")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
+
+      Then("We login in with the valid username and valid passpord, the username still be locked ")
+      response = makePostRequestAdditionalHeader(request, "", validHeaders)
+      Then("We should get a 401 - the username has been locked")
+      response.code should equal(401)
+      assertResponse(response, ErrorMessages.UsernameHasBeenLocked)
+
+      Then("We unlock the username")
+      LoginAttempt.resetBadLoginAttempts(USERNAME)
     }
 
     scenario("Consumer API key is disabled") {
