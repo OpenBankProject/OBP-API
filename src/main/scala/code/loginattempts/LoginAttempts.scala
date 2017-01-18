@@ -3,10 +3,12 @@ package code.loginattempts
 import net.liftweb.common.{Loggable, Empty, Full}
 import net.liftweb.mapper.By
 import net.liftweb.util.Helpers._
-
+import net.liftweb.util.Props
 
 object LoginAttempt extends Loggable {
 
+  val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "5"
+  
   def incrementBadLoginAttempts(username: String): Unit = {
 
     logger.info(s"Hello from incrementBadLoginAttempts with $username")
@@ -43,7 +45,7 @@ object LoginAttempt extends Loggable {
 
     val result : Boolean = MappedBadLoginAttempt.find(By(MappedBadLoginAttempt.mUsername, username)) match {
       case Empty => false // No records so not locked
-      case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > 5 match {
+      case Full(loginAttempt)  => loginAttempt.badAttemptsSinceLastSuccessOrReset > maxBadLoginAttempts.toInt match {
         case true => true
         case false => false
       }
