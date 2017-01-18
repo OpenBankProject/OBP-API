@@ -327,7 +327,7 @@ trait APIMethods210 {
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
 
-                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
                     transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
@@ -352,7 +352,7 @@ trait APIMethods210 {
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
-                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
                     transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
@@ -368,7 +368,7 @@ trait APIMethods210 {
                 }
                 case "FREE_FORM" => {
                   for {
-                    // Following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following three lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
                     // The FREE_FORM discription is empty, so make it "" in the following code
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")

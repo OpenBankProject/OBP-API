@@ -297,7 +297,7 @@ object APIUtil extends Loggable {
     * They do not throw an exception on failure thus they are not assertions
     */
 
-  /** only  A-Z ,a-z and max length <= 512  */
+  /** only  A-Z, a-z and max length <= 512  */
   def checkMediumAlpha(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z]+)$""".r
@@ -308,7 +308,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  /** only  A-Z ,a-z ,0-9 and max length <= 512  */
+  /** only  A-Z, a-z, 0-9 and max length <= 512  */
   def checkMediumAlphaNumeric(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9]+)$""".r
@@ -330,7 +330,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
+  /** only  A-Z, a-z, 0-9, -,_,.and max length <= 512  */
   def checkMediumString(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._@]+)$""".r

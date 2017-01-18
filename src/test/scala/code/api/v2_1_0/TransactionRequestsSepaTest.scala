@@ -448,7 +448,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
-        Then("We prepare for the request Json ,but the amount is not a number")
+        Then("We prepare for the request Json, but the amount is not a number")
         var bodyValue = AmountOfMoneyJSON("EUR", "not a number")
         var transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.otherAccountRoutingAddress), "Test Transaction Request description")
 
@@ -976,7 +976,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         status should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
 
         var transaction_id = (response.body \ "transaction_ids") match {
-          //TODO my wrong logic here ,it is a Array , it is wrong!!
+          //TODO my wrong logic here, it is a Array, it is wrong!!
           case JString(i) => i
           case _ => ""
         }

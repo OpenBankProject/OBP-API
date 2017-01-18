@@ -72,7 +72,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
 
 
       val customerPutJSON2 = customerPutJSON.copy(name="OBP1")
-      Then("We make the request Update Branch again ,with the same data")
+      Then("We make the request Update Branch again, with the same data")
       requestPut = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePut = makePutRequest(requestPut, write(customerPutJSON2))
 
@@ -151,7 +151,7 @@ class CreateBranchTest extends V210ServerSetup with DefaultUsers {
       responsePost.code should equal(201)
 
       val customerPostJSON2 = customerPostJSON.copy(name="OBP1")
-      Then("We make the request Update Branch again ,with the same data")
+      Then("We make the request Update Branch again, with the same data")
       requestPost = (v2_1Request / "banks" / bankId.value / "branches" / branchId.value ).PUT <@ (user1)
       responsePost = makePutRequest(requestPost, write(customerPostJSON2))
 

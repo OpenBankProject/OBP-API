@@ -145,8 +145,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
-    scenario("valid Username ,invalid password ,login in too many times. The username will be locked") {
-      When("login with an valid username and invalid password ,failed more than 5 times.")
+    scenario("valid Username, invalid password, login in too many times. The username will be locked") {
+      When("login with an valid username and invalid password, failed more than 5 times.")
       val request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
 

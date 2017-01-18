@@ -387,7 +387,7 @@ import net.liftweb.util.Helpers._
         ) {
           LoginAttempt.incrementBadLoginAttempts(username)
           info(ErrorMessages.UsernameHasBeenLocked)
-          //TODO need to fix , use Failure instead, it is used to show the error message to the GUI
+          //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode) 
         }
         else {
