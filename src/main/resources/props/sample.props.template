@@ -19,6 +19,11 @@ connector=mapped
 ## OBP-JVM transport type. currently supported: kafka, mock
 #obpjvm.transport=kafka
 
+## Transaction status scheduler delay in seconds.
+## Retrieves trasactionRequest status from south-side connector.
+## Scheduler will be disabled if delay is not set.
+#transaction_status_scheduler_delay=300
+
 ## If using kafka, set zookeeper host and brokers
 #kafka.zookeeper_host=localhost:2181
 #kafka.bootstrap_hosts=localhost:9092
