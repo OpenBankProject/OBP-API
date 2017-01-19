@@ -230,12 +230,12 @@ object OAuthHandshake extends RestHelper with Loggable {
     def correctSignature(OAuthparameters : Map[String, String], httpMethod : String) = {
       //Normalize an encode the request parameters as explained in Section 3.4.1.3.2
       //of OAuth 1.0 specification (http://tools.ietf.org/html/rfc5849)
-      def generateOAuthParametersString(OAuthparameters : Map[String, String]) : String = {
+      def generateOAuthParametersString(OAuthparameters : List[(String, String)]) : String = {
         def sortParam( keyAndValue1 : (String, String), keyAndValue2 : (String, String))= keyAndValue1._1.compareTo(keyAndValue2._1) < 0
         var parameters =""
 
         //sort the parameters by name
-        OAuthparameters.toList.sortWith(sortParam _).foreach(
+        OAuthparameters.sortWith(sortParam _).foreach(
           t =>
             if(t._1 != "oauth_signature")
               parameters += URLEncoder.encode(t._1,"UTF-8")+"%3D"+ URLEncoder.encode(t._2,"UTF-8")+"%26"
@@ -244,10 +244,18 @@ object OAuthHandshake extends RestHelper with Loggable {
         parameters = parameters.dropRight(3) //remove the "&" encoded sign
         parameters
       }
-
+      def makeParamsPart(): List[(String, String)] = {
+        val mapOfParams: Map[String, List[String]] = for ((k, l) <- S.request.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
+        val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
+                                                        v <- l}
+          yield {
+            (k, v)
+          }
+        listOfTuples
+      }
       //prepare the base string (should we really have openOr here?)
-      var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri,"UTF-8")+"&"
-      baseString+= generateOAuthParametersString(OAuthparameters)
+      var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri ,"UTF-8")+"&"
+      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: makeParamsPart()))
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
@@ -280,7 +288,7 @@ object OAuthHandshake extends RestHelper with Loggable {
 
       logger.info("calculatedSignature: " + calculatedSignature)
       //logger.info("received signature:" + OAuthparameters.get("oauth_signature").get)
-      logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
+      //logger.info("received signature after decoding: " + URLDecoder.decode(OAuthparameters.get("oauth_signature").get))
 
       calculatedSignature== URLDecoder.decode(OAuthparameters.get("oauth_signature").get,"UTF-8")
     }
