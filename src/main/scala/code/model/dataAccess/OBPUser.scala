@@ -163,7 +163,7 @@ object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
 import net.liftweb.util.Helpers._
 
   /**Marking the locked state to show different error message */
-  val usernameLockedStateCode = 999999999
+  val usernameLockedStateCode = Long.MaxValue
 
   val connector = Props.get("connector").openOrThrowException("no connector set")
 
@@ -373,20 +373,22 @@ import net.liftweb.util.Helpers._
               LoginAttempt.resetBadLoginAttempts(username)
               Full(user.user) // Return the user.
             }
-        // User is locked OR password is bad
+        // User is unlocked AND password is bad
         else if (
           user.validated_? &&
-          LoginAttempt.userIsLocked(username) ||
+          ! LoginAttempt.userIsLocked(username) &&
           ! user.testPassword(Full(password))
         ) {
           LoginAttempt.incrementBadLoginAttempts(username)
           Empty
         }
         // User is locked
-        else if (!LoginAttempt.userIsLocked(username)
+        else if (LoginAttempt.userIsLocked(username)
         ) {
+          LoginAttempt.incrementBadLoginAttempts(username)
           info(ErrorMessages.UsernameHasBeenLocked)
-          Empty
+          //TODO need to fix , use Failure instead, it is used to show the error message to the GUI
+          Full(usernameLockedStateCode) 
         }
         else {
           connector match {
@@ -495,17 +497,19 @@ import net.liftweb.util.Helpers._
             })
           }
 
-          // If user is locked OR bad password, increment bad login attempt counter.
+          // If user is unlocked AND bad password, increment bad login attempt counter.
           case Full(user) if user.validated_? &&
-            LoginAttempt.userIsLocked(usernameFromGui) ||
+            ! LoginAttempt.userIsLocked(usernameFromGui) &&
             ( user.getProvider() == Props.get("hostname","") && ! user.testPassword(Full(passwordFromGui))) => {
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
             }
 
-          // This case is to send the error to GUI, when the username is locked
-          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
+          // If user is locked,send the error to GUI
+          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>{
+            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
+          }
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
