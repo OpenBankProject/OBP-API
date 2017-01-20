@@ -1,12 +1,13 @@
 package code.views
 
+import bootstrap.liftweb.ToSchemify
 import code.api.APIFailure
 import code.bankconnectors.Connector
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
-import net.liftweb.mapper.By
+import net.liftweb.mapper.{By, Schemifier}
 import net.liftweb.util.Helpers._
 
 import scala.collection.immutable.List
@@ -16,6 +17,8 @@ import scala.collection.immutable.List
 
 
 object MapperViews extends Views with Loggable {
+
+  Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
 
   def permissions(account : BankAccount) : List[Permission] = {
 
