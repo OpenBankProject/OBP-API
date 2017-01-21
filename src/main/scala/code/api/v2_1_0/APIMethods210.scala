@@ -609,7 +609,7 @@ trait APIMethods210 {
             consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
           } yield {
             // Format the data as json
-            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.isActive, consumer.createdAt)
+            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.isActive, consumer.createdAt)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -1353,6 +1353,39 @@ trait APIMethods210 {
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
            val json = JSONFactory1_4_0.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateConsumerRedirectUrl,
+      apiVersion,
+      "updateConsumerRedirectUrl",
+      "PUT",
+      "/management/consumers/CONSUMER_ID/users/USER_ID",
+      "Update Consumer RedirectUrl",
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID and USER_ID. """,
+      Extraction.decompose(ConsumerRedirectUrlJSON("consumer_key_xxx","http://localhost:8888")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      Nil)
+    
+    lazy val updateConsumerRedirectUrl: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: consumerId :: "users" :: userId :: Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~ ErrorMessages.InvalidJsonFormat
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID. "
+            consumer <- Connector.connector.vend.getConsumer(consumerIdToLong,postJson.consumer_key) ?~! {ErrorMessages.ConsumerNotFound}
+            //only the developer that created the Consumer should be able to edit it
+            isSameUseIDCreateTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! "Only the developer that created the consumer key should be able to edit it, please use the right USER_ID! "
+          } yield {
+            //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table 
+            val success = consumer.redirectURL(postJson.redirect_url).isActive(false).saveMe()
+            val json = JSONFactory210.createConsumerJSON(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }

@@ -620,5 +620,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
+  def getConsumer(consumerId: Long,consumerKey: String): Box[Consumer] = Empty
+
 
 }

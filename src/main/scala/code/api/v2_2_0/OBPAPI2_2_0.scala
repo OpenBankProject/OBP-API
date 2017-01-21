@@ -248,6 +248,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                          "createCustomer"::
                          "getCustomer" ::
                          "getCustomers" ::
+                         "updateConsumerRedirectUrl" ::
                          Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

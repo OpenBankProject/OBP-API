@@ -970,6 +970,8 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
+  def getConsumer(consumerId: Long, consumerKey: String) : Box[Consumer] = Empty
+
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`

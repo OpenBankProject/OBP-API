@@ -114,7 +114,7 @@ object ErrorMessages {
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. The COUNTERPARTY_ID specified does not exist on this server."
   val BankAccountNotFound = "OBP-30018: Bank Account not found."
-
+  val ConsumerNotFound = "OBP-30019: Consumer not found. Please specify the valid values for CONSUMER_ID and CONSUMER_KEY."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
