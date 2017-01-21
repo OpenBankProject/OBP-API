@@ -13,8 +13,7 @@ object TransactionRequests extends SimpleInjector {
 
   //TODO: change these to some kind of case class / type thingy (so we can match {} on them)
   val STATUS_INITIATED = "INITIATED"
-  val STATUS_CHALLENGE_PENDING = "CHALLENGE_PENDING"
-  //val STATUS_PROCESSING_PENDING = "PROCESSING_PENDING"  //e.g. in case bank needs some time to process transaction request
+  val STATUS_PENDING = "PENDING"
   val STATUS_FAILED = "FAILED"
   val STATUS_COMPLETED = "COMPLETED"
 
@@ -125,8 +124,8 @@ trait TransactionRequestProvider {
 
   private val logger = Logger(classOf[TransactionRequestProvider])
 
-  final def getTransactionRequest(transactionRequesId : TransactionRequestId) : Option[TransactionRequest] = {
-    getTransactionRequestFromProvider(transactionRequesId)
+  final def getTransactionRequest(transactionRequestId : TransactionRequestId) : Option[TransactionRequest] = {
+    getTransactionRequestFromProvider(transactionRequestId)
   }
 
   final def getTransactionRequests(bankId : BankId, accountId: AccountId, viewId: ViewId) : Option[List[TransactionRequest]] = {

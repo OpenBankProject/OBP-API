@@ -34,12 +34,13 @@ package bootstrap.liftweb
 import java.io.{File, FileInputStream}
 import java.util.Locale
 import javax.mail.internet.MimeMessage
+import java.util.concurrent.TimeUnit
 
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
 import code.atms.MappedAtm
-import code.loginattempts.{MappedBadLoginAttempt}
+import code.loginattempts.MappedBadLoginAttempt
 import code.branches.MappedBranch
 import code.crm.MappedCrmEvent
 import code.customer.{MappedCustomer, MappedCustomerMessage}
@@ -52,7 +53,7 @@ import code.meetings.MappedMeeting
 import code.socialmedia.MappedSocialMedia
 import code.management.{AccountsAPI, ImporterAPI}
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{MappedCounterpartyMetadata, MappedCounterpartyWhereTag, MappedCounterparty}
+import code.metadata.counterparties.{MappedCounterparty, MappedCounterpartyMetadata, MappedCounterpartyWhereTag}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -76,6 +77,7 @@ import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
 import code.transaction.MappedTransaction
+import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.views.RemoteDataActorSystem
 
 
@@ -352,6 +354,10 @@ class Boot extends Loggable{
       RemoteDataActorSystem.startLocalWorkerSystem()
     }
 
+    if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
+      val delay = Props.getLong("transaction_status_scheduler_delay").openOrThrowException("Incorrect value for transaction_status_scheduler_delay, please provide number of seconds.")
+      TransactionStatusScheduler.start(delay)
+    }
 
   }
 
