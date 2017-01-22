@@ -320,6 +320,9 @@ class Boot extends Loggable{
       case _ => Locale.ENGLISH
     }
 
+    //for XSS vulnerability, set X-Frame-Options header as DENY
+    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
