@@ -37,7 +37,7 @@ import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import net.liftweb.common._
-import net.liftweb.http.{S, SHtml, SessionVar, Templates}
+import net.liftweb.http._
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
@@ -229,6 +229,37 @@ import net.liftweb.util.Helpers._
 
     return ""
   }
+  /**
+    * Find current APIUser_UserId from OBPUser ,it is only used for Consumer registration form to save the USER_ID when register new consumer. 
+    */
+  //TODO may not be a good idea, need modify after refactoring User Models.  
+  def getCurrentAPIUserUserId: String = {
+    for {
+      current <- OBPUser.currentUser
+      userId <- tryo{current.user.foreign.get.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+    for {
+      current <- OAuthHandshake.getUser
+      userId <- tryo{current.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+    for {
+      current <- DirectLogin.getUser
+      userId <- tryo{current.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+     return ""
+   }
 
   /**
     * The string that's generated when the user name is not found.  By
