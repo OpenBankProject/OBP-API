@@ -119,4 +119,21 @@ object Helper{
     pretty(render(decompose(input)))
   }
 
+  /**
+    * extract clean redirect url from input value, because input may have some parameters, such as the following examples  <br/> 
+    * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/> 
+    * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
+    *
+    * @param input a long url with parameters 
+    * @return clean redirect url
+    */
+  def extractCleanRedirectURL(input: String): Box[String] = {
+    /**
+      * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
+      * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
+      */
+    val pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oaut*)".r
+    val validRedirectURL = pattern findFirstIn input
+    validRedirectURL
+  }
 }

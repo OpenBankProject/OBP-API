@@ -137,6 +137,8 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   //show more than the default of 20
   override def rowsPerPage = 100
 
+  def getRedirectURLByConsumerKey(consumerKey:String): String = Consumer.find(By(Consumer.key,consumerKey)).get.redirectURL.toString()
+  
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
 

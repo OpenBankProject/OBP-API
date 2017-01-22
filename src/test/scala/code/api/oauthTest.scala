@@ -63,6 +63,7 @@ class OAuthTest extends ServerSetup {
   lazy val testConsumer =
     OBPConsumer.create.
       name("test application").
+      redirectURL(selfCallback).
       isActive(true).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
@@ -71,6 +72,7 @@ class OAuthTest extends ServerSetup {
   lazy val disabledTestConsumer =
     OBPConsumer.create.
       name("test application disabled").
+      redirectURL(selfCallback).
       isActive(false).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
