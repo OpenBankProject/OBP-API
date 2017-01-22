@@ -170,8 +170,6 @@ object LocalMappedConnector extends Connector with Loggable {
         otherBankId = thisAccountBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(metadata),
-
-        //TODO V210 following five fields are new, need to be fiexed
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",
@@ -208,8 +206,6 @@ object LocalMappedConnector extends Connector with Loggable {
         otherBankId = thisAccountBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(t),
-
-        //TODO V210 following five fields are new, need to be fiexed
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",

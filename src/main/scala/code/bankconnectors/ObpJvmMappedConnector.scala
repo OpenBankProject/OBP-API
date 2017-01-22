@@ -463,8 +463,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -1091,8 +1089,6 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",

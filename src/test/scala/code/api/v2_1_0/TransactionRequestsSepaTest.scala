@@ -57,7 +57,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val isBeneficiary = true
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary, counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -333,7 +333,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary, counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -385,7 +385,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary, counterpartyId.counterpartyId);
 
 
         Then("Create the view and grant the owner view to use1")
@@ -436,7 +436,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val accountRoutingAddress = AccountRoutingAddress("toIban");
         val isBeneficiary = false
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(toBankId.value, toAccountId.value, accountRoutingAddress.value, isBeneficiary, counterpartyId.counterpartyId);
 
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
@@ -464,7 +464,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
 
 
 
-        Then("We prepare for the second request Json,but the currency is longer than 3")
+        Then("We prepare for the second request Json, but the currency is longer than 3")
         bodyValue = AmountOfMoneyJSON("longer than 3 letter", "123.4")
         transactionRequestBody = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.otherAccountRoutingAddress), "Test Transaction Request description")
 

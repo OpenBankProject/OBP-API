@@ -63,11 +63,11 @@ trait TransactionTypeProvider {
     getTransactionTypesForBankFromProvider(bankId)
   }
 
-  final def getTransactionType(transactionTypeId : TransactionTypeId) : Box[TransactionType] = {
+  final def getTransactionType(transactionTypeId: TransactionTypeId): Box[TransactionType] = {
     getTransactionTypeFromProvider(transactionTypeId)
   }
 
-  final def createOrUpdateTransactionType(postedData:TransactionTypeJSON) : Box[TransactionType] = {
+  final def createOrUpdateTransactionType(postedData: TransactionTypeJSON): Box[TransactionType] = {
     createOrUpdateTransactionTypeAtProvider(postedData)
   }
 
@@ -75,6 +75,6 @@ trait TransactionTypeProvider {
 
   protected def getTransactionTypeFromProvider(TransactionTypeId : TransactionTypeId) : Option[TransactionType]
 
-  protected def createOrUpdateTransactionTypeAtProvider(postedData:TransactionTypeJSON) : Box[TransactionType]
+  protected def createOrUpdateTransactionTypeAtProvider(postedData: TransactionTypeJSON): Box[TransactionType]
 }
 

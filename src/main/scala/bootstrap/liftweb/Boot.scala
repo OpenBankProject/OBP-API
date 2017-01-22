@@ -113,7 +113,7 @@ class Boot extends Loggable{
      *
      * api2.example.com with context path /api2
      *
-     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api2, following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *

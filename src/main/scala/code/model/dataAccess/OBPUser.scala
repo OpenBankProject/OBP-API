@@ -230,7 +230,7 @@ import net.liftweb.util.Helpers._
     return ""
   }
   /**
-    * Find current APIUser_UserId from OBPUser ,it is only used for Consumer registration form to save the USER_ID when register new consumer. 
+    * Find current APIUser_UserId from OBPUser, it is only used for Consumer registration form to save the USER_ID when register new consumer. 
     */
   //TODO may not be a good idea, need modify after refactoring User Models.  
   def getCurrentAPIUserUserId: String = {
@@ -536,7 +536,7 @@ import net.liftweb.util.Helpers._
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
             }
 
-          // If user is locked,send the error to GUI
+          // If user is locked, send the error to GUI
           case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>{
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))

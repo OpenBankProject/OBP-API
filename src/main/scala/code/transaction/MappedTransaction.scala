@@ -89,7 +89,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
           counterPartyId = alreadyFoundMetadata.map(_.metadataId).getOrElse(""),
           label = counterpartyAccountHolder.get,
           nationalIdentifier = counterpartyNationalId.get,
-          otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+          otherBankRoutingAddress = None, 
           otherAccountRoutingAddress = getCounterpartyIban(),
           thisAccountId = AccountId(counterpartyAccountNumber.get),
           thisBankId = BankId(counterpartyBankName.get),
@@ -97,8 +97,6 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
           otherBankId = theBankId,
           otherAccountId = theAccountId,
           alreadyFoundMetadata = alreadyFoundMetadata,
-
-          //TODO V210 following five fields are new, need to be fiexed
           name = "",
           otherBankRoutingScheme = "",
           otherAccountRoutingScheme="",

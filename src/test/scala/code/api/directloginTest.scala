@@ -74,7 +74,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
 
   val validUsernameInvalidPasswordHeader = ("Authorization", ("DirectLogin username=%s," +
-    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME,KEY))
+    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME, KEY))
 
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
     "password=%s, consumer_key=%s").format(USERNAME, PASSWORD, "invalid"))

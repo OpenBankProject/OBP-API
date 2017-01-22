@@ -103,7 +103,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
     def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -129,7 +129,7 @@ trait APIMethods121 {
       emptyObjectJson,
       decompose(BanksJSON(List(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")))),
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
     lazy val getBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -165,7 +165,7 @@ trait APIMethods121 {
       emptyObjectJson,
       decompose(BankJSON("1", "EFG", "Eurobank", "None", "www.eurobank.rs")),
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       apiTagBank :: Nil)
 
 
@@ -204,7 +204,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val allAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -229,7 +229,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val privateAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -257,7 +257,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val publicAccountsAllBanks : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -288,7 +288,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: Nil)
 
     lazy val allAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -318,7 +318,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       apiTagAccount :: Nil)
 
     lazy val privateAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -348,7 +348,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount :: apiTagPublicData ::  Nil)
 
     lazy val publicAccountsAtOneBank : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -388,7 +388,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,PSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       apiTagAccount ::  Nil)
 
     lazy val accountById : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -419,7 +419,7 @@ trait APIMethods121 {
       Extraction.decompose(UpdateAccountJSON("ACCOUNT_ID of the account we want to update", "New label", "BANK_ID")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagMetaData))
 
     lazy val updateAccountLabel : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -472,7 +472,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -513,7 +513,7 @@ trait APIMethods121 {
       Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -548,7 +548,7 @@ trait APIMethods121 {
       Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -578,7 +578,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val deleteViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -606,7 +606,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement)
     )
 
@@ -639,7 +639,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView, apiTagEntitlement))
 
     lazy val getPermissionForUserForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -672,7 +672,7 @@ trait APIMethods121 {
       Extraction.decompose(ViewIdsJson(List("owner","auditor","investor"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForMultipleViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -706,7 +706,7 @@ trait APIMethods121 {
       emptyObjectJson, // No Json body required
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val addPermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -740,7 +740,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForOneView : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -769,7 +769,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagView, apiTagEntitlement, apiTagOwnerRequired))
 
     lazy val removePermissionForUserForBankAccountForAllViews : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -798,7 +798,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,PSD2,OBWG),
+      Catalogs(notCore, PSD2, OBWG),
       List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
 
     lazy val getCounterpartiesForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -829,7 +829,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,PSD2,OBWG),
+      Catalogs(notCore, PSD2, OBWG),
       List(apiTagAccount, apiTagCounterparty))
 
     lazy val getCounterpartyByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -861,7 +861,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyMetadata : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -893,7 +893,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -932,7 +932,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -967,7 +967,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1002,7 +1002,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPublicAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1034,7 +1034,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val getCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1068,7 +1068,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1104,7 +1104,7 @@ trait APIMethods121 {
       Extraction.decompose(AliasJSON("An Alias")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1140,7 +1140,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPrivateAlias : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1171,7 +1171,7 @@ trait APIMethods121 {
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1204,7 +1204,7 @@ trait APIMethods121 {
       Extraction.decompose(MoreInfoJSON("More info")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1237,7 +1237,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyMoreInfo : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1268,7 +1268,7 @@ trait APIMethods121 {
       Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
 
@@ -1302,7 +1302,7 @@ trait APIMethods121 {
       Extraction.decompose(UrlJSON("www.example.com")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1335,7 +1335,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1366,7 +1366,7 @@ trait APIMethods121 {
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1399,7 +1399,7 @@ trait APIMethods121 {
       Extraction.decompose(ImageUrlJSON("www.example.com/logo.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1432,7 +1432,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty)) // Tag general then specific for consistent sorting
 
     lazy val deleteCounterpartyImageUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1463,7 +1463,7 @@ trait APIMethods121 {
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1496,7 +1496,7 @@ trait APIMethods121 {
       Extraction.decompose(OpenCorporateUrlJSON("https://opencorporates.com/companies/gb/04351490")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1529,7 +1529,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyOpenCorporatesUrl : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1560,7 +1560,7 @@ trait APIMethods121 {
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1595,7 +1595,7 @@ trait APIMethods121 {
       Extraction.decompose(CorporateLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1630,7 +1630,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyCorporateLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1666,7 +1666,7 @@ trait APIMethods121 {
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val addCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1701,7 +1701,7 @@ trait APIMethods121 {
       Extraction.decompose(PhysicalLocationJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val updateCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1736,7 +1736,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagCounterparty))
 
     lazy val deleteCounterpartyPhysicalLocation : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1783,7 +1783,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,PSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getTransactionsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1820,7 +1820,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,PSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagTransaction))
 
     lazy val getTransactionByIdForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1851,7 +1851,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1886,7 +1886,7 @@ trait APIMethods121 {
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1919,7 +1919,7 @@ trait APIMethods121 {
       Extraction.decompose(TransactionNarrativeJSON("My new (old!) piano")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1952,7 +1952,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTransactionNarrative : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1982,7 +1982,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getCommentsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2014,7 +2014,7 @@ trait APIMethods121 {
       Extraction.decompose(PostTransactionCommentJSON("Why did we spend money on this again?")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2048,7 +2048,7 @@ trait APIMethods121 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteCommentForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2078,7 +2078,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getTagsForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2110,7 +2110,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionTagJSON("holiday")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2145,7 +2145,7 @@ Authentication via OAuth is required. The user must either have owner privileges
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2176,7 +2176,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getImagesForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2208,7 +2208,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionImageJSON("The new printer", "www.example.com/images/printer.png")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2241,7 +2241,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteImageForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2272,7 +2272,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val getWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2305,7 +2305,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val addWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2342,7 +2342,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(PostTransactionWhereJSON(JSONFactory.createLocationPlainJSON(52.5571573,13.3728025))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val updateWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2379,7 +2379,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagMetaData, apiTagTransaction))
 
     lazy val deleteWhereTagForViewOnTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2414,7 +2414,7 @@ Authentication via OAuth is required if the view is not public.""",
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransaction, apiTagCounterparty))
 
     lazy val getCounterpartyForTransaction : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -2452,7 +2452,7 @@ Authentication via OAuth is required if the view is not public.""",
       Extraction.decompose(MakePaymentJson("To BANK_ID", "To ACCOUNT_ID", "12.45")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagTransactionRequest))
 
     lazy val makePayment : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {

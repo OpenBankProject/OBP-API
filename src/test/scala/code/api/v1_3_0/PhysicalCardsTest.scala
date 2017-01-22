@@ -177,7 +177,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getProducts(bankId: BankId): Box[List[Product]] = Empty
     override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-    override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+    override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
