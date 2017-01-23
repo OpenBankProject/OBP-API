@@ -79,7 +79,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -115,7 +115,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomerMessages  : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -147,7 +147,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(AddCustomerMessageJson("message to send", "from department", "from person")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer)
     )
 
@@ -192,7 +192,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -236,7 +236,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -288,7 +288,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,OBWG),
+      Catalogs(Core, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -325,7 +325,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer)
     )
 
@@ -376,7 +376,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       Extraction.decompose(TransactionReponseTypes(TransactionReponseType("SANDBOX_TAN")::Nil)),
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequestTypes: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -411,7 +411,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -467,7 +467,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                           ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -515,7 +515,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -566,7 +566,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val addCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -642,7 +642,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           emptyObjectJson,
           emptyObjectJson,
         emptyObjectJson :: Nil,
-        Catalogs(notCore,notPSD2,notOBWG),
+        Catalogs(notCore, notPSD2, notOBWG),
         Nil)
       }
 

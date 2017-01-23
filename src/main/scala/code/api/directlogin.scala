@@ -189,7 +189,7 @@ object DirectLogin extends RestHelper with Loggable {
     }
 
     /**Validate user supplied Direct Login parameters before they are used further,
-      * guard maximum length and content of strings (a-z,0-9 etc.) */
+      * guard maximum length and content of strings (a-z, 0-9 etc.) */
     def validDirectLoginParameters(parameters: Map[String, String]): Iterable[String] = {
       for (key <- parameters.keys) yield {
         val parameterValue = parameters.get(key).get
@@ -226,7 +226,7 @@ object DirectLogin extends RestHelper with Loggable {
 
     //are all the necessary directLogin parameters present?
     val missingParams = missingDirectLoginParameters(parameters, requestType)
-    //guard maximum length and content of strings (a-z,0-9 etc.) for parameters
+    //guard maximum length and content of strings (a-z, 0-9 etc.) for parameters
     val validParams = validDirectLoginParameters(parameters)
 
     if (missingParams.nonEmpty) {

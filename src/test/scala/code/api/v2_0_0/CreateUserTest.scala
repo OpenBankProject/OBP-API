@@ -73,7 +73,7 @@ class CreateUserTest extends V200ServerSetup with BeforeAndAfter {
 
   feature("we can create an user and login as newly created user using both directLogin and OAuth") {
 
-    scenario("we create an user with email, first name, last name , username and password", CreateUser) {
+    scenario("we create an user with email, first name, last name, username and password", CreateUser) {
       When("we create a new user")
       val params = Map("email" -> EMAIL,
         "username" -> USERNAME,

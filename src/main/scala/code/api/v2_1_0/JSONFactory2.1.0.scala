@@ -128,7 +128,7 @@ case class TransactionRequestWithChargeJSONs210(
                                               transaction_requests_with_charges : List[TransactionRequestWithChargeJSON210]
                                             )
 case class PutEnabledJSON(enabled: Boolean)
-case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, enabled: Boolean, created: Date)
+case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, redirectUrl: String, enabled: Boolean, created: Date)
 case class ConsumerJSONs(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
@@ -274,6 +274,12 @@ case class BranchJsonPost(
                            meta: MetaJson,
                            lobby: LobbyJson,
                            driveUp: DriveUpJson)
+
+case class ConsumerRedirectUrlJSON(
+                            consumer_key: String,
+                            redirect_url: String
+                          )
+
 case class ViewsJSON(
                       views : List[ViewJSON]
                     )
@@ -534,6 +540,7 @@ object JSONFactory210{
       appType=c.appType.toString(),
       description=c.description,
       developerEmail=c.developerEmail,
+      redirectUrl=c.redirectURL,
       enabled=c.isActive,
       created=c.createdAt
     )

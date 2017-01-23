@@ -778,4 +778,6 @@ trait Connector {
 //
 //  def resetBadLoginAttempts(username:String):Unit
 
+  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer]
+  
 }

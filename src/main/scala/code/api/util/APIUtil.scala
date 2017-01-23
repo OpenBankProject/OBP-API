@@ -76,7 +76,7 @@ object ErrorMessages {
 
   val InvalidLoginCredentials = "OBP-20004: Invalid login credentials. Check username/password."
 
-  val UserNotFoundById = "OBP-20005: User not found by User Id."
+  val UserNotFoundById = "OBP-20005: User not found. Please specify a valid value for USER_ID."
   val UserDoesNotHaveRole = "OBP-20006: User does not have a role "
   val UserNotFoundByEmail = "OBP-20007: User not found by email."
 
@@ -107,14 +107,14 @@ object ErrorMessages {
   val AtmNotFoundByAtmId = "OBP-30009: ATM not found. Please specify a valid value for ATM_ID."
   val BranchNotFoundByBranchId = "OBP-300010: Branch not found. Please specify a valid value for BRANCH_ID."
   val ProductNotFoundByProductCode = "OBP-30011: Product not found. Please specify a valid value for PRODUCT_CODE."
-  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. The IBAN specified does not exist on this server."
-  val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty.Please set the Counterparty 'isBeneficiary' true first"
+  val CounterpartyNotFoundByIban = "OBP-30012: Counterparty not found. Please specify a valid value for IBAN."
+  val CounterpartyBeneficiaryPermit = "OBP-30013: The account can not send money to the Counterparty. Please set the Counterparty 'isBeneficiary' true first"
   val CounterpartyAlreadyExists = "OBP-30014: Counterparty already exists. Please specify a different value for BANK_ID or ACCOUNT_ID or VIEW_ID or NAME."
   val CreateBranchInsertError = "OBP-30015: Could not insert the Branch"
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
-  val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. The COUNTERPARTY_ID specified does not exist on this server."
-  val BankAccountNotFound = "OBP-30018: Bank Account not found."
-
+  val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
+  val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
+  val ConsumerNotFound = "OBP-30019: Consumer not found. Please specify the valid values for CONSUMER_ID and CONSUMER_KEY."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
@@ -151,8 +151,8 @@ object ErrorMessages {
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
-  val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique bankId / shortCode"
-  val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique bankId / shortCode"
+  val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique BANK_ID / SHORT_CODE"
+  val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
 
 }
 
@@ -297,7 +297,7 @@ object APIUtil extends Loggable {
     * They do not throw an exception on failure thus they are not assertions
     */
 
-  /** only  A-Z ,a-z and max length <= 512  */
+  /** only  A-Z, a-z and max length <= 512  */
   def checkMediumAlpha(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z]+)$""".r
@@ -308,7 +308,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  /** only  A-Z ,a-z ,0-9 and max length <= 512  */
+  /** only  A-Z, a-z, 0-9 and max length <= 512  */
   def checkMediumAlphaNumeric(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9]+)$""".r
@@ -330,7 +330,7 @@ object APIUtil extends Loggable {
     }
   }
 
-  /** only  A-Z ,a-z ,0-9 ,-,_,.and max length <= 512  */
+  /** only  A-Z, a-z, 0-9, -, _, ., @, and max length <= 512  */
   def checkMediumString(value:String): String ={
     val valueLength = value.length
     val regex = """^([A-Za-z0-9\-._@]+)$""".r
@@ -519,7 +519,7 @@ object APIUtil extends Loggable {
   val apiTagExperimental = ResourceDocTag("Experimental")
   val apiTagPerson = ResourceDocTag("Person")
 
-  case class Catalogs(core : Boolean =false, psd2 : Boolean=false, obwg:Boolean=false)
+  case class Catalogs(core: Boolean = false, psd2: Boolean = false, obwg: Boolean = false)
 
   val Core = true
   val PSD2 = true

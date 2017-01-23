@@ -109,7 +109,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
 
@@ -165,7 +165,7 @@ trait ResourceDocsAPIMethods extends Loggable with APIMethods220 with APIMethods
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagApiInfo)
     )
 
@@ -296,7 +296,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
         emptyObjectJson,
         emptyObjectJson,
         emptyObjectJson :: Nil,
-        Catalogs(notCore,notPSD2,notOBWG),
+        Catalogs(notCore, notPSD2, notOBWG),
         List(apiTagApiInfo))
     }
 

@@ -68,7 +68,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
     }
 
     scenario("No BankAccount in Database") {
-      Given("The user ,but no BankAccount")
+      Given("The user, but no BankAccount")
 
       val testBank = createBank("transactions-test-bank")
       val bankId = testBank.bankId

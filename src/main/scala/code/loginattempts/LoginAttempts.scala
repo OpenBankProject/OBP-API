@@ -39,7 +39,7 @@ object LoginAttempt extends Loggable {
   }
 
   /**
-    * check the bad login attempts,if it exceed the "max.bad.login.attempts"(in default.props), it return false.
+    * check the bad login attempts, if it exceed the "max.bad.login.attempts"(in default.props), it return false.
     */
   def userIsLocked(username: String): Boolean = {
 

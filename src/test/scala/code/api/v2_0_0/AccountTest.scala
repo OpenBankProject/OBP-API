@@ -129,7 +129,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       isPublicAll.forall(_ == false) should equal(true)
     }
 
-    scenario("We create an account , but with wrong format of account_id ") {
+    scenario("We create an account, but with wrong format of account_id ") {
       Given("The bank")
       val testBank = mockBankId
       val newAccountIdWithSpaces = "account%20with%20spaces"

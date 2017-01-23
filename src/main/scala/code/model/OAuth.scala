@@ -92,7 +92,10 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
   object developerEmail extends MappedEmail(this, 100) {
     override def displayName = "Email:"
   }
-
+  object redirectURL extends MappedString(this, 250){
+    override def displayName = "Redirect URL:"
+    override def validations = validUrl(this) _ :: super.validations
+  }
   //if the application needs to delegate the user authentication
   //to a third party application (probably it self) rather than using
   //the default authentication page of the API, then this URL will be used.
@@ -100,6 +103,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
     override def displayName = "User authentication URL:"
     override def validations = validUrl(this) _ :: super.validations
   }
+  object createdByUserId extends MappedString(this, 36)
 
 }
 
@@ -133,6 +137,8 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   //show more than the default of 20
   override def rowsPerPage = 100
 
+  def getRedirectURLByConsumerKey(consumerKey: String): String = Consumer.find(By(Consumer.key, consumerKey)).get.redirectURL.toString()
+  
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
 

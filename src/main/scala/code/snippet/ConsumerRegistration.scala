@@ -32,6 +32,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.model._
+import code.model.dataAccess.{OBPUser}
 import net.liftweb.http.{RequestVar, S}
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
@@ -69,7 +70,8 @@ class ConsumerRegistration extends Loggable {
     def register = {
       ".register" #> {
           ".appTypeClass" #> SHtml.select(appTypes, Empty, appType(_)) &
-          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) &
+          ".appNameClass" #> SHtml.text(nameVar.is, nameVar(_)) & 
+          ".appRedirectUrlClass" #> SHtml.text(redirectionURLVar, redirectionURLVar(_)) &
           ".appDevClass" #> SHtml.text(devEmailVar, devEmailVar(_)) &
           ".appDescClass" #> SHtml.textarea(descriptionVar, descriptionVar (_)) &
           ".appUserAuthenticationUrlClass" #> SHtml.text(authenticationURLVar.is, authenticationURLVar(_)) &
@@ -83,6 +85,7 @@ class ConsumerRegistration extends Loggable {
       val urlDirectLoginEndpoint = Props.get("hostname", "") + "/my/logins/direct"
       //thanks for registering, here's your key, etc.
       ".app-name *" #> consumer.name.get &
+      ".app-redirect-url *" #> consumer.redirectURL &
       ".app-user-authentication-url *" #> consumer.userAuthenticationURL &
       ".app-type *" #> consumer.appType.get.toString &
       ".app-description *" #> consumer.description.get &
@@ -142,8 +145,9 @@ class ConsumerRegistration extends Loggable {
           appType(appTypeSelected.get).
           description(descriptionVar.is).
           developerEmail(devEmailVar.is).
-          userAuthenticationURL(redirectionURLVar.is)
-
+          redirectURL(redirectionURLVar.is).
+          createdByUserId(OBPUser.getCurrentAPIUserUserId)
+      
       val errors = consumer.validate
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)

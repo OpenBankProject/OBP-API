@@ -93,7 +93,7 @@ class CreateTransactionTypeTest extends V210ServerSetup with DefaultUsers {
       responsePut.code should equal(200)
     }
 
-    scenario("We try to insert and update error ,call 'Create Transaction Type offered by the bank' correctly ") {
+    scenario("We try to insert and update error, call 'Create Transaction Type offered by the bank' correctly ") {
       Given("The Authentication")
       setCanCreateTransactionType
 
