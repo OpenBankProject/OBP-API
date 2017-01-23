@@ -132,8 +132,13 @@ object Helper{
       * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
       * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
       */
-    val pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oaut*)".r
+    //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
+    val pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
     val validRedirectURL = pattern findFirstIn input
-    validRedirectURL
+    // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
+    // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
+    val extractCleanURL = validRedirectURL.getOrElse("").split("/oau")(0) 
+    Full(extractCleanURL)
   }
 }

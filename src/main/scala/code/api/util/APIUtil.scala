@@ -142,6 +142,7 @@ object ErrorMessages {
 
   val InvalidGetTransactionsConnectorResponse = "OBP-30204: Connector did not return the set of transactions we requested."
 
+  val InvalidStrongPasswordFormat = "OBP-30207: Invalid Password. It should be min 10 characters with mixed numbers + letters + upper+lower case + at least one special character, or longer than 16 characters without validations"
 
 
 
@@ -291,6 +292,29 @@ object APIUtil extends Loggable {
       case _ => false
     }
   }
+
+  /** enforce the password. 
+    * The rules : 
+    * 1) length is >16 characters without validations
+    * 2) or Min 10 characters with mixed numbers + letters + upper+lower case + at least one special character. 
+    * */
+  def isValidStrongPassword(password: String): Boolean = {
+    /**
+      * (?=.*\d)                    //should contain at least one digit
+      * (?=.*[a-z])                 //should contain at least one lower case
+      * (?=.*[A-Z])                 //should contain at least one upper case
+      * (?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])              //should contain at least one special character
+      * ([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})  //should contain 10 to 16 valid characters
+      **/
+    val regex =
+      """^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~])([A-Za-z0-9!"#$%&'\(\)*+,-./:;<=>?@\\[\\\\]^_\\`{|}~]{10,16})$""".r
+    password match {
+      case password if (password.length > 16) => true
+      case regex(password) => true
+      case _ => false
+    }
+  }
+  
 
 
   /** These three functions check rather than assert. I.e. they are silent if OK and return an error message if not.
