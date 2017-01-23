@@ -499,7 +499,21 @@ object KafkaMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
+      val req : Map[String,String] = Map(
+      "north" -> "getTransactionRequestStatus",
+      "version" -> formatVersion,
+      "name" -> "get",
+      "transactionRequestId" -> transactionRequestId.value
+    )
+
+    val r = process(req)
+
+    r.extract[KafkaInboundTransactionRequestStatus] match {
+      case status: KafkaInboundTransactionRequestStatus => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
+      case _ => Empty
+    }
+  }
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
@@ -1102,7 +1116,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         new_balance : String,
                                         value : String)
 
-
   case class KafkaInboundAtm(
                               id : String,
                               bank_id: String,
@@ -1111,7 +1124,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                               location : KafkaInboundLocation,
                               meta : KafkaInboundMeta
                            )
-
 
   case class KafkaInboundProduct(
                                  bank_id : String,
@@ -1123,7 +1135,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                  more_info_url : String,
                                  meta : KafkaInboundMeta
                                )
-
 
   case class KafkaInboundAccountData(
                                       banks : List[KafkaInboundBank],
@@ -1143,7 +1154,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                crm_events: List[KafkaInboundCrmEvent]
                             )
 
-
   case class KafkaInboundCrmEvent(
                                    id : String, // crmEventId
                                    bank_id : String,
@@ -1159,10 +1169,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                                    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
                                  )
 
-
   case class KafkaInboundTransactionId(
                                         transactionId : String
                                       )
+
   case class KafkaOutboundTransaction(
                                       north: String,
                                       version: String,
@@ -1179,7 +1189,16 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        currency: String
                                         )
 
+  case class KafkaInboundTransactionRequestStatus(
+                                             transactionRequestId : String,
+                                             bulkTransactionsStatus: List[KafkaInboundTransactionStatus]
+                                           )
 
+  case class KafkaInboundTransactionStatus(
+                                transactionId : String,
+                                transactionStatus: String,
+                                transactionTimestamp: String
+                              )
 
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString
@@ -1193,6 +1212,21 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 import java.util.{Properties, UUID}

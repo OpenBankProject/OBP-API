@@ -618,7 +618,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     }
   }
 
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = {
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
     val parameters = new JHashMap
     val fields = new JHashMap
 
@@ -627,7 +627,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val response : JResponse = jvmNorth.put("getTransactionRequestStatus", Transport.Target.transaction, parameters, fields)
 
     response.data().headOption match {
-      case Some(x) => Full(x.text("status").toBoolean)
+      case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
       case None => Empty
     }
   }
@@ -1296,6 +1296,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   case class ObpJvmInboundTransactionId(
                                         transactionId : String
                                       )
+
   case class ObpJvmOutboundTransaction(username: String,
                                       accountId: String,
                                       currency: String,
@@ -1309,6 +1310,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                        limit: BigDecimal,
                                        currency: String
                                         )
+
+  case class ObpJvmInboundTransactionRequestStatus(
+                                             transactionRequestId : String,
+                                             bulkTransactionsStatus: List[ObpJvmInboundTransactionStatus]
+                                           )
+
+  case class ObpJvmInboundTransactionStatus(
+                                transactionId : String,
+                                transactionStatus: String,
+                                transactionStatusTimestamp: String
+                              )
 
   override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
