@@ -244,7 +244,13 @@ object OAuthHandshake extends RestHelper with Loggable {
         parameters = parameters.dropRight(3) //remove the "&" encoded sign
         parameters
       }
-      def makeParamsPart(): List[(String, String)] = {
+      /**
+        * This function gets parameters in form Map[String, List[String]] and transform they into a List[(String, String)]
+        * i.e. (username -> List(Jon), roles -> (manager, admin)) becomes ((username, Jon), (roles, admin), (roles, manager))
+        * @return the Url parameters as list of Tuples
+        */
+
+      def urlParameters(): List[(String, String)] = {
         val mapOfParams: Map[String, List[String]] = for ((k, l) <- S.request.map(_.params).getOrElse(Map.empty)) yield (k, l.sortWith(_ < _))
         val listOfTuples: List[(String, String)] = for {(k, l) <- mapOfParams.toList
                                                         v <- l}
@@ -255,7 +261,9 @@ object OAuthHandshake extends RestHelper with Loggable {
       }
       //prepare the base string (should we really have openOr here?)
       var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri ,"UTF-8")+"&"
-      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: makeParamsPart()))
+      // Add OAuth and URL parameters to the base string
+      // Parameters are provided as List[(String, String)]
+      baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
 
       val encodeBaseString = URLEncoder.encode(baseString,"UTF-8")
       //get the key to sign
