@@ -29,6 +29,7 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
   */
+
 package code.model.dataAccess
 
 import java.util.UUID
@@ -361,12 +362,11 @@ import net.liftweb.util.Helpers._
 
   def getAPIUserId(username: String, password: String): Box[Long] = {
     findUserByUsername(username) match {
-      case Full(user) =>
+      case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
         if (
           user.validated_? &&
           // User is NOT locked AND the password is good
           ! LoginAttempt.userIsLocked(username) &&
-          user.getProvider() == Props.get("hostname","") &&
           user.testPassword(Full(password)))
             {
               // We logged in correctly, so reset badLoginAttempts counter (if it exists)
@@ -383,32 +383,55 @@ import net.liftweb.util.Helpers._
           Empty
         }
         // User is locked
-        else if (LoginAttempt.userIsLocked(username)
-        ) {
+        else if (LoginAttempt.userIsLocked(username))
+        {
           LoginAttempt.incrementBadLoginAttempts(username)
           info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix , use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode) 
         }
         else {
-          connector match {
-            case "kafka" =>
-              if (Props.getBool("kafka.user.authentication", false))
-                for { kafkaUser <- getUserFromConnector(username, password)
-                      kafkaUserId <- tryo{kafkaUser.user} } yield kafkaUserId.toLong
-              else
-                Empty
-            case "obpjvm" =>
-              if (Props.getBool("obpjvm.user.authentication", false))
-                for { obpjvmUser <- getUserFromConnector(username, password)
-                      obpjvmUserId <- tryo{obpjvmUser.user} } yield obpjvmUserId.toLong
-              else
-                Empty
-            case _ => Empty
-          }
+          // Nothing worked, so just increment bad login attempts 
+          LoginAttempt.incrementBadLoginAttempts(username)
+          Empty
         }
 
-      case _ => Empty
+      case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
+          connector match {
+            case "kafka" if ( Props.getBool("kafka.user.authentication", false) &&
+              ! LoginAttempt.userIsLocked(username) ) =>
+                val userId = for { kafkaUser <- getUserFromConnector(username, password)
+                  kafkaUserId <- tryo{kafkaUser.user} } yield {
+                    LoginAttempt.resetBadLoginAttempts(username)
+                    kafkaUserId.toLong
+                } 
+                userId match {
+                  case Full(l:Long) => Full(l)
+                  case _ =>
+                    LoginAttempt.incrementBadLoginAttempts(username)
+                    Empty 
+		}
+            case "obpjvm" if ( Props.getBool("obpjvm.user.authentication", false) &&
+              ! LoginAttempt.userIsLocked(username) ) =>
+                val userId = for { obpjvmUser <- getUserFromConnector(username, password)
+                  obpjvmUserId <- tryo{obpjvmUser.user} } yield { 
+                    LoginAttempt.resetBadLoginAttempts(username)
+                    obpjvmUserId.toLong
+                }
+                userId match {
+                  case Full(l:Long) => Full(l)
+                  case _ => 
+                    LoginAttempt.incrementBadLoginAttempts(username)
+                    Empty 
+              }
+            case _ => 
+              LoginAttempt.incrementBadLoginAttempts(username)
+              Empty
+          }
+
+      case _ =>
+        LoginAttempt.incrementBadLoginAttempts(username)
+        Empty
     }
   }
 
@@ -472,56 +495,51 @@ import net.liftweb.util.Helpers._
         val passwordFromGui = S.param("password").getOrElse("")
         S.param("username").
           flatMap(name => findUserByUsername(name)) match {
+          // Check if user came from localhost and
+          // if User is NOT locked and password is good
           case Full(user) if user.validated_? &&
-            // Check if user came from localhost
             user.getProvider() == Props.get("hostname","") &&
-            // If User NOT locked and password is good
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            user.testPassword(S.param("password")) => {
-            // Reset any bad attempts
-            LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-            val preLoginState = capturePreLoginState()
-            info("login redir: " + loginRedirect.get)
-            val redir = loginRedirect.get match {
-              case Full(url) =>
-                loginRedirect(Empty)
-                url
-              case _ =>
-                homePage
+            user.testPassword(Full(passwordFromGui)) => {
+              // Reset any bad attempts
+              LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+              val preLoginState = capturePreLoginState()
+              info("login redir: " + loginRedirect.get)
+              val redir = loginRedirect.get match {
+                case Full(url) =>
+                  loginRedirect(Empty)
+                  url
+                case _ =>
+                  homePage
+              }
+              registeredUserHelper(user.username)
+              logUserIn(user, () => {
+                S.notice(S.?("logged.in"))
+                preLoginState()
+                S.redirectTo(redir)
+              })
             }
-            registeredUserHelper(user.username)
-            logUserIn(user, () => {
-              S.notice(S.?("logged.in"))
-              preLoginState()
-              S.redirectTo(redir)
-            })
-          }
 
           // If user is unlocked AND bad password, increment bad login attempt counter.
           case Full(user) if user.validated_? &&
+            user.getProvider() == Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            ( user.getProvider() == Props.get("hostname","") && ! user.testPassword(Full(passwordFromGui))) => {
+            ! user.testPassword(Full(passwordFromGui)) => 
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
-            }
 
           // If user is locked,send the error to GUI
-          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>{
+          case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))
-          }
 
           case Full(user) if !user.validated_? =>
             S.error(S.?("account.validation.error"))
 
-
-          // TODO Check the User Lock situation for non mapped users
-
-          case _ => if (connector == "kafka" || connector == "obpjvm")
-          {
-            // If not found locally, try to authenticate user via Kafka, if enabled in props
-            if (Props.getBool("kafka.user.authentication", false) ||
-              Props.getBool("obpjvm.user.authentication", false)) {
+          // If not found locally, try to authenticate user via Kafka, if enabled in props
+          case Empty if ((connector == "kafka" || connector == "obpjvm") &&
+            (Props.getBool("kafka.user.authentication", false) ||
+            Props.getBool("obpjvm.user.authentication", false))) => 
               val preLoginState = capturePreLoginState()
               info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
@@ -532,20 +550,24 @@ import net.liftweb.util.Helpers._
                   homePage
               }
               for {
-                user_ <- externalUserHelper(S.param("username").getOrElse(""), S.param("password").getOrElse(""))
+                user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
               } yield {
-                logUserIn(user_, () => {
-                  S.notice(S.?("logged.in"))
-                  preLoginState()
-                  S.redirectTo(redir)
-                })
+                user_ 
+              } match {
+                case u:OBPUser =>
+                  LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+                  logUserIn(u, () => {
+                    S.notice(S.?("logged.in"))
+                    preLoginState()
+                    S.redirectTo(redir)
+                  })
+                case _ =>
+                  LoginAttempt.incrementBadLoginAttempts(username)
+                  Empty
               }
-            } else {
-              S.error(S.?("account.validation.error"))
-            }
-          } else {
+          case _ =>
+            LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?("account.validation.error"))
-          }
         }
       }
     }
