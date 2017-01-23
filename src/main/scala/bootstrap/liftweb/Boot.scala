@@ -113,7 +113,7 @@ class Boot extends Loggable{
      *
      * api2.example.com with context path /api2
      *
-     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api2, following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *
@@ -320,6 +320,9 @@ class Boot extends Loggable{
       case _ => Locale.ENGLISH
     }
 
+    //for XSS vulnerability, set X-Frame-Options header as DENY
+    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 

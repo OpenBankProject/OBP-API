@@ -133,11 +133,12 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
-case class  AccountRoutingAddress(val value : String) {
-override def toString = value
+case class AccountRoutingAddress(val value: String) {
+  override def toString = value
 }
-object  AccountRoutingAddress {
-  def unapply(id : String) = Some(AccountRoutingAddress(id))
+
+object AccountRoutingAddress {
+  def unapply(id: String) = Some(AccountRoutingAddress(id))
 }
 
 case class CustomerId(val value : String) {

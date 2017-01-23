@@ -52,8 +52,8 @@ class WebUI extends Loggable{
   // cookie consent kit available at:
   // http://ec.europa.eu/ipg/basics/legal/cookies/index_en.htm#section_2
   def cookieConsent = {
-    var onclick = "removeById('cookies-consent'); "
-    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showUsesCookiePage('cookies-consent'); </script>""".format(onclick)
+    var onclick = "removeByIdAndSaveIndicatorCookie('cookies-consent'); "
+    val buttonString = """<input id="clickMe" type="button" value="Accept and close" onclick="%s"/> <script>showIndicatorCookiePage('cookies-consent'); </script>""".format(onclick)
     val button  = scala.xml.Unparsed(s"""$buttonString""")
     "#clickMe" #> button
   }

@@ -10,7 +10,7 @@ import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{PhysicalCard, _}
+import code.model.{Consumer, PhysicalCard, _}
 import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
@@ -177,11 +177,12 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getProducts(bankId: BankId): Box[List[Product]] = Empty
     override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-    override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+    override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
 
+    override def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
   }
 
   override def beforeAll() {

@@ -90,7 +90,7 @@ object SwaggerJSONFactory {
             rd.summary,
             description = pegDownProcessor.markdownToHtml(rd.description.stripMargin).replaceAll("\n", ""),
             s"${rd.apiVersion.toString}-${rd.apiFunction.toString}",
-            Map("200" -> ResponseObjectJson(Some("Success") , getName(rd)), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
+            Map("200" -> ResponseObjectJson(Some("Success"), getName(rd)), "400" -> ResponseObjectJson(Some("Error"), Some(ResponseObjectSchemaJson("#/definitions/Error"))))))
       ).toMap
       (mrd._1, methods.toSeq.sortBy(m => m._1).toMap)
     }(collection.breakOut)

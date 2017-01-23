@@ -24,8 +24,8 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
                         family : String,
                         superFamily : String,
                         moreInfoUrl: String,
-                         details: String,
-                         description: String,
+                        details: String,
+                        description: String,
                         meta: Meta) extends Product
 
   val fakeMeta = new Meta {
@@ -43,11 +43,11 @@ class ProductsTest extends ServerSetup with DefaultUsers with V140ServerSetup {
   }
 
 
-  val fakeProduct1 = ProductImpl(BankWithLicense, ProductCode("prod1"), "name 1", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo1.html", "","",fakeMeta)
-  val fakeProduct2 = ProductImpl(BankWithLicense, ProductCode("prod2"), "name 2", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo2.html", "","",fakeMeta)
+  val fakeProduct1 = ProductImpl(BankWithLicense, ProductCode("prod1"), "name 1", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo1.html", "", "", fakeMeta)
+  val fakeProduct2 = ProductImpl(BankWithLicense, ProductCode("prod2"), "name 2", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo2.html", "", "", fakeMeta)
 
   // Should not be returned (no license)
-  val fakeProduct3 = ProductImpl(BankWithoutLicense, ProductCode("prod3"), "name 3", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo3.html", "","",fakeMetaNoLicense)
+  val fakeProduct3 = ProductImpl(BankWithoutLicense, ProductCode("prod3"), "name 3", "cat 1", "family 1", "super family 1", "http://www.example.com/moreinfo3.html", "", "", fakeMetaNoLicense)
 
 
   // This mock provider is returning same branches for the fake banks

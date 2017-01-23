@@ -74,7 +74,7 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
     "password=\"no-good-password\", consumer_key=%s").format(KEY))
 
   val validUsernameInvalidPasswordHeader = ("Authorization", ("DirectLogin username=%s," +
-    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME,KEY))
+    "password=\"notExistingPassword\", consumer_key=%s").format(USERNAME, KEY))
 
   val invalidConsumerKeyHeader = ("Authorization", ("DirectLogin username=%s, " +
     "password=%s, consumer_key=%s").format(USERNAME, PASSWORD, "invalid"))
@@ -145,8 +145,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
       assertResponse(response, ErrorMessages.InvalidValueCharacters)
     }
 
-    scenario("valid Username ,invalid password ,login in too many times. The username will be locked") {
-      When("login with an valid username and invalid password ,failed more than 5 times.")
+    scenario("valid Username, invalid password, login in too many times. The username will be locked") {
+      When("login with an valid username and invalid password, failed more than 5 times.")
       val request = directLoginRequest
       var response = makePostRequestAdditionalHeader(request, "", validUsernameInvalidPasswordHeaders)
 

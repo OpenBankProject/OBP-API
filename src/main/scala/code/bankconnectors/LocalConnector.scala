@@ -230,7 +230,7 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccount_.number.get),
       thisBankId = BankId(otherAccount_.bank.get.name.get),
@@ -238,8 +238,6 @@ private object LocalConnector extends Connector with Loggable {
       otherBankId = theAccount.bankId,
       otherAccountId = theAccount.accountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -388,7 +386,7 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccountFromTransaction.number.get),
       thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
@@ -396,8 +394,6 @@ private object LocalConnector extends Connector with Loggable {
       otherBankId = originalPartyBankId,
       otherAccountId = originalPartyAccountId,
       alreadyFoundMetadata = Some(otherAccount),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -616,9 +612,11 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+  override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
+
+  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
 
 
 }

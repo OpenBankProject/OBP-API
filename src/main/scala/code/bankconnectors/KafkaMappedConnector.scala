@@ -353,8 +353,6 @@ object KafkaMappedConnector extends Connector with Loggable {
       otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -964,8 +962,6 @@ object KafkaMappedConnector extends Connector with Loggable {
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -983,6 +979,8 @@ object KafkaMappedConnector extends Connector with Loggable {
   override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+  def getConsumer(consumerId: Long, consumerKey: String) : Box[Consumer] = Empty
 
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
