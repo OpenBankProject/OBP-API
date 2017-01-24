@@ -4,6 +4,8 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorSystem}
 import akka.event.Logging
+import code.bankconnectors.Connector
+import code.model.{TransactionRequestId, TransactionRequestStatus}
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests
 import code.transactionrequests.TransactionRequests._
@@ -34,13 +36,18 @@ object TransactionStatusScheduler extends Loggable {
     val transactionRequests = MappedTransactionRequest.find(By(MappedTransactionRequest.mStatus, TransactionRequests.STATUS_PENDING))
     logger.info("Updating status of all pending transactions: ")
     transactionRequests.map{ tr =>
-      val status = updatePendingTransactionRequest(tr)
-      println(s"---> updated ${tr.toTransactionRequest} status: ${status}")
+      for {
+        transactionRequest <- tr.toTransactionRequest
+        status <- updatePendingTransactionRequest(transactionRequest.id)
+      } yield {
+        logger.info(s"updated ${transactionRequest.id} status: ${status}")
+        status
+      }
     }
   }
 
-  def updatePendingTransactionRequest(tr: MappedTransactionRequest): Box[Boolean]  = {
-    Full(false)
+  def updatePendingTransactionRequest(transactionRequestId: TransactionRequestId): Box[TransactionRequestStatus]  = {
+    Connector.connector.vend.getTransactionRequestStatus(transactionRequestId: TransactionRequestId)
   }
 
 

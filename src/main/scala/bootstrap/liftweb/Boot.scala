@@ -354,7 +354,11 @@ class Boot extends Loggable{
     }
 
     if (!Props.getBool("enable_remotedata", false)) {
-      RemoteDataActorSystem.startLocalWorkerSystem()
+      try {
+        RemoteDataActorSystem.startLocalWorkerSystem()
+      } catch {
+        case ex: Exception => logger.warn(s"RemoteDataActorSystem.startLocalWorkerSystem() could not start: $ex")
+      }
     }
 
     if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
