@@ -138,7 +138,7 @@ object Helper{
     // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
     // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
     // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
-    val extractCleanURL = validRedirectURL.getOrElse("").split("/oau")(0) 
+    val extractCleanURL = validRedirectURL.getOrElse("").split("/oauth")(0) 
     Full(extractCleanURL)
   }
 }
