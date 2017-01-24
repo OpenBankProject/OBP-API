@@ -1387,6 +1387,7 @@ trait APIMethods200 {
         user =>
           for {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
+            isValidStrongPassword <- tryo(assert(isValidStrongPassword(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
             if (OBPUser.find(By(OBPUser.username, postedData.username)).isEmpty) {
               val userCreated = OBPUser.create
