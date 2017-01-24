@@ -78,8 +78,10 @@ trait APIMethods121 {
       val email = Props.get("hosted_by.email", "contact@tesobe.com")
       val phone = Props.get("hosted_by.phone", "+49 (0)30 8145 3994")
 
+      val connector = Props.get("connector").openOrThrowException("no connector set")
+
       val hostedBy = new HostedBy(organisation, email, phone)
-      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, hostedBy)
+      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, connector, hostedBy)
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails

@@ -653,8 +653,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
-            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, hostedBy)
+            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 
