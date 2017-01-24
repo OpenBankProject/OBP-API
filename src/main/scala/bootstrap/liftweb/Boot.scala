@@ -173,7 +173,7 @@ class Boot extends Loggable{
 
     // ensure our relational database's tables are created/fit the schema
     val connector = Props.get("connector").openOrThrowException("no connector set")
-    if(connector == "mapped" || connector == "obpjvm" || connector == "kafka")
+    if(connector != "mongodb")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
