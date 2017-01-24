@@ -53,14 +53,14 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   var jvmNorth : JConnector = null
 
-  val responseTopic = Props.get("kafka.response_topic").openOr("Response")
-  val requestTopic  = Props.get("kafka.request_topic").openOr("Request")
+  val responseTopic = "Response" //Props.get("kafka.response_topic").openOr("Response")
+  val requestTopic  = "Request" ///Props.get("kafka.request_topic").openOr("Request")
 
   val cfg: Configuration = new SimpleConfiguration(
     this,
-    "/props/default.props",
+    "/props/production.default.props",
     responseTopic,
-    "/props/default.props",
+    "/props/production.default.props",
     requestTopic
   )
   val north   = new SimpleNorth( cfg )
@@ -72,7 +72,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   logger.info(s"ObpJvmMappedConnector running")
 
   // Local TTL Cache
-  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
+  val cacheTTL              = 0 //Props.get("connector.cache.ttl.seconds", "0").toInt
   val cachedUser            = TTLCache[ObpJvmInboundValidatedUser](cacheTTL)
   val cachedBank            = TTLCache[ObpJvmInboundBank](cacheTTL)
   val cachedAccount         = TTLCache[ObpJvmInboundAccount](cacheTTL)
