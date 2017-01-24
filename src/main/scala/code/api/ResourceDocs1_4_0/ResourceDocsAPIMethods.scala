@@ -261,7 +261,7 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion),
+        dummy(apiVersion, "DUMMY"),
         apiVersion,
         "testResourceDoc",
         "GET",
@@ -302,12 +302,12 @@ def filterResourceDocs(allResources: List[ResourceDoc]) : List[ResourceDoc] = {
 
 
 
-    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
             val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 

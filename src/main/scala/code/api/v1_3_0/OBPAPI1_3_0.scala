@@ -11,11 +11,12 @@ import net.liftweb.common.Loggable
 //implementation
 object OBPAPI1_3_0 extends OBPRestHelper with APIMethods130 with APIMethods121 with Loggable {
 
-  val VERSION = "1.3.0"
+  val version = "1.3.0"
+  val versionStatus = "STABLE"
 
   //TODO: check all these calls to see if they should really have the same behaviour as 1.2.1
   val routes = List(
-    Implementations1_2_1.root(VERSION),
+    Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     Implementations1_2_1.allAccountsAllBanks,

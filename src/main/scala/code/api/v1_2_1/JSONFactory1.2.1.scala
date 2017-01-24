@@ -37,6 +37,7 @@ import code.model._
 
 case class APIInfoJSON(
   version : String,
+  version_status: String,
   git_commit : String,
   hosted_by : HostedBy
 )

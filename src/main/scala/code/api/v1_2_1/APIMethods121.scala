@@ -71,10 +71,15 @@ trait APIMethods121 {
     } yield metadata
   }
 
-  private def getApiInfoJSON(apiVersion : String) = {
+  private def getApiInfoJSON(apiVersion : String, apiVersionStatus : String) = {
     val apiDetails: JValue = {
-      val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-      val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+
+      val organisation = Props.get("hosted_by.organisation", "TESOBE")
+      val email = Props.get("hosted_by.email", "contact@tesobe.com")
+      val phone = Props.get("hosted_by.phone", "+49 (0)30 8145 3994")
+
+      val hostedBy = new HostedBy(organisation, email, phone)
+      val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, hostedBy)
       Extraction.decompose(apiInfoJSON)
     }
     apiDetails
@@ -87,9 +92,10 @@ trait APIMethods121 {
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_2_1"
+    val apiVersionStatus : String = "STABLE"
 
     resourceDocs += ResourceDoc(
-      root(apiVersion),
+      root(apiVersion, apiVersionStatus),
       apiVersion,
       "root",
       "GET",
@@ -106,9 +112,9 @@ trait APIMethods121 {
       Catalogs(Core, notPSD2, OBWG),
       apiTagApiInfo :: Nil)
 
-    def root(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
-      case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion), 200))
+    def root(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "root" :: Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
+      case Nil JsonGet json => user => Full(successJsonResponse(getApiInfoJSON(apiVersion, apiVersionStatus), 200))
     }
 
 
