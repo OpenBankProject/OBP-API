@@ -1377,6 +1377,7 @@ trait APIMethods210 {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), s"$CanUpdateConsumerRedirectUrl entitlement required")
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~ ErrorMessages.InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID. "
             consumer <- Connector.connector.vend.getConsumer(consumerIdToLong,postJson.consumer_key) ?~! {ErrorMessages.ConsumerNotFound}
