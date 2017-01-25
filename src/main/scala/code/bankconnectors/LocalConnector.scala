@@ -6,7 +6,7 @@ import java.util.{Date, TimeZone, UUID}
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
 import code.model._
@@ -617,6 +617,8 @@ private object LocalConnector extends Connector with Loggable {
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 
   def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
 
 }
