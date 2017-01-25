@@ -609,7 +609,7 @@ trait APIMethods210 {
             consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
           } yield {
             // Format the data as json
-            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.isActive, consumer.createdAt)
+            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.createdByUserId, consumer.isActive, consumer.createdAt)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -1382,7 +1382,7 @@ trait APIMethods210 {
             consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID. "
             consumer <- Connector.connector.vend.getConsumer(consumerIdToLong,postJson.consumer_key) ?~! {ErrorMessages.ConsumerNotFound}
             //only the developer that created the Consumer should be able to edit it
-            isSameUseIDCreateTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! "Only the developer that created the consumer key should be able to edit it, please use the right USER_ID! "
+            isSameUseIDCreateTheConsumer <- tryo(assert(consumer.createdByUserId.equals(userId)))?~! "Only the developer that created the consumer key should be able to edit it, please use the right USER_ID! "
           } yield {
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table 
             val success = consumer.redirectURL(postJson.redirect_url).isActive(false).saveMe()
