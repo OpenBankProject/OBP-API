@@ -57,7 +57,7 @@ class OAuthWorkedThanks {
         if(validRedirectURL.equals(requestedRedirectURL)) {
           "#redirect-link [href]" #> url
         }else{
-          "#oauth-done-thanks *" #> "The redirect URL is not correct, make sure that the App registered the right redirect url!"
+          "#oauth-done-thanks *" #> "Sorry, the App requested a redirect to a URL that is not registered. Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
         }
       case _ => {
         "#thanks *" #> "Error"
