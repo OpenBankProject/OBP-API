@@ -37,7 +37,9 @@ import code.model._
 
 case class APIInfoJSON(
   version : String,
+  version_status: String,
   git_commit : String,
+  connector : String,
   hosted_by : HostedBy
 )
 case class HostedBy(

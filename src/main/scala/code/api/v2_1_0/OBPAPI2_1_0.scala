@@ -43,7 +43,8 @@ import scala.collection.immutable.Nil
 object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with Loggable {
 
 
-  val VERSION = "2.1.0"
+  val version = "2.1.0"
+  val versionStatus = "DRAFT"
 
   // Get disbled API versions from props
   val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
@@ -52,7 +53,7 @@ object OBPAPI2_1_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
-  var routes = List(Implementations1_2_1.root(VERSION))
+  var routes = List(Implementations1_2_1.root(version, versionStatus))
 
 
   // ### VERSION 1.2.1 - BEGIN ###

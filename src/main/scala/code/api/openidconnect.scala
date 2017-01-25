@@ -82,7 +82,8 @@ object OpenIdConnectConfig {
 
 object OpenIdConnect extends OBPRestHelper with Loggable {
 
-  val VERSION = "1.0" // TODO: Should this be the lowest version supported or when introduced?
+  val version = "1.0" // TODO: Should this be the lowest version supported or when introduced?
+  val versionStatus = "UNKNOWN"
 
   serve {
     case Req("my" :: "logins" :: "openidconnect" :: Nil, _, PostRequest | GetRequest) => {

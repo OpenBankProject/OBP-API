@@ -39,13 +39,14 @@ import net.liftweb.common.Loggable
 object OBPAPI2_0_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with Loggable {
 
 
-  val VERSION = "2.0.0"
+  val version = "2.0.0"
+  val versionStatus = "DRAFT"
 
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
   var routes = List(
-    Implementations1_2_1.root(VERSION),
+    Implementations1_2_1.root(version, versionStatus),
     Implementations1_2_1.getBanks,
     Implementations1_2_1.bankById,
     // Now in 2_0_0

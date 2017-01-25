@@ -60,6 +60,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
     val resourceDocs = ArrayBuffer[ResourceDoc]()
     val emptyObjectJson : JValue = Nil
     val apiVersion : String = "1_4_0"
+    val apiVersionStatus : String = "STABLE"
 
     val exampleDateString : String ="22/08/2013"
     val simpleDateFormat : SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
@@ -607,7 +608,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
     if (Props.devMode) {
       resourceDocs += ResourceDoc(
-        dummy(apiVersion),
+        dummy(apiVersion, apiVersionStatus),
         apiVersion,
         "testResourceDoc",
         "GET",
@@ -648,12 +649,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
 
 
 
-    def dummy(apiVersion : String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+    def dummy(apiVersion : String, apiVersionStatus: String) : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "dummy" :: Nil JsonGet json => {
         user =>
           val apiDetails: JValue = {
-            val hostedBy = new HostedBy("TESOBE", "contact@tesobe.com", "+49 (0)30 8145 3994")
-            val apiInfoJSON = new APIInfoJSON(apiVersion, gitCommit, hostedBy)
+            val hostedBy = new HostedBy("Dummy Org", "contact@example.com", "12345")
+            val apiInfoJSON = new APIInfoJSON(apiVersion, apiVersionStatus, gitCommit, "DUMMY", hostedBy)
             Extraction.decompose(apiInfoJSON)
           }
 
