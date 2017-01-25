@@ -32,6 +32,8 @@ Berlin 13359, Germany
 package code.api.v2_2_0
 
 //import code.api.v1_2_1.JSONFactory
+import java.util.Date
+import code.fx.FXRate
 import code.model._
 //import net.liftweb.common.Box
 //import net.liftweb.json.Extraction
@@ -119,6 +121,14 @@ case class AccountJSON(
                         views_available : List[ViewJSON],
                         bank_id : String
                       )
+
+case class FXRateJSON(
+                       from_currency_code: String,
+                       to_currency_code: String,
+                       conversion_value: Double,
+                       inverse_conversion_value: Double,
+                       effective_date: Date
+                     )
 
 object JSONFactory220{
 
@@ -212,6 +222,14 @@ object JSONFactory220{
     )
   }
 
+  def createFXRateJSON(fxRate: FXRate): FXRateJSON = {
+    FXRateJSON(from_currency_code = fxRate.fromCurrencyCode,
+      to_currency_code = fxRate.toCurrencyCode,
+      conversion_value = fxRate.conversionValue,
+      inverse_conversion_value = fxRate.inverseConversionValue,
+      effective_date = fxRate.effectiveDate
+    )
+  }
 
 
 }

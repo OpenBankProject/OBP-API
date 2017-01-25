@@ -8,6 +8,7 @@ import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
+import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Consumer, PhysicalCard, _}
@@ -183,6 +184,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
 
     override def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+
+    override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   }
 
   override def beforeAll() {

@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
@@ -847,5 +847,28 @@ Store one or more transactions
     Consumer.find(By(Consumer.id, consumerId), By(Consumer.key, consumerKey))
   }
 
+  /**
+    * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
+    * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
+    */
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+    /**
+      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order  
+      */
+    val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
+    )
+    /**
+      * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
+      */
+    val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
+    )
+
+    // if the result of normal order is empty, then return the reverse order result
+    fxRateFromTo.orElse(fxRateToFrom)
+  }
 
 }

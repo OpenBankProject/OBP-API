@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.branches.Branches.{Branch, BranchId}
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Transaction, User, _}
@@ -778,5 +778,7 @@ trait Connector {
 //  def resetBadLoginAttempts(username:String):Unit
 
   def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer]
+
+  def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
   
 }

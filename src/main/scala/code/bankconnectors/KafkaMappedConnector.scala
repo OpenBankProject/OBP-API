@@ -30,7 +30,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -975,7 +975,9 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  def getConsumer(consumerId: Long, consumerKey: String) : Box[Consumer] = Empty
+  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)

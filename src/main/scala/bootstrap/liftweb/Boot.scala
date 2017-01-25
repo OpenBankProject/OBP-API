@@ -76,6 +76,7 @@ import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
+import code.fx.{MappedCurrency, MappedFXRate}
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.views.RemoteDataActorSystem
@@ -465,6 +466,8 @@ object ToSchemify {
     MappedPhysicalCard,
     PinReset,
     MappedCounterparty,
-    MappedBadLoginAttempt
+    MappedBadLoginAttempt,
+    MappedFXRate,
+    MappedCurrency
   )
 }

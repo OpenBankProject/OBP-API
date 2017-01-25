@@ -8,7 +8,7 @@ import java.util.{Date, Locale, Optional, Properties, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
@@ -1326,6 +1326,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
   def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
 }
 
