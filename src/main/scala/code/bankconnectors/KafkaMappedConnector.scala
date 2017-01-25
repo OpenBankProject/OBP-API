@@ -472,7 +472,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "name" -> OBPUser.getCurrentUserUsername,
       "accountId" -> account.accountId.value,
       "currency" -> currency,
-      "amount" -> (-amt).toString,
+      "amount" -> amt.toString,
       "otherAccountId" -> counterparty.accountId.value,
       "otherAccountCurrency" -> counterparty.currency,
       "transactionType" -> "AC"
