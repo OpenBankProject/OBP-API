@@ -56,16 +56,20 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   val responseTopic = Props.get("obpjvm.response_topic").openOr("Response")
   val requestTopic  = Props.get("obpjvm.request_topic").openOr("Request")
 
-  val propsFile = Props.mode match {
-    case Props.RunModes.Production => "production.default.props"
-    case _ => "default.props"
+  var propsFile = "/props/production.default.props"
+
+  try {
+    if (getClass.getResourceAsStream(propsFile) == null)
+      propsFile = "/props/default.props"
+  } catch {
+    case e: Throwable => propsFile = "/props/default.props"
   }
 
   val cfg: Configuration = new SimpleConfiguration(
     this,
-    s"/props/${propsFile}}",
+    propsFile,
     responseTopic,
-    s"/props/${propsFile}}",
+    propsFile,
     requestTopic
   )
   val north   = new SimpleNorth( cfg )
