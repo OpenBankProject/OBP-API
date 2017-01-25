@@ -66,7 +66,7 @@ object ErrorMessages {
   val InvalidJsonFormat = "OBP-10001: Incorrect json format."
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
-  val ISOCurrencyCodesNotSupport = "OBP-10004: ISO Currency Codes not support yet. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
+  val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"
