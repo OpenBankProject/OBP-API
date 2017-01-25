@@ -128,7 +128,18 @@ case class TransactionRequestWithChargeJSONs210(
                                               transaction_requests_with_charges : List[TransactionRequestWithChargeJSON210]
                                             )
 case class PutEnabledJSON(enabled: Boolean)
-case class ConsumerJSON(id: Long, name: String, appType: String, description: String, developerEmail: String, redirectUrl: String, enabled: Boolean, created: Date)
+
+case class ConsumerJSON(consumer_id: Long,
+                        app_name: String,
+                        app_type: String,
+                        description: String,
+                        developer_email: String,
+                        redirect_url: String,
+                        created_by_user_id: String,
+                        enabled: Boolean,
+                        created: Date
+                       )
+
 case class ConsumerJSONs(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
@@ -535,12 +546,13 @@ object JSONFactory210{
   }
 
   def createConsumerJSON(c: Consumer): ConsumerJSON = {
-    ConsumerJSON(id=c.id,
-      name=c.name,
-      appType=c.appType.toString(),
+    ConsumerJSON(consumer_id=c.id,
+      app_name=c.name,
+      app_type=c.appType.toString(),
       description=c.description,
-      developerEmail=c.developerEmail,
-      redirectUrl=c.redirectURL,
+      developer_email=c.developerEmail,
+      redirect_url=c.redirectURL,
+      created_by_user_id =c.createdByUserId,
       enabled=c.isActive,
       created=c.createdAt
     )
