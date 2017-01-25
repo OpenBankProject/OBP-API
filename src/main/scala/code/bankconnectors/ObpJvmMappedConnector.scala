@@ -53,14 +53,19 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   var jvmNorth : JConnector = null
 
-  val responseTopic = "Response" //Props.get("kafka.response_topic").openOr("Response")
-  val requestTopic  = "Request" ///Props.get("kafka.request_topic").openOr("Request")
+  val responseTopic = Props.get("obpjvm.response_topic").openOr("Response")
+  val requestTopic  = Props.get("obpjvm.request_topic").openOr("Request")
+
+  val propsFile = Props.mode match {
+    case Props.RunModes.Production => "production.default.props"
+    case _ => "default.props"
+  }
 
   val cfg: Configuration = new SimpleConfiguration(
     this,
-    "/props/production.default.props",
+    s"/props/${propsFile}}",
     responseTopic,
-    "/props/production.default.props",
+    s"/props/${propsFile}}",
     requestTopic
   )
   val north   = new SimpleNorth( cfg )
@@ -70,16 +75,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   north.receive() // start ObpJvm
 
   logger.info(s"ObpJvmMappedConnector running")
-
-  // Local TTL Cache
-  val cacheTTL              = 0 //Props.get("connector.cache.ttl.seconds", "0").toInt
-  val cachedUser            = TTLCache[ObpJvmInboundValidatedUser](cacheTTL)
-  val cachedBank            = TTLCache[ObpJvmInboundBank](cacheTTL)
-  val cachedAccount         = TTLCache[ObpJvmInboundAccount](cacheTTL)
-  val cachedBanks           = TTLCache[List[ObpJvmInboundBank]](cacheTTL)
-  val cachedAccounts        = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
-  val cachedPublicAccounts  = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
-  val cachedUserAccounts    = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
