@@ -106,7 +106,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     parameters.put("userId", user.name)
 
-    val response = jvmNorth.get("updateUserAccountViews", Transport.Target.accounts, parameters)
+    val response = jvmNorth.get("getAccounts", Transport.Target.accounts, parameters)
 
     // todo response.error().isPresent
 
