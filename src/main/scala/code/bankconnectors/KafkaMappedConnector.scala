@@ -444,12 +444,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = amt //to account balance should increase
-
-    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
-    saveTransaction(toAccount, fromAccount, toTransAmt, description)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, -amt, description)
 
     sentTransactionId
   }
@@ -468,7 +463,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val currency = account.currency
 
     //update the balance of the account for which a transaction is being created
-    val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
+    //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     //account.balance = newAccountBalance
 
     val req : Map[String,String] = Map(
@@ -477,7 +472,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "name" -> OBPUser.getCurrentUserUsername,
       "accountId" -> account.accountId.value,
       "currency" -> currency,
-      "amount" -> amt.toString,
+      "amount" -> (-amt).toString,
       "otherAccountId" -> counterparty.accountId.value,
       "otherAccountCurrency" -> counterparty.currency,
       "transactionType" -> "AC"
