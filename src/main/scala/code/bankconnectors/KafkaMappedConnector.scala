@@ -539,9 +539,13 @@ object KafkaMappedConnector extends Connector with Loggable {
 
     val r = process(req)
 
-    r.extract[KafkaInboundTransactionRequestStatus] match {
-      case status: KafkaInboundTransactionRequestStatus => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
-      case _ => Empty
+    try {
+      r.extract[KafkaInboundTransactionRequestStatus] match {
+        case status: KafkaInboundTransactionRequestStatus => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
+        case _ => Empty
+      }
+    } catch {
+      case mpex: net.liftweb.json.MappingException => Empty
     }
   }
 

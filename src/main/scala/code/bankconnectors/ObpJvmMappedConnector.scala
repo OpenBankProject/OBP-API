@@ -364,7 +364,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
-    val r:List[ObpJvmInboundAccount] = accts.map { a => {
+    val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
 
       val primaryUserIdentifier = OBPUser.getCurrentUserUsername
 
@@ -397,7 +397,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           logger.info(s"getBankAccount says ! account.isPresent")
           Empty
       }
-    }.get  // why?
+    }
   }
 
     // Check does the response data match the requested data
@@ -627,9 +627,14 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     val response : JResponse = jvmNorth.put("getTransactionRequestStatus", Transport.Target.transaction, parameters, fields)
 
-    response.data().headOption match {
-      case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
-      case None => Empty
+
+    try {
+      response.data().headOption match {
+        case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
+        case None => Empty
+      }
+    } catch {
+      case mpex: net.liftweb.json.MappingException => Empty
     }
   }
 
