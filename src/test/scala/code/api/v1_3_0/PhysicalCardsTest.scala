@@ -185,7 +185,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
 
-    override def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
     override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   }

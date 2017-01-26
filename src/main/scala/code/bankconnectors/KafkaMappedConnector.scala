@@ -1012,7 +1012,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 

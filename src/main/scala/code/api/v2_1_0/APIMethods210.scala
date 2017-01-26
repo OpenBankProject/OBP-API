@@ -605,7 +605,7 @@ trait APIMethods210 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
-            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID"
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId
             consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
           } yield {
             // Format the data as json
@@ -1363,26 +1363,32 @@ trait APIMethods210 {
       apiVersion,
       "updateConsumerRedirectUrl",
       "PUT",
-      "/management/consumers/CONSUMER_ID/users/USER_ID",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
       "Update Consumer RedirectUrl",
-      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID and USER_ID. """,
-      Extraction.decompose(ConsumerRedirectUrlJSON("consumer_key_xxx","http://localhost:8888")),
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+         |
+         | CONSUMER_ID can be obtained after you register the application. 
+         | 
+         | Or use the endpoint 'Get Consumers' to get it  
+         | 
+       """.stripMargin,
+      Extraction.decompose(ConsumerRedirectUrlJSON("http://localhost:8888")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(notCore, notPSD2, notOBWG),
       Nil)
     
     lazy val updateConsumerRedirectUrl: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
-      case "management" :: "consumers" :: consumerId :: "users" :: userId :: Nil JsonPut json -> _ => {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "redirect_url" :: Nil JsonPut json -> _ => {
         user =>
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), s"$CanUpdateConsumerRedirectUrl entitlement required")
             postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~ ErrorMessages.InvalidJsonFormat
-            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID. "
-            consumer <- Connector.connector.vend.getConsumer(consumerIdToLong,postJson.consumer_key) ?~! {ErrorMessages.ConsumerNotFound}
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId 
+            consumer <- Connector.connector.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ErrorMessages.ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it
-            isSameUseIDCreateTheConsumer <- tryo(assert(consumer.createdByUserId.equals(userId)))?~! "Only the developer that created the consumer key should be able to edit it, please use the right USER_ID! "
+            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! ErrorMessages.UserNoPermissionUpdateConsumer
           } yield {
             //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table 
             val success = consumer.redirectURL(postJson.redirect_url).isActive(false).saveMe()
