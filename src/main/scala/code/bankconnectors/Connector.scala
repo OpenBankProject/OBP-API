@@ -90,6 +90,11 @@ trait Connector {
   // Connector implementation may well provide dynamic response
   def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
 
+  // Initiate creating a challenge for transaction request and returns an id of the challenge
+  def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String) : Box[String]
+  // Validates an answer for a challenge and returs if the answer is correct or not
+  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean]
+
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank]
 

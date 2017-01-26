@@ -43,6 +43,9 @@ private object LocalConnector extends Connector with Loggable {
     (convertedLimit, currency)
   }
 
+  override def createChallenge(transactionRequestType: TransactionRequestType,userID: String, transactionRequestId: String): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
+
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: APIUser): Unit = ???
 
