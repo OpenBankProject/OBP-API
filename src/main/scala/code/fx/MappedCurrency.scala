@@ -5,7 +5,10 @@ import net.liftweb.mapper._
 class MappedCurrency extends Currency with KeyedMapper[String, MappedCurrency]{
   def getSingleton = MappedCurrency
 
-  object mCurrencyCode extends MappedStringIndex(this, 3)
+  object mCurrencyCode extends MappedStringIndex(this, 3){
+    override def dbNotNull_? = true
+    override def dbIndexed_? = true
+  }
 
   object mCurrencyName extends MappedString(this, 50)
 
