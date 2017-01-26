@@ -118,9 +118,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
         a.iban,
         user.name :: Nil,
-        generate_public_view = false,
-        generate_accountants_view = false,
-        generate_auditors_view = false
+        generate_public_view = true,
+        generate_accountants_view = true,
+        generate_auditors_view = true
       )).toList
       }
     }
