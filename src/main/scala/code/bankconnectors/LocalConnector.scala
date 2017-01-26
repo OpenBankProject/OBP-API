@@ -43,6 +43,9 @@ private object LocalConnector extends Connector with Loggable {
     (convertedLimit, currency)
   }
 
+  override def createChallenge(transactionRequestType: TransactionRequestType,userID: String, transactionRequestId: String): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
+
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: APIUser): Unit = ???
 
@@ -616,7 +619,7 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
 
-  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 

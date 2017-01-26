@@ -174,13 +174,50 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => (x.limit, x.currency)
+      case Some(x)  => (BigDecimal(x.limit), x.currency)
       case _ => {
         val limit = BigDecimal("50")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         (convertedLimit, currency)
       }
+    }
+  }
+
+  override def createChallenge(transactionRequestType: TransactionRequestType, userId: String, transactionRequestId: String) : Box[String] = {
+    // Create argument list
+    val req = Map(
+      "north" -> "createChallenge",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "userId" -> userId,
+      "transactionRequestType" -> transactionRequestType.value,
+      "transactionRequestId" -> transactionRequestId
+    )
+    val r: Option[KafkaInboundCreateChallange] = process(req).extractOpt[KafkaInboundCreateChallange]
+    // Return result
+    r match {
+      // Check does the response data match the requested data
+      case Some(x)  => Full(x.challengeId)
+      case _        => Empty
+    }
+  }
+
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
+    // Create argument list
+    val req = Map(
+      "north" -> "validateChallengeAnswer",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "challengeId" -> challengeId,
+      "hashOfSuppliedAnswer" -> hashOfSuppliedAnswer
+    )
+    val r: Option[KafkaInboundValidateChallangeAnswer] = process(req).extractOpt[KafkaInboundValidateChallangeAnswer]
+    // Return result
+    r match {
+      // Check does the response data match the requested data
+      case Some(x)  => Full(x.answer.toBoolean)
+      case _        => Empty
     }
   }
 
@@ -975,7 +1012,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
@@ -1180,7 +1217,7 @@ object KafkaMappedConnector extends Connector with Loggable {
                                       transactionType: String)
 
   case class KafkaInboundChallengeLevel(
-                                       limit: BigDecimal,
+                                       limit: String,
                                        currency: String
                                         )
 
@@ -1194,6 +1231,8 @@ object KafkaMappedConnector extends Connector with Loggable {
                                 transactionStatus: String,
                                 transactionTimestamp: String
                               )
+  case class KafkaInboundCreateChallange(challengeId: String)
+  case class KafkaInboundValidateChallangeAnswer(answer: String)
 
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString

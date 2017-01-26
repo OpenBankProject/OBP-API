@@ -208,6 +208,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
+  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
+
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
     val parameters = new JHashMap
@@ -1326,7 +1329,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
-  def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 

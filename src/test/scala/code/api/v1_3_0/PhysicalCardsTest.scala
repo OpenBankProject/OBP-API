@@ -69,6 +69,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     //these methods aren't required by our test
     override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
+    override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String): Box[String] = ???
+    override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
@@ -183,7 +185,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
 
-    override def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = Empty
+    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
     override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   }
