@@ -100,29 +100,30 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   def updateUserAccountViews( user: APIUser ) = {
-    logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
 
-    val parameters = new JHashMap
-
-    parameters.put("userId", user.name)
-
-    val response = jvmNorth.get("getAccounts", Transport.Target.accounts, parameters)
-
-    // todo response.error().isPresent
-
-    val accounts = response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
-      a.accountId,
-      a.bankId,
-      a.label,
-      a.number,
-      a.`type`,
-      ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
-      a.iban,
-      user.name :: Nil,
-      generate_public_view = false,
-      generate_accountants_view = false,
-      generate_auditors_view = false
-    )).toList
+    val accounts = getBanks.flatMap { bank => {
+      val bankId = bank.bankId.value
+      logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+      val parameters = new JHashMap
+      parameters.put("userId", user.name)
+      parameters.put("bankId", bankId)
+      val response = jvmNorth.get("getAccounts", Transport.Target.accounts, parameters)
+      // todo response.error().isPresent
+      response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
+        a.accountId,
+        a.bankId,
+        a.label,
+        a.number,
+        a.`type`,
+        ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+        a.iban,
+        user.name :: Nil,
+        generate_public_view = false,
+        generate_accountants_view = false,
+        generate_auditors_view = false
+      )).toList
+      }
+    }
 
     logger.debug(s"ObpJvm getUserAccounts says res is $accounts")
 
