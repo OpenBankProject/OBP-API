@@ -843,8 +843,8 @@ Store one or more transactions
     )
   }
 
-  override def getConsumer(consumerId: Long, consumerKey: String): Box[Consumer] = {
-    Consumer.find(By(Consumer.id, consumerId), By(Consumer.key, consumerKey))
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, consumerId))
   }
 
   /**

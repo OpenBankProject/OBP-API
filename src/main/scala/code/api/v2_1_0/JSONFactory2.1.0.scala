@@ -287,7 +287,6 @@ case class BranchJsonPost(
                            driveUp: DriveUpJson)
 
 case class ConsumerRedirectUrlJSON(
-                            consumer_key: String,
                             redirect_url: String
                           )
 

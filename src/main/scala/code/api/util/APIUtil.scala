@@ -92,6 +92,10 @@ object ErrorMessages {
 
   val UsernameHasBeenLocked = "OBP-20013: The account has been locked, please contact administrator !"
 
+  val InvalidConsumerId = "OBP-20014: Invalid Consumer ID. Please specify a valid value for CONSUMER_ID."
+  
+  val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
+  
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
   val CustomerNotFound = "OBP-30002: Customer not found. Please specify a valid value for CUSTOMER_NUMBER."
@@ -115,7 +119,7 @@ object ErrorMessages {
   val CreateBranchUpdateError = "OBP-30016: Could not update the Branch"
   val CounterpartyNotFoundByCounterpartyId = "OBP-30017: Counterparty not found. Please specify a valid value for COUNTERPARTY_ID."
   val BankAccountNotFound = "OBP-30018: Bank Account not found. Please specify valid values for BANK_ID and ACCOUNT_ID. "
-  val ConsumerNotFound = "OBP-30019: Consumer not found. Please specify the valid values for CONSUMER_ID and CONSUMER_KEY."
+  val ConsumerNotFoundByConsumerId = "OBP-30019: Consumer not found. Please specify a valid value for CONSUMER_ID."
 
   val MeetingsNotSupported = "OBP-30101: Meetings are not supported on this server."
   val MeetingApiKeyNotConfigured = "OBP-30102: Meeting provider API Key is not configured."
