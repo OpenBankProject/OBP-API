@@ -208,7 +208,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
-  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String): Box[String] = ???
+  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
 
   // Gets bank identified by bankId

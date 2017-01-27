@@ -65,7 +65,7 @@ object LocalMappedConnector extends Connector with Loggable {
     * 4. Save both the salt and the hash in the user's database record.
     * 5. Send the challenge over an separate communication channel.
     */
-  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String): Box[String] = {
+  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = {
     val challengeId = UUID.randomUUID().toString
     val challenge = BCrypt.gensalt(4)
     val salt = BCrypt.gensalt()
