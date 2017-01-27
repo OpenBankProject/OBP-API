@@ -72,6 +72,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+  val cachedFxRate          = TTLCache[KafkaInboundFXRate](cacheTTL)
 
   val formatVersion: String  = "Nov2016"
 
@@ -890,7 +891,32 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
+  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  
+  // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+    // Create request argument list
+    val req = Map( 
+      "north" -> "getCurrentFxRate",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "fromCurrencyCode" -> fromCurrencyCode,
+      "toCurrencyCode" -> toCurrencyCode
+      )
+    val r = {
+      cachedFxRate.getOrElseUpdate(req.toString, () => process(req).extract[KafkaInboundFXRate])
+    }
+    // Return result
+    Full(new KafkaFXRate(r))
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -962,23 +988,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
-
-
     )
   }
-
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
-
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
-
-  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
-
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
-
-  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
-  
-  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
-
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
@@ -1001,6 +1012,14 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   }
 
+  case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
+    def fromCurrencyCode : String= kafkaInboundFxRate.from_currency_code
+    def toCurrencyCode : String= kafkaInboundFxRate.to_currency_code
+    def conversionValue : Double= kafkaInboundFxRate.conversion_value
+    def inverseConversionValue : Double= kafkaInboundFxRate.inverse_conversion_value
+    //TODO need to add error handling here for String --> Date transfer 
+    def effectiveDate : Date= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
+  }
 
   case class KafkaInboundBank(
                               bankId : String,
@@ -1183,18 +1202,24 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        limit: BigDecimal,
                                        currency: String
                                         )
-
   case class KafkaInboundTransactionRequestStatus(
                                              transactionRequestId : String,
                                              bulkTransactionsStatus: List[KafkaInboundTransactionStatus]
                                            )
-
   case class KafkaInboundTransactionStatus(
                                 transactionId : String,
                                 transactionStatus: String,
                                 transactionTimestamp: String
                               )
 
+  case class KafkaInboundFXRate(
+                                 from_currency_code: String,
+                                 to_currency_code: String,
+                                 conversion_value: Double,
+                                 inverse_conversion_value: Double,
+                                 effective_date: String
+                               )
+  
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString
     if (producer.send(reqId, request, "1")) {
@@ -1204,7 +1229,6 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
     return json.parse("""{"error":"could not send message to kafka"}""")
   }
-
 
 }
 
