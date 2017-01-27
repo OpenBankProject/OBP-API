@@ -372,8 +372,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
       val parameters = new JHashMap
 
-      parameters.put("accountId", a._1.value)
-      parameters.put("bankId", a._2.value)
+      parameters.put("bankId", a._1.value)
+      parameters.put("accountId", a._2.value)
       parameters.put("userId", primaryUserIdentifier)
 
       val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
