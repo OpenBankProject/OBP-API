@@ -177,7 +177,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       // Check does the response data match the requested data
       case Some(x)  => (BigDecimal(x.limit), x.currency)
       case _ => {
-        val limit = BigDecimal("50")
+        val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         (convertedLimit, currency)
