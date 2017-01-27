@@ -30,7 +30,7 @@ import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.{BCrypt, Props}
+import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -67,9 +67,9 @@ object LocalMappedConnector extends Connector with Loggable {
     */
   override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = {
     val challengeId = UUID.randomUUID().toString
-    val challenge = BCrypt.gensalt(4)
+    val challenge = StringHelpers.randomString(6) // Random string. For instance: EONXOA
     val salt = BCrypt.gensalt()
-    val hash = BCrypt.hashpw(challengeId, salt).substring(0,44)
+    val hash = BCrypt.hashpw(challenge, salt).substring(0,44)
     // TODO Extend database model in order to store users salt and hash
     // Store salt and hash and bind to challengeId
     // TODO Send challenge to the user over an separate communication channel
