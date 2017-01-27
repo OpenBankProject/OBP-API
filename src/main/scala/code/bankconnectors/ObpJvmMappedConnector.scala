@@ -376,7 +376,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       parameters.put("accountId", a._2.value)
       parameters.put("userId", primaryUserIdentifier)
 
-      val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
+      val response = jvmNorth.get("getBankAccount", Transport.Target.account, parameters)
 
       // todo response.error().isPresent
 
