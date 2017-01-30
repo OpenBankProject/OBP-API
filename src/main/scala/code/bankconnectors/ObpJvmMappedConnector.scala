@@ -233,12 +233,14 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
     parameters.put("transactionId", transactionId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getTransaction", Transport.Target.transaction, parameters)
 
@@ -266,6 +268,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+ val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
@@ -291,9 +295,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val pageSize = Pager.DEFAULT_SIZE; // all in one page
     val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
 
-    parameters.put("accountId", "account-x")
-    parameters.put("bankId", "bank-x")
-    parameters.put("userId", "user-x")
+    parameters.put("accountId", accountId.value)
+    parameters.put("bankId", bankId.value)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
 
@@ -333,9 +337,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
     val parameters = new JHashMap
 
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getBankAccount", Transport.Target.account, parameters)
 
@@ -350,10 +356,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         a.`type`,
         ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
         a.iban,
-        List(),
-        generate_public_view = true,
-        generate_accountants_view = true,
-        generate_auditors_view = true)))
+        primaryUserIdentifier :: Nil,
+        generate_public_view = false,
+        generate_accountants_view = false,
+        generate_auditors_view = false)))
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent")
         Empty
@@ -364,9 +370,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
-    val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
 
-      val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
 
       logger.info (s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
@@ -376,7 +382,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       parameters.put("accountId", a._2.value)
       parameters.put("userId", primaryUserIdentifier)
 
-      val response = jvmNorth.get("getBankAccount", Transport.Target.account, parameters)
+      val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
 
       // todo response.error().isPresent
 
@@ -389,10 +395,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           account.`type`,
           ObpJvmInboundBalance(account.balanceAmount, account.balanceCurrency),
           account.iban,
-          List(),
-          generate_public_view = true,
-          generate_accountants_view = true,
-          generate_auditors_view = true))
+          primaryUserIdentifier :: Nil,
+          generate_public_view = false,
+          generate_accountants_view = false,
+          generate_auditors_view = false))
         case None =>
           logger.info(s"getBankAccount says ! account.isPresent")
           Empty
@@ -412,11 +418,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
     val parameters = new JHashMap
 
     parameters.put("accountId", number)
     parameters.put("bankId", bankId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getAccountByNumber", Transport.Target.account, parameters)
 
@@ -431,10 +438,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         a.`type`,
         ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
         a.iban,
-        List(),
-        generate_public_view = true,
-        generate_accountants_view = true,
-        generate_auditors_view = true)))
+        primaryUserIdentifier :: Nil,
+        generate_public_view = false,
+        generate_accountants_view = false,
+        generate_auditors_view = false)))
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent")
         Empty
