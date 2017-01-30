@@ -346,7 +346,7 @@ trait APIMethods210 {
                   for {
                     //For SEPA, Use the iban to find the counterparty and set up the toAccount
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].to.iban)
-                    counterparty <- Counterparties.counterparties.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    counterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
                     toBankId <- Full(BankId(counterparty.otherBankId ))
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
