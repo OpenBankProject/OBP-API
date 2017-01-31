@@ -51,6 +51,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   type AccountType = ObpJvmBankAccount
 
+  // Maybe we should read the date format from props?
+  //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm'Z'"
+
   var jvmNorth : JConnector = null
 
   val responseTopic = Props.get("obpjvm.response_topic").openOr("Response")
@@ -246,7 +250,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     // todo response.error().isPresent
 
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
 
     response.data().map(d => new TransactionReader(d)).headOption match {
       case Some(t) =>
@@ -282,7 +286,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
         }
     }
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
     implicit val formats = net.liftweb.json.DefaultFormats
@@ -1040,11 +1044,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   def createNewTransaction(r: ObpJvmInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
+      datePosted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.posted)
 
     var dateCompleted: Date = null
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
+      dateCompleted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.completed)
 
     for {
         counterparty <- tryo{r.counterparty}
@@ -1115,16 +1119,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   case class ObpJvmBankAccount(r: ObpJvmInboundAccount) extends BankAccount {
+    logger.info(s"--- ObpJvmBankAccount ---> amount=${r.balance.amount}")
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
-    def balance : BigDecimal        = BigDecimal(r.balance.amount)
+    def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "0.00" else r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
     def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bank)
-    def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+    def lastUpdate : Date           = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
 
     // Fields modifiable from OBP are stored in mapper
