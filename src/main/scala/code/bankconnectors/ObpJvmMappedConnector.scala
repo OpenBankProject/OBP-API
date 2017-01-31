@@ -238,7 +238,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val primaryUserIdentifier = OBPUser.getCurrentUserUsername
-
+    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId.value)
@@ -261,8 +261,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           ObpJvmInboundTransactionDetails(
             t.`type`,
             t.description,
-            t.postedDate.format(formatter),
-            t.completedDate.format(formatter),
+            {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+            {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
             t.newBalanceAmount.toString,
             t.amount.toString
           ))
@@ -292,6 +292,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     implicit val formats = net.liftweb.json.DefaultFormats
 
     val parameters = new JHashMap
+    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
     val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
     val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
     val filter = new TimestampFilter("postedDate", earliest, latest)
@@ -314,8 +315,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       ObpJvmInboundTransactionDetails(
         t.`type`,
         t.description,
-        t.postedDate.format(formatter),
-        t.completedDate.format(formatter),
+        {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+        {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
         t.newBalanceAmount.toString,
         t.amount.toString
       ))
@@ -1122,7 +1123,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     logger.info(s"--- ObpJvmBankAccount ---> amount=${r.balance.amount}")
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
-    def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "0.00" else r.balance.amount)
+    def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "-0.00" else r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
     def swift_bic : Option[String]  = Some("swift_bic") //TODO
