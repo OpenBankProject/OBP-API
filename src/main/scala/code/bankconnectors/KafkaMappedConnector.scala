@@ -477,7 +477,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "version" -> formatVersion,
       "name" -> OBPUser.getCurrentUserUsername,
       "otherAccountRoutingAddress" -> iban,
-      "OtherAccountRoutingScheme" -> "IBAN"
+      "otherAccountRoutingScheme" -> "IBAN"
     )
     
     val r = process(req).extract[KafkaInboundCounterparty]
