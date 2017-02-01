@@ -44,7 +44,7 @@ import net.liftweb.util.Helpers
 import scala.compat.Platform
 import Helpers._
 import code.api.util.{ErrorMessages, APIUtil}
-import net.liftweb.util.Props
+import code.api.Constant._
 import code.model.TokenType
 import code.model.User
 import net.liftweb.util.Helpers.tryo
@@ -264,7 +264,7 @@ object OAuthHandshake extends RestHelper with Loggable {
         listOfTuples
       }
       //prepare the base string (should we really have openOr here?)
-      var baseString = httpMethod+"&"+URLEncoder.encode(Props.get("hostname").openOr(S.hostAndPath)  + S.uri ,"UTF-8")+"&"
+      var baseString = httpMethod+"&"+URLEncoder.encode(HostName  + S.uri ,"UTF-8")+"&"
       // Add OAuth and URL parameters to the base string
       // Parameters are provided as List[(String, String)]
       baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
