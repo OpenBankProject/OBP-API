@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 
 import code.TransactionTypes.TransactionType
+import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
 import code.api.v1_2_1.AmountOfMoneyJSON
@@ -19,8 +20,8 @@ import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
-import code.fx.fx
-import code.metadata.counterparties.{Counterparties}
+import code.fx.{MappedFXRate, fx}
+import code.metadata.counterparties.Counterparties
 import code.model.dataAccess.OBPUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products.ProductCode
@@ -107,7 +108,7 @@ trait APIMethods220 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val getViewsForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -149,7 +150,7 @@ trait APIMethods220 {
       Extraction.decompose(CreateViewJSON("Name of view to create", "Description of view (this example is public, uses the public alias, and has limited access to account data)", true, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label", "can_see_tags"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val createViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -185,7 +186,7 @@ trait APIMethods220 {
       Extraction.decompose(UpdateViewJSON("New description of view", false, "_public_", true, List("can_see_transaction_start_date", "can_see_bank_account_label"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagView))
 
     lazy val updateViewForBankAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -204,6 +205,34 @@ trait APIMethods220 {
       }
     }
 
+    resourceDocs += ResourceDoc(
+      getCurrentFxRate,
+      apiVersion,
+      "getCurrentFxRate",
+      "GET",
+      "/fx/FROM_CURRENCY_CODE/TO_CURRENCY_CODE",
+      "Get Current FxRate",
+      """Get the latest FXRate specified by FROM_CURRENCY_CODE and TO_CURRENCY_CODE """,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      Nil)
+
+    lazy val getCurrentFxRate: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "fx" :: fromCurrencyCode :: toCurrencyCode :: Nil JsonGet json => {
+        user =>
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            isValidCurrencyISOCodeFrom <- tryo(assert(isValidCurrencyISOCode(fromCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
+            isValidCurrencyISOCodeTo <- tryo(assert(isValidCurrencyISOCode(toCurrencyCode))) ?~! ErrorMessages.InvalidISOCurrencyCode
+            fxRate <- tryo(Connector.connector.vend.getCurrentFxRate(fromCurrencyCode, toCurrencyCode).get) ?~! ErrorMessages.FXCurrencyCodeCombinationsNotSupported
+          } yield {
+            val viewJSON = JSONFactory220.createFXRateJSON(fxRate)
+            successJsonResponse(Extraction.decompose(viewJSON))
+          }
+      }
+    }    
 
   }
 }

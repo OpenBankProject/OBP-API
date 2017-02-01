@@ -45,7 +45,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val isBeneficiary = true
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
@@ -184,7 +184,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -325,7 +325,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -378,7 +378,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         Then("We add entitlement to user3")
         val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
@@ -442,7 +442,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val amt = BigDecimal("10.00") // This is money going out. We want to transfer this away from the From account.
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
@@ -654,7 +654,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -822,7 +822,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val accountId2 = AccountId("__acc2fx")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true,counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
 
         val fromCurrency = "AED"
         val toCurrency = "INR"
@@ -904,7 +904,6 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
           case _ => ""
         }
 
-        //TODO my2 why just changed the id->List ,it is not working
         transaction_ids should equal("")
 
         var challenge = (response.body \ "challenge").children
@@ -966,8 +965,6 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
           case JArray(i) => i
           case _ => ""
         }
-        //TODO my2 why just changed the id->List ,it is not working
-        //        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

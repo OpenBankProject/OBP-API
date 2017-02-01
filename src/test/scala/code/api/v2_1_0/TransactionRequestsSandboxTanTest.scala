@@ -897,7 +897,6 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
           case _ => ""
         }
 
-        //TODO my2 why just changed the id->List ,it is not working
         transaction_ids should equal("")
 
         var challenge = (response.body \ "challenge").children
@@ -959,8 +958,6 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
           case JArray(i) => i
           case _ => ""
         }
-        //TODO my2 why just changed the id->List ,it is not working
-        //        transaction_ids should not equal ("")
 
         //call getTransactionRequests, check that we really created a transaction request
         request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /

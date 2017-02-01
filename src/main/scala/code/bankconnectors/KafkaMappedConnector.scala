@@ -30,7 +30,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
@@ -72,6 +72,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   val cachedAccounts        = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
+  val cachedFxRate          = TTLCache[KafkaInboundFXRate](cacheTTL)
 
   val formatVersion: String  = "Nov2016"
 
@@ -174,13 +175,52 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => (x.limit, x.currency)
+      case Some(x)  => (BigDecimal(x.limit), x.currency)
       case _ => {
-        val limit = BigDecimal("50")
+        val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         (convertedLimit, currency)
       }
+    }
+  }
+
+  override def createChallenge(transactionRequestType: TransactionRequestType, userId: String, transactionRequestId: String, bankId: BankId, accountId: AccountId) : Box[String] = {
+    // Create argument list
+    val req = Map(
+      "north" -> "createChallenge",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "userId" -> userId,
+      "transactionRequestType" -> transactionRequestType.value,
+      "transactionRequestId" -> transactionRequestId,
+      "bankId" -> bankId.value,
+      "accountId" -> accountId.value
+    )
+    val r: Option[KafkaInboundCreateChallange] = process(req).extractOpt[KafkaInboundCreateChallange]
+    // Return result
+    r match {
+      // Check does the response data match the requested data
+      case Some(x)  => Full(x.challengeId)
+      case _        => Empty
+    }
+  }
+
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
+    // Create argument list
+    val req = Map(
+      "north" -> "validateChallengeAnswer",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "challengeId" -> challengeId,
+      "hashOfSuppliedAnswer" -> hashOfSuppliedAnswer
+    )
+    val r: Option[KafkaInboundValidateChallangeAnswer] = process(req).extractOpt[KafkaInboundValidateChallangeAnswer]
+    // Return result
+    r match {
+      // Check does the response data match the requested data
+      case Some(x)  => Full(x.answer.toBoolean)
+      case _        => Empty
     }
   }
 
@@ -353,8 +393,6 @@ object KafkaMappedConnector extends Connector with Loggable {
       otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -446,12 +484,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
-    val fromTransAmt = -amt //from account balance should decrease
-    val toTransAmt = amt //to account balance should increase
-
-    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
-    saveTransaction(toAccount, fromAccount, toTransAmt, description)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, -amt, description)
 
     sentTransactionId
   }
@@ -470,7 +503,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val currency = account.currency
 
     //update the balance of the account for which a transaction is being created
-    val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
+    //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     //account.balance = newAccountBalance
 
     val req : Map[String,String] = Map(
@@ -499,7 +532,25 @@ object KafkaMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
+      val req : Map[String,String] = Map(
+      "north" -> "getTransactionRequestStatus",
+      "version" -> formatVersion,
+      "name" -> "get",
+      "transactionRequestId" -> transactionRequestId.value
+    )
+
+    val r = process(req)
+
+    try {
+      r.extract[KafkaInboundTransactionRequestStatus] match {
+        case status: KafkaInboundTransactionRequestStatus => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
+        case _ => Empty
+      }
+    } catch {
+      case mpex: net.liftweb.json.MappingException => Empty
+    }
+  }
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
@@ -883,7 +934,32 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
+  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
+  
+  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
+  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+
+  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  
+  // get the latest FXRate specified by fromCurrencyCode and toCurrencyCode.
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
+    // Create request argument list
+    val req = Map( 
+      "north" -> "getCurrentFxRate",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "fromCurrencyCode" -> fromCurrencyCode,
+      "toCurrencyCode" -> toCurrencyCode
+      )
+    val r = {
+      cachedFxRate.getOrElseUpdate(req.toString, () => process(req).extract[KafkaInboundFXRate])
+    }
+    // Return result
+    Full(new KafkaFXRate(r))
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -950,26 +1026,13 @@ object KafkaMappedConnector extends Connector with Loggable {
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
       otherAccountProvider = "",
       isBeneficiary = true
-
-
     )
   }
-
-  override def getProducts(bankId: BankId): Box[List[Product]] = Empty
-
-  override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
-
-  override  def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
-
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
-
   case class KafkaBankAccount(r: KafkaInboundAccount) extends BankAccount {
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
@@ -992,6 +1055,14 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   }
 
+  case class KafkaFXRate(kafkaInboundFxRate: KafkaInboundFXRate) extends FXRate {
+    def fromCurrencyCode : String= kafkaInboundFxRate.from_currency_code
+    def toCurrencyCode : String= kafkaInboundFxRate.to_currency_code
+    def conversionValue : Double= kafkaInboundFxRate.conversion_value
+    def inverseConversionValue : Double= kafkaInboundFxRate.inverse_conversion_value
+    //TODO need to add error handling here for String --> Date transfer 
+    def effectiveDate : Date= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
+  }
 
   case class KafkaInboundBank(
                               bankId : String,
@@ -1102,7 +1173,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         new_balance : String,
                                         value : String)
 
-
   case class KafkaInboundAtm(
                               id : String,
                               bank_id: String,
@@ -1111,7 +1181,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                               location : KafkaInboundLocation,
                               meta : KafkaInboundMeta
                            )
-
 
   case class KafkaInboundProduct(
                                  bank_id : String,
@@ -1123,7 +1192,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                  more_info_url : String,
                                  meta : KafkaInboundMeta
                                )
-
 
   case class KafkaInboundAccountData(
                                       banks : List[KafkaInboundBank],
@@ -1143,7 +1211,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                crm_events: List[KafkaInboundCrmEvent]
                             )
 
-
   case class KafkaInboundCrmEvent(
                                    id : String, // crmEventId
                                    bank_id : String,
@@ -1159,10 +1226,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                                    number : String // customer number, also known as ownerId (owner of accounts) aka API User?
                                  )
 
-
   case class KafkaInboundTransactionId(
                                         transactionId : String
                                       )
+
   case class KafkaOutboundTransaction(
                                       north: String,
                                       version: String,
@@ -1175,12 +1242,29 @@ object KafkaMappedConnector extends Connector with Loggable {
                                       transactionType: String)
 
   case class KafkaInboundChallengeLevel(
-                                       limit: BigDecimal,
+                                       limit: String,
                                        currency: String
                                         )
+  case class KafkaInboundTransactionRequestStatus(
+                                             transactionRequestId : String,
+                                             bulkTransactionsStatus: List[KafkaInboundTransactionStatus]
+                                           )
+  case class KafkaInboundTransactionStatus(
+                                transactionId : String,
+                                transactionStatus: String,
+                                transactionTimestamp: String
+                              )
+  case class KafkaInboundCreateChallange(challengeId: String)
+  case class KafkaInboundValidateChallangeAnswer(answer: String)
 
-
-
+  case class KafkaInboundFXRate(
+                                 from_currency_code: String,
+                                 to_currency_code: String,
+                                 conversion_value: Double,
+                                 inverse_conversion_value: Double,
+                                 effective_date: String
+                               )
+  
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString
     if (producer.send(reqId, request, "1")) {
@@ -1191,8 +1275,22 @@ object KafkaMappedConnector extends Connector with Loggable {
     return json.parse("""{"error":"could not send message to kafka"}""")
   }
 
-
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 import java.util.{Properties, UUID}

@@ -76,6 +76,7 @@ import net.liftweb.util.{Helpers, Schedule, _}
 import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
+import code.fx.{MappedCurrency, MappedFXRate}
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionStatusScheduler
 import code.views.RemoteDataActorSystem
@@ -113,7 +114,7 @@ class Boot extends Loggable{
      *
      * api2.example.com with context path /api2
      *
-     * Looks first in (outside of war file): $props.resource.dir/api2 , following the normal lift naming rules (e.g. production.default.props)
+     * Looks first in (outside of war file): $props.resource.dir/api2, following the normal lift naming rules (e.g. production.default.props)
      * Looks second in (outside of war file): $props.resource.dir, following the normal lift naming rules (e.g. production.default.props)
      * Looks third in the war file, following the normal lift naming rules
      *
@@ -173,7 +174,7 @@ class Boot extends Loggable{
 
     // ensure our relational database's tables are created/fit the schema
     val connector = Props.get("connector").openOrThrowException("no connector set")
-    if(connector == "mapped" || connector == "obpjvm" || connector == "kafka")
+    if(connector != "mongodb")
       schemifyAll()
 
     // This sets up MongoDB config (for the mongodb connector)
@@ -320,6 +321,9 @@ class Boot extends Loggable{
       case _ => Locale.ENGLISH
     }
 
+    //for XSS vulnerability, set X-Frame-Options header as DENY
+    LiftRules.listOfSupplimentalHeaders.default.set(List(("X-Frame-Options", "DENY")))
+    
     // Make a transaction span the whole HTTP request
     S.addAround(DB.buildLoanWrapper)
 
@@ -351,7 +355,11 @@ class Boot extends Loggable{
     }
 
     if (!Props.getBool("enable_remotedata", false)) {
-      RemoteDataActorSystem.startLocalWorkerSystem()
+      try {
+        RemoteDataActorSystem.startLocalWorkerSystem()
+      } catch {
+        case ex: Exception => logger.warn(s"RemoteDataActorSystem.startLocalWorkerSystem() could not start: $ex")
+      }
     }
 
     if ( !Props.getLong("transaction_status_scheduler_delay").isEmpty ) {
@@ -458,6 +466,8 @@ object ToSchemify {
     MappedPhysicalCard,
     PinReset,
     MappedCounterparty,
-    MappedBadLoginAttempt
+    MappedBadLoginAttempt,
+    MappedFXRate,
+    MappedCurrency
   )
 }

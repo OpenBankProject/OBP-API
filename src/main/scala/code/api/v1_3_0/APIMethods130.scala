@@ -39,7 +39,7 @@ trait APIMethods130 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val getCards : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -74,7 +74,7 @@ trait APIMethods130 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
 

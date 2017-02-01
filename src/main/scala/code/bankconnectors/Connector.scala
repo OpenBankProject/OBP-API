@@ -7,7 +7,7 @@ import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
 import code.api.v2_1_0._
 import code.branches.Branches.{Branch, BranchId}
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Transaction, User, _}
@@ -89,6 +89,11 @@ trait Connector {
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
   def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
+
+  // Initiate creating a challenge for transaction request and returns an id of the challenge
+  def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId) : Box[String]
+  // Validates an answer for a challenge and returs if the answer is correct or not
+  def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean]
 
   //gets a particular bank handled by this connector
   def getBank(bankId : BankId) : Box[Bank]
@@ -507,18 +512,17 @@ trait Connector {
     }
   }
 
-  def getTransactionRequestStatus(initiator : User, transactionRequestId: TransactionRequestId) : Box[Boolean] = {
+  def getTransactionRequestStatus(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
     for {
       transactionRequest <- getTransactionRequestImpl(transactionRequestId)
-      fromAccount <- tryo{transactionRequest.from}
-      bankAccount <- BankAccount(BankId(fromAccount.bank_id), AccountId(fromAccount.account_id))
-      isOwner <- booleanToBox(initiator.ownerAccess(bankAccount), "user does not have access to owner view")
+      //fromAccount <- tryo{transactionRequest.from}
+      //bankAccount <- BankAccount(BankId(fromAccount.bank_id), AccountId(fromAccount.account_id))
       transactionRequestStatus <- getTransactionRequestStatusImpl(transactionRequestId)
     } yield transactionRequestStatus
 
   }
 
-  protected def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean]
+  protected def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus]
 
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 
@@ -778,4 +782,8 @@ trait Connector {
 //
 //  def resetBadLoginAttempts(username:String):Unit
 
+  def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
+
+  def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
+  
 }

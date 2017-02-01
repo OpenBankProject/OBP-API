@@ -8,7 +8,8 @@ import net.liftweb.common.Loggable
 
 object ResourceDocs extends OBPRestHelper with ResourceDocsAPIMethods with Loggable {
 
-  val VERSION = "1.4.0"
+  val version = "1.4.0" // Does it make sense to have this version match an api version?
+  val versionStatus = "UNKNOWN"
 
 
   val routes = List(

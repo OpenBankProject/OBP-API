@@ -6,7 +6,7 @@ import java.util.{Date, TimeZone, UUID}
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, Metadata, MongoCounterparties}
 import code.model._
@@ -42,6 +42,9 @@ private object LocalConnector extends Connector with Loggable {
     val convertedLimit = fx.convert(limit, rate)
     (convertedLimit, currency)
   }
+
+  override def createChallenge(transactionRequestType: TransactionRequestType,userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: APIUser): Unit = ???
@@ -230,7 +233,7 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = metadata.metadataId,
       label = otherAccount_.holder.get,
       nationalIdentifier = otherAccount_.bank.get.national_identifier.get,
-      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccount_.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccount_.number.get),
       thisBankId = BankId(otherAccount_.bank.get.name.get),
@@ -238,8 +241,6 @@ private object LocalConnector extends Connector with Loggable {
       otherBankId = theAccount.bankId,
       otherAccountId = theAccount.accountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -355,7 +356,7 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = ???
 
   /*
    Transaction Requests
@@ -388,7 +389,7 @@ private object LocalConnector extends Connector with Loggable {
       counterPartyId = otherAccount.metadataId,
       label = otherAccount.getHolder,
       nationalIdentifier = otherAccountFromTransaction.bank.get.national_identifier.get,
-      otherBankRoutingAddress = None, //TODO: need to add this to the json/model
+      otherBankRoutingAddress = None, 
       otherAccountRoutingAddress = Some(otherAccountFromTransaction.bank.get.IBAN.get),
       thisAccountId = AccountId(otherAccountFromTransaction.number.get),
       thisBankId = BankId(otherAccountFromTransaction.bank.get.name.get),
@@ -396,8 +397,6 @@ private object LocalConnector extends Connector with Loggable {
       otherBankId = originalPartyBankId,
       otherAccountId = originalPartyAccountId,
       alreadyFoundMetadata = Some(otherAccount),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -616,9 +615,13 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-  override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+  override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
 
-  override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
+  override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch] = Empty
+
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+  
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
 
 }

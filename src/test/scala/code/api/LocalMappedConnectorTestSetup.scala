@@ -27,7 +27,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5)).saveMe
   }
 
-  override protected def createCounterparty(bankId:String, accountId:String, accountRoutingAddress:String, isBeneficiary:Boolean,counterpartyId:String):CounterpartyTrait = {
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait = {
     MappedCounterparty.create.
       mCounterPartyId(counterpartyId).
       mName(UUID.randomUUID().toString).

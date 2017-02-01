@@ -8,9 +8,10 @@ import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
+import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
-import code.model.{PhysicalCard, _}
+import code.model.{Consumer, PhysicalCard, _}
 import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
@@ -61,13 +62,15 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     type AccountType = BankAccount
 
-    override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+    override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = ???
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
     def updateUserAccountViews(user: APIUser): Unit = ???
 
     //these methods aren't required by our test
     override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
+    override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+    override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
@@ -177,11 +180,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getProducts(bankId: BankId): Box[List[Product]] = Empty
     override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
 
-    override def createOrUpdateBranch(branch: BranchJsonPost ): Box[Branch] = Empty
+    override def createOrUpdateBranch(branch: BranchJsonPost): Box[Branch] = Empty
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
 
+    override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+
+    override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
   }
 
   override def beforeAll() {

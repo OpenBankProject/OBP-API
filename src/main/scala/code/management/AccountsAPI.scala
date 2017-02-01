@@ -12,8 +12,9 @@ object AccountsAPI extends OBPRestHelper with Loggable {
   self: RestHelper =>
 
   val MODULE = "internal"
-  val VERSION = "v1.0"
-  val prefix = (MODULE / VERSION ).oPrefix(_)
+  val version = "v1.0"
+  val versionStatus = "DEPRECIATED"
+  val prefix = (MODULE / version ).oPrefix(_)
 
   oauthServe(prefix {
     //deletes a bank account

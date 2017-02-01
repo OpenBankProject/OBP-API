@@ -26,9 +26,13 @@ TESOBE (http://www.tesobe.com/)
 */
 package code.snippet
 
+import code.api.OAuthHandshake
+import code.model.Consumer
+import code.util.Helper
 import net.liftweb.util.Helpers._
 import net.liftweb.http.S
 import net.liftweb.common.Full
+import net.liftweb.mapper.By
 import net.liftweb.sitemap.Menu
 
 /**
@@ -41,10 +45,20 @@ class OAuthWorkedThanks {
   def thanks = {
     val redirectUrl = S.param("redirectUrl").map(urlDecode(_))
     
+    //extract the clean(omit the parameters) redirect url from request url
+    val requestedRedirectURL = Helper.extractCleanRedirectURL(redirectUrl.openOr("wrongurl")) openOr("wrongurl")
+    //get the current app CONSUMER_KEY
+    val appConsumerKey = OAuthHandshake.currentAppConsumerKey
+    //get the redirectURL from CONSUMER table
+    val validRedirectURL = Consumer.getRedirectURLByConsumerKey(appConsumerKey)
+    
     redirectUrl match {
-      case Full(url) => {
-        "#redirect-link [href]" #> url
-      }
+      case Full(url) => 
+        if(validRedirectURL.equals(requestedRedirectURL)) {
+          "#redirect-link [href]" #> url
+        }else{
+          "#oauth-done-thanks *" #> "Sorry, the App requested a redirect to a URL that is not registered. Note to application developers: You can set the redirect URL you will use at consumer registration - or update it with PUT /management/consumers...."
+        }
       case _ => {
         "#thanks *" #> "Error"
       }

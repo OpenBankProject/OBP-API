@@ -8,7 +8,7 @@ import java.util.{Date, Locale, Optional, Properties, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
-import code.fx.fx
+import code.fx.{FXRate, fx}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
@@ -51,16 +51,29 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   type AccountType = ObpJvmBankAccount
 
+  // Maybe we should read the date format from props?
+  //val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+  val DATE_FORMAT = "yyyy-MM-dd'T'HH:mm'Z'"
+
   var jvmNorth : JConnector = null
 
-  val responseTopic = Props.get("kafka.response_topic").openOr("Response")
-  val requestTopic  = Props.get("kafka.request_topic").openOr("Request")
+  val responseTopic = Props.get("obpjvm.response_topic").openOr("Response")
+  val requestTopic  = Props.get("obpjvm.request_topic").openOr("Request")
+
+  var propsFile = "/props/production.default.props"
+
+  try {
+    if (getClass.getResourceAsStream(propsFile) == null)
+      propsFile = "/props/default.props"
+  } catch {
+    case e: Throwable => propsFile = "/props/default.props"
+  }
 
   val cfg: Configuration = new SimpleConfiguration(
     this,
-    "/props/default.props",
+    propsFile,
     responseTopic,
-    "/props/default.props",
+    propsFile,
     requestTopic
   )
   val north   = new SimpleNorth( cfg )
@@ -70,16 +83,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   north.receive() // start ObpJvm
 
   logger.info(s"ObpJvmMappedConnector running")
-
-  // Local TTL Cache
-  val cacheTTL              = Props.get("connector.cache.ttl.seconds", "0").toInt
-  val cachedUser            = TTLCache[ObpJvmInboundValidatedUser](cacheTTL)
-  val cachedBank            = TTLCache[ObpJvmInboundBank](cacheTTL)
-  val cachedAccount         = TTLCache[ObpJvmInboundAccount](cacheTTL)
-  val cachedBanks           = TTLCache[List[ObpJvmInboundBank]](cacheTTL)
-  val cachedAccounts        = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
-  val cachedPublicAccounts  = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
-  val cachedUserAccounts    = TTLCache[List[ObpJvmInboundAccount]](cacheTTL)
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
@@ -101,29 +104,30 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   def updateUserAccountViews( user: APIUser ) = {
-    logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name}")
 
-    val parameters = new JHashMap
-
-    parameters.put("userId", user.name)
-
-    val response = jvmNorth.get("updateUserAccountViews", Transport.Target.accounts, parameters)
-
-    // todo response.error().isPresent
-
-    val accounts = response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
-      a.accountId,
-      a.bankId,
-      a.label,
-      a.number,
-      a.`type`,
-      ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
-      a.iban,
-      user.name :: Nil,
-      generate_public_view = false,
-      generate_accountants_view = false,
-      generate_auditors_view = false
-    )).toList
+    val accounts = getBanks.flatMap { bank => {
+      val bankId = bank.bankId.value
+      logger.debug(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+      val parameters = new JHashMap
+      parameters.put("userId", user.name)
+      parameters.put("bankId", bankId)
+      val response = jvmNorth.get("getAccounts", Transport.Target.accounts, parameters)
+      // todo response.error().isPresent
+      response.data().map(d => new AccountReader(d)).map(a =>  ObpJvmInboundAccount(
+        a.accountId,
+        a.bankId,
+        a.label,
+        a.number,
+        a.`type`,
+        ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount),
+        a.iban,
+        user.name :: Nil,
+        generate_public_view = true,
+        generate_accountants_view = true,
+        generate_auditors_view = true
+      )).toList
+      }
+    }
 
     logger.debug(s"ObpJvm getUserAccounts says res is $accounts")
 
@@ -208,6 +212,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
+  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
+
   // Gets bank identified by bankId
   override def getBank(id: BankId): Box[Bank] = {
     val parameters = new JHashMap
@@ -230,18 +237,20 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
     parameters.put("transactionId", transactionId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getTransaction", Transport.Target.transaction, parameters)
 
     // todo response.error().isPresent
 
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
 
     response.data().map(d => new TransactionReader(d)).headOption match {
       case Some(t) =>
@@ -252,8 +261,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           ObpJvmInboundTransactionDetails(
             t.`type`,
             t.description,
-            t.postedDate.format(formatter),
-            t.completedDate.format(formatter),
+            {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+            {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
             t.newBalanceAmount.toString,
             t.amount.toString
           ))
@@ -263,6 +272,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
+ val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
     val fromDate = queryParams.collect { case OBPFromDate(date) => By_>=(MappedTransaction.tFinishDate, date) }.headOption
@@ -275,12 +286,13 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           case OBPDescending => OrderBy(MappedTransaction.tFinishDate, Descending)
         }
     }
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH)
+    val formatter = DateTimeFormatter.ofPattern(DATE_FORMAT, Locale.ENGLISH)
     val optionalParams : Seq[QueryParam[MappedTransaction]] = Seq(limit.toSeq, offset.toSeq, fromDate.toSeq, toDate.toSeq, ordering.toSeq).flatten
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
     implicit val formats = net.liftweb.json.DefaultFormats
 
     val parameters = new JHashMap
+    val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
     val earliest = ZonedDateTime.of(1999, 1, 1, 0, 0, 0, 0, UTC) // todo how from scala?
     val latest = ZonedDateTime.of(2020, 1, 1, 0, 0, 0, 0, UTC)   // todo how from scala?
     val filter = new TimestampFilter("postedDate", earliest, latest)
@@ -288,9 +300,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val pageSize = Pager.DEFAULT_SIZE; // all in one page
     val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
 
-    parameters.put("accountId", "account-x")
-    parameters.put("bankId", "bank-x")
-    parameters.put("userId", "user-x")
+    parameters.put("accountId", accountId.value)
+    parameters.put("bankId", bankId.value)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
 
@@ -303,8 +315,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       ObpJvmInboundTransactionDetails(
         t.`type`,
         t.description,
-        t.postedDate.format(formatter),
-        t.completedDate.format(formatter),
+        {if (t.postedDate == null) invalid.format(formatter) else t.postedDate.format(formatter)},
+        {if (t.completedDate == null) invalid.format(formatter) else t.completedDate.format(formatter)},
         t.newBalanceAmount.toString,
         t.amount.toString
       ))
@@ -330,9 +342,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
     val parameters = new JHashMap
 
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getBankAccount", Transport.Target.account, parameters)
 
@@ -345,12 +359,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         a.label,
         a.number,
         a.`type`,
-        ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+        ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount),
         a.iban,
-        List(),
-        generate_public_view = true,
-        generate_accountants_view = true,
-        generate_auditors_view = true)))
+        primaryUserIdentifier :: Nil,
+        generate_public_view = false,
+        generate_accountants_view = false,
+        generate_auditors_view = false)))
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent")
         Empty
@@ -361,16 +375,16 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
-    val r:List[ObpJvmInboundAccount] = accts.map { a => {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
 
-      val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
 
       logger.info (s"ObpJvmMappedConnnector.getBankAccounts is calling jvmNorth.getAccount with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
       val parameters = new JHashMap
 
-      parameters.put("accountId", a._1.value)
-      parameters.put("bankId", a._2.value)
+      parameters.put("bankId", a._1.value)
+      parameters.put("accountId", a._2.value)
       parameters.put("userId", primaryUserIdentifier)
 
       val response = jvmNorth.get("getBankAccounts", Transport.Target.account, parameters)
@@ -384,17 +398,17 @@ object ObpJvmMappedConnector extends Connector with Loggable {
           account.label,
           account.number,
           account.`type`,
-          ObpJvmInboundBalance(account.balanceAmount, account.balanceCurrency),
+          ObpJvmInboundBalance(account.balanceCurrency, account.balanceAmount),
           account.iban,
-          List(),
-          generate_public_view = true,
-          generate_accountants_view = true,
-          generate_auditors_view = true))
+          primaryUserIdentifier :: Nil,
+          generate_public_view = false,
+          generate_accountants_view = false,
+          generate_auditors_view = false))
         case None =>
           logger.info(s"getBankAccount says ! account.isPresent")
           Empty
       }
-    }.get  // why?
+    }
   }
 
     // Check does the response data match the requested data
@@ -409,11 +423,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
+    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
     val parameters = new JHashMap
 
     parameters.put("accountId", number)
     parameters.put("bankId", bankId.value)
-    parameters.put("userId", OBPUser.getCurrentUserUsername)
+    parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getAccountByNumber", Transport.Target.account, parameters)
 
@@ -426,12 +441,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         a.label,
         a.number,
         a.`type`,
-        ObpJvmInboundBalance(a.balanceAmount, a.balanceCurrency),
+        ObpJvmInboundBalance(a.balanceCurrency, a.balanceAmount),
         a.iban,
-        List(),
-        generate_public_view = true,
-        generate_accountants_view = true,
-        generate_auditors_view = true)))
+        primaryUserIdentifier :: Nil,
+        generate_public_view = false,
+        generate_accountants_view = false,
+        generate_auditors_view = false)))
       case None =>
         logger.info(s"getBankAccount says ! account.isPresent")
         Empty
@@ -463,8 +478,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       otherBankId = thisAccountBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -558,7 +571,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
     for {
-      sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
+      sentTransactionId <- saveTransaction(fromAccount, toAccount, -amt, description)
     } yield {
       sentTransactionId
     }
@@ -618,7 +631,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     }
   }
 
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = {
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
     val parameters = new JHashMap
     val fields = new JHashMap
 
@@ -626,9 +639,14 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     val response : JResponse = jvmNorth.put("getTransactionRequestStatus", Transport.Target.transaction, parameters, fields)
 
-    response.data().headOption match {
-      case Some(x) => Full(x.text("status").toBoolean)
-      case None => Empty
+
+    try {
+      response.data().headOption match {
+        case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
+        case None => Empty
+      }
+    } catch {
+      case mpex: net.liftweb.json.MappingException => Empty
     }
   }
 
@@ -1027,11 +1045,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   def createNewTransaction(r: ObpJvmInboundTransaction):Box[Transaction] = {
     var datePosted: Date = null
     if (r.details.posted != null) // && r.details.posted.matches("^[0-9]{8}$"))
-      datePosted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.posted)
+      datePosted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.posted)
 
     var dateCompleted: Date = null
     if (r.details.completed != null) // && r.details.completed.matches("^[0-9]{8}$"))
-      dateCompleted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(r.details.completed)
+      dateCompleted = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(r.details.completed)
 
     for {
         counterparty <- tryo{r.counterparty}
@@ -1091,8 +1109,6 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       otherBankId = o.bankId,
       otherAccountId = o.accountId,
       alreadyFoundMetadata = alreadyFoundMetadata,
-
-      //TODO V210 following five fields are new, need to be fiexed
       name = "",
       otherBankRoutingScheme = "",
       otherAccountRoutingScheme="",
@@ -1104,16 +1120,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   case class ObpJvmBankAccount(r: ObpJvmInboundAccount) extends BankAccount {
+    logger.info(s"--- ObpJvmBankAccount ---> amount=${r.balance.amount}")
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
-    def balance : BigDecimal        = BigDecimal(r.balance.amount)
+    def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "-0.00" else r.balance.amount)
     def currency : String           = r.balance.currency
     def name : String               = r.owners.head
     def swift_bic : Option[String]  = Some("swift_bic") //TODO
     def iban : Option[String]       = Some(r.IBAN)
     def number : String             = r.number
     def bankId : BankId             = BankId(r.bank)
-    def lastUpdate : Date           = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(today.getTime.toString)
+    def lastUpdate : Date           = new SimpleDateFormat(DATE_FORMAT, Locale.ENGLISH).parse(today.getTime.toString)
     def accountHolder : String      = r.owners.head
 
     // Fields modifiable from OBP are stored in mapper
@@ -1296,6 +1313,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   case class ObpJvmInboundTransactionId(
                                         transactionId : String
                                       )
+
   case class ObpJvmOutboundTransaction(username: String,
                                       accountId: String,
                                       currency: String,
@@ -1310,6 +1328,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
                                        currency: String
                                         )
 
+  case class ObpJvmInboundTransactionRequestStatus(
+                                             transactionRequestId : String,
+                                             bulkTransactionsStatus: List[ObpJvmInboundTransactionStatus]
+                                           )
+
+  case class ObpJvmInboundTransactionStatus(
+                                transactionId : String,
+                                transactionStatus: String,
+                                transactionStatusTimestamp: String
+                              )
+
   override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty
@@ -1318,6 +1347,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
   override def getBranch(bankId : BankId, branchId: BranchId) : Box[MappedBranch]= Empty
 
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
+
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
 
 }
 

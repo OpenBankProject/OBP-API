@@ -43,8 +43,9 @@ import scala.collection.immutable.Nil
 
 object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 with APIMethods200 with APIMethods210 with APIMethods220 with Loggable {
 
-
-  val VERSION = "2.2.0"
+  
+  val version = "2.2.0"
+  val versionStatus = "BLEEDING-EDGE"
 
   // Get disbled API versions from props
   val disabledVersions = Props.get("api_disabled_versions").getOrElse("").replace("[", "").replace("]", "").split(",")
@@ -53,7 +54,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
 
   // Note: Since we pattern match on these routes, if two implementations match a given url the first will match
 
-  var routes = List(Implementations1_2_1.root(VERSION))
+  var routes = List(Implementations1_2_1.root(version, versionStatus))
 
 
   // ### VERSION 1.2.1 - BEGIN ###
@@ -248,6 +249,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
                           Implementations2_1_0.createCustomer ::
                           Implementations2_1_0.getCustomer ::
                           Implementations2_1_0.getCustomers ::
+                          Implementations2_1_0.updateConsumerRedirectUrl ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file
@@ -266,6 +268,7 @@ object OBPAPI2_2_0 extends OBPRestHelper with APIMethods130 with APIMethods140 w
   val endpointsOf2_2_0 = Implementations2_2_0.getViewsForBankAccount ::
                           Implementations2_2_0.createViewForBankAccount ::
                           Implementations2_2_0.updateViewForBankAccount ::
+                          Implementations2_2_0.getCurrentFxRate ::
                           Nil
   //Second step - iterate through all endpoints defined in resource doc
   //       then - omit endpoints of disabled version in props file

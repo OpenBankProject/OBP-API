@@ -7,7 +7,7 @@ import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
-import code.fx.fx
+import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
@@ -15,7 +15,7 @@ import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
-import code.model._
+import code.model.{TransactionRequestType, _}
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
@@ -24,15 +24,17 @@ import code.transaction.MappedTransaction
 import code.transactionrequests.MappedTransactionRequest
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
+import code.util.Helper._
 import code.views.Views
 import com.tesobe.model.UpdateBankAccount
 import net.liftweb.common._
 import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers._
-import net.liftweb.util.Props
+import net.liftweb.util.{BCrypt, Props, StringHelpers}
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.math.BigInt
 
 object LocalMappedConnector extends Connector with Loggable {
 
@@ -54,6 +56,41 @@ object LocalMappedConnector extends Connector with Loggable {
     logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
     (convertedThreshold, currency)
   }
+
+  /**
+    * Steps To Create, Store and Send Challenge
+    * 1. Generate a random challenge
+    * 2. Generate a long random salt
+    * 3. Prepend the salt to the challenge and hash it with a standard password hashing function like Argon2, bcrypt, scrypt, or PBKDF2.
+    * 4. Save both the salt and the hash in the user's database record.
+    * 5. Send the challenge over an separate communication channel.
+    */
+  override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = {
+    val challengeId = UUID.randomUUID().toString
+    val challenge = StringHelpers.randomString(6) // Random string. For instance: EONXOA
+    val salt = BCrypt.gensalt()
+    val hash = BCrypt.hashpw(challenge, salt).substring(0,44)
+    // TODO Extend database model in order to store users salt and hash
+    // Store salt and hash and bind to challengeId
+    // TODO Send challenge to the user over an separate communication channel
+    //Return id of challenge
+    Full(challengeId)
+  }
+  /**
+    * To Validate A Challenge Answer
+    * 1. Retrieve the user's salt and hash from the database.
+    * 2. Prepend the salt to the given password and hash it using the same hash function.
+    * 3. Compare the hash of the given answer with the hash from the database. If they match, the answer is correct. Otherwise, the answer is incorrect.
+    */
+  // TODO Extend database model in order to get users salt and hash it
+  override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = {
+    for {
+      nonEmpty <- booleanToBox(hashOfSuppliedAnswer.nonEmpty) ?~ "Need a non-empty answer"
+      answerToNumber <- tryo(BigInt(hashOfSuppliedAnswer)) ?~! "Need a numeric TAN"
+      positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
+    } yield true
+  }
+
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: APIUser): Unit = ???
@@ -170,8 +207,6 @@ object LocalMappedConnector extends Connector with Loggable {
         otherBankId = thisAccountBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(metadata),
-
-        //TODO V210 following five fields are new, need to be fiexed
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",
@@ -208,8 +243,6 @@ object LocalMappedConnector extends Connector with Loggable {
         otherBankId = thisAccountBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(t),
-
-        //TODO V210 following five fields are new, need to be fiexed
         name = "",
         otherBankRoutingScheme = "",
         otherAccountRoutingScheme="",
@@ -400,7 +433,7 @@ Store one or more transactions
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[Boolean] = ???
+  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = ???
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
@@ -847,5 +880,32 @@ Store one or more transactions
     )
   }
 
+  override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = {
+    Consumer.find(By(Consumer.id, consumerId))
+  }
+
+  /**
+    * get the latest record from FXRate table by the fields: fromCurrencyCode and toCurrencyCode.
+    * If it is not found by (fromCurrencyCode, toCurrencyCode) order, it will try (toCurrencyCode, fromCurrencyCode) order .
+    */
+  override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]  = {
+    /**
+      * find FXRate by (fromCurrencyCode, toCurrencyCode), the normal order  
+      */
+    val fxRateFromTo = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, fromCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, toCurrencyCode)
+    )
+    /**
+      * find FXRate by (toCurrencyCode, fromCurrencyCode), the reverse order
+      */
+    val fxRateToFrom = MappedFXRate.find(
+      By(MappedFXRate.mFromCurrencyCode, toCurrencyCode),
+      By(MappedFXRate.mToCurrencyCode, fromCurrencyCode)
+    )
+
+    // if the result of normal order is empty, then return the reverse order result
+    fxRateFromTo.orElse(fxRateToFrom)
+  }
 
 }

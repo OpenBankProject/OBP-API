@@ -29,7 +29,6 @@ Berlin 13359, Germany
   Ayoub Benali: ayoub AT tesobe DOT com
 
   */
-
 package code.model.dataAccess
 
 import java.util.UUID
@@ -38,7 +37,7 @@ import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
 import net.liftweb.common._
-import net.liftweb.http.{S, SHtml, SessionVar, Templates}
+import net.liftweb.http._
 import net.liftweb.mapper._
 import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
@@ -230,6 +229,37 @@ import net.liftweb.util.Helpers._
 
     return ""
   }
+  /**
+    * Find current APIUser_UserId from OBPUser, it is only used for Consumer registration form to save the USER_ID when register new consumer. 
+    */
+  //TODO may not be a good idea, need modify after refactoring User Models.  
+  def getCurrentAPIUserUserId: String = {
+    for {
+      current <- OBPUser.currentUser
+      userId <- tryo{current.user.foreign.get.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+    for {
+      current <- OAuthHandshake.getUser
+      userId <- tryo{current.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+    for {
+      current <- DirectLogin.getUser
+      userId <- tryo{current.userId}
+      if (userId.nonEmpty)
+    } yield {
+      return userId
+    }
+
+     return ""
+   }
 
   /**
     * The string that's generated when the user name is not found.  By
@@ -387,7 +417,7 @@ import net.liftweb.util.Helpers._
         {
           LoginAttempt.incrementBadLoginAttempts(username)
           info(ErrorMessages.UsernameHasBeenLocked)
-          //TODO need to fix , use Failure instead, it is used to show the error message to the GUI
+          //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
           Full(usernameLockedStateCode) 
         }
         else {
@@ -528,7 +558,7 @@ import net.liftweb.util.Helpers._
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
 
-          // If user is locked,send the error to GUI
+          // If user is locked, send the error to GUI
           case Full(user) if LoginAttempt.userIsLocked(usernameFromGui) =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
             S.error(S.?(ErrorMessages.UsernameHasBeenLocked))

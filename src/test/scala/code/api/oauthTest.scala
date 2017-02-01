@@ -63,6 +63,7 @@ class OAuthTest extends ServerSetup {
   lazy val testConsumer =
     OBPConsumer.create.
       name("test application").
+      redirectURL(selfCallback).
       isActive(true).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
@@ -71,6 +72,7 @@ class OAuthTest extends ServerSetup {
   lazy val disabledTestConsumer =
     OBPConsumer.create.
       name("test application disabled").
+      redirectURL(selfCallback).
       isActive(false).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
@@ -306,12 +308,12 @@ class OAuthTest extends ServerSetup {
   }
 
   feature("Login in locked") {
-    scenario("valid Username ,invalid password ,login in too many times. The username will be locked", Verifier, Oauth) {
+    scenario("valid Username, invalid password, login in too many times. The username will be locked", Verifier, Oauth) {
       Given("we will use a valid request token to get the valid username and password")
       val reply = getRequestToken(consumer, selfCallback)
       val requestToken = extractToken(reply.body)
       
-      Then("we set the valid username , invalid password and try more than 5 times")
+      Then("we set the valid username, invalid password and try more than 5 times")
       val invalidPassword = "wrongpassword"
       var verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)
       verifier = getVerifier(requestToken.value, user1.username.get, invalidPassword)

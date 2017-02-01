@@ -119,4 +119,26 @@ object Helper{
     pretty(render(decompose(input)))
   }
 
+  /**
+    * extract clean redirect url from input value, because input may have some parameters, such as the following examples  <br/> 
+    * eg1: http://localhost:8082/oauthcallback?....--> http://localhost:8082 <br/> 
+    * eg2: http://localhost:8016?oautallback?=3NLMGV ...--> http://localhost:8016
+    *
+    * @param input a long url with parameters 
+    * @return clean redirect url
+    */
+  def extractCleanRedirectURL(input: String): Box[String] = {
+    /**
+      * pattern eg1: http://xxxxxx?oautxxxx  -->http://xxxxxx
+      * pattern eg2: https://xxxxxx/oautxxxx -->http://xxxxxx
+      */
+    //Note: the pattern should be : val  pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauthcallback*)".r, but the OAuthTest is different, so add the following logic
+    val pattern = "(https?):\\/\\/(.*)(?=((\\/)|(\\?))oauth*)".r
+    val validRedirectURL = pattern findFirstIn input
+    // Now for the OAuthTest, the redirect format is : http://localhost:8016?oauth_token=G5AEA2U1WG404EGHTIGBHKRR4YJZAPPHWKOMNEEV&oauth_verifier=53018
+    // It is not the normal case: http://localhost:8082/oauthcallback?oauth_token=LUDKELGJXRDOC1AK1X1TOYIXM5W1AORFJT5KE43B&oauth_verifier=14062
+    // So add the split function to select the first value; eg: Array(http://localhost:8082, thcallback) --> http://localhost:8082
+    val extractCleanURL = validRedirectURL.getOrElse("").split("/oauth")(0) 
+    Full(extractCleanURL)
+  }
 }

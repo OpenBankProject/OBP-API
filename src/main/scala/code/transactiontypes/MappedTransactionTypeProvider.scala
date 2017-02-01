@@ -23,7 +23,7 @@ object MappedTransactionTypeProvider extends TransactionTypeProvider {
   }
 
   /**
-    * This method will create or update the data. It need to check the bank_id & short_code and  TransactionTypeId to make the data is
+    * This method will create or update the data. It need to check the bank_id & short_code and TransactionTypeId to make the data is
     * uniqueness in the database
     *
     */

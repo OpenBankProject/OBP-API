@@ -94,7 +94,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -132,7 +132,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank, apiTagTransactionRequest))
 
 
@@ -229,7 +229,7 @@ trait APIMethods210 {
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -249,7 +249,7 @@ trait APIMethods210 {
 
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true , ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
 
               availableViews <- Full(fromAccount.permittedViews(user))
               view <- View.fromUrl(viewId, fromAccount) ?~! {ErrorMessages.ViewNotFound}
@@ -319,15 +319,15 @@ trait APIMethods210 {
                 }
                 case "COUNTERPARTY" => {
                   for {
-                  //For COUNTERPARTY, Use the counterpartyId to find the counterparty and set up the toAacount
+                    //For COUNTERPARTY, Use the counterpartyId to find the counterparty and set up the toAacount
                     toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterpartyId)
                     counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
                     toBankId <- Full(BankId(counterparty.otherBankId ))
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
 
-                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
                     transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
@@ -352,7 +352,7 @@ trait APIMethods210 {
                     toAccountId <- Full(AccountId(counterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
-                    // Following four lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
                     transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
@@ -368,7 +368,7 @@ trait APIMethods210 {
                 }
                 case "FREE_FORM" => {
                   for {
-                    // Following three lines: just transfer the details body ,add Bank_Id and Account_Id in the Detail part.
+                    // Following three lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
                     // The FREE_FORM discription is empty, so make it "" in the following code
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
@@ -406,7 +406,7 @@ trait APIMethods210 {
       Extraction.decompose(ChallengeAnswerJSON("89123812", "123345")),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val answerTransactionRequestChallenge: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -471,7 +471,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
     lazy val getTransactionRequests: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -513,7 +513,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
     lazy val getRoles: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -547,7 +547,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,PSD2,OBWG),
+      Catalogs(Core, PSD2, OBWG),
       List(apiTagUser, apiTagEntitlement))
 
 
@@ -595,7 +595,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
 
@@ -605,11 +605,11 @@ trait APIMethods210 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanGetConsumers), s"$CanGetConsumers entitlement required")
-            consumerIdToLong <- tryo{consumerId.toLong} ?~! "Invalid CONSUMER_ID"
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId
             consumer <- Consumer.find(By(Consumer.id, consumerIdToLong))
           } yield {
             // Format the data as json
-            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.isActive, consumer.createdAt)
+            val json = ConsumerJSON(consumer.id, consumer.name, consumer.appType.toString(), consumer.description, consumer.developerEmail, consumer.redirectURL, consumer.createdByUserId, consumer.isActive, consumer.createdAt)
             // Return
             successJsonResponse(Extraction.decompose(json))
           }
@@ -629,7 +629,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
 
@@ -662,7 +662,7 @@ trait APIMethods210 {
       Extraction.decompose(PutEnabledJSON(false)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       Nil)
 
 
@@ -720,7 +720,7 @@ trait APIMethods210 {
         posted=new Date() )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
 
@@ -780,7 +780,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(Core,notPSD2,notOBWG),
+      Catalogs(Core, notPSD2, notOBWG),
       List(apiTagPerson, apiTagUser))
 
 
@@ -822,7 +822,7 @@ trait APIMethods210 {
       Extraction.decompose(TransactionTypeJSON(TransactionTypeId("wuwjfuha234678"), "1", "2", "3", "4", AmountOfMoneyJSON("EUR", "123"))),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagBank)
     )
 
@@ -864,7 +864,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -909,7 +909,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs (notCore,notPSD2,OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -957,7 +957,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagBank)
     )
 
@@ -1077,7 +1077,7 @@ trait APIMethods210 {
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List())
 
 
@@ -1150,7 +1150,7 @@ trait APIMethods210 {
         exampleDate)),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
 
@@ -1225,7 +1225,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagPerson, apiTagCustomer))
 
     lazy val getCustomers : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1257,7 +1257,7 @@ trait APIMethods210 {
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,notOBWG),
+      Catalogs(notCore, notPSD2, notOBWG),
       List(apiTagCustomer))
 
     lazy val getCustomer : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1339,7 +1339,7 @@ trait APIMethods210 {
       )),
       emptyObjectJson,
       emptyObjectJson :: Nil,
-      Catalogs(notCore,notPSD2,OBWG),
+      Catalogs(notCore, notPSD2, OBWG),
       List(apiTagAccount, apiTagPrivateData, apiTagPublicData))
 
     lazy val createBranch: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
@@ -1353,6 +1353,46 @@ trait APIMethods210 {
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
            val json = JSONFactory1_4_0.createBranchJson(success)
+            createdJsonResponse(Extraction.decompose(json))
+          }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      updateConsumerRedirectUrl,
+      apiVersion,
+      "updateConsumerRedirectUrl",
+      "PUT",
+      "/management/consumers/CONSUMER_ID/consumer/redirect_url",
+      "Update Consumer RedirectUrl",
+      s"""Update an existing redirectUrl for a Consumer specified by CONSUMER_ID.
+         |
+         | CONSUMER_ID can be obtained after you register the application. 
+         | 
+         | Or use the endpoint 'Get Consumers' to get it  
+         | 
+       """.stripMargin,
+      Extraction.decompose(ConsumerRedirectUrlJSON("http://localhost:8888")),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      Nil)
+    
+    lazy val updateConsumerRedirectUrl: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "consumers" :: consumerId :: "consumer" :: "redirect_url" :: Nil JsonPut json -> _ => {
+        user =>
+          for {
+            u <- user ?~ ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), s"$CanUpdateConsumerRedirectUrl entitlement required")
+            postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~ ErrorMessages.InvalidJsonFormat
+            consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId 
+            consumer <- Connector.connector.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ErrorMessages.ConsumerNotFoundByConsumerId}
+            //only the developer that created the Consumer should be able to edit it
+            isLoginUserCreatedTheConsumer <- tryo(assert(consumer.createdByUserId.equals(user.get.userId)))?~! ErrorMessages.UserNoPermissionUpdateConsumer
+          } yield {
+            //update the redirectURL and isactive (set to false when change redirectUrl) field in consumer table 
+            val success = consumer.redirectURL(postJson.redirect_url).isActive(false).saveMe()
+            val json = JSONFactory210.createConsumerJSON(success)
             createdJsonResponse(Extraction.decompose(json))
           }
       }

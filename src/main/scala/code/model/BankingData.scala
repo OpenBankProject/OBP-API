@@ -84,6 +84,23 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
+case class TransactionRequestStatus(
+  transactionRequestid : String,
+  bulkTransactionsStatus: List[TransactionStatus])
+
+object TransactionRequestStatus {
+  def unapply(trId : String, tStatuses: List[TransactionStatus]) = Some(TransactionRequestStatus(trId, tStatuses))
+}
+
+case class TransactionStatus(
+  transactionId : String,
+  transactionStatus: String,
+  transactionTimestamp: String)
+
+object TransactionStatus {
+  def unapply(trId : String, trStatus: String, trTimestamp: String) = Some(TransactionStatus(trId, trStatus, trTimestamp))
+}
+
 case class TransactionRequestId(val value : String) {
   override def toString = value
 }
@@ -116,11 +133,12 @@ object BankId {
   def unapply(id : String) = Some(BankId(id))
 }
 
-case class  AccountRoutingAddress(val value : String) {
-override def toString = value
+case class AccountRoutingAddress(val value: String) {
+  override def toString = value
 }
-object  AccountRoutingAddress {
-  def unapply(id : String) = Some(AccountRoutingAddress(id))
+
+object AccountRoutingAddress {
+  def unapply(id: String) = Some(AccountRoutingAddress(id))
 }
 
 case class CustomerId(val value : String) {
