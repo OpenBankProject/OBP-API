@@ -255,6 +255,13 @@ object LocalMappedConnector extends Connector with Loggable {
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] ={
     MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
   }
+  
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] ={
+    MappedCounterparty.find(
+      By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
+      By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
+    )
+  }
 
 
   override def getPhysicalCards(user: User): List[PhysicalCard] = {

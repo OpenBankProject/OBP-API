@@ -126,6 +126,12 @@ trait Connector {
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait]
 
+  /**
+    * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
+    * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
+    */
+  def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] 
+
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
   def getTransaction(bankId: BankId, accountID : AccountId, transactionId : TransactionId): Box[Transaction]

@@ -51,7 +51,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.json._
-import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
+import net.liftweb.common._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.products.MappedProduct
@@ -73,8 +73,11 @@ object KafkaMappedConnector extends Connector with Loggable {
   val cachedPublicAccounts  = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedFxRate          = TTLCache[KafkaInboundFXRate](cacheTTL)
+  val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
 
-  val formatVersion: String  = "Nov2016"
+  //val formatVersion: String  = "Nov2016"
+  //Update the version, added to send the discretion field to south in saveTransaction method
+  val formatVersion: String  = "Jan2017"
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
@@ -452,8 +455,36 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
-  def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
+  // Get one counterparty by the Counterparty Id 
+  override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
+    val req = Map(
+      "north" -> "getCounterpartyByCounterpartyId",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "counterpartyId" -> counterpartyId.toString
+    )
+    // Since result is single account, we need only first list entry
+    implicit val formats = net.liftweb.json.DefaultFormats
+    val r = {
+      cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
+    }
+    Full(new KafkaCounterparty(r))
+  }
 
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
+    val req = Map(
+      "north" -> "getCounterpartyByIban",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "otherAccountRoutingAddress" -> iban,
+      "OtherAccountRoutingScheme" -> "IBAN"
+    )
+    
+    val r = process(req).extract[KafkaInboundCounterparty]
+    
+    Full(new KafkaCounterparty(r))
+  }
+  
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()
 
@@ -515,7 +546,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       "amount" -> amt.toString,
       "otherAccountId" -> counterparty.accountId.value,
       "otherAccountCurrency" -> counterparty.currency,
-      "transactionType" -> "AC"
+      "transactionType" -> "AC",
+      "description" -> description
     )
 
 
@@ -1063,6 +1095,23 @@ object KafkaMappedConnector extends Connector with Loggable {
     //TODO need to add error handling here for String --> Date transfer 
     def effectiveDate : Date= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.ENGLISH).parse(kafkaInboundFxRate.effective_date)
   }
+  
+  case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends CounterpartyTrait {
+    def createdByUserId: String = counterparty.created_by_user_id
+    def name: String = counterparty.name
+    def thisBankId: String = counterparty.this_bankid
+    def thisAccountId: String = counterparty.this_account_id
+    def thisViewId: String = counterparty.this_viewid
+    def otherBankId: String = counterparty.other_bankid
+    def otherAccountId: String = counterparty.other_account_id
+    def otherAccountProvider: String = counterparty.other_account_provider
+    def counterPartyId: String = counterparty.counterparty_id
+    def otherAccountRoutingScheme: String = counterparty.other_account_routing_scheme
+    def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
+    def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
+    def otherBankRoutingAddress: String = counterparty.other_account_routing_address
+    def isBeneficiary : Boolean = counterparty.is_beneficiary.toBoolean
+  }
 
   case class KafkaInboundBank(
                               bankId : String,
@@ -1264,6 +1313,23 @@ object KafkaMappedConnector extends Connector with Loggable {
                                  inverse_conversion_value: Double,
                                  effective_date: String
                                )
+
+  case class KafkaInboundCounterparty(
+                                       name: String,
+                                       created_by_user_id: String,
+                                       this_bankid: String,
+                                       this_account_id: String,
+                                       this_viewid: String,
+                                       other_bankid: String,
+                                       other_account_id: String,
+                                       other_account_provider: String,
+                                       counterparty_id: String,
+                                       other_bank_routing_scheme: String,
+                                       other_account_routing_scheme: String,
+                                       other_bank_routing_address: String,
+                                       other_account_routing_address: String,
+                                       is_beneficiary: String
+                                     )
   
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString

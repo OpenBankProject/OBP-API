@@ -539,6 +539,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
+  
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()
