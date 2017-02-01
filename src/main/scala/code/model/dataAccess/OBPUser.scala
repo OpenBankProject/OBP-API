@@ -43,7 +43,6 @@ import net.liftweb.util.Mailer.{BCC, From, Subject, To}
 import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
-
 import code.loginattempts.LoginAttempt
 
 
@@ -597,7 +596,7 @@ import net.liftweb.util.Helpers._
               }
           case _ =>
             LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
-            S.error(S.?("account.validation.error"))
+            S.error(S.?(ErrorMessages.UnexpectedErrorDuringLogin))
         }
       }
     }
