@@ -184,6 +184,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getBranch(bankId: BankId, branchId: BranchId): Box[MappedBranch]= Empty
 
     override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = ???
+    
+    override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = Empty
 
     override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
