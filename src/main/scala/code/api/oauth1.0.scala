@@ -263,8 +263,8 @@ object OAuthHandshake extends RestHelper with Loggable {
           }
         listOfTuples
       }
-      //prepare the base string (should we really have openOr here?)
-      var baseString = httpMethod+"&"+URLEncoder.encode(HostName  + S.uri ,"UTF-8")+"&"
+      //prepare the base string
+      var baseString = httpMethod+"&"+URLEncoder.encode(HostName + S.uri ,"UTF-8")+"&"
       // Add OAuth and URL parameters to the base string
       // Parameters are provided as List[(String, String)]
       baseString+= generateOAuthParametersString((OAuthparameters.toList ::: urlParameters()))
