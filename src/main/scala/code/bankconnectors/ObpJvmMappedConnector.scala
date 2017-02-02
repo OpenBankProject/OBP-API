@@ -194,7 +194,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       // Check does the response data match the requested data
       case c:ChallengeThresholdReader => (BigDecimal(c.amount), c.currency)
       case _ =>
-        val limit = BigDecimal("50")
+        val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         (convertedLimit, currency)
