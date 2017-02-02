@@ -21,7 +21,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
-import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.{Charge, MappedTransactionRequest}
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -1352,6 +1352,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+  
+  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
 
+  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
 }
 

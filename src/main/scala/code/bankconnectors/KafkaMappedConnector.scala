@@ -42,7 +42,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
 import code.transaction.MappedTransaction
-import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.{Charge, MappedTransactionRequest}
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -992,6 +992,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Return result
     Full(new KafkaFXRate(r))
   }
+  
+  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
+  
+  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
 
   /////////////////////////////////////////////////////////////////////////////
 
