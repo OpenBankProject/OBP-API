@@ -21,7 +21,7 @@ import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.sandbox.SandboxBranchImport
 import code.transaction.MappedTransaction
-import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.{Charge, MappedTransactionRequest, MappedTransactionRequestType}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper
 import code.util.Helper._
@@ -915,4 +915,41 @@ Store one or more transactions
     fxRateFromTo.orElse(fxRateToFrom)
   }
 
+  /**
+    * get the Charge from the TransactionRequestType table 
+    * In Mapped, we will ignore accountId, viewId for now.
+    * If there is no charge data in database, use the default charge value "0.0000000"
+    * 
+    * @param bankId e.g. gh.29.uk
+    * @param accountId ignore
+    * @param viewId ignore
+    * @param transactionRequestTypeName e.g. SANDBOX_TAN, SEPA etc...
+    * @return
+    */
+  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = {
+
+    //get the transactionRequestType from table specified by bankId and transactionRequestTypeName, ignore accountId, viewId for now.
+    val transactionRequestType = MappedTransactionRequestType.find(
+      By(MappedTransactionRequestType.mBankId, bankId.value),
+      By(MappedTransactionRequestType.mName, transactionRequestTypeName.value))
+
+    //package the charge box, if the transactionRequestType is empty, just return the default value
+    val charge = transactionRequestType match {
+      case Full(transactionRequestType) => Charge(
+        transactionRequestType.chargeCurrency,
+        transactionRequestType.chargeAmount,
+        transactionRequestType.chargeSummary
+      )
+      
+      //If it is empty, return the default value : "0.0000000"
+      case _ => Charge("NONE", "0.0000000", "This bank account do not support this transaction request type yet!")
+    }
+    
+    Full(charge)
+  }
+  
+  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = {
+    Full(transactionRequestTypeNames.map(Connector.connector.vend.getCurrentCharge(bankId, accountId, viewId,_).get))
+  }
+  
 }

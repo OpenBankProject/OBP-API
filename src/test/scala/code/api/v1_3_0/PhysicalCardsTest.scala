@@ -16,6 +16,7 @@ import code.model.dataAccess.APIUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
+import code.transactionrequests.Charge
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -190,6 +191,10 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
     override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+    
+    override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
+
+    override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
   }
 
   override def beforeAll() {

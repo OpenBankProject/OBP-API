@@ -30,6 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
+import code.transactionrequests.Charge
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -624,6 +625,10 @@ private object LocalConnector extends Connector with Loggable {
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
   
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
+  
+  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
+  
+  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
 
 
 }
