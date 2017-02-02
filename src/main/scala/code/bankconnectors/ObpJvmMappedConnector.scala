@@ -32,7 +32,7 @@ import net.liftweb.mapper._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import code.products.Products.{Product, ProductCode}
-import com.tesobe.obp.transport.nov2016.{AccountReader, BankReader, TransactionReader, UserReader}
+import com.tesobe.obp.transport.nov2016.{Bank => _, Transaction => _, User => _, _}
 import com.tesobe.obp.transport.spi.{DefaultSorter, TimestampFilter}
 
 import scala.collection.JavaConversions._
@@ -180,15 +180,6 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets current challenge level for transaction request
   override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
-    var r:Option[ObpJvmInboundChallengeLevel] = None
-    /*TODO Needs to be implemented in OBP-JVM
-    var r:Option[ObpJvmInboundChallengeLevel] = jvmNorth.getChallengeThreshold(userId, accountId, transactionRequestType, currency).map(b =>
-        ObpJvmInboundChallengeLevel(
-          b.limit,
-          b.currency
-        )
-      )
-
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)
@@ -196,20 +187,19 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     parameters.put("transactionRequestType", transactionRequestType)
     parameters.put("userId", userId)
 
-    val response = jvmNorth.get("getChallengeThreshold", Transport.Target.xxx, parameters)
-    */
+    val response = jvmNorth.get("getChallengeThreshold", Transport.Target.challengeThreshold, parameters)
 
 
-    r match {
+    response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
-      case Some(x)  => (x.limit, x.currency)
-      case _ => {
+      case c:ChallengeThresholdReader => (BigDecimal(c.amount), c.currency)
+      case _ =>
         val limit = BigDecimal("50")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
         (convertedLimit, currency)
-      }
     }
+
   }
 
   override def createChallenge(transactionRequestType: TransactionRequestType, userID: String, transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
