@@ -32,6 +32,8 @@ Berlin 13359, Germany
 
 package code.api
 
+import java.util.ResourceBundle
+
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.loginattempts.LoginAttempt
@@ -40,6 +42,7 @@ import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
 import dispatch._
 import net.liftweb.common.{Box, Failure, Loggable}
+import net.liftweb.http.LiftRules
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import org.scalatest._
@@ -59,6 +62,8 @@ class OAuthTest extends ServerSetup {
 
   //a url that will be guaranteed to resolve when the oauth redirects us to it
   val selfCallback = Props.get("hostname").openOrThrowException("hostname not set")
+
+  val accountValidationError = ResourceBundle.getBundle(LiftRules.liftCoreResourceName).getObject("account.validation.error").toString
 
   lazy val testConsumer =
     OBPConsumer.create.
@@ -85,6 +90,17 @@ class OAuthTest extends ServerSetup {
       username(randomString(9)).
       password(user1Password).
       validated(true).
+      firstName(randomString(10)).
+      lastName(randomString(10)).
+      saveMe
+
+  lazy val user2Password = randomString(10)
+  lazy val user2 =
+    OBPUser.create.
+      email(randomString(3)+"@example.com").
+      username(randomString(9)).
+      password(user2Password).
+      validated(false).
       firstName(randomString(10)).
       lastName(randomString(10)).
       saveMe
@@ -145,6 +161,11 @@ class OAuthTest extends ServerSetup {
           {
             logger.info("the username has been locked")
             XPathQuery(ErrorMessages.UsernameHasBeenLocked).element.text
+          }
+          else if(newPageSource.contains(accountValidationError))
+          {
+            logger.info(accountValidationError)
+            accountValidationError
           }
           else{
             logger.info("the verifier is in the page")
@@ -325,7 +346,7 @@ class OAuthTest extends ServerSetup {
       
       Then("we should get a locked account verifier")
       verifier.asInstanceOf[Failure].msg.contains(ErrorMessages.UsernameHasBeenLocked)
-      
+
 
       Then("We login in with valid username and password, it will still be failed")
       verifier = getVerifier(requestToken.value, user1.username.get, user1Password)
@@ -338,4 +359,19 @@ class OAuthTest extends ServerSetup {
 
     }
   }
+
+  feature("We try to login with a user which is not verified") {
+    scenario("Valid username, valid password but user is not verified", Verifier, Oauth) {
+      Given("we will use a valid request token to get the valid username and password")
+      val reply = getRequestToken(consumer, selfCallback)
+      val requestToken = extractToken(reply.body)
+
+      Then("we set the valid username, valid  password and try to login")
+      val verifier = getVerifier(requestToken.value, user2.username.get, user2Password)
+
+      Then("we should get a message: " + accountValidationError)
+      verifier.contains(accountValidationError) should equal (true)
+    }
+  }
+
 }
