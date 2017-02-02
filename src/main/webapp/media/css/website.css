@@ -208,21 +208,6 @@ input.submit {
 	font-size: 36px;
 }
 
-@font-face {
-    font-family: myFont1;
-    src: url(bnpp-rounded-v2.ttf);
-}
-
-@font-face {
-     font-family: myFont2;
-     src: url(bnpp_sans_cond_v2-webfont.ttf);
- }
-
-@font-face {
-     font-family: myFont3;
-     src: url(bnpp_sans-webfont.ttf);
- }
-
 #main-about h2 {
     padding: 20px 10px 2px 10px;
     color: white;
