@@ -5,7 +5,7 @@ import java.util.Date
 import code.api.Constant._
 import code.api.util.APIUtil.ResourceDoc
 import code.api.v1_2.{BankJSON, BanksJSON, UserJSON}
-import code.model.{TransactionReponseType, TransactionReponseTypes, TransactionRequestType}
+import code.model._
 import net.liftweb
 import net.liftweb.json._
 import net.liftweb.util.Props
@@ -154,8 +154,9 @@ object SwaggerJSONFactory {
         case obj@UserJSON(_,_,_)           => s""" """" + key + """": {"$ref": "#/definitions/UserJSON"""" +"}"
         case obj@List(UserJSON(_,_,_))     => s""" """" + key + """": {"type":"array", "items":{"$ref": "#/definitions/UserJSON"""" +"}}"
 
-        case obj@TransactionReponseType(_)       => s""" """" + key + """":{"$ref": "#/definitions/TransactionReponseTypes"""" +"}"
-        case obj@List(TransactionReponseType(_)) => s""" """" + key + """": {"type":"array", "items":{"$ref": "#/definitions/TransactionReponseTypes"""" +"}}"
+          //now the TransactionRequestTypeJsons changed, it feed to update, so comment
+          //case obj@TransactionRequestTypeJson(_)       => s""" """" + key + """":{"$ref": "#/definitions/TransactionReponseTypes"""" +"}"
+          //case obj@List(TransactionRequestTypeJsons(_)) => s""" """" + key + """": {"type":"array", "items":{"$ref": "#/definitions/Transac*/tionReponseTypes"""" +"}}"
         case _ => "unknown"
       }
     }
@@ -190,7 +191,8 @@ object SwaggerJSONFactory {
         rd match {
           case u if u.apiFunction.contains("allBanks") => rd.successResponseBody.extract[BanksJSON]
           case u if u.apiFunction.contains("bankById") => rd.successResponseBody.extract[BankJSON]
-          case u if u.apiFunction.contains("getTransactionRequestTypes") => rd.successResponseBody.extract[TransactionReponseTypes]
+          //now the TransactionRequestTypeJsons changed, it feed to update, so comment
+          //case u if u.apiFunction.contains("getTransactionRequestTypes") => rd.successResponseBody.extract[TransactionRequestTypesSwaggerJsons]
           case _ => "Not defined"
         }
       }

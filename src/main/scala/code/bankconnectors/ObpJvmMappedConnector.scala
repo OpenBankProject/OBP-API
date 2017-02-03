@@ -21,7 +21,7 @@ import code.metadata.wheretags.MappedWhereTag
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
-import code.transactionrequests.{Charge, MappedTransactionRequest}
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -1352,9 +1352,30 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override def getConsumerByConsumerId(consumerId: Long): Box[Consumer] = Empty
 
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = Empty
-  
-  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
 
-  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
+  //TODO need to fix in obpjvm, just mocked result as Mapper
+  override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
+    val transactionRequestTypeChargeMapper = MappedTransactionRequestTypeCharge.find(
+      By(MappedTransactionRequestTypeCharge.mBankId, bankId.value),
+      By(MappedTransactionRequestTypeCharge.mTransactionRequestTypeId, transactionRequestType.value))
+
+    val transactionRequestTypeCharge = transactionRequestTypeChargeMapper match {
+      case Full(transactionRequestType) => TransactionRequestTypeChargeMock(
+        transactionRequestType.transactionRequestTypeId,
+        transactionRequestType.bankId,
+        transactionRequestType.chargeCurrency,
+        transactionRequestType.chargeAmount,
+        transactionRequestType.chargeSummary
+      )
+      //If it is empty, return the default value : "0.0000000"
+      case _ => TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, "NONE", "0.0000000", "This bank account do not support this transaction request type yet!")
+    }
+
+    Full(transactionRequestTypeCharge)
+  }
+  //TODO need to fix in obpjvm, just mocked result as Mapper
+  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
+    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
+  }
 }
 
