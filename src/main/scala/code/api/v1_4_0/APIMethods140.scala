@@ -391,9 +391,10 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
+              charges <- Connector.connector.vend.getCurrentCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
-                val successJson = Extraction.decompose(transactionRequestTypes)
-                successJsonResponse(successJson)
+                val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypes,charges)
+                successJsonResponse(Extraction.decompose(json))
               }
           } else {
             Full(errorJsonResponse("Sorry, Transaction Requests are not enabled in this API instance."))

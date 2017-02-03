@@ -3,22 +3,21 @@ package code.api.v1_4_0
 import java.util.Date
 
 import code.api.util.APIUtil.ResourceDoc
-import code.common.{Meta, License, Location, Address}
+import code.common.{Address, License, Location, Meta}
 import code.atms.Atms.Atm
-import code.branches.Branches.{Branch}
+import code.branches.Branches.Branch
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
-import code.products.Products.{Product}
-
-
-import code.customer.{CustomerMessage, Customer}
+import code.products.Products.Product
+import code.customer.{Customer, CustomerMessage}
 import code.model._
 import code.products.Products.ProductCode
 import code.transactionrequests.TransactionRequests._
-import net.liftweb.json.JsonAST.{JValue, JObject}
+import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
-
-import code.api.v1_2_1.{AmountOfMoneyJSON}
-
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v2_0_0.TransactionRequestChargeJSON
+import code.transactionrequests.Charge
+import net.liftweb.common.Full
 
 object JSONFactory1_4_0 {
 
@@ -368,6 +367,32 @@ object JSONFactory1_4_0 {
     )
   }
 
+  /**
+    * package the TransactionRequestTypes and charges to the integral TransactionRequestTypesJSONs
+    * Note: the length of params shoud be the same
+    * @param transactionRequestTypes List[TransactionRequestType]
+    * @param charges  List[Charge]
+    * @return
+    */
+  def createTransactionRequestTypesJSONs(transactionRequestTypes: List[TransactionRequestType], charges: List[Charge]): TransactionRequestTypesJSONs = {
+
+    //zip return Tuples: List((SEPA,Charge(1)),(SANDBOX_TAN,Charge(2)...)
+    val transactionRequestTypeTuples: List[(TransactionRequestType, Charge)] = transactionRequestTypes zip charges
+
+    //transfer Tuples to List[TransactionRequestTypeJSON]
+    val transactionRequestTypeJSONList = for {
+      transactionRequestTypeTuple <- transactionRequestTypeTuples
+      transactionRequestType = transactionRequestTypeTuple._1
+      charge = transactionRequestTypeTuple._2
+      TransactionRequestTypeJSON <- Full(TransactionRequestTypeJSON(transactionRequestType.value, 
+                                         TransactionRequestChargeJSON(charge.chargeSummary,
+                                                                      AmountOfMoneyJSON(charge.chargeCurrency,charge.chargeAmount))))
+    } yield {
+      TransactionRequestTypeJSON
+    }
+
+    TransactionRequestTypesJSONs(transactionRequestTypeJSONList)
+  }
   case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String
@@ -408,4 +433,8 @@ object JSONFactory1_4_0 {
                           message: String
                         )
   */
+
+  case class TransactionRequestTypeJSON(value: String, charge: TransactionRequestChargeJSON)
+
+  case class TransactionRequestTypesJSONs(list: List[TransactionRequestTypeJSON])
 }

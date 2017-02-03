@@ -64,7 +64,7 @@ import code.model.dataAccess._
 import code.products.MappedProduct
 import code.transaction_types.MappedTransactionType
 import code.snippet.{OAuthAuthorisation, OAuthWorkedThanks}
-import code.transactionrequests.MappedTransactionRequest
+import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestType}
 import code.usercustomerlinks.MappedUserCustomerLink
 import net.liftweb.common._
 import net.liftweb.http._
@@ -468,6 +468,7 @@ object ToSchemify {
     MappedCounterparty,
     MappedBadLoginAttempt,
     MappedFXRate,
-    MappedCurrency
+    MappedCurrency,
+    MappedTransactionRequestType
   )
 }

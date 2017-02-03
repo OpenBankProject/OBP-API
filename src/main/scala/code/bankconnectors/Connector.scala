@@ -12,7 +12,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Transaction, User, _}
 import code.model.dataAccess.{APIUser, MappedAccountHolder}
-import code.transactionrequests.TransactionRequests
+import code.transactionrequests.{Charge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -791,5 +791,35 @@ trait Connector {
   def getConsumerByConsumerId(consumerId: Long): Box[Consumer]
 
   def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate]
+
+  /**
+    * Get the current charge
+    * If there is no charge for one transactionRequestTypeName, it should return the default charge, eg:
+    * "charge": {
+    *   "chargeCurrency" : "NONE",
+    *   "chargeAmount"   : "0.0000000",
+    *   "chargeSummary" : "This bank account do not support this transaction request type yet!"
+    * }
+    *
+    * @param bankId
+    * @param accountId
+    * @param viewId
+    * @param transactionRequestTypeName
+    * @return
+    */
+  def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge]
+
+  /**
+    * Get the current charges
+    * Note: As to the transactionRequestTypeNames list, each transactionRequestTypeName should have its own charge.
+    * Later generating Json response need the same number of transactionRequestTypeNames and Charges 
+    *
+    * @param bankId
+    * @param accountId
+    * @param viewId
+    * @param transactionRequestTypeNames List[TransactionRequestType]
+    * @return
+    */
+  def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]]
   
 }
