@@ -42,7 +42,7 @@ import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
 import code.transaction.MappedTransaction
-import code.transactionrequests.{Charge, MappedTransactionRequest}
+import code.transactionrequests.{MappedTransactionRequest, TransactionRequestTypeCharge}
 import code.transactionrequests.TransactionRequests._
 import code.util.{Helper, TTLCache}
 import code.views.Views
@@ -74,6 +74,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   val cachedUserAccounts    = TTLCache[List[KafkaInboundAccount]](cacheTTL)
   val cachedFxRate          = TTLCache[KafkaInboundFXRate](cacheTTL)
   val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
+  val cachedTransactionRequestTypeCharge = TTLCache[KafkaInboundTransactionRequestTypeCharge](cacheTTL)
 
   //val formatVersion: String  = "Nov2016"
   //Update the version, added to send the discretion field to south in saveTransaction method
@@ -662,15 +663,15 @@ object KafkaMappedConnector extends Connector with Loggable {
     Full(transactionRequests.flatMap(_.toTransactionRequest))
   }
 
-  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequest] = {
+  override def getTransactionRequestImpl(transactionRequestId: TransactionRequestId): Box[TransactionRequest] = {
     val transactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     transactionRequest.flatMap(_.toTransactionRequest)
   }
 
 
-  override def getTransactionRequestTypesImpl(fromAccount : BankAccount) : Box[List[TransactionRequestType]] = {
-    //TODO: write logic / data access
-    Full(List(TransactionRequestType("SANDBOX_TAN")))
+  override def getTransactionRequestTypesImpl(fromAccount: BankAccount): Box[List[TransactionRequestType]] = {
+    val validTransactionRequestTypes = Props.get("transactionRequests_supported_types", "").split(",").map(x => TransactionRequestType(x)).toList
+    Full(validTransactionRequestTypes)
   }
 
   /*
@@ -993,9 +994,32 @@ object KafkaMappedConnector extends Connector with Loggable {
     Full(new KafkaFXRate(r))
   }
   
-  override def getCurrentCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeName: TransactionRequestType): Box[Charge] = Empty
+  //get the current charge specified by bankId, accountId, viewId and transactionRequestType
+  override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = {
+
+    // Create request argument list
+    val req = Map(
+      "north" -> "getTransactionRequestTypeCharge",
+      "version" -> formatVersion,
+      "name" -> OBPUser.getCurrentUserUsername,
+      "bankId" -> bankId.value,
+      "accountId" -> accountId.value,
+      "viewId" -> viewId.value,
+      "transactionRequestType" -> transactionRequestType.value
+    )
+    // send the request to kafka and get response
+    val r: KafkaInboundTransactionRequestTypeCharge = {
+      //TODO need to do the error handling when extract wrong Json or empty result, now throw wrong massage to GUI 
+      cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[KafkaInboundTransactionRequestTypeCharge])  
+    }
+    
+    // Return result
+    Full(KafkaTransactionRequestTypeCharge(r))
+  }
   
-  override def getCurrentCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypeNames: List[TransactionRequestType]): Box[List[Charge]] = Empty
+  override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
+    Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId,_).get))
+  }
 
   /////////////////////////////////////////////////////////////////////////////
 
@@ -1103,10 +1127,10 @@ object KafkaMappedConnector extends Connector with Loggable {
   case class KafkaCounterparty(counterparty: KafkaInboundCounterparty) extends CounterpartyTrait {
     def createdByUserId: String = counterparty.created_by_user_id
     def name: String = counterparty.name
-    def thisBankId: String = counterparty.this_bankid
+    def thisBankId: String = counterparty.this_bank_id
     def thisAccountId: String = counterparty.this_account_id
-    def thisViewId: String = counterparty.this_viewid
-    def otherBankId: String = counterparty.other_bankid
+    def thisViewId: String = counterparty.this_view_id
+    def otherBankId: String = counterparty.other_bank_id
     def otherAccountId: String = counterparty.other_account_id
     def otherAccountProvider: String = counterparty.other_account_provider
     def counterPartyId: String = counterparty.counterparty_id
@@ -1115,6 +1139,14 @@ object KafkaMappedConnector extends Connector with Loggable {
     def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
     def otherBankRoutingAddress: String = counterparty.other_account_routing_address
     def isBeneficiary : Boolean = counterparty.is_beneficiary.toBoolean
+  }
+  
+  case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{
+    def transactionRequestTypeId: String = kafkaInboundTransactionRequestTypeCharge.transaction_request_type_id
+    def bankId: String = kafkaInboundTransactionRequestTypeCharge.bank_id
+    def chargeCurrency: String = kafkaInboundTransactionRequestTypeCharge.charge_currency
+    def chargeAmount: String = kafkaInboundTransactionRequestTypeCharge.charge_amount
+    def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.charge_summary
   }
 
   case class KafkaInboundBank(
@@ -1321,10 +1353,10 @@ object KafkaMappedConnector extends Connector with Loggable {
   case class KafkaInboundCounterparty(
                                        name: String,
                                        created_by_user_id: String,
-                                       this_bankid: String,
+                                       this_bank_id: String,
                                        this_account_id: String,
-                                       this_viewid: String,
-                                       other_bankid: String,
+                                       this_view_id: String,
+                                       other_bank_id: String,
                                        other_account_id: String,
                                        other_account_provider: String,
                                        counterparty_id: String,
@@ -1334,6 +1366,15 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        other_account_routing_address: String,
                                        is_beneficiary: String
                                      )
+
+
+  case class KafkaInboundTransactionRequestTypeCharge(
+                                transaction_request_type_id: String,
+                                bank_id: String,
+                                charge_currency: String,
+                                charge_amount: String,
+                                charge_summary: String
+                               )
   
   def process(request: Map[String,String]): json.JValue = {
     val reqId = UUID.randomUUID().toString

@@ -16,7 +16,7 @@ import net.liftweb.json.JsonAST.{JObject, JValue}
 import org.pegdown.PegDownProcessor
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v2_0_0.TransactionRequestChargeJSON
-import code.transactionrequests.Charge
+import code.transactionrequests.{TransactionRequestTypeCharge}
 import net.liftweb.common.Full
 
 object JSONFactory1_4_0 {
@@ -368,31 +368,21 @@ object JSONFactory1_4_0 {
   }
 
   /**
-    * package the TransactionRequestTypes and charges to the integral TransactionRequestTypesJSONs
-    * Note: the length of params shoud be the same
-    * @param transactionRequestTypes List[TransactionRequestType]
-    * @param charges  List[Charge]
-    * @return
+    * package the transactionRequestTypeCharge
     */
-  def createTransactionRequestTypesJSONs(transactionRequestTypes: List[TransactionRequestType], charges: List[Charge]): TransactionRequestTypesJSONs = {
-
-    //zip return Tuples: List((SEPA,Charge(1)),(SANDBOX_TAN,Charge(2)...)
-    val transactionRequestTypeTuples: List[(TransactionRequestType, Charge)] = transactionRequestTypes zip charges
-
-    //transfer Tuples to List[TransactionRequestTypeJSON]
-    val transactionRequestTypeJSONList = for {
-      transactionRequestTypeTuple <- transactionRequestTypeTuples
-      transactionRequestType = transactionRequestTypeTuple._1
-      charge = transactionRequestTypeTuple._2
-      TransactionRequestTypeJSON <- Full(TransactionRequestTypeJSON(transactionRequestType.value, 
-                                         TransactionRequestChargeJSON(charge.chargeSummary,
-                                                                      AmountOfMoneyJSON(charge.chargeCurrency,charge.chargeAmount))))
-    } yield {
-      TransactionRequestTypeJSON
-    }
-
-    TransactionRequestTypesJSONs(transactionRequestTypeJSONList)
+  def createTransactionRequestTypesJSON(transactionRequestTypeCharges: TransactionRequestTypeCharge): TransactionRequestTypeJSON = {
+    TransactionRequestTypeJSON(transactionRequestTypeCharges.transactionRequestTypeId,
+      TransactionRequestChargeJSON(transactionRequestTypeCharges.chargeSummary,
+        AmountOfMoneyJSON(transactionRequestTypeCharges.chargeCurrency, transactionRequestTypeCharges.chargeAmount)))
   }
+  
+  /**
+    * package the transactionRequestTypeCharges
+    */
+  def createTransactionRequestTypesJSONs(transactionRequestTypeCharges: List[TransactionRequestTypeCharge]): TransactionRequestTypeJSONs = {
+    TransactionRequestTypeJSONs(transactionRequestTypeCharges.map(createTransactionRequestTypesJSON))
+  }
+  
   case class TransactionRequestAccountJSON (
                              bank_id: String,
                              account_id : String
@@ -436,5 +426,5 @@ object JSONFactory1_4_0 {
 
   case class TransactionRequestTypeJSON(value: String, charge: TransactionRequestChargeJSON)
 
-  case class TransactionRequestTypesJSONs(list: List[TransactionRequestTypeJSON])
+  case class TransactionRequestTypeJSONs(transaction_request_types: List[TransactionRequestTypeJSON])
 }

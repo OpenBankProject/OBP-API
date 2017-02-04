@@ -375,7 +375,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |
       """.stripMargin,
       emptyObjectJson,
-      Extraction.decompose(TransactionReponseTypes(TransactionReponseType("SANDBOX_TAN")::Nil)),
+      emptyObjectJson,
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
@@ -391,9 +391,9 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               transactionRequestTypes <- Connector.connector.vend.getTransactionRequestTypes(u, fromAccount)
-              charges <- Connector.connector.vend.getCurrentCharges(bankId, accountId, viewId, transactionRequestTypes)
+              transactionRequestTypeCharges <- Connector.connector.vend.getTransactionRequestTypeCharges(bankId, accountId, viewId, transactionRequestTypes)
             } yield {
-                val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypes,charges)
+                val json = JSONFactory1_4_0.createTransactionRequestTypesJSONs(transactionRequestTypeCharges)
                 successJsonResponse(Extraction.decompose(json))
               }
           } else {
