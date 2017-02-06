@@ -604,14 +604,14 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
           case JString(i) => i
           case _ => ""
         }
-        expectedAmtTo should equal (BigDecimal(actualToAmount))
+        expectedAmtTo.setScale(2, BigDecimal.RoundingMode.HALF_UP) should equal (BigDecimal(actualToAmount))
 
         // New Balance
         val actualToBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedToNewBalance should equal (BigDecimal(actualToBalance))
+        expectedToNewBalance.setScale(2, BigDecimal.RoundingMode.HALF_UP)  should equal (BigDecimal(actualToBalance))
 
 
         val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
@@ -1047,14 +1047,14 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
           case JString(i) => i
           case _ => ""
         }
-        expectedAmtTo should equal (BigDecimal(actualToAmount))
+        expectedAmtTo.setScale(2, BigDecimal.RoundingMode.HALF_UP) should equal (BigDecimal(actualToAmount))
 
         // New Balance
         val actualToBalance  = (((response.body \ "transactions")(0) \ "details") \ "new_balance" \ "amount") match {
           case JString(i) => i
           case _ => ""
         }
-        expectedToNewBalance should equal (BigDecimal(actualToBalance))
+        expectedToNewBalance.setScale(2, BigDecimal.RoundingMode.HALF_UP)  should equal (BigDecimal(actualToBalance))
 
 
         val rate = fx.exchangeRate (fromAccount.currency, toAccount.currency)
