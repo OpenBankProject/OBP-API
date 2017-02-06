@@ -38,6 +38,10 @@ connector=mapped
 ## Enable user authentication via obpjvm 
 #obpjvm.user.authentication=true
 
+
+## Enable writing API metrics (which APIs are called) to RDBMS
+write_metrics=true
+
 ## ElasticSearch
 #allow_elasticsearch=true
 #allow_elasticsearch_warehouse=true
@@ -66,6 +70,7 @@ db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassw
 ## Enable remote Akka actor for data split
 ## Set to true and also edit and set host/port in obpremotedata.conf
 #enable_remotedata=true
+# Note! Above is currently disabled in source code!!
 
 ## If remotedata is enabled, set the remote database parameters
 ## db has to be accessible from box set in obpremotedata.conf
