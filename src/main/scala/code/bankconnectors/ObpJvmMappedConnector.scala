@@ -584,7 +584,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val accountId = fromAccount.accountId.value
     val bankId = fromAccount.bankId.value
     val currency = fromAccount.currency
-    val amount = amt.asInstanceOf[java.math.BigDecimal]
+    val amount = amt.bigDecimal
     val counterpartyId = toAccount.accountId.value
     val newBalanceCurrency = toAccount.currency
     val newBalanceAmount = toAccount.balance
