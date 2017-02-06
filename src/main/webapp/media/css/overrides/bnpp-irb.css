@@ -1,0 +1,19 @@
+@import url('https://static.openbankproject.com/css/bnppirb/bnpp-irb-fonts.css');
+
+#main-about-box #main-about-buttons a {
+  font-family: BNPP-IRB-Rounded2;
+}
+ 
+#main-about-box {
+  background-color: green;
+}
+ 
+#main-about p {
+  color: white;
+  font-family: BNPP-IRB-Rounded1;
+}
+
+#main-about h2 {
+  color: white;
+  font-family: BNPP-IRB-Rounded2;
+}

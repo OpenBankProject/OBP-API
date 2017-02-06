@@ -88,7 +88,7 @@ class WebUI extends Loggable{
   }
 
   def aboutText: CssSel = {
-    ".about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
+    "#main-about-text *" #> scala.xml.Unparsed(Props.get("webui_index_page_about_section_text", ""))
   }
 
   def apiExplorerLink: CssSel = {

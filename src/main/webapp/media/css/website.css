@@ -75,19 +75,21 @@ input.submit {
 }
 
 #wrapper {
-	max-width: 1050px;
-	margin: 0 auto;
-	padding: 0 10px;
+	width: 100%;
+	min-width: 320px;
+	margin:0 auto;
 }
 
 #header {
 	overflow: auto;
+	margin:0 auto;
+	width: 1050px;
 	padding: 0px 0 20px;
 }
 
 #header-decoration {
     background-color: #53C4EF;
-    width: 100%;
+    width: 1050px;
     height: 35px;
 }
 
@@ -102,12 +104,15 @@ input.submit {
 #nav {
     padding: 4px 10px 0 10px;
     background: #EEEEEE;
+    margin:auto;
     height: 40px;
+    width: 1030px;
 }
 
 #nav ul {
     height: 40px;
     margin-left: 20px;
+    width: 1050px;
 }
 
 #nav ul li {
@@ -143,7 +148,7 @@ input.submit {
 
 #nav ul li a {
 	display: inline-block;
-	padding: 8px 20px 10px;
+	padding: 8px 25px 10px;
 	border-radius: 5px 5px 0 0;
 	color: black;
 	text-decoration: none;
@@ -192,9 +197,10 @@ input.submit {
 }
 
 #main-about {
-    padding-top: 70px;
+    padding-top: 80px;
     /* background-image: url(../images/bnpp/bnpp-background.jpg); */
-    min-height: 463px;
+    width:1050px;
+    margin:0px auto;
 }
 
 #main-about h1 {
@@ -202,20 +208,59 @@ input.submit {
 	font-size: 36px;
 }
 
-#main-about p.about-text {
-    padding: 10px 180px 40px 180px;
-    font-size: 20px;
-    line-height: 1.5em;
+#main-about h2 {
+    padding: 20px 10px 2px 10px;
     color: white;
-    text-align: center;
-    font-weight: 200;
+    margin-left: 20px;
+    margin-right: 10px;
+	margin-bottom: 20px;
+	margin-top:20;
+	line-height:45px;
+	font-size: 42px;
+	text-align: left;
+	/*font-family: "Times New Roman", Georgia, Serif;*/
 }
 
-#main-about p.about-text a {
+#main-about p {
+ padding: 0px 10px 10px 30px;
+
+display: block;
+    margin-top: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    color: white;
+    font-size: 17px;
+    text-align: left;
+    line-height: 20px;
+}
+
+#main-about-box a {
+    text-decoration: underline;
     color: white;
 }
-#main-about p.about-text a:hover {
-    text-decoration: underline;
+
+#main-about-box {
+	display: inline-block;
+	background-color:#53C4EF;
+	margin-top: 240px ;
+    margin-left: 450px ;
+    width: 600px;
+    /*height: 390px;*/
+	font-size: small;
+}
+
+#main-about-box #main-about-buttons a{
+      padding: 5px 30px 5px 30px;
+      display: inline-block;
+      text-decoration: none;
+      border-radius: 10px;
+      color: black;
+      background-color: white;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      margin-right: 10px;
+      margin-left: 30px;
+      font-size: 18px;
 }
 
 #main-links {
@@ -253,6 +298,7 @@ input.submit {
 
 #main-get_started {
 	text-align: left;
+	width:1050px;
 	margin: 50px auto;
 	background-color: #f1f4f8;
 }
@@ -309,13 +355,16 @@ input.submit {
 
 #main-apis {
 	text-align: left;
+	position:center;
 	margin: 50px auto;
 	display: table;
+	width:1050px;
 }
 .main-apis-row {
 	display: table-row;
 }
 .main-apis-cell {
+    margin:50px auto;
 	display: table-cell;
 	vertical-align: top;
 	padding-bottom: 30px;
@@ -337,7 +386,7 @@ input.submit {
 	text-align: center;
 	font-weight: bold;
 	font-size: 36px;
-	margin: 0px 0 30px 0;
+	padding:40px 0px 40px 0px;
 	display: table-caption;
 }
 #main-apis h2 {
@@ -349,6 +398,7 @@ input.submit {
 
 #main-showcases {
 	margin: 50px auto;
+	width:1050px;
 	padding: 60px 0;
 	color: white;
 	background-color: #31b9ce;
@@ -380,8 +430,9 @@ input.submit {
 
 #main-faq {
 	text-align: left;
+	width:970px;
 	margin: 50px auto;
-	padding:0 40px;
+	padding:0px 0px 0px 80px;
 	background-color: #f1f4f8;
 }
 
@@ -389,7 +440,7 @@ input.submit {
 	text-align: center;
 	font-weight: bold;
 	font-size: 36px;
-	margin: 30px 0 30px 0;
+	margin: 30px 40px 30px 0px;
 	display: table-caption;
 }
  
@@ -440,10 +491,12 @@ input.submit {
 
 
 #main-start_building {
-	margin: 50px 0;
+	margin: 50px auto;
+	width:920px;
 	padding: 0 80px;
 }
 #main-start_building h1 {
+    margin: auto;
 	font-size: 36px;
 	font-weight: bold;
 	line-height: 40px;
@@ -453,6 +506,7 @@ input.submit {
 #main-partners {
 	margin: 50px auto;
 	text-align: center;
+	width:1080px;
 }
 
 #main-partners img {
@@ -460,17 +514,18 @@ input.submit {
 }
 
 #main-partners a {
-    vertical-align: top;
+    margin:auto;
     display: inline-block;
     /* *display: inline; */
     /* zoom: 1; */
-    margin: 30px 30px 30px 30px;
+    padding:30px 30px 30px 30px;
 }
 
 
 
 #main-support {
-	margin: 0;
+	margin: auto;
+	width:930px;
 	margin-bottom: -20px; /* touch footer */
 	padding: 60px;
 	color: white;
@@ -919,7 +974,8 @@ span.alias_indicator_private {
 
 
 #footer {
-	margin-top: 20px;
+	margin: 20px auto;
+	width:1050px;
 	padding: 50px 0px 50px 0px;
     color: #999999;
     background-color: #3C3C3C;
