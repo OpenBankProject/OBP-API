@@ -1008,13 +1008,21 @@ object KafkaMappedConnector extends Connector with Loggable {
       "transactionRequestType" -> transactionRequestType.value
     )
     // send the request to kafka and get response
-    val r: KafkaInboundTransactionRequestTypeCharge = {
-      //TODO need to do the error handling when extract wrong Json or empty result, now throw wrong massage to GUI 
-      cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[KafkaInboundTransactionRequestTypeCharge])  
-    }
+    // TODO the error handling is not good enough, it should divide the error, empty and no-response. 
+    val r =  tryo {
+        Full(cachedTransactionRequestTypeCharge.getOrElseUpdate(req.toString, () => process(req).extract[KafkaInboundTransactionRequestTypeCharge]))
+      }
     
     // Return result
-    Full(KafkaTransactionRequestTypeCharge(r))
+     val result = r match {
+      case Full(f) =>  KafkaTransactionRequestTypeCharge(f.get)
+      case _ =>  
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
+        KafkaTransactionRequestTypeCharge(KafkaInboundTransactionRequestTypeCharge(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!"))
+      }
+
+    // result
+    Full(result)
   }
   
   override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {

@@ -1357,8 +1357,10 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
         transactionRequestType.chargeAmount,
         transactionRequestType.chargeSummary
       )
-      //If it is empty, return the default value : "0.0000000"
-      case _ => TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, "NONE", "0.0000000", "This bank account do not support this transaction request type yet!")
+      //If it is empty, return the default value : "0.0000000" and set the BankAccount currency
+      case _ => 
+        val fromAccountCurrency: String = getBankAccount(bankId, accountId).get.currency
+        TransactionRequestTypeChargeMock(transactionRequestType.value, bankId.value, fromAccountCurrency, "0.00", "Warning! Default value!")
     }
 
     Full(transactionRequestTypeCharge)
