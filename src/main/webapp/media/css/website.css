@@ -240,6 +240,7 @@ display: block;
 }
 
 #main-about-box {
+    opacity: 0.7;
 	display: inline-block;
 	background-color:#53C4EF;
 	margin-top: 240px ;
@@ -260,7 +261,7 @@ display: block;
       margin-bottom: 20px;
       margin-right: 10px;
       margin-left: 30px;
-      font-size: 18px;
+      font-size: 15px;
 }
 
 #main-links {
