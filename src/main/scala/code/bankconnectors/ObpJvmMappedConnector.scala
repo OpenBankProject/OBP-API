@@ -563,6 +563,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
     for {
+    // TODO Do we charge +amt or -amt?
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
     } yield {
       sentTransactionId
@@ -593,8 +594,33 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val counterpartyName = toAccount.name
     val completedDate = null
     val postedDate = ZonedDateTime.now
-    val transactionId = UUID.randomUUID
+    val transactionId:String = UUID.randomUUID().toString
+
     val `type` = "pain.001.001.03db" // SocGen transactions
+
+    // SocGen Tags
+    object Tags {
+      val MESSAGE_ID =                    "grpHdrMsgId"
+      val CTRL_SUM =                      "grpHdrCtrlSum"
+      val PAYMENT_REFERENCE =             "pmtInfId"
+      val CTRL =                          "pmtInfCtrlSum"
+      val EXECUTION_DATE =                "pmtInfReqdExctnDt"
+      val DEBTOR_NAME =                   "dbtrNm"
+      val DEBTOR_ACCOUNT_NUMBER =         "dbtrAcctId"
+      val DEBTOR_ACCOUNT_CURRENCY =       "dbtrAcctCcy"
+      val DEBTOR_BRANCH =                 "dbtrAgtBrnchId"
+      val TRANSACTION_INSTRUCTION_ID =    "pmtIdInstr"
+      val TRANSACTION_ENDTOEND_ID =       "pmtIdEndToEnd"
+      val TRANSACTION_CURRENCY =          "cdtTrfTxInfAmtCcy"
+      val TRANSACTION_AMOUNT =            "cdtTrfTxInfAmt"
+      val TRANSACTION_FEE_CURRENCY =      "cdtTrfTxInfChrgAmtCcy"
+      val TRANSACTION_FEE_AMOUNT =        "cdtTrfTxInfChrgAmt"
+      val BENEFICIARY_BRANCH =            "cdtrAgtBrnchId"
+      val BENEFICIARY_NAME =              "cdtrAgtBrnchNm"
+      val BENEFICIARY_ACCOUNT_NUMBER =    "cdtrAcctId"
+      val BENEFICIARY_ACCOUNT_CURRENCY =  "cdtrAcctCcy"
+      val LABEL_CREDIT_TRANSFER =         "rmtInfUstrd"
+    }
 
     val parameters = new JHashMap
     val fields = new JHashMap
@@ -617,44 +643,19 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     fields.put("userId", userId)
     */
 
-
-    // SocGen Tags
-    object Tags {
-      val MESSAGE_ID = "grpHdrMsgId"
-      val CTRL_SUM = "grpHdrCtrlSum"
-      val PAYMENT_REFERENCE = "pmtInfId"
-      val CTRL = "pmtInfCtrlSum"
-      val EXECUTION_DATE = "pmtInfReqdExctnDt"
-      val DEBTOR_NAME = "dbtrNm"
-      val DEBTOR_ACCOUNT_NUMBER = "dbtrAcctId"
-      val DEBTOR_ACCOUNT_CURRENCY = "dbtrAcctCcy"
-      val DEBTOR_BRANCH = "dbtrAgtBrnchId"
-      val TRANSACTION_INSTRUCTION_ID = "pmtIdInstr"
-      val TRANSACTION_ENDTOEND_ID = "pmtIdEndToEnd"
-      val TRANSACTION_CURRENCY = "cdtTrfTxInfAmtCcy"
-      val TRANSACTION_AMOUNT = "cdtTrfTxInfAmt"
-      val TRANSACTION_FEE_CURRENCY = "cdtTrfTxInfChrgAmtCcy"
-      val TRANSACTION_FEE_AMOUNT = "cdtTrfTxInfChrgAmt"
-      val BENEFICIARY_BRANCH = "cdtrAgtBrnchId"
-      val BENEFICIARY_NAME = "cdtrAgtBrnchNm"
-      val BENEFICIARY_ACCOUNT_NUMBER = "cdtrAcctId"
-      val BENEFICIARY_ACCOUNT_CURRENCY = "cdtrAcctCcy"
-      val LABEL_CREDIT_TRANSFER = "rmtInfUstrd"
-    }
-
+    fields.put(Tags.MESSAGE_ID,                   transactionId)
+    fields.put(Tags.CTRL,                         "1")
+    fields.put(Tags.CTRL_SUM,                     amount.toString)
+    fields.put(Tags.DEBTOR_ACCOUNT_CURRENCY,      currency)
     fields.put(Tags.BENEFICIARY_ACCOUNT_CURRENCY, newBalanceCurrency)
     fields.put(Tags.BENEFICIARY_ACCOUNT_NUMBER,   counterpartyId)
     fields.put(Tags.BENEFICIARY_BRANCH,           counterpartyBankId)
     fields.put(Tags.BENEFICIARY_NAME,             counterpartyName)
-    fields.put(Tags.CTRL,                         "1")
-    fields.put(Tags.CTRL_SUM,                     amount.toString)
-    fields.put(Tags.DEBTOR_ACCOUNT_CURRENCY,      currency)
     fields.put(Tags.DEBTOR_ACCOUNT_NUMBER,        accountId)
     fields.put(Tags.DEBTOR_BRANCH,                bankId)
     fields.put(Tags.DEBTOR_NAME,                  accountName)
     fields.put(Tags.EXECUTION_DATE,               postedDate)
     fields.put(Tags.LABEL_CREDIT_TRANSFER,        description)
-    fields.put(Tags.MESSAGE_ID,                   transactionId)
     fields.put(Tags.PAYMENT_REFERENCE,            transactionId)
     fields.put(Tags.TRANSACTION_AMOUNT,           amount.toString)
     fields.put(Tags.TRANSACTION_CURRENCY,         currency)
