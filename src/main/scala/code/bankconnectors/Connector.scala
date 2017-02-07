@@ -518,17 +518,14 @@ trait Connector {
     }
   }
 
-  def getTransactionRequestStatus(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
+  def getTransactionRequestStatuses() : Box[Map[String, String]] = {
     for {
-      transactionRequest <- getTransactionRequestImpl(transactionRequestId)
-      //fromAccount <- tryo{transactionRequest.from}
-      //bankAccount <- BankAccount(BankId(fromAccount.bank_id), AccountId(fromAccount.account_id))
-      transactionRequestStatus <- getTransactionRequestStatusImpl(transactionRequestId)
-    } yield transactionRequestStatus
+      transactionRequestStatuses <- getTransactionRequestStatusesImpl()
+    } yield transactionRequestStatuses
 
   }
 
-  protected def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus]
+  protected def getTransactionRequestStatusesImpl() : Box[Map[String, String]]
 
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 

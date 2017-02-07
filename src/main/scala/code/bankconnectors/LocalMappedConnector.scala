@@ -440,7 +440,7 @@ Store one or more transactions
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = ???
+  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = ???
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,

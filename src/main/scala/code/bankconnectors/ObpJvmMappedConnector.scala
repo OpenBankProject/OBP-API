@@ -677,23 +677,26 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     }
   }
 
-  override def getTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId) : Box[TransactionRequestStatus] = {
-    val parameters = new JHashMap
-    val fields = new JHashMap
+  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
+    //val parameters = new JHashMap
+    //val fields = new JHashMap
 
-    fields.put("transactionRequestId", transactionRequestId)
+    val response : JResponse = jvmNorth.fetch
 
-    val response : JResponse = jvmNorth.put("getTransactionRequestStatus", Transport.Target.transaction, parameters, fields)
-
-
-    try {
-      response.data().headOption match {
-        case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
-        case None => Empty
-      }
-    } catch {
-      case mpex: net.liftweb.json.MappingException => Empty
+    response.error.isPresent match {
+      case false =>
+        Full( response.data.flatMap { d => Map[String, String](d.toString -> d.toString) }.toMap )
+      case true => Empty
     }
+
+    //try {
+    //  response.data().map match {
+    //    case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
+    //    case None => Empty
+    //  }
+    //} catch {
+    //  case mpex: net.liftweb.json.MappingException => Empty
+    //}
   }
 
   /*
