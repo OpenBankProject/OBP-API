@@ -454,7 +454,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
-  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+    //note: kafka mode just used the mapper data
+    LocalMappedConnector.getCounterparty(thisAccountBankId, thisAccountId, couterpartyId)
+  }
 
   // Get one counterparty by the Counterparty Id 
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
