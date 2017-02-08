@@ -201,6 +201,8 @@ input.submit {
     /* background-image: url(../images/bnpp/bnpp-background.jpg); */
     width:1050px;
     margin:0px auto;
+    background-size:cover;
+    background-repeat:no-repeat;
 }
 
 #main-about h1 {
