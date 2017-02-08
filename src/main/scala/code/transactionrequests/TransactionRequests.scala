@@ -73,7 +73,7 @@ object TransactionRequests extends SimpleInjector {
                                                  ) extends TransactionRequestDetails
 
   case class TransactionRequestDetailsCounterpartyResponse (
-                                                             val toCounterpartyId: CounterpartyId,
+                                                             val to_counterparty_id: CounterpartyId,
                                                              val to: TransactionRequestAccount,
                                                              val value : AmountOfMoney,
                                                              val description : String

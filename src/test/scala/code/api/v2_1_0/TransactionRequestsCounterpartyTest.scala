@@ -45,7 +45,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val isBeneficiary = true
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
@@ -184,7 +184,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -325,7 +325,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -378,7 +378,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         Then("We add entitlement to user3")
         val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
@@ -442,7 +442,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val amt = BigDecimal("10.00") // This is money going out. We want to transfer this away from the From account.
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
@@ -654,7 +654,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -822,7 +822,7 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val accountId2 = AccountId("__acc2fx")
 
         val counterpartyId = CounterpartyIdJson("123");
-        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterpartyId);
+        val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         val fromCurrency = "AED"
         val toCurrency = "INR"

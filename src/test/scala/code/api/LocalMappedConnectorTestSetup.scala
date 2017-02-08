@@ -35,7 +35,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       mOtherBankId(bankId).
       mOtherAccountId(accountId).
       mIsBeneficiary(isBeneficiary).
-      mOtherAccountRoutingScheme("IBAN"). //TODO now is only for test, this can be set to "IBAN", It can be fixed latter
+      mOtherAccountRoutingScheme("IBAN").
     saveMe
   }
 

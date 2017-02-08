@@ -561,7 +561,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
 
-  override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+  override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
     for {
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
     } yield {

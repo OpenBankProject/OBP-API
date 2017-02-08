@@ -49,6 +49,7 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.util.Helpers._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.{write}
+import code.metadata.counterparties._
 
 
 trait APIMethods210 {
@@ -184,12 +185,12 @@ trait APIMethods210 {
         |
         |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
         |
-        |Transaction Requests contain charge information giving the client the opporunity to proceed or not (as long as the challenge level is appropriate).
+        |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
         |
         |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
-        |This provides some commonality and one URL for many differrent payment or transfer types with enough flexilbity to validate them differently.
+        |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
         |
-        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the UR
+        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
         |
         |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
         |
@@ -238,70 +239,36 @@ trait APIMethods210 {
         user =>
           if (Props.getBool("transactionRequests_enabled", false)) {
             for {
-            /* TODO:
-             * this function is so complicated and duplicate code on case classes: TransactionRequestDetailsSandBoxTan,TransactionRequestDetailsSandBoxTanJSON,TransactionRequestDetailsSandBoxTanResponse different classes in defferent places
-             * check if user has access using the view that is given (now it checks if user has access to owner view), will need some new permissions for transaction requests
-             * test: functionality, error messages if user not given or invalid, if any other value is not existing
-            */
               u <- user ?~ ErrorMessages.UserNotLoggedIn
               isValidAccountIdFormat <- tryo(assert(isValidID(accountId.value)))?~! ErrorMessages.InvalidAccountIdFormat
               isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
-
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
-              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-
-              availableViews <- Full(fromAccount.permittedViews(user))
               view <- View.fromUrl(viewId, fromAccount) ?~! {ErrorMessages.ViewNotFound}
-              canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-
+              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+              //get the account permitted view list for the login user, and check whether have the input viewId
+              canUserAccessView <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~! {ErrorMessages.ViewAccessNoPermission}
               // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-              validTransactionRequestTypes <- tryo{Props.get("transactionRequests_supported_types", "")}
-              // Use a list instead of a string to avoid partial matches
-              validTransactionRequestTypesList <- tryo{validTransactionRequestTypes.split(",")}
+              validTransactionRequestTypesArray <- tryo{Props.get("transactionRequests_supported_types", "").split(",")}
               // Check transactionRequestType is not "TRANSACTION_REQUEST_TYPE" which is the place holder (probably redundant because of check below)
               // Check that transactionRequestType is included in the Props
-              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesList.contains(transactionRequestType.value))) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : The invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypes}"
-
+              isValidTransactionRequestType <- tryo(assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesArray.contains(transactionRequestType.value))) ?~! s"${ErrorMessages.InvalidTransactionRequestType} : The invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypesArray.mkString(",")}"
+              // Check the input format, it should be the valid Json
               transDetailsJson <- transactionRequestType.value match {
-                case "SANDBOX_TAN" => tryo {
-                  json.extract[TransactionRequestDetailsSandBoxTanJSON]
-                } ?~ {
-                  ErrorMessages.InvalidJsonFormat
-                }
-                case "COUNTERPARTY" => tryo {
-                  json.extract[TransactionRequestDetailsCounterpartyJSON]
-                } ?~ {
-                  ErrorMessages.InvalidJsonFormat
-                }
-                case "SEPA" => tryo {
-                  json.extract[TransactionRequestDetailsSEPAJSON]
-                } ?~ {
-                  ErrorMessages.InvalidJsonFormat
-                }
-                case "FREE_FORM" => tryo {
-                  json.extract[TransactionRequestDetailsFreeFormJSON]
-                } ?~ {
-                  ErrorMessages.InvalidJsonFormat
-                }
+                case "SANDBOX_TAN" => tryo {json.extract[TransactionRequestDetailsSandBoxTanJSON]} ?~ { ErrorMessages.InvalidJsonFormat}
+                case "COUNTERPARTY" => tryo { json.extract[TransactionRequestDetailsCounterpartyJSON]} ?~ { ErrorMessages.InvalidJsonFormat}
+                case "SEPA" => tryo {json.extract[TransactionRequestDetailsSEPAJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+                case "FREE_FORM" => tryo {json.extract[TransactionRequestDetailsFreeFormJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
               }
 
-              transDetails <- transactionRequestType.value match {
-                case "SANDBOX_TAN" => tryo{getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON])}
-                case "COUNTERPARTY" => tryo{getTransactionRequestDetailsCounterpartyFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON])}
-                case "SEPA" => tryo{getTransactionRequestDetailsSEPAFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON])}
-                case "FREE_FORM" => tryo{getTransactionRequestDetailsFreeFormFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsFreeFormJSON])}
-              }
-
-
-              //Check the validate for amount and currency
-              isValidAmountNumber <-  tryo(BigDecimal(transDetails.value.amount)) ?~!ErrorMessages.InvalidNumber
-              isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(transDetails.value.currency)))?~!ErrorMessages.InvalidISOCurrencyCode
+              isValidAmountNumber <-  tryo(BigDecimal(transDetailsJson.value.amount)) ?~! ErrorMessages.InvalidNumber
+              isPositiveAmount <- booleanToBox(isValidAmountNumber > BigDecimal("0"), ErrorMessages.NotPositiveAmount)
+              isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(transDetailsJson.value.currency)))?~!ErrorMessages.InvalidISOCurrencyCode
 
               // Prevent default value for transaction request type (at least).
               transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
 
-              amountOfMoneyJSON <- Full(AmountOfMoneyJSON(transDetails.value.currency, transDetails.value.amount))
+              amountOfMoneyJSON <- Full(AmountOfMoneyJSON(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
               // Note: These store in the table TransactionRequestv210
               createdTransactionRequest <- transactionRequestType.value match {
@@ -310,60 +277,55 @@ trait APIMethods210 {
                     toBankId <- Full(BankId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.bank_id))
                     toAccountId <- Full(AccountId(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].to.account_id))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
-                    transDetailsSerialized <- tryo {
-                      implicit val formats = Serialization.formats(NoTypeHints)
-                      write(json)
-                    }
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transDetails, transDetailsSerialized)
+                    transDetails <- Full(getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON]))
+                    transDetailsSerialized <- tryo {write(transDetailsJson)(Serialization.formats(NoTypeHints))}
+                  
+                    //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount 
+                    toCounterpartyEmpty <- Full(new MappedCounterparty())
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterpartyEmpty, transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
                 }
                 case "COUNTERPARTY" => {
                   for {
-                    //For COUNTERPARTY, Use the counterpartyId to find the counterparty and set up the toAacount
-                    toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterpartyId)
-                    counterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
-                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(counterparty.otherBankId ))
-                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
+                    //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
+                    toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterparty_id)
+                    toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+                    isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
+                  
+                    // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
+                    toBankId <- Full(BankId(toCounterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
-
-                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
                     transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
                     transResponseDetails = getTransactionRequestDetailsCounterpartyResponseFromJson(transactionRequestDetailsCounterpartyResponseJSON)
 
-                    //Serialize the new format COUNTERPARTY data.
-                    transDetailsResponseSerialized <-tryo{
-                      implicit val formats = Serialization.formats(NoTypeHints)
-                      write(transResponseDetails)
-                    }
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    //Serialize the transResponseDetails to String.
+                    transDetailsResponseSerialized <-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield createdTransactionRequest
 
                 }
                 case "SEPA" => {
                   for {
-                    //For SEPA, Use the iban to find the counterparty and set up the toAccount
+                    //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].to.iban)
-                    counterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
-                    isBeneficiary <- booleanToBox(counterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(counterparty.otherBankId ))
-                    toAccountId <- Full(AccountId(counterparty.otherAccountId))
+                    toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
+                    isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
+                  
+                    // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
+                    toBankId <- Full(BankId(toCounterparty.otherBankId ))
+                    toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
-
-                    // Following four lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
                     transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
                     transResponseDetails = getTransactionRequestDetailsSEPAResponseJSONFromJson(transactionRequestDetailsSEPAResponseJSON)
 
-                    //Serialize the new format SEPA data.
-                    transDetailsResponseSerialized <-tryo{
-                      implicit val formats = Serialization.formats(NoTypeHints)
-                      write(transResponseDetails)
-                    }
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(toAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    //Serialize the transResponseDetails data to String.
+                    transDetailsResponseSerialized <-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield createdTransactionRequest
                 }
                 case "FREE_FORM" => {
@@ -374,11 +336,11 @@ trait APIMethods210 {
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsFreeFormResponseJSON(transactionRequestAccountJSON,amountOfMoneyJSON,"")
                     transResponseDetails <- Full(getTransactionRequestDetailsFreeFormResponseJson(transactionRequestDetailsFreeFormResponseJSON))
 
-                    transDetailsResponseSerialized<-tryo{
-                      implicit val formats = Serialization.formats(NoTypeHints)
-                      write(transResponseDetails)
-                    }
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, Full(fromAccount), transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    transDetailsResponseSerialized<-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
+                  
+                    //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount
+                    toCounterpartyEmpty <- Full(new MappedCounterparty())
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, fromAccount, toCounterpartyEmpty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield
                     createdTransactionRequest
                 }
@@ -423,9 +385,12 @@ trait APIMethods210 {
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
               //TODO check more things here
+              transactionRequestTypeMapper <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+              transactionRequestTypeMapperValue <- Full(transactionRequestTypeMapper.`type`)
+              isTheSame <- booleanToBox(transactionRequestTypeMapperValue.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeNotMatch} It should be :'$transactionRequestTypeMapperValue' ")
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
             } yield {
               // Format explicitly as v2.0.0 json
               val json = JSONFactory200.createTransactionRequestWithChargeJSON(transactionRequest)
