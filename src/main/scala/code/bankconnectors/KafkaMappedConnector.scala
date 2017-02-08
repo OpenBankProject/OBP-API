@@ -519,7 +519,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, -amt, description)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, -amt, description,transactionRequestType )
 
     sentTransactionId
   }
@@ -529,29 +529,37 @@ object KafkaMappedConnector extends Connector with Loggable {
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(account : AccountType,
-                              counterparty : BankAccount,
-                              amt : BigDecimal,
-                              description : String) : Box[TransactionId] = {
+  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType) = {
 
     val transactionTime = now
-    val currency = account.currency
+    val currency = fromAccount.currency
 
     //update the balance of the account for which a transaction is being created
     //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
     //account.balance = newAccountBalance
 
-    val req : Map[String,String] = Map(
-      "north" -> "saveTransaction",
-      "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
-      "accountId" -> account.accountId.value,
-      "currency" -> currency,
-      "amount" -> amt.toString,
-      "otherAccountId" -> counterparty.accountId.value,
-      "otherAccountCurrency" -> counterparty.currency,
-      "transactionType" -> "AC",
-      "description" -> description
+    val req: Map[String, String] = Map(
+                                        "north" -> "saveTransaction",
+                                        "version" -> formatVersion,
+                                        "name" -> OBPUser.getCurrentUserUsername,
+                                        // for both  toAccount and toCounterparty
+                                        "accountId" -> fromAccount.accountId.value,
+                                        "transactionType" -> transactionRequestType.value,
+                                        "amount" -> amt.toString,
+                                        "currency" -> currency,
+                                        "description" -> description,
+                                        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+                                        "otherAccountId" -> toAccount.accountId.value,
+                                        "otherAccountCurrency" -> toAccount.currency,
+                                        //New data: real counterparty (toCounterparty: CounterpartyTrait)
+                                        "CPOtherBankId" -> toCounterparty.otherBankId,
+                                        "CPOtherAccountId" -> toCounterparty.otherAccountId,
+                                        "CPOtherAccountProvider" -> toCounterparty.otherAccountProvider,
+                                        "CPCounterPartyId" -> toCounterparty.counterPartyId,
+                                        "CPOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
+                                        "CPOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
+                                        "CPOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
+                                        "CPOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress
     )
 
 
