@@ -55,6 +55,10 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mCharge_Summary  extends DefaultStringField(this)
   object mCharge_Amount  extends DefaultStringField(this)
   object mCharge_Currency  extends DefaultStringField(this)
+
+  def updateStatus(newStatus: String) = {
+    mStatus.set(newStatus)
+  }
  
   def toTransactionRequest : Option[TransactionRequest] = {
     val t_amount = AmountOfMoney (

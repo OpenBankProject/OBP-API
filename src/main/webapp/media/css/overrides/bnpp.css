@@ -7,7 +7,8 @@ body {
 #authorizeSection,
 #registerAppSection,
 #create-sandbox-account,
-#header-decoration {
+#header-decoration,
+#main-about-box {
     background-color: #499A5F !important;
 }
 

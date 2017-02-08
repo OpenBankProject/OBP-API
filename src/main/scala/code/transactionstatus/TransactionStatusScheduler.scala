@@ -35,19 +35,16 @@ object TransactionStatusScheduler extends Loggable {
   def updateAllPendingTransactionRequests = {
     val transactionRequests = MappedTransactionRequest.find(By(MappedTransactionRequest.mStatus, TransactionRequests.STATUS_PENDING))
     logger.info("Updating status of all pending transactions: ")
+    val statuses = Connector.connector.vend.getTransactionRequestStatuses
     transactionRequests.map{ tr =>
       for {
         transactionRequest <- tr.toTransactionRequest
-        status <- updatePendingTransactionRequest(transactionRequest.id)
+        if (statuses.exists(_ == transactionRequest.id -> "APVD"))
       } yield {
-        logger.info(s"updated ${transactionRequest.id} status: ${status}")
-        status
+	tr.updateStatus(TransactionRequests.STATUS_COMPLETED)
+        logger.info(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
       }
     }
-  }
-
-  def updatePendingTransactionRequest(transactionRequestId: TransactionRequestId): Box[TransactionRequestStatus]  = {
-    Connector.connector.vend.getTransactionRequestStatus(transactionRequestId: TransactionRequestId)
   }
 
 

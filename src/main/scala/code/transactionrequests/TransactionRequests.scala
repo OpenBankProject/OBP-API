@@ -19,6 +19,7 @@ object TransactionRequests extends SimpleInjector {
 
   val CHALLENGE_SANDBOX_TAN = "SANDBOX_TAN"
 
+  def updatestatus(newStatus: String) = {}
 
   case class TransactionRequestCharge(
                                  val summary: String,
@@ -118,6 +119,7 @@ object TransactionRequests extends SimpleInjector {
     }
     count
   }
+
 }
 
 trait TransactionRequestProvider {
