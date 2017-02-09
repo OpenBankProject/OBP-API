@@ -78,7 +78,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //val formatVersion: String  = "Nov2016"
   //Update the version, added to send the discretion field to south in saveTransaction method
-  val formatVersion: String  = "Jan2017"
+  val formatVersion: String  = "Nov2016"
 
   implicit val formats = net.liftweb.json.DefaultFormats
 
@@ -87,31 +87,41 @@ object KafkaMappedConnector extends Connector with Loggable {
       req <- tryo {Map[String, String](
         "north" -> "getUser",
         "version" -> formatVersion,
-        "name" -> username,
+        "name" -> "get",
+        "target" -> "user",
+        "user" -> username,
         "password" -> password
         )}
       u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundValidatedUser])}
-      recUsername <- tryo{u.display_name}
+      recUsername <- tryo{u.displayName}
     } yield {
-      if (username == u.display_name) new InboundUser( recUsername, password, recUsername)
+      if (username == u.displayName) new InboundUser( recUsername, password, recUsername)
       else null
     }
   }
 
   def updateUserAccountViews( user: APIUser ) = {
-    val accounts = for {
-      username <- tryo {user.name}
-      req <- tryo {Map[String, String](
-        "north" -> "getUserAccounts",
-        "version" -> formatVersion,
-        "name" -> username)}
-    // Generate random uuid to be used as request-response match id
-    } yield {
-      cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]])
-    }
+    val accounts: List[KafkaInboundAccount] = getBanks.flatMap { bank => {
+      val bankId = bank.bankId.value
+      logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
+      for {
+        username <- tryo {user.name}
+        req <- tryo { Map[String, String](
+          "north" -> "getBankAccounts",
+          "version" -> formatVersion,
+          "name" -> "get",
+          "userId" -> user.name,
+          "bankId" -> bankId,
+          "target" -> "accounts")}
+        // Generate random uuid to be used as request-response match id
+        } yield {
+          cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]])
+        }
+      }
+    }.flatten
 
     val views = for {
-      acc <- accounts.getOrElse(List.empty)
+      acc <- accounts
       username <- tryo {user.name}
       views <- tryo {createViews( BankId(acc.bank),
         AccountId(acc.id),
@@ -140,7 +150,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map( 
       "north" -> "getBanks",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername
+      "name" -> "get",
+      "target" -> "banks",
+      "userId" -> OBPUser.getCurrentUserUsername
       )
 
     logger.debug(s"Kafka getBanks says: req is: $req")
@@ -235,7 +247,9 @@ object KafkaMappedConnector extends Connector with Loggable {
       "north" -> "getBank",
       "version" -> formatVersion,
       "bankId" -> id.toString,
-      "name" -> OBPUser.getCurrentUserUsername
+      "name" -> "get",
+      "target" -> "bank",
+      "userId" -> OBPUser.getCurrentUserUsername
       )
     val r = {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
@@ -578,9 +592,9 @@ object KafkaMappedConnector extends Connector with Loggable {
   */
   override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
       val req : Map[String,String] = Map(
-      "north" -> "getTransactionRequestStatus",
+      "north" -> "fetch",
       "version" -> formatVersion,
-      "name" -> "get"
+      "name" -> "fetch"
     )
 
     val r = process(req)
@@ -1238,9 +1252,8 @@ object KafkaMappedConnector extends Connector with Loggable {
                                   latitude : Double,
                                   longitude : Double)
 
-  case class KafkaInboundValidatedUser(
-                                       email : String,
-                                       display_name : String)
+  case class KafkaInboundValidatedUser(email: String,
+                                       displayName: String)
 
   case class KafkaInboundAccount(
                                   id : String,
