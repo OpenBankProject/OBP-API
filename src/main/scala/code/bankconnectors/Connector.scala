@@ -188,8 +188,8 @@ trait Connector {
       isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
       //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
       // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new paramter 'toCounterparty: CounterpartyTrait,: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new paramter toCounterparty. So just keep it empty.
+      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
+      // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       transactionId <- makePaymentImpl(fromAccount, toAccount, new MappedCounterparty(), amt, description, TransactionRequestType(""))
     } yield transactionId
   }
@@ -345,8 +345,8 @@ trait Connector {
     // If no challenge necessary, create Transaction immediately and put in data store and object to return
     if (status == TransactionRequests.STATUS_COMPLETED) {
       // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new paramter 'toCounterparty: CounterpartyTrait,: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new paramter toCounterparty. So just keep it empty.
+      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
+      // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       val createdTransactionId = Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
@@ -416,7 +416,7 @@ trait Connector {
       chargeValue <- tryo {(BigDecimal(details.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${details.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(details.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, detailsPlain, status, charge)
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, CounterpartyId(toCounterparty.counterPartyId),fromAccount, detailsPlain, status, charge)
     } yield transactionRequest
 
     //make sure we get something back
@@ -490,9 +490,9 @@ trait Connector {
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
 
-  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                             fromAccount : BankAccount, details: String,
-                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
+  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
+                                                fromAccount: BankAccount, details: String,
+                                                status: String, charge: TransactionRequestCharge): Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {
@@ -630,8 +630,8 @@ trait Connector {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
       // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new paramter 'toCounterparty: CounterpartyTrait,: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new paramter toCounterparty. So just keep it empty.
+      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
+      // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
       transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)), BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), new MappedCounterparty() , BigDecimal (tr.body.value.amount), tr.body.description, transactionRequestType) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
@@ -669,17 +669,26 @@ trait Connector {
       description = detailsJsonExtract.description
       //dummy9 = print(s"description is ${description} \n")
     
-      // Note for 'new MappedCounterparty()' in the following :
-      // We update the makePaymentImpl in V210, added the new paramter 'toCounterparty: CounterpartyTrait,: CounterpartyTrait' for V210
-      // But in V200 or before, we do not used the new paramter toCounterparty. So just keep it empty.
+      // Note for 'toCounterparty' in the following :
+      // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
+      // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
+      toCounterparty  <- transactionRequestType.value match {
+        case "COUNTERPARTY" | "SEPA"  =>
+          val counterpartyId = tr.counterparty_id
+          val toCounterparty = Connector.connector.vend.getCounterpartyByCounterpartyId(counterpartyId) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+          toCounterparty
+        case _ =>
+          Full(new MappedCounterparty())
+      }
+
       transId <- makePaymentv200(
-                                  initiator,
-                                  BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
-                                  BankAccountUID(BankId(toBankId), AccountId(toAccountId)),
-                                  new MappedCounterparty(),
-                                  BigDecimal(valueAmount),
-                                  description, 
-                                  transactionRequestType) ?~ "Couldn't create Transaction"
+                                 initiator,
+                                 BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankAccountUID(BankId(toBankId), AccountId(toAccountId)),
+                                 new MappedCounterparty(),
+                                 BigDecimal(valueAmount),
+                                 description,
+                                 transactionRequestType) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")
