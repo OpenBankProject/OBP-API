@@ -96,7 +96,9 @@ object ErrorMessages {
   
   val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
 
-  val UnexpectedErrorDuringLogin = "An unexpected login error occurred. Please try again."
+  val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
+  
+  val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -129,7 +131,6 @@ object ErrorMessages {
   val MeetingNotFound = "OBP-30104: Meeting not found."
 
 
-  val InvalidAccountInitialBalance = "OBP-30104: Invalid Number. Initial balance must be a number, e.g 1000.00"
   val InvalidAccountBalanceCurrency = "OBP-30105: Invalid Balance Currency."
   val InvalidAccountBalanceAmount = "OBP-30106: Invalid Balance Amount."
 
@@ -138,6 +139,7 @@ object ErrorMessages {
   val InitialBalanceMustBeZero = "OBP-30109: Initial Balance of Account must be Zero (0)."
   val InvalidAccountIdFormat = "OBP-30110: Invalid Account Id. The ACCOUNT_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
   val InvalidBankIdFormat = "OBP-30111: Invalid Bank Id. The BANK_ID should only contain 0-9/a-z/A-Z/'-'/'.'/'_', the length should be smaller than 255."
+  val InvalidAccountInitialBalance = "OBP-30112: Invalid Number. Initial balance must be a number, e.g 1000.00"
 
   val ConnectorEmptyResponse = "OBP-30200: Connector cannot return the data we requested."
   val InvalidGetBankAccountsConnectorResponse = "OBP-30201: Connector did not return the set of accounts we requested."
@@ -155,12 +157,14 @@ object ErrorMessages {
 
   // Transaction related messages:
   val InvalidTransactionRequestType = "OBP-40001: Invalid value for TRANSACTION_REQUEST_TYPE"
-  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account and you don't have access to canCreateAnyTransactionRequest."
+  val InsufficientAuthorisationToCreateTransactionRequest  = "OBP-40002: Insufficient authorisation to create TransactionRequest. The Transaction Request could not be created because you don't have access to the owner view of the from account or you don't have access to canCreateAnyTransactionRequest."
   val InvalidTransactionRequestCurrency = "OBP-40003: Transaction Request Currency must be the same as From Account Currency."
   val InvalidTransactionRequestId = "OBP-40004: Transaction Request Id not found."
   val InsufficientAuthorisationToCreateTransactionType  = "OBP-40005: Insufficient authorisation to Create Transaction Type offered by the bank. The Request could not be created because you don't have access to CanCreateTransactionType."
   val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique BANK_ID / SHORT_CODE"
   val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
+  val NotPositiveAmount = "OBP-40008: Can't send a payment with a value of 0 or less."
+  val TransactionRequestTypeNotMatch = "OBP-40009: The TRANSACTION_REQUEST_TYPE is different from the type of 'TRANSACTION_REQUEST_ID'."
 
 }
 

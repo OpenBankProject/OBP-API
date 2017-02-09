@@ -1281,7 +1281,7 @@ trait APIMethods200 {
               //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
-              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId)
+              transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId, transactionRequestType)
             } yield {
 
               // Format explicitly as v2.0.0 json

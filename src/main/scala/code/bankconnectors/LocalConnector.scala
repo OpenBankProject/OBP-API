@@ -189,7 +189,7 @@ private object LocalConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
   }
 
-  override protected def makePaymentImpl(fromAccount : Account, toAccount : Account, amt : BigDecimal, description: String) : Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount: Account, toAccount: Account, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 

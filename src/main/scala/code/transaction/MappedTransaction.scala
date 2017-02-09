@@ -45,6 +45,18 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
 
+  //The following are the fields from CounterpartyTrait, previence just save BankAccount to simulate the counterparty.
+  //Now we save the real Counterparty data 
+  //CP--> CounterParty
+  object CPOtherBankId extends MappedString(this, 36)
+  object CPOtherAccountId extends MappedString(this, 36)
+  object CPOtherAccountProvider extends MappedString(this, 36)
+  object CPCounterPartyId extends MappedString(this, 36)
+  object CPOtherAccountRoutingScheme extends MappedString(this, 255)
+  object CPOtherAccountRoutingAddress extends MappedString(this, 255)
+  object CPOtherBankRoutingScheme extends MappedString(this, 255)
+  object CPOtherBankRoutingAddress extends MappedString(this, 255)
+  
   //This is a holder for storing data from a previous model version that wasn't set correctly
   //e.g. some previous models had counterpartyAccountNumber set to a string that was clearly
   //not a valid account number, though the string may have actually contained the account number

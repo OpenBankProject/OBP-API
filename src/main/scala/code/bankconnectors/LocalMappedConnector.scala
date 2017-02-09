@@ -377,7 +377,7 @@ object LocalMappedConnector extends Connector with Loggable {
 Perform a payment (in the sandbox)
 Store one or more transactions
  */
-  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, amt: BigDecimal, description : String): Box[TransactionId] = {
+  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
 
@@ -390,50 +390,67 @@ Store one or more transactions
     }
 
     // Is it better to pass these into this function ?
-    val fromTransAmt = -amt //from account balance should decrease
+    val fromTransAmt = -amt//from fromAccount balance should decrease
     val toTransAmt = fx.convert(amt, rate.get)
 
     // From
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, fromTransAmt, description)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType)
 
     // To
-    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toTransAmt, description)
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType)
 
     // Return the sent transaction id
     sentTransactionId
   }
 
   /**
-   * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
-   * of the saved transaction.
-   */
-  private def saveTransaction(account : MappedBankAccount, counterparty : BankAccount, amt : BigDecimal, description : String) : Box[TransactionId] = {
-
+    * Saves a transaction with @amt, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
+    * Returns the id of the saved transactionId.<br>
+    */
+  private def saveTransaction(fromAccount: MappedBankAccount,
+                              toAccount: BankAccount,
+                              toCounterparty: CounterpartyTrait,
+                              amt: BigDecimal,
+                              description: String,
+                              transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+    
     val transactionTime = now
-    val currency = account.currency
+    val currency = fromAccount.currency
 
 
-    //update the balance of the account for which a transaction is being created
-    val newAccountBalance : Long = account.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, account.currency)
-    account.accountBalance(newAccountBalance).save()
+    //update the balance of the fromAccount for which a transaction is being created
+    val newAccountBalance : Long = fromAccount.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, fromAccount.currency)
+    fromAccount.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
-      .bank(account.bankId.value)
-      .account(account.accountId.value)
-      .transactionType("sandbox-payment")
+      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine feilds.
+      .bank(fromAccount.bankId.value)
+      .account(fromAccount.accountId.value)
+      .transactionType(transactionRequestType.value)
       .amount(Helper.convertToSmallestCurrencyUnits(amt, currency))
       .newAccountBalance(newAccountBalance)
       .currency(currency)
       .tStartDate(transactionTime)
       .tFinishDate(transactionTime)
       .description(description)
-      .counterpartyAccountHolder(counterparty.accountHolder)
-      .counterpartyAccountNumber(counterparty.number)
-      .counterpartyAccountKind(counterparty.accountType)
-      .counterpartyBankName(counterparty.bankName)
-      .counterpartyIban(counterparty.iban.getOrElse(""))
-      .counterpartyNationalId(counterparty.nationalIdentifier).saveMe
-
+       //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty 
+      .counterpartyAccountHolder(toAccount.accountHolder)
+      .counterpartyAccountNumber(toAccount.number)
+      .counterpartyAccountKind(toAccount.accountType)
+      .counterpartyBankName(toAccount.bankName)
+      .counterpartyIban(toAccount.iban.getOrElse(""))
+      .counterpartyNationalId(toAccount.nationalIdentifier)
+       //New data: real counterparty (toCounterparty: CounterpartyTrait)
+      .CPOtherBankId(toCounterparty.otherBankId)
+      .CPOtherAccountId(toCounterparty.otherAccountId)
+      .CPOtherAccountProvider(toCounterparty.otherAccountProvider)
+      .CPCounterPartyId(toCounterparty.counterPartyId)
+      .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
+      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
+      .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)  
+      .saveMe
+    
     Full(mappedTransaction.theTransactionId)
   }
 

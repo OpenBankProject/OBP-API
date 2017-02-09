@@ -58,7 +58,7 @@ case class AvailableRolesJSON(roles: List[AvailableRoleJSON])
 trait TransactionRequestDetailsJSON {
   val value : AmountOfMoneyJSON
 }
-case class CounterpartyIdJson (val counterpartyId : String)
+case class CounterpartyIdJson (val counterparty_id : String)
 case class IbanJson (val iban : String)
 
 case class TransactionRequestDetailsSandBoxTanJSON(
@@ -80,7 +80,7 @@ case class TransactionRequestDetailsCounterpartyJSON(
                                                   ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsCounterpartyResponseJSON(
-                                                            counterpartyId: String,
+                                                            counterparty_id: String,
                                                             toAccount: TransactionRequestAccountJSON,
                                                             value: AmountOfMoneyJSON,
                                                             description: String
@@ -389,11 +389,6 @@ object JSONFactory210{
 
   //transaction requests
 
-  // TODO Add Error handling and return Error message to the caller here or elsewhere?
-  // e.g. if amount is not a number, return "OBP-XXXX Not a Number"
-  // e.g. if currency is not a 3 letter ISO code, return "OBP-XXXX Not an ISO currency"
-
-
   def getTransactionRequestDetailsSandBoxTanFromJson(details: TransactionRequestDetailsSandBoxTanJSON) : TransactionRequestDetailsSandBoxTan = {
     val toAcc = TransactionRequestAccount (
       bank_id = details.to.bank_id,
@@ -412,7 +407,7 @@ object JSONFactory210{
   }
 
   def getTransactionRequestDetailsCounterpartyFromJson(details: TransactionRequestDetailsCounterpartyJSON) : TransactionRequestDetailsCounterparty = {
-    val toCounterpartyId = CounterpartyId (details.to.counterpartyId)
+    val toCounterpartyId = CounterpartyId (details.to.counterparty_id)
     val amount = AmountOfMoney (
       currency = details.value.currency,
       amount = details.value.amount
@@ -431,14 +426,14 @@ object JSONFactory210{
       account_id = details.toAccount.account_id
     )
     val toCounterpartyId = CounterpartyId (
-      value = details.counterpartyId
+      value = details.counterparty_id
     )
     val amount = AmountOfMoney (
       currency = details.value.currency,
       amount = details.value.amount
     )
     TransactionRequestDetailsCounterpartyResponse (
-      toCounterpartyId = toCounterpartyId,
+      to_counterparty_id = toCounterpartyId,
       to=toAcc,
       value = amount,
       description = details.description
