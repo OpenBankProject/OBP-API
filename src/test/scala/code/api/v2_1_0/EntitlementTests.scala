@@ -53,7 +53,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to get entitlements without login - getEntitlementsByBankAndUser") {
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / obpuser1.userId / "entitlements").GET
+      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / authuser1.userId / "entitlements").GET
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
@@ -65,7 +65,7 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to get entitlements without credentials - getEntitlementsByBankAndUser") {
       When("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / obpuser1.userId / "entitlements").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / authuser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 400")
       responseGet.code should equal(400)
@@ -80,9 +80,9 @@ class EntitlementTests extends V210ServerSetup with DefaultUsers {
 
     scenario("We try to get entitlements with credentials - getEntitlementsByBankAndUser") {
       When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement("", obpuser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
+      Entitlement.entitlement.vend.addEntitlement("", authuser1.userId, ApiRole.CanGetEntitlementsForAnyUserAtAnyBank.toString)
       And("We make the request")
-      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / obpuser1.userId / "entitlements").GET <@ (user1)
+      val requestGet = (v2_1Request / "banks" / mockBankId.value / "users" / authuser1.userId / "entitlements").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
       Then("We should get a 200")
       responseGet.code should equal(200)

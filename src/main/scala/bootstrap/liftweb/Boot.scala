@@ -255,7 +255,7 @@ class Boot extends Loggable{
       if(Props.getBool("allow_sandbox_account_creation", false)){
         //user must be logged in, as a created account needs an owner
         // Not mentioning test and sandbox for App store purposes right now.
-        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> OBPUser.loginFirst)
+        List(Menu("Sandbox Account Creation", "Create Bank Account") / "create-sandbox-account" >> AuthUser.loginFirst)
       } else {
         Nil
       }
@@ -275,13 +275,13 @@ class Boot extends Loggable{
           Menu.i("Home") / "index",
           Menu.i("Consumer Admin") / "admin" / "consumers" >> Admin.loginFirst >> LocGroup("admin")
           	submenus(Consumer.menus : _*),
-          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> OBPUser.loginFirst,
+          Menu("Consumer Registration", "Get API Key") / "consumer-registration" >> AuthUser.loginFirst,
           // Menu.i("Metrics") / "metrics", //TODO: allow this page once we can make the account number anonymous in the URL
           Menu.i("OAuth") / "oauth" / "authorize", //OAuth authorization page
           OAuthWorkedThanks.menu //OAuth thanks page that will do the redirect
     ) ++ accountCreation ++ Admin.menus
 
-    def sitemapMutators = OBPUser.sitemapMutator
+    def sitemapMutators = AuthUser.sitemapMutator
 
     // set the sitemap.  Note if you don't want access control for
     // each page, just comment this line out.
@@ -301,7 +301,7 @@ class Boot extends Loggable{
     LiftRules.early.append(_.setCharacterEncoding("UTF-8"))
 
     // What is the function to test if a user is logged in?
-    LiftRules.loggedInTest = Full(() => OBPUser.loggedIn_?)
+    LiftRules.loggedInTest = Full(() => AuthUser.loggedIn_?)
 
     // Template(/Response?) encoding
     LiftRules.early.append(_.setCharacterEncoding("utf-8"))
@@ -428,12 +428,12 @@ object ToSchemify {
     ViewPrivileges)
 
   val models = List(
-    OBPUser,
+    AuthUser,
     Admin,
     Nonce,
     Token,
     Consumer,
-    APIUser,
+    ResourceUser,
     MappedAccountHolder,
     MappedComment,
     MappedNarrative,

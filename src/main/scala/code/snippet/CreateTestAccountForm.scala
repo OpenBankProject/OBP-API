@@ -10,7 +10,7 @@ import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
 import scala.xml.NodeSeq
 import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
-import code.model.dataAccess.{OBPUser, BankAccountCreation}
+import code.model.dataAccess.{AuthUser, BankAccountCreation}
 
 object CreateTestAccountForm{
 
@@ -80,8 +80,8 @@ object CreateTestAccountForm{
     else {
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
-        currentObpUser <- OBPUser.currentUser ?~! "You need to be logged in to create an account"
-        user <- currentObpUser.user.obj ?~ "Server error: could not identify user"
+        currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
+        user <- currentAuthUser.user.obj ?~ "Server error: could not identify user"
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")

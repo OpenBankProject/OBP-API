@@ -855,13 +855,13 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     getResponse(List(Extraction.decompose(user1))).code should equal(SUCCESS)
 
-    //TODO: we shouldn't reference OBPUser here as it is an implementation, but for now there
+    //TODO: we shouldn't reference AuthUser here as it is an implementation, but for now there
     //is no way to check User (the trait) passwords
-    val createdOBPUserBox = OBPUser.find(By(OBPUser.username, user1.user_name))
-    createdOBPUserBox.isDefined should equal(true)
+    val createdAuthUserBox = AuthUser.find(By(AuthUser.username, user1.user_name))
+    createdAuthUserBox.isDefined should equal(true)
 
-    val createdOBPUser = createdOBPUserBox.get
-    createdOBPUser.password.match_?(user1.password) should equal(true)
+    val createdAuthUser = createdAuthUserBox.get
+    createdAuthUser.password.match_?(user1.password) should equal(true)
   }
 
   it should "require accounts to have non-empty ids" in {

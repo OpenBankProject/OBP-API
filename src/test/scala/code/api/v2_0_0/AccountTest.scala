@@ -38,7 +38,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -86,7 +86,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(authuser1.userId,"CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountId1).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 
@@ -135,7 +135,7 @@ class AccountTest extends V200ServerSetup with DefaultUsers {
       val newAccountIdWithSpaces = "account%20with%20spaces"
 
       Then("We create an private account at the bank")
-      val accountPutJSON = CreateAccountJSON(obpuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
+      val accountPutJSON = CreateAccountJSON(authuser1.userId, "CURRENT", newAccountLabel1, AmountOfMoneyJSON121("EUR", "0"))
       val requestPut = (v2_0Request / "banks" / testBank.value / "accounts" / newAccountIdWithSpaces).PUT <@ (user1)
       val responsePut = makePutRequest(requestPut, write(accountPutJSON))
 

@@ -3,7 +3,7 @@ package code.kycdocuments
 import java.util.Date
 
 import net.liftweb.common.{Box, Full}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField}
 import net.liftweb.mapper._
 
@@ -51,7 +51,7 @@ with LongKeyedMapper[MappedKycDocument] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedKycDocument
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object mBankId extends MappedString(this, 255)
   object mCustomerId extends MappedString(this, 255)
 

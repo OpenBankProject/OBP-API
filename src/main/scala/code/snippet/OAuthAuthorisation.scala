@@ -43,7 +43,7 @@ import java.util.Date
 import code.api.util.APIUtil
 import net.liftweb.util.{CssSel, Helpers, Props}
 import code.model.TokenType
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
 import code.util.Helper.NOOP_SELECTOR
@@ -83,18 +83,18 @@ object OAuthAuthorisation {
 
     //TODO: refactor into something nicer / more readable
     def validTokenCase(appToken: Token, unencodedTokenParam: String): CssSel = {
-      if (OBPUser.loggedIn_? && shouldNotLogUserOut()) {
+      if (AuthUser.loggedIn_? && shouldNotLogUserOut()) {
         var verifier = ""
         // if the user is logged in and no verifier have been generated
         if (appToken.verifier.isEmpty) {
           val randomVerifier = appToken.gernerateVerifier
           //the user is logged in so we have the current user
-          val obpUser = OBPUser.currentUser.get
+          val authUser = AuthUser.currentUser.get
 
           //link the token with the concrete API User
-          obpUser.user.obj.map {
+          authUser.user.obj.map {
             u => {
-              //We want ApiUser.id because it is unique, unlike the id given by a provider
+              //We want ResourceUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"
               appToken.userForeignKey(u.id.get)
             }
@@ -121,18 +121,18 @@ object OAuthAuthorisation {
         }
       } else {
         val currentUrl = S.uriAndQueryString.getOrElse("/")
-        /*if (OBPUser.loggedIn_?) {
-          OBPUser.logUserOut()
+        /*if (AuthUser.loggedIn_?) {
+          AuthUser.logUserOut()
           //Bit of a hack here, but for reasons I haven't had time to discover, if this page doesn't get
-          //refreshed here the session vars OBPUser.loginRedirect and OBPUser.failedLoginRedirect don't get set
+          //refreshed here the session vars AuthUser.loginRedirect and AuthUser.failedLoginRedirect don't get set
           //properly and the redirect after login gets messed up. -E.S.
           S.redirectTo(currentUrl)
         }*/
 
         //if login succeeds, reload the page with logUserOut=false to process it
-        OBPUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+        AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
         //if login fails, just reload the page with the login form visible
-        OBPUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
+        AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
         //the user is not logged in so we show a login form
         Consumer.find(By(Consumer.id, appToken.consumerId)) match {
           case Full(consumer) => {
@@ -140,16 +140,16 @@ object OAuthAuthorisation {
               "#applicationName" #> consumer.name &
               VerifierBlocSel #> NodeSeq.Empty &
               ErrorMessageSel #> NodeSeq.Empty & {
-              ".login [action]" #> OBPUser.loginPageURL &
+              ".login [action]" #> AuthUser.loginPageURL &
                 ".forgot [href]" #> {
                   val href = for {
-                    menu <- OBPUser.resetPasswordMenuLoc
+                    menu <- AuthUser.resetPasswordMenuLoc
                   } yield menu.loc.calcDefaultHref
 
                   href getOrElse "#"
                 } &
                 ".signup [href]" #>
-                  OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+                  AuthUser.signUpPath.foldLeft("")(_ + "/" + _)
             }
           }
           case _ => error("Application not found")
@@ -168,9 +168,9 @@ object OAuthAuthorisation {
 
     // In this function we bind submit button to loginAction function.
     // In case that unique token of submit button cannot be paired submit action will be omitted.
-    // Please note that unique token is obtained by responce from OBPUser.login function.
+    // Please note that unique token is obtained by responce from AuthUser.login function.
     def getSubmitButtonWithValidLoginToken = {
-      val allInputFields = (OBPUser.login \\ "input")
+      val allInputFields = (AuthUser.login \\ "input")
       val submitFields = allInputFields.filter(e => e.\@("type").equalsIgnoreCase("submit"))
       val extractToken = submitFields.map(e => e.\@("name"))
       val submitElem = """<input class="submit" type="submit" value="Login" tabindex="4" name="submitButton"/>""".replace("submitButton", extractToken.headOption.getOrElse(""))

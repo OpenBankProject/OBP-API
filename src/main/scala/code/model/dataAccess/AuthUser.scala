@@ -50,13 +50,13 @@ import code.loginattempts.LoginAttempt
  * An O-R mapped "User" class that includes first name, last name, password
   *
   *
-  * // TODO Document the difference between this and User / APIUser
+  * // TODO Document the difference between this and User / ResourceUser
   *
  */
-class OBPUser extends MegaProtoUser[OBPUser] with Logger {
-  def getSingleton = OBPUser // what's the "meta" server
+class AuthUser extends MegaProtoUser[AuthUser] with Logger {
+  def getSingleton = AuthUser // what's the "meta" server
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
 
   /**
     * The username field for the User.
@@ -90,32 +90,32 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
     }
   }
 
-  def createUnsavedApiUser() : APIUser = {
-    APIUser.create
+  def createUnsavedResourceUser() : ResourceUser = {
+    ResourceUser.create
       .name_(username)
       .email(email)
       .provider_(getProvider())
       .providerId(username)
   }
 
-  def getApiUsersByEmail(userEmail: String) : List[APIUser] = {
-    APIUser.findAll(By(APIUser.email, userEmail))
+  def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
+    ResourceUser.findAll(By(ResourceUser.email, userEmail))
   }
 
-  def getApiUsers(): List[APIUser] = {
-    APIUser.findAll()
+  def getResourceUsers(): List[ResourceUser] = {
+    ResourceUser.findAll()
   }
 
-  def getApiUserByUsername(username: String) : Box[APIUser] = {
-    APIUser.find(By(APIUser.name_, username))
+  def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
+    ResourceUser.find(By(ResourceUser.name_, username))
   }
 
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
-      val apiUser = createUnsavedApiUser()
-      apiUser.save()
-      user(apiUser)   //is this saving apiUser into a user field?
+      val resourceUser = createUnsavedResourceUser()
+      resourceUser.save()
+      user(resourceUser)   //is this saving resourceUser into a user field?
     }
     else {
       info("user reference is not null. Trying to update the API User")
@@ -158,7 +158,7 @@ class OBPUser extends MegaProtoUser[OBPUser] with Logger {
 /**
  * The singleton that has methods for accessing the database
  */
-object OBPUser extends OBPUser with MetaMegaProtoUser[OBPUser]{
+object AuthUser extends AuthUser with MetaMegaProtoUser[AuthUser]{
 import net.liftweb.util.Helpers._
 
   /**Marking the locked state to show different error message */
@@ -190,7 +190,7 @@ import net.liftweb.util.Helpers._
           "a *" #> {S.?("recover.password")}
         } &
         "#SignUpLink * " #> {
-          "a [href]" #> {OBPUser.signUpPath.foldLeft("")(_ + "/" + _)} &
+          "a [href]" #> {AuthUser.signUpPath.foldLeft("")(_ + "/" + _)} &
           "a *" #> {S.?("sign.up")}
         }
       })
@@ -202,8 +202,8 @@ import net.liftweb.util.Helpers._
    * Find current user
    */
   def getCurrentUserUsername: String = {
-    for { 
-      current <- OBPUser.currentUser
+    for {
+      current <- AuthUser.currentUser
       username <- tryo{current.username.get}
       if (username.nonEmpty)
     } yield {
@@ -229,12 +229,12 @@ import net.liftweb.util.Helpers._
     return ""
   }
   /**
-    * Find current APIUser_UserId from OBPUser, it is only used for Consumer registration form to save the USER_ID when register new consumer. 
+    * Find current ResourceUser_UserId from AuthUser, it is only used for Consumer registration form to save the USER_ID when register new consumer.
     */
-  //TODO may not be a good idea, need modify after refactoring User Models.  
-  def getCurrentAPIUserUserId: String = {
+  //TODO may not be a good idea, need modify after refactoring User Models.
+  def getCurrentResourceUserUserId: String = {
     for {
-      current <- OBPUser.currentUser
+      current <- AuthUser.currentUser
       userId <- tryo{current.user.foreign.get.userId}
       if (userId.nonEmpty)
     } yield {
@@ -359,7 +359,7 @@ import net.liftweb.util.Helpers._
   }
 
 
-  override def signupXhtml (user:OBPUser) =  {
+  override def signupXhtml (user:AuthUser) =  {
     <div id="authorizeSection" class="signupSection">
       <div class="signup-error"><span class="lift:Msg?id=signup"/></div>
       <div>
@@ -389,7 +389,7 @@ import net.liftweb.util.Helpers._
 
 
 
-  def getAPIUserId(username: String, password: String): Box[Long] = {
+  def getResourceUserId(username: String, password: String): Box[Long] = {
     findUserByUsername(username) match {
       case Full(user) if (user.getProvider() == Props.get("hostname","")) =>
         if (
@@ -417,10 +417,10 @@ import net.liftweb.util.Helpers._
           LoginAttempt.incrementBadLoginAttempts(username)
           info(ErrorMessages.UsernameHasBeenLocked)
           //TODO need to fix, use Failure instead, it is used to show the error message to the GUI
-          Full(usernameLockedStateCode) 
+          Full(usernameLockedStateCode)
         }
         else {
-          // Nothing worked, so just increment bad login attempts 
+          // Nothing worked, so just increment bad login attempts
           LoginAttempt.incrementBadLoginAttempts(username)
           Empty
         }
@@ -433,27 +433,27 @@ import net.liftweb.util.Helpers._
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
                     kafkaUserId.toLong
-                } 
+                }
                 userId match {
                   case Full(l:Long) => Full(l)
                   case _ =>
                     LoginAttempt.incrementBadLoginAttempts(username)
-                    Empty 
+                    Empty
 		}
             case "obpjvm" if ( Props.getBool("obpjvm.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { obpjvmUser <- getUserFromConnector(username, password)
-                  obpjvmUserId <- tryo{obpjvmUser.user} } yield { 
+                  obpjvmUserId <- tryo{obpjvmUser.user} } yield {
                     LoginAttempt.resetBadLoginAttempts(username)
                     obpjvmUserId.toLong
                 }
                 userId match {
                   case Full(l:Long) => Full(l)
-                  case _ => 
+                  case _ =>
                     LoginAttempt.incrementBadLoginAttempts(username)
-                    Empty 
+                    Empty
               }
-            case _ => 
+            case _ =>
               LoginAttempt.incrementBadLoginAttempts(username)
               Empty
           }
@@ -465,7 +465,7 @@ import net.liftweb.util.Helpers._
   }
 
 
-  def getUserFromConnector(name: String, password: String):Box[OBPUser] = {
+  def getUserFromConnector(name: String, password: String):Box[AuthUser] = {
     Connector.connector.vend.getUser(name, password) match {
       case Full(Connector.connector.vend.InboundUser(extEmail, extPassword, extUsername)) => {
         info("external user authenticated. login redir: " + loginRedirect.get)
@@ -491,10 +491,10 @@ import net.liftweb.util.Helpers._
 
           // If not found, create new user
           case _ => {
-            // Create OBPUser using fetched data from Kafka
+            // Create AuthUser using fetched data from Kafka
             // assuming that user's email is always validated
             info("external user "+ extEmail +" does not exist locally, creating one")
-            val newUser = OBPUser.create
+            val newUser = AuthUser.create
               .firstName(extUsername)
               .email(extEmail)
               .username(extUsername)
@@ -553,7 +553,7 @@ import net.liftweb.util.Helpers._
           case Full(user) if user.validated_? &&
             user.getProvider() == Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
-            ! user.testPassword(Full(passwordFromGui)) => 
+            ! user.testPassword(Full(passwordFromGui)) =>
               LoginAttempt.incrementBadLoginAttempts(usernameFromGui)
               S.error(S.?("Invalid Login Credentials")) // TODO constant /  i18n for this string
 
@@ -568,7 +568,7 @@ import net.liftweb.util.Helpers._
           // If not found locally, try to authenticate user via Kafka, if enabled in props
           case Empty if ((connector == "kafka" || connector == "obpjvm") &&
             (Props.getBool("kafka.user.authentication", false) ||
-            Props.getBool("obpjvm.user.authentication", false))) => 
+            Props.getBool("obpjvm.user.authentication", false))) =>
               val preLoginState = capturePreLoginState()
               info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
@@ -581,9 +581,9 @@ import net.liftweb.util.Helpers._
               for {
                 user_ <- externalUserHelper(usernameFromGui, passwordFromGui)
               } yield {
-                user_ 
+                user_
               } match {
-                case u:OBPUser =>
+                case u:AuthUser =>
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
                   logUserIn(u, () => {
                     S.notice(S.?("logged.in"))
@@ -613,11 +613,11 @@ import net.liftweb.util.Helpers._
   }
 
 
-  def externalUserHelper(name: String, password: String): Box[OBPUser] = {
+  def externalUserHelper(name: String, password: String): Box[AuthUser] = {
     if (connector == "kafka" || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- APIUser.find(By(APIUser.name_, user.username))
+       u <- ResourceUser.find(By(ResourceUser.name_, user.username))
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
@@ -629,7 +629,7 @@ import net.liftweb.util.Helpers._
   def registeredUserHelper(username: String) = {
     if (connector == "kafka" || connector == "obpjvm") {
       for {
-       u <- APIUser.find(By(APIUser.name_, username))
+       u <- ResourceUser.find(By(ResourceUser.name_, username))
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield v
     }

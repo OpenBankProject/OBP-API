@@ -39,7 +39,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       val testBank = mockBankId
 
       val customerPostJSON = CreateCustomerJson(
-        user_id = obpuser1.userId,
+        user_id = authuser1.userId,
         customer_number = mockCustomerNumber,
         legal_name = "Someone",
         mobile_phone_number = "125245",
@@ -77,14 +77,14 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
       }
 
       When("We link user to customer")
-      val uclJSON = CreateUserCustomerLinkJSON(user_id = obpuser1.userId, customer_id = customerId)
+      val uclJSON = CreateUserCustomerLinkJSON(user_id = authuser1.userId, customer_id = customerId)
       val requestPostUcl = (v2_0Request / "banks" / testBank.value / "user_customer_links").POST <@ (user1)
       val responsePostUcl = makePostRequest(requestPostUcl, write(uclJSON))
       Then("We should get a 400")
       responsePostUcl.code should equal(400)
 
       When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(testBank.value, obpuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      Entitlement.entitlement.vend.addEntitlement(testBank.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
       val responsePostUclSec = makePostRequest(requestPostUcl, write(uclJSON))
       Then("We should get a 201")
       responsePostUclSec.code should equal(201)

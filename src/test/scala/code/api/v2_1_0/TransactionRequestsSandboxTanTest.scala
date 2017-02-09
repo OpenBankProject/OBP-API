@@ -40,12 +40,12 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
-        addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        addEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -186,8 +186,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -324,8 +324,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -373,12 +373,12 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
         val bankId2 = testBank2.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
-        addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        addEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -441,8 +441,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -646,8 +646,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -828,8 +828,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1083,8 +1083,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
 
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1123,8 +1123,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1165,8 +1165,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1206,8 +1206,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -1248,7 +1248,7 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
       val testBank = createPaymentTestBank()
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -1283,8 +1283,8 @@ class TransactionRequestsSandboxTanTest extends ServerSetupWithTestData with Def
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))

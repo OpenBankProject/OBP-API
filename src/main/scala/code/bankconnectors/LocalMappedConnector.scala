@@ -93,7 +93,7 @@ object LocalMappedConnector extends Connector with Loggable {
 
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
-  def updateUserAccountViews(user: APIUser): Unit = ???
+  def updateUserAccountViews(user: ResourceUser): Unit = ???
 
   //gets a particular bank handled by this connector
   override def getBank(bankId: BankId): Box[Bank] =

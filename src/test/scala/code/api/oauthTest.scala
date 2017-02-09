@@ -37,7 +37,7 @@ import java.util.ResourceBundle
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
 import code.loginattempts.LoginAttempt
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import dispatch.Defaults._
 import dispatch._
@@ -85,7 +85,7 @@ class OAuthTest extends ServerSetup {
 
   lazy val user1Password = randomString(10)
   lazy val user1 =
-    OBPUser.create.
+    AuthUser.create.
       email(randomString(3)+"@example.com").
       username(randomString(9)).
       password(user1Password).
@@ -96,7 +96,7 @@ class OAuthTest extends ServerSetup {
 
   lazy val user2Password = randomString(10)
   lazy val user2 =
-    OBPUser.create.
+    AuthUser.create.
       email(randomString(3)+"@example.com").
       username(randomString(9)).
       password(user2Password).

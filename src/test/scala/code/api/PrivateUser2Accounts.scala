@@ -9,7 +9,7 @@ trait PrivateUser2Accounts {
   self: ServerSetupWithTestData with DefaultUsers =>
 
   /**
-   * Adds some private accounts for obpuser2 to the DB so that not all accounts in the DB are public
+   * Adds some private accounts for authuser2 to the DB so that not all accounts in the DB are public
    * (which is at the time of writing, the default created in ServerSetup)
    *
    * Also adds some public accounts to which user1 does not have owner access
@@ -28,14 +28,14 @@ trait PrivateUser2Accounts {
 
     //fake bank accounts
 
-    //private accounts for obpuser1 (visible to obpuser1)
-    generateAccounts(obpuser1)
-    //private accounts for obpuser2 (not visible to obpuser1)
-    generateAccounts(obpuser2)
+    //private accounts for authuser1 (visible to authuser1)
+    generateAccounts(authuser1)
+    //private accounts for authuser2 (not visible to authuser1)
+    generateAccounts(authuser2)
 
-    //public accounts owned by obpuser2 (visible to obpuser1)
+    //public accounts owned by authuser2 (visible to authuser1)
     //create accounts
-    val accounts = generateAccounts(obpuser2)
+    val accounts = generateAccounts(authuser2)
     //add public views
     accounts.foreach(acc => createPublicView(acc.bankId, acc.accountId))
   }

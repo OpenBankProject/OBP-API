@@ -48,7 +48,7 @@ object Admin extends Admin with MetaMegaProtoUser[Admin]{
 
   override def dbTableName = "admins" // define the DB table name
     
-  //override some MetaMegaProtoUser fields to avoid conflicting urls/menus with OBPUser 
+  //override some MetaMegaProtoUser fields to avoid conflicting urls/menus with AuthUser 
   override def basePath = "admin_mgt" :: Nil
   override def menuNameSuffix = "Admin"
 

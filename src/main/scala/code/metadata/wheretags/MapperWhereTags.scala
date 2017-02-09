@@ -3,7 +3,7 @@ package code.metadata.wheretags
 import java.util.Date
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -61,7 +61,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object transaction extends MappedString(this, 255)
   object view extends MappedString(this, 255)
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
 
   //TODO: require these to be valid latitude/longitudes

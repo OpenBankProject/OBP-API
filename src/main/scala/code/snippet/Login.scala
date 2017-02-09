@@ -33,7 +33,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.api.OpenIdConnectConfig
-import code.model.dataAccess.{Admin, OBPUser}
+import code.model.dataAccess.{Admin, AuthUser}
 import net.liftweb.http.{S, SHtml}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{CssSel, Props}
@@ -43,29 +43,29 @@ import scala.xml.NodeSeq
 class Login {
 
   def loggedIn = {
-    if(!OBPUser.loggedIn_?){
+    if(!AuthUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     }else{
       ".logout [href]" #> {
-        OBPUser.logoutPath.foldLeft("")(_ + "/" + _)
+        AuthUser.logoutPath.foldLeft("")(_ + "/" + _)
       } &
-      ".username *" #> OBPUser.getCurrentUserUsername
+      ".username *" #> AuthUser.getCurrentUserUsername
     }
   }
 
   def loggedOut = {
-    if(OBPUser.loggedIn_?){
+    if(AuthUser.loggedIn_?){
       "*" #> NodeSeq.Empty
     } else {
-      ".login [href]" #> OBPUser.loginPageURL &
+      ".login [href]" #> AuthUser.loginPageURL &
       ".forgot [href]" #> {
         val href = for {
-          menu <- OBPUser.lostPasswordMenuLoc
+          menu <- AuthUser.lostPasswordMenuLoc
         } yield menu.loc.calcDefaultHref
         href getOrElse "#"
       } & {
         ".signup [href]" #> {
-         OBPUser.signUpPath.foldLeft("")(_ + "/" + _)
+         AuthUser.signUpPath.foldLeft("")(_ + "/" + _)
         }
       }
     }

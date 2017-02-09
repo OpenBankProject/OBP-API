@@ -126,7 +126,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            //au <- APIUser.find(By(APIUser.id, u.apiId))
+            //au <- ResourceUser.find(By(ResourceUser.id, u.apiId))
             //role <- au.isCustomerMessageAdmin ~> APIFailure("User does not have sufficient permissions", 401)
           } yield {
             val messages = CustomerMessages.customerMessageProvider.vend.getMessages(u, bankId)

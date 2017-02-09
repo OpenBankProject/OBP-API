@@ -3,7 +3,7 @@ package code.metadata.counterparties
 import java.util.{Date, UUID}
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField, MappedAccountNumber, MappedUUID}
 import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.mapper.{By, _}
@@ -288,7 +288,7 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
 
   def getSingleton = MappedCounterpartyWhereTag
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
 
   //TODO: require these to be valid latitude/longitudes

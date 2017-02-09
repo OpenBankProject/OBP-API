@@ -40,16 +40,16 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val isBeneficiary = true
         val counterpartyId = CounterpartyIdJson("123");
         val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
-        addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        addEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -180,8 +180,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
         val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
@@ -321,8 +321,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
         val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
@@ -373,15 +373,15 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val bankId2 = testBank2.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
-        addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        addEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
 
         val counterpartyId = CounterpartyIdJson("123");
         val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
 
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -446,8 +446,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -650,8 +650,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val counterpartyId = CounterpartyIdJson("123");
         val counterParty = createCounterparty(bankId.value, accountId2.value, "", true, counterpartyId.counterparty_id);
@@ -834,8 +834,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))

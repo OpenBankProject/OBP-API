@@ -63,11 +63,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json")
@@ -101,8 +101,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -157,12 +157,12 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val bankId2 = testBank2.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
-        addEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
+        addEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
 
         Then("We add entitlement to user3")
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId2.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         def getFromAccount: BankAccount = {
@@ -234,11 +234,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json")
@@ -288,11 +288,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json")
@@ -339,11 +339,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json")
@@ -391,11 +391,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json")
@@ -441,11 +441,11 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         Then("Create the view and grant the owner view to use1")
         // ownerView is 'view = "owner"', we made it before
         val ownerView = createOwnerView(fromBankId, fromAccountId)
-        grantAccessToView(obpuser1, ownerView)
+        grantAccessToView(authuser1, ownerView)
 
         Then("Add the CanCreateAnyTransactionRequest entitlement to user1")
-        addEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, obpuser1.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(fromBankId.value, authuser1.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
         Then("We prepare for the request Json, but the amount is not a number")
@@ -494,8 +494,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
@@ -520,8 +520,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
 
 
         Then("We add entitlement to user3")
-        addEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest.toString)
-        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, obpuser3.userId, CanCreateAnyTransactionRequest)
+        addEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest.toString)
+        val hasEntitlement = code.api.util.APIUtil.hasEntitlement(bankId.value, authuser3.userId, CanCreateAnyTransactionRequest)
         hasEntitlement should equal(true)
 
 
@@ -614,8 +614,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
@@ -728,8 +728,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val amt = BigDecimal("10.00") // This is money going out. We want to transfer this away from the From account.
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         val accountRoutingAddress1 = AccountRoutingAddress("IBAN1");
         val accountRoutingAddress2 = AccountRoutingAddress("IBAN2");
@@ -919,8 +919,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1103,8 +1103,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
 
         val expectedAmtTo = amt * fx.exchangeRate(fromCurrency, toCurrency).get
 
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, fromCurrency)
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, toCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, fromCurrency)
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, toCurrency)
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1365,8 +1365,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
 
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1405,8 +1405,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1447,8 +1447,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1488,8 +1488,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -1530,7 +1530,7 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
       val testBank = createPaymentTestBank()
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -1565,8 +1565,8 @@ class TransactionRequestsSepaTest extends ServerSetupWithTestData with DefaultUs
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))

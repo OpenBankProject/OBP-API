@@ -7,7 +7,7 @@ class MappedAccountHolder extends LongKeyedMapper[MappedAccountHolder] with IdPK
 
   def getSingleton = MappedAccountHolder
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
 
   object accountBankPermalink extends MappedString(this, 255)
   object accountPermalink extends MappedString(this, 255)
