@@ -722,9 +722,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
-                                               account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
+                                                         account: BankAccount, details: String,
+                                                         status: String, charge: TransactionRequestCharge): Box[TransactionRequest] = {
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mType(transactionRequestType.value)

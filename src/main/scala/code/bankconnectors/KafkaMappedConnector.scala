@@ -634,7 +634,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
                                                account : BankAccount, details: String,
                                                status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
     val mappedTransactionRequest = MappedTransactionRequest.create

@@ -363,7 +363,8 @@ object JSONFactory1_4_0 {
       start_date = json.start_date,
       end_date = json.end_date,
       challenge = challenge,
-      charge = charge
+      charge = charge,
+      counterparty_id =  CounterpartyId("")// Note: counterparty_id only used in V210. For V140 just set it empty
     )
   }
 
