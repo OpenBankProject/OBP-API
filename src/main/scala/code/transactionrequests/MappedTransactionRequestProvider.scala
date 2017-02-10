@@ -56,6 +56,12 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mCharge_Amount  extends DefaultStringField(this)
   object mCharge_Currency  extends DefaultStringField(this)
 
+  /**
+    * For V210-'Answer Transaction Request Challenge' endpoint, when TRANSACTION_REQUEST_TYPE is COUNTERPART and SEPA. <br>
+    * It need the counterpart information, so add the new field.
+    */
+  object mCounterpartyId  extends DefaultStringField(this)
+
   def updateStatus(newStatus: String) = {
     mStatus.set(newStatus)
   }
@@ -108,7 +114,8 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
         start_date = mStartDate.get,
         end_date = mEndDate.get,
         challenge = t_challenge,
-        charge = t_charge
+        charge = t_charge,
+        counterparty_id =  CounterpartyId(mCounterpartyId.get)
       )
     )
   }

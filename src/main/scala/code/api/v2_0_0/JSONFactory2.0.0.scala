@@ -332,7 +332,6 @@ case class TransactionRequestWithChargeJSON(
                                    `type`: String,
                                    from: TransactionRequestAccountJSON,
                                    details: JValue,
-                                   body: TransactionRequestBodyJSON,
                                    transaction_ids: String,
                                    status: String,
                                    start_date: Date,
@@ -445,7 +444,8 @@ object JSONFactory200{
       start_date = json.start_date,
       end_date = json.end_date,
       challenge = challenge,
-      charge = charge
+      charge = charge,
+      counterparty_id =  CounterpartyId("")// Note: counterparty_id only used in V210. For V200 just set it empty
     )
   }
 
@@ -812,12 +812,6 @@ def createTransactionTypeJSON(transactionType : TransactionType) : TransactionTy
         bank_id = tr.from.bank_id,
         account_id = tr.from.account_id),
       details = tr.details,
-      body =  TransactionRequestBodyJSON (
-          to = TransactionRequestAccountJSON (
-            bank_id = tr.body.to.bank_id,
-            account_id = tr.body.to.account_id),
-          value = AmountOfMoneyJSON (currency = tr.body.value.currency, amount = tr.body.value.amount),
-          description = tr.body.description),
       transaction_ids = tr.transaction_ids,
       status = tr.status,
       start_date = tr.start_date,

@@ -385,8 +385,8 @@ trait APIMethods210 {
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
               //TODO check more things here
-              transactionRequestTypeMapper <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-              transactionRequestTypeMapperValue <- Full(transactionRequestTypeMapper.`type`)
+              transactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
+              transactionRequestTypeMapperValue <- Full(transactionRequest.`type`)
               isTheSame <- booleanToBox(transactionRequestTypeMapperValue.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeNotMatch} It should be :'$transactionRequestTypeMapperValue' ")
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
