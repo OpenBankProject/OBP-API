@@ -14,8 +14,18 @@ ALTER TABLE apiuser RENAME TO resourceuser;
 DROP INDEX apiuser_provider__providerid;
 CREATE UNIQUE INDEX resourceuser_provider__providerid ON resourceuser (PROVIDER_,PROVIDERID);
 
+ALTER TABLE users RENAME TO authuser;
+DROP INDEX USERS_USER_C;
+CREATE INDEX AUTHUSER_USER_C ON authuser (USER_C);
+DROP INDEX USERS_UNIQUEID;
+CREATE INDEX AUTHUSER_UNIQUEID ON authuser (UNIQUEID);
+DROP INDEX USERS_USERNAME;
+CREATE INDEX AUTHUSER_USERNAME ON authuser (USERNAME);
+
 -- OR --
 
 -- 2) (after running the API after 3d0e1dd293906932b6a6969741dc6b8f57adb749)
 -- Copy the records after running the API (and lift-web schemify has created the table)
 insert into resourceuser  (id, email, provider_, providerid, name_, userid_) select id, email, provider_, providerid, name_, userid_ from apiuser;
+
+insert into authuser (id ,firstname ,lastname ,email ,username ,password_pw ,password_slt ,provider ,timezone ,user_c ,validated ,superuser ,uniqueid ,locale ) select  id ,firstname ,lastname ,email ,username ,password_pw ,password_slt ,provider ,timezone ,user_c ,validated ,superuser ,uniqueid ,locale  from users;
