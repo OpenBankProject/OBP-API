@@ -179,7 +179,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)
@@ -192,12 +192,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
-      case c:ChallengeThresholdReader => (BigDecimal(c.amount), c.currency)
+      case c:ChallengeThresholdReader => AmountOfMoney(c.currency, c.amount)
       case _ =>
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        (convertedLimit, currency)
+        AmountOfMoney(currency, convertedLimit.toString())
     }
 
   }
@@ -566,6 +566,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     // TODO Do we charge +amt or -amt?
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
     } yield {
+      logger.info("after called saveTransaction return the TransactionId :".concat(s"$sentTransactionId"))
       sentTransactionId
     }
 
@@ -665,9 +666,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     fields.put(Tags.TRANSACTION_INSTRUCTION_ID,   transactionId)
 
 
+    logger.info("Start to call OBP-JVM -- saveTransaction")
 
     val response : JResponse = jvmNorth.put("createTransaction", Transport.Target.transaction, parameters, fields)
 
+    logger.info("log the response of 'saveTransaction' form OBP-JVM".concat(s"$response"))
     // todo response.error().isPresent
     // the returned transaction id should be the same that was sent
 
