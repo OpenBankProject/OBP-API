@@ -1,4 +1,4 @@
 -- Rename apiuser to resourceuser 
-alter table apiuser RENAME TO resourceuser;
-alter table apiuser RENAME COLUMN apiuser_pk TO resourceuser_pk;
-alter table apiuser RENAME COLUMN apiuser_provider__providerid TO resourceuser_provider__providerid;
+ALTER TABLE apiuser RENAME TO resourceuser;
+DROP INDEX apiuser_provider__providerid;
+CREATE UNIQUE INDEX resourceuser_provider__providerid ON resourceuser (PROVIDER_,PROVIDERID);
