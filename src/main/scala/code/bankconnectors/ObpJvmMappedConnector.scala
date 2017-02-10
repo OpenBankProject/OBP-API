@@ -566,10 +566,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     // TODO Do we charge +amt or -amt?
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
     } yield {
-      logger.info("After calling OBP-JVM saveTransaction we have transactionId: ".concat(s"$sentTransactionId"))
-
       logger.info(s"After calling OBP-JVM saveTransaction we have transactionId: $sentTransactionId")
-
       sentTransactionId
     }
 
