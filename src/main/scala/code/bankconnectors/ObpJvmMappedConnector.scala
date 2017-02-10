@@ -190,6 +190,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val response = jvmNorth.get("getChallengeThreshold", Transport.Target.challengeThreshold, parameters)
 
 
+    // TODO log here the _ (unhandled) case
+
     response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
       case c:ChallengeThresholdReader => AmountOfMoney(c.currency, c.amount)
@@ -670,7 +672,12 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     val response : JResponse = jvmNorth.put("createTransaction", Transport.Target.transaction, parameters, fields)
 
-    logger.info("After calling jvmNorth.put createTransaction ".concat(s"$response"))
+    if(response.error().isPresent) {
+      val message = response.error().get().message()
+      logger.error(s"After calling jvmNorth.put createTransaction we got an error: $message")
+    }
+
+    logger.info(s"After calling jvmNorth.put createTransaction we got response: $response")
     // todo response.error().isPresent
     // the returned transaction id should be the same that was sent
 
