@@ -387,7 +387,7 @@ trait APIMethods210 {
               //TODO check more things here
               transactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
               transactionRequestTypeMapperValue <- Full(transactionRequest.`type`)
-              isTheSame <- booleanToBox(transactionRequestTypeMapperValue.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeNotMatch} It should be :'$transactionRequestTypeMapperValue' ")
+              isTheSame <- booleanToBox(transactionRequestTypeMapperValue.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$transactionRequestTypeMapperValue' ")
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
               //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)

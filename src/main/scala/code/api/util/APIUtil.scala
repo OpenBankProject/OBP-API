@@ -164,7 +164,7 @@ object ErrorMessages {
   val CreateTransactionTypeInsertError  = "OBP-40006: Could not insert Transaction Type: Non unique BANK_ID / SHORT_CODE"
   val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
   val NotPositiveAmount = "OBP-40008: Can't send a payment with a value of 0 or less."
-  val TransactionRequestTypeNotMatch = "OBP-40009: The TRANSACTION_REQUEST_TYPE is different from the type of 'TRANSACTION_REQUEST_ID'."
+  val TransactionRequestTypeHasChanged = "OBP-40009: The TRANSACTION_REQUEST_TYPE has changed."
 
 }
 
