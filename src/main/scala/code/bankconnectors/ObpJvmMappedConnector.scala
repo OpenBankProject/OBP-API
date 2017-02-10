@@ -566,7 +566,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     // TODO Do we charge +amt or -amt?
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
     } yield {
-      logger.info("after called saveTransaction return the TransactionId :".concat(s"$sentTransactionId"))
+      logger.info("After calling OBP-JVM saveTransaction we have transactionId: ".concat(s"$sentTransactionId"))
       sentTransactionId
     }
 
@@ -666,11 +666,11 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     fields.put(Tags.TRANSACTION_INSTRUCTION_ID,   transactionId)
 
 
-    logger.info("Start to call OBP-JVM -- saveTransaction")
+    logger.info(s"Before calling jvmNorth.put createTransaction transactionId is: $transactionId")
 
     val response : JResponse = jvmNorth.put("createTransaction", Transport.Target.transaction, parameters, fields)
 
-    logger.info("log the response of 'saveTransaction' form OBP-JVM".concat(s"$response"))
+    logger.info("After calling jvmNorth.put createTransaction ".concat(s"$response"))
     // todo response.error().isPresent
     // the returned transaction id should be the same that was sent
 
