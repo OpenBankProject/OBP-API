@@ -279,10 +279,10 @@ trait APIMethods210 {
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
                     transDetails <- Full(getTransactionRequestDetailsSandBoxTanFromJson(transDetailsJson.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON]))
                     transDetailsSerialized <- tryo {write(transDetailsJson)(Serialization.formats(NoTypeHints))}
-                  
-                    //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount 
+
+                    //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount
                     toCounterpartyEmpty <- Full(new MappedCounterparty())
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterpartyEmpty, transactionRequestType, transDetails, transDetailsSerialized)
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterpartyEmpty, transactionRequestType, transDetails, transDetailsSerialized)
                   } yield createdTransactionRequest
                 }
                 case "COUNTERPARTY" => {
@@ -291,7 +291,7 @@ trait APIMethods210 {
                     toCounterpartyId<- Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].to.counterparty_id)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-                  
+
                     // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     toBankId <- Full(BankId(toCounterparty.otherBankId ))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
@@ -303,7 +303,7 @@ trait APIMethods210 {
 
                     //Serialize the transResponseDetails to String.
                     transDetailsResponseSerialized <-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield createdTransactionRequest
 
                 }
@@ -313,7 +313,7 @@ trait APIMethods210 {
                     toIban<-  Full(transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].to.iban)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true , ErrorMessages.CounterpartyBeneficiaryPermit)
-                  
+
                     // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     toBankId <- Full(BankId(toCounterparty.otherBankId ))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
@@ -325,7 +325,7 @@ trait APIMethods210 {
 
                     //Serialize the transResponseDetails data to String.
                     transDetailsResponseSerialized <-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterparty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield createdTransactionRequest
                 }
                 case "FREE_FORM" => {
@@ -337,10 +337,10 @@ trait APIMethods210 {
                     transResponseDetails <- Full(getTransactionRequestDetailsFreeFormResponseJson(transactionRequestDetailsFreeFormResponseJSON))
 
                     transDetailsResponseSerialized<-tryo{write(transResponseDetails)(Serialization.formats(NoTypeHints))}
-                  
+
                     //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount
                     toCounterpartyEmpty <- Full(new MappedCounterparty())
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, fromAccount, fromAccount, toCounterpartyEmpty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, fromAccount, toCounterpartyEmpty, transactionRequestType, transResponseDetails, transDetailsResponseSerialized)
                   } yield
                     createdTransactionRequest
                 }

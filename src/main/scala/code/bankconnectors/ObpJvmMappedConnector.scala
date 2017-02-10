@@ -179,7 +179,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val parameters = new JHashMap
 
     parameters.put("accountId", accountId)
@@ -192,12 +192,12 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     response.data().map(d => new ChallengeThresholdReader(d)) match {
       // Check does the response data match the requested data
-      case c:ChallengeThresholdReader => (BigDecimal(c.amount), c.currency)
+      case c:ChallengeThresholdReader => AmountOfMoney(c.currency, c.amount)
       case _ =>
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        (convertedLimit, currency)
+        AmountOfMoney(currency, convertedLimit.toString())
     }
 
   }

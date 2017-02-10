@@ -176,27 +176,30 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     // Create argument list
-    val req = Map( 
+    val req = Map(
       "north" -> "getChallengeThreshold",
       "version" -> formatVersion,
       "name" -> AuthUser.getCurrentUserUsername,
-      "userId" -> userId,
+      "bankId" -> bankId,
       "accountId" -> accountId,
+      "viewId" -> viewId,
       "transactionRequestType" -> transactionRequestType,
-      "currency" -> currency
+      "currency" -> currency,
+      "userId" -> userId,
+      "userName" -> userName
       )
     val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
     // Return result
     r match {
       // Check does the response data match the requested data
-      case Some(x)  => (BigDecimal(x.limit), x.currency)
+      case Some(x)  => AmountOfMoney(x.currency, x.limit)
       case _ => {
         val limit = BigDecimal("0")
         val rate = fx.exchangeRate ("EUR", currency)
         val convertedLimit = fx.convert(limit, rate)
-        (convertedLimit, currency)
+        AmountOfMoney(currency,convertedLimit.toString())
       }
     }
   }
