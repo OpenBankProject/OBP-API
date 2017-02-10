@@ -15,12 +15,14 @@ import akka.pattern.ask
 import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
 import akka.util.Timeout
 import code.api.APIFailure
+import code.users.{RemoteUserCaseClasses, Users}
 
 
-object AkkaMapperViews extends Views  {
+object AkkaMapperViews extends Views with Users  {
 
   val TIMEOUT = 10 seconds
   val r = RemoteViewCaseClasses
+  val ru = RemoteUserCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -311,6 +313,54 @@ object AkkaMapperViews extends Views  {
       (viewsActor ? r.removeAllViews(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
+  }
+  // Resource user part
+  def getUserByApiId(id : Long) : Box[User] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getUserByApiId(id)).mapTo[User],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def getUserByUserId(userId : String) : Box[User] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getUserByUserId(userId)).mapTo[User],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
   }
 }
 

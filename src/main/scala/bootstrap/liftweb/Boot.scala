@@ -425,7 +425,8 @@ class Boot extends Loggable{
 object ToSchemify {
   val modelsRemotedata = List(
     ViewImpl,
-    ViewPrivileges)
+    ViewPrivileges,
+    ResourceUser)
 
   val models = List(
     AuthUser,
@@ -433,7 +434,6 @@ object ToSchemify {
     Nonce,
     Token,
     Consumer,
-    ResourceUser,
     MappedAccountHolder,
     MappedComment,
     MappedNarrative,

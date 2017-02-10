@@ -6,7 +6,7 @@ import code.model.User
 import code.model.dataAccess.ResourceUser
 import net.liftweb.mapper.By
 
-private object LiftUsers extends Users {
+object LiftUsers extends Users {
 
   def getUserByApiId(id : Long) : Box[User] = {
     ResourceUser.find(id) ?~ { s"user $id not found"}
