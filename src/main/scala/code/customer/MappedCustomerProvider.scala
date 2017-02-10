@@ -3,7 +3,7 @@ package code.customer
 import java.util.Date
 
 import code.model.{BankId, User}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{MappedUUID, DefaultStringField}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -120,7 +120,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
   object mCustomerId extends MappedUUID(this)
 
-  object mUser extends MappedLongForeignKey(this, APIUser)
+  object mUser extends MappedLongForeignKey(this, ResourceUser)
   object mBank extends DefaultStringField(this)
 
   object mNumber extends DefaultStringField(this)

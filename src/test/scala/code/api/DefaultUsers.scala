@@ -3,7 +3,7 @@ package code.api
 import code.api.util.APIUtil
 import code.model.TokenType._
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import APIUtil.OAuth.{Token, Consumer}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
@@ -28,15 +28,15 @@ trait DefaultUsers {
   val expiration = Props.getInt("token_expiration_weeks", 4)
   lazy val tokenDuration = weeks(expiration)
 
-  lazy val obpuser1 =
-    APIUser.create.provider_(defaultProvider).
+  lazy val authuser1 =
+    ResourceUser.create.provider_(defaultProvider).
       saveMe
 
   lazy val testToken =
     OBPToken.create.
       tokenType(Access).
       consumerId(testConsumer.id).
-      userForeignKey(obpuser1.id.toLong).
+      userForeignKey(authuser1.id.toLong).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
       duration(tokenDuration).
@@ -47,8 +47,8 @@ trait DefaultUsers {
   lazy val token = new Token(testToken.key, testToken.secret)
 
   // create a user for test purposes
-  lazy val obpuser2 =
-    APIUser.create.provider_(defaultProvider).
+  lazy val authuser2 =
+    ResourceUser.create.provider_(defaultProvider).
       saveMe
 
   //we create an access token for the other user
@@ -56,7 +56,7 @@ trait DefaultUsers {
     OBPToken.create.
       tokenType(Access).
       consumerId(testConsumer.id).
-      userForeignKey(obpuser2.id.toLong).
+      userForeignKey(authuser2.id.toLong).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
       duration(tokenDuration).
@@ -67,8 +67,8 @@ trait DefaultUsers {
   lazy val token2 = new Token(testToken2.key, testToken2.secret)
 
   // create a user for test purposes
-  lazy val obpuser3 =
-    APIUser.create.provider_(defaultProvider).
+  lazy val authuser3 =
+    ResourceUser.create.provider_(defaultProvider).
       saveMe
 
   //we create an access token for the other user
@@ -76,7 +76,7 @@ trait DefaultUsers {
     OBPToken.create.
       tokenType(Access).
       consumerId(testConsumer.id).
-      userForeignKey(obpuser3.id.toLong).
+      userForeignKey(authuser3.id.toLong).
       key(randomString(40).toLowerCase).
       secret(randomString(40).toLowerCase).
       duration(tokenDuration).

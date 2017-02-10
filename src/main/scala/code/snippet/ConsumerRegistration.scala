@@ -32,7 +32,7 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.model._
-import code.model.dataAccess.{OBPUser}
+import code.model.dataAccess.{AuthUser}
 import net.liftweb.http.{RequestVar, S}
 import net.liftweb.util.FieldError
 import net.liftweb.util.Helpers
@@ -147,7 +147,7 @@ class ConsumerRegistration extends Loggable {
           description(descriptionVar.is).
           developerEmail(devEmailVar.is).
           redirectURL(redirectionURLVar.is).
-          createdByUserId(OBPUser.getCurrentAPIUserUserId)
+          createdByUserId(AuthUser.getCurrentResourceUserUserId)
       
       val errors = consumer.validate
       nameVar.set(nameVar.is)

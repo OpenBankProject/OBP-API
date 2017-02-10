@@ -14,16 +14,16 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
   def createCustomer1() = MappedCustomer.create
     .mBank(testBankId.value).mEmail("bob@example.com").mFaceImageTime(new Date(12340000))
     .mFaceImageUrl("http://example.com/image.jpg").mLegalName("John Johnson")
-    .mMobileNumber("12343434").mNumber("343").mUser(obpuser1).saveMe()
+    .mMobileNumber("12343434").mNumber("343").mUser(authuser1).saveMe()
 
   feature("Getting customer info") {
 
     scenario("No customer info exists for user and we try to get it") {
       Given("No MappedCustomer exists for a user")
-      MappedCustomer.find(By(MappedCustomer.mUser, obpuser2)).isDefined should equal(false)
+      MappedCustomer.find(By(MappedCustomer.mUser, authuser2)).isDefined should equal(false)
 
       When("We try to get it")
-      val found = MappedCustomerProvider.getCustomer(testBankId, obpuser2)
+      val found = MappedCustomerProvider.getCustomer(testBankId, authuser2)
 
       Then("We don't")
       found.isDefined should equal(false)
@@ -32,10 +32,10 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
     scenario("Customer exists and we try to get it") {
       val customer1 = createCustomer1()
       Given("MappedCustomer exists for a user")
-      MappedCustomer.find(By(MappedCustomer.mUser, obpuser1.apiId.value)).isDefined should equal(true)
+      MappedCustomer.find(By(MappedCustomer.mUser, authuser1.apiId.value)).isDefined should equal(true)
 
       When("We try to get it")
-      val foundOpt = MappedCustomerProvider.getCustomer(testBankId, obpuser1)
+      val foundOpt = MappedCustomerProvider.getCustomer(testBankId, authuser1)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
@@ -66,7 +66,7 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
       val bankId = BankId("a-bank")
 
       Given("Customer info exists for a different bank")
-      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
+      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(authuser1).saveMe()
       MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber),
         By(MappedCustomer.mBank, bankId.value)) should equal({
         MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber))
@@ -84,7 +84,7 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
       val bankId = BankId("a-bank")
 
       Given("Customer info exists for that bank")
-      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(obpuser1).saveMe()
+      MappedCustomer.create.mNumber(customerNumber).mBank(bankId.value).mUser(authuser1).saveMe()
       MappedCustomer.count(By(MappedCustomer.mNumber, customerNumber),
         By(MappedCustomer.mBank, bankId.value)) should equal(1)
 

@@ -675,8 +675,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
         val bankId = testBank.bankId
         val accountId1 = AccountId("__acc1")
         val accountId2 = AccountId("__acc2")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-        createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+        createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
         def getFromAccount: BankAccount = {
           BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -748,8 +748,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -788,8 +788,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -830,8 +830,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -871,8 +871,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      val acc2  = createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      val acc2  = createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "EUR")
 
       When("we try to make a payment with amount < 0")
 
@@ -913,7 +913,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val testBank = createPaymentTestBank()
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
-      val acc1 = createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
+      val acc1 = createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
 
       When("we try to make a payment to an account that doesn't exist")
 
@@ -948,8 +948,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = testBank.bankId
       val accountId1 = AccountId("__acc1")
       val accountId2 = AccountId("__acc2")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId1, "EUR")
-      createAccountAndOwnerView(Some(obpuser1), bankId, accountId2, "GBP")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId1, "EUR")
+      createAccountAndOwnerView(Some(authuser1), bankId, accountId2, "GBP")
 
       def getFromAccount : BankAccount = {
         BankAccount(bankId, accountId1).getOrElse(fail("couldn't get from account"))
@@ -1779,7 +1779,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user1)
@@ -1808,7 +1808,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
@@ -1824,7 +1824,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = grantUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
@@ -1842,7 +1842,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant = randomViewsIdsToGrant(bankId, bankAccount.id)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1878,7 +1878,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= List(randomString(3),randomString(3))
       When("the request is sent")
       val reply = grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1892,7 +1892,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1909,7 +1909,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser3.idGivenByProvider
+      val userId = authuser3.idGivenByProvider
       val viewsIdsToGrant= randomViewsIdsToGrant(bankId, bankAccount.id) ++ List(randomString(3),randomString(3))
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
@@ -1928,7 +1928,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalinkButNotOwner(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -1946,8 +1946,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = "owner"
-      val userId1 = obpuser2.idGivenByProvider
-      val userId2 = obpuser2.idGivenByProvider
+      val userId1 = authuser2.idGivenByProvider
+      val userId2 = authuser2.idGivenByProvider
       grantUserAccessToView(bankId, bankAccount.id, userId1, viewId, user1)
       grantUserAccessToView(bankId, bankAccount.id, userId2, viewId, user1)
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
@@ -1966,7 +1966,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewId = ViewId("owner")
       val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       if(view.users.length == 0){
-        val userId = obpuser2.idGivenByProvider
+        val userId = authuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
       }
       while(view.users.length > 1){
@@ -1997,26 +1997,26 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val ownerViewId = ViewId("owner")
 
-      //set up: make obpuser3 the account holder and make sure they have access to the owner view
-      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
-      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
+      //set up: make authuser3 the account holder and make sure they have access to the owner view
+      grantUserAccessToView(bankId, bankAccount.id, authuser3.idGivenByProvider, ownerViewId.value, user1)
+      setAccountHolder(authuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to the owner view")
-      val reply = revokeUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId.value, user1)
+      val reply = revokeUserAccessToView(bankId, bankAccount.id, authuser3.idGivenByProvider, ownerViewId.value, user1)
 
       Then("We will get a 400 response code")
       reply.code should equal (400)
 
       And("The account holder should still have access to the owner view")
       val view = Views.views.vend.view(ViewUID(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
-      view.users should contain (obpuser3)
+      view.users should contain (authuser3)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the view does not exist", API1_2, DeletePermission) {
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId =obpuser2.idGivenByProvider
+      val userId =authuser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomString(5), user1)
@@ -2030,7 +2030,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewsBefore = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, userId, randomViewPermalink(bankId, bankAccount), user3)
@@ -2045,7 +2045,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -2071,7 +2071,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       Given("We will use an access token")
       val bankId = randomBank
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
-      val userId = obpuser2.idGivenByProvider
+      val userId = authuser2.idGivenByProvider
       val viewId = randomViewPermalink(bankId, bankAccount)
       val viewsIdsToGrant = viewId :: Nil
       grantUserAccessToViews(bankId, bankAccount.id, userId, viewsIdsToGrant, user1)
@@ -2091,7 +2091,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
       val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
-      val userId = obpuser1.idGivenByProvider
+      val userId = authuser1.idGivenByProvider
 
       view.users.length should equal(1)
       view.users(0).idGivenByProvider should equal(userId)
@@ -2113,19 +2113,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val ownerViewId = "owner"
 
-      //set up: make obpuser3 the account holder and make sure they have access to the owner view
-      grantUserAccessToView(bankId, bankAccount.id, obpuser3.idGivenByProvider, ownerViewId, user1)
-      setAccountHolder(obpuser3, BankId(bankId), AccountId(bankAccount.id))
+      //set up: make authuser3 the account holder and make sure they have access to the owner view
+      grantUserAccessToView(bankId, bankAccount.id, authuser3.idGivenByProvider, ownerViewId, user1)
+      setAccountHolder(authuser3, BankId(bankId), AccountId(bankAccount.id))
 
       When("We try to revoke this user's access to all views")
-      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, obpuser3.idGivenByProvider, user1)
+      val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, authuser3.idGivenByProvider, user1)
 
       Then("we should get a 400 code")
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
       val view = Views.views.vend.view(ViewUID(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
-      view.users should contain (obpuser3)
+      view.users should contain (authuser3)
     }
   }
 

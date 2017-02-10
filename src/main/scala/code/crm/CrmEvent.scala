@@ -7,8 +7,8 @@ package code.crm
 import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.model.BankId
 import code.common.{Address, Location, Meta}
-import code.model.dataAccess.APIUser
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Logger
 import net.liftweb.util
 import net.liftweb.util.SimpleInjector
@@ -23,9 +23,9 @@ object CrmEvent extends util.SimpleInjector {
   trait CrmEvent {
     def crmEventId: CrmEventId
     def bankId: BankId
-    def user: APIUser
+    def user: ResourceUser
     def customerName : String
-    def customerNumber : String // Is this duplicate of APIUser?
+    def customerNumber : String // Is this duplicate of ResourceUser?
     def category : String
     def detail : String
     def channel : String
@@ -73,7 +73,7 @@ trait CrmEventProvider {
   /*
   Common logic for returning crmEvents at a bank for one user
    */
-  final def getCrmEvents(bankId : BankId, user : APIUser) : Option[List[CrmEvent]] = {
+  final def getCrmEvents(bankId : BankId, user : ResourceUser) : Option[List[CrmEvent]] = {
     getEventsFromProvider(bankId, user) // No filter required
   }
 
@@ -91,7 +91,7 @@ trait CrmEventProvider {
   protected def getEventsFromProvider(bank : BankId) : Option[List[CrmEvent]]
 
   // For a user
-  protected def getEventsFromProvider(bank : BankId, user : APIUser) : Option[List[CrmEvent]]
+  protected def getEventsFromProvider(bank : BankId, user : ResourceUser) : Option[List[CrmEvent]]
 
   // One event
   protected def getEventFromProvider(crmEventId: CrmEventId) : Option[CrmEvent]

@@ -21,7 +21,7 @@ import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerF
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.{Counterparties}
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
@@ -755,7 +755,7 @@ trait APIMethods210 {
           for {
             l <- user ?~ ErrorMessages.UserNotLoggedIn
             canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
-            users <- tryo{OBPUser.getApiUsers()}
+            users <- tryo{AuthUser.getResourceUsers()}
           } yield {
             // Format the data as V2.0.0 json
             val json = JSONFactory200.createUserJSONs(users)

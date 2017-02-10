@@ -8,7 +8,7 @@ import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{Product, ProductCode}
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.model.dataAccess.{APIUser, MappedAccountHolder}
+import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
 import code.model._
 import code.branches.Branches.Branch
 import code.atms.Atms.Atm
@@ -130,45 +130,45 @@ trait OBPDataImport extends Loggable {
 
 
   /**
-   * Creates an APIUser that can be saved. This method assumes there is no existing user with an email
+   * Creates an ResourceUser that can be saved. This method assumes there is no existing user with an email
    * equal to @u.email
    */
-  protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[APIUser]]
+  protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
-  protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[APIUser]]] = {
-    val existingApiUsers = toImport.flatMap(u => APIUser.find(By(APIUser.name_, u.user_name)))
+  protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
+    val existingResourceUsers = toImport.flatMap(u => ResourceUser.find(By(ResourceUser.name_, u.user_name)))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 
     def usersExist(existingEmails : List[String]) =
       Failure(s"User(s) with email(s) $existingEmails already exist (and may be different (e.g. different display_name)")
 
-    if(!existingApiUsers.isEmpty) {
-      usersExist(existingApiUsers.map(_.name))
+    if(!existingResourceUsers.isEmpty) {
+      usersExist(existingResourceUsers.map(_.name))
     } else if(!duplicateUsernames.isEmpty) {
       Failure(s"Users must have unique usernames: Duplicates found: $duplicateUsernames")
     }else {
 
-      val apiUsers = toImport.map(createSaveableUser(_))
+      val resourceUsers = toImport.map(createSaveableUser(_))
 
-      dataOrFirstFailure(apiUsers)
+      dataOrFirstFailure(resourceUsers)
     }
   }
 
   /**
    * Sets the user with email @owner as the owner of @account
    *
-   * TODO: this only works after createdUsers have been saved (and thus an APIUser has been created
+   * TODO: this only works after createdUsers have been saved (and thus an ResourceUser has been created
    */
-  protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[APIUser]): AnyVal = {
-    val apiUserOwner = createdUsers.find(user => owner == user.name)
+  protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[ResourceUser]): AnyVal = {
+    val resourceUserOwner = createdUsers.find(user => owner == user.name)
 
-    apiUserOwner match {
+    resourceUserOwner match {
       case Some(o) => {
         MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
       }
       case None => {
-        //This shouldn't happen as OBPUser should generate the APIUsers when saved
+        //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
         logger.error(s"api user $owner not found.")
         logger.error("Data import completed with errors.")
       }

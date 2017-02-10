@@ -39,7 +39,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(obpuser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountAndOwnerView(Some(authuser1), bankId, accountId, "EUR")
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
@@ -75,7 +75,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")
       val ownerView = createOwnerView(bankId, accountId)
-      grantAccessToView(obpuser1, ownerView)
+      grantAccessToView(authuser1, ownerView)
 
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
       val responsePost = makePostRequest(requestPost, write(customerPostJSON))
@@ -92,7 +92,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")
-      val bankAccount = createAccountAndOwnerView(Some(obpuser1), bankId, accountId, "EUR")
+      val bankAccount = createAccountAndOwnerView(Some(authuser1), bankId, accountId, "EUR")
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)

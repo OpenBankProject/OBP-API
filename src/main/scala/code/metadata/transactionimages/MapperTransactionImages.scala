@@ -3,7 +3,7 @@ package code.metadata.transactionimages
 import java.net.URL
 import java.util.Date
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -51,7 +51,7 @@ class MappedTransactionImage extends TransactionImage with LongKeyedMapper[Mappe
   object view extends MappedString(this, 255)
 
   object imageId extends MappedUUID(this)
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object date extends MappedDateTime(this)
 
   object url extends DefaultStringField(this)

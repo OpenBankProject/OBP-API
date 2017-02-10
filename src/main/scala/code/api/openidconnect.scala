@@ -34,7 +34,7 @@ import javax.security.cert.Certificate
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
 import code.api.util.APIUtil._
-import code.model.dataAccess.{APIUser, OBPUser}
+import code.model.dataAccess.{ResourceUser, AuthUser}
 import code.model.{Consumer, Token, TokenType, User}
 import net.liftweb.common._
 import net.liftweb.http._
@@ -103,17 +103,17 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                 for {
                   emailVerified <- tryo{(json_user \ "email_verified").extractOrElse[Boolean](false)}
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
-                  obp_user: OBPUser <- OBPUser.find(By(OBPUser.email, userEmail))
-                  api_user: APIUser <- obp_user.user.foreign
+                  obp_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
+                  api_user: ResourceUser <- obp_user.user.foreign
                   if emailVerified && api_user.apiId.value > 0
                 } yield {
                   saveAuthorizationToken(accessToken, accessToken, api_user.apiId.value)
                   httpCode = 200
                   message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-                  OBPUser.logUserIn(obp_user, () => {
+                  AuthUser.logUserIn(obp_user, () => {
                     S.notice(S.?("logged.in"))
-                    S.redirectTo(OBPUser.homePage)
+                    S.redirectTo(AuthUser.homePage)
                   })
                 }
               case _ => message=String.format("Could not find user with token %s", accessToken)

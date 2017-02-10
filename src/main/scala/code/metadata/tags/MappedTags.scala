@@ -3,7 +3,7 @@ package code.metadata.tags
 import java.util.Date
 
 import code.model._
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
@@ -44,7 +44,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
 
   object tagId extends MappedUUID(this)
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object tag extends DefaultStringField(this)
   object date extends MappedDateTime(this)
 

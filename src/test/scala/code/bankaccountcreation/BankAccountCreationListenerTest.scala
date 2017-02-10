@@ -9,7 +9,7 @@ import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
-import code.model.dataAccess.{APIUser, BankAccountCreationListener}
+import code.model.dataAccess.{ResourceUser, BankAccountCreationListener}
 import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
 
@@ -34,8 +34,8 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
-      APIUser.find(By(APIUser.provider_, userProvider), By(APIUser.providerId, userId)).getOrElse {
-        APIUser.create.
+      ResourceUser.find(By(ResourceUser.provider_, userProvider), By(ResourceUser.providerId, userId)).getOrElse {
+        ResourceUser.create.
           provider_(userProvider).
           providerId(userId).
           saveMe

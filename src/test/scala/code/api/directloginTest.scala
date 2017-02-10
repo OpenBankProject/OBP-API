@@ -2,7 +2,7 @@ package code.api
 
 import code.api.util.ErrorMessages
 import code.loginattempts.LoginAttempt
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer => OBPConsumer, Token => OBPToken}
 import net.liftweb.json.JsonAST.{JArray, JField, JObject, JString}
 import net.liftweb.mapper.By
@@ -27,8 +27,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
   val PASSWORD_DISABLED = randomString(20)
 
   before {
-    if (OBPUser.find(By(OBPUser.username, USERNAME)).isEmpty)
-      OBPUser.create.
+    if (AuthUser.find(By(AuthUser.username, USERNAME)).isEmpty)
+      AuthUser.create.
         email(EMAIL).
         username(USERNAME).
         password(PASSWORD).
@@ -46,8 +46,8 @@ class directloginTest extends ServerSetup with BeforeAndAfter {
         saveMe
 
 
-    if (OBPUser.find(By(OBPUser.username, USERNAME_DISABLED)).isEmpty)
-      OBPUser.create.
+    if (AuthUser.find(By(AuthUser.username, USERNAME_DISABLED)).isEmpty)
+      AuthUser.create.
         email(EMAIL_DISABLED).
         username(USERNAME_DISABLED).
         password(PASSWORD_DISABLED).

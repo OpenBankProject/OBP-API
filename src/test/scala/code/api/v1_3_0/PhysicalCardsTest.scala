@@ -12,7 +12,7 @@ import code.fx.FXRate
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.CounterpartyTrait
 import code.model.{Consumer, PhysicalCard, _}
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
@@ -66,7 +66,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = ???
 
   def getUser(name: String, password: String): Box[InboundUser] = ???
-    def updateUserAccountViews(user: APIUser): Unit = ???
+    def updateUserAccountViews(user: ResourceUser): Unit = ???
 
     //these methods aren't required by our test
     override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = (0, "EUR")
@@ -87,9 +87,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     //these methods are required
     override def getPhysicalCards(user : User) : List[PhysicalCard] = {
-      if(user == obpuser1) {
+      if(user == authuser1) {
         user1AllCards
-      } else if (user == obpuser2) {
+      } else if (user == authuser2) {
         user2AllCards
       } else {
         List()
@@ -97,9 +97,9 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     }
 
     override def getPhysicalCardsForBank(bank : Bank, user : User) : List[PhysicalCard] = {
-      if(user == obpuser1) {
+      if(user == authuser1) {
         user1CardsForOneBank
-      } else if (user == obpuser2) {
+      } else if (user == authuser2) {
         user2CardsForOneBank
       } else {
         List()

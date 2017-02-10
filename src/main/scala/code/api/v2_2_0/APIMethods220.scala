@@ -22,7 +22,7 @@ import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerF
 import code.entitlement.Entitlement
 import code.fx.{MappedFXRate, fx}
 import code.metadata.counterparties.Counterparties
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink

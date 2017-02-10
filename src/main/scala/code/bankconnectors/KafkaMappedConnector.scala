@@ -100,7 +100,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
   }
 
-  def updateUserAccountViews( user: APIUser ) = {
+  def updateUserAccountViews( user: ResourceUser ) = {
     val accounts: List[KafkaInboundAccount] = getBanks.flatMap { bank => {
       val bankId = bank.bankId.value
       logger.info(s"ObpJvm updateUserAccountViews for user.email ${user.email} user.name ${user.name} at bank ${bankId}")
@@ -135,11 +135,11 @@ object KafkaMappedConnector extends Connector with Loggable {
       setAccountOwner(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${acc}")
+        logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.apiId)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
+        logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
   }
@@ -152,7 +152,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "version" -> formatVersion,
       "name" -> "get",
       "target" -> "banks",
-      "userId" -> OBPUser.getCurrentUserUsername
+      "userId" -> AuthUser.getCurrentUserUsername
       )
 
     logger.debug(s"Kafka getBanks says: req is: $req")
@@ -181,7 +181,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map( 
       "north" -> "getChallengeThreshold",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "userId" -> userId,
       "accountId" -> accountId,
       "transactionRequestType" -> transactionRequestType,
@@ -206,7 +206,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "createChallenge",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "userId" -> userId,
       "transactionRequestType" -> transactionRequestType.value,
       "transactionRequestId" -> transactionRequestId,
@@ -227,7 +227,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "validateChallengeAnswer",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "challengeId" -> challengeId,
       "hashOfSuppliedAnswer" -> hashOfSuppliedAnswer
     )
@@ -249,7 +249,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "bankId" -> id.toString,
       "name" -> "get",
       "target" -> "bank",
-      "userId" -> OBPUser.getCurrentUserUsername
+      "userId" -> AuthUser.getCurrentUserUsername
       )
     val r = {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
@@ -263,7 +263,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getTransaction",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
       "accountId" -> accountId.toString,
       "transactionId" -> transactionId.toString
@@ -298,7 +298,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getTransactions",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
       "accountId" -> accountId.toString,
       "queryParams" -> queryParams.toString
@@ -324,7 +324,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getBankAccount",
       "version" -> formatVersion,
-      "name"  -> OBPUser.getCurrentUserUsername,
+      "name"  -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
       "accountId" -> accountId.value
       )
@@ -348,7 +348,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getBankAccounts",
       "version" -> formatVersion,
-      "name"  -> OBPUser.getCurrentUserUsername,
+      "name"  -> AuthUser.getCurrentUserUsername,
       "bankIds" -> accts.map(a => a._1).mkString(","),
       "accountIds" -> accts.map(a => a._2).mkString(",")
       )
@@ -373,7 +373,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getBankAccount",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId.toString,
       "number" -> number
     )
@@ -478,7 +478,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getCounterpartyByCounterpartyId",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "counterpartyId" -> counterpartyId.toString
     )
     // Since result is single account, we need only first list entry
@@ -493,7 +493,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getCounterpartyByIban",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "otherAccountRoutingAddress" -> iban,
       "otherAccountRoutingScheme" -> "IBAN"
     )
@@ -555,7 +555,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req: Map[String, String] = Map(
                                         "north" -> "saveTransaction",
                                         "version" -> formatVersion,
-                                        "name" -> OBPUser.getCurrentUserUsername,
+                                        "name" -> AuthUser.getCurrentUserUsername,
                                         // for both  toAccount and toCounterparty
                                         "accountId" -> fromAccount.accountId.value,
                                         "transactionType" -> transactionRequestType.value,
@@ -1012,7 +1012,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map( 
       "north" -> "getCurrentFxRate",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "fromCurrencyCode" -> fromCurrencyCode,
       "toCurrencyCode" -> toCurrencyCode
       )
@@ -1030,7 +1030,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getTransactionRequestTypeCharge",
       "version" -> formatVersion,
-      "name" -> OBPUser.getCurrentUserUsername,
+      "name" -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId.value,
       "accountId" -> accountId.value,
       "viewId" -> viewId.value,

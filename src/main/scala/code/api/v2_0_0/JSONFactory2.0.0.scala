@@ -39,7 +39,7 @@ import code.api.v1_2_1.ViewJSON
 import code.api.v2_2_0.{AccountsJSON, AccountJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
@@ -572,7 +572,7 @@ object JSONFactory200{
                       )
 
 
-  def createUserJSONfromOBPUser(user : OBPUser) : UserJSON = new UserJSON(
+  def createUserJSONfromAuthUser(user : AuthUser) : UserJSON = new UserJSON(
     user_id = user.user.foreign.get.userId,
     email = user.email,
     username = stringOrNull(user.username),
@@ -606,9 +606,9 @@ object JSONFactory200{
 
 
 
-  def createUserJSONfromOBPUser(user : Box[OBPUser]) : UserJSON = {
+  def createUserJSONfromAuthUser(user : Box[AuthUser]) : UserJSON = {
     user match {
-      case Full(u) => createUserJSONfromOBPUser(u)
+      case Full(u) => createUserJSONfromAuthUser(u)
       case _ => null
     }
   }

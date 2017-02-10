@@ -27,7 +27,7 @@ import net.liftweb.http.CurrentReq
 
 
 
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import net.liftweb.mapper.By
 
 
@@ -1389,8 +1389,8 @@ trait APIMethods200 {
             postedData <- tryo {json.extract[CreateUserJSON]} ?~! ErrorMessages.InvalidJsonFormat
             isValidStrongPassword <- tryo(assert(isValidStrongPassword(postedData.password))) ?~! ErrorMessages.InvalidStrongPasswordFormat
           } yield {
-            if (OBPUser.find(By(OBPUser.username, postedData.username)).isEmpty) {
-              val userCreated = OBPUser.create
+            if (AuthUser.find(By(AuthUser.username, postedData.username)).isEmpty) {
+              val userCreated = AuthUser.create
                 .firstName(postedData.first_name)
                 .lastName(postedData.last_name)
                 .username(postedData.username)
@@ -1404,7 +1404,7 @@ trait APIMethods200 {
               {
                 userCreated.saveMe()
                 if (userCreated.saved_?) {
-                  val json = JSONFactory200.createUserJSONfromOBPUser(userCreated)
+                  val json = JSONFactory200.createUserJSONfromAuthUser(userCreated)
                   successJsonResponse(Extraction.decompose(json), 201)
                 }
                 else
@@ -1721,7 +1721,7 @@ trait APIMethods200 {
               l <- user ?~ ErrorMessages.UserNotLoggedIn
               canGetAnyUser <- booleanToBox(hasEntitlement("", l.userId, ApiRole.CanGetAnyUser), "CanGetAnyUser entitlement required")
               // Workaround to get userEmail address directly from URI without needing to URL-encode it
-              users <- tryo{OBPUser.getApiUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
+              users <- tryo{AuthUser.getResourceUsersByEmail(CurrentReq.value.uri.split("/").last)} ?~! {ErrorMessages.UserNotFoundByEmail}
             }
               yield {
                 // Format the data as V2.0.0 json

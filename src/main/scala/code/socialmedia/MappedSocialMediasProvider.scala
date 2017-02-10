@@ -1,7 +1,7 @@
 package code.socialmedia
 
 import java.util.Date
-import code.model.dataAccess.APIUser
+import code.model.dataAccess.ResourceUser
 import code.util.{DefaultStringField}
 import net.liftweb.mapper._
 
@@ -30,7 +30,7 @@ with LongKeyedMapper[MappedSocialMedia] with IdPK with CreatedUpdated {
 
   def getSingleton = MappedSocialMedia
 
-  object user extends MappedLongForeignKey(this, APIUser)
+  object user extends MappedLongForeignKey(this, ResourceUser)
   object bank extends DefaultStringField(this)
 
   object mCustomerNumber extends DefaultStringField(this)

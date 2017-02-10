@@ -20,7 +20,7 @@ case class MappedSaveable[T <: Mapper[_]](value : T) extends Saveable[T] {
   def save() = value.save()
 }
 
-object LocalMappedConnectorDataImport extends OBPDataImport with CreateOBPUsers {
+object LocalMappedConnectorDataImport extends OBPDataImport with CreateAuthUsers {
 
   // Rename these types as MappedCrmEventType etc? Else can get confused with other types of same name
 

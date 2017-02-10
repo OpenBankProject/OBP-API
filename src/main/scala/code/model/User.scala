@@ -46,7 +46,7 @@ case class UserId(val value : Long) {
 }
 
 
-// TODO Document clearly the difference between this and OBPUser
+// TODO Document clearly the difference between this and AuthUser
 
 trait User {
 

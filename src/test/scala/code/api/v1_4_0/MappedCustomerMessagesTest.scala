@@ -76,7 +76,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
         case Empty => "Empty"
         case _ => "Failure"
       }
-      MappedUserCustomerLink.createUserCustomerLink(obpuser1.userId, customerId, exampleDate, true)
+      MappedUserCustomerLink.createUserCustomerLink(authuser1.userId, customerId, exampleDate, true)
 
       When("We add a message")
       request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
@@ -107,7 +107,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     //need to create a customer info obj since the customer messages call needs to find user by customer number
     MappedCustomer.create
       .mBank(mockBankId.value)
-      .mUser(obpuser1)
+      .mUser(authuser1)
       .mNumber(mockCustomerNumber).save()
   }
 

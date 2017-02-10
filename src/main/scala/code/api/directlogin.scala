@@ -29,7 +29,7 @@ package code.api
 import java.util.Date
 
 import authentikat.jwt.{JsonWebToken, JwtClaimsSet, JwtHeader}
-import code.model.dataAccess.OBPUser
+import code.model.dataAccess.AuthUser
 import code.model.{Consumer, Token, TokenType, User}
 import net.liftweb.common._
 import net.liftweb.http._
@@ -101,7 +101,7 @@ object DirectLogin extends RestHelper with Loggable {
         if (userId == 0) {
           message = ErrorMessages.InvalidLoginCredentials
           httpCode = 401
-        } else if (userId == OBPUser.usernameLockedStateCode) {
+        } else if (userId == AuthUser.usernameLockedStateCode) {
             message = ErrorMessages.UsernameHasBeenLocked
             httpCode = 401
         } else {
@@ -318,11 +318,11 @@ object DirectLogin extends RestHelper with Loggable {
     val username = directLoginParameters.getOrElse("username", "")
     val password = directLoginParameters.getOrElse("password", "")
 
-    var userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
+    var userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id
 
     if (userId.isEmpty) {
-      if ( ! OBPUser.externalUserHelper(username, password).isEmpty) 
-      	userId = for {id <- OBPUser.getAPIUserId(username, password)} yield id
+      if ( ! AuthUser.externalUserHelper(username, password).isEmpty)
+      	userId = for {id <- AuthUser.getResourceUserId(username, password)} yield id
     }
 
     userId

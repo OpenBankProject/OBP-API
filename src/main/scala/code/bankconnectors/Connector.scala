@@ -11,7 +11,7 @@ import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
-import code.model.dataAccess.{APIUser, MappedAccountHolder}
+import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -114,7 +114,7 @@ trait Connector {
 
   def getUser(name: String, password: String): Box[InboundUser]
 
-  def updateUserAccountViews(user: APIUser)
+  def updateUserAccountViews(user: ResourceUser)
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
 
@@ -773,7 +773,7 @@ trait Connector {
 
   def getBranch(bankId : BankId, branchId: BranchId) : Box[Branch]
 
-  def accountOwnerExists(user: APIUser, bankId: BankId, accountId: AccountId): Boolean = {
+  def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =
       MappedAccountHolder.findAll(
         By(MappedAccountHolder.user, user),
@@ -787,15 +787,15 @@ trait Connector {
   //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
   def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     if (account_owners.contains(owner)) {
-      val apiUserOwner = APIUser.findAll.find(user => owner == user.name)
-      apiUserOwner match {
+      val resourceUserOwner = ResourceUser.findAll.find(user => owner == user.name)
+      resourceUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, bankId, accountId)) {
             MappedAccountHolder.createMappedAccountHolder(o.apiId.value, bankId.value, accountId.value, "KafkaMappedConnector")
           }
        }
         case None => {
-          //This shouldn't happen as OBPUser should generate the APIUsers when saved
+          //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
           //logger.error(s"api user(s) $owner not found.")
        }
       }

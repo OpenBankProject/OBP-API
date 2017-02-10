@@ -103,7 +103,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   }
 
-  def updateUserAccountViews( user: APIUser ) = {
+  def updateUserAccountViews( user: ResourceUser ) = {
 
     val accounts = getBanks.flatMap { bank => {
       val bankId = bank.bankId.value
@@ -146,11 +146,11 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       setAccountOwner(username, BankId(acc.bank), AccountId(acc.id), acc.owners)
       views.foreach(v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> updated view ${v.uid} for apiuser ${user} and account ${acc}")
+        logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
       existing_views.filterNot(_.users.contains(user.apiId)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
-        logger.info(s"------------> added apiuser ${user} to view ${v.uid} for account ${acc}")
+        logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
     }
   }
@@ -227,7 +227,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
-    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
     val invalid = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, UTC)
     val parameters = new JHashMap
 
@@ -262,7 +262,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   override def getTransactions(bankId: BankId, accountId: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]] = {
- val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val limit = queryParams.collect { case OBPLimit(value) => MaxRows[MappedTransaction](value) }.headOption
     val offset = queryParams.collect { case OBPOffset(value) => StartAt[MappedTransaction](value) }.headOption
@@ -332,7 +332,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[ObpJvmBankAccount] = {
     val parameters = new JHashMap
 
-    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
@@ -365,7 +365,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     logger.info(s"hello from ObpJvmMappedConnnector.getBankAccounts accts is $accts")
 
-    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
 
     val r:List[ObpJvmInboundAccount] = accts.flatMap { a => {
 
@@ -413,7 +413,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
-    val primaryUserIdentifier = OBPUser.getCurrentUserUsername
+    val primaryUserIdentifier = AuthUser.getCurrentUserUsername
     val parameters = new JHashMap
 
     parameters.put("accountId", number)
@@ -579,8 +579,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   // TODO: Extend jvmNorth function with parameters transactionRequestId and description
 private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
 
-    val name = OBPUser.getCurrentUserUsername
-    val user = OBPUser.getApiUserByUsername(name)
+    val name = AuthUser.getCurrentUserUsername
+    val user = AuthUser.getResourceUserByUsername(name)
     val userId = for (u <- user) yield u.userId
     val accountId = fromAccount.accountId.value
     val accountName = fromAccount.name
@@ -1169,7 +1169,6 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   case class ObpJvmBankAccount(r: ObpJvmInboundAccount) extends BankAccount {
-    logger.info(s"--- ObpJvmBankAccount ---> amount=${r.balance.amount}")
     def accountId : AccountId       = AccountId(r.id)
     def accountType : String        = r.`type`
     def balance : BigDecimal        = BigDecimal(if (r.balance.amount.isEmpty) "-0.00" else r.balance.amount)
