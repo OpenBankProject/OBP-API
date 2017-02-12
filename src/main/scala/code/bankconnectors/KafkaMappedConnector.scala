@@ -204,17 +204,17 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
   }
 
-  override def createChallenge(transactionRequestType: TransactionRequestType, userId: String, transactionRequestId: String, bankId: BankId, accountId: AccountId) : Box[String] = {
+  override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String] = {
     // Create argument list
     val req = Map(
       "north" -> "createChallenge",
       "version" -> formatVersion,
       "name" -> AuthUser.getCurrentUserUsername,
+      "bankId" -> bankId.value,
+      "accountId" -> accountId.value,
       "userId" -> userId,
       "transactionRequestType" -> transactionRequestType.value,
-      "transactionRequestId" -> transactionRequestId,
-      "bankId" -> bankId.value,
-      "accountId" -> accountId.value
+      "transactionRequestId" -> transactionRequestId
     )
     val r: Option[KafkaInboundCreateChallange] = process(req).extractOpt[KafkaInboundCreateChallange]
     // Return result

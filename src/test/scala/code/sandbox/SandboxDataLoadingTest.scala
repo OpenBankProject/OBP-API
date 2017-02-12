@@ -36,7 +36,7 @@ import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
-import code.api.{SendServerRequests, APIResponse}
+import code.api.{APIResponse, SendServerRequests}
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
 import code.atms.Atms.{Atm, AtmId, countOfAtms}
@@ -44,13 +44,11 @@ import code.branches.Branches
 import code.branches.Branches.{Branch, BranchId, countOfBranches}
 import code.crm.CrmEvent
 import code.crm.CrmEvent
-import code.crm.CrmEvent.{CrmEventId, CrmEvent}
-
+import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.products.Products
 import code.products.Products.{Product, ProductCode, countOfProducts}
-
 import code.model.dataAccess._
-import code.model.{TransactionId, AccountId, BankId}
+import code.model.{AccountId, BankId, TransactionId}
 import code.products.Products.ProductCode
 import code.users.Users
 import code.views.Views
@@ -58,12 +56,12 @@ import dispatch._
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
-import org.scalatest.{BeforeAndAfterEach, ShouldMatchers, FlatSpec}
+import org.scalatest.{BeforeAndAfterEach, FlatSpec, ShouldMatchers}
 import net.liftweb.json.JsonDSL._
 import net.liftweb.json._
 import net.liftweb.json.Serialization.write
 import code.bankconnectors.Connector
-import net.liftweb.common.{Full, Empty}
+import net.liftweb.common.{Empty, Full, ParamFailure}
 
 /*
 This tests:
@@ -730,12 +728,20 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val userWithEmptyEmail = addEmailField(userWithoutEmail, "")
 
     //there should be no user with a blank id before we try to add one
-    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, "") match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     getResponse(userWithEmptyEmail).code should equal(FAILED)
 
     //there should still be no user with a blank email
-    Users.users.vend.getUserByProviderId(defaultProvider, "") should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, "") match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     //invalid email should fail
     val invalidEmail = "foooo"
@@ -744,7 +750,11 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     getResponse(userWithInvalidEmail).code should equal(FAILED)
 
     //there should still be no user
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     val validEmail = "test@example.com"
     val userWithValidEmail = addEmailField(userWithoutEmail, validEmail)
@@ -777,13 +787,25 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     val userWithSameUsernameAsUser1 = user1Json
 
     //neither of the users should exist initially
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
-    Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
+    Users.users.vend.getUserByProviderId(defaultProvider, secondUserName) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     getResponse(List(user1Json, userWithSameUsernameAsUser1)).code should equal(FAILED)
 
     //no user with firstUserId should be created
-    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) should equal(Empty)
+    Users.users.vend.getUserByProviderId(defaultProvider, user1.user_name) match {
+      case ParamFailure(_,x,y,_) => x should equal(Empty) // Returned result in case when akka is used
+      case Empty                 => Empty should equal(Empty)
+      case _                     => 0 should equal (1) // Should not happen
+    }
 
     //when we only alter the id (display name stays the same), it should work
     val userWithUsername2 = userWithSameUsernameAsUser1.replace("user_name", secondUserName)

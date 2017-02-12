@@ -13,6 +13,7 @@ import scala.concurrent.duration._
 import akka.event.Logging
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
+import code.users.{LiftUsers, RemoteUserCaseClasses}
 
 
 class AkkaMapperViewsActor extends Actor {
@@ -23,6 +24,9 @@ class AkkaMapperViewsActor extends Actor {
 
   val v = MapperViews
   val r = RemoteViewCaseClasses
+
+  val vu = LiftUsers
+  val ru = RemoteUserCaseClasses
 
   def receive = {
 
@@ -203,6 +207,40 @@ class AkkaMapperViewsActor extends Actor {
     case r.removeAllViews(bankId, accountId) =>
       logger.info("removeAllViews(" + bankId +", "+ accountId +")")
       sender ! v.removeAllViews(bankId, accountId)
+
+    // Resource User part
+    case ru.getUserByApiId(id: Long) =>
+      logger.info("getUserByApiId(" + id +")")
+
+      {
+        for {
+          res <- vu.getUserByApiId(id)
+        } yield {
+          sender ! res.asInstanceOf[User]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getUserByProviderId(provider : String, idGivenByProvider : String) =>
+      logger.info("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
+
+      {
+        for {
+          res <- vu.getUserByProviderId(provider, idGivenByProvider)
+        } yield {
+          sender ! res.asInstanceOf[User]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getUserByUserId(userId: String) =>
+      logger.info("getUserByUserId(" + userId +")")
+
+      {
+        for {
+          res <- vu.getUserByUserId(userId)
+        } yield {
+          sender ! res.asInstanceOf[User]
+        }
+      }.getOrElse( context.stop(sender) )
 
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }

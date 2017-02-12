@@ -168,8 +168,6 @@ import net.liftweb.util.Helpers._
 
   override def emailFrom = Props.get("mail.users.userinfo.sender.address", "sender-not-set")
 
-  override def dbTableName = "users" // define the DB table name
-
   override def screenWrap = Full(<lift:surround with="default" at="content"><lift:bind /></lift:surround>)
   // define the order fields will appear in forms and output
   override def fieldOrder = List(id, firstName, lastName, email, username, password, provider)
