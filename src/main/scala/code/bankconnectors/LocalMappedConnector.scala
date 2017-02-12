@@ -42,7 +42,7 @@ object LocalMappedConnector extends Connector with Loggable {
   val maxBadLoginAttempts = Props.get("max.bad.login.attempts") openOr "10"
 
   // Gets current challenge level for transaction request
-  override def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String) = {
+  override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     val propertyName = "transactionRequests_challenge_threshold_" + transactionRequestType.toUpperCase
     val threshold = BigDecimal(Props.get(propertyName, "1000"))
     logger.info(s"threshold is $threshold")
@@ -54,7 +54,7 @@ object LocalMappedConnector extends Connector with Loggable {
     val rate = fx.exchangeRate (thresholdCurrency, currency)
     val convertedThreshold = fx.convert(threshold, rate)
     logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
-    (convertedThreshold, currency)
+    AmountOfMoney(currency, convertedThreshold.toString())
   }
 
   /**

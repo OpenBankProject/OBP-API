@@ -88,7 +88,7 @@ trait Connector {
   // before we attempt to create a transaction on the south side
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
-  def getChallengeThreshold(userId: String, accountId: String, transactionRequestType: String, currency: String): (BigDecimal, String)
+  def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney
 
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String]
@@ -378,21 +378,22 @@ trait Connector {
     result
   }
 
-  def createTransactionRequestv210(initiator: User, 
-                                   fromAccount: BankAccount, 
-                                   toAccount: BankAccount, 
-                                   toCounterparty: CounterpartyTrait, 
-                                   transactionRequestType: TransactionRequestType, 
-                                   details: TransactionRequestDetails, 
+  def createTransactionRequestv210(initiator: User,
+                                   viewId: String,
+                                   fromAccount: BankAccount,
+                                   toAccount: BankAccount,
+                                   toCounterparty: CounterpartyTrait,
+                                   transactionRequestType: TransactionRequestType,
+                                   details: TransactionRequestDetails,
                                    detailsPlain: String): Box[TransactionRequest] = {
     //set initial status
     //for sandbox / testing: depending on amount, we ask for challenge or not
-    val (limit, currency) = getChallengeThreshold("", "", transactionRequestType.value, details.value.currency)
+    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId, transactionRequestType.value, details.value.currency, fromAccount.currency, initiator.name)
     val status =
       //if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
 
 
-      if (BigDecimal(details.value.amount) < limit) {
+      if (BigDecimal(details.value.amount) < BigDecimal(challengeThreshold.amount)) {
         if ( Props.getLong("transaction_status_scheduler_delay").isEmpty )
           TransactionRequests.STATUS_COMPLETED
         else
