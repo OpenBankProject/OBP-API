@@ -31,4 +31,8 @@ object ElasticsearchMetrics extends APIMetrics {
     MappedMetric.findAll.groupBy(_.getUrl())
   }
 
+  override def getAllMetrics(): List[APIMetric] = {
+    //TODO: replace the following with valid ES query
+    MappedMetric.findAll
+  }
 }

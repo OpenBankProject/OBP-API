@@ -20,7 +20,8 @@ import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
 import code.entitlement.Entitlement
 import code.fx.fx
-import code.metadata.counterparties.{Counterparties}
+import code.metadata.counterparties.Counterparties
+import code.metrics.APIMetrics
 import code.model.dataAccess.AuthUser
 import code.model.{BankId, ViewId, _}
 import code.products.Products.ProductCode
@@ -1360,6 +1361,37 @@ trait APIMethods210 {
             val json = JSONFactory210.createConsumerJSON(success)
             createdJsonResponse(Extraction.decompose(json))
           }
+      }
+    }
+
+    resourceDocs += ResourceDoc(
+      getMetrics,
+      apiVersion,
+      "getMetrics",
+      "GET",
+      "/management/metrics",
+      "Get Metrics",
+      """Get the all metrics
+        |
+        |require CanReadMetrics role""".stripMargin,
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(notCore, notPSD2, notOBWG),
+      Nil)
+
+    lazy val getMetrics : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      case "management" :: "metrics" :: Nil JsonGet _ => {
+        user => {
+          for {
+            u <- user ?~! ErrorMessages.UserNotLoggedIn
+            hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
+            metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics())
+          } yield {
+            val json = JSONFactory210.createMetricsJson(metrics)
+            successJsonResponse(Extraction.decompose(json))
+          }
+        }
       }
     }
   }

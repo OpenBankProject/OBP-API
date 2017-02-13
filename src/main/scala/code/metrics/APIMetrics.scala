@@ -50,6 +50,8 @@ trait APIMetrics {
   //TODO: ordering of list? should this be alphabetically by url? currently not enforced
   def getAllGroupedByUserId() : Map[String, List[APIMetric]]
 
+  def getAllMetrics(): List[APIMetric]
+
 }
 
 trait APIMetric {
