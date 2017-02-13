@@ -45,6 +45,7 @@ import code.model._
 import code.transactionrequests.TransactionRequests._
 import code.model.{AmountOfMoney, Consumer, Iban}
 import code.metadata.counterparties.CounterpartyTrait
+import code.metrics.APIMetric
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
@@ -362,6 +363,15 @@ class ViewJSON(
                 val can_see_where_tag : Boolean
               )
 
+case class MetricJson(
+                       user_id: String,
+                       url: String,
+                       date: Date,
+                       user_name: String,
+                       app_name: String,
+                       developer_email: String
+                     )
+case class MetricsJson(metrics: List[MetricJson])
 
 
 object JSONFactory210{
@@ -659,6 +669,20 @@ object JSONFactory210{
   }
   def createCustomersJson(customers : List[Customer]) : CustomerJSONs = {
     CustomerJSONs(customers.map(createCustomerJson))
+  }
+
+  def createMetricJson(metric: APIMetric): MetricJson = {
+    MetricJson(
+      user_id = metric.getUserId(),
+      user_name = metric.getUserName(),
+      developer_email = metric.getDeveloperEmail(),
+      app_name = metric.getAppName,
+      url = metric.getUrl(),
+      date = metric.getDate()
+    )
+  }
+  def createMetricsJson(metrics : List[APIMetric]) : MetricsJson = {
+    MetricsJson(metrics.map(createMetricJson))
   }
 
   // V210 Products
