@@ -13,6 +13,7 @@ import scala.concurrent.duration._
 import akka.event.Logging
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
+import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemoteUserCaseClasses}
 
 
@@ -239,6 +240,28 @@ class AkkaMapperViewsActor extends Actor {
           res <- vu.getUserByUserId(userId)
         } yield {
           sender ! res.asInstanceOf[User]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getUserByUserName(userName: String) =>
+      logger.info("getUserByUserName(" + userName +")")
+
+      {
+        for {
+          res <- vu.getUserByUserName(userName)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+      logger.info("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+
+      {
+        for {
+          res <- vu.createResourceUser(provider, providerId, name, email, userId)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 

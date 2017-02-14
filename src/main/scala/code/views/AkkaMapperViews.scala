@@ -15,6 +15,7 @@ import akka.pattern.ask
 import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
 import akka.util.Timeout
 import code.api.APIFailure
+import code.model.dataAccess.ResourceUser
 import code.users.{RemoteUserCaseClasses, Users}
 
 
@@ -358,6 +359,36 @@ object AkkaMapperViews extends Views with Users  {
     }
     catch {
       case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+  def getUserByUserName(userName : String) : Box[ResourceUser] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getUserByUserName(userName)).mapTo[ResourceUser],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+  def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not created", 404)
       case e: Throwable => throw e
     }
     res

@@ -35,10 +35,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
       ResourceUser.find(By(ResourceUser.provider_, userProvider), By(ResourceUser.providerId, userId)).getOrElse {
-        ResourceUser.create.
-          provider_(userProvider).
-          providerId(userId).
-          saveMe
+        code.model.User.createResourceUser(userProvider, Some(userId), None, None, None).get
       }
 
     val expectedBankId = "quxbank"

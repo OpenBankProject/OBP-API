@@ -96,6 +96,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
       .email(email)
       .provider_(getProvider())
       .providerId(username)
+    //code.model.User.createResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
@@ -107,7 +108,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
-    ResourceUser.find(By(ResourceUser.name_, username))
+    code.model.User.findByUserName(username)
   }
 
   override def save(): Boolean = {
@@ -615,7 +616,7 @@ import net.liftweb.util.Helpers._
     if (connector == "kafka" || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- ResourceUser.find(By(ResourceUser.name_, user.username))
+       u <- code.model.User.findByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
@@ -627,7 +628,7 @@ import net.liftweb.util.Helpers._
   def registeredUserHelper(username: String) = {
     if (connector == "kafka" || connector == "obpjvm") {
       for {
-       u <- ResourceUser.find(By(ResourceUser.name_, username))
+       u <- code.model.User.findByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield v
     }

@@ -108,6 +108,16 @@ object User {
     //that all stable versions retain the same behavior
     Users.users.vend.getUserByProviderId(provider, idGivenByProvider) ~> UserNotFound(provider, idGivenByProvider)
 
-  def findByUserId(userId : String) =
-    Users.users.vend.getUserByUserId(userId)
+  def findByUserId(userId : String) = {
+    val usr = Users.users.vend.getUserByUserId(userId)
+    usr
+  }
+
+  def findByUserName(userName: String) = {
+    Users.users.vend.getUserByUserName(userName)
+  }
+
+  def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
+     Users.users.vend.createResourceUser(provider, providerId, name, email, userId)
+  }
 }
