@@ -521,14 +521,39 @@ import net.liftweb.util.Helpers._
       if (S.post_?) {
         val usernameFromGui = S.param("username").getOrElse("")
         val passwordFromGui = S.param("password").getOrElse("")
-        S.param("username").
-          flatMap(name => findUserByUsername(name)) match {
+        findUserByUsername(usernameFromGui) match {
           // Check if user came from localhost and
           // if User is NOT locked and password is good
           case Full(user) if user.validated_? &&
             user.getProvider() == Props.get("hostname","") &&
             ! LoginAttempt.userIsLocked(usernameFromGui) &&
             user.testPassword(Full(passwordFromGui)) => {
+              // Reset any bad attempts
+              LoginAttempt.resetBadLoginAttempts(usernameFromGui)
+              val preLoginState = capturePreLoginState()
+              info("login redir: " + loginRedirect.get)
+              val redir = loginRedirect.get match {
+                case Full(url) =>
+                  loginRedirect(Empty)
+                  url
+                case _ =>
+                  homePage
+              }
+              registeredUserHelper(user.username)
+              logUserIn(user, () => {
+                S.notice(S.?("logged.in"))
+                preLoginState()
+                S.redirectTo(redir)
+              })
+            }
+
+          // Check if user came from kafka/obpjvm and
+          // if User is NOT locked. Then check username and password
+          // from connector in case they changed on the south-side
+          case Full(user) if user.validated_? &&
+            user.getProvider() != Props.get("hostname","") &&
+            ! LoginAttempt.userIsLocked(usernameFromGui) &&
+            testExternalPassword(Full(user.username.get), Full(passwordFromGui)).getOrElse(false) => {
               // Reset any bad attempts
               LoginAttempt.resetBadLoginAttempts(usernameFromGui)
               val preLoginState = capturePreLoginState()
@@ -565,9 +590,9 @@ import net.liftweb.util.Helpers._
             S.error(S.?("account.validation.error"))
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
-          case Empty if ((connector == "kafka" || connector == "obpjvm") &&
+          case Empty if (connector == "kafka" || connector == "obpjvm") &&
             (Props.getBool("kafka.user.authentication", false) ||
-            Props.getBool("obpjvm.user.authentication", false))) =>
+            Props.getBool("obpjvm.user.authentication", false)) =>
               val preLoginState = capturePreLoginState()
               info("login redir: " + loginRedirect.get)
               val redir = loginRedirect.get match {
@@ -609,6 +634,21 @@ import net.liftweb.util.Helpers._
 
     bind("user", loginXhtml,
          "submit" -> insertSubmitButton)
+  }
+
+
+ def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
+   if (connector == "kafka" || connector == "obpjvm") {
+     val res = for {
+       username <- usernameFromGui
+       password <- passwordFromGui
+       user <- getUserFromConnector(username, password)
+     } yield user match {
+       case user:AuthUser => true
+       case _ => false
+     }
+     res
+   } else Empty
   }
 
 

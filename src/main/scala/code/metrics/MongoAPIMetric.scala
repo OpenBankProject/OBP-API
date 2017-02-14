@@ -79,4 +79,8 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
   def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
     MongoAPIMetric.findAll.groupBy[String](_.getUserId)
   }
+
+  override def getAllMetrics(): List[APIMetric] = {
+    MongoAPIMetric.findAll
+  }
 }

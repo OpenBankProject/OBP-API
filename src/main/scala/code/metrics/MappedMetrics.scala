@@ -26,6 +26,10 @@ object MappedMetrics extends APIMetrics {
     MappedMetric.findAll.groupBy(_.getUrl())
   }
 
+  override def getAllMetrics(): List[APIMetric] = {
+    MappedMetric.findAll
+  }
+
 }
 
 class MappedMetric extends APIMetric with LongKeyedMapper[MappedMetric] with IdPK {
