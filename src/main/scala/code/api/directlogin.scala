@@ -349,5 +349,22 @@ object DirectLogin extends RestHelper with Loggable {
     }
   }
 
+  def getConsumer: Box[Consumer] = {
+    logger.info("DirectLogin header correct ")
+    val httpMethod = S.request match {
+      case Full(r) => r.request.method
+      case _ => "GET"
+    }
 
+    val (httpCode, message, directLoginParameters) = validator("protectedResource", httpMethod)
+
+    val consumer: Option[Consumer] = for {
+      tokenId: String <- directLoginParameters.get("token")
+      token: Token <- Token.find(By(Token.key, tokenId))
+      consumer: Consumer <- token.consumer
+    } yield {
+      consumer
+    }
+    consumer
+  }
 }

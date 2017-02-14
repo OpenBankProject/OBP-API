@@ -34,11 +34,11 @@ object APIMetrics extends SimpleInjector {
 
 trait APIMetrics {
 
-  def saveMetric(userId: String, url : String, date : Date, userName: String, appName: String, developerEmail: String) : Unit
+  def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit
 
   def saveMetric(url : String, date : Date) : Unit ={
     //TODO: update all places calling old function before removing this
-    saveMetric ("TODO: userId", url, date, "TODO: userName", "TODO: appName", "TODO: developerEmail")
+    saveMetric("TODO: userId", url, date, "TODO: userName", "TODO: appName", "TODO: developerEmail","TODO: consumerId" ,"TODO: implementedByPartialFunction" ,"TODO: implementedInVersion" ,"TODO: implementedInVersion" )
   }
 
   //TODO: ordering of list? should this be by date? currently not enforced
@@ -62,4 +62,9 @@ trait APIMetric {
   def getUserName() : String
   def getAppName : String
   def getDeveloperEmail() : String
+  def getConsumerId() : String
+  def getImplementedByPartialFunction() : String
+  def getImplementedInVersion() : String
+  def getVerb() : String
+
 }

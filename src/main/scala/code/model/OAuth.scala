@@ -138,7 +138,7 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
   override def rowsPerPage = 100
 
   def getRedirectURLByConsumerKey(consumerKey: String): String = Consumer.find(By(Consumer.key, consumerKey)).get.redirectURL.toString()
-  
+
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
 
@@ -220,6 +220,8 @@ class Token extends LongKeyedMapper[Token]{
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
   def user = userForeignKey.obj
+  //The the consumer from Token by consumerId
+  def consumer = consumerId.obj
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){
