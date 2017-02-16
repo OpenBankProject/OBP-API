@@ -226,17 +226,43 @@ object APIUtil extends Loggable {
         } else {
             Empty
         }
+
+      val consumer =
+        if (isThereAnOAuthHeader) {
+          getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } else if (Props.getBool("allow_direct_login", true) && isThereDirectLoginHeader) {
+          DirectLogin.getConsumer match {
+            case Full(c) => Full(c)
+            case _ => Empty
+          }
+        } else {
+          Empty
+        }
+
       // TODO This should use Elastic Search or Kafka not an RDBMS
-      val u = user.orNull
+      val u: User = user.orNull
       val userId = if (u != null) u.userId else "null"
       val userName = if (u != null) u.name else "null"
-      var appName = "null"
-      var developerEmail = "null"
-      for (c <- getConsumer) {
-        appName = c.name.get
-        developerEmail = c.developerEmail.get
-      }
-      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan), userName, appName, developerEmail)
+
+      val c: Consumer = consumer.orNull
+      //The consumerId, not key
+      val consumerId = if (u != null) c.id.toString() else "null"
+      var appName = if (u != null) c.name.toString() else "null"
+      var developerEmail = if (u != null) c.developerEmail.toString() else "null"
+
+      //TODO no easy way to get it, make it later
+      //name of the Scala Partial Function being used for the endpoint
+      val implementedByPartialFunction = ""
+      //name of version where the call is implemented) -- S.request.get.view
+      val implementedInVersion = S.request.get.view
+      //(GET, POST etc.) --S.request.get.requestType.method
+      val verb = S.request.get.requestType.method
+
+
+      APIMetrics.apiMetrics.vend.saveMetric(userId, S.uriAndQueryString.getOrElse(""), (now: TimeSpan), userName, appName, developerEmail, consumerId, implementedByPartialFunction, implementedInVersion, verb)
     }
   }
 

@@ -369,7 +369,11 @@ case class MetricJson(
                        date: Date,
                        user_name: String,
                        app_name: String,
-                       developer_email: String
+                       developer_email: String,
+                       implemented_by_partial_function: String,
+                       implemented_in_version: String,
+                       consumer_id: String,
+                       verb: String
                      )
 case class MetricsJson(metrics: List[MetricJson])
 
@@ -678,7 +682,11 @@ object JSONFactory210{
       developer_email = metric.getDeveloperEmail(),
       app_name = metric.getAppName,
       url = metric.getUrl(),
-      date = metric.getDate()
+      date = metric.getDate(),
+      consumer_id = metric.getConsumerId(),
+      verb = metric.getVerb(),
+      implemented_in_version = metric.getImplementedInVersion(),
+      implemented_by_partial_function = metric.getImplementedByPartialFunction()
     )
   }
   def createMetricsJson(metrics : List[APIMetric]) : MetricsJson = {
