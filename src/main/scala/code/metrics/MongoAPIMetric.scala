@@ -46,6 +46,15 @@ import net.liftweb.record.field.StringField
    object userName extends StringField(this,255)
    object appName extends StringField(this,255)
    object developerEmail extends StringField(this,255)
+   //The consumerId, Foreign key to Consumer not key
+   object consumerId extends StringField(this,255)
+   //name of the Scala Partial Function being used for the endpoint
+   object implementedByPartialFunction  extends StringField(this,255)
+   //name of version where the call is implemented) -- S.request.get.view
+   object implementedInVersion  extends StringField(this,255)
+   //(GET, POST etc.) --S.request.get.requestType
+   object verb extends StringField(this,255)
+
 
    def getUrl() = url.get
    def getDate() = date.get
@@ -53,11 +62,15 @@ import net.liftweb.record.field.StringField
    def getUserName(): String = userName.get
    def getAppName(): String = appName.get
    def getDeveloperEmail(): String = developerEmail.get
+   override def getConsumerId(): String = consumerId.get
+   override def getImplementedByPartialFunction(): String = implementedByPartialFunction.get
+   override def getImplementedInVersion(): String = implementedInVersion.get
+   override def getVerb(): String = verb.get
 }
 
 private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoAPIMetric] with APIMetrics {
 
-  def saveMetric(userId: String, url : String, date : Date, userName: String, appName: String, developerEmail: String) : Unit = {
+  def saveMetric(userId: String, url: String, date: Date, userName: String, appName: String, developerEmail: String, consumerId: String, implementedByPartialFunction: String, implementedInVersion: String, verb: String): Unit = {
     MongoAPIMetric.createRecord.
       userId(userId).
       url(url).
@@ -65,6 +78,10 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
       userName(userName).
       appName(appName).
       developerEmail(developerEmail).
+      consumerId(consumerId).
+      implementedByPartialFunction(implementedByPartialFunction).
+      implementedInVersion(implementedInVersion).
+      verb(verb)
       save
   }
 
@@ -78,5 +95,9 @@ private object MongoAPIMetric extends MongoAPIMetric with MongoMetaRecord[MongoA
 
   def getAllGroupedByUserId() : Map[String, List[APIMetric]] = {
     MongoAPIMetric.findAll.groupBy[String](_.getUserId)
+  }
+
+  override def getAllMetrics(): List[APIMetric] = {
+    MongoAPIMetric.findAll
   }
 }

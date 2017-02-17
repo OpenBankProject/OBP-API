@@ -136,14 +136,14 @@ object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer
 
   //show more than the default of 20
   override def rowsPerPage = 100
-
+  
   def getRedirectURLByConsumerKey(consumerKey: String): String = {
     logger.debug("hello from getRedirectURLByConsumerKey")
     val consumer: Consumer = Consumer.find(By(Consumer.key, consumerKey)).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
     logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}" )
     consumer.redirectURL.toString()
   }
-  
+
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
 
@@ -225,6 +225,8 @@ class Token extends LongKeyedMapper[Token]{
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
   def user = userForeignKey.obj
+  //The the consumer from Token by consumerId
+  def consumer = consumerId.obj
   def isValid : Boolean = expirationDate.is after now
   def gernerateVerifier : String =
     if (verifier.isEmpty){

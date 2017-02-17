@@ -2,6 +2,14 @@ body, div, h1, h2, h3, h4, p, span {
 	font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
+#main-about-box #main-about-buttons a {
+    background-color: #b42f26;
+    color: white;
+}
+
+#main-about-box {
+    background-color: #e57200;
+}
 
 #header-decoration {
 	background-color: #fff;
@@ -43,12 +51,6 @@ body, div, h1, h2, h3, h4, p, span {
 #registerAppSection,
 #create-sandbox-account {
 	background-color: #e57200;
-}
-
-
-#main-links a {
-	border-color: #e03c31;
-	background: #e03c31;
 }
 
 
@@ -100,9 +102,8 @@ nav .username
 	color: #fff;
 }
 
-
 #main-support {
-	background-color: #e03c31;
+	background-color: #b42f26;
 }
 
 #main-partners img {
@@ -115,9 +116,9 @@ nav .username
 
 
 .green-button a {
-	border: 3px solid #e03c31;
+	border: 3px solid #b42f26;
 	border-radius: 25px;
-	background-color: #e03c31;
+	background-color: #b42f26;
 	color: #fff;
 	padding: 10px;
 	font-size: 24px;
