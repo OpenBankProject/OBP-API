@@ -444,7 +444,7 @@ Store one or more transactions
       .CPOtherBankId(toCounterparty.otherBankId)
       .CPOtherAccountId(toCounterparty.otherAccountId)
       .CPOtherAccountProvider(toCounterparty.otherAccountProvider)
-      .CPCounterPartyId(toCounterparty.counterPartyId)
+      .CPCounterPartyId(toCounterparty.counterpartyId)
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
       .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)

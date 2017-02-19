@@ -417,7 +417,7 @@ trait Connector {
       chargeValue <- tryo {(BigDecimal(details.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${details.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(details.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, CounterpartyId(toCounterparty.counterPartyId),fromAccount, detailsPlain, status, charge)
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, CounterpartyId(toCounterparty.counterpartyId),fromAccount, detailsPlain, status, charge)
     } yield transactionRequest
 
     //make sure we get something back

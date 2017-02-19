@@ -1077,8 +1077,8 @@ trait APIMethods210 {
               otherBankRoutingAddress=postJson.other_bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
-            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterPartyId) ?~ "Cannot find the metadata"
-            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterPartyId).flatMap(oAcc => view.moderate(oAcc))
+            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterpartyId) ?~ "Cannot find the metadata"
+            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
             val list = createCounterpartJSON(moderated, metadata, couterparty)
             successJsonResponse(Extraction.decompose(list))
