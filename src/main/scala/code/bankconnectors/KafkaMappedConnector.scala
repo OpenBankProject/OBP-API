@@ -76,20 +76,38 @@ object KafkaMappedConnector extends Connector with Loggable {
   val cachedCounterparty    = TTLCache[KafkaInboundCounterparty](cacheTTL)
   val cachedTransactionRequestTypeCharge = TTLCache[KafkaInboundTransactionRequestTypeCharge](cacheTTL)
 
-  //val formatVersion: String  = "Nov2016"
-  //Update the version, added to send the discretion field to south in saveTransaction method
+
+  //
+  // "Versioning" of the messages sent by this or similar connector might work like this:
+  // Use Case Classes (e.g. KafkaInbound... KafkaOutbound... as below to describe the message structures.
+  // Probably should be in a separate file e.g. Nov2016_messages.scala
+  // Once the message format is STABLE, freeze the key/value pair names there. For now, new keys may be added but none modified.
+  // If we want to add a new message format, create a new file e.g. March2017_messages.scala
+  // Then add a suffix to the connector value i.e. instead of kafka we might have kafka_march_2017.
+  // Then in this file, populate the different case classes depending on the connector name and send to Kafka
+  //
+
   val formatVersion: String  = "Nov2016"
 
   implicit val formats = net.liftweb.json.DefaultFormats
+
+
+
+
+  // TODO Create and use a case class for each Map so we can document each structure.
+  // TODO Replace user with userName
+  // TODO The name key doesn't make sense. What does it signify?
+
+
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
     for {
       req <- tryo {Map[String, String](
         "north" -> "getUser",
-        "version" -> formatVersion,
-        "name" -> "get",
-        "target" -> "user",
-        "user" -> username,
+        "version" -> formatVersion, // rename version to messageFormat or maybe connector (see above)
+        "name" -> "get", // TODO Why do we need this?
+        "target" -> "user", // TODO Why do we need this?
+        "user" -> username, // TODO rename key to userName
         "password" -> password
         )}
       u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundValidatedUser])}
@@ -109,8 +127,8 @@ object KafkaMappedConnector extends Connector with Loggable {
         req <- tryo { Map[String, String](
           "north" -> "getBankAccounts",
           "version" -> formatVersion,
-          "name" -> "get",
-          "userId" -> user.name,
+          "name" -> "get", // What is the purpose of this key/value?
+          "userId" -> user.name, // TODO Send userId for userId. Add another field for userName if need be
           "bankId" -> bankId,
           "target" -> "accounts")}
         // Generate random uuid to be used as request-response match id
@@ -152,7 +170,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "version" -> formatVersion,
       "name" -> "get",
       "target" -> "banks",
-      "userId" -> AuthUser.getCurrentUserUsername
+      "userId" -> AuthUser.getCurrentUserUsername // TODO Send userId , Send userName in userName
       )
 
     logger.debug(s"Kafka getBanks says: req is: $req")
@@ -252,7 +270,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "name" -> "get",
       "target" -> "bank",
       "bankId" -> id.toString,
-      "userId" -> AuthUser.getCurrentUserUsername
+      "userId" -> AuthUser.getCurrentUserUsername // TODO use correct key name
       )
     val r = {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
@@ -510,6 +528,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
     Full(new KafkaCounterparty(r))
   }
+
+
+
+
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
     val req = Map(
@@ -1277,6 +1299,8 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   case class KafkaInboundValidatedUser(email: String,
                                        displayName: String)
+
+  // TODO Be consistent use camelCase
 
   case class KafkaInboundAccount(
                                   accountId : String,
