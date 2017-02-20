@@ -29,3 +29,6 @@ CREATE INDEX AUTHUSER_USERNAME ON authuser (USERNAME);
 insert into resourceuser  (id, email, provider_, providerid, name_, userid_) select id, email, provider_, providerid, name_, userid_ from apiuser;
 
 insert into authuser (id ,firstname ,lastname ,email ,username ,password_pw ,password_slt ,provider ,timezone ,user_c ,validated ,superuser ,uniqueid ,locale ) select  id ,firstname ,lastname ,email ,username ,password_pw ,password_slt ,provider ,timezone ,user_c ,validated ,superuser ,uniqueid ,locale  from users;
+-- At least for PostgreSQL, you need to update the sequence for the index afterwards
+select setval('resourceuser_id_seq', max(id)) from resourceuser;
+select setval('authuser_id_seq', max(id)) from authuser;

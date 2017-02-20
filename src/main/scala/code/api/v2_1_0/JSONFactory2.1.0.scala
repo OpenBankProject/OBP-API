@@ -434,6 +434,8 @@ object JSONFactory210{
     )
   }
 
+  // TODO Document each function
+  // TODO Don't use the word Response. If need to differenciate between request and response json, use inbound and outbound.
   def getTransactionRequestDetailsCounterpartyResponseFromJson(details: TransactionRequestDetailsCounterpartyResponseJSON) : TransactionRequestDetailsCounterpartyResponse = {
     val toAcc = TransactionRequestAccount (
       bank_id = details.toAccount.bank_id,

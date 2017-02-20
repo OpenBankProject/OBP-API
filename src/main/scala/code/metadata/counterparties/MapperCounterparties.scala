@@ -332,7 +332,7 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def otherBankId = mOtherBankId.get
   override def otherAccountId: String = mOtherAccountId.get
   override def otherAccountProvider: String = mOtherAccountProvider.get
-  override def counterPartyId = mCounterPartyId.get
+  override def counterpartyId = mCounterPartyId.get
   override def otherAccountRoutingScheme = mOtherAccountRoutingScheme.get
   override def otherAccountRoutingAddress = mOtherAccountRoutingAddress.get
   override def otherBankRoutingScheme: String = mOtherBankRoutingScheme.get
