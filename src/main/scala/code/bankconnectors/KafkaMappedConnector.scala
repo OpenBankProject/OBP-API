@@ -92,12 +92,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   implicit val formats = net.liftweb.json.DefaultFormats
 
 
-
-
   // TODO Create and use a case class for each Map so we can document each structure.
-  // TODO Replace user with userName
-  // TODO The name key doesn't make sense. What does it signify?
-
 
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
@@ -105,9 +100,9 @@ object KafkaMappedConnector extends Connector with Loggable {
       req <- tryo {Map[String, String](
         "north" -> "getUser",
         "version" -> formatVersion, // rename version to messageFormat or maybe connector (see above)
-        "name" -> "get", // TODO Why do we need this?
-        "target" -> "user", // TODO Why do we need this?
-        "username" -> username, // TODO rename key to userName
+        "name" -> "get", // For OBP-JVM compatibility but key name will change
+        "target" -> "user", // For OBP-JVM compatibility but key name will change
+        "username" -> username,
         "password" -> password
         )}
       u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundValidatedUser])}
@@ -127,8 +122,8 @@ object KafkaMappedConnector extends Connector with Loggable {
         req <- tryo { Map[String, String](
           "north" -> "getBankAccounts",
           "version" -> formatVersion,
-          "name" -> "get", // What is the purpose of this key/value?
-          "username" -> user.name, // TODO Send userId for userId. Add another field for userName if need be
+          "name" -> "get",
+          "username" -> user.name,
           "userId" -> user.userId,
           "bankId" -> bankId,
           "target" -> "accounts")}
@@ -172,7 +167,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "name" -> "get",
       "target" -> "banks",
       "userId" -> AuthUser.getCurrentResourceUserUserId,
-      "username" -> AuthUser.getCurrentUserUsername // TODO Send userId , Send userName in userName
+      "username" -> AuthUser.getCurrentUserUsername
       )
 
     logger.debug(s"Kafka getBanks says: req is: $req")
@@ -251,7 +246,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "validateChallengeAnswer",
       "version" -> formatVersion,
-      "name" -> AuthUser.getCurrentUserUsername,
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "challengeId" -> challengeId,
       "hashOfSuppliedAnswer" -> hashOfSuppliedAnswer
     )
