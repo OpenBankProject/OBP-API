@@ -95,7 +95,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   // TODO Create and use a case class for each Map so we can document each structure.
-  // TODO Replace user with userName
+  // TODO Replace user with username
   // TODO The name key doesn't make sense. What does it signify?
 
 
@@ -105,9 +105,9 @@ object KafkaMappedConnector extends Connector with Loggable {
       req <- tryo {Map[String, String](
         "north" -> "getUser",
         "version" -> formatVersion, // rename version to messageFormat or maybe connector (see above)
-        "name" -> "get", // TODO Why do we need this?
-        "target" -> "user", // TODO Why do we need this?
-        "user" -> username, // TODO rename key to userName
+        "name" -> "get", // This is for compatability with OBP-JVM
+        "target" -> "user", // This is for compatability with OBP-JVM
+        "user" -> username, // TODO rename key to username
         "password" -> password
         )}
       u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundValidatedUser])}
@@ -127,10 +127,11 @@ object KafkaMappedConnector extends Connector with Loggable {
         req <- tryo { Map[String, String](
           "north" -> "getBankAccounts",
           "version" -> formatVersion,
-          "name" -> "get", // What is the purpose of this key/value?
+          "name" -> "get", // This is for compatability with OBP-JVM
           "userId" -> user.name, // TODO Send userId for userId. Add another field for userName if need be
           "bankId" -> bankId,
-          "target" -> "accounts")}
+          "target" -> "accounts" // This is for compatability with OBP-JVM
+        )}
         // Generate random uuid to be used as request-response match id
         } yield {
           cachedUserAccounts.getOrElseUpdate(req.toString, () => process(req).extract[List[KafkaInboundAccount]])
