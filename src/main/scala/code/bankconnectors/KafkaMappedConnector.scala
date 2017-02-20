@@ -107,7 +107,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         "version" -> formatVersion, // rename version to messageFormat or maybe connector (see above)
         "name" -> "get", // TODO Why do we need this?
         "target" -> "user", // TODO Why do we need this?
-        "user" -> username, // TODO rename key to userName
+        "username" -> username, // TODO rename key to userName
         "password" -> password
         )}
       u <- tryo{cachedUser.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundValidatedUser])}
@@ -128,7 +128,8 @@ object KafkaMappedConnector extends Connector with Loggable {
           "north" -> "getBankAccounts",
           "version" -> formatVersion,
           "name" -> "get", // What is the purpose of this key/value?
-          "userId" -> user.name, // TODO Send userId for userId. Add another field for userName if need be
+          "username" -> user.name, // TODO Send userId for userId. Add another field for userName if need be
+          "userId" -> user.userId,
           "bankId" -> bankId,
           "target" -> "accounts")}
         // Generate random uuid to be used as request-response match id
@@ -170,7 +171,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       "version" -> formatVersion,
       "name" -> "get",
       "target" -> "banks",
-      "userId" -> AuthUser.getCurrentUserUsername // TODO Send userId , Send userName in userName
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername // TODO Send userId , Send userName in userName
       )
 
     logger.debug(s"Kafka getBanks says: req is: $req")
@@ -206,7 +208,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "transactionRequestType" -> transactionRequestType,
       "currency" -> currency,
       "userId" -> userId,
-      "userName" -> userName
+      "username" -> userName
       )
     val r: Option[KafkaInboundChallengeLevel] = process(req).extractOpt[KafkaInboundChallengeLevel]
     // Return result
@@ -231,6 +233,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "bankId" -> bankId.value,
       "accountId" -> accountId.value,
       "userId" -> userId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "transactionRequestType" -> transactionRequestType.value,
       "transactionRequestId" -> transactionRequestId
     )
@@ -270,7 +273,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       "name" -> "get",
       "target" -> "bank",
       "bankId" -> id.toString,
-      "userId" -> AuthUser.getCurrentUserUsername // TODO use correct key name
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername
       )
     val r = {
       cachedBank.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundBank])
@@ -284,7 +288,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getTransaction",
       "version" -> formatVersion,
-      "userId" -> AuthUser.getCurrentUserUsername,
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "name" -> "get",
       "target" -> "transaction",
       "bankId" -> bankId.toString,
@@ -321,7 +326,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getTransactions",
       "version" -> formatVersion,
-      "userId" -> AuthUser.getCurrentUserUsername,
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "name" -> "get",
       "target" -> "transactions",
       "bankId" -> bankId.toString,
@@ -349,7 +355,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getBankAccount",
       "version" -> formatVersion,
-      "userId"  -> AuthUser.getCurrentUserUsername,
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "name" -> "get",
       "target" -> "accounts",
       "bankId" -> bankId.toString,
@@ -380,7 +387,8 @@ object KafkaMappedConnector extends Connector with Loggable {
         val req = Map(
           "north" -> "getBankAccounts",
           "version" -> formatVersion,
-          "userId"  -> AuthUser.getCurrentUserUsername,
+          "userId" -> AuthUser.getCurrentResourceUserUserId,
+          "username" -> AuthUser.getCurrentUserUsername,
           "name" -> "get",
           "target" -> "accounts",
           "bankId" -> a._1.value,
@@ -411,7 +419,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req = Map(
       "north" -> "getBankAccount",
       "version" -> formatVersion,
-      "userId" -> AuthUser.getCurrentUserUsername,
+      "userId" -> AuthUser.getCurrentResourceUserUserId,
+      "username" -> AuthUser.getCurrentUserUsername,
       "name" -> "get",
       "target" -> "accounts",
       "bankId" -> bankId.toString,
@@ -549,7 +558,10 @@ object KafkaMappedConnector extends Connector with Loggable {
       val req = Map(
         "north" -> "getCounterpartyByIban",
         "version" -> formatVersion,
-        "name" -> AuthUser.getCurrentUserUsername,
+        "userId" -> AuthUser.getCurrentResourceUserUserId,
+        "username" -> AuthUser.getCurrentUserUsername,
+        "name" -> "get",
+        "target" -> "counterparty",
         "otherAccountRoutingAddress" -> iban,
         "otherAccountRoutingScheme" -> "IBAN"
       )
@@ -612,7 +624,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     val req: Map[String, String] = Map(
                                         "north" -> "saveTransaction",
                                         "version" -> formatVersion,
-                                        "name" -> AuthUser.getCurrentUserUsername,
+                                        "userId" -> AuthUser.getCurrentResourceUserUserId,
+                                        "username" -> AuthUser.getCurrentUserUsername,
+                                        "name" -> "put",
+                                        "target" -> "transaction",
                                         // for both  toAccount and toCounterparty
                                         "accountId" -> fromAccount.accountId.value,
                                         "transactionRequestType" -> transactionRequestType.value,

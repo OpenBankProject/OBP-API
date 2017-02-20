@@ -91,7 +91,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
   def getUser( username: String, password: String ): Box[InboundUser] = {
     val parameters = new JHashMap
-    parameters.put("user", username)
+    parameters.put("username", username)
     parameters.put("password", password)
 
     val response = jvmNorth.get("getUser", Transport.Target.user, parameters)
