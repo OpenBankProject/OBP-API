@@ -386,12 +386,12 @@ trait Connector {
                                    transactionRequestType: TransactionRequestType,
                                    details: TransactionRequestDetails,
                                    detailsPlain: String): Box[TransactionRequest] = {
-    //set initial status
-    //for sandbox / testing: depending on amount, we ask for challenge or not
-    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId, transactionRequestType.value, details.value.currency, fromAccount.currency, initiator.name)
-    val status =
-      //if (transactionRequestType.value == TransactionRequests.CHALLENGE_SANDBOX_TAN && BigDecimal(details.value.amount) < limit) {
 
+    // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
+    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId, transactionRequestType.value, details.value.currency, fromAccount.currency, initiator.name)
+    
+    // Set initial status
+    val status =
 
       if (BigDecimal(details.value.amount) < BigDecimal(challengeThreshold.amount)) {
         if ( Props.getLong("transaction_status_scheduler_delay").isEmpty )
