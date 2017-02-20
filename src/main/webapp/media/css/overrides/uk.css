@@ -15,6 +15,7 @@ h1 {
 	margin-left: 0;
 	margin-top: 0;
 	width: 100%;
+	opacity: 1;
 }
 #main-about-text h2, #main-about-text p {
 	font-family: "Nunito", "sans-serif";
@@ -89,4 +90,8 @@ h1 {
 	font-size: 17px;
 	margin-left: -6px;
 	padding: 9px 30px 9px 10px;
+}
+
+#cookies-consent {
+	z-index: 1;
 }
