@@ -33,7 +33,7 @@ import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.MappedComment
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
 import code.metadata.transactionimages.MappedTransactionImage
@@ -515,18 +515,23 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   // Get one counterparty by the Counterparty Id
   override def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] = {
-    val req = Map(
-      "north" -> "getCounterpartyByCounterpartyId",
-      "version" -> formatVersion,
-      "name" -> AuthUser.getCurrentUserUsername,
-      "counterpartyId" -> counterpartyId.toString
-    )
-    // Since result is single account, we need only first list entry
-    implicit val formats = net.liftweb.json.DefaultFormats
-    val r = {
-      cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
+
+    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+      MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
+    } else {
+      val req = Map(
+        "north" -> "getCounterpartyByCounterpartyId",
+        "version" -> formatVersion,
+        "name" -> AuthUser.getCurrentUserUsername,
+        "counterpartyId" -> counterpartyId.toString
+      )
+      // Since result is single account, we need only first list entry
+      implicit val formats = net.liftweb.json.DefaultFormats
+      val r = {
+        cachedCounterparty.getOrElseUpdate( req.toString, () => process(req).extract[KafkaInboundCounterparty])
+      }
+      Full(new KafkaCounterparty(r))
     }
-    Full(new KafkaCounterparty(r))
   }
 
 
@@ -534,17 +539,25 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
-    val req = Map(
-      "north" -> "getCounterpartyByIban",
-      "version" -> formatVersion,
-      "name" -> AuthUser.getCurrentUserUsername,
-      "otherAccountRoutingAddress" -> iban,
-      "otherAccountRoutingScheme" -> "IBAN"
-    )
 
-    val r = process(req).extract[KafkaInboundCounterparty]
+    if (Props.getBool("get_counterparties_from_OBP_DB", true)) {
+      MappedCounterparty.find(
+        By(MappedCounterparty.mOtherAccountRoutingAddress, iban),
+        By(MappedCounterparty.mOtherAccountRoutingScheme, "IBAN")
+      )
+    } else {
+      val req = Map(
+        "north" -> "getCounterpartyByIban",
+        "version" -> formatVersion,
+        "name" -> AuthUser.getCurrentUserUsername,
+        "otherAccountRoutingAddress" -> iban,
+        "otherAccountRoutingScheme" -> "IBAN"
+      )
 
-    Full(new KafkaCounterparty(r))
+      val r = process(req).extract[KafkaInboundCounterparty]
+
+      Full(new KafkaCounterparty(r))
+    }
   }
 
   override def getPhysicalCards(user: User): List[PhysicalCard] =
