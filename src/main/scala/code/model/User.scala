@@ -118,8 +118,18 @@ object User {
     Users.users.vend.getUserByUserName(userName)
   }
 
+  def findByEmail(email: String) = {
+    Users.users.vend.getUserByEmail(email) match {
+      case Full(list) => list
+      case _ => List()
+    }
+  }
+
   def findAll() = {
-    Users.users.vend.getAllUsers()
+    Users.users.vend.getAllUsers() match {
+      case Full(list) => list
+      case _          => List()
+    }
   }
 
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {

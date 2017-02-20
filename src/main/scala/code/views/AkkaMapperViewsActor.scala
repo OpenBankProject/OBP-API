@@ -254,6 +254,17 @@ class AkkaMapperViewsActor extends Actor {
         }
       }.getOrElse( context.stop(sender) )
 
+    case ru.getUserByEmail(email: String) =>
+      logger.info("getUserByEmail(" + email +")")
+
+      {
+        for {
+          res <- vu.getUserByEmail(email)
+        } yield {
+          sender ! res
+        }
+      }.getOrElse( context.stop(sender) )
+
     case ru.getAllUsers() =>
       logger.info("getAllUsers()")
 

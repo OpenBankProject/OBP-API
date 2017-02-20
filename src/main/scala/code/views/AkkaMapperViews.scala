@@ -378,6 +378,21 @@ object AkkaMapperViews extends Views with Users  {
     }
     res
   }
+  def getUserByEmail(email : String) : Box[List[ResourceUser]] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getUserByEmail(email)).mapTo[List[ResourceUser]],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
   def getAllUsers() : Box[List[ResourceUser]] = {
     val res = try {
       Full(

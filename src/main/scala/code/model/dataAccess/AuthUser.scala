@@ -97,11 +97,11 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
-    ResourceUser.findAll(By(ResourceUser.email, userEmail))
+    code.model.User.findByEmail(userEmail)
   }
 
   def getResourceUsers(): List[ResourceUser] = {
-    ResourceUser.findAll()
+    code.model.User.findAll()
   }
 
   def getResourceUserByUsername(username: String) : Box[ResourceUser] = {

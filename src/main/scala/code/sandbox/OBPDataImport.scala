@@ -136,7 +136,7 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
-    val existingResourceUsers = toImport.flatMap(u => ResourceUser.find(By(ResourceUser.name_, u.user_name)))
+    val existingResourceUsers = toImport.flatMap(u => code.model.User.findByUserName(u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 
@@ -523,7 +523,7 @@ trait OBPDataImport extends Loggable {
 
 
 
-      val us = code.model.User.findAll().getOrElse(List());
+      val us = code.model.User.findAll();
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, views, accOwnerUsernames) =>

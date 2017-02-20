@@ -5,6 +5,8 @@ import code.model.User
 import code.model.dataAccess.ResourceUser
 import net.liftweb.mapper.By
 
+import scala.collection.immutable.List
+
 object LiftUsers extends Users {
 
   def getUserByApiId(id : Long) : Box[User] = {
@@ -21,6 +23,10 @@ object LiftUsers extends Users {
 
   override def getUserByUserName(userName: String): Box[ResourceUser] = {
     ResourceUser.find(By(ResourceUser.name_, userName))
+  }
+
+  override def getUserByEmail(email: String): Box[List[ResourceUser]] = {
+    Full(ResourceUser.findAll(By(ResourceUser.email, email)))
   }
 
   override def getAllUsers(): Box[List[ResourceUser]] = {
