@@ -27,3 +27,11 @@
 #main-about img {
 	margin-top: 30px;
 }
+
+#main-about-box {
+	background-color: #000;
+}
+
+#main-about-text img {
+	width: 500px;
+}
