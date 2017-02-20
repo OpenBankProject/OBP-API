@@ -143,11 +143,11 @@ object Helper{
   }
 
   /**
-    * check the redirect url is valid in the pros "allowed_internal_redirect_urls" white list.
+    * check the redirect url is valid with default values.
     */
   def isValidInternalRedirectUrl(url: String) : Boolean = {
-    //set the default value is "/", it will redirect to homepage.
-    val validUrls = Props.get("allowed_internal_redirect_urls", "/").split(",").map(_.trim).toList
+    //set the default value is "/" and "/oauth/authorize"
+    val validUrls = List("/","/oauth/authorize")
 
     //case1: OBP-API login: url = "/"
     //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"

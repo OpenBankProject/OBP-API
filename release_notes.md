@@ -3,5 +3,5 @@
 ### Most recent changes at top of file
 ```
 Date          Commit        Action 
-17/02/2017    cc42117       added new pair to pros : # The internal redirect white list <--> allowed_internal_redirect_urls = /,/oauth/authorize
+17/02/2017    cc42117       added new pair to props : # The internal redirect white list <--> allowed_internal_redirect_urls = /,/oauth/authorize
 ```
