@@ -53,7 +53,8 @@ class OAuthWorkedThanks {
     val validRedirectURL = Consumer.getRedirectURLByConsumerKey(appConsumerKey)
     
     redirectUrl match {
-      case Full(url) => 
+      case Full(url) =>
+        //this redirect url is checked by following, no open redirect issue.
         if(validRedirectURL.equals(requestedRedirectURL)) {
           "#redirect-link [href]" #> url
         }else{

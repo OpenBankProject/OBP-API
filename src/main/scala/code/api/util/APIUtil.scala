@@ -97,8 +97,11 @@ object ErrorMessages {
   val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
 
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
-  
+
   val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
+
+  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
