@@ -389,11 +389,12 @@ trait Connector {
 
     // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
     val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId, transactionRequestType.value, details.value.currency, fromAccount.currency, initiator.name)
-    
+
     // Set initial status
     val status =
 
       if (BigDecimal(details.value.amount) < BigDecimal(challengeThreshold.amount)) {
+        // TODO Document this
         if ( Props.getLong("transaction_status_scheduler_delay").isEmpty )
           TransactionRequests.STATUS_COMPLETED
         else
