@@ -44,6 +44,7 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
+import code.util.Helper
 
 
 /**
@@ -380,7 +381,21 @@ import net.liftweb.util.Helpers._
 
   def userLoginFailed = {
     info("failed: " + failedLoginRedirect.get)
-    failedLoginRedirect.get.foreach(S.redirectTo(_))
+    // variable redir is from failedLoginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // AuthUser.failedLoginRedirect.set(Full(Helpers.appendParams(currentUrl, List((FailedLoginParam, "true")))))
+    val redir = failedLoginRedirect.get
+
+    //Check the internal redirect, in case for open redirect issue.
+    // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+    if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+        S.redirectTo(redir.toString)
+    } else {
+      S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+      info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+    }
     S.error("login", S.?("Invalid Username or Password"))
   }
 
@@ -539,12 +554,21 @@ import net.liftweb.util.Helpers._
                   homePage
               }
               registeredUserHelper(user.username)
+            //Check the internal redirect, in case for open redirect issue.
+            // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+            // val currentUrl = S.uriAndQueryString.getOrElse("/")
+            // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+            if (Helper.isValidInternalRedirectUrl(redir.toString)) {
               logUserIn(user, () => {
                 S.notice(S.?("logged.in"))
                 preLoginState()
                 S.redirectTo(redir)
               })
+            } else {
+              S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+              info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
             }
+          }
 
           // Check if user came from kafka/obpjvm and
           // if User is NOT locked. Then check username and password
@@ -565,11 +589,20 @@ import net.liftweb.util.Helpers._
                   homePage
               }
               registeredUserHelper(user.username)
-              logUserIn(user, () => {
-                S.notice(S.?("logged.in"))
-                preLoginState()
-                S.redirectTo(redir)
-              })
+              //Check the internal redirect, in case for open redirect issue.
+              // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+              // val currentUrl = S.uriAndQueryString.getOrElse("/")
+              // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+              if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+                logUserIn(user, () => {
+                  S.notice(S.?("logged.in"))
+                  preLoginState()
+                  S.redirectTo(redir)
+                })
+              } else {
+                S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+                info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+              }
             }
 
           // If user is unlocked AND bad password, increment bad login attempt counter.
@@ -608,11 +641,20 @@ import net.liftweb.util.Helpers._
               } match {
                 case u:AuthUser =>
                   LoginAttempt.resetBadLoginAttempts(usernameFromGui)
-                  logUserIn(u, () => {
-                    S.notice(S.?("logged.in"))
-                    preLoginState()
-                    S.redirectTo(redir)
-                  })
+                  //Check the internal redirect, in case for open redirect issue.
+                  // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+                  // val currentUrl = S.uriAndQueryString.getOrElse("/")
+                  // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
+                  if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+                    logUserIn(u, () => {
+                      S.notice(S.?("logged.in"))
+                      preLoginState()
+                      S.redirectTo(redir)
+                    })
+                  } else {
+                    S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+                    info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+                  }
                 case _ =>
                   LoginAttempt.incrementBadLoginAttempts(username)
                   Empty
@@ -685,23 +727,31 @@ import net.liftweb.util.Helpers._
     val theUser: TheUserType = mutateUserOnSignup(createNewUserInstance())
     val theName = signUpPath.mkString("")
 
-    //save the intended login redirect here, as it gets wiped (along with the session) on login
+    //Check the internal redirect, in case for open redirect issue.
+    // variable redir is from loginRedirect, it is set-up in OAuthAuthorisation.scala as following code:
+    // val currentUrl = S.uriAndQueryString.getOrElse("/")
+    // AuthUser.loginRedirect.set(Full(Helpers.appendParams(currentUrl, List((LogUserOutParam, "false")))))
     val loginRedirectSave = loginRedirect.is
 
     def testSignup() {
       validateSignup(theUser) match {
         case Nil =>
-          actionsAfterSignup(theUser, () => {
-            //here we check loginRedirectSave (different from implementation in super class)
-            val redir = loginRedirectSave match {
-              case Full(url) =>
-                loginRedirect(Empty)
-                url
-              case _ =>
-                homePage
-            }
-            S.redirectTo(redir)
-          })
+          //here we check loginRedirectSave (different from implementation in super class)
+          val redir = loginRedirectSave match {
+            case Full(url) =>
+              loginRedirect(Empty)
+              url
+            case _ =>
+              homePage
+          }
+          if (Helper.isValidInternalRedirectUrl(redir.toString)) {
+            actionsAfterSignup(theUser, () => {
+              S.redirectTo(redir)
+            })
+          } else {
+            S.error(S.?(ErrorMessages.InvalidInternalRedirectUrl))
+            info(ErrorMessages.InvalidInternalRedirectUrl + loginRedirect.get)
+          }
 
         case xs =>
           xs.foreach(e => S.error("signup", e.msg))

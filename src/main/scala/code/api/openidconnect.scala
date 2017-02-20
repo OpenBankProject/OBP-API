@@ -113,6 +113,7 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
                   AuthUser.logUserIn(obp_user, () => {
                     S.notice(S.?("logged.in"))
+                    //This redirect to homePage, it is from scala code, no open redirect issue.
                     S.redirectTo(AuthUser.homePage)
                   })
                 }

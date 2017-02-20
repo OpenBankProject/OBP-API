@@ -385,12 +385,21 @@ trait APIMethods210 {
               fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
-              //TODO check more things here
-              transactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
-              transactionRequestTypeMapperValue <- Full(transactionRequest.`type`)
-              isTheSame <- booleanToBox(transactionRequestTypeMapperValue.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$transactionRequestTypeMapperValue' ")
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
-              //create transaction and insert its id into the transaction request
+
+              //check the transReqId validation.
+              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
+
+              //check the input transactionRequestType is same as when the user create the existingTransactionRequest
+              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
+              isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
+
+              //check the changle id is same as when the user create the existingTransactionRequest
+              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+
+              //check the change statue wheather is initiated, only retreive INITIATED transaction requests.
+              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
+
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev210(u, transReqId, transactionRequestType)
             } yield {
               // Format explicitly as v2.0.0 json

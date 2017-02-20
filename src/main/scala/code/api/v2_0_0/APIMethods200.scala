@@ -1278,8 +1278,20 @@ trait APIMethods200 {
               fromAccount <- BankAccount(bankId, accountId) ?~! {"Unknown bank account"}
               view <- tryo(fromAccount.permittedViews(user).find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
               answerJson <- tryo{json.extract[ChallengeAnswerJSON]} ?~ {"Invalid json format"}
-              //TODO check more things here
               answerOk <- Connector.connector.vend.answerTransactionRequestChallenge(transReqId, answerJson.answer)
+              //check the transReqId validation.
+              existingTransactionRequest <- Connector.connector.vend.getTransactionRequestImpl(transReqId) ?~! {ErrorMessages.InvalidTransactionRequestId}
+
+              //check the input transactionRequestType is same as when the user create the existingTransactionRequest
+              existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
+              isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
+
+              //check the changle id is same as when the user create the existingTransactionRequest
+              isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
+
+              //check the change statue wheather is initiated, only retreive INITIATED transaction requests.
+              isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
+
               //create transaction and insert its id into the transaction request
               transactionRequest <- Connector.connector.vend.createTransactionAfterChallengev200(u, transReqId, transactionRequestType)
             } yield {

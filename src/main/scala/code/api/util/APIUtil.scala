@@ -97,8 +97,11 @@ object ErrorMessages {
   val UserNoPermissionUpdateConsumer = "OBP-20015: Only the developer that created the consumer key should be able to edit it, please login with the right user."
 
   val UnexpectedErrorDuringLogin = "OBP-20016: An unexpected login error occurred. Please try again."
-  
+
   val ViewAccessNoPermission = "OBP-20017: Current user does not have access to the view. Please specify a valid value for VIEW_ID."
+
+  val InvalidInternalRedirectUrl = "OBP-20018: Login failed, invalid internal redirectUrl."
+
   
   // Resource related messages
   val BankNotFound = "OBP-30001: Bank not found. Please specify a valid value for BANK_ID."
@@ -165,6 +168,8 @@ object ErrorMessages {
   val CreateTransactionTypeUpdateError  = "OBP-40007: Could not update Transaction Type: Non unique BANK_ID / SHORT_CODE"
   val NotPositiveAmount = "OBP-40008: Can't send a payment with a value of 0 or less."
   val TransactionRequestTypeHasChanged = "OBP-40009: The TRANSACTION_REQUEST_TYPE has changed."
+  val InvalidTransactionRequesChallengeId = "OBP-40010: Invalid Challenge Id. Please specify a valid value for CHALLENGE_ID."
+  val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not initiated. This transaction request has been answered before"
 
 }
 

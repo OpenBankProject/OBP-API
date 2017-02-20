@@ -603,6 +603,7 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         // for both  toAccount and toCounterparty
                                         "accountId" -> fromAccount.accountId.value,
                                         "transactionRequestType" -> transactionRequestType.value,
+                                        "transactionType" -> "AC",
                                         "amount" -> amt.toString,
                                         "currency" -> currency,
                                         "description" -> description,
