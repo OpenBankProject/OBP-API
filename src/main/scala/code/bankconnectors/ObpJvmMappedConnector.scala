@@ -292,8 +292,13 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     val pageSize = Pager.DEFAULT_SIZE; // all in one page
     val pager = jvmNorth.pager(pageSize, 0, filter, sorter)
 
+
+    // On the one hand its nice to be able to easily add a key/value pair, but we can't know from here how the message will appear on the Kafka or other queue.
+    // i.e. we don't have a case class here, we are just telling obpjvm to add a parameter and it does the rest.
+
     parameters.put("accountId", accountId.value)
     parameters.put("bankId", bankId.value)
+    // TODO If we say we are sending userId, send the userId (not the username)
     parameters.put("userId", primaryUserIdentifier)
 
     val response = jvmNorth.get("getTransactions", Transport.Target.transactions, pager, parameters)
@@ -600,6 +605,10 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val transactionId:String = UUID.randomUUID().toString
 
     val `type` = "pain.001.001.03db" // SocGen transactions
+
+
+    // TODO Remove SocGen specific names.
+    // i.e. use OBP CounterPartyTrait, Account, Transaction names on the right side - ideally snake_case as per the OBP REST API.
 
     // SocGen Tags
     object Tags {

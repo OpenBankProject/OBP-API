@@ -57,7 +57,7 @@ trait CounterpartyTrait {
   def otherBankId: String
   def otherAccountId: String
   def otherAccountProvider: String
-  def counterPartyId: String
+  def counterpartyId: String
   def otherAccountRoutingScheme: String
   def otherAccountRoutingAddress: String
   def otherBankRoutingScheme: String

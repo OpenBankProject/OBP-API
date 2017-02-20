@@ -33,7 +33,7 @@ package code.model
 import net.liftweb._
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
 import net.liftweb.util.{Props, FieldError, Helpers, SecurityHelpers}
-import net.liftweb.common.{Full,Failure,Box,Empty}
+import net.liftweb.common._
 import Helpers.now
 import code.model.dataAccess.ResourceUser
 import net.liftweb.http.S
@@ -112,7 +112,7 @@ class Consumer extends LongKeyedMapper[Consumer] with CreatedUpdated{
  * their urls are not persistent. So if you copy paste a url and email it to someone, don't count on it
  * working for long.
  */
-object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
+object Consumer extends Consumer with Loggable with LongKeyedMetaMapper[Consumer] with CRUDify[Long, Consumer]{
   //list all path : /admin/consumer/list
   override def calcPrefix = List("admin",_dbTableNameLC)
 
@@ -136,8 +136,13 @@ object Consumer extends Consumer with LongKeyedMetaMapper[Consumer] with CRUDify
 
   //show more than the default of 20
   override def rowsPerPage = 100
-
-  def getRedirectURLByConsumerKey(consumerKey: String): String = Consumer.find(By(Consumer.key, consumerKey)).get.redirectURL.toString()
+  
+  def getRedirectURLByConsumerKey(consumerKey: String): String = {
+    logger.debug("hello from getRedirectURLByConsumerKey")
+    val consumer: Consumer = Consumer.find(By(Consumer.key, consumerKey)).openOrThrowException(s"OBP Consumer not found by consumerKey. You looked for $consumerKey Please check the database")
+    logger.debug(s"getRedirectURLByConsumerKey found consumer with id: ${consumer.id}, name is: ${consumer.name}, isActive is ${consumer.isActive}" )
+    consumer.redirectURL.toString()
+  }
 
   //counts the number of different unique email addresses
   val numUniqueEmailsQuery = s"SELECT COUNT(DISTINCT ${Consumer.developerEmail.dbColumnName}) FROM ${Consumer.dbName};"
