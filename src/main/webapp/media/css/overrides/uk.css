@@ -11,6 +11,15 @@ h1 {
 	padding-top: 0 !important;
 }
 
+#main-about-box {
+	margin-left: 0;
+	margin-top: 0;
+	width: 100%;
+}
+#main-about-text h2, #main-about-text p {
+	font-family: "Nunito", "sans-serif";
+}
+
 .top {
 	background-color: #53C4EF;
 	font-family: "Nunito", "sans-serif";
@@ -56,11 +65,10 @@ h1 {
 }
 
 .newsletter {
-	background-color: black;
 	font-family: "Nunito", "sans-serif";
 	margin: 0 20px;
 	padding: 30px;
-	text-align: center;
+	text-align: left;
 }
 .newsletter input {
 	border: 1px solid black;
@@ -80,5 +88,5 @@ h1 {
 	font-family: "Nunito", "sans-serif";
 	font-size: 17px;
 	margin-left: -6px;
-	padding: 10px 30px 10px 10px;
+	padding: 9px 30px 9px 10px;
 }
