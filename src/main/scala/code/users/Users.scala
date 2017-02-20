@@ -24,7 +24,13 @@ trait Users {
 
   def getUserByUserName(userName: String) : Box[ResourceUser]
 
+  def getAllUsers() : Box[List[ResourceUser]]
+
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
+
+  def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
+
+  def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
 }
 
 class RemoteUserCaseClasses {
@@ -32,7 +38,10 @@ class RemoteUserCaseClasses {
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
   case class getUserByUserId(userId : String)
   case class getUserByUserName(userName : String)
+  case class getAllUsers()
   case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
+  case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
+  case class saveResourceUser(resourceUser: ResourceUser)
 }
 
 object RemoteUserCaseClasses extends RemoteUserCaseClasses

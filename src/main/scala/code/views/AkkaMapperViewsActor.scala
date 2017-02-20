@@ -254,12 +254,45 @@ class AkkaMapperViewsActor extends Actor {
         }
       }.getOrElse( context.stop(sender) )
 
+    case ru.getAllUsers() =>
+      logger.info("getAllUsers()")
+
+      {
+        for {
+          res <- vu.getAllUsers()
+        } yield {
+          sender ! res
+        }
+      }.getOrElse( context.stop(sender) )
+
     case ru.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.info("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
 
       {
         for {
           res <- vu.createResourceUser(provider, providerId, name, email, userId)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+      logger.info("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+
+      {
+        for {
+          res <- vu.createUnsavedResourceUser(provider, providerId, name, email, userId)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.saveResourceUser(resourceUser: ResourceUser) =>
+      logger.info("saveResourceUser")
+
+      {
+        for {
+          res <- vu.saveResourceUser(resourceUser)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }

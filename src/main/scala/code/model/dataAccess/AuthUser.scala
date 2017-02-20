@@ -91,12 +91,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def createUnsavedResourceUser() : ResourceUser = {
-    ResourceUser.create
-      .name_(username)
-      .email(email)
-      .provider_(getProvider())
-      .providerId(username)
-    //code.model.User.createResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
+    val user = code.model.User.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
+    user
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {

@@ -378,11 +378,56 @@ object AkkaMapperViews extends Views with Users  {
     }
     res
   }
+  def getAllUsers() : Box[List[ResourceUser]] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getAllUsers()).mapTo[List[ResourceUser]],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Users not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = {
     val res = try {
       Full(
         Await.result(
           (viewsActor ? ru.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not created", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+  def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not created", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+  def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.saveResourceUser(resourceUser)).mapTo[ResourceUser],
           TIMEOUT
         )
       )

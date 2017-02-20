@@ -8,7 +8,7 @@ import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{Product, ProductCode}
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
+import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
 import code.model._
 import code.branches.Branches.Branch
 import code.atms.Atms.Atm
@@ -162,6 +162,7 @@ trait OBPDataImport extends Loggable {
    */
   protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[ResourceUser]): AnyVal = {
     val resourceUserOwner = createdUsers.find(user => owner == user.name)
+    println("{resourceUserOwner: " + resourceUserOwner)
 
     resourceUserOwner match {
       case Some(o) => {
@@ -522,7 +523,7 @@ trait OBPDataImport extends Loggable {
 
 
 
-
+      val us = code.model.User.findAll().getOrElse(List());
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, views, accOwnerUsernames) =>
@@ -531,11 +532,11 @@ trait OBPDataImport extends Loggable {
           views.filterNot(_.isPublic).foreach(v => {
             //grant the owner access to non-public views
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
-            val accOwners = users.map(_.value).filter(u => accOwnerUsernames.exists(name => u.name == name))
+            val accOwners = us.filter(u => accOwnerUsernames.exists(name => u.name == name))
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))
           })
 
-          accOwnerUsernames.foreach(setAccountOwner(_, account.value, users.map(_.value)))
+          accOwnerUsernames.foreach(setAccountOwner(_, account.value, us))
       }
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>

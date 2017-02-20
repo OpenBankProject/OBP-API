@@ -23,6 +23,10 @@ object LiftUsers extends Users {
     ResourceUser.find(By(ResourceUser.name_, userName))
   }
 
+  override def getAllUsers(): Box[List[ResourceUser]] = {
+    Full(ResourceUser.findAll())
+  }
+
   override def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
     val ru = ResourceUser.create
     ru.provider_(provider)
@@ -43,6 +47,33 @@ object LiftUsers extends Users {
       case None    =>
     }
     Full(ru.saveMe())
+  }
+
+  override def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]): Box[ResourceUser] = {
+    val ru = ResourceUser.create
+    ru.provider_(provider)
+    providerId match {
+      case Some(v) => ru.providerId(v)
+      case None    =>
+    }
+    name match {
+      case Some(v) => ru.name_(v)
+      case None    =>
+    }
+    email match {
+      case Some(v) => ru.email(v)
+      case None    =>
+    }
+    userId match {
+      case Some(v) => ru.userId_(v)
+      case None    =>
+    }
+    Full(ru)
+  }
+
+  override def saveResourceUser(ru: ResourceUser): Box[ResourceUser] = {
+    val r = Full(ru.saveMe())
+    r
   }
   
 }

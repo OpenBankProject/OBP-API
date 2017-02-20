@@ -39,6 +39,7 @@ import net.liftweb.common.{Box, Failure, Full}
 import code.api.UserNotFound
 import code.views.Views
 import code.entitlement.Entitlement
+import code.model.dataAccess.ResourceUser
 import code.users.Users
 
 case class UserId(val value : Long) {
@@ -117,7 +118,19 @@ object User {
     Users.users.vend.getUserByUserName(userName)
   }
 
+  def findAll() = {
+    Users.users.vend.getAllUsers()
+  }
+
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
      Users.users.vend.createResourceUser(provider, providerId, name, email, userId)
+  }
+
+  def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) = {
+    Users.users.vend.createUnsavedResourceUser(provider, providerId, name, email, userId)
+  }
+
+  def saveResourceUser(ru: ResourceUser) = {
+    Users.users.vend.saveResourceUser(ru)
   }
 }
