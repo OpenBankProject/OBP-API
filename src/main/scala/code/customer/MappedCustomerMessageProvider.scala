@@ -11,7 +11,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
 
   override def getMessages(user: User, bankId : BankId): List[CustomerMessage] = {
     MappedCustomerMessage.findAll(
-      By(MappedCustomerMessage.user, user.apiId.value),
+      By(MappedCustomerMessage.user, user.resourceId.value),
       By(MappedCustomerMessage.bank, bankId.value),
       OrderBy(MappedCustomerMessage.updatedAt, Descending))
   }
@@ -22,7 +22,7 @@ object MappedCustomerMessageProvider extends CustomerMessageProvider {
       .mFromDepartment(fromDepartment)
       .mFromPerson(fromPerson)
       .mMessage(message)
-      .user(user.apiId.value)
+      .user(user.resourceId.value)
       .bank(bankId.value).save()
   }
 }

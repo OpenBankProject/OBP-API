@@ -166,7 +166,7 @@ trait OBPDataImport extends Loggable {
 
     resourceUserOwner match {
       case Some(o) => {
-        MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
+        MappedAccountHolder.createMappedAccountHolder(o.resourceId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
       }
       case None => {
         //This shouldn't happen as AuthUser should generate the ResourceUsers when saved

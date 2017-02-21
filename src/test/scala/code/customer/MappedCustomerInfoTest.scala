@@ -32,7 +32,7 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
     scenario("Customer exists and we try to get it") {
       val customer1 = createCustomer1()
       Given("MappedCustomer exists for a user")
-      MappedCustomer.find(By(MappedCustomer.mUser, authuser1.apiId.value)).isDefined should equal(true)
+      MappedCustomer.find(By(MappedCustomer.mUser, authuser1.resourceId.value)).isDefined should equal(true)
 
       When("We try to get it")
       val foundOpt = MappedCustomerProvider.getCustomer(testBankId, authuser1)

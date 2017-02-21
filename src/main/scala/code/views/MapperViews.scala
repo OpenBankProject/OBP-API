@@ -42,7 +42,7 @@ object MapperViews extends Views with Loggable {
     //search ViewPrivileges to get all views for user and then filter the views
     // by bankPermalink and accountPermalink
     //TODO: do it in a single query with a join
-    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceId.value))
     val views = privileges.flatMap(_.view.obj).filter(v => {
       v.accountId == account.accountId &&
         v.bankId == account.bankId
@@ -56,9 +56,9 @@ object MapperViews extends Views with Loggable {
 
     viewImpl match {
       case Full(vImpl) => {
-        if (ViewPrivileges.count(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
+        if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
           val saved = ViewPrivileges.create.
-            user(user.apiId.value).
+            user(user.resourceId.value).
             view(vImpl.id).
             save
 
@@ -86,9 +86,9 @@ object MapperViews extends Views with Loggable {
       //TODO: APIFailures with http response codes belong at a higher level in the code
     } else {
       viewImpls.foreach(v => {
-        if (ViewPrivileges.count(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, v.id)) == 0) {
+        if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceId.value), By(ViewPrivileges.view, v.id)) == 0) {
           ViewPrivileges.create.
-            user(user.apiId.value).
+            user(user.resourceId.value).
             view(v.id).
             save
         }
@@ -102,7 +102,7 @@ object MapperViews extends Views with Loggable {
     val res =
     for{
       viewImpl <- ViewImpl.find(viewUID)
-      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.apiId.value), By(ViewPrivileges.view, viewImpl.id))
+      vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.resourceId.value), By(ViewPrivileges.view, viewImpl.id))
       deletable <- accessRemovableAsBox(viewImpl, user)
     } yield {
       val r =
@@ -145,7 +145,7 @@ object MapperViews extends Views with Loggable {
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     //TODO: make this more efficient by using one query (with a join)
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceId.value))
 
     val relevantAccountPrivs = allUserPrivs.filter(p => p.view.obj match {
       case Full(v) => {
@@ -240,7 +240,7 @@ object MapperViews extends Views with Loggable {
 
   def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
     //TODO: do this more efficiently?
-    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceId.value))
     val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
       p.view.obj match {
         case Full(v) => if(
@@ -307,7 +307,7 @@ object MapperViews extends Views with Loggable {
           (v.bankId, v.accountId)
         }).distinct
 
-        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.apiId.value))
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.resourceId.value))
         val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
         val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
@@ -342,7 +342,7 @@ object MapperViews extends Views with Loggable {
           (v.bankId, v.accountId)
         }).distinct
 
-        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.apiId.value))
+        val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, theuser.resourceId.value))
         val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(v => {
           !v.isPublic && v.bankId == bank.bankId
         })
@@ -370,7 +370,7 @@ object MapperViews extends Views with Loggable {
    */
   def getNonPublicBankAccounts(user : User) :  List[BankAccount] = {
     //TODO: make this more efficient
-    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceId.value))
     val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
 
     val nonPublicViewBankAndAccountIds = userNonPublicViews.map(v => {
@@ -389,7 +389,7 @@ object MapperViews extends Views with Loggable {
    * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
    */
   def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccount] = {
-    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.apiId.value))
+    val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceId.value))
     val userNonPublicViewsForBank : List[ViewImpl] =
       userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId)
 
@@ -507,10 +507,10 @@ object MapperViews extends Views with Loggable {
   //TODO This is used only for tests, but might impose security problem
   def grantAccessToAllExistingViews(user : User) = {
     ViewImpl.findAll.foreach(v => {
-      if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.apiId.value) ).isEmpty )
+      if ( ViewPrivileges.find(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceId.value) ).isEmpty )
         ViewPrivileges.create.
           view(v).
-          user(user.apiId.value).
+          user(user.resourceId.value).
           save
       })
     true
@@ -518,10 +518,10 @@ object MapperViews extends Views with Loggable {
 
   def grantAccessToView(user : User, view : View) = {
     val v = ViewImpl.find(view.uid).orNull
-    if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.apiId.value) ) == 0 )
+    if ( ViewPrivileges.count(By(ViewPrivileges.view, v), By(ViewPrivileges.user, user.resourceId.value) ) == 0 )
     ViewPrivileges.create.
       view(v). //explodes if no viewImpl exists, but that's okay, the test should fail then
-      user(user.apiId.value).
+      user(user.resourceId.value).
       save
     else
       false

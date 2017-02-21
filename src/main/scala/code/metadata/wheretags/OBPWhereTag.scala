@@ -25,7 +25,7 @@ private class OBPWhereTag private() extends MongoRecord[OBPWhereTag] with Object
   object geoLatitude extends DoubleField(this,0)
 
   override def datePosted = date.get
-  override def postedBy = User.findByApiId(userId.get)
+  override def postedBy = User.findByResourceId(userId.get)
   override def longitude = geoLongitude.get
   override def latitude = geoLatitude.get
 }

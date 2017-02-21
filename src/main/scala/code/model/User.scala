@@ -51,7 +51,7 @@ case class UserId(val value : Long) {
 
 trait User {
 
-  def apiId : UserId
+  def resourceId : UserId
   def userId: String
 
   def idGivenByProvider: String
@@ -100,8 +100,8 @@ trait User {
 }
 
 object User {
-  def findByApiId(id : Long) : Box[User] =
-    Users.users.vend.getUserByApiId(id)
+  def findByResourceId(id : Long) : Box[User] =
+    Users.users.vend.getUserByResourceId(id)
 
   def findByProviderId(provider : String, idGivenByProvider : String) =
     //if you change this, think about backwards compatibility! All existing

@@ -151,7 +151,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user.apiId)).foreach (v => {
+      existing_views.filterNot(_.users.contains(user.resourceId)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
@@ -889,7 +889,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.apiId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    MappedAccountHolder.createMappedAccountHolder(user.resourceId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

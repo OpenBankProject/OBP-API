@@ -210,12 +210,12 @@ class AkkaMapperViewsActor extends Actor {
       sender ! v.removeAllViews(bankId, accountId)
 
     // Resource User part
-    case ru.getUserByApiId(id: Long) =>
-      logger.info("getUserByApiId(" + id +")")
+    case ru.getUserByResourceId(id: Long) =>
+      logger.info("getUserByResourceId(" + id +")")
 
       {
         for {
-          res <- vu.getUserByApiId(id)
+          res <- vu.getUserByResourceId(id)
         } yield {
           sender ! res.asInstanceOf[User]
         }

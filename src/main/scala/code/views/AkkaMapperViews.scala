@@ -316,11 +316,11 @@ object AkkaMapperViews extends Views with Users  {
     )
   }
   // Resource user part
-  def getUserByApiId(id : Long) : Box[User] = {
+  def getUserByResourceId(id : Long) : Box[User] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByApiId(id)).mapTo[User],
+          (viewsActor ? ru.getUserByResourceId(id)).mapTo[User],
           TIMEOUT
         )
       )
