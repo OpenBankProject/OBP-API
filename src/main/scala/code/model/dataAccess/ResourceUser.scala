@@ -68,7 +68,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   }
 
   def idGivenByProvider = providerId.get
-  def apiId = UserId(id.get)
+  def resourceUserId = UserId(id.get)
 
   def userId = userId_.get
 

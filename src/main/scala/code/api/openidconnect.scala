@@ -105,9 +105,9 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
                   obp_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
                   api_user: ResourceUser <- obp_user.user.foreign
-                  if emailVerified && api_user.apiId.value > 0
+                  if emailVerified && api_user.resourceUserId.value > 0
                 } yield {
-                  saveAuthorizationToken(accessToken, accessToken, api_user.apiId.value)
+                  saveAuthorizationToken(accessToken, accessToken, api_user.resourceUserId.value)
                   httpCode = 200
                   message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil

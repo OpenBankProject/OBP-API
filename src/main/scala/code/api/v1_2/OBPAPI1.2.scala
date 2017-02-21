@@ -740,7 +740,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow adding a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.apiId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          if(addCorpLocation(u.resourceUserId, (now:TimeSpan), corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
         } yield {
             val successJson = SuccessMessage("corporate location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -761,7 +761,7 @@ object OBPAPI1_2 extends OBPRestHelper with Loggable {
           addCorpLocation <- Box(metadata.addCorporateLocation) ?~ {"the view " + viewId + "does not allow updating a corporate location"}
           corpLocationJson <- tryo{(json.extract[CorporateLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(corpLocationJson.corporate_location.latitude, corpLocationJson.corporate_location.longitude)
-          if(addCorpLocation(u.apiId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
+          if(addCorpLocation(u.resourceUserId, now, corpLocationJson.corporate_location.longitude, corpLocationJson.corporate_location.latitude))
         } yield {
             val successJson = SuccessMessage("corporate location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -809,7 +809,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow adding a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-          if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+          if(addPhysicalLocation(u.resourceUserId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
         } yield {
             val successJson = SuccessMessage("physical location added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -830,7 +830,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addPhysicalLocation <- Box(metadata.addPhysicalLocation) ?~ {"the view " + viewId + "does not allow updating a physical location"}
           physicalLocationJson <- tryo{(json.extract[PhysicalLocationJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(physicalLocationJson.physical_location.latitude, physicalLocationJson.physical_location.longitude)
-         if(addPhysicalLocation(u.apiId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
+         if(addPhysicalLocation(u.resourceUserId, now, physicalLocationJson.physical_location.longitude, physicalLocationJson.physical_location.latitude))
         } yield {
             val successJson = SuccessMessage("physical location updated")
             successJsonResponse(Extraction.decompose(successJson))
@@ -976,7 +976,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           u <- user
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addCommentFunc <- Box(metadata.addComment) ?~ {"view " + viewId + " does not authorize adding comments"}
-          postedComment <- addCommentFunc(u.apiId, viewId, commentJson.value, now)
+          postedComment <- addCommentFunc(u.resourceUserId, viewId, commentJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionCommentJSON(postedComment)),201)
         }
@@ -1021,7 +1021,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           u <- user
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addTagFunc <- Box(metadata.addTag) ?~ {"view " + viewId + " does not authorize adding tags"}
-          postedTag <- addTagFunc(u.apiId, viewId, tagJson.value, now)
+          postedTag <- addTagFunc(u.resourceUserId, viewId, tagJson.value, now)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionTagJSON(postedTag)), 201)
         }
@@ -1067,7 +1067,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
           addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
           url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-          postedImage <- addImageFunc(u.apiId, viewId, imageJson.label, now, url)
+          postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url)
         } yield {
           successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
         }
@@ -1113,7 +1113,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow adding a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-          if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+          if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag added")
             successJsonResponse(Extraction.decompose(successJson), 201)
@@ -1131,7 +1131,7 @@ def checkIfLocationPossible(lat:Double,lon:Double) : Box[Unit] = {
           addWhereTag <- Box(metadata.addWhereTag) ?~ {"the view " + viewId + "does not allow updating a where tag"}
           whereJson <- tryo{(json.extract[PostTransactionWhereJSON])} ?~ {"wrong JSON format"}
           correctCoordinates <- checkIfLocationPossible(whereJson.where.latitude, whereJson.where.longitude)
-         if(addWhereTag(u.apiId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
+         if(addWhereTag(u.resourceUserId, viewId, now, whereJson.where.longitude, whereJson.where.latitude))
         } yield {
             val successJson = SuccessMessage("where tag updated")
             successJsonResponse(Extraction.decompose(successJson))

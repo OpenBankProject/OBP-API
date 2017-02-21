@@ -791,11 +791,11 @@ trait Connector {
   //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
   def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     if (account_owners.contains(owner)) {
-      val resourceUserOwner = ResourceUser.findAll.find(user => owner == user.name)
+      val resourceUserOwner = code.model.User.findAll().find(user => owner == user.name)
       resourceUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, bankId, accountId)) {
-            MappedAccountHolder.createMappedAccountHolder(o.apiId.value, bankId.value, accountId.value, "KafkaMappedConnector")
+            MappedAccountHolder.createMappedAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
           }
        }
         case None => {

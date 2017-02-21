@@ -8,7 +8,7 @@ import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{Product, ProductCode}
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
+import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
 import code.model._
 import code.branches.Branches.Branch
 import code.atms.Atms.Atm
@@ -136,7 +136,7 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
-    val existingResourceUsers = toImport.flatMap(u => ResourceUser.find(By(ResourceUser.name_, u.user_name)))
+    val existingResourceUsers = toImport.flatMap(u => code.model.User.findByUserName(u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 
@@ -162,10 +162,11 @@ trait OBPDataImport extends Loggable {
    */
   protected def setAccountOwner(owner : AccountOwnerUsername, account: BankAccount, createdUsers: List[ResourceUser]): AnyVal = {
     val resourceUserOwner = createdUsers.find(user => owner == user.name)
+    println("{resourceUserOwner: " + resourceUserOwner)
 
     resourceUserOwner match {
       case Some(o) => {
-        MappedAccountHolder.createMappedAccountHolder(o.apiId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
+        MappedAccountHolder.createMappedAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
       }
       case None => {
         //This shouldn't happen as AuthUser should generate the ResourceUsers when saved
@@ -522,7 +523,7 @@ trait OBPDataImport extends Loggable {
 
 
 
-
+      val us = code.model.User.findAll();
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, views, accOwnerUsernames) =>
@@ -531,11 +532,11 @@ trait OBPDataImport extends Loggable {
           views.filterNot(_.isPublic).foreach(v => {
             //grant the owner access to non-public views
             //this should always find the owners as that gets verified at an earlier stage, but it's not perfect this way
-            val accOwners = users.map(_.value).filter(u => accOwnerUsernames.exists(name => u.name == name))
+            val accOwners = us.filter(u => accOwnerUsernames.exists(name => u.name == name))
             accOwners.foreach(Views.views.vend.addPermission(v.uid, _))
           })
 
-          accOwnerUsernames.foreach(setAccountOwner(_, account.value, users.map(_.value)))
+          accOwnerUsernames.foreach(setAccountOwner(_, account.value, us))
       }
       logger.info(s"importData is saving ${transactions.size} transactions (and loading them again)")
       transactions.foreach { t =>

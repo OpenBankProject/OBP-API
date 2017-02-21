@@ -43,7 +43,7 @@ private class OBPComment private() extends MongoRecord[OBPComment] with ObjectId
   object accountId extends StringField(this, 255)
   object bankId extends StringField(this, 255)
 
-  def postedBy = User.findByApiId(userId.get)
+  def postedBy = User.findByResourceUserId(userId.get)
   def viewId = ViewId(forView.get)
   def text = textField.get
   def datePosted = date.get
