@@ -27,7 +27,7 @@ object MappedCustomerProvider extends CustomerProvider {
 
   override def getCustomer(bankId : BankId, user: User): Box[Customer] = {
     MappedCustomer.find(
-      By(MappedCustomer.mUser, user.resourceId.value),
+      By(MappedCustomer.mUser, user.resourceUserId.value),
       By(MappedCustomer.mBank, bankId.value))
   }
 
@@ -95,7 +95,7 @@ object MappedCustomerProvider extends CustomerProvider {
       .mLegalName(legalName)
       .mMobileNumber(mobileNumber)
       .mNumber(number)
-      .mUser(user.resourceId.value)
+      .mUser(user.resourceUserId.value)
       .mDateOfBirth(dateOfBirth)
       .mRelationshipStatus(relationshipStatus)
       .mDependents(dependents)

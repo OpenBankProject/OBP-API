@@ -795,7 +795,7 @@ trait Connector {
       resourceUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, bankId, accountId)) {
-            MappedAccountHolder.createMappedAccountHolder(o.resourceId.value, bankId.value, accountId.value, "KafkaMappedConnector")
+            MappedAccountHolder.createMappedAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
           }
        }
         case None => {

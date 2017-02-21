@@ -96,7 +96,7 @@ import com.tesobe.model.{CreateBankAccount, UpdateBankAccount}
       existingOwnerView match {
         case Full(v) => {
           logger.info(s"account $accountId at bank $bankId has already an owner view")
-          v.users.toList.find(_.resourceId == user.resourceId) match {
+          v.users.toList.find(_.resourceUserId == user.resourceUserId) match {
             case Some(u) => {
               logger.info(s"user ${user.emailAddress} has already an owner view access on account $accountId at bank $bankId")
             }

@@ -672,7 +672,7 @@ Store one or more transactions
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
+    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

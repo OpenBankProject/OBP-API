@@ -148,7 +148,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> updated view ${v.uid} for resourceuser ${user} and account ${acc}")
       })
-      existing_views.filterNot(_.users.contains(user.resourceId)).foreach (v => {
+      existing_views.filterNot(_.users.contains(user.resourceUserId)).foreach (v => {
         Views.views.vend.addPermission(v.uid, user)
         logger.info(s"------------> added resourceuser ${user} to view ${v.uid} for account ${acc}")
       })
@@ -927,7 +927,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

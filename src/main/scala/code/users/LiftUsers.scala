@@ -9,7 +9,7 @@ import scala.collection.immutable.List
 
 object LiftUsers extends Users {
 
-  def getUserByResourceId(id : Long) : Box[User] = {
+  def getUserByResourceUserId(id : Long) : Box[User] = {
     ResourceUser.find(id) ?~ { s"user $id not found"}
   }
 

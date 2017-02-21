@@ -304,7 +304,7 @@ trait BankAccount {
       //account holders are not all set up in the db yet, so we might not get any back.
       //In this case, we just use the previous behaviour, which did not return very much information at all
       Set(new User {
-        val resourceId = UserId(-1)
+        val resourceUserId = UserId(-1)
         val userId = ""
         val idGivenByProvider = ""
         val provider = ""
