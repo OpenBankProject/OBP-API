@@ -165,6 +165,65 @@ trait APIMethods210 {
     import net.liftweb.json.Printer._
     val exchangeRates = pretty(render(decompose(fx.exchangeRates)))
 
+
+    // This text is used in the various Create Transaction Request resource docs
+    val transactionRequestGeneralText =
+      s"""Initiate a Payment via a Transaction Request.
+          |
+          |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+          |
+          |In OBP, a `transaction request` may or may not result in a `transaction`. A `transaction` only has one possible state: completed.
+          |
+          |A `transaction request` on the other hand can have one of several states.
+          |
+          |Think of `transactions` as items in a bank statement that represent the movement of money.
+          |
+          |Think of `transaction requests` as orders to move money which may or may not succeeed and result in a `transaction`.
+          |
+          |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
+          |
+          |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
+          |
+          |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
+          |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
+          |
+          |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
+          |
+          |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
+          |
+          |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
+          |
+          |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
+          |
+          |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
+          |
+          |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
+          |
+          |The following static FX rates are available in sandbox mode:
+          |
+          |${exchangeRates}
+          |
+          |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
+          |
+          |This call satisfies that requirement from several perspectives:
+          |
+          |1) A transaction can be initiated by a third party application.
+          |
+          |2) The customer is informed of the charge that will incurred.
+          |
+          |3) The call uses delegated authentication (OAuth)
+          |
+          |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
+          |
+          |
+          |${authenticationRequiredMessage(true)}
+          |
+          |"""
+
+
+
+
+    // General case (with sandbox tan body)
     resourceDocs += ResourceDoc(
       createTransactionRequest,
       apiVersion,
@@ -172,61 +231,41 @@ trait APIMethods210 {
       "POST",
       "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/TRANSACTION_REQUEST_TYPE/transaction-requests",
       "Create Transaction Request.",
-      s"""Initiate a Payment via a Transaction Request.
-        |
-        |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
-        |
-        |In OBP, a `transaction request` may or may not result in a `transaction`. A `transaction` only has one possible state: completed.
-        |
-        |A `transaction request` on the other hand can have one of several states.
-        |
-        |Think of `transactions` as items in a bank statement that represent the movement of money.
-        |
-        |Think of `transaction requests` as orders to move money which may or may not succeeed and result in a `transaction`.
-        |
-        |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
-        |
-        |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
-        |
-        |Transaction Requests can have one of several Transaction Request Types which expect different bodies. The escaped body is returned in the details key of the GET response.
-        |This provides some commonality and one URL for many different payment or transfer types with enough flexibility to validate them differently.
-        |
-        |The payer is set in the URL. Money comes out of the BANK_ID and ACCOUNT_ID specified in the URL.
-        |
-        |The payee is set in the request body. Money goes into the BANK_ID and ACCOUNT_ID specified in the request body.
-        |
-        |In sandbox mode, TRANSACTION_REQUEST_TYPE is commonly set to SANDBOX_TAN. See getTransactionRequestTypesSupportedByBank for all supported types.
-        |
-        |In sandbox mode, if the amount is less than 1000 EUR (any currency, unless it is set differently on this server), the transaction request will create a transaction without a challenge, else the Transaction Request will be set to INITIALISED and a challenge will need to be answered.
-        |
-        |If a challenge is created you must answer it using Answer Transaction Request Challenge before the Transaction is created.
-        |
-        |You can transfer between different currency accounts. (new in 2.0.0). The currency in body must match the sending account.
-        |
-        |The following static FX rates are available in sandbox mode:
-        |
-        |${exchangeRates}
-        |
-        |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
-        |
-        |This call satisfies that requirement from several perspectives:
-        |
-        |1) A transaction can be initiated by a third party application.
-        |
-        |2) The customer is informed of the charge that will incurred.
-        |
-        |3) The call uses delegated authentication (OAuth)
-        |
-        |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
-        |
-        |
-        |${authenticationRequiredMessage(true)}
-        |
-        |""",
+      s"""$transactionRequestGeneralText
+         |
+       """.stripMargin,
       Extraction.decompose(TransactionRequestBodyJSON (
         TransactionRequestAccountJSON("bank_id", "account_id"),
         AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to be created"
+      )
+      ),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+
+    // COUNTERPARTY case
+    resourceDocs += ResourceDoc(
+      createTransactionRequest,
+      apiVersion,
+      "createTransactionRequest",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/COUNTERPARTY/transaction-requests",
+      "Create Transaction Request (COUNTERPARTY)",
+      s"""$transactionRequestGeneralText
+         |
+         |Special instructions for COUNTERPARTY:
+         |
+         |When using a COUNTERPARTY to create a Transaction Request, specificy the counterparty_id in the body of the request.
+         |The routing details of the counterparty will be forwarded for the transfer.
+         |
+       """.stripMargin,
+      Extraction.decompose(TransactionRequestDetailsCounterpartyJSON (
+        CounterpartyIdJson("lalalalwieuryi79878987fds"),
+        AmountOfMoneyJSON("EUR", "100.53"),
+        "A description for the transaction to the counterparty",
+      "SHARED"
       )
       ),
       emptyObjectJson,
@@ -299,7 +338,8 @@ trait APIMethods210 {
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
-                    transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    chargePolicy = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].charge_policy
+                    transactionRequestDetailsCounterpartyResponseJSON = TransactionRequestDetailsCounterpartyResponseJSON(toCounterpartyId.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString , chargePolicy.toString)
                     transResponseDetails = getTransactionRequestDetailsCounterpartyResponseFromJson(transactionRequestDetailsCounterpartyResponseJSON)
 
                     //Serialize the transResponseDetails to String.
@@ -1069,11 +1109,11 @@ trait APIMethods210 {
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "Current view does not have permission for the action")
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! ErrorMessages.CounterpartyAlreadyExists
-            couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
+            counterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
               thisViewId = viewId.value,
@@ -1086,10 +1126,10 @@ trait APIMethods210 {
               otherBankRoutingAddress=postJson.other_bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
-            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterpartyId) ?~ "Cannot find the metadata"
-            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
+            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~ "Cannot find the metadata"
+            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
-            val list = createCounterpartJSON(moderated, metadata, couterparty)
+            val list = createCounterpartJSON(moderated, metadata, counterparty)
             successJsonResponse(Extraction.decompose(list))
           }
       }

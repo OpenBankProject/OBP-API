@@ -359,8 +359,16 @@ object RemoteDataActorSystem extends Loggable {
 
   // Entry point if running as standalone remote data server, without jetty
   def main (args: Array[String]): Unit = {
-    setupRemotedataDB()
-    startRemoteWorkerSystem()
+    if (args.length > 1 && args(0) == "standalone") {
+      println("------------------------------------------------------------")
+      println("-----                                                  -----")
+      println("-----     STANDALONE REMOTEDATA AKKA ACTOR STARTED     -----")
+      println("-----                                                  -----")
+      println("------------------------------------------------------------")
+
+      setupRemotedataDB()
+      startRemoteWorkerSystem()
+    }
   }
 
 }
