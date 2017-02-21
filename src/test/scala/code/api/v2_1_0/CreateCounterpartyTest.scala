@@ -10,7 +10,7 @@ import net.liftweb.json.Serialization.write
 
 class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
-  val customerPostJSON = PostCounterpartyJSON(
+  val counterpartyPostJSON = PostCounterpartyJSON(
     name = "Company Salary",
     other_bank_id ="gh.29.de",
     other_account_id="007a268b-98bf-44ef-8f6a-9944618378cf",
@@ -43,7 +43,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 200 and check all the fields")
       responsePost.code should equal(200)
@@ -58,13 +58,13 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
         case JString(i) => i
         case _ => ""
       }
-      accountRoutingAddress should  equal(customerPostJSON.other_account_routing_address)
+      accountRoutingAddress should  equal(counterpartyPostJSON.other_account_routing_address)
 
       var bankRoutingScheme = (responsePost.body \ "other_bank_routing" \ "scheme" ) match {
         case JString(i) => i
         case _ => ""
       }
-      bankRoutingScheme should  equal(customerPostJSON.other_bank_routing_scheme)
+      bankRoutingScheme should  equal(counterpartyPostJSON.other_bank_routing_scheme)
     }
 
     scenario("No BankAccount in Database") {
@@ -78,7 +78,7 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       grantAccessToView(authuser1, ownerView)
 
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      val responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
       Then("We should get a 400")
       responsePost.code should equal(400)
 
@@ -96,10 +96,10 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
       When("We make the request Create counterparty for an account")
       val requestPost = (v2_1Request / "banks" / bankId.value / "accounts" / accountId.value / viewId.value / "counterparties" ).POST <@ (user1)
-      var responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      var responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We make the request again, the same name/bank_id/account_id/view_id")
-      responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      responsePost = makePostRequest(requestPost, write(counterpartyPostJSON))
 
       Then("We should get a 400 and check the error massage")
       responsePost.code should equal(400)
