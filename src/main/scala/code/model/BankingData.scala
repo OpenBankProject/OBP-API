@@ -623,7 +623,7 @@ class Counterparty(
       case Some(meta) =>
         meta
       case None =>
-        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this)
+        Counterparties.counterparties.vend.getOrCreateMetadata(otherBankId, otherAccountId, this).openOrThrowException("Can not getOrCreateMetadata !")
     }
   }
 }

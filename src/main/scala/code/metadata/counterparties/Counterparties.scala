@@ -2,19 +2,21 @@ package code.metadata.counterparties
 
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
-import code.model.{AccountId, BankId, CounterpartyMetadata, Counterparty}
+import code.model.{AccountId, BankId, Counterparty, CounterpartyMetadata}
+import code.views.AkkaMapperViews
 
 object Counterparties extends SimpleInjector {
 
   val counterparties = new Inject(buildOne _) {}
 
   def buildOne: Counterparties = MapperCounterparties
+//  def buildOne: Counterparties = AkkaMapperViews
 
 }
 
 trait Counterparties {
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : CounterpartyMetadata
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata]
 
   //get all counterparty metadatas for a single OBP account
   def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId : AccountId) : List[CounterpartyMetadata]
@@ -65,3 +67,25 @@ trait CounterpartyTrait {
   def isBeneficiary : Boolean
 
 }
+
+class RemoteCounterpartiesCaseClasses {
+  case class getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
+
+  case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
+
+  case class getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
+
+  case class getCounterparty(counterPartyId: String)
+
+  case class getCounterpartyByIban(iban: String)
+
+  case class createCounterparty(
+                                 createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String,
+                                 name: String, otherBankId: String, otherAccountId: String, otherAccountRoutingScheme: String,
+                                 otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
+                                 otherBankRoutingAddress: String, isBeneficiary: Boolean)
+
+  case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
+}
+
+object RemoteCounterpartiesCaseClasses extends RemoteCounterpartiesCaseClasses
