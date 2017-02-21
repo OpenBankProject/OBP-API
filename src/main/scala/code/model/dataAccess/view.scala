@@ -136,7 +136,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canAddPhysicalLocation_(actions.exists(_ == "can_add_physical_location"))
     canAddPublicAlias_(actions.exists(_ == "can_add_public_alias"))
     canAddPrivateAlias_(actions.exists(_ == "can_add_private_alias"))
-    canCreateCounterparty_(actions.exists(_ == "can_create_counterparty"))
+    canAddCounterparty_(actions.exists(_ == "can_add_counterparty"))
     canDeleteCorporateLocation_(actions.exists(_ == "can_delete_corporate_location"))
     canDeletePhysicalLocation_(actions.exists(_ == "can_delete_physical_location"))
     canEditOwnerComment_(actions.exists(_ == "can_edit_narrative"))
@@ -150,8 +150,8 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
     canSeeWhereTag_(actions.exists(_ == "can_see_where_tag"))
     canDeleteWhereTag_(actions.exists(_ == "can_delete_where_tag"))
   }
-  
-  
+
+
   object isPublic_ extends MappedBoolean(this){
     override def defaultValue = false
     override def dbIndexed_? = true
@@ -310,7 +310,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object canAddPrivateAlias_ extends MappedBoolean(this){
     override def defaultValue = false
   }
-  object canCreateCounterparty_ extends MappedBoolean(this){
+  object canAddCounterparty_ extends MappedBoolean(this){
     override def defaultValue = true
   }
   object canDeleteCorporateLocation_ extends MappedBoolean(this){
@@ -427,7 +427,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   def canAddPhysicalLocation : Boolean = canAddPhysicalLocation_.get
   def canAddPublicAlias : Boolean = canAddPublicAlias_.get
   def canAddPrivateAlias : Boolean = canAddPrivateAlias_.get
-  def canAddCounterparty : Boolean = canCreateCounterparty_.get
+  def canAddCounterparty : Boolean = canAddCounterparty_.get
   def canDeleteCorporateLocation : Boolean = canDeleteCorporateLocation_.get
   def canDeletePhysicalLocation : Boolean = canDeletePhysicalLocation_.get
 

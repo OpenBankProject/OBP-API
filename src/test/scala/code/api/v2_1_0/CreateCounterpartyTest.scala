@@ -39,6 +39,10 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       val bankId = testBank.bankId
       val accountId = AccountId("__acc1")
       val viewId =ViewId("owner")
+
+
+      // Note: The view created below has can_add_counterparty set to true
+      // TODO Add a test to test the creation of that permission on a view that doesn't have it, and then try to create the Couterparty
       val bankAccount = createAccountAndOwnerView(Some(authuser1), bankId, accountId, "EUR")
 
       When("We make the request Create counterparty for an account")
