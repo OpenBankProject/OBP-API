@@ -174,7 +174,7 @@ case class UpdateViewJSON(
   * @define canDeleteWhereTag If true, the view can delete the Transaction Where Tag
 
   * @define canInitiateTransaction If true, view can initiate Transaction Request. Note. Owner view may be required. TODO check this.
-  * @define canCreateCounterparty If true, view can create counterparty.
+  * @define canAddCounterparty If true, view can add counterparty / create counterparty.
 
 
   */

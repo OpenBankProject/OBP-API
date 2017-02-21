@@ -642,7 +642,7 @@ object MapperViews extends Views with Loggable {
       .canAddPhysicalLocation_(true)
       .canAddPublicAlias_(true)
       .canAddPrivateAlias_(true)
-      .canCreateCounterparty_(true)
+      .canAddCounterparty_(true)
       .canDeleteCorporateLocation_(true)
       .canDeletePhysicalLocation_(true)
       .canEditOwnerComment_(true)
@@ -722,7 +722,7 @@ object MapperViews extends Views with Loggable {
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
-      canCreateCounterparty_(true).
+      canAddCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -805,7 +805,7 @@ object MapperViews extends Views with Loggable {
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
-      canCreateCounterparty_(true).
+      canAddCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).
@@ -889,7 +889,7 @@ Auditors
       canAddPhysicalLocation_(true).
       canAddPublicAlias_(true).
       canAddPrivateAlias_(true).
-      canCreateCounterparty_(true).
+      canAddCounterparty_(true).
       canDeleteCorporateLocation_(true).
       canDeletePhysicalLocation_(true).
       canEditOwnerComment_(true).

@@ -1109,11 +1109,11 @@ trait APIMethods210 {
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
-            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "Current view does not have can_add_counterparty permission.")
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
             checkAvailable <- tryo(assert(Counterparties.counterparties.vend.
               checkCounterpartyAvailable(postJson.name,bankId.value, accountId.value,viewId.value) == true)
             ) ?~! ErrorMessages.CounterpartyAlreadyExists
-            couterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
+            counterparty <- Counterparties.counterparties.vend.createCounterparty(createdByUserId=u.userId,
               thisBankId=bankId.value,
               thisAccountId=accountId.value,
               thisViewId = viewId.value,
@@ -1126,10 +1126,10 @@ trait APIMethods210 {
               otherBankRoutingAddress=postJson.other_bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
-            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, couterparty.counterpartyId) ?~ "Cannot find the metadata"
-            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, couterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
+            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~ "Cannot find the metadata"
+            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
-            val list = createCounterpartJSON(moderated, metadata, couterparty)
+            val list = createCounterpartJSON(moderated, metadata, counterparty)
             successJsonResponse(Extraction.decompose(list))
           }
       }
