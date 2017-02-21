@@ -92,14 +92,16 @@ case class TransactionRequestDetailsCounterpartyResponseJSON(
 case class TransactionRequestDetailsSEPAJSON(
                                               value: AmountOfMoneyJSON,
                                               to: IbanJson,
-                                              description: String
+                                              description: String,
+                                              charge_policy : String
                                             ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsSEPAResponseJSON(
                                                       iban: String,
                                                       toAccount: TransactionRequestAccountJSON,
                                                       value: AmountOfMoneyJSON,
-                                                      description: String
+                                                      description: String,
+                                                      charge_policy : String
                                             ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsFreeFormJSON(

@@ -39,7 +39,7 @@ import scala.collection.mutable.ArrayBuffer
 import code.util.Helper._
 import net.liftweb.json.JsonDSL._
 
-import code.api.APIFailure
+import code.api.{ChargePolicy, APIFailure}
 import code.api.util.APIUtil._
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
@@ -168,19 +168,17 @@ trait APIMethods210 {
 
     // This text is used in the various Create Transaction Request resource docs
     val transactionRequestGeneralText =
-      s"""Initiate a Payment via a Transaction Request.
+      s"""Initiate a Payment via creating a Transaction Request.
           |
-          |This is the preferred method to create a payment and supersedes makePayment in 1.2.1.
+          |In OBP, a `transaction request` may or may not result in a `transaction`. However, a `transaction` only has one possible state: completed.
           |
-          |In OBP, a `transaction request` may or may not result in a `transaction`. A `transaction` only has one possible state: completed.
+          |A `Transaction Request` can have one of several states.
           |
-          |A `transaction request` on the other hand can have one of several states.
+          |`Transactions` are modeled on items in a bank statement that represent the movement of money.
           |
-          |Think of `transactions` as items in a bank statement that represent the movement of money.
+          |`Transaction Requests` are requests to move money which may or may not succeeed and thus result in a `Transaction`.
           |
-          |Think of `transaction requests` as orders to move money which may or may not succeeed and result in a `transaction`.
-          |
-          |A `transaction request` might create a security challenge that needs to be answered before the `transaction request` proceeds.
+          |A `Transaction Request` might create a security challenge that needs to be answered before the `Transaction Request` proceeds.
           |
           |Transaction Requests contain charge information giving the client the opportunity to proceed or not (as long as the challenge level is appropriate).
           |
@@ -203,15 +201,14 @@ trait APIMethods210 {
           |
           |${exchangeRates}
           |
-          |PSD2 Context: Third party access access to payments is a core tenent of PSD2.
           |
-          |This call satisfies that requirement from several perspectives:
+          |Transaction Requests satisfy PSD2 requirements thus:
           |
           |1) A transaction can be initiated by a third party application.
           |
           |2) The customer is informed of the charge that will incurred.
           |
-          |3) The call uses delegated authentication (OAuth)
+          |3) The call supports delegated authentication (OAuth)
           |
           |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
           |
@@ -223,7 +220,7 @@ trait APIMethods210 {
 
 
 
-    // General case (with sandbox tan body)
+    // Transaction Request General case (no TRANSACTION_REQUEST_TYPE specified)
     resourceDocs += ResourceDoc(
       createTransactionRequest,
       apiVersion,
@@ -245,7 +242,7 @@ trait APIMethods210 {
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
 
-    // COUNTERPARTY case
+    // COUNTERPARTY
     resourceDocs += ResourceDoc(
       createTransactionRequest,
       apiVersion,
@@ -272,6 +269,36 @@ trait APIMethods210 {
       emptyObjectJson :: Nil,
       Catalogs(Core, PSD2, OBWG),
       List(apiTagTransactionRequest))
+
+
+    val lowAmount  = AmountOfMoneyJSON("EUR", "12.50")
+    val sharedChargePolicy = ChargePolicy.withName("SHARED")
+
+    // Transaction Request (SEPA)
+    resourceDocs += ResourceDoc(
+      createTransactionRequest,
+      apiVersion,
+      "createTransactionRequest",
+      "POST",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/transaction-request-types/SEPA/transaction-requests",
+      "Create Transaction Request (SEPA)",
+      s"""$transactionRequestGeneralText
+         |
+         |Special instructions for SEPA:
+         |
+         |When using a SEPA Transaction Request, you specify the IBAN of a Counterparty in the body of the request.
+         |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
+         |
+       """.stripMargin,
+      Extraction.decompose(TransactionRequestDetailsSEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
+      ),
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagTransactionRequest))
+
+
+
 
     lazy val createTransactionRequest: PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
       case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "transaction-request-types" ::
@@ -361,7 +388,7 @@ trait APIMethods210 {
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsSEPAJSON].description
-                    transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString)
+                    transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsSEPAResponseJSON(toIban.toString,transactionRequestAccountJSON, amountOfMoneyJSON, detailDescription.toString, sharedChargePolicy.toString)
                     transResponseDetails = getTransactionRequestDetailsSEPAResponseJSONFromJson(transactionRequestDetailsSEPAResponseJSON)
 
                     //Serialize the transResponseDetails data to String.
