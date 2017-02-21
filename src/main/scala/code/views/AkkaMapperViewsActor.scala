@@ -13,6 +13,7 @@ import scala.concurrent.duration._
 import akka.event.Logging
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
+import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemoteUserCaseClasses}
 
 
@@ -209,12 +210,12 @@ class AkkaMapperViewsActor extends Actor {
       sender ! v.removeAllViews(bankId, accountId)
 
     // Resource User part
-    case ru.getUserByApiId(id: Long) =>
-      logger.info("getUserByApiId(" + id +")")
+    case ru.getUserByResourceUserId(id: Long) =>
+      logger.info("getUserByResourceUserId(" + id +")")
 
       {
         for {
-          res <- vu.getUserByApiId(id)
+          res <- vu.getUserByResourceUserId(id)
         } yield {
           sender ! res.asInstanceOf[User]
         }
@@ -239,6 +240,72 @@ class AkkaMapperViewsActor extends Actor {
           res <- vu.getUserByUserId(userId)
         } yield {
           sender ! res.asInstanceOf[User]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getUserByUserName(userName: String) =>
+      logger.info("getUserByUserName(" + userName +")")
+
+      {
+        for {
+          res <- vu.getUserByUserName(userName)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getUserByEmail(email: String) =>
+      logger.info("getUserByEmail(" + email +")")
+
+      {
+        for {
+          res <- vu.getUserByEmail(email)
+        } yield {
+          sender ! res
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.getAllUsers() =>
+      logger.info("getAllUsers()")
+
+      {
+        for {
+          res <- vu.getAllUsers()
+        } yield {
+          sender ! res
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+      logger.info("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+
+      {
+        for {
+          res <- vu.createResourceUser(provider, providerId, name, email, userId)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+      logger.info("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
+
+      {
+        for {
+          res <- vu.createUnsavedResourceUser(provider, providerId, name, email, userId)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case ru.saveResourceUser(resourceUser: ResourceUser) =>
+      logger.info("saveResourceUser")
+
+      {
+        for {
+          res <- vu.saveResourceUser(resourceUser)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 

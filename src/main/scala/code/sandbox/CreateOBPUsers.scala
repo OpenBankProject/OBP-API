@@ -13,8 +13,10 @@ trait CreateAuthUsers {
     def asSaveable(u : AuthUser) = new Saveable[ResourceUser] {
       val value = u.createUnsavedResourceUser()
       def save() = {
-        value.save()
-        u.user(value).save()
+        val usr = code.model.User.saveResourceUser(value)
+        for (uu <- usr) {
+          u.user(uu).save()
+        }
       }
     }
 

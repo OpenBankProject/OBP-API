@@ -146,7 +146,7 @@ class OBPGeoTag private() extends BsonRecord[OBPGeoTag] with GeoTag {
   object geoLatitude extends DoubleField(this,0)
 
   override def datePosted = date.get
-  override def postedBy = User.findByApiId(userId.get)
+  override def postedBy = User.findByResourceUserId(userId.get)
   override def longitude = geoLongitude.get
   override def latitude = geoLatitude.get
 

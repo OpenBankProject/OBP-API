@@ -8,6 +8,7 @@ import APIUtil.OAuth.{Token, Consumer}
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Props
 import net.liftweb.util.TimeHelpers.TimeSpan
+import code.model.User
 
 trait DefaultUsers {
 
@@ -28,9 +29,7 @@ trait DefaultUsers {
   val expiration = Props.getInt("token_expiration_weeks", 4)
   lazy val tokenDuration = weeks(expiration)
 
-  lazy val authuser1 =
-    ResourceUser.create.provider_(defaultProvider).
-      saveMe
+  lazy val authuser1: ResourceUser = User.createResourceUser(defaultProvider, None, None, None, None).get
 
   lazy val testToken =
     OBPToken.create.
@@ -47,9 +46,7 @@ trait DefaultUsers {
   lazy val token = new Token(testToken.key, testToken.secret)
 
   // create a user for test purposes
-  lazy val authuser2 =
-    ResourceUser.create.provider_(defaultProvider).
-      saveMe
+  lazy val authuser2 = User.createResourceUser(defaultProvider, None, None, None, None).get
 
   //we create an access token for the other user
   lazy val testToken2 =
@@ -67,9 +64,7 @@ trait DefaultUsers {
   lazy val token2 = new Token(testToken2.key, testToken2.secret)
 
   // create a user for test purposes
-  lazy val authuser3 =
-    ResourceUser.create.provider_(defaultProvider).
-      saveMe
+  lazy val authuser3 = User.createResourceUser(defaultProvider, None, None, None, None).get
 
   //we create an access token for the other user
   lazy val testToken3 =

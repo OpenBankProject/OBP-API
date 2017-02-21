@@ -92,31 +92,28 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def createUnsavedResourceUser() : ResourceUser = {
-    ResourceUser.create
-      .name_(username)
-      .email(email)
-      .provider_(getProvider())
-      .providerId(username)
+    val user = code.model.User.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
+    user
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
-    ResourceUser.findAll(By(ResourceUser.email, userEmail))
+    code.model.User.findByEmail(userEmail)
   }
 
   def getResourceUsers(): List[ResourceUser] = {
-    ResourceUser.findAll()
+    code.model.User.findAll()
   }
 
   def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
-    ResourceUser.find(By(ResourceUser.name_, username))
+    code.model.User.findByUserName(username)
   }
 
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
       val resourceUser = createUnsavedResourceUser()
-      resourceUser.save()
-      user(resourceUser)   //is this saving resourceUser into a user field?
+      val savedUser = code.model.User.saveResourceUser(resourceUser)
+      user(savedUser)   //is this saving resourceUser into a user field?
     }
     else {
       info("user reference is not null. Trying to update the API User")
@@ -697,7 +694,7 @@ import net.liftweb.util.Helpers._
     if (connector == "kafka" || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- ResourceUser.find(By(ResourceUser.name_, user.username))
+       u <- code.model.User.findByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
@@ -709,7 +706,7 @@ import net.liftweb.util.Helpers._
   def registeredUserHelper(username: String) = {
     if (connector == "kafka" || connector == "obpjvm") {
       for {
-       u <- ResourceUser.find(By(ResourceUser.name_, username))
+       u <- code.model.User.findByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield v
     }
