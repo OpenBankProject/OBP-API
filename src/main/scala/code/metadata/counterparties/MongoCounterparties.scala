@@ -27,7 +27,7 @@ object MongoCounterparties extends Counterparties with Loggable {
     } yield m
   }
 
-  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : CounterpartyMetadata = {
+  def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId : AccountId, otherParty : Counterparty) : Box[CounterpartyMetadata] = {
 
     /**
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
@@ -40,7 +40,7 @@ object MongoCounterparties extends Counterparties with Loggable {
       case _ => createMetadata(originalPartyBankId, originalPartyAccountId, otherParty.label, otherParty.thisAccountId.value)
     }
 
-    metadata
+    Full(metadata)
   }
 
   /**
