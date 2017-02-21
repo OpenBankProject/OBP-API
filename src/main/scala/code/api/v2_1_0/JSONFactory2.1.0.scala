@@ -77,14 +77,16 @@ case class TransactionRequestDetailsSandBoxTanResponseJSON(
 case class TransactionRequestDetailsCounterpartyJSON(
                                                     to: CounterpartyIdJson,
                                                     value : AmountOfMoneyJSON,
-                                                    description : String
+                                                    description : String,
+                                                    charge_policy : String
                                                   ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsCounterpartyResponseJSON(
                                                             counterparty_id: String,
                                                             toAccount: TransactionRequestAccountJSON,
                                                             value: AmountOfMoneyJSON,
-                                                            description: String
+                                                            description: String,
+                                                            charge_policy : String
                                                           ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestDetailsSEPAJSON(

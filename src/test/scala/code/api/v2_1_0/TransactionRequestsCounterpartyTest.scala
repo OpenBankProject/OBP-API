@@ -6,7 +6,7 @@ import code.api.util.ErrorMessages
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.{ChallengeAnswerJSON, TransactionRequestAccountJSON}
 import code.api.v2_0_0.TransactionRequestBodyJSON
-import code.api.{DefaultUsers, ServerSetupWithTestData}
+import code.api.{ChargePolicy, DefaultUsers, ServerSetupWithTestData}
 import code.bankconnectors.Connector
 import code.fx.fx
 import code.model.{AccountId, BankAccount, TransactionRequestId}
@@ -79,7 +79,10 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+
+        val chargePolicy = ChargePolicy.withName("SHARED")
+
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -213,7 +216,10 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+
+        val chargePolicy = ChargePolicy.withName("SHARED")
+
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -342,7 +348,10 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+
+        val chargePolicy = ChargePolicy.withName("SHARED")
+
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest with a user without owner view access
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -405,7 +414,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
         val amt = BigDecimal("12.50")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val chargePolicy = ChargePolicy.withName("SHARED")
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest
         val request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -483,11 +493,12 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         //4. have a new transaction
 
         val transactionRequestId = TransactionRequestId("__trans1")
-        val toCounterpartyId= counterpartyId
+        val toCounterpartyId = counterpartyId
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val chargePolicy = ChargePolicy.withName("SHARED")
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
@@ -682,7 +693,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
         //amount over 1000 €, so should trigger challenge request
         val amt = BigDecimal("1250.00")
         val bodyValue = AmountOfMoneyJSON("EUR", amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val chargePolicy = ChargePolicy.withName("SHARED")
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
         //call createTransactionRequest API method
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
           "owner" / "transaction-request-types" / transactionRequestType / "transaction-requests").POST <@ (user1)
@@ -875,7 +887,8 @@ class TransactionRequestsCounterpartyTest extends ServerSetupWithTestData with D
 
 
         val bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description")
+        val chargePolicy = ChargePolicy.withName("SHARED")
+        val transactionRequestBody = TransactionRequestDetailsCounterpartyJSON(toCounterpartyId, bodyValue, "Test Transaction Request description", chargePolicy.toString)
 
         //call createTransactionRequest
         var request = (v2_1Request / "banks" / testBank.bankId.value / "accounts" / fromAccount.accountId.value /
