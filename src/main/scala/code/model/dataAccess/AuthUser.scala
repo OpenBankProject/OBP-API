@@ -112,8 +112,8 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
       val resourceUser = createUnsavedResourceUser()
-      code.model.User.saveResourceUser(resourceUser)
-      user(resourceUser)   //is this saving resourceUser into a user field?
+      val savedUser = code.model.User.saveResourceUser(resourceUser)
+      user(savedUser)   //is this saving resourceUser into a user field?
     }
     else {
       info("user reference is not null. Trying to update the API User")
