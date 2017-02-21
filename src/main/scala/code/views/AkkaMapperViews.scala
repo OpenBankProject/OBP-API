@@ -27,7 +27,10 @@ object AkkaMapperViews extends Views with Users  {
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
-  var actorPath = "akka.tcp://OBPDataWorkerSystem@127.0.0.1:5050/user/OBPLocalDataActor"
+  val cfg = ConfigFactory.load("obplocaldata")
+  val host = cfg.getString("akka.remote.netty.tcp.hostname")
+  val port = cfg.getString("akka.remote.netty.tcp.port")
+  var actorPath = "akka.tcp://OBPDataWorkerSystem@" + host + ":" + port + "/user/OBPLocalDataActor"
   if (Props.getBool("enable_remotedata", false)) {
     val cfg = ConfigFactory.load("obpremotedata")
     val rhost = cfg.getString("akka.remote.netty.tcp.hostname")
