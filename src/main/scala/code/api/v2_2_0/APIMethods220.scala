@@ -7,7 +7,7 @@ import code.TransactionTypes.TransactionType
 import code.api.util.APIUtil.isValidCurrencyISOCode
 import code.api.util.ApiRole._
 import code.api.util.{APIUtil, ApiRole, ErrorMessages}
-import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v1_2_1.{JSONFactory, AmountOfMoneyJSON}
 import code.api.v1_3_0.{JSONFactory1_3_0, _}
 import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
@@ -233,6 +233,45 @@ trait APIMethods220 {
           }
       }
     }    
+
+    //
+
+    resourceDocs += ResourceDoc(
+      getCounterpartiesForAccount,
+      apiVersion,
+      "getCounterpartiesForAccount",
+      "GET",
+      "/banks/BANK_ID/accounts/ACCOUNT_ID/VIEW_ID/counterparties",
+      "Get Counterparties of one Account.",
+      s"""Returns the counterparties for an account plus their associated metadata
+          |${authenticationRequiredMessage(false)}
+          |Authentication is required if the view VIEW_ID is not public.""",
+      emptyObjectJson,
+      emptyObjectJson,
+      emptyObjectJson :: Nil,
+      Catalogs(Core, PSD2, OBWG),
+      List(apiTagPerson, apiTagUser, apiTagAccount, apiTagCounterparty))
+
+    lazy val getCounterpartiesForAccount : PartialFunction[Req, Box[User] => Box[JsonResponse]] = {
+      //get other accounts for one account
+      case "banks" :: BankId(bankId) :: "accounts" :: AccountId(accountId) :: ViewId(viewId) :: "counterparties" :: Nil JsonGet json => {
+        user =>
+          for {
+            account <- BankAccount(bankId, accountId)
+            view <- View.fromUrl(viewId, account)
+          // TODO get counterpartyTrait as well. (check the can_add_counterparty flag for now)
+            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+          } yield {
+            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
+            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+          }
+      }
+    }
+
+
+
+
+    //
 
   }
 }
