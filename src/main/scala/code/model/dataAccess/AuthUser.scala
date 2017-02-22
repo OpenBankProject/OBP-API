@@ -44,6 +44,7 @@ import net.liftweb.util._
 
 import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
+import code.users.Users
 import code.util.Helper
 
 
@@ -92,32 +93,38 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   def createUnsavedResourceUser() : ResourceUser = {
-    val user = code.model.User.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
+    val user = Users.users.vend.createUnsavedResourceUser(getProvider(), Some(username), Some(username), Some(email), None).get
     user
   }
 
   def getResourceUsersByEmail(userEmail: String) : List[ResourceUser] = {
-    code.model.User.findByEmail(userEmail)
+    Users.users.vend.getUserByEmail(userEmail) match {
+      case Full(userList) => userList
+      case Empty => List()
+    }
   }
 
   def getResourceUsers(): List[ResourceUser] = {
-    code.model.User.findAll()
+    Users.users.vend.getAllUsers match {
+      case Full(userList) => userList
+      case Empty => List()
+    }
   }
 
   def getResourceUserByUsername(username: String) : Box[ResourceUser] = {
-    code.model.User.findByUserName(username)
+    Users.users.vend.getUserByUserName(username)
   }
 
   override def save(): Boolean = {
     if(! (user defined_?)){
       info("user reference is null. We will create an API User")
       val resourceUser = createUnsavedResourceUser()
-      val savedUser = code.model.User.saveResourceUser(resourceUser)
+      val savedUser = Users.users.vend.saveResourceUser(resourceUser)
       user(savedUser)   //is this saving resourceUser into a user field?
     }
     else {
       info("user reference is not null. Trying to update the API User")
-      code.model.User.findResourceUserByResourceUserId(user.get).map{ u =>{
+      Users.users.vend.getResourceUserByResourceUserId(user.get).map{ u =>{
           info("API User found ")
           u.name_(username)
           .email(email)
@@ -231,7 +238,7 @@ import net.liftweb.util.Helpers._
   def getCurrentResourceUserUserId: String = {
     for {
       current <- AuthUser.currentUser
-      user <- code.model.User.findByResourceUserId(current.user.get)
+      user <- Users.users.vend.getUserByResourceUserId(current.user.get)
     } yield {
       return user.userId
     }
@@ -693,7 +700,7 @@ import net.liftweb.util.Helpers._
     if (connector == "kafka" || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
-       u <- code.model.User.findByUserName(username)
+       u <- Users.users.vend.getUserByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield {
         user
@@ -705,7 +712,7 @@ import net.liftweb.util.Helpers._
   def registeredUserHelper(username: String) = {
     if (connector == "kafka" || connector == "obpjvm") {
       for {
-       u <- code.model.User.findByUserName(username)
+       u <- Users.users.vend.getUserByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}
       } yield v
     }
