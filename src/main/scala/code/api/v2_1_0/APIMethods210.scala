@@ -362,7 +362,11 @@ trait APIMethods210 {
                     // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     toBankId <- Full(BankId(toCounterparty.otherBankId ))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
-                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
+                    toAccountProvider <- Full(AccountId(toCounterparty.otherAccountProvider))
+                    toAccount <-  if (toAccountProvider == "OBP")
+                                    BankAccount(toBankId, toAccountId)  ?~! {ErrorMessages.BankAccountNotFound}
+                                  else
+                                    Empty
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     detailDescription = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description
                     chargePolicy = transDetailsJson.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].charge_policy
