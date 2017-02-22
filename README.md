@@ -118,10 +118,15 @@ The default database for testing etc is H2. PostgreSQL is used for the sandboxes
 
 To populate the OBP database with sandbox data:
 
-1) In your Props file, set allow_sandbox_data_import=true
-2) In your Props files, set sandbox_data_import_secret=YOUR-KEY-HERE
-3) Now you can POST the sandbox json found in src/main/scala/code/api/sandbox/example_data/example_import.json to /sandbox/v1.0/data-import?secret_token=YOUR-KEY-HERE
-4) If successful you should get 201 Created.
+1) In the API's props file, set `allow_sandbox_data_import=true`
+
+Probably best then, is to use the API Explorer (https://github.com/OpenBankProject/API-Explorer):
+
+2) Get your `user_id` from the API Explorer at `/#2_0_0-getCurrentUser`
+3) Add this id to `super_admin_user_ids` in the API's props file and restart the API
+4) Go back to API Explorer, log in again and grant your user the role `CanCreateSandbox` at `/#2_0_0-addEntitlement` (make `bank_id` empty)
+5) Now post the JSON data using the payload field at `/#2_1_0-sandboxDataImport`
+6) If successful you should see an empty result `{}` and no error message
 
 
 ## Kafka (optional):
