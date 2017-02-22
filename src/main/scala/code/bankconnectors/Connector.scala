@@ -10,8 +10,8 @@ import code.branches.Branches.{Branch, BranchId}
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
-import code.model.{Transaction, TransactionRequestType, User, ViewId, _}
-import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
+import code.model.{Transaction, TransactionRequestType, User, _}
+import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -130,9 +130,7 @@ trait Connector {
     * get Counterparty by iban (OtherAccountRoutingAddress field in MappedCounterparty table)
     * This is a helper method that assumes OtherAccountRoutingScheme=IBAN
     */
-  def getCounterpartyByIban(iban: String): Box[CounterpartyTrait]
-
-  def getCounterparties(thisAccountBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]]
+  def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] 
 
   def getTransactions(bankId: BankId, accountID: AccountId, queryParams: OBPQueryParam*): Box[List[Transaction]]
 
