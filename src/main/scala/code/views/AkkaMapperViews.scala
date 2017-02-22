@@ -17,13 +17,15 @@ import akka.util.Timeout
 import code.api.APIFailure
 import code.model.dataAccess.ResourceUser
 import code.users.{RemoteUserCaseClasses, Users}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemoteCounterpartiesCaseClasses}
 
 
-object AkkaMapperViews extends Views with Users  {
+object AkkaMapperViews extends Views with Users with Counterparties{
 
   val TIMEOUT = 10 seconds
   val r = RemoteViewCaseClasses
   val ru = RemoteUserCaseClasses
+  val rCounterparties = RemoteCounterpartiesCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -455,6 +457,111 @@ object AkkaMapperViews extends Views with Users  {
       case e: Throwable => throw e
     }
     res
+  }
+
+  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getOrCreateMetadata", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getMetadatas", 404)
+      case e: Throwable => throw e
+    }
+    res.get
+  }
+
+  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getMetadata", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  override def getCounterparty(counterPartyId: String): Box[CounterpartyTrait] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getCounterparty", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getCounterpartyByIban", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  override def createCounterparty(createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, name: String, otherBankId: String, otherAccountId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, isBeneficiary: Boolean): Box[CounterpartyTrait] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+                                                           otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
+                                                           isBeneficiary)).mapTo[CounterpartyTrait],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not  createCounterparty", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = {
+    Await.result(
+      (viewsActor ? rCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
+      TIMEOUT
+    )
   }
 }
 

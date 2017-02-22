@@ -11,7 +11,7 @@ object Users  extends SimpleInjector {
   val users = new Inject(buildOne _) {}
   
   def buildOne: Users = LiftUsers
-  //def buildOne: Users = AkkaMapperViews
+//  def buildOne: Users = AkkaMapperViews
   
 }
 

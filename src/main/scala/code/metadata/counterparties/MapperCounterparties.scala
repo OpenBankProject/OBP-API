@@ -10,7 +10,7 @@ import net.liftweb.mapper.{By, _}
 import net.liftweb.util.Helpers.tryo
 
 object MapperCounterparties extends Counterparties with Loggable {
-  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): CounterpartyMetadata = {
+  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
 
     /**
      * Generates a new alias name that is guaranteed not to collide with any existing public alias names
@@ -59,12 +59,12 @@ object MapperCounterparties extends Counterparties with Loggable {
     val existing = findMappedCounterpartyMetadata(originalPartyBankId, originalPartyAccountId, otherParty)
 
     existing match {
-      case Full(e) => e
+      case Full(e) => Full(e)
       // Create it!
       case _ => {
         logger.debug("Before creating MappedCounterpartyMetadata")
         // Store a record that contains counterparty information from the perspective of an account at a bank
-        MappedCounterpartyMetadata.create
+        Full(MappedCounterpartyMetadata.create
           // Core info
           .thisAccountBankId(originalPartyBankId.value)
           .thisAccountId(originalPartyAccountId.value)
@@ -74,7 +74,7 @@ object MapperCounterparties extends Counterparties with Loggable {
           // otherParty.metadata is None at this point
           //.imageUrl("www.example.com/image.jpg")
           //.moreInfo("This is hardcoded moreInfo")
-          .saveMe
+          .saveMe)
       }
     }
   }

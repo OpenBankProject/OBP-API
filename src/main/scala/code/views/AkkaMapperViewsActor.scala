@@ -15,6 +15,7 @@ import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemoteUserCaseClasses}
+import code.metadata.counterparties.{CounterpartyTrait, MapperCounterparties, RemoteCounterpartiesCaseClasses}
 
 
 class AkkaMapperViewsActor extends Actor {
@@ -28,6 +29,9 @@ class AkkaMapperViewsActor extends Actor {
 
   val vu = LiftUsers
   val ru = RemoteUserCaseClasses
+
+  val vCounterparties = MapperCounterparties
+  val rCounterparties = RemoteCounterpartiesCaseClasses
 
   def receive = {
 
@@ -306,6 +310,88 @@ class AkkaMapperViewsActor extends Actor {
           res <- vu.saveResourceUser(resourceUser)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
+      logger.info("checkCounterpartyAvailable(" + name +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +")")
+      sender ! vCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
+
+    case rCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+                                            otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
+                                            isBeneficiary) =>
+      logger.info("createCounterparty(" + createdByUserId +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +", "+ name +", "+ otherBankId + otherAccountId +", "
+                    + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ isBeneficiary+ ")")
+
+      {
+        for {
+          res <- vCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+                                                    otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
+                                                    isBeneficiary)
+        } yield {
+          sender ! res.asInstanceOf[CounterpartyTrait]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
+
+    case rCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty) =>
+      logger.info("getOrCreateMetadata(" + originalPartyBankId +", " +originalPartyAccountId+otherParty+")")
+
+      {
+        for {
+          res <- vCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
+        } yield {
+          sender ! res.asInstanceOf[CounterpartyMetadata]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId) =>
+      logger.info("getOrCreateMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")
+
+      Full({
+             for {
+               res <- Full(vCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))
+             } yield {
+               sender ! res.asInstanceOf[List[CounterpartyMetadata]]
+             }
+           }).getOrElse(context.stop(sender))
+
+
+    case rCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String) =>
+        logger.info("getMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")
+
+      {
+        for {
+          res <- vCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
+        } yield {
+          sender ! res.asInstanceOf[CounterpartyMetadata]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
+
+    case rCounterparties.getCounterparty(counterPartyId: String) =>
+      logger.info("getCounterparty(" + counterPartyId +")")
+
+      {
+        for {
+          res <- vCounterparties.getCounterparty(counterPartyId: String)
+        } yield {
+          sender ! res.asInstanceOf[CounterpartyTrait]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
+    case rCounterparties.getCounterpartyByIban(iban: String) =>
+
+      logger.info("getOrCreateMetadata(" + iban +")")
+
+      {
+        for {
+          res <- vCounterparties.getCounterpartyByIban(iban: String)
+        } yield {
+          sender ! res.asInstanceOf[CounterpartyTrait]
         }
       }.getOrElse( context.stop(sender) )
 
