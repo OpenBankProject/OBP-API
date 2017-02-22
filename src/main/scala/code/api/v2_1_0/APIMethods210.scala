@@ -363,6 +363,11 @@ trait APIMethods210 {
                     toBankId <- Full(BankId(toCounterparty.otherBankId ))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
                     toAccountProvider <- Full(AccountId(toCounterparty.otherAccountProvider))
+                    // Use toAccountProvider to determine how we validate the toBank and toAccount.
+                    // i.e. Only validate toBankId and toAccountId if the toAccountProvider is OBP
+                    // i.e. if toAccountProvider is OBP we can expect the account to exist locally.
+                    // In the future we may remove toBankId and toAccountId and exclusively the scheme/address in Counterparty
+                    // This is so developers can follow the COUNTERPARTY flow in the sandbox
                     toAccount <-  if (toAccountProvider == "OBP")
                                     BankAccount(toBankId, toAccountId)  ?~! {ErrorMessages.BankAccountNotFound}
                                   else
