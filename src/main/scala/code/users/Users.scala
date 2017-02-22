@@ -17,7 +17,9 @@ object Users  extends SimpleInjector {
 
 trait Users {
   def getUserByResourceUserId(id : Long) : Box[User]
-  
+
+  def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser]
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User]
 
   def getUserByUserId(userId : String) : Box[User]
@@ -37,6 +39,7 @@ trait Users {
 
 class RemoteUserCaseClasses {
   case class getUserByResourceUserId(id : Long)
+  case class getResourceUserByResourceUserId(id : Long)
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
   case class getUserByUserId(userId : String)
   case class getUserByUserName(userName : String)

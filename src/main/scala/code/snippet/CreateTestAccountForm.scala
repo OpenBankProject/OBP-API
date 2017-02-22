@@ -81,7 +81,7 @@ object CreateTestAccountForm{
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
-        user <- currentAuthUser.user.obj ?~ "Server error: could not identify user"
+        user <- code.model.User.findResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")

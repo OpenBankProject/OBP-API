@@ -70,7 +70,7 @@ class MappedCrmEvent extends CrmEvent with LongKeyedMapper[MappedCrmEvent] with 
   override def scheduledDate: Date = mScheduledDate.get
   override def actualDate: Date = mActualDate.get
   override def result: String = mResult.get
-  override def user: ResourceUser = mUserId.obj.get
+  override def user: ResourceUser = code.model.User.findResourceUserByResourceUserId(mUserId.get).get
   override def customerName : String = mCustomerName.get
   override def customerNumber : String = mCustomerNumber.get
 }

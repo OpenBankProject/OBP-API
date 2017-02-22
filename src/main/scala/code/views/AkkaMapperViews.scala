@@ -337,6 +337,22 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     res
   }
 
+  def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? ru.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"ResourceUser not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     val res = try {
       Full(

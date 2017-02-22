@@ -67,7 +67,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
 
   override def id_ : String = apiId.get
   override def text: String = text_.get
-  override def postedBy: Box[User] = poster.obj
+  override def postedBy: Box[User] = code.model.User.findByResourceUserId(poster.get)
   override def replyToID: String = replyTo.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

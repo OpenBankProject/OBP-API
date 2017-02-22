@@ -224,7 +224,7 @@ class Token extends LongKeyedMapper[Token]{
   object duration extends MappedLong(this)//expressed in milliseconds
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
-  def user = userForeignKey.obj
+  def user = code.model.User.findResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
   def consumer = consumerId.obj
   def isValid : Boolean = expirationDate.is after now

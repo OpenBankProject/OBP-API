@@ -13,6 +13,10 @@ object LiftUsers extends Users {
     ResourceUser.find(id) ?~ { s"user $id not found"}
   }
 
+  def getResourceUserByResourceUserId(id : Long) : Box[ResourceUser] = {
+    ResourceUser.find(id) ?~ { s"user $id not found"}
+  }
+
   def getUserByProviderId(provider : String, idGivenByProvider : String) : Box[User] = {
     ResourceUser.find(By(ResourceUser.provider_, provider), By(ResourceUser.providerId, idGivenByProvider))
   }
