@@ -103,6 +103,9 @@ object User {
   def findByResourceUserId(id : Long) : Box[User] =
     Users.users.vend.getUserByResourceUserId(id)
 
+  def findResourceUserByResourceUserId(id : Long) : Box[ResourceUser] =
+    Users.users.vend.getResourceUserByResourceUserId(id)
+
   def findByProviderId(provider : String, idGivenByProvider : String) =
     //if you change this, think about backwards compatibility! All existing
     //versions of the API return this failure message, so if you change it, make sure

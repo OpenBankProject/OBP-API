@@ -225,6 +225,17 @@ class AkkaMapperViewsActor extends Actor {
         }
       }.getOrElse( context.stop(sender) )
 
+    case ru.getResourceUserByResourceUserId(id: Long) =>
+      logger.info("getResourceUserByResourceUserId(" + id +")")
+
+      {
+        for {
+          res <- vu.getResourceUserByResourceUserId(id)
+        } yield {
+          sender ! res.asInstanceOf[ResourceUser]
+        }
+      }.getOrElse( context.stop(sender) )
+
     case ru.getUserByProviderId(provider : String, idGivenByProvider : String) =>
       logger.info("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
 

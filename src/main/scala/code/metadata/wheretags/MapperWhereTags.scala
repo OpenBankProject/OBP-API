@@ -69,7 +69,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object geoLongitude extends MappedDouble(this)
 
   override def datePosted: Date = date.get
-  override def postedBy: Box[User] = user.obj
+  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
   override def latitude: Double = geoLatitude.get
   override def longitude: Double = geoLongitude.get
 }

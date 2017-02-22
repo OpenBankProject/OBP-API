@@ -92,7 +92,7 @@ object OAuthAuthorisation {
           val authUser = AuthUser.currentUser.get
 
           //link the token with the concrete API User
-          authUser.user.obj.map {
+          code.model.User.findResourceUserByResourceUserId(authUser.user.get).map {
             u => {
               //We want ResourceUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"

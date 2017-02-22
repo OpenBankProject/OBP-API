@@ -49,6 +49,7 @@ import code.api.util.{APIUtil, ErrorMessages}
 import kafka.utils.Json
 import java.net.HttpURLConnection
 import net.liftweb.{http, json}
+import code.model.User
 
 /**
   * This object provides the API calls necessary to authenticate
@@ -103,15 +104,15 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
                 for {
                   emailVerified <- tryo{(json_user \ "email_verified").extractOrElse[Boolean](false)}
                   userEmail <- tryo{(json_user \ "email").extractOrElse[String]("")}
-                  obp_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
-                  api_user: ResourceUser <- obp_user.user.foreign
-                  if emailVerified && api_user.resourceUserId.value > 0
+                  auth_user: AuthUser <- AuthUser.find(By(AuthUser.email, userEmail))
+                  resource_user: ResourceUser <- User.findResourceUserByResourceUserId(auth_user.user.get)
+                  if emailVerified && resource_user.resourceUserId.value > 0
                 } yield {
-                  saveAuthorizationToken(accessToken, accessToken, api_user.resourceUserId.value)
+                  saveAuthorizationToken(accessToken, accessToken, resource_user.resourceUserId.value)
                   httpCode = 200
                   message= String.format("oauth_token=%s&oauth_token_secret=%s", accessToken, accessToken)
                   val headers = ("Content-type" -> "application/x-www-form-urlencoded") :: Nil
-                  AuthUser.logUserIn(obp_user, () => {
+                  AuthUser.logUserIn(auth_user, () => {
                     S.notice(S.?("logged.in"))
                     //This redirect to homePage, it is from scala code, no open redirect issue.
                     S.redirectTo(AuthUser.homePage)

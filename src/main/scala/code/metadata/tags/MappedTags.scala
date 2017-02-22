@@ -49,7 +49,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
   object date extends MappedDateTime(this)
 
   override def id_ : String = tagId.get
-  override def postedBy: Box[User] = user.obj
+  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
   override def value: String = tag.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

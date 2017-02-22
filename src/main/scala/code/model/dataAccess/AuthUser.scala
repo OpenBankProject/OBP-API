@@ -117,7 +117,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     }
     else {
       info("user reference is not null. Trying to update the API User")
-      user.obj.map{ u =>{
+      code.model.User.findResourceUserByResourceUserId(user.get).map{ u =>{
           info("API User found ")
           u.name_(username)
           .email(email)
@@ -231,10 +231,9 @@ import net.liftweb.util.Helpers._
   def getCurrentResourceUserUserId: String = {
     for {
       current <- AuthUser.currentUser
-      userId <- tryo{current.user.foreign.get.userId}
-      if (userId.nonEmpty)
+      user <- code.model.User.findByResourceUserId(current.user.get)
     } yield {
-      return userId
+      return user.userId
     }
 
     for {
