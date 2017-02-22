@@ -1015,6 +1015,7 @@ trait APIMethods200 {
             account <- BankAccount(bank.bankId, accountId) ?~! {ErrorMessages.AccountNotFound} // Check Account exists.
             permission <- account permission(u, providerId, userId)
           } yield {
+            // TODO : Note this is using old createViewsJSON without can_add_counterparty etc.
             val views = JSONFactory121.createViewsJSON(permission.views.sortBy(_.viewId.value))
             successJsonResponse(Extraction.decompose(views))
           }
