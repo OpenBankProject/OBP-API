@@ -184,12 +184,12 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
-  def getCounterpartyFromTransaction(thisAccountBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
     for { //find a transaction with this counterparty
       t <- MappedTransaction.find(
-        By(MappedTransaction.bank, thisAccountBankId.value),
+        By(MappedTransaction.bank, thisBankId.value),
         By(MappedTransaction.account, thisAccountId.value),
         By(MappedTransaction.counterpartyAccountHolder, metadata.getHolder),
         By(MappedTransaction.counterpartyAccountNumber, metadata.getAccountNumber))
@@ -204,7 +204,7 @@ object LocalMappedConnector extends Connector with Loggable {
         thisAccountId = AccountId(metadata.getAccountNumber),
         thisBankId = BankId(t.counterpartyBankName.get),
         kind = t.counterpartyAccountKind.get,
-        otherBankId = thisAccountBankId,
+        otherBankId = thisBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(metadata),
         name = "",
@@ -226,9 +226,9 @@ object LocalMappedConnector extends Connector with Loggable {
   Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
 
-  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     for {
-      t <- Counterparties.counterparties.vend.getMetadata(thisAccountBankId, thisAccountId, couterpartyId)
+      t <- Counterparties.counterparties.vend.getMetadata(thisBankId, thisAccountId, couterpartyId)
     } yield {
       new Counterparty(
         //counterparty id is defined to be the id of its metadata as we don't actually have an id for the counterparty itself
@@ -240,7 +240,7 @@ object LocalMappedConnector extends Connector with Loggable {
         thisAccountId = AccountId(t.getAccountNumber),
         thisBankId = BankId(""),
         kind = "",
-        otherBankId = thisAccountBankId,
+        otherBankId = thisBankId,
         otherAccountId = thisAccountId,
         alreadyFoundMetadata = Some(t),
         name = "",
@@ -959,6 +959,12 @@ Store one or more transactions
 
   override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
     Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
+  }
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId, viewId: ViewId): Box[List[CounterpartyTrait]] = {
+    Full(MappedCounterparty.findAll(By(MappedCounterparty.mThisAccountId, thisAccountId.value),
+                                    By(MappedCounterparty.mThisBankId, thisBankId.value),
+                                    By(MappedCounterparty.mThisViewId, viewId.value)))
   }
   
 }

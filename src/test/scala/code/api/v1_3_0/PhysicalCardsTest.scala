@@ -78,7 +78,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil
     override def getBankAccount(bankId : BankId, accountId : AccountId) : Box[BankAccount] = Empty
-    override def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+    override def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
     override def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty] =
       Empty
     override def getCounterpartiesFromTransaction(bankId: BankId, accountID : AccountId): List[Counterparty] =
@@ -198,6 +198,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getTransactionRequestTypeCharge(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestType: TransactionRequestType): Box[TransactionRequestTypeCharge] = Empty
 
     override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
+
+    override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
   }
 
   override def beforeAll() {

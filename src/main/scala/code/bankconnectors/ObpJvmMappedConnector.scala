@@ -450,10 +450,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
   }
 
-  def getCounterpartyFromTransaction(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for Counterpartys, we need to construct it from an
     //CounterpartyMetadata and a transaction
-    val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
+    val t = getTransactions(thisBankId, thisAccountId).map { t =>
       t.filter { e =>
         if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
           true
@@ -472,7 +472,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      otherBankId = thisAccountBankId,
+      otherBankId = thisBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
       name = "",
@@ -533,7 +533,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     // Get the metadata and pass it to getCounterparty to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
-  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
+  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = Empty
 
   def getCounterpartyByCounterpartyId(counterpartyId: CounterpartyId): Box[CounterpartyTrait] =Empty
   
@@ -1444,5 +1444,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = {
     Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId, _).get))
   }
+
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
 }
 

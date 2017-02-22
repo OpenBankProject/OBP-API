@@ -34,6 +34,7 @@ package code.api.v2_2_0
 //import code.api.v1_2_1.JSONFactory
 import java.util.Date
 import code.fx.FXRate
+import code.metadata.counterparties.CounterpartyTrait
 import code.model._
 //import net.liftweb.common.Box
 //import net.liftweb.json.Extraction
@@ -129,6 +130,27 @@ case class FXRateJSON(
                        inverse_conversion_value: Double,
                        effective_date: Date
                      )
+
+case class CounterpartyJSON(
+                             name: String,
+                             created_by_user_id: String,
+                             this_bank_id: String,
+                             this_account_id: String,
+                             this_view_id: String,
+                             other_bank_id: String,
+                             other_account_id: String,
+                             other_account_provider: String,
+                             counterparty_id: String,
+                             other_bank_routing_scheme: String,
+                             other_account_routing_scheme: String,
+                             other_bank_routing_address: String,
+                             other_account_routing_address: String,
+                             is_beneficiary: Boolean
+                           )
+
+case class CounterpartiesJSON(
+                               counterparties: List[CounterpartyJSON]
+                             )
 
 object JSONFactory220{
 
@@ -231,5 +253,28 @@ object JSONFactory220{
     )
   }
 
+  def createCounterpartyJSON(counterparty: CounterpartyTrait): CounterpartyJSON = {
+    CounterpartyJSON(
+      name = counterparty.name,
+      created_by_user_id = counterparty.createdByUserId,
+      this_bank_id = counterparty.thisBankId,
+      this_account_id = counterparty.thisAccountId,
+      this_view_id = counterparty.thisViewId,
+      other_bank_id = counterparty.otherBankId,
+      other_account_id = counterparty.otherAccountId,
+      other_account_provider = counterparty.otherAccountProvider,
+      counterparty_id = counterparty.counterpartyId,
+      other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
+      other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
+      other_bank_routing_address = counterparty.otherBankRoutingAddress,
+      other_account_routing_address = counterparty.otherAccountRoutingAddress,
+      is_beneficiary = counterparty.isBeneficiary
+    )
+  }
+
+  def createCounterpartiesJSON(counterparties : List[CounterpartyTrait]) : CounterpartiesJSON = {
+    val list : List[CounterpartyJSON] = counterparties.map(createCounterpartyJSON)
+    new CounterpartiesJSON(list)
+  }
 
 }
