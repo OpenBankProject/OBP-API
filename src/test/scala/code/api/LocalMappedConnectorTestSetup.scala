@@ -35,8 +35,9 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       mOtherBankId(bankId).
       mOtherAccountId(accountId).
       mIsBeneficiary(isBeneficiary).
-      mOtherAccountRoutingScheme("IBAN").
-    saveMe
+      mOtherAccountRoutingScheme("IBAN"). //it is for test, so set it the default value
+      mOtherAccountProvider("OBP"). //it is for test, so set it the default value
+      saveMe
   }
 
 // TODO: Should return an option or box so can test if the insert succeeded

@@ -362,7 +362,7 @@ trait APIMethods210 {
                     // Following 7 lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part.
                     toBankId <- Full(BankId(toCounterparty.otherBankId ))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
-                    toAccountProvider <- Full(AccountId(toCounterparty.otherAccountProvider))
+                    toAccountProvider <- Full(toCounterparty.otherAccountProvider)
                     // Use toAccountProvider to determine how we validate the toBank and toAccount.
                     // i.e. Only validate toBankId and toAccountId if the toAccountProvider is OBP
                     // i.e. if toAccountProvider is OBP we can expect the account to exist locally.
