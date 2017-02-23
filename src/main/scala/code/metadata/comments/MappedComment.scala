@@ -1,11 +1,12 @@
 package code.metadata.comments
 
-import java.util.{UUID, Date}
+import java.util.{Date, UUID}
 
 import code.model._
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
-import net.liftweb.common.{Failure, Full, Box}
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
@@ -67,7 +68,7 @@ class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdP
 
   override def id_ : String = apiId.get
   override def text: String = text_.get
-  override def postedBy: Box[User] = code.model.User.findByResourceUserId(poster.get)
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(poster.get)
   override def replyToID: String = replyTo.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

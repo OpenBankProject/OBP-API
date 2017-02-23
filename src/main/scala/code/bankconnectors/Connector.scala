@@ -11,7 +11,7 @@ import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
-import code.model.dataAccess.{ResourceUser, MappedAccountHolder}
+import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -20,6 +20,7 @@ import net.liftweb.json
 import net.liftweb.util.Helpers._
 import net.liftweb.util.{Props, SimpleInjector}
 import code.products.Products.{Product, ProductCode}
+import code.users.Users
 import code.views.Views
 import net.liftweb.mapper.By
 
@@ -791,7 +792,7 @@ trait Connector {
   //def setAccountOwner(owner : String, account: KafkaInboundAccount) : Unit = {
   def setAccountOwner(owner : String, bankId: BankId, accountId: AccountId, account_owners: List[String]) : Unit = {
     if (account_owners.contains(owner)) {
-      val resourceUserOwner = code.model.User.findAll().find(user => owner == user.name)
+      val resourceUserOwner = Users.users.vend.getAllUsers().getOrElse(List()).find(user => owner == user.name)
       resourceUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, bankId, accountId)) {

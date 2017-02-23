@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.model._
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.tryo
@@ -49,7 +50,7 @@ class MappedTag extends TransactionTag with LongKeyedMapper[MappedTag] with IdPK
   object date extends MappedDateTime(this)
 
   override def id_ : String = tagId.get
-  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def value: String = tag.get
   override def viewId: ViewId = ViewId(view.get)
   override def datePosted: Date = date.get

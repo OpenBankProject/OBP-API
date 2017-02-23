@@ -4,6 +4,7 @@ import java.util.Date
 
 import code.model._
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -69,7 +70,7 @@ class MappedWhereTag extends GeoTag with LongKeyedMapper[MappedWhereTag] with Id
   object geoLongitude extends MappedDouble(this)
 
   override def datePosted: Date = date.get
-  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def latitude: Double = geoLatitude.get
   override def longitude: Double = geoLongitude.get
 }

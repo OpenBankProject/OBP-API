@@ -292,7 +292,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
       foundAccount.publicViews.size should equal(0)
     }
 
-    val owner = code.model.User.findByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
+    val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
     //there should be an owner view
     val views = Views.views.vend.permittedViews(owner, foundAccount)
     val ownerView = views.find(v => v.viewId.value == "owner")

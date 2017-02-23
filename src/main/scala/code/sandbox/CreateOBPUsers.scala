@@ -1,7 +1,8 @@
 package code.sandbox
 
 import code.model.dataAccess.{AuthUser, ResourceUser}
-import net.liftweb.common.{Full, Failure, Box}
+import code.users.Users
+import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper.By
 
 trait CreateAuthUsers {
@@ -13,7 +14,7 @@ trait CreateAuthUsers {
     def asSaveable(u : AuthUser) = new Saveable[ResourceUser] {
       val value = u.createUnsavedResourceUser()
       def save() = {
-        val usr = code.model.User.saveResourceUser(value)
+        val usr = Users.users.vend.saveResourceUser(value)
         for (uu <- usr) {
           u.user(uu).save()
         }

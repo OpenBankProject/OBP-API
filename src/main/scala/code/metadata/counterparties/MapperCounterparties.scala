@@ -4,6 +4,7 @@ import java.util.{Date, UUID}
 
 import code.model._
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedAccountNumber, MappedUUID}
 import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.mapper.{By, _}
@@ -295,7 +296,7 @@ class MappedCounterpartyWhereTag extends GeoTag with LongKeyedMapper[MappedCount
   object geoLatitude extends MappedDouble(this)
   object geoLongitude extends MappedDouble(this)
 
-  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def datePosted: Date = date.get
   override def latitude: Double = geoLatitude.get
   override def longitude: Double = geoLongitude.get

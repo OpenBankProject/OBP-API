@@ -4,6 +4,7 @@ import java.net.URL
 import java.util.Date
 import code.model._
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
@@ -58,7 +59,7 @@ class MappedTransactionImage extends TransactionImage with LongKeyedMapper[Mappe
   object imageDescription extends DefaultStringField(this)
 
   override def id_ : String = imageId.get
-  override def postedBy: Box[User] = code.model.User.findByResourceUserId(user.get)
+  override def postedBy: Box[User] = Users.users.vend.getUserByResourceUserId(user.get)
   override def description: String = imageDescription.get
   override def imageUrl: URL = tryo {new URL(url.get)} getOrElse MappedTransactionImage.notFoundUrl
   override def viewId: ViewId = ViewId(view.get)

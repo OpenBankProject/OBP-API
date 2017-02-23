@@ -32,10 +32,11 @@ Berlin 13359, Germany
 package code.model
 import net.liftweb._
 import net.liftweb.mapper.{LongKeyedMetaMapper, _}
-import net.liftweb.util.{Props, FieldError, Helpers, SecurityHelpers}
+import net.liftweb.util.{FieldError, Helpers, Props, SecurityHelpers}
 import net.liftweb.common._
 import Helpers.now
 import code.model.dataAccess.ResourceUser
+import code.users.Users
 import net.liftweb.http.S
 import net.liftweb.util.Helpers._
 
@@ -224,7 +225,7 @@ class Token extends LongKeyedMapper[Token]{
   object duration extends MappedLong(this)//expressed in milliseconds
   object expirationDate extends MappedDateTime(this)
   object insertDate extends MappedDateTime(this)
-  def user = code.model.User.findResourceUserByResourceUserId(userForeignKey.get)
+  def user = Users.users.vend.getResourceUserByResourceUserId(userForeignKey.get)
   //The the consumer from Token by consumerId
   def consumer = consumerId.obj
   def isValid : Boolean = expirationDate.is after now

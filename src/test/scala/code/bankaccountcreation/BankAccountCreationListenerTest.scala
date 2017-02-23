@@ -2,16 +2,17 @@ package code.bankaccountcreation
 
 import code.api.DefaultConnectorTestSetup
 import code.api.ServerSetup
-import code.model.{User, BankId}
+import code.model.{BankId, User}
 import code.views.Views
 import net.liftweb.common.Full
 import net.liftweb.mapper.By
 import net.liftweb.util.Props
 import org.scalatest.Tag
 import com.tesobe.model.CreateBankAccount
-import code.model.dataAccess.{ResourceUser, BankAccountCreationListener}
+import code.model.dataAccess.{BankAccountCreationListener, ResourceUser}
 import net.liftmodules.amqp.AMQPMessage
 import code.bankconnectors.Connector
+import code.users.Users
 
 class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorTestSetup {
 
@@ -34,8 +35,8 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
 
     //need to create the user for the bank accout creation process to work
     def getTestUser() =
-      code.model.User.findByProviderId(userProvider, userId).getOrElse {
-        code.model.User.createResourceUser(userProvider, Some(userId), None, None, None).get
+      Users.users.vend.getUserByProviderId(userProvider, userId).getOrElse {
+        Users.users.vend.createResourceUser(userProvider, Some(userId), None, None, None).get
       }
 
     val expectedBankId = "quxbank"
