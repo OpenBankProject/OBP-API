@@ -4,7 +4,8 @@ import java.util.Date
 
 import code.model.{BankId, User}
 import code.model.dataAccess.ResourceUser
-import code.util.{MappedUUID, DefaultStringField}
+import code.users.Users
+import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.Box
 import net.liftweb.mapper._
 
@@ -55,7 +56,7 @@ object MappedCustomerProvider extends CustomerProvider {
     MappedCustomer.find(
       By(MappedCustomer.mBank, bankId.value),
       By(MappedCustomer.mNumber, customerNumber)
-    ).flatMap(x => code.model.User.findResourceUserByResourceUserId(x.mUser.get))
+    ).flatMap(x => Users.users.vend.getResourceUserByResourceUserId(x.mUser.get))
   }
 
   override def addCustomer(bankId: BankId,

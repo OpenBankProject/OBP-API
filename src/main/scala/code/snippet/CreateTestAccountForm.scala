@@ -3,14 +3,16 @@ package code.snippet
 import code.bankconnectors.Connector
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
-import code.model.{Bank, AccountId, BankId, BankAccount}
+import code.model.{AccountId, Bank, BankAccount, BankId}
 import code.util.Helper._
-import net.liftweb.common.{Empty, Full, Failure, Box}
+import net.liftweb.common.{Box, Empty, Failure, Full}
 import net.liftweb.http.js.JsCmds.SetHtml
 import net.liftweb.http.js.JsCmd
+
 import scala.xml.NodeSeq
-import net.liftweb.http.js.jquery.JqJsCmds.{Show, Hide}
+import net.liftweb.http.js.jquery.JqJsCmds.{Hide, Show}
 import code.model.dataAccess.{AuthUser, BankAccountCreation}
+import code.users.Users
 
 object CreateTestAccountForm{
 
@@ -81,7 +83,7 @@ object CreateTestAccountForm{
       for {
         initialBalanceAsNumber <- tryo {BigDecimal(initialBalance)} ?~! "Initial balance must be a number, e.g 1000.00"
         currentAuthUser <- AuthUser.currentUser ?~! "You need to be logged in to create an account"
-        user <- code.model.User.findResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
+        user <- Users.users.vend.getResourceUserByResourceUserId(currentAuthUser.user.get) ?~ "Server error: could not identify user"
         bank <- Bank(bankId) ?~ s"Bank $bankId not found"
         accountDoesNotExist <- booleanToBox(BankAccount(bankId, accountId).isEmpty,
           s"Account with id $accountId already exists at bank $bankId")

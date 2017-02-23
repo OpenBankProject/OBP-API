@@ -44,6 +44,7 @@ import code.api.util.APIUtil
 import net.liftweb.util.{CssSel, Helpers, Props}
 import code.model.TokenType
 import code.model.dataAccess.AuthUser
+import code.users.Users
 import scala.xml.NodeSeq
 import net.liftweb.util.Helpers._
 import code.util.Helper.NOOP_SELECTOR
@@ -92,7 +93,7 @@ object OAuthAuthorisation {
           val authUser = AuthUser.currentUser.get
 
           //link the token with the concrete API User
-          code.model.User.findResourceUserByResourceUserId(authUser.user.get).map {
+          Users.users.vend.getResourceUserByResourceUserId(authUser.user.get).map {
             u => {
               //We want ResourceUser.id because it is unique, unlike the id given by a provider
               // i.e. two different providers can have a user with id "bob"

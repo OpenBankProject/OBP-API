@@ -12,6 +12,7 @@ import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
 import code.model._
 import code.branches.Branches.Branch
 import code.atms.Atms.Atm
+import code.users.Users
 import code.util.Helper
 import code.views.Views
 import net.liftweb.common._
@@ -136,7 +137,7 @@ trait OBPDataImport extends Loggable {
   protected def createSaveableUser(u : SandboxUserImport) : Box[Saveable[ResourceUser]]
 
   protected def createUsers(toImport : List[SandboxUserImport]) : Box[List[Saveable[ResourceUser]]] = {
-    val existingResourceUsers = toImport.flatMap(u => code.model.User.findByUserName(u.user_name))
+    val existingResourceUsers = toImport.flatMap(u => Users.users.vend.getUserByUserName(u.user_name))
     val allUsernames = toImport.map(_.user_name)
     val duplicateUsernames = allUsernames diff allUsernames.distinct
 
@@ -523,7 +524,10 @@ trait OBPDataImport extends Loggable {
 
 
 
-      val us = code.model.User.findAll();
+      val us = Users.users.vend.getAllUsers() match {
+        case Full(userList) => userList
+        case Empty => List()
+      }
       logger.info(s"importData is saving ${accountResults.size} accountResults (accounts, views and permissions)..")
       accountResults.foreach {
         case (account, views, accOwnerUsernames) =>
