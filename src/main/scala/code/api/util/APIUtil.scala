@@ -170,6 +170,7 @@ object ErrorMessages {
   val TransactionRequestTypeHasChanged = "OBP-40009: The TRANSACTION_REQUEST_TYPE has changed."
   val InvalidTransactionRequesChallengeId = "OBP-40010: Invalid Challenge Id. Please specify a valid value for CHALLENGE_ID."
   val TransactionRequestStatusNotInitiated = "OBP-40011: Transaction Request Status is not initiated. This transaction request has been answered before"
+  val CounterpartyNotFoundOtherAccountProvider = "OBP-40012: Please set up the OtherAccountProvider field of the Counterparty, the default value should be 'OBP'"
 
 }
 

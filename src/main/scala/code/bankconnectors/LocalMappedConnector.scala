@@ -482,7 +482,7 @@ Store one or more transactions
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge): Box[TransactionRequest] = {
+   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
 
     // Note: We don't save transaction_ids here.
     val mappedTransactionRequest = MappedTransactionRequest.create
@@ -498,6 +498,7 @@ Store one or more transactions
       .mCharge_Summary(charge.summary)
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
+      .mcharge_Policy(chargePolicy)
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
