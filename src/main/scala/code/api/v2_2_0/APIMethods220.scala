@@ -261,12 +261,14 @@ trait APIMethods220 {
         user =>
           for {
             account <- BankAccount(bankId, accountId)
-            view <- View.fromUrl(viewId, account)
-          // TODO get counterpartyTrait as well. (check the can_add_counterparty flag for now)
-            otherBankAccounts <- account.moderatedOtherBankAccounts(view, user)
+            view <- View.fromUrl(viewId, account)?~! {ErrorMessages.ViewNotFound}
+            canAddCounterparty <- booleanToBox(view.canAddCounterparty == true, "The current view does not have can_add_counterparty permission. Please use a view with that permission or add the permission to this view.")
+            availableViews <- Full(account.permittedViews(user))
+            canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
+            counterparties <- Connector.connector.vend.getCounterparties(bankId,accountId,viewId)
           } yield {
-            val otherBankAccountsJson = JSONFactory.createOtherBankAccountsJSON(otherBankAccounts)
-            successJsonResponse(Extraction.decompose(otherBankAccountsJson))
+            val counterpartiesJson = JSONFactory220.createCounterpartiesJSON(counterparties)
+            successJsonResponse(Extraction.decompose(counterpartiesJson))
           }
       }
     }

@@ -25,7 +25,7 @@ object MapperCounterparties extends Counterparties with Loggable {
        */
       def isDuplicate(publicAlias: String) : Boolean = {
         MappedCounterpartyMetadata.find(
-          By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+          By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
           By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
           By(MappedCounterpartyMetadata.publicAlias, publicAlias)
         ).isDefined
@@ -51,7 +51,7 @@ object MapperCounterparties extends Counterparties with Loggable {
     def findMappedCounterpartyMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId,
                                        otherParty: Counterparty) : Box[MappedCounterpartyMetadata] = {
       MappedCounterpartyMetadata.find(
-        By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+        By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
         By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
         By(MappedCounterpartyMetadata.holder, otherParty.label),
         By(MappedCounterpartyMetadata.accountNumber, otherParty.thisAccountId.value))
@@ -67,7 +67,7 @@ object MapperCounterparties extends Counterparties with Loggable {
         // Store a record that contains counterparty information from the perspective of an account at a bank
         Full(MappedCounterpartyMetadata.create
           // Core info
-          .thisAccountBankId(originalPartyBankId.value)
+          .thisBankId(originalPartyBankId.value)
           .thisAccountId(originalPartyAccountId.value)
           .holder(otherParty.label) // The main human readable identifier for this counter party from the perspective of the account holder
           .publicAlias(newPublicAliasName()) // The public alias this account gives to the counterparty.
@@ -83,7 +83,7 @@ object MapperCounterparties extends Counterparties with Loggable {
   // Get all counterparty metadata for a single OBP account
   override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = {
     MappedCounterpartyMetadata.findAll(
-      By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
       By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value)
     )
   }
@@ -93,7 +93,7 @@ object MapperCounterparties extends Counterparties with Loggable {
      * This particular implementation requires the metadata id to be the same as the otherParty (OtherBankAccount) id
      */
     MappedCounterpartyMetadata.find(
-      By(MappedCounterpartyMetadata.thisAccountBankId, originalPartyBankId.value),
+      By(MappedCounterpartyMetadata.thisBankId, originalPartyBankId.value),
       By(MappedCounterpartyMetadata.thisAccountId, originalPartyAccountId.value),
       By(MappedCounterpartyMetadata.counterpartyId, counterpartyMetadataId)
     )
@@ -102,7 +102,7 @@ object MapperCounterparties extends Counterparties with Loggable {
   def addMetadata(bankId: BankId, accountId : AccountId): Box[CounterpartyMetadata] = {
     Full(
     MappedCounterpartyMetadata.create
-      .thisAccountBankId(bankId.value)
+      .thisBankId(bankId.value)
       .thisAccountId(accountId.value)
       .saveMe
     )
@@ -130,7 +130,7 @@ object MapperCounterparties extends Counterparties with Loggable {
                                   isBeneficiary: Boolean
                                  ): Box[CounterpartyTrait] = {
     val metadata = MappedCounterpartyMetadata.create
-                                              .thisAccountBankId(thisBankId)
+                                              .thisBankId(thisBankId)
                                               .thisAccountId(thisAccountId)
                                               .holder(name)
                                               .saveMe
@@ -182,7 +182,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
   object counterpartyId extends MappedUUID(this)
 
   //these define the obp account to which this counterparty belongs
-  object thisAccountBankId extends MappedString(this, 255)
+  object thisBankId extends MappedString(this, 255)
   object thisAccountId extends MappedString(this, 255)
 
   //these define the counterparty
@@ -281,7 +281,7 @@ class MappedCounterpartyMetadata extends CounterpartyMetadata with LongKeyedMapp
 object MappedCounterpartyMetadata extends MappedCounterpartyMetadata with LongKeyedMetaMapper[MappedCounterpartyMetadata] {
   override def dbIndexes =
     UniqueIndex(counterpartyId) ::
-    Index(thisAccountBankId, thisAccountId, holder, accountNumber) ::
+    Index(thisBankId, thisAccountId, holder, accountNumber) ::
     super.dbIndexes
 }
 

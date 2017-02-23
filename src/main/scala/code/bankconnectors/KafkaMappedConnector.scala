@@ -431,10 +431,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     Full(new KafkaBankAccount(r))
   }
 
-  def getCounterpartyFromTransaction(thisAccountBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
+  def getCounterpartyFromTransaction(thisBankId : BankId, thisAccountId : AccountId, metadata : CounterpartyMetadata) : Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
     //OtherBankAccountMetadata and a transaction
-    val t = getTransactions(thisAccountBankId, thisAccountId).map { t =>
+    val t = getTransactions(thisBankId, thisAccountId).map { t =>
       t.filter { e =>
         if (e.otherAccount.thisAccountId == metadata.getAccountNumber)
           true
@@ -453,7 +453,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       thisAccountId = AccountId(metadata.getAccountNumber),
       thisBankId = t.otherAccount.thisBankId,
       kind = t.otherAccount.kind,
-      otherBankId = thisAccountBankId,
+      otherBankId = thisBankId,
       otherAccountId = thisAccountId,
       alreadyFoundMetadata = Some(metadata),
       name = "",
@@ -513,9 +513,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Get the metadata and pass it to getOtherBankAccount to construct the other account.
     Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterpartyID).flatMap(getCounterpartyFromTransaction(bankId, accountId, _))
 
-  def getCounterparty(thisAccountBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
+  def getCounterparty(thisBankId: BankId, thisAccountId: AccountId, couterpartyId: String): Box[Counterparty] = {
     //note: kafka mode just used the mapper data
-    LocalMappedConnector.getCounterparty(thisAccountBankId, thisAccountId, couterpartyId)
+    LocalMappedConnector.getCounterparty(thisBankId, thisAccountId, couterpartyId)
   }
 
   // Get one counterparty by the Counterparty Id
@@ -568,6 +568,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
   }
 
+  override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = {
+    //note: kafka mode just used the mapper data
+    LocalMappedConnector.getCounterparties(thisBankId, thisAccountId, viewId)
+  }
   override def getPhysicalCards(user: User): List[PhysicalCard] =
     List()
 
@@ -1245,7 +1249,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
     def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
     def otherBankRoutingAddress: String = counterparty.other_account_routing_address
-    def isBeneficiary : Boolean = counterparty.is_beneficiary.toBoolean
+    def isBeneficiary : Boolean = counterparty.is_beneficiary
   }
 
   case class KafkaTransactionRequestTypeCharge(kafkaInboundTransactionRequestTypeCharge: KafkaInboundTransactionRequestTypeCharge) extends TransactionRequestTypeCharge{
@@ -1464,7 +1468,7 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        other_account_routing_scheme: String,
                                        other_bank_routing_address: String,
                                        other_account_routing_address: String,
-                                       is_beneficiary: String
+                                       is_beneficiary: Boolean
                                      )
 
 
