@@ -177,12 +177,6 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedBankAccount.theAccountId, accountId.value))
   }
 
-  //gets the users who are the legal owners/holders of the account
-  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
-    MappedAccountHolder.findAll(
-      By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
-
 
   def getCounterpartyFromTransaction(thisBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an

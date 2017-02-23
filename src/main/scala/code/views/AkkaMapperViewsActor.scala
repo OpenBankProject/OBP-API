@@ -61,7 +61,7 @@ class AkkaMapperViewsActor extends Actor {
       }.getOrElse( context.stop(sender) )
 
 
-    case r.permission(account : BankAccount, user: User) =>
+    case r.permission(account : BankAccountUID, user: User) =>
 
       logger.info("permission(" + account +"," + user +")")
 
@@ -113,37 +113,49 @@ class AkkaMapperViewsActor extends Actor {
       }.getOrElse( context.stop(sender) )
 
 
-    case r.createView(bankAccount : BankAccount, view: CreateViewJSON) =>
-      logger.info("createView(" + bankAccount +","+ view +")")
-      sender ! v.createView(bankAccount, view)
+    case r.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
 
-    case r.updateView(bankAccount : BankAccount, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
-      logger.info("updateView(" + bankAccount +","+ viewId +","+ viewUpdateJson +")")
-      sender ! v.updateView(bankAccount, viewId, viewUpdateJson)
+      logger.info("view(" + viewId +", "+ bankAccountId + ")")
 
-    case r.view(viewId: ViewId, bankAccount: BankAccount) =>
-      logger.info("view(" + viewId +","+ bankAccount +")")
-      sender ! v.view(ViewId(viewId.value), bankAccount)
+      {
+        for {
+          res <- v.view(viewId, bankAccountId)
+        } yield {
+          sender ! res.asInstanceOf[View]
+        }
+      }.getOrElse( context.stop(sender) )
 
-    case r.removeView(viewId : ViewId, bankAccount: BankAccount) =>
-      logger.info("removeView(" + viewId +","+ bankAccount +")")
-      sender ! v.removeView(viewId, bankAccount)
+    case r.createView(bankAccountId : BankAccountUID, view: CreateViewJSON) =>
+      logger.info("createView(" + bankAccountId +","+ view +")")
+      sender ! v.createView(bankAccountId, view)
 
-    case r.permissions(bankAccount : BankAccount) =>
-      logger.info("premissions(" + bankAccount +")")
-      sender ! v.permissions(bankAccount)
+    case r.updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+      logger.info("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
+      sender ! v.updateView(bankAccountId, viewId, viewUpdateJson)
 
-    case r.views(bankAccount : BankAccount) =>
-      logger.info("views(" + bankAccount +")")
-      sender ! v.views(bankAccount)
+    //case r.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
+    //  logger.info("view(" + viewId +","+ bankAccountId +")")
+    //  sender ! v.view(ViewId(viewId.value), bankAccountId)
 
-    case r.permittedViews(user: User, bankAccount: BankAccount) =>
-      logger.info("permittedViews(" + user +", " + bankAccount +")")
-      sender ! v.permittedViews(user, bankAccount)
+    case r.removeView(viewId : ViewId, bankAccountId: BankAccountUID) =>
+      logger.info("removeView(" + viewId +","+ bankAccountId +")")
+      sender ! v.removeView(viewId, bankAccountId)
 
-    case r.publicViews(bankAccount : BankAccount) =>
-      logger.info("publicViews(" + bankAccount +")")
-      sender ! v.publicViews(bankAccount)
+    case r.permissions(bankAccountId : BankAccountUID) =>
+      logger.info("premissions(" + bankAccountId +")")
+      sender ! v.permissions(bankAccountId)
+
+    case r.views(bankAccountId : BankAccountUID) =>
+      logger.info("views(" + bankAccountId +")")
+      sender ! v.views(bankAccountId)
+
+    case r.permittedViews(user: User, bankAccountId: BankAccountUID) =>
+      logger.info("permittedViews(" + user +", " + bankAccountId +")")
+      sender ! v.permittedViews(user, bankAccountId)
+
+    case r.publicViews(bankAccountId : BankAccountUID) =>
+      logger.info("publicViews(" + bankAccountId +")")
+      sender ! v.publicViews(bankAccountId)
 
     case r.getAllPublicAccounts() =>
       logger.info("getAllPublicAccounts()")

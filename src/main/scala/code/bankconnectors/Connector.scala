@@ -163,8 +163,16 @@ trait Connector {
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard]
 
+
+
   //gets the users who are the legal owners/holders of the account
-  def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]
+  def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
+    MappedAccountHolder.findAll(
+      By(MappedAccountHolder.accountBankPermalink, bankId.value),
+      By(MappedAccountHolder.accountPermalink, accountId.value)).flatMap { accHolder =>
+      Users.users.vend.getResourceUserByResourceUserId(accHolder.user.get)
+    }.toSet
+  }
 
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it

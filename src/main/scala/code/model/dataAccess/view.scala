@@ -457,8 +457,8 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 
-  def find(viewId : ViewId, bankAccount : BankAccount): Box[ViewImpl] = {
-    find(ViewUID(viewId, bankAccount.bankId, bankAccount.accountId))
+  def find(viewId : ViewId, bankAccountId : BankAccountUID): Box[ViewImpl] = {
+    find(ViewUID(viewId, bankAccountId.bankId, bankAccountId.accountId))
   }
 
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {

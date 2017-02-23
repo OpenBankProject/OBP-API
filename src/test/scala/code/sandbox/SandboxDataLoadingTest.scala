@@ -48,7 +48,7 @@ import code.crm.CrmEvent.{CrmEvent, CrmEventId}
 import code.products.Products
 import code.products.Products.{Product, ProductCode, countOfProducts}
 import code.model.dataAccess._
-import code.model.{AccountId, BankId, TransactionId}
+import code.model.{AccountId, BankAccountUID, BankId, TransactionId}
 import code.products.Products.ProductCode
 import code.users.Users
 import code.views.Views
@@ -91,7 +91,9 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
+    if (!Props.getBool("enable_remotedata", false)) {
+      ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
+    }
   }
 
 
@@ -294,7 +296,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
 
     val owner = Users.users.vend.getUserByProviderId(defaultProvider, foundAccount.owners.toList.head.name).get
     //there should be an owner view
-    val views = Views.views.vend.permittedViews(owner, foundAccount)
+    val views = Views.views.vend.permittedViews(owner, BankAccountUID(foundAccount.bankId, foundAccount.accountId))
     val ownerView = views.find(v => v.viewId.value == "owner")
     ownerView.isDefined should equal(true)
 

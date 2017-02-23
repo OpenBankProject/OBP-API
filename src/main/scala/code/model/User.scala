@@ -61,7 +61,7 @@ trait User {
   def name : String
 
   def permittedViews(bankAccount: BankAccount) : List[View] =
-    Views.views.vend.permittedViews(this, bankAccount)
+    Views.views.vend.permittedViews(this, BankAccountUID(bankAccount.bankId, bankAccount.accountId))
 
   def canInitiateTransactions(bankAccount: BankAccount) : Box[Unit] ={
     if(permittedViews(bankAccount).exists(_.canInitiateTransaction)){
@@ -83,7 +83,11 @@ trait User {
   /**
   * @return the bank accounts where the user has at least access to a non public view (is_public==false)
   */
-  def nonPublicAccounts : List[BankAccount] = Views.views.vend.getNonPublicBankAccounts(this)
+  def nonPublicAccounts : List[BankAccount] = {
+    Views.views.vend.getNonPublicBankAccounts(this).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
+  }
 
   def assignedEntitlements : List[Entitlement] = {
     Entitlement.entitlement.vend.getEntitlements(userId) match {

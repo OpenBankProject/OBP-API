@@ -7,6 +7,7 @@ import code.model._
 import code.model.dataAccess._
 import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
+import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
@@ -117,6 +118,8 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    if (!Props.getBool("enable_remotedata", false)) {
+      ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    }
   }
 }

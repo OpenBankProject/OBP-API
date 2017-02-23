@@ -13,14 +13,14 @@ import net.liftweb.util.Helpers._
 import scala.collection.immutable.List
 
 
-//TODO: Replace BankAccounts with bankPermalink + accountPermalink
+//TODO: Replace BankAccountUIDs with bankPermalink + accountPermalink
 
 
 object MapperViews extends Views with Loggable {
 
   Schemifier.schemify(true, Schemifier.infoF _, ToSchemify.modelsRemotedata: _*)
 
-  def permissions(account : BankAccount) : List[Permission] = {
+  def permissions(account : BankAccountUID) : List[Permission] = {
 
     val views: List[ViewImpl] = ViewImpl.findAll(By(ViewImpl.isPublic_, false) ::
       ViewImpl.accountFilter(account.bankId, account.accountId): _*)
@@ -37,7 +37,7 @@ object MapperViews extends Views with Loggable {
     permissions
   }
 
-  def permission(account: BankAccount, user: User): Box[Permission] = {
+  def permission(account: BankAccountUID, user: User): Box[Permission] = {
 
     //search ViewPrivileges to get all views for user and then filter the views
     // by bankPermalink and accountPermalink
@@ -170,8 +170,10 @@ object MapperViews extends Views with Loggable {
 
   }
 
-  def view(viewId : ViewId, account: BankAccount) : Box[View] = {
-    view(ViewUID(viewId, account.bankId, account.accountId))
+  def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
+    val res = ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
+    println("================================> " + res)
+    res
   }
 
   def view(viewUID : ViewUID) : Box[View] = {
@@ -181,7 +183,7 @@ object MapperViews extends Views with Loggable {
   /*
   Create View based on the Specification (name, alias behavior, what fields can be seen, actions are allowed etc. )
   * */
-  def createView(bankAccount: BankAccount, view: CreateViewJSON): Box[View] = {
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
     if(view.name.contentEquals("")) {
       return Failure("You cannot create a View with an empty Name")
     }
@@ -192,7 +194,7 @@ object MapperViews extends Views with Loggable {
 
     val existing = ViewImpl.count(
       By(ViewImpl.permalink_, newViewPermalink) ::
-        ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*
+        ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*
     ) == 1
 
     if (existing)
@@ -201,8 +203,8 @@ object MapperViews extends Views with Loggable {
       val createdView = ViewImpl.create.
         name_(view.name).
         permalink_(newViewPermalink).
-        bankPermalink(bankAccount.bankId.value).
-        accountPermalink(bankAccount.accountId.value)
+        bankPermalink(bankAccountId.bankId.value).
+        accountPermalink(bankAccountId.accountId.value)
 
       createdView.setFromViewData(view)
       Full(createdView.saveMe)
@@ -211,58 +213,58 @@ object MapperViews extends Views with Loggable {
 
 
   /* Update the specification of the view (what data/actions are allowed) */
-  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
+  def updateView(bankAccountId : BankAccountUID, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
 
     for {
-      view <- ViewImpl.find(viewId, bankAccount)
+      view <- ViewImpl.find(viewId, bankAccountId)
     } yield {
       view.setFromViewData(viewUpdateJson)
       view.saveMe
     }
   }
 
-  def removeView(viewId: ViewId, bankAccount: BankAccount): Box[Unit] = {
+  def removeView(viewId: ViewId, bankAccountId: BankAccountUID): Box[Unit] = {
 
     if(viewId.value == "owner")
       Failure("you cannot delete the owner view")
     else {
       for {
-        view <- ViewImpl.find(viewId, bankAccount)
+        view <- ViewImpl.find(viewId, bankAccountId)
         if(view.delete_!)
       } yield {
       }
     }
   }
 
-  def views(bankAccount : BankAccount) : List[View] = {
-    ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*)
+  def views(bankAccountId : BankAccountUID) : List[View] = {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*)
   }
 
-  def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
+  def permittedViews(user: User, bankAccountId: BankAccountUID): List[View] = {
     //TODO: do this more efficiently?
     val allUserPrivs = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
     val userNonPublicViewsForAccount = allUserPrivs.flatMap(p => {
       p.view.obj match {
         case Full(v) => if(
           !v.isPublic &&
-            v.bankId == bankAccount.bankId&&
-            v.accountId == bankAccount.accountId){
+            v.bankId == bankAccountId.bankId&&
+            v.accountId == bankAccountId.accountId){
           Some(v)
         } else None
         case _ => None
       }
     })
-    userNonPublicViewsForAccount ++ publicViews(bankAccount)
+    userNonPublicViewsForAccount ++ publicViews(bankAccountId)
   }
 
-  def publicViews(bankAccount : BankAccount) : List[View] = {
+  def publicViews(bankAccountId : BankAccountUID) : List[View] = {
     //TODO: do this more efficiently?
-    ViewImpl.findAll(ViewImpl.accountFilter(bankAccount.bankId, bankAccount.accountId): _*).filter(v => {
+    ViewImpl.findAll(ViewImpl.accountFilter(bankAccountId.bankId, bankAccountId.accountId): _*).filter(v => {
       v.isPublic == true
     })
   }
 
-  def getAllPublicAccounts() : List[BankAccount] = {
+  def getAllPublicAccounts() : List[BankAccountUID] = {
     //TODO: do this more efficiently
 
     // An account is considered public if it contains a public view
@@ -274,13 +276,13 @@ object MapperViews extends Views with Loggable {
 
     val accountsList = bankAndAccountIds.map {
       case (bankId, accountId) => {
-        (bankId, accountId)
+        BankAccountUID(bankId, accountId)
       }
     }
-    Connector.connector.vend.getBankAccounts(accountsList)
+    accountsList
   }
 
-  def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
+  def getPublicBankAccounts(bank : Bank) : List[BankAccountUID] = {
     //TODO: do this more efficiently
 
     val accountIds : List[AccountId] =
@@ -289,16 +291,16 @@ object MapperViews extends Views with Loggable {
       }).distinct //we remove duplicates here
 
     val accountsList = accountIds.map(accountId => {
-      (bank.bankId, accountId)
+      BankAccountUID(bank.bankId, accountId)
     })
-    Connector.connector.vend.getBankAccounts(accountsList)
+    accountsList
   }
 
   /**
    * @param user
    * @return the bank accounts the @user can see (public + private if @user is Full, public if @user is Empty)
    */
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccountUID] = {
     user match {
       case Full(theuser) => {
         //TODO: this could be quite a bit more efficient...
@@ -319,10 +321,10 @@ object MapperViews extends Views with Loggable {
 
         val accountsList = visibleBankAndAccountIds.map {
           case (bankId, accountId) => {
-            (bankId, accountId)
+            BankAccountUID(bankId, accountId)
           }
         }
-        Connector.connector.vend.getBankAccounts(accountsList)
+        accountsList
       }
       case _ => getAllPublicAccounts()
     }
@@ -332,7 +334,7 @@ object MapperViews extends Views with Loggable {
    * @param user
    * @return the bank accounts at @bank the @user can see (public + private if @user is Full, public if @user is Empty)
    */
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccount] = {
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccountUID] = {
     user match {
       case Full(theuser) => {
         //TODO: this could be quite a bit more efficient...
@@ -356,10 +358,10 @@ object MapperViews extends Views with Loggable {
 
         val accountsList = visibleBankAndAccountIds.map {
           case (bankId, accountId) => {
-            (bankId, accountId)
+            BankAccountUID(bankId, accountId)
           }
         }
-        Connector.connector.vend.getBankAccounts(accountsList)
+        accountsList
       }
       case _ => getPublicBankAccounts(bank)
     }
@@ -368,7 +370,7 @@ object MapperViews extends Views with Loggable {
   /**
    * @return the bank accounts where the user has at least access to a non public view (is_public==false)
    */
-  def getNonPublicBankAccounts(user : User) :  List[BankAccount] = {
+  def getNonPublicBankAccounts(user : User) :  List[BankAccountUID] = {
     //TODO: make this more efficient
     val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
     val userNonPublicViews : List[ViewImpl] = userPrivileges.map(_.view.obj).flatten.filter(!_.isPublic)
@@ -379,16 +381,16 @@ object MapperViews extends Views with Loggable {
 
     val accountsList = nonPublicViewBankAndAccountIds.map {
       case(bankId, accountId) => {
-        (bankId, accountId)
+        BankAccountUID(bankId, accountId)
       }
     }
-    Connector.connector.vend.getBankAccounts(accountsList)
+    accountsList
   }
 
   /**
    * @return the bank accounts where the user has at least access to a non public view (is_public==false) for a specific bank
    */
-  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccount] = {
+  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccountUID] = {
     val userPrivileges : List[ViewPrivileges] = ViewPrivileges.findAll(By(ViewPrivileges.user, user.resourceUserId.value))
     val userNonPublicViewsForBank : List[ViewImpl] =
       userPrivileges.map(_.view.obj).flatten.filter(v => !v.isPublic && v.bankId == bankId)
@@ -397,9 +399,9 @@ object MapperViews extends Views with Loggable {
       map(_.accountId).distinct //we remove duplicates here
 
     val accountsList = nonPublicViewAccountIds.map { accountId =>
-        (bankId, accountId)
+        BankAccountUID(bankId, accountId)
     }
-    Connector.connector.vend.getBankAccounts(accountsList)
+    accountsList
   }
 
   def createOwnerView(bankId: BankId, accountId: AccountId, description: String = "Owner View") : Box[View] = {

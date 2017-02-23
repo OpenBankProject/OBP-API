@@ -172,7 +172,9 @@ trait Bank {
   def nationalIdentifier : String
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(this, user)
+    Views.views.vend.getAllAccountsUserCanSee(this, user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   //This was the behaviour in v1.2 and earlier which has since been changed
@@ -188,9 +190,16 @@ trait Bank {
     }
   }
 
-  def publicAccounts : List[BankAccount] = Views.views.vend.getPublicBankAccounts(this)
+  def publicAccounts : List[BankAccount] = {
+    Views.views.vend.getPublicBankAccounts(this).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
+  }
+
   def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user, bankId)
+    Views.views.vend.getNonPublicBankAccounts(user, bankId).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   @deprecated(Helper.deprecatedJsonGenerationMessage)
@@ -351,7 +360,7 @@ trait BankAccount {
   final def permissions(user : User) : Box[List[Permission]] = {
     //check if the user have access to the owner view in this the account
     if(user.ownerAccess(this))
-      Full(Views.views.vend.permissions(this))
+      Full(Views.views.vend.permissions(BankAccountUID(this.bankId,this.accountId)))
     else
       Failure("user " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
@@ -367,7 +376,7 @@ trait BankAccount {
     if(user.ownerAccess(this))
       for{
         u <- User.findByProviderId(otherUserProvider, otherUserIdGivenByProvider)
-        p <- Views.views.vend.permission(this, u)
+        p <- Views.views.vend.permission(BankAccountUID(this.bankId,this.accountId), u)
         } yield p
     else
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
@@ -454,7 +463,7 @@ trait BankAccount {
   final def views(user : User) : Box[List[View]] = {
     //check if the user has access to the owner view in this the account
     if(user.ownerAccess(this)) {
-      Full(Views.views.vend.views(this)) }
+      Full(Views.views.vend.views(BankAccountUID(this.bankId,this.accountId))) }
     else
       Failure("user : " + user.emailAddress + " does not have access to owner view on account " + accountId, Empty, Empty)
   }
@@ -463,7 +472,7 @@ trait BankAccount {
     if(!userDoingTheCreate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.createView(this, v)
+      val view = Views.views.vend.createView(BankAccountUID(this.bankId,this.accountId), v)
       
       if(view.isDefined) {
         log.info("user: " + userDoingTheCreate.idGivenByProvider + " at provider " + userDoingTheCreate.provider + " created view: " + view.get +
@@ -478,7 +487,7 @@ trait BankAccount {
     if(!userDoingTheUpdate.ownerAccess(this)) {
       Failure({"user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " does not have owner access"})
     } else {
-      val view = Views.views.vend.updateView(this, viewId, v)
+      val view = Views.views.vend.updateView(BankAccountUID(this.bankId,this.accountId), viewId, v)
       
       if(view.isDefined) {
         log.info("user: " + userDoingTheUpdate.idGivenByProvider + " at provider " + userDoingTheUpdate.provider + " updated view: " + view.get +
@@ -493,7 +502,7 @@ trait BankAccount {
     if(!userDoingTheRemove.ownerAccess(this)) {
       return Failure({"user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " does not have owner access"})
     } else {
-      val deleted = Views.views.vend.removeView(viewId, this)
+      val deleted = Views.views.vend.removeView(viewId, BankAccountUID(this.bankId,this.accountId))
 
       if (deleted.isDefined) {
           log.info("user: " + userDoingTheRemove.idGivenByProvider + " at provider " + userDoingTheRemove.provider + " deleted view: " + viewId +
@@ -504,7 +513,7 @@ trait BankAccount {
     }
   }
 
-  final def publicViews : List[View] = Views.views.vend.publicViews(this)
+  final def publicViews : List[View] = Views.views.vend.publicViews(BankAccountUID(this.bankId,this.accountId))
 
   final def moderatedTransaction(transactionId: TransactionId, view: View, user: Box[User]) : Box[ModeratedTransaction] = {
     if(authorizedAccess(view, user))
@@ -576,15 +585,21 @@ object BankAccount {
   }
 
   def publicAccounts : List[BankAccount] = {
-    Views.views.vend.getAllPublicAccounts
+    Views.views.vend.getAllPublicAccounts.flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   def accounts(user : Box[User]) : List[BankAccount] = {
-    Views.views.vend.getAllAccountsUserCanSee(user)
+    Views.views.vend.getAllAccountsUserCanSee(user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 
   def nonPublicAccounts(user : User) : List[BankAccount] = {
-    Views.views.vend.getNonPublicBankAccounts(user)
+    Views.views.vend.getNonPublicBankAccounts(user).flatMap { a =>
+      BankAccount(a.bankId, a.accountId)
+    }
   }
 }
 
