@@ -12,6 +12,7 @@ import code.api.v1_4_0.JSONFactory1_4_0
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.api.v2_0_0.{TransactionRequestBodyJSON,_}
 import code.api.v2_1_0.JSONFactory210._
+import code.api.v2_2_0.JSONFactory220
 import code.atms.Atms
 import code.atms.Atms.AtmId
 import code.bankconnectors.Connector
@@ -1162,10 +1163,13 @@ trait APIMethods210 {
               otherBankRoutingAddress=postJson.other_bank_routing_address,
               isBeneficiary=postJson.is_beneficiary
             )
-            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~ "Cannot find the metadata"
-            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
+//            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
+//            metadata <- Counterparties.counterparties.vend.getMetadata(bankId, accountId, counterparty.counterpartyId) ?~ "Cannot find the metadata"
+//            moderated <- Connector.connector.vend.getCounterparty(bankId, accountId, counterparty.counterpartyId).flatMap(oAcc => view.moderate(oAcc))
           } yield {
-            val list = createCounterpartJSON(moderated, metadata, counterparty)
+            val list = JSONFactory220.createCounterpartyJSON(counterparty)
+//            Now just comment the following lines, keep the same return tpyle of  V220 "getCounterpartiesForAccount".
+//            val list = createCounterpartJSON(moderated, metadata, couterparty)
             successJsonResponse(Extraction.decompose(list))
           }
       }
