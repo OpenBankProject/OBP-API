@@ -52,23 +52,12 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
       Then("We should get a 200 and check all the fields")
       responsePost.code should equal(200)
 
-      var thisAccount = (responsePost.body \ "this_account" \ "bank_id") match {
-        case JString(i) => i
-        case _ => ""
-      }
-      thisAccount should equal(bankId.value)
-
-      var accountRoutingAddress = (responsePost.body \ "other_account_routing"  \ "address") match {
+      var accountRoutingAddress = (responsePost.body \ "other_account_routing_address" ) match {
         case JString(i) => i
         case _ => ""
       }
       accountRoutingAddress should  equal(counterpartyPostJSON.other_account_routing_address)
 
-      var bankRoutingScheme = (responsePost.body \ "other_bank_routing" \ "scheme" ) match {
-        case JString(i) => i
-        case _ => ""
-      }
-      bankRoutingScheme should  equal(counterpartyPostJSON.other_bank_routing_scheme)
     }
 
     scenario("No BankAccount in Database") {
