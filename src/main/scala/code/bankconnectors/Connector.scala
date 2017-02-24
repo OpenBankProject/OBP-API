@@ -438,21 +438,21 @@ trait Connector {
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount),
+                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
                                                                           details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description,
                                                                           transactionRequestType)
           case "COUNTERPARTY" => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount),
+                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
                                                                           details.asInstanceOf[TransactionRequestDetailsCounterpartyResponse].description,
                                                                           transactionRequestType)
           case "SEPA"         => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount),
+                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
                                                                           details.asInstanceOf[TransactionRequestDetailsSEPAResponse].description,
                                                                           transactionRequestType)
           case "FREE_FORM"    => Connector.connector.vend.makePaymentv200(initiator,
@@ -652,11 +652,10 @@ trait Connector {
     for {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
-      //dummy1 = print(s"Getting Details.. \n")
-
       details = tr.details
       //dummy2 = print(s"details are ${details} \n")
 
+      //CM 2 think about here ??? This part is packaged when save to the datbase.
       detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
       //dummy4 = print(s"detailsJsonExtract are ${detailsJsonExtract} \n")
 

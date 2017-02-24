@@ -50,71 +50,86 @@ import net.liftweb.common.{Box, Full}
 import net.liftweb.json.JValue
 import code.products.Products.Product
 
-case class TransactionRequestTypeJSON(transaction_request_type: String)
-case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
+
 
 case class AvailableRoleJSON(role: String, requires_bank_id: Boolean)
 case class AvailableRolesJSON(roles: List[AvailableRoleJSON])
 
+
+// Transaction related case classes:
+// This the TransactionRequestTypes : FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
+case class TransactionRequestTypeJSON(transaction_request_type: String)
+case class TransactionRequestTypesJSON(transaction_request_types: List[TransactionRequestTypeJSON])
+
+//For COUNTERPATY, it need the counterparty_id to find the toCounterpaty--> toBankAccount
+case class CounterpartyIdJson (val counterparty_id : String)
+
+//For SEPA, it need the iban to find the toCounterpaty--> toBankAccount
+case class IbanJson (val iban : String)
+
+
+//high level of four different kinds of transaction request input JSON,FREE_FROM, SANDBOXTAN,COUNTERPATY and SEPA.
+//They share the same AmountOfMoney field,
+//Details here means two parts:
+// 1 the GUI JSON body (The user input from API level)
+// 2 In Mapper, there is also a detail filed in table : mappedtransactionrequest.mdetails
 trait TransactionRequestDetailsJSON {
   val value : AmountOfMoneyJSON
 }
-case class CounterpartyIdJson (val counterparty_id : String)
-case class IbanJson (val iban : String)
 
+// the data from endpoint, extract as valid JSON
+case class TransactionRequestDetailsFreeFormJSON(
+                                                  value: AmountOfMoneyJSON
+                                                ) extends TransactionRequestDetailsJSON
+
+// the data from endpoint, extract as valid JSON
 case class TransactionRequestDetailsSandBoxTanJSON(
-                                        to: TransactionRequestAccountJSON,
-                                        value : AmountOfMoneyJSON,
-                                        description : String
-                                      ) extends TransactionRequestDetailsJSON
-
-case class TransactionRequestDetailsSandBoxTanResponseJSON(
-                                                            toAccount: TransactionRequestAccountJSON,
-                                                            value: AmountOfMoneyJSON,
-                                                            description: String
-                                                          ) extends TransactionRequestDetailsJSON
-
-case class TransactionRequestDetailsCounterpartyJSON(
-                                                    to: CounterpartyIdJson,
-                                                    value : AmountOfMoneyJSON,
-                                                    description : String,
-                                                    charge_policy : String
+                                                    to: TransactionRequestAccountJSON,
+                                                    value: AmountOfMoneyJSON,
+                                                    description: String
                                                   ) extends TransactionRequestDetailsJSON
 
-case class TransactionRequestDetailsCounterpartyResponseJSON(
-                                                            counterparty_id: String,
-                                                            toAccount: TransactionRequestAccountJSON,
-                                                            value: AmountOfMoneyJSON,
-                                                            description: String,
-                                                            charge_policy : String
-                                                          ) extends TransactionRequestDetailsJSON
+// the data from endpoint, extract as valid JSON
+case class TransactionRequestDetailsCounterpartyJSON(
+                                                      to: CounterpartyIdJson,
+                                                      value: AmountOfMoneyJSON,
+                                                      description: String,
+                                                      charge_policy: String
+                                                    ) extends TransactionRequestDetailsJSON
 
+// the data from endpoint, extract as valid JSON
 case class TransactionRequestDetailsSEPAJSON(
                                               value: AmountOfMoneyJSON,
                                               to: IbanJson,
                                               description: String,
-                                              charge_policy : String
+                                              charge_policy: String
                                             ) extends TransactionRequestDetailsJSON
 
-case class TransactionRequestDetailsSEPAResponseJSON(
-                                                      iban: String,
-                                                      toAccount: TransactionRequestAccountJSON,
-                                                      value: AmountOfMoneyJSON,
-                                                      description: String,
-                                                      charge_policy : String
-                                            ) extends TransactionRequestDetailsJSON
+//Mapper means this part will be stored into mapper. This is just for prepare the data
+case class TransactionRequestDetailsMapperCounterpartyJSON(
+                                                            counterparty_id: String,
+                                                            to: TransactionRequestAccountJSON,
+                                                            value: AmountOfMoneyJSON,
+                                                            description: String,
+                                                            charge_policy: String
+                                                          ) extends TransactionRequestDetailsJSON
 
-case class TransactionRequestDetailsFreeFormJSON(
-                                                  value : AmountOfMoneyJSON
-                                            ) extends TransactionRequestDetailsJSON
+//Mapper means this part will be stored into mapper. This is just for prepare the data
+case class TransactionRequestDetailsMapperSEPAJSON(
+                                                    iban: String,
+                                                    to: TransactionRequestAccountJSON,
+                                                    value: AmountOfMoneyJSON,
+                                                    description: String,
+                                                    charge_policy: String
+                                                  ) extends TransactionRequestDetailsJSON
 
-case class TransactionRequestDetailsFreeFormResponseJSON(
-                                                          toAccount: TransactionRequestAccountJSON,
-                                                          value: AmountOfMoneyJSON,
-                                                          description: String
-                                                       ) extends TransactionRequestDetailsJSON
 
-
+//Mapper means this part will be stored into mapper. This is just for prepare the data
+case class TransactionRequestDetailsMapperFreeFormJSON(
+                                                        to: TransactionRequestAccountJSON,
+                                                        value: AmountOfMoneyJSON,
+                                                        description: String
+                                                      ) extends TransactionRequestDetailsJSON
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
@@ -440,10 +455,10 @@ object JSONFactory210{
 
   // TODO Document each function
   // TODO Don't use the word Response. If need to differenciate between request and response json, use inbound and outbound.
-  def getTransactionRequestDetailsCounterpartyResponseFromJson(details: TransactionRequestDetailsCounterpartyResponseJSON) : TransactionRequestDetailsCounterpartyResponse = {
+  def getTransactionRequestDetailsCounterpartyResponseFromJson(details: TransactionRequestDetailsMapperCounterpartyJSON) : TransactionRequestDetailsCounterpartyResponse = {
     val toAcc = TransactionRequestAccount (
-      bank_id = details.toAccount.bank_id,
-      account_id = details.toAccount.account_id
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
     )
     val toCounterpartyId = CounterpartyId (
       value = details.counterparty_id
@@ -475,10 +490,10 @@ object JSONFactory210{
     )
   }
 
-  def getTransactionRequestDetailsSEPAResponseJSONFromJson(details: TransactionRequestDetailsSEPAResponseJSON) : TransactionRequestDetailsSEPAResponse = {
+  def getTransactionRequestDetailsSEPAResponseJSONFromJson(details: TransactionRequestDetailsMapperSEPAJSON) : TransactionRequestDetailsSEPAResponse = {
     val toAcc = TransactionRequestAccount (
-      bank_id = details.toAccount.bank_id,
-      account_id = details.toAccount.account_id
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
     )
     val toAccIban = Iban (
       iban = details.iban
@@ -506,10 +521,10 @@ object JSONFactory210{
     )
   }
 
-  def getTransactionRequestDetailsFreeFormResponseJson(details: TransactionRequestDetailsFreeFormResponseJSON) : TransactionRequestDetailsFreeFormResponse = {
+  def getTransactionRequestDetailsFreeFormResponseJson(details: TransactionRequestDetailsMapperFreeFormJSON) : TransactionRequestDetailsFreeFormResponse = {
     val toAcc = TransactionRequestAccount (
-      bank_id = details.toAccount.bank_id,
-      account_id = details.toAccount.account_id
+      bank_id = details.to.bank_id,
+      account_id = details.to.account_id
     )
     val amount = AmountOfMoney (
       currency = details.value.currency,
