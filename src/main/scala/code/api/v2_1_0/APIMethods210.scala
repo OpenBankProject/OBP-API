@@ -375,8 +375,9 @@ trait APIMethods210 {
                       Failure(ErrorMessages.CounterpartyNotFoundOtherAccountProvider)
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     chargePolicy = transDetailsCounterpartyJson.charge_policy
-                    transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsCounterpartyJson.description, transDetailsCounterpartyJson.charge_policy)
+                    chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
 
+                    transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsCounterpartyJson.description, transDetailsCounterpartyJson.charge_policy)
                     //Serialize the transResponseDetails to String.
                     transDetailsResponseSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
                     createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterparty, transactionRequestType, transDetailsCounterpartyJson, chargePolicy, transDetailsResponseSerialized)
@@ -397,6 +398,7 @@ trait APIMethods210 {
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
                     chargePolicy = transDetailsSEPAJson.charge_policy
+                    chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
                     transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsSEPAJson.description, chargePolicy)
 
                     //Serialize the transResponseDetails data to String.

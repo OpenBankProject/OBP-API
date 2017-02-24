@@ -377,7 +377,7 @@ object LocalMappedConnector extends Connector with Loggable {
 Perform a payment (in the sandbox)
 Store one or more transactions
  */
-  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+  protected override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
 
@@ -394,10 +394,10 @@ Store one or more transactions
     val toTransAmt = fx.convert(amt, rate.get)
 
     // From
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
 
     // To
-    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType)
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
 
     // Return the sent transaction id
     sentTransactionId
@@ -412,7 +412,8 @@ Store one or more transactions
                               toCounterparty: CounterpartyTrait,
                               amt: BigDecimal,
                               description: String,
-                              transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+                              transactionRequestType: TransactionRequestType,
+                              chargePolicy: String): Box[TransactionId] = {
     
     val transactionTime = now
     val currency = fromAccount.currency
@@ -448,7 +449,8 @@ Store one or more transactions
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
       .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)  
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .chargePolicy(chargePolicy)
       .saveMe
     
     Full(mappedTransaction.theTransactionId)

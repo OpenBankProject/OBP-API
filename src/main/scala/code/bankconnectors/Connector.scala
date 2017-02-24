@@ -193,7 +193,9 @@ trait Connector {
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transactionId <- makePaymentImpl(fromAccount, toAccount, new MappedCounterparty(), amt, description, TransactionRequestType(""))
+      transactionId <- makePaymentImpl(fromAccount, toAccount, new MappedCounterparty(), amt, description,
+                                       TransactionRequestType(""), //Note TransactionRequestType only support in V210
+                                       "") //Note chargePolicy only support in V210
     } yield transactionId
   }
 
@@ -208,8 +210,7 @@ trait Connector {
     * @param transactionRequestType user input: SEPA, SANDBOX_TAN, FREE_FORM, COUNTERPARTY
     * @return The id of the sender's new transaction,
     */
-  def makePaymentv200(initiator: User, fromAccountUID: BankAccountUID, toAccountUID: BankAccountUID, toCounterparty: CounterpartyTrait,
-                      amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+  def makePaymentv200(initiator: User, fromAccountUID: BankAccountUID, toAccountUID: BankAccountUID, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     for {
       // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
@@ -235,12 +236,12 @@ trait Connector {
       isPositiveAmtToSend <- booleanToBox(amt > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amt)")
       //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
 
-      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amt, description, transactionRequestType)
+      transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amt, description, transactionRequestType, chargePolicy)
     } yield transactionId
   }
 
 
-  protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId]
+  protected def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId]
 
 
   /*
@@ -356,7 +357,8 @@ trait Connector {
                                                                           new MappedCounterparty(),
                                                                           BigDecimal(body.value.amount),
                                                                           body.description,
-                                                                          transactionRequestType)
+                                                                          transactionRequestType,
+                                                                          "") //Note chargePolicy only support in V210
 
       //set challenge to null
       result = Full(result.get.copy(challenge = null))
@@ -440,28 +442,32 @@ trait Connector {
                                                                           toCounterparty,
                                                                           BigDecimal(details.value.amount),
                                                                           details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description,
-                                                                          transactionRequestType)
+                                                                          transactionRequestType,
+                                                                          chargePolicy)
           case "COUNTERPARTY" => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
                                                                           BigDecimal(details.value.amount),
                                                                           details.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description,
-                                                                          transactionRequestType)
+                                                                          transactionRequestType,
+                                                                          chargePolicy)
           case "SEPA"         => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
                                                                           BigDecimal(details.value.amount),
                                                                           details.asInstanceOf[TransactionRequestDetailsSEPAJSON].description,
-                                                                          transactionRequestType)
+                                                                          transactionRequestType,
+                                                                          chargePolicy)
           case "FREE_FORM"    => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
                                                                           BigDecimal(details.value.amount),
                                                                           "", //no description part for FREE_FORM yet
-                                                                          transactionRequestType)
+                                                                          transactionRequestType,
+                                                                          chargePolicy)
         }
         //set challenge to null
         result = Full(result.get.copy(challenge = null))
@@ -638,7 +644,13 @@ trait Connector {
       // Note for 'new MappedCounterparty()' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // But in V200 or before, we do not used the new parameter toCounterparty. So just keep it empty.
-      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)), BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)), new MappedCounterparty() , BigDecimal (tr.body.value.amount), tr.body.description, transactionRequestType) ?~ "Couldn't create Transaction"
+      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+                                 BankAccountUID (BankId(tr.body.to.bank_id), AccountId(tr.body.to.account_id)),
+                                 new MappedCounterparty(),  //Note MappedCounterparty only support in V210
+                                 BigDecimal (tr.body.value.amount),
+                                 tr.body.description, transactionRequestType,
+                                 "" //Note chargePolicy only support in V210
+      ) ?~ "Couldn't create Transaction"
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       didSaveStatus <- saveTransactionRequestStatusImpl(transReqId, TransactionRequests.STATUS_COMPLETED)
       //get transaction request again now with updated values
@@ -681,14 +693,13 @@ trait Connector {
           Full(new MappedCounterparty())
       }
 
-      transId <- makePaymentv200(
-                                 initiator,
-                                 BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
+      transId <- makePaymentv200(initiator, BankAccountUID(BankId(tr.from.bank_id), AccountId(tr.from.account_id)),
                                  BankAccountUID(BankId(toBankId), AccountId(toAccountId)),
-                                 new MappedCounterparty(),
-                                 BigDecimal(valueAmount),
-                                 description,
-                                 transactionRequestType) ?~ "Couldn't create Transaction"
+                                 toCounterparty,
+                                 BigDecimal(valueAmount), description,
+                                 transactionRequestType,
+                                 tr.charge_policy
+                                 ) ?~ "Couldn't create Transaction"
 
       didSaveTransId <- saveTransactionRequestTransaction(transReqId, transId)
       //dummy10 = print(s"didSaveTransId is ${didSaveTransId} \n")

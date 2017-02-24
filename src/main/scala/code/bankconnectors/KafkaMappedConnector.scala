@@ -601,8 +601,8 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
-  override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, -amt, description,transactionRequestType )
+  protected override def makePaymentImpl(fromAccount: KafkaBankAccount, toAccount: KafkaBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, -amt, description, transactionRequestType, chargePolicy)
 
     sentTransactionId
   }
@@ -612,7 +612,7 @@ object KafkaMappedConnector extends Connector with Loggable {
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType) = {
+  private def saveTransaction(fromAccount: KafkaBankAccount, toAccount: KafkaBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) = {
 
     val transactionTime = now
     val currency = fromAccount.currency
@@ -646,7 +646,8 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
                                         "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
                                         "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress
+                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
+                                        "chargePolicy" -> chargePolicy
     )
 
 
