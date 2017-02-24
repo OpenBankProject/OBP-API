@@ -653,27 +653,22 @@ trait Connector {
       tr <- getTransactionRequestImpl(transReqId) ?~ s"${ErrorMessages.InvalidTransactionRequestId} : $transReqId"
 
       details = tr.details
-      //dummy2 = print(s"details are ${details} \n")
 
-      //CM 2 think about here ??? This part is packaged when save to the datbase.
-      detailsJsonExtract = details.extract[TransactionRequestDetailsSandBoxTanJSON]
-      //dummy4 = print(s"detailsJsonExtract are ${detailsJsonExtract} \n")
+      //Note, it should be four different type of details in mappedtransactionrequest.
+      //But when we design "createTransactionRequest", we try to make it the same as SandBoxTan. There is still some different now.
+      // Take a look at TransactionRequestDetailsMapperJSON, TransactionRequestDetailsMapperCounterpartyJSON, TransactionRequestDetailsMapperSEPAJSON and TransactionRequestDetailsMapperFreeFormJSON
+      detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
 
       toBankId = detailsJsonExtract.to.bank_id
-      //dummy5 = print(s"toBankId is ${toBankId} \n")
 
       toAccountId = detailsJsonExtract.to.account_id
-      //dummy6 = print(s"toAccountId is ${toAccountId} \n")
 
       valueAmount = detailsJsonExtract.value.amount
-      //dummy7 = print(s"valueAmount is ${valueAmount} \n")
 
       valueCurrency = detailsJsonExtract.value.currency
-      //dummy8 = print(s"valueCurrency is ${valueCurrency} \n")
 
       description = detailsJsonExtract.description
-      //dummy9 = print(s"description is ${description} \n")
-    
+
       // Note for 'toCounterparty' in the following :
       // We update the makePaymentImpl in V210, added the new parameter 'toCounterparty: CounterpartyTrait' for V210
       // And it only used for "COUNTERPARTY" and  "SEPA" ,other types keep it empty now.
