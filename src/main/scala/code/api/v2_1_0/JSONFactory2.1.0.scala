@@ -485,7 +485,7 @@ object JSONFactory210{
     ConsumerJSONs(l.map(createConsumerJSON))
   }
 
-  def createCounterpartJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartyTrait) : CounterpartyJSON = {
+  def createCounterpartyJSON(moderated: ModeratedOtherBankAccount, metadata : CounterpartyMetadata, couterparty: CounterpartyTrait) : CounterpartyJSON = {
     new CounterpartyJSON(
       counterparty_id = metadata.metadataId,
       display = CounterpartyNameJSON(moderated.label.display, moderated.isAlias),
