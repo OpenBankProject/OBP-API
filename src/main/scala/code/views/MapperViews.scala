@@ -171,9 +171,7 @@ object MapperViews extends Views with Loggable {
   }
 
   def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
-    val res = ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
-    println("================================> " + res)
-    res
+    ViewImpl.find(ViewUID(viewId, account.bankId, account.accountId))
   }
 
   def view(viewUID : ViewUID) : Box[View] = {
