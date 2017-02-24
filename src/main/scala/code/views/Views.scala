@@ -5,14 +5,15 @@ import code.model._
 import net.liftweb.util.SimpleInjector
 import code.model.Permission
 import code.model.CreateViewJSON
+import code.remotedata.Remotedata
 
 object Views  extends SimpleInjector {
 
   val views = new Inject(buildOne _) {}
  
-  //TODO Remove MapperViews when AkkaMapperViews is optimized and stable
-  def buildOne: Views = MapperViews
-  //def buildOne: Views = AkkaMapperViews
+  //TODO Remove MapperViews when Remotedata is optimized and stable
+  //def buildOne: Views = MapperViews
+  def buildOne: Views = Remotedata
   
 }
 
@@ -47,6 +48,8 @@ trait Views {
   def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View]
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View]
+
+  def getOwners(view: View): Set[User]
 
   def grantAccessToView(user : User, view : View) : Boolean
   def grantAccessToAllExistingViews(user : User) : Boolean
@@ -91,6 +94,8 @@ class RemoteViewCaseClasses {
   case class createAccountantsView(bankId: BankId, accountId: AccountId, description: String)
   case class createAuditorsView(bankId: BankId, accountId: AccountId, description: String)
   case class createRandomView(bankId: BankId, accountId: AccountId)
+
+  case class getOwners(view: View)
 
   case class grantAccessToView(user : User, view : View)
   case class grantAccessToAllExistingViews(user : User)

@@ -6,6 +6,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, Properties, UUID}
 
+import code.accountholder.MapperAccountHolders$
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
 import code.fx.{FXRate, fx}
@@ -902,7 +903,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
     commentsDeleted && narrativesDeleted && tagsDeleted && whereTagsDeleted && transactionImagesDeleted &&
       transactionsDeleted && privilegesDeleted && viewsDeleted && accountDeleted
-}
+  }
 
   //creates a bank account for an existing bank, with the appropriate values set. Can fail if the bank doesn't exist
   override def createSandboxBankAccount(bankId: BankId, accountId: AccountId, accountNumber: String,
@@ -916,13 +917,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       val balanceInSmallestCurrencyUnits = Helper.convertToSmallestCurrencyUnits(initialBalance, currency)
       createAccountIfNotExisting(bankId, accountId, accountNumber, accountType, accountLabel, currency, balanceInSmallestCurrencyUnits, accountHolderName)
     }
-
   }
 
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
-  }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,

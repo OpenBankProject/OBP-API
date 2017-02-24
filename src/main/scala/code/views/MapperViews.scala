@@ -2,9 +2,8 @@ package code.views
 
 import bootstrap.liftweb.ToSchemify
 import code.api.APIFailure
-import code.bankconnectors.Connector
 import code.model.dataAccess.ViewImpl.create
-import code.model.dataAccess.{ViewImpl, ViewPrivileges}
+import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, User, _}
 import net.liftweb.common._
 import net.liftweb.mapper.{By, Schemifier}
@@ -100,17 +99,13 @@ object MapperViews extends Views with Loggable {
 
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] = {
     val res =
-    for{
+    for {
       viewImpl <- ViewImpl.find(viewUID)
       vp: ViewPrivileges  <- ViewPrivileges.find(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, viewImpl.id))
       deletable <- accessRemovableAsBox(viewImpl, user)
     } yield {
-      val r =
-        vp.delete_!
-      return Full(r)
+      vp.delete_!
     }
-    if (res == Failure("access cannot be revoked"))
-      return Full(false)
     res
   }
 
@@ -125,7 +120,7 @@ object MapperViews extends Views with Loggable {
     if(viewImpl.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      if(Connector.connector.vend.getAccountHolders(viewImpl.bankId, viewImpl.accountId).contains(user)) {
+      if(getOwners(viewImpl).contains(user)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
@@ -407,6 +402,13 @@ object MapperViews extends Views with Loggable {
       case Empty => createDefaultOwnerView(bankId, accountId, description)
       case Full(v) => Full(v)
     }
+  }
+
+  def getOwners(view: View) : Set[User] = {
+    val viewUid = ViewImpl.find(view.uid)
+    val privileges = ViewPrivileges.findAll(By(ViewPrivileges.view, viewUid))
+    val users: List[User] = privileges.flatMap(_.user.obj)
+    users.toSet
   }
 
   def createPublicView(bankId: BankId, accountId: AccountId, description: String = "Public View") : Box[View] = {

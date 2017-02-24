@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
+import code.accountholder.MapperAccountHolders$
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -26,11 +27,12 @@ import net.liftweb.util.Props
 import org.bson.types.ObjectId
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
-import code.transactionrequests.{TransactionRequestTypeCharge}
+import code.transactionrequests.TransactionRequestTypeCharge
 
 private object LocalConnector extends Connector with Loggable {
 
@@ -475,10 +477,6 @@ private object LocalConnector extends Connector with Loggable {
     (hostedBank, createdAccount)
   }
 
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
-  }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   override def accountExists(bankId: BankId, accountNumber: String): Boolean = {

@@ -1,6 +1,7 @@
 package code.api
 
 import bootstrap.liftweb.ToSchemify
+import code.accountholder.AccountHolders
 import code.model.dataAccess._
 import code.model._
 import code.views.Views
@@ -15,7 +16,7 @@ import net.liftweb.util.Helpers._
 trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
   override protected def setAccountHolder(user: User, bankId : BankId, accountId : AccountId) = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankId.value, accountId.value, "TestConnectorSetupWithStandardPermissions")
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankId.value, accountId.value, "TestConnectorSetupWithStandardPermissions")
   }
 
   override protected def grantAccessToAllExistingViews(user : User) = {

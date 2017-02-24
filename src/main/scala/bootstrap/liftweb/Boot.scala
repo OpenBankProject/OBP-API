@@ -36,6 +36,7 @@ import java.util.Locale
 import javax.mail.internet.MimeMessage
 import java.util.concurrent.TimeUnit
 
+import code.accountholder.MapperAccountHolders
 import code.api.ResourceDocs1_4_0.ResourceDocs
 import code.api._
 import code.api.sandbox.SandboxApiCalls
@@ -77,9 +78,9 @@ import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
 import code.fx.{MappedCurrency, MappedFXRate}
+import code.remotedata.RemotedataActorSystem
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionStatusScheduler
-import code.views.RemoteDataActorSystem
 
 
 /**
@@ -356,7 +357,7 @@ class Boot extends Loggable{
 
     if (!Props.getBool("enable_remotedata", false)) {
       try {
-        RemoteDataActorSystem.startLocalWorkerSystem()
+        RemotedataActorSystem.startLocalWorkerSystem()
       } catch {
         case ex: Exception => logger.warn(s"RemoteDataActorSystem.startLocalWorkerSystem() could not start: $ex")
       }
@@ -426,7 +427,9 @@ object ToSchemify {
   val modelsRemotedata = List(
     ViewImpl,
     ViewPrivileges,
-    ResourceUser)
+    ResourceUser,
+    MapperAccountHolders
+  )
 
   val models = List(
     AuthUser,
@@ -434,7 +437,6 @@ object ToSchemify {
     Nonce,
     Token,
     Consumer,
-    MappedAccountHolder,
     MappedComment,
     MappedNarrative,
     MappedTag,

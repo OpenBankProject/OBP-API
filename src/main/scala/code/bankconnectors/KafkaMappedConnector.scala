@@ -26,6 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.accountholder.{AccountHolders, MapperAccountHolders$}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
@@ -888,7 +889,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
