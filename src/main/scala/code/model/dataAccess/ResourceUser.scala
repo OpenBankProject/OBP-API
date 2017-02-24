@@ -74,7 +74,7 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
   def name : String = name_.get
   def provider = provider_.get
   def views: List[View] = Views.views.vend.getAllAccountsUserCanSee(Full(this)).flatMap { a =>
-    Views.views.vend.views(BankAccountUID(a.bankId, a.accountId))
+    Views.views.vend.permittedViews(this, a)
   }
 
 }
