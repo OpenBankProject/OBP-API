@@ -387,7 +387,7 @@ trait Connector {
                                    toAccount: BankAccount,
                                    toCounterparty: CounterpartyTrait,
                                    transactionRequestType: TransactionRequestType,
-                                   details: TransactionRequestDetails,
+                                   details: TransactionRequestDetailsJSON,
                                    chargePolicy: String,
                                    detailsPlain: String): Box[TransactionRequest] = {
 
@@ -438,22 +438,22 @@ trait Connector {
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
-                                                                          details.asInstanceOf[TransactionRequestDetailsSandBoxTan].description,
+                                                                          BigDecimal(details.value.amount),
+                                                                          details.asInstanceOf[TransactionRequestDetailsSandBoxTanJSON].description,
                                                                           transactionRequestType)
           case "COUNTERPARTY" => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
-                                                                          details.asInstanceOf[TransactionRequestDetailsCounterpartyResponse].description,
+                                                                          BigDecimal(details.value.amount),
+                                                                          details.asInstanceOf[TransactionRequestDetailsCounterpartyJSON].description,
                                                                           transactionRequestType)
           case "SEPA"         => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
                                                                           BankAccountUID(toAccount.bankId, toAccount.accountId),
                                                                           toCounterparty,
-                                                                          BigDecimal(details.value.amount), //CM 2 TransactionRequestDetailsSandBoxTan --> TransactionRequests
-                                                                          details.asInstanceOf[TransactionRequestDetailsSEPAResponse].description,
+                                                                          BigDecimal(details.value.amount),
+                                                                          details.asInstanceOf[TransactionRequestDetailsSEPAJSON].description,
                                                                           transactionRequestType)
           case "FREE_FORM"    => Connector.connector.vend.makePaymentv200(initiator,
                                                                           BankAccountUID(fromAccount.bankId, fromAccount.accountId),
