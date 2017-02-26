@@ -95,15 +95,17 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
       )
     }
     catch {
-      case k: ActorKilledException => return Empty ~> APIFailure(s"View $viewUID. not found", 404)
+      case k: ClassCastException => k.getMessage match {
+                                      case "Cannot cast net.liftweb.common.Failure to java.lang.Boolean" =>
+                                        return Empty ~> APIFailure(s"View $viewUID. not removed", 400)
+                                      case "Cannot cast net.liftweb.common.ParamFailure to java.lang.Boolean" =>
+                                        return Empty ~> APIFailure(s"View $viewUID. not found", 404)
+                                      case _ =>
+					return Empty ~> APIFailure(s"Unknown error", 406)
+                                    }
       case e: Throwable => throw e
     }
-
-    if ( res.getOrElse(false) ) {
-      res
-    }
-    else
-      Empty ~> Failure("access cannot be revoked")
+    res
   }
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
