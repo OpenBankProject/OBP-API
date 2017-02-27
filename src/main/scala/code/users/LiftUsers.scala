@@ -86,12 +86,16 @@ object LiftUsers extends Users {
     r
   }
 
-  override def bulkDeleteAllResourceUsers(): Boolean = {
-    Users.users.vend.bulkDeleteAllResourceUsers()
+  override def bulkDeleteAllResourceUsers(): Box[Boolean] = {
+    Full( ResourceUser.bulkDelete_!!() )
   }
 
-  override def deleteResourceUser(userId: Long): Boolean = {
-      Users.users.vend.getResourceUserByResourceUserId(userId).get.delete_!
+  override def deleteResourceUser(userId: Long): Box[Boolean] = {
+    for {
+      u <- ResourceUser.find(By(ResourceUser.id, userId))
+    } yield {
+      u.delete_!
+    }
   }
   
 }

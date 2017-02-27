@@ -151,7 +151,7 @@ object User {
     Users.users.vend.saveResourceUser(ru)
   }
 
-  def bulkDeleteAllResourceUsers(): Boolean = {
-    Users.users.vend.bulkDeleteAllResourceUsers()
-  }
+  //def bulkDeleteAllResourceUsers(): Box[Boolean] = {
+  //  Users.users.vend.bulkDeleteAllResourceUsers()
+  //}
 }

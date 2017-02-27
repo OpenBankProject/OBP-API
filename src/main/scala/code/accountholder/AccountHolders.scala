@@ -5,6 +5,7 @@ package code.accountholder
 import code.model.{AccountId, BankId, User}
 import net.liftweb.util.SimpleInjector
 import code.remotedata.Remotedata
+import net.liftweb.common.Box
 
 
 object AccountHolders extends SimpleInjector {
@@ -19,7 +20,7 @@ object AccountHolders extends SimpleInjector {
 trait AccountHolders {
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
   def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean
-  def bulkDeleteAllAccountHolders(): Boolean
+  def bulkDeleteAllAccountHolders(): Box[Boolean]
 }
 
 class AccountHoldersCaseClasses {

@@ -36,9 +36,9 @@ trait Users {
 
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
 
-  def deleteResourceUser(userId: Long) : Boolean
+  def deleteResourceUser(userId: Long) : Box[Boolean]
 
-  def bulkDeleteAllResourceUsers() : Boolean
+  def bulkDeleteAllResourceUsers() : Box[Boolean]
 }
 
 class RemoteUserCaseClasses {

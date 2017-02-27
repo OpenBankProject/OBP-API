@@ -502,7 +502,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     res
   }
 
-  def deleteResourceUser(userId: Long) : Boolean = {
+  def deleteResourceUser(userId: Long) : Box[Boolean] = {
     val res = try{
       Full(
         Await.result(
@@ -515,7 +515,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
       case k: ActorKilledException => Empty ~> APIFailure(s"User not deleted", 404)
       case e: Throwable => throw e
     }
-    res.get
+    res
   }
 
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
@@ -647,17 +647,21 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     )
   }
 
-  def bulkDeleteAllAccountHolders(): Boolean = {
-    Await.result(
-      (viewsActor ? rAccountHolders.bulkDeleteAllAccountHolders()).mapTo[Boolean],
-      TIMEOUT
+  def bulkDeleteAllAccountHolders(): Box[Boolean] = {
+    Full(
+      Await.result(
+        (viewsActor ? rAccountHolders.bulkDeleteAllAccountHolders()).mapTo[Boolean],
+        TIMEOUT
+      )
     )
   }
 
-  def bulkDeleteAllResourceUsers(): Boolean = {
-    Await.result(
-      (viewsActor ? rUsers.bulkDeleteAllResourceUsers()).mapTo[Boolean],
-      TIMEOUT
+  def bulkDeleteAllResourceUsers(): Box[Boolean] = {
+    Full(
+      Await.result(
+        (viewsActor ? rUsers.bulkDeleteAllResourceUsers()).mapTo[Boolean],
+        TIMEOUT
+      )
     )
   }
 

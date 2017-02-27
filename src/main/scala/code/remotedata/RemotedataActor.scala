@@ -471,7 +471,7 @@ class RemotedataActor extends Actor {
 
         {
         for {
-          res <- tryo{mAccountHolders.bulkDeleteAllAccountHolders()}
+          res <- mAccountHolders.bulkDeleteAllAccountHolders()
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }
@@ -484,7 +484,7 @@ class RemotedataActor extends Actor {
 
       {
         for {
-          res <- tryo{mUsers.bulkDeleteAllResourceUsers()}
+          res <- mUsers.bulkDeleteAllResourceUsers()
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }

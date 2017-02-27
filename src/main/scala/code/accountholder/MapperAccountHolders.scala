@@ -5,6 +5,7 @@ import code.model.dataAccess.ResourceUser
 import code.users.Users
 import net.liftweb.common._
 import net.liftweb.mapper._
+import net.liftweb.common.Box
 
 
 class MapperAccountHolders extends LongKeyedMapper[MapperAccountHolders] with IdPK {
@@ -48,8 +49,8 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
     }.toSet
   }
 
-  def bulkDeleteAllAccountHolders(): Boolean = {
-    MapperAccountHolders.bulkDelete_!!()
+  def bulkDeleteAllAccountHolders(): Box[Boolean] = {
+    Full( MapperAccountHolders.bulkDelete_!!() )
   }
 
 }
