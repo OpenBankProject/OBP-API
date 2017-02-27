@@ -502,6 +502,22 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     res
   }
 
+  def deleteResourceUser(id: Long) : Box[Boolean] = {
+    val res = try{
+      Full(
+        Await.result(
+          (viewsActor ? rUsers.deleteResourceUser(id)).mapTo[Boolean],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException => Empty ~> APIFailure(s"User not deleted", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
     val res = try {
       Full(

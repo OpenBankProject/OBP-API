@@ -137,7 +137,7 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
   }
 
   override def delete_!(): Boolean = {
-    user.obj.map{_.delete_!}
+    user.obj.map(u => Users.users.vend.deleteResourceUser(u.id))
     super.delete_!
   }
 
