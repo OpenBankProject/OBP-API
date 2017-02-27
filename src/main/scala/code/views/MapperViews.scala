@@ -1,6 +1,7 @@
 package code.views
 
 import bootstrap.liftweb.ToSchemify
+import code.accountholder.MapperAccountHolders
 import code.api.APIFailure
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
@@ -120,7 +121,7 @@ object MapperViews extends Views with Loggable {
     if(viewImpl.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      if(getOwners(viewImpl).contains(user)) {
+      if(MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId).contains(user)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else

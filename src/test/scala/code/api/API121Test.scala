@@ -1940,7 +1940,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore -1)
     }
-/* TODO temp disabled for akka remotedata
+
     scenario("we will revoke the access of a user to owner view on an bank account if there is more than one user", API1_2, DeletePermission) {
       Given("We will use an access token")
       val bankId = randomBank
@@ -1958,7 +1958,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId1, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(viewsBefore -1)
     }
-*/
+
     scenario("we cannot revoke the access of a user to owner view on an bank account if there is only one user", API1_2, DeletePermission) {
       Given("We will use an access token")
       val bankId = randomBank
@@ -2041,7 +2041,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
     }
   }
   feature("Revoke a user access to all the views on a bank account"){
-/* TODO temp disabled for akka remotedata
     scenario("we will revoke the access of a user to all the views on an bank account", API1_2, DeletePermissions) {
       Given("We will use an access token")
       val bankId = randomBank
@@ -2057,7 +2056,6 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val viewsAfter = getUserAccountPermission(bankId, bankAccount.id, userId, user1).body.extract[ViewsJSON].views.length
       viewsAfter should equal(0)
     }
-*/
 
     scenario("we cannot revoke the access to all views for a user that does not exist", API1_2, DeletePermissions) {
       Given("We will use an access token with a random user Id")
