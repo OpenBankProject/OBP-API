@@ -8,6 +8,7 @@ import code.views.Views
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.mongodb._
 import net.liftweb.util.Helpers._
+import net.liftweb.util.Props
 
 /**
  * Handles setting up views and permissions and account holders using ViewImpls, ViewPrivileges,
@@ -52,6 +53,11 @@ trait TestConnectorSetupWithStandardPermissions extends TestConnectorSetup {
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    if (!Props.getBool("enable_remotedata", false)) {
     ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    } else {
+      Views.views.vend.bulkDeleteAllPermissionsAndViews()
+      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+    }
   }
 }

@@ -340,6 +340,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
       TIMEOUT
     )
   }
+
   // Resource user part
   def getUserByResourceUserId(id : Long) : Box[User] = {
     val res = try {
@@ -621,5 +622,27 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     )
   }
 
+
+  // bulkDeletes for tests
+  def bulkDeleteAllPermissionsAndViews(): Boolean = {
+    Await.result(
+      (viewsActor ? rViews.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def bulkDeleteAllAccountHolders(): Boolean = {
+    Await.result(
+      (viewsActor ? rAccountHolders.bulkDeleteAllAccountHolders()).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def bulkDeleteAllResourceUsers(): Boolean = {
+    Await.result(
+      (viewsActor ? rUsers.bulkDeleteAllResourceUsers()).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
 }
 

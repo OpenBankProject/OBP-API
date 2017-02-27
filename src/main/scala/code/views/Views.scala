@@ -58,6 +58,8 @@ trait Views {
   def removeAllPermissions(bankId: BankId, accountId: AccountId) : Boolean
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean
 
+  def bulkDeleteAllPermissionsAndViews() : Boolean
+
 }
 
 
@@ -103,6 +105,8 @@ class RemoteViewCaseClasses {
   case class viewExists(bank: BankId, accountId: AccountId, name: String)
   case class removeAllPermissions(bankId: BankId, accountId: AccountId)
   case class removeAllViews(bankId: BankId, accountId: AccountId)
+
+  case class bulkDeleteAllPermissionsAndViews()
 }
 
 object RemoteViewCaseClasses extends RemoteViewCaseClasses

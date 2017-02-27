@@ -1,7 +1,7 @@
 package code.views
 
 import bootstrap.liftweb.ToSchemify
-import code.accountholder.MapperAccountHolders
+import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.APIFailure
 import code.model.dataAccess.ViewImpl.create
 import code.model.dataAccess.{ResourceUser, ViewImpl, ViewPrivileges}
@@ -121,7 +121,10 @@ object MapperViews extends Views with Loggable {
     if(viewImpl.viewId == ViewId("owner")) {
 
       //if the user is an account holder, we can't revoke access to the owner view
-      if(MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId).contains(user)) {
+      val accountHolders = MapperAccountHolders.getAccountHolders(viewImpl.bankId, viewImpl.accountId)
+      if(accountHolders.map {h =>
+        h.resourceUserId
+      }.contains(user.resourceUserId)) {
         false
       } else {
         // if it's the owner view, we can only revoke access if there would then still be someone else
@@ -577,7 +580,6 @@ object MapperViews extends Views with Loggable {
       privilegesDeleted
   }
 
-
   def removeAllViews(bankId: BankId, accountId: AccountId) : Boolean = {
     ViewImpl.bulkDelete_!!(
       By(ViewImpl.bankPermalink, bankId.value),
@@ -585,6 +587,11 @@ object MapperViews extends Views with Loggable {
     )
   }
 
+  def bulkDeleteAllPermissionsAndViews() : Boolean = {
+    ViewImpl.bulkDelete_!!()
+    ViewPrivileges.bulkDelete_!!()
+    true
+  }
 
   def unsavedOwnerView(bankId : BankId, accountId: AccountId, description: String) : ViewImpl = {
     create

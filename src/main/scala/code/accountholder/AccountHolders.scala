@@ -19,11 +19,13 @@ object AccountHolders extends SimpleInjector {
 trait AccountHolders {
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User]
   def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean
+  def bulkDeleteAllAccountHolders(): Boolean
 }
 
 class AccountHoldersCaseClasses {
   case class createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder")
   case class getAccountHolders(bankId: BankId, accountId: AccountId)
+  case class bulkDeleteAllAccountHolders()
 }
 
 object RemoteAccountHoldersCaseClasses extends AccountHoldersCaseClasses

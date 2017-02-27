@@ -454,6 +454,46 @@ class RemotedataActor extends Actor {
       }.getOrElse( context.stop(sender) )
 
 
+    case rAccountHolders.bulkDeleteAllAccountHolders() =>
+
+      logger.info("bulkDeleteAllAccountHolders()")
+
+        {
+        for {
+          res <- tryo{mAccountHolders.bulkDeleteAllAccountHolders()}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
+    case rUsers.bulkDeleteAllResourceUsers() =>
+
+      logger.info("bulkDeleteAllResourceUsers()")
+
+      {
+        for {
+          res <- tryo{mUsers.bulkDeleteAllResourceUsers()}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
+
+    case rViews.bulkDeleteAllPermissionsAndViews() =>
+
+      logger.info("bulkDeleteAllPermissionsAndViews()")
+
+      {
+        for {
+          res <- tryo{mViews.bulkDeleteAllPermissionsAndViews()}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
   }

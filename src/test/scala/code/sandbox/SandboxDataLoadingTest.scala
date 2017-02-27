@@ -36,6 +36,7 @@ import java.util.Date
 
 import bootstrap.liftweb.ToSchemify
 import code.TestServer
+import code.accountholder.AccountHolders
 import code.api.{APIResponse, SendServerRequests}
 import code.api.v1_2_1.APIMethods121
 import code.atms.Atms
@@ -93,6 +94,10 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     ToSchemify.models.foreach(_.bulkDelete_!!())
     if (!Props.getBool("enable_remotedata", false)) {
       ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
+    } else {
+      Views.views.vend.bulkDeleteAllPermissionsAndViews()
+      Users.users.vend.bulkDeleteAllResourceUsers()
+      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
     }
   }
 

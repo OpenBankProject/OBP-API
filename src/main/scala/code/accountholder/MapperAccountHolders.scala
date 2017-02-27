@@ -39,11 +39,17 @@ object MapperAccountHolders extends MapperAccountHolders with AccountHolders wit
   }
 
   def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
-    MapperAccountHolders.findAll(
+    val results = MapperAccountHolders.findAll(
       By(MapperAccountHolders.accountBankPermalink, bankId.value),
-      By(MapperAccountHolders.accountPermalink, accountId.value)).flatMap { accHolder =>
-      ResourceUser.find(By(ResourceUser.id, accHolder.user.get))
+      By(MapperAccountHolders.accountPermalink, accountId.value))
+
+    results.flatMap { accHolder =>
+      ResourceUser.find(By(ResourceUser.id, accHolder.user))
     }.toSet
+  }
+
+  def bulkDeleteAllAccountHolders(): Boolean = {
+    MapperAccountHolders.bulkDelete_!!()
   }
 
 }

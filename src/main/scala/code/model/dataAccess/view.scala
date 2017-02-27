@@ -68,9 +68,6 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object permalink_ extends MappedString(this, 255)
 
   def users : List[User] =  users_.toList
-  //  def views: List[User] = Users.users.vend.getAllUsers().flatMap { a =>
-  //  a
-  //}
 
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {

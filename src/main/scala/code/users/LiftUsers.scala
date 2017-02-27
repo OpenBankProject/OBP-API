@@ -85,5 +85,9 @@ object LiftUsers extends Users {
     val r = Full(ru.saveMe())
     r
   }
+
+  override def bulkDeleteAllResourceUsers(): Boolean = {
+    Users.users.vend.bulkDeleteAllResourceUsers()
+  }
   
 }
