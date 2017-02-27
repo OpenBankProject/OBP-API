@@ -89,5 +89,9 @@ object LiftUsers extends Users {
   override def bulkDeleteAllResourceUsers(): Boolean = {
     Users.users.vend.bulkDeleteAllResourceUsers()
   }
+
+  override def deleteResourceUser(userId: Long): Boolean = {
+      Users.users.vend.getResourceUserByResourceUserId(userId).get.delete_!
+  }
   
 }

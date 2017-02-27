@@ -350,7 +350,7 @@ class RemotedataActor extends Actor {
 
       {
         for {
-          res <- mUsers.deleteResourceUser(id)
+          res <- tryo{mUsers.deleteResourceUser(id)}
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }
