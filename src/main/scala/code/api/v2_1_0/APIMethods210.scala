@@ -372,12 +372,9 @@ trait APIMethods210 {
                     //if it is OBP, we will check the local database
                     toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                    //if it is remote and OBP, we will check the remote data from Connector
-                    else if(toCounterparty.otherAccountRoutingScheme =="BIC" && toCounterparty.otherBankRoutingScheme=="IBAN")
-                      // this should be a unknown account. we create a special local mapper account for it.
-                      BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
+                    //if it is remote, we will check the remote data from Connector
                     else
-                      Failure(ErrorMessages.CounterpartyNotFoundOtherAccountProvider)
+                      BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
 
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
@@ -402,6 +399,7 @@ trait APIMethods210 {
                     toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
+                    //if the connector is mapped, we get the data from local mapper, otherwise we call it from connector
                     toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                     else
