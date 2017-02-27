@@ -85,5 +85,10 @@ object LiftUsers extends Users {
     val r = Full(ru.saveMe())
     r
   }
+
+  override def deleteResourceUser(id: Long): Box[Boolean] = {
+    val ru = ResourceUser.find(By(ResourceUser.id, id))
+    ru.map(u => u.delete_!)
+  }
   
 }

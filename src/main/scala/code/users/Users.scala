@@ -35,6 +35,8 @@ trait Users {
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
+
+  def deleteResourceUser(id : Long) : Box[Boolean]
 }
 
 class RemoteUserCaseClasses {
@@ -48,6 +50,7 @@ class RemoteUserCaseClasses {
   case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)
+  case class deleteResourceUser(id : Long)
 }
 
 object RemoteUserCaseClasses extends RemoteUserCaseClasses

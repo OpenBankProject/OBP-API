@@ -150,4 +150,8 @@ object User {
   def saveResourceUser(ru: ResourceUser) = {
     Users.users.vend.saveResourceUser(ru)
   }
+
+  def saveResourceUser(id: Long) = {
+    Users.users.vend.deleteResourceUser(id)
+  }
 }

@@ -345,6 +345,17 @@ class RemotedataActor extends Actor {
         }
       }.getOrElse( context.stop(sender) )
 
+    case rUsers.deleteResourceUser(id: Long) =>
+      logger.info("deleteResourceUser(" + id +")")
+
+      {
+        for {
+          res <- mUsers.deleteResourceUser(id)
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
     case rCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
       logger.info("checkCounterpartyAvailable(" + name +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +")")
       sender ! mCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
