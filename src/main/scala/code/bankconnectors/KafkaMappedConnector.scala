@@ -639,9 +639,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         "otherAccountId" -> toAccount.accountId.value,
                                         "otherAccountCurrency" -> toAccount.currency,
                                         //New data: real counterparty (toCounterparty: CounterpartyTrait)
-                                        "counterpartyOtherBankId" -> toCounterparty.otherBankId,
-                                        "counterpartyOtherAccountId" -> toCounterparty.otherAccountId,
-                                        "counterpartyOtherAccountProvider" -> toCounterparty.otherAccountProvider,
                                         "counterpartyId" -> toCounterparty.counterpartyId,
                                         "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
                                         "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,

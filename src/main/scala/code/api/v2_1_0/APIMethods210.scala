@@ -24,7 +24,7 @@ import code.fx.fx
 import code.metadata.counterparties.Counterparties
 import code.metrics.APIMetrics
 import code.model.dataAccess.AuthUser
-import code.model.{BankId, ViewId, _}
+import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.Failure
@@ -360,20 +360,24 @@ trait APIMethods210 {
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
-                    toBankId <- Full(BankId(toCounterparty.otherBankId))
-                    toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
-                    toAccountProvider <- Full(toCounterparty.otherAccountProvider)
-                    toAccoutByCounterparty <-  BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
-                    // Use toAccountProvider to determine how we validate the toBank and toAccount.
-                    // i.e. Only validate toBankId and toAccountId if the toAccountProvider is OBP
-                    // i.e. if toAccountProvider is OBP we can expect the account to exist locally.
-                    // In the future we may remove toBankId and toAccountId and exclusively the scheme/address in Counterparty
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <- Full(AccountId(toCounterparty.otherAccountRoutingAddress))
+
+
+                    // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
+                    // i.e. Only validate toBankId and toAccountId if they are both OBP
+                    // i.e. if it is OBP we can expect the account to exist locally.
                     // This is so developers can follow the COUNTERPARTY flow in the sandbox
-                    toAccount <- if (toAccountProvider == "OBP")
+
+                    //if it is OBP, we will check the local database
+                    toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
+                      LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
+                    //if it is remote and OBP, we will check the remote data from Connector
+                    else if(toCounterparty.otherAccountRoutingScheme =="BIC" && toCounterparty.otherBankRoutingScheme=="IBAN")
+                      // this should be a unknown account. we create a special local mapper account for it.
                       BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
                     else
-                      // this should be a unknown account. we create a special local mapper account for it.
-                      LocalMappedConnector.createOrUpdateMappedBankAccount(BankId("external-bank"), AccountId("external-account"), toAccoutByCounterparty.currency)
+                      Failure(ErrorMessages.CounterpartyNotFoundOtherAccountProvider)
 
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
@@ -395,10 +399,15 @@ trait APIMethods210 {
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                    toBankId <- Full(BankId(toCounterparty.otherBankId))
-                    toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
-                    toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
-                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <- Full(AccountId(toCounterparty.otherAccountRoutingAddress))
+
+                    toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+                      LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
+                    else
+                      BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
                     chargePolicy = transDetailsSEPAJson.charge_policy
                     chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
                     transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsSEPAJson.description, chargePolicy)

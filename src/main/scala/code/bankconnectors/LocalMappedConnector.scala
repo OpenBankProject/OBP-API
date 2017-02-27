@@ -442,7 +442,7 @@ Store one or more transactions
     fromAccount.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
-      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine feilds.
+      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
       .bank(fromAccount.bankId.value)
       .account(fromAccount.accountId.value)
       .transactionType(transactionRequestType.value)
@@ -460,9 +460,6 @@ Store one or more transactions
       .counterpartyIban(toAccount.iban.getOrElse(""))
       .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
-      .CPOtherBankId(toCounterparty.otherBankId)
-      .CPOtherAccountId(toCounterparty.otherAccountId)
-      .CPOtherAccountProvider(toCounterparty.otherAccountProvider)
       .CPCounterPartyId(toCounterparty.counterpartyId)
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
       .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
