@@ -177,6 +177,24 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedBankAccount.theAccountId, accountId.value))
   }
 
+  /**
+    * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
+    * details in createTransactionRequest - V210 ,case "COUNTERPARTY"
+    *
+    */
+  def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
+
+    val mappedBankAccount = getBankAccount(bankId, accountId) match {
+      case Full(f) =>
+        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+      case _ =>
+        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+    }
+
+    Full(mappedBankAccount)
+  }
+
+
   //gets the users who are the legal owners/holders of the account
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
     MappedAccountHolder.findAll(

@@ -15,7 +15,7 @@ import code.api.v2_1_0.JSONFactory210._
 import code.api.v2_2_0.JSONFactory220
 import code.atms.Atms
 import code.atms.Atms.AtmId
-import code.bankconnectors.Connector
+import code.bankconnectors.{Connector, LocalMappedConnector}
 import code.branches.Branches
 import code.branches.Branches.BranchId
 import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerFaceImage}
@@ -360,10 +360,10 @@ trait APIMethods210 {
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
-                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persisitence and 'answerTransactionRequestChallenge'
                     toBankId <- Full(BankId(toCounterparty.otherBankId))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
                     toAccountProvider <- Full(toCounterparty.otherAccountProvider)
+                    toAccoutByCounterparty <-  BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
                     // Use toAccountProvider to determine how we validate the toBank and toAccount.
                     // i.e. Only validate toBankId and toAccountId if the toAccountProvider is OBP
                     // i.e. if toAccountProvider is OBP we can expect the account to exist locally.
@@ -372,11 +372,13 @@ trait APIMethods210 {
                     toAccount <- if (toAccountProvider == "OBP")
                       BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
                     else
-                      Failure(ErrorMessages.CounterpartyNotFoundOtherAccountProvider)
-                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toBankId.value, toAccountId.value)
+                      // this should be a unknown account. we create a special local mapper account for it.
+                      LocalMappedConnector.createOrUpdateMappedBankAccount(BankId("external-bank"), AccountId("external-account"), toAccoutByCounterparty.currency)
+
+                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
+                    transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
                     chargePolicy = transDetailsCounterpartyJson.charge_policy
                     chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
-
                     transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsCounterpartyJson.description, transDetailsCounterpartyJson.charge_policy)
                     //Serialize the transResponseDetails to String.
                     transDetailsResponseSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
@@ -392,7 +394,7 @@ trait APIMethods210 {
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
-                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persisitence and 'answerTransactionRequestChallenge'
+                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     toBankId <- Full(BankId(toCounterparty.otherBankId))
                     toAccountId <- Full(AccountId(toCounterparty.otherAccountId))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
@@ -409,7 +411,7 @@ trait APIMethods210 {
                 case "FREE_FORM" => {
                   for {
                     transDetailsFreeFormJson <- Full(json.extract[TransactionRequestDetailsFreeFormJSON])
-                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persisitence and 'answerTransactionRequestChallenge'
+                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
                     // The FREE_FORM discription is empty, so make it "" in the following code
                     transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON, amountOfMoneyJSON, "")

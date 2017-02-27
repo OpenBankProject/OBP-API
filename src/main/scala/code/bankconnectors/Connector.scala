@@ -371,6 +371,7 @@ trait Connector {
             result = Full(result.get.copy(transaction_ids = ti.value))
           }
         }
+        case Failure(message, exception, chain) => result  = Failure(message, exception, chain)
         case _ => None
       }
     } else {
@@ -479,7 +480,8 @@ trait Connector {
               result = Full(result.get.copy(transaction_ids = ti.value))
             }
           }
-         case _ => None
+          case Failure(message, exception, chain) => result  = Failure(message, exception, chain)
+          case _ => None
         }
 
       case TransactionRequests.STATUS_PENDING =>
