@@ -1,10 +1,13 @@
 package code.remotedata
 
+import java.util.Date
+
 import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
 import code.accountholder.{AccountHolders, RemoteAccountHoldersCaseClasses}
 import code.api.APIFailure
+import code.metadata.comments.{Comments, RemoteCommentsCaseClasses}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemoteCounterpartiesCaseClasses}
 import code.model.dataAccess.ResourceUser
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, _}
@@ -19,13 +22,14 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object Remotedata extends Views with Users with Counterparties with AccountHolders {
+object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments {
 
   val TIMEOUT = 10 seconds
   val rViews = RemoteViewCaseClasses
   val rUsers = RemoteUserCaseClasses
   val rCounterparties = RemoteCounterpartiesCaseClasses
   val rAccountHolders = RemoteAccountHoldersCaseClasses
+  val rComments = RemoteCommentsCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -665,6 +669,45 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     )
   }
 
+  // Comments
+  def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = {
+    Await.result(
+      (viewsActor ? rComments.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]],
+      TIMEOUT
+    )
+  }
+
+  def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
+    Full(
+      Await.result(
+        (viewsActor ? rComments.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Comment],
+        TIMEOUT
+      )
+    )
+  }
+
+  def deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(commentId : String) : Box[Boolean] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rComments.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Boolean],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Cannot delete the comment", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
+    Await.result(
+      (viewsActor ? rComments.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
 
 }
 

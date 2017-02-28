@@ -428,6 +428,7 @@ object ToSchemify {
     ViewImpl,
     ViewPrivileges,
     ResourceUser,
+    MappedComment,
     MapperAccountHolders
   )
 
@@ -437,7 +438,6 @@ object ToSchemify {
     Nonce,
     Token,
     Consumer,
-    MappedComment,
     MappedNarrative,
     MappedTag,
     MappedWhereTag,

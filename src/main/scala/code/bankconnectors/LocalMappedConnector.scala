@@ -10,7 +10,7 @@ import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.MappedComment
+import code.metadata.comments.{Comments, MappedComment}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.MappedTag
@@ -611,10 +611,7 @@ Store one or more transactions
   //remove an account and associated transactions
   override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
     //delete comments on transactions of this account
-    val commentsDeleted = MappedComment.bulkDelete_!!(
-      By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountId.value)
-    )
+    val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
     //delete narratives on transactions of this account
     val narrativesDeleted = MappedNarrative.bulkDelete_!!(

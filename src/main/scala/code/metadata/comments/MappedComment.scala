@@ -10,7 +10,7 @@ import net.liftweb.common.{Box, Failure, Full}
 import net.liftweb.mapper._
 import net.liftweb.util.Helpers.tryo
 
-private object MappedComments extends Comments {
+object MappedComments extends Comments {
   override def getComments(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): List[Comment] = {
     MappedComment.findAll(
       By(MappedComment.bank, bankId.value),
@@ -19,7 +19,7 @@ private object MappedComments extends Comments {
       By(MappedComment.view, viewId.value))
   }
 
-  override def deleteComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(commentId: String): Box[Unit] = {
+  override def deleteComment(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(commentId: String): Box[Boolean] = {
     val deleted = for {
       comment <- MappedComment.find(By(MappedComment.bank, bankId.value),
         By(MappedComment.account, accountId.value),
@@ -28,7 +28,7 @@ private object MappedComments extends Comments {
     } yield comment.delete_!
 
     deleted match {
-      case Full(true) => Full(Unit)
+      case Full(true) => Full(true)
       case _ => Failure("Could not delete comment")
     }
   }
@@ -45,6 +45,15 @@ private object MappedComments extends Comments {
         .date(datePosted).saveMe
     }
   }
+
+  override def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
+    val commentsDeleted = MappedComment.bulkDelete_!!(
+      By(MappedComment.bank, bankId.value),
+      By(MappedComment.account, accountId.value)
+    )
+    commentsDeleted
+  }
+
 }
 
 class MappedComment extends Comment with LongKeyedMapper[MappedComment] with IdPK with CreatedUpdated {
