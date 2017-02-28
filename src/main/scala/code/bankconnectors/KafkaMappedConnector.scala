@@ -597,8 +597,8 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
-  override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, -amt, description,transactionRequestType )
+  protected override def makePaymentImpl(fromAccount: KafkaBankAccount, toAccount: KafkaBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, -amt, description, transactionRequestType, chargePolicy)
 
     sentTransactionId
   }
@@ -608,7 +608,7 @@ object KafkaMappedConnector extends Connector with Loggable {
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType) = {
+  private def saveTransaction(fromAccount: KafkaBankAccount, toAccount: KafkaBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String) = {
 
     val transactionTime = now
     val currency = fromAccount.currency
@@ -635,14 +635,12 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         "otherAccountId" -> toAccount.accountId.value,
                                         "otherAccountCurrency" -> toAccount.currency,
                                         //New data: real counterparty (toCounterparty: CounterpartyTrait)
-                                        "counterpartyOtherBankId" -> toCounterparty.otherBankId,
-                                        "counterpartyOtherAccountId" -> toCounterparty.otherAccountId,
-                                        "counterpartyOtherAccountProvider" -> toCounterparty.otherAccountProvider,
                                         "counterpartyId" -> toCounterparty.counterpartyId,
                                         "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
                                         "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
                                         "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress
+                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
+                                        "chargePolicy" -> chargePolicy
     )
 
 
@@ -703,19 +701,9 @@ object KafkaMappedConnector extends Connector with Loggable {
   }
 
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
-                                               account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mDetails(details)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now).saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+  //Note: now call the local mapper to store data
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {

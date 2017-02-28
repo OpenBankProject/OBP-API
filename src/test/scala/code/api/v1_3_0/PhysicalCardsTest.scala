@@ -133,7 +133,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User] = Set.empty
 
-    override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] =
+    protected override def makePaymentImpl(fromAccount:AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] =
       Failure("not supported")
     override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                               account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
@@ -142,7 +142,8 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     }
     protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
                                                            account: BankAccount, details: String,
-                                                           status: String, charge: TransactionRequestCharge): Box[TransactionRequest] = {
+                                                           status: String, charge: TransactionRequestCharge,
+                                                           chargePolicy: String): Box[TransactionRequest] = {
       Failure("not supported")
     }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???

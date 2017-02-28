@@ -563,7 +563,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
 
-  override def makePaymentImpl(fromAccount: AccountType, toAccount: AccountType, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+  protected override def makePaymentImpl(fromAccount: ObpJvmBankAccount, toAccount: ObpJvmBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     for {
     // TODO Do we charge +amt or -amt?
       sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
@@ -736,19 +736,9 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
-                                                         account: BankAccount, details: String,
-                                                         status: String, charge: TransactionRequestCharge): Box[TransactionRequest] = {
-    val mappedTransactionRequest = MappedTransactionRequest.create
-      .mTransactionRequestId(transactionRequestId.value)
-      .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mDetails(details)
-      .mStatus(status)
-      .mStartDate(now)
-      .mEndDate(now).saveMe
-    Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
+  //Note: now call the local mapper to store data
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {

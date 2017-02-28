@@ -27,7 +27,7 @@ trait LocalConnectorTestSetup extends TestConnectorSetupWithStandardPermissions 
     val hostedBank = HostedBank.find(q).get
 
     Account.createRecord.
-      accountBalance(1000).
+      accountBalance(900000000).
       holder(randomString(4)).
       accountNumber(randomString(4)).
       kind(randomString(4)).

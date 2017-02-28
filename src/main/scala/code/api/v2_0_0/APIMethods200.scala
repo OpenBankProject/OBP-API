@@ -1290,7 +1290,7 @@ trait APIMethods200 {
               //check the challenge id is same as when the user create the existingTransactionRequest
               isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
 
-              //check the change statue wheather is initiated, only retreive INITIATED transaction requests.
+              //check the challenge statue whether is initiated, only retreive INITIATED transaction requests.
               isTransReqStatueInitiated <- booleanToBox(existingTransactionRequest.status.equals("INITIATED"),ErrorMessages.TransactionRequestStatusNotInitiated)
 
               //create transaction and insert its id into the transaction request
