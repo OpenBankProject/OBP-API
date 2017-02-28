@@ -36,11 +36,12 @@ import java.util.Date
 
 import code.TransactionTypes.TransactionType.TransactionType
 import code.api.v1_2_1.ViewJSON
-import code.api.v2_2_0.{AccountsJSON, AccountJSON}
+import code.api.v2_2_0.{AccountJSON, AccountsJSON}
 import code.entitlement.Entitlement
 import code.meetings.Meeting
 import code.model.dataAccess.AuthUser
 import code.transactionrequests.TransactionRequests._
+import code.users.Users
 import net.liftweb.common.{Box, Full}
 import net.liftweb.json
 import net.liftweb.json.Extraction
@@ -571,14 +572,20 @@ object JSONFactory200{
                       )
 
 
-  def createUserJSONfromAuthUser(user : AuthUser) : UserJSON = new UserJSON(
-    user_id = user.user.foreign.get.userId,
-    email = user.email,
-    username = stringOrNull(user.username),
-    provider_id = stringOrNull(user.provider),
-    provider = stringOrNull(user.provider),
-    entitlements = createEntitlementJSONs(user.user.foreign.get.assignedEntitlements)
-  )
+  def createUserJSONfromAuthUser(user : AuthUser) : UserJSON = {
+    val (userId, entitlements) = Users.users.vend.getUserByResourceUserId(user.user.get) match {
+      case Full(u) => (u.userId, u.assignedEntitlements)
+      case _       => ("", List())
+    }
+    new UserJSON(user_id = userId,
+      email = user.email,
+      username = stringOrNull(user.username),
+      provider_id = stringOrNull(user.provider),
+      provider = stringOrNull(user.provider),
+      entitlements = createEntitlementJSONs(entitlements)
+    )
+  }
+
 
 
   def createUserJSON(user : User) : UserJSON = {

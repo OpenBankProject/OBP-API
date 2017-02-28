@@ -3,6 +3,7 @@ package code.bankconnectors
 import java.util.{Date, UUID}
 
 import code.TransactionTypes.TransactionType.TransactionTypeProvider
+import code.accountholder.MapperAccountHolders$
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
@@ -664,10 +665,6 @@ Store one or more transactions
 
   }
 
-  //sets a user as an account owner/holder
-  override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.bankId.value, bankAccountUID.accountId.value)
-  }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,
                                          accountType: String, accountLabel: String, currency: String,

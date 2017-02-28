@@ -608,6 +608,8 @@ The other bank account or counterparty in a transaction
 as see from the perspective of the original party.
  */
 
+
+// Note: See also CounterpartyTrait
 class Counterparty(
 
                     // The following four fields are older version, pleae first consider the V210

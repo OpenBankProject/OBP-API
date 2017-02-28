@@ -1287,7 +1287,7 @@ trait APIMethods200 {
               existingTransactionRequestType <- Full(existingTransactionRequest.`type`)
               isSameTransReqType <- booleanToBox(existingTransactionRequestType.equals(transactionRequestType.value),s"${ErrorMessages.TransactionRequestTypeHasChanged} It should be :'$existingTransactionRequestType' ")
 
-              //check the changle id is same as when the user create the existingTransactionRequest
+              //check the challenge id is same as when the user create the existingTransactionRequest
               isSameChallengeId <- booleanToBox(existingTransactionRequest.challenge.id.equals(answerJson.id),{ErrorMessages.InvalidTransactionRequesChallengeId})
 
               //check the change statue wheather is initiated, only retreive INITIATED transaction requests.

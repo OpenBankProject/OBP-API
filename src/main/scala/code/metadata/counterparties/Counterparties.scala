@@ -3,7 +3,7 @@ package code.metadata.counterparties
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import code.model.{AccountId, BankId, Counterparty, CounterpartyMetadata}
-import code.views.AkkaMapperViews
+import code.remotedata.Remotedata
 
 object Counterparties extends SimpleInjector {
 
