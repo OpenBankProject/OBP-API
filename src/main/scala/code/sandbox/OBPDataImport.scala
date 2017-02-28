@@ -3,12 +3,13 @@ package code.sandbox
 import java.text.SimpleDateFormat
 import java.util.{Date, UUID}
 
+import code.accountholder.{AccountHolders, MapperAccountHolders, MapperAccountHolders$}
 import code.crm.CrmEvent.CrmEvent
 import code.metadata.counterparties.{Counterparties, MapperCounterparties}
 import code.products.Products
 import code.products.Products.{Product, ProductCode}
 import code.bankconnectors.{Connector, OBPLimit, OBPOffset}
-import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
+import code.model.dataAccess.ResourceUser
 import code.model._
 import code.branches.Branches.Branch
 import code.atms.Atms.Atm
@@ -167,7 +168,7 @@ trait OBPDataImport extends Loggable {
 
     resourceUserOwner match {
       case Some(o) => {
-        MappedAccountHolder.createMappedAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
+        AccountHolders.accountHolders.vend.createAccountHolder(o.resourceUserId.value, account.bankId.value, account.accountId.value, "OBPDataImport")
       }
       case None => {
         //This shouldn't happen as AuthUser should generate the ResourceUsers when saved

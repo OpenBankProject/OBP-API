@@ -614,7 +614,7 @@ trait View {
 
 object View {
   def fromUrl(viewId: ViewId, account: BankAccount): Box[View] =
-    Views.views.vend.view(viewId, account)
+    Views.views.vend.view(viewId, BankAccountUID(account.bankId, account.accountId))
   def fromUrl(viewId: ViewId, accountId: AccountId, bankId: BankId): Box[View] =
     Views.views.vend.view(ViewUID(viewId, bankId, accountId))
 

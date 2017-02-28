@@ -4,14 +4,14 @@ import net.liftweb.util.SimpleInjector
 import net.liftweb.common.Box
 import code.model.User
 import code.model.dataAccess.ResourceUser
-import code.views.AkkaMapperViews
+import code.remotedata.Remotedata
 
 object Users  extends SimpleInjector {
 
   val users = new Inject(buildOne _) {}
   
-  def buildOne: Users = LiftUsers
-  //def buildOne: Users = AkkaMapperViews
+  //def buildOne: Users = LiftUsers
+  def buildOne: Users = Remotedata
   
 }
 
@@ -35,6 +35,10 @@ trait Users {
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser]
 
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser]
+
+  def deleteResourceUser(userId: Long) : Box[Boolean]
+
+  def bulkDeleteAllResourceUsers() : Box[Boolean]
 }
 
 class RemoteUserCaseClasses {
@@ -48,6 +52,8 @@ class RemoteUserCaseClasses {
   case class createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String])
   case class saveResourceUser(resourceUser: ResourceUser)
+  case class deleteResourceUser(userId: Long)
+  case class bulkDeleteAllResourceUsers()
 }
 
 object RemoteUserCaseClasses extends RemoteUserCaseClasses

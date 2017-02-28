@@ -34,8 +34,9 @@ package code.model.dataAccess
 import code.util.MappedUUID
 import net.liftweb.mapper._
 import net.liftweb.util.Props
-
-import code.model.{UserId, User, View}
+import code.model.{BankAccountUID, User, UserId, View}
+import code.views.Views
+import net.liftweb.common.Full
 
 class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMany with OneToMany[Long, ResourceUser]{
   def getSingleton = ResourceUser
@@ -60,8 +61,6 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
     override def defaultValue = java.util.UUID.randomUUID.toString
   }
 
-  object views_ extends MappedManyToMany(ViewPrivileges, ViewPrivileges.user, ViewPrivileges.view, ViewImpl)
-
   def emailAddress = {
     val e = email.get
     if(e != null) e else ""
@@ -74,7 +73,9 @@ class ResourceUser extends LongKeyedMapper[ResourceUser] with User with ManyToMa
 
   def name : String = name_.get
   def provider = provider_.get
-  def views: List[View] = views_.toList
+  def views: List[View] = Views.views.vend.getAllAccountsUserCanSee(Full(this)).flatMap { a =>
+    Views.views.vend.permittedViews(this, a)
+  }
 
 }
 

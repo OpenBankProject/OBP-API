@@ -1,16 +1,20 @@
 package code.api
 
 import java.util.{Date, UUID}
+import java.beans.Introspector
 
 import bootstrap.liftweb.ToSchemify
+import code.accountholder.AccountHolders
 import code.model._
 import code.model.dataAccess._
 import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
+import net.liftweb.util.Props
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
 import code.transaction.MappedTransaction
+import code.views.Views
 
 import scala.util.Random
 
@@ -117,6 +121,11 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
 
     //empty the relational db tables after each test
     ToSchemify.models.filterNot(exclusion).foreach(_.bulkDelete_!!())
-    ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    if (!Props.getBool("enable_remotedata", false)) {
+      ToSchemify.modelsRemotedata.filterNot(exclusion).foreach(_.bulkDelete_!!())
+    } else {
+      Views.views.vend.bulkDeleteAllPermissionsAndViews()
+      AccountHolders.accountHolders.vend.bulkDeleteAllAccountHolders()
+    }
   }
 }

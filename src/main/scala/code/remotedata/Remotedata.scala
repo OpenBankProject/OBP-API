@@ -1,31 +1,31 @@
-package code.views
+package code.remotedata
 
+import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
+import akka.pattern.ask
+import akka.util.Timeout
+import code.accountholder.{AccountHolders, RemoteAccountHoldersCaseClasses}
+import code.api.APIFailure
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemoteCounterpartiesCaseClasses}
+import code.model.dataAccess.ResourceUser
 import code.model.{CreateViewJSON, Permission, UpdateViewJSON, _}
-import net.liftweb.common._
-
-import scala.collection.immutable.List
-import code.model._
+import code.users.{RemoteUserCaseClasses, Users}
+import code.views.{RemoteViewCaseClasses, Views}
 import com.typesafe.config.ConfigFactory
-import net.liftweb.common.Full
+import net.liftweb.common.{Full, _}
 import net.liftweb.util.Props
 
+import scala.collection.immutable.List
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
-import akka.util.Timeout
-import code.api.APIFailure
-import code.model.dataAccess.ResourceUser
-import code.users.{RemoteUserCaseClasses, Users}
-import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemoteCounterpartiesCaseClasses}
 
 
-object AkkaMapperViews extends Views with Users with Counterparties{
+object Remotedata extends Views with Users with Counterparties with AccountHolders {
 
   val TIMEOUT = 10 seconds
-  val r = RemoteViewCaseClasses
-  val ru = RemoteUserCaseClasses
+  val rViews = RemoteViewCaseClasses
+  val rUsers = RemoteUserCaseClasses
   val rCounterparties = RemoteCounterpartiesCaseClasses
+  val rAccountHolders = RemoteAccountHoldersCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -46,7 +46,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? r.addPermissions(views, user)).mapTo[List[View]],
+          (viewsActor ? rViews.addPermissions(views, user)).mapTo[List[View]],
           TIMEOUT
         )
       )
@@ -58,10 +58,10 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     res
   }
 
-  def permission(account: BankAccount, user: User): Box[Permission] = {
+  def permission(account: BankAccountUID, user: User): Box[Permission] = {
     Full(
       Await.result(
-        (viewsActor ? r.permission(account, user)).mapTo[Permission],
+        (viewsActor ? rViews.permission(account, user)).mapTo[Permission],
         TIMEOUT
       )
     )
@@ -71,7 +71,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? r.addPermission(viewUID, user)).mapTo[View],
+          (viewsActor ? rViews.addPermission(viewUID, user)).mapTo[View],
           TIMEOUT
         )
       )
@@ -84,32 +84,35 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   }
 
+  //TODO Fix return values in order to better describe failures
   def revokePermission(viewUID : ViewUID, user : User) : Box[Boolean] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? r.revokePermission(viewUID, user)).mapTo[Boolean],
+          (viewsActor ? rViews.revokePermission(viewUID, user)).mapTo[Boolean],
           TIMEOUT
         )
       )
     }
     catch {
-      case k: ActorKilledException => return Empty ~> APIFailure(s"View $viewUID. not found", 404)
+      case k: ClassCastException => k.getMessage match {
+                                      case "Cannot cast net.liftweb.common.Failure to java.lang.Boolean" =>
+                                        return Empty ~> APIFailure(s"View $viewUID. not removed", 400)
+                                      case "Cannot cast net.liftweb.common.ParamFailure to java.lang.Boolean" =>
+                                        return Empty ~> APIFailure(s"View $viewUID. not found", 404)
+                                      case _ =>
+					return Empty ~> APIFailure(s"Unknown error", 406)
+                                    }
       case e: Throwable => throw e
     }
-
-    if ( res.getOrElse(false) ) {
-      res
-    }
-    else
-      Empty ~> Failure("access cannot be revoked")
+    res
   }
 
   def revokeAllPermissions(bankId : BankId, accountId: AccountId, user : User) : Box[Boolean] = {
     val res = try{
       Full(
         Await.result(
-          (viewsActor ? r.revokeAllPermissions(bankId, accountId, user)).mapTo[Boolean],
+          (viewsActor ? rViews.revokeAllPermissions(bankId, accountId, user)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -127,7 +130,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
       Await.result(
-        (viewsActor ? r.view(viewUID)).mapTo[View],
+        (viewsActor ? rViews.view(viewUID)).mapTo[View],
         TIMEOUT
       )
     )
@@ -139,92 +142,102 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     res
   }
 
-  def view(viewId : ViewId, account: BankAccount) : Box[View] = {
+  def view(viewId : ViewId, account: BankAccountUID) : Box[View] = {
+    val res = try {
+      Full(
+      Await.result(
+        (viewsActor ? rViews.view(viewId, account)).mapTo[View],
+        TIMEOUT
+      )
+    )
+  }
+  catch {
+      case k: ActorKilledException => Empty ~> APIFailure(s"View $viewId. not found", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+
+  def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
     Await.result(
-      (viewsActor ? r.view(viewId, account)).mapTo[Box[View]],
+      (viewsActor ? rViews.createView(bankAccountId, view)).mapTo[Box[View]],
       TIMEOUT
     )
   }
 
-  def createView(bankAccount: BankAccount, view: CreateViewJSON): Box[View] = {
+  def updateView(bankAccountId : BankAccountUID, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
     Await.result(
-      (viewsActor ? r.createView(bankAccount, view)).mapTo[Box[View]],
+      (viewsActor ? rViews.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]],
       TIMEOUT
     )
   }
 
-  def updateView(bankAccount : BankAccount, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
+  def removeView(viewId: ViewId, bankAccountId: BankAccountUID): Box[Unit] = {
     Await.result(
-      (viewsActor ? r.updateView(bankAccount, viewId, viewUpdateJson)).mapTo[Box[View]],
+      (viewsActor ? rViews.removeView(viewId, bankAccountId)).mapTo[Box[Unit]],
       TIMEOUT
     )
   }
 
-  def removeView(viewId: ViewId, bankAccount: BankAccount): Box[Unit] = {
+  def permissions(account : BankAccountUID) : List[Permission] = {
     Await.result(
-      (viewsActor ? r.removeView(viewId, bankAccount)).mapTo[Box[Unit]],
+      (viewsActor ? rViews.permissions(account)).mapTo[List[Permission]],
       TIMEOUT
     )
   }
 
-  def permissions(account : BankAccount) : List[Permission] = {
+  def views(bankAccountId : BankAccountUID) : List[View] = {
     Await.result(
-      (viewsActor ? r.permissions(account)).mapTo[List[Permission]],
+      (viewsActor ? rViews.views(bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
-  def views(bankAccount : BankAccount) : List[View] = {
+  def permittedViews(user: User, bankAccountId: BankAccountUID): List[View] = {
     Await.result(
-      (viewsActor ? r.views(bankAccount)).mapTo[List[View]],
+      (viewsActor ? rViews.permittedViews(user, bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
-  def permittedViews(user: User, bankAccount: BankAccount): List[View] = {
+  def publicViews(bankAccountId : BankAccountUID) : List[View] = {
     Await.result(
-      (viewsActor ? r.permittedViews(user, bankAccount)).mapTo[List[View]],
+      (viewsActor ? rViews.publicViews(bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
-  def publicViews(bankAccount : BankAccount) : List[View] = {
+  def getAllPublicAccounts() : List[BankAccountUID] = {
     Await.result(
-      (viewsActor ? r.publicViews(bankAccount)).mapTo[List[View]],
+      (viewsActor ? rViews.getAllPublicAccounts()).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
-  def getAllPublicAccounts() : List[BankAccount] = {
+  def getPublicBankAccounts(bank : Bank) : List[BankAccountUID] = {
     Await.result(
-      (viewsActor ? r.getAllPublicAccounts()).mapTo[List[BankAccount]],
+      (viewsActor ? rViews.getPublicBankAccounts(bank)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
-  def getPublicBankAccounts(bank : Bank) : List[BankAccount] = {
-    Await.result(
-      (viewsActor ? r.getPublicBankAccounts(bank)).mapTo[List[BankAccount]],
-      TIMEOUT
-    )
-  }
-
-  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccount] = {
+  def getAllAccountsUserCanSee(user : Box[User]) : List[BankAccountUID] = {
     user match {
       case Full(theUser) => {
         Await.result (
-          (viewsActor ? r.getAllAccountsUserCanSee(theUser)).mapTo[List[BankAccount]],
+          (viewsActor ? rViews.getAllAccountsUserCanSee(theUser)).mapTo[List[BankAccountUID]],
           TIMEOUT)
       }
       case _ => getAllPublicAccounts()
     }
   }
 
-  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccount] = {
+  def getAllAccountsUserCanSee(bank: Bank, user : Box[User]) : List[BankAccountUID] = {
     user match {
       case Full(theUser) => {
         Await.result(
-          (viewsActor ? r.getAllAccountsUserCanSee(bank, theUser)).mapTo[List[BankAccount]],
+          (viewsActor ? rViews.getAllAccountsUserCanSee(bank, theUser)).mapTo[List[BankAccountUID]],
           TIMEOUT
         )
       }
@@ -232,37 +245,44 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
   }
 
-  def getNonPublicBankAccounts(user : User) :  List[BankAccount] = {
+  def getNonPublicBankAccounts(user : User) :  List[BankAccountUID] = {
     Await.result(
-      (viewsActor ? r.getNonPublicBankAccounts(user)).mapTo[List[BankAccount]],
+      (viewsActor ? rViews.getNonPublicBankAccounts(user)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
-  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccount] = {
+  def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccountUID] = {
     Await.result(
-      (viewsActor ? r.getNonPublicBankAccounts(user, bankId)).mapTo[List[BankAccount]],
+      (viewsActor ? rViews.getNonPublicBankAccounts(user, bankId)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
   def grantAccessToAllExistingViews(user : User) = {
     Await.result(
-      (viewsActor ? r.grantAccessToAllExistingViews(user)).mapTo[Boolean],
+      (viewsActor ? rViews.grantAccessToAllExistingViews(user)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def grantAccessToView(user : User, view : View) = {
     Await.result(
-      (viewsActor ? r.grantAccessToView(user, view)).mapTo[Boolean],
+      (viewsActor ? rViews.grantAccessToView(user, view)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def getOwners(view: View) : Set[User] = {
+    Await.result(
+      (viewsActor ? rViews.getOwners(view)).mapTo[Set[User]],
       TIMEOUT
     )
   }
 
   def createOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (viewsActor ? r.createOwnerView(bankId, accountId, description)).mapTo[View],
+      (viewsActor ? rViews.createOwnerView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -270,7 +290,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   def createPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (viewsActor ? r.createPublicView(bankId, accountId, description)).mapTo[View],
+      (viewsActor ? rViews.createPublicView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -278,7 +298,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (viewsActor ? r.createAccountantsView(bankId, accountId, description)).mapTo[View],
+      (viewsActor ? rViews.createAccountantsView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -286,7 +306,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (viewsActor ? r.createAuditorsView(bankId, accountId, description)).mapTo[View],
+      (viewsActor ? rViews.createAuditorsView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -294,7 +314,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     Full(Await.result(
-      (viewsActor ? r.createRandomView(bankId, accountId)).mapTo[View],
+      (viewsActor ? rViews.createRandomView(bankId, accountId)).mapTo[View],
       TIMEOUT
       )
     )
@@ -302,30 +322,31 @@ object AkkaMapperViews extends Views with Users with Counterparties{
 
   def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
     Await.result(
-      (viewsActor ? r.viewExists(bankId, accountId, name)).mapTo[Boolean],
+      (viewsActor ? rViews.viewExists(bankId, accountId, name)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (viewsActor ? r.removeAllViews(bankId, accountId)).mapTo[Boolean],
+      (viewsActor ? rViews.removeAllViews(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (viewsActor ? r.removeAllViews(bankId, accountId)).mapTo[Boolean],
+      (viewsActor ? rViews.removeAllViews(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }
+
   // Resource user part
   def getUserByResourceUserId(id : Long) : Box[User] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByResourceUserId(id)).mapTo[User],
+          (viewsActor ? rUsers.getUserByResourceUserId(id)).mapTo[User],
           TIMEOUT
         )
       )
@@ -341,7 +362,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
+          (viewsActor ? rUsers.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
           TIMEOUT
         )
       )
@@ -357,7 +378,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
+          (viewsActor ? rUsers.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
           TIMEOUT
         )
       )
@@ -373,7 +394,7 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByUserId(userId)).mapTo[User],
+          (viewsActor ? rUsers.getUserByUserId(userId)).mapTo[User],
           TIMEOUT
         )
       )
@@ -384,11 +405,12 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def getUserByUserName(userName : String) : Box[ResourceUser] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByUserName(userName)).mapTo[ResourceUser],
+          (viewsActor ? rUsers.getUserByUserName(userName)).mapTo[ResourceUser],
           TIMEOUT
         )
       )
@@ -399,11 +421,12 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def getUserByEmail(email : String) : Box[List[ResourceUser]] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getUserByEmail(email)).mapTo[List[ResourceUser]],
+          (viewsActor ? rUsers.getUserByEmail(email)).mapTo[List[ResourceUser]],
           TIMEOUT
         )
       )
@@ -414,11 +437,12 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def getAllUsers() : Box[List[ResourceUser]] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.getAllUsers()).mapTo[List[ResourceUser]],
+          (viewsActor ? rUsers.getAllUsers()).mapTo[List[ResourceUser]],
           TIMEOUT
         )
       )
@@ -429,11 +453,12 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+          (viewsActor ? rUsers.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
           TIMEOUT
         )
       )
@@ -444,11 +469,12 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) : Box[ResourceUser] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+          (viewsActor ? rUsers.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
           TIMEOUT
         )
       )
@@ -459,17 +485,34 @@ object AkkaMapperViews extends Views with Users with Counterparties{
     }
     res
   }
+
   def saveResourceUser(resourceUser: ResourceUser) : Box[ResourceUser] = {
     val res = try {
       Full(
         Await.result(
-          (viewsActor ? ru.saveResourceUser(resourceUser)).mapTo[ResourceUser],
+          (viewsActor ? rUsers.saveResourceUser(resourceUser)).mapTo[ResourceUser],
           TIMEOUT
         )
       )
     }
     catch {
       case k: ActorKilledException =>  Empty ~> APIFailure(s"User not created", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def deleteResourceUser(userId: Long) : Box[Boolean] = {
+    val res = try{
+      Full(
+        Await.result(
+          (viewsActor ? rUsers.deleteResourceUser(userId)).mapTo[Boolean],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException => Empty ~> APIFailure(s"User not deleted", 404)
       case e: Throwable => throw e
     }
     res
@@ -579,5 +622,49 @@ object AkkaMapperViews extends Views with Users with Counterparties{
       TIMEOUT
     )
   }
+
+
+  override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
+    Await.result(
+      (viewsActor ? rAccountHolders.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
+    Await.result(
+      (viewsActor ? rAccountHolders.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
+      TIMEOUT
+    )
+  }
+
+
+  // bulkDeletes for tests
+  def bulkDeleteAllPermissionsAndViews(): Boolean = {
+    Await.result(
+      (viewsActor ? rViews.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def bulkDeleteAllAccountHolders(): Box[Boolean] = {
+    Full(
+      Await.result(
+        (viewsActor ? rAccountHolders.bulkDeleteAllAccountHolders()).mapTo[Boolean],
+        TIMEOUT
+      )
+    )
+  }
+
+  def bulkDeleteAllResourceUsers(): Box[Boolean] = {
+    Full(
+      Await.result(
+        (viewsActor ? rUsers.bulkDeleteAllResourceUsers()).mapTo[Boolean],
+        TIMEOUT
+      )
+    )
+  }
+
+
 }
 
