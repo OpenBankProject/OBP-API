@@ -1,5 +1,7 @@
 package code.remotedata
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.{Actor, ActorSystem, Props => ActorProps}
 import akka.event.Logging
 import akka.util.Timeout
@@ -568,15 +570,47 @@ object RemotedataActorSystem extends Loggable {
   // Entry point if running as standalone remote data server, without jetty
   def main (args: Array[String]): Unit = {
     if (args.length >= 1 && args(0) == "standalone") {
-      println("------------------------------------------------------------")
-      println("-----                                                  -----")
-      println("-----     STANDALONE REMOTEDATA AKKA ACTOR STARTED     -----")
-      println("-----                                                  -----")
-      println("------------------------------------------------------------")
-
       setupRemotedataDB()
+      showLogoAfterDelay()
       startRemoteWorkerSystem()
     }
+  }
+
+  def showLogoAfterDelay() = {
+    val actorSystem = ActorSystem()
+    implicit val executor = actorSystem.dispatcher
+    val scheduler = actorSystem.scheduler
+    scheduler.scheduleOnce(
+      Duration(4, TimeUnit.SECONDS),
+      runnable = new Runnable {
+        def run(): Unit = {
+          println(
+            """
+              |     ______    _______    _______                 __         _______   __
+              |    /    " \  |   _  "\  |   __ "\               /""\       |   __ "\ |" \
+              |   // ____  \ (. |_)  :) (. |__) :)   _____     /    \      (. |__) :)||  |
+              |  /  /    ) :)|:     \/  |:  ____/   //   ")   /' /\  \     |:  ____/ |:  |
+              | (: (____/ // (|  _  \\  (|  /      (_____/   //  __'  \    (|  /     |.  |
+              |  \        /  |: |_)  :)/|__/ \              /   /  \\  \  /|__/ \    /\  |\
+              |   \"_____/   (_______/(_______)            (___/    \___)(_______)  (__\_|_)
+              |       _______    _______  ___      ___     ______  ___________  _______
+              |      /"      \  /"     "||"  \    /"  |   /    " \("     _   ")/"     "|
+              |     |:        |(: ______) \   \  //   |  // ____  \)__/  \\__/(: ______)
+              |     |_____/   ) \/    |   /\\  \/.    | /  /    ) :)  \\_ /    \/    |
+              |      //      /  // ___)_ |: \.        |(: (____/ //   |.  |    // ___)_
+              |     |:  __   \ (:      "||.  \    /:  | \        /    \:  |   (:      "|
+              |     |__|  \___) \_______)|___|\__/|___|  \"_____/      \__|    \_______)
+              |               __       ______  ___________  ______     _______
+              |              /""\     /" _  "\("     _   ")/    " \   /"      \
+              |             /    \   (: ( \___))__/  \\__/// ____  \ |:        |
+              |            /' /\  \   \/ \        \\_ /  /  /    ) :)|_____/   )
+              |           //  __'  \  //  \ _     |.  | (: (____/ //  //      /
+              |          /   /  \\  \(:   _) \    \:  |  \        /  |:  __   \
+              |         (___/    \___)\_______)    \__|   \"_____/   |__|  \___)
+              |""".stripMargin)
+        }
+      }
+    )
   }
 
 }
