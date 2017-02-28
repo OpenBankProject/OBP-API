@@ -186,7 +186,7 @@ private object LocalConnector extends Connector with Loggable {
   }
 
 
-  override protected def makePaymentImpl(fromAccount: Account, toAccount: Account, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+  override protected def makePaymentImpl(fromAccount: Account, toAccount: Account, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
     val fromTransAmt = -amt //from account balance should decrease
     val toTransAmt = amt //to account balance should increase
 
@@ -366,9 +366,7 @@ private object LocalConnector extends Connector with Loggable {
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
-  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
-                                               account : BankAccount, details: String,
-                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???

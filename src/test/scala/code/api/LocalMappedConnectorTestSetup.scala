@@ -10,6 +10,7 @@ import code.model.dataAccess._
 import net.liftweb.common.Box
 import net.liftweb.mapper.MetaMapper
 import net.liftweb.util.Props
+import net.liftweb.mapper.{MappedString, MetaMapper}
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
@@ -36,11 +37,12 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       mCounterPartyId(counterpartyId).
       mName(UUID.randomUUID().toString).
       mOtherAccountRoutingAddress(accountRoutingAddress).
-      mOtherBankId(bankId).
-      mOtherAccountId(accountId).
+//      mOtherAccountRoutingScheme("OBP").
+//      mOtherBankRoutingScheme("OBP").
+      mOtherAccountRoutingAddress(accountId).
+      mOtherBankRoutingAddress(bankId).
       mIsBeneficiary(isBeneficiary).
       mOtherAccountRoutingScheme("IBAN"). //it is for test, so set it the default value
-      mOtherAccountProvider("OBP"). //it is for test, so set it the default value
       saveMe
   }
 

@@ -143,8 +143,6 @@ object MapperCounterparties extends Counterparties with Loggable {
       .mThisBankId(thisBankId)
       .mThisAccountId(thisAccountId)
       .mThisViewId(thisViewId)
-      .mOtherBankId(otherBankId)
-      .mOtherAccountId(otherAccountId)
       .mOtherAccountRoutingScheme(otherAccountRoutingScheme)
       .mOtherAccountRoutingAddress(otherAccountRoutingAddress)
       .mOtherBankRoutingScheme(otherBankRoutingScheme)
@@ -313,9 +311,6 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   object mThisBankId extends MappedString(this, 36)
   object mThisAccountId extends MappedString(this, 255)
   object mThisViewId extends MappedString(this, 36)
-  object mOtherBankId extends MappedString(this, 36)
-  object mOtherAccountId extends MappedString(this, 36)
-  object mOtherAccountProvider extends MappedString(this, 36)
   object mCounterPartyId extends MappedString(this, 36)
   object mOtherAccountRoutingScheme extends MappedString(this, 255)
   object mOtherAccountRoutingAddress extends MappedString(this, 255)
@@ -330,9 +325,6 @@ class MappedCounterparty extends CounterpartyTrait with LongKeyedMapper[MappedCo
   override def thisBankId = mThisBankId.get
   override def thisAccountId = mThisAccountId.get
   override def thisViewId = mThisViewId.get
-  override def otherBankId = mOtherBankId.get
-  override def otherAccountId: String = mOtherAccountId.get
-  override def otherAccountProvider: String = mOtherAccountProvider.get
   override def counterpartyId = mCounterPartyId.get
   override def otherAccountRoutingScheme = mOtherAccountRoutingScheme.get
   override def otherAccountRoutingAddress = mOtherAccountRoutingAddress.get

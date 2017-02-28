@@ -178,6 +178,23 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedBankAccount.theAccountId, accountId.value))
   }
 
+  /**
+    * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
+    * details in createTransactionRequest - V210 ,case "COUNTERPARTY"
+    *
+    */
+  def createOrUpdateMappedBankAccount(bankId: BankId, accountId: AccountId, currency: String): Box[BankAccount] = {
+
+    val mappedBankAccount = getBankAccount(bankId, accountId) match {
+      case Full(f) =>
+        f.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+      case _ =>
+        MappedBankAccount.create.bank(bankId.value).theAccountId(accountId.value).accountCurrency(currency).saveMe()
+    }
+
+    Full(mappedBankAccount)
+  }
+
 
   def getCounterpartyFromTransaction(thisBankId: BankId, thisAccountId: AccountId, metadata: CounterpartyMetadata): Box[Counterparty] = {
     //because we don't have a db backed model for OtherBankAccounts, we need to construct it from an
@@ -372,7 +389,7 @@ object LocalMappedConnector extends Connector with Loggable {
 Perform a payment (in the sandbox)
 Store one or more transactions
  */
-  override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+   override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
 
     //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
 
@@ -389,10 +406,10 @@ Store one or more transactions
     val toTransAmt = fx.convert(amt, rate.get)
 
     // From
-    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType)
+    val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
 
     // To
-    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType)
+    val recievedTransactionId = saveTransaction(toAccount, fromAccount, toCounterparty, toTransAmt, description, transactionRequestType, chargePolicy)
 
     // Return the sent transaction id
     sentTransactionId
@@ -407,7 +424,8 @@ Store one or more transactions
                               toCounterparty: CounterpartyTrait,
                               amt: BigDecimal,
                               description: String,
-                              transactionRequestType: TransactionRequestType): Box[TransactionId] = {
+                              transactionRequestType: TransactionRequestType,
+                              chargePolicy: String): Box[TransactionId] = {
     
     val transactionTime = now
     val currency = fromAccount.currency
@@ -418,7 +436,7 @@ Store one or more transactions
     fromAccount.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
-      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine feilds.
+      //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
       .bank(fromAccount.bankId.value)
       .account(fromAccount.accountId.value)
       .transactionType(transactionRequestType.value)
@@ -436,14 +454,12 @@ Store one or more transactions
       .counterpartyIban(toAccount.iban.getOrElse(""))
       .counterpartyNationalId(toAccount.nationalIdentifier)
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
-      .CPOtherBankId(toCounterparty.otherBankId)
-      .CPOtherAccountId(toCounterparty.otherAccountId)
-      .CPOtherAccountProvider(toCounterparty.otherAccountProvider)
       .CPCounterPartyId(toCounterparty.counterpartyId)
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
       .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)  
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .chargePolicy(chargePolicy)
       .saveMe
     
     Full(mappedTransaction.theTransactionId)
@@ -477,7 +493,7 @@ Store one or more transactions
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge): Box[TransactionRequest] = {
+   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
 
     // Note: We don't save transaction_ids here.
     val mappedTransactionRequest = MappedTransactionRequest.create
@@ -493,6 +509,7 @@ Store one or more transactions
       .mCharge_Summary(charge.summary)
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
+      .mcharge_Policy(chargePolicy)
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
