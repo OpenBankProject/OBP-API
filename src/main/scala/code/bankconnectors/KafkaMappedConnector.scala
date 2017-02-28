@@ -26,6 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
+import code.accountholder.{AccountHolders, MapperAccountHolders$}
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
 import code.branches.Branches.{Branch, BranchId}
@@ -56,6 +57,7 @@ import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
+import code.users.Users
 
 object KafkaMappedConnector extends Connector with Loggable {
 
@@ -144,7 +146,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         acc.generate_accountants_view,
         acc.generate_auditors_view
       )}
-      existing_views <- tryo {Views.views.vend.views(new KafkaBankAccount(acc))}
+      existing_views <- tryo {Views.views.vend.views(BankAccountUID(BankId(acc.bankId), AccountId(acc.accountId)))}
     } yield {
       setAccountOwner(username, BankId(acc.bankId), AccountId(acc.accountId), acc.owners)
       views.foreach(v => {
@@ -496,12 +498,6 @@ object KafkaMappedConnector extends Connector with Loggable {
     }
   }
   */
-
-  //gets the users who are the legal owners/holders of the account
-  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
-    MappedAccountHolder.findAll(
-      By(MappedAccountHolder.accountBankPermalink, bankId.value),
-      By(MappedAccountHolder.accountPermalink, accountId.value)).map(accHolder => accHolder.user.obj).flatten.toSet
 
 
   // Get all counterparties related to an account
@@ -881,7 +877,7 @@ object KafkaMappedConnector extends Connector with Loggable {
 
   //sets a user as an account owner/holder
   override def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
-    MappedAccountHolder.createMappedAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
   }
 
   private def createAccountIfNotExisting(bankId: BankId, accountId: AccountId, accountNumber: String,

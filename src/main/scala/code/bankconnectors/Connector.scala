@@ -2,6 +2,7 @@ package code.bankconnectors
 
 import java.util.Date
 
+import code.accountholder.{AccountHolders, MapperAccountHolders}
 import code.api.util.APIUtil._
 import code.api.util.ApiRole._
 import code.api.util.ErrorMessages
@@ -11,7 +12,7 @@ import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
-import code.model.dataAccess.{MappedAccountHolder, ResourceUser}
+import code.model.dataAccess.ResourceUser
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -163,8 +164,12 @@ trait Connector {
                               posted: Option[CardPostedInfo]
                              ) : Box[PhysicalCard]
 
+
+
   //gets the users who are the legal owners/holders of the account
-  def getAccountHolders(bankId: BankId, accountID: AccountId) : Set[User]
+  def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
+    AccountHolders.accountHolders.vend.getAccountHolders(bankId, accountId)
+  }
 
 
   //Payments api: just return Failure("not supported") from makePaymentImpl if you don't want to implement it
@@ -760,7 +765,9 @@ trait Connector {
                                initialBalance : BigDecimal, accountHolderName : String) : Box[BankAccount]
 
   //sets a user as an account owner/holder
-  def setAccountHolder(bankAccountUID: BankAccountUID, user : User) : Unit
+  def setAccountHolder(bankAccountUID: BankAccountUID, user: User): Unit = {
+    AccountHolders.accountHolders.vend.createAccountHolder(user.resourceUserId.value, bankAccountUID.accountId.value, bankAccountUID.bankId.value)
+  }
 
   //for sandbox use -> allows us to check if we can generate a new test account with the given number
   def accountExists(bankId : BankId, accountNumber : String) : Boolean
@@ -788,10 +795,10 @@ trait Connector {
 
   def accountOwnerExists(user: ResourceUser, bankId: BankId, accountId: AccountId): Boolean = {
     val res =
-      MappedAccountHolder.findAll(
-        By(MappedAccountHolder.user, user),
-        By(MappedAccountHolder.accountBankPermalink, bankId.value),
-        By(MappedAccountHolder.accountPermalink, accountId.value)
+      MapperAccountHolders.findAll(
+        By(MapperAccountHolders.user, user),
+        By(MapperAccountHolders.accountBankPermalink, bankId.value),
+        By(MapperAccountHolders.accountPermalink, accountId.value)
       )
 
     res.nonEmpty
@@ -804,7 +811,7 @@ trait Connector {
       resourceUserOwner match {
         case Some(o) => {
           if ( ! accountOwnerExists(o, bankId, accountId)) {
-            MappedAccountHolder.createMappedAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
+            MapperAccountHolders.createAccountHolder(o.resourceUserId.value, bankId.value, accountId.value, "KafkaMappedConnector")
           }
        }
         case None => {

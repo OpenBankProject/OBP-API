@@ -36,6 +36,7 @@ import code.api.APIFailure
 import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 import code.model._
+import code.users.Users
 import code.views.Views
 
 import scala.collection.immutable.List
@@ -67,7 +68,7 @@ class ViewImpl extends View with LongKeyedMapper[ViewImpl] with ManyToMany with 
   object permalink_ extends MappedString(this, 255)
 
   def users : List[User] =  users_.toList
-  
+
   //Important! If you add a field, be sure to handle it here in this function
   def setFromViewData(viewData : ViewSpecification) = {
 
@@ -457,8 +458,8 @@ object ViewImpl extends ViewImpl with LongKeyedMetaMapper[ViewImpl]{
     //TODO: APIFailures with http response codes belong at a higher level in the code
   }
 
-  def find(viewId : ViewId, bankAccount : BankAccount): Box[ViewImpl] = {
-    find(ViewUID(viewId, bankAccount.bankId, bankAccount.accountId))
+  def find(viewId : ViewId, bankAccountId : BankAccountUID): Box[ViewImpl] = {
+    find(ViewUID(viewId, bankAccountId.bankId, bankAccountId.accountId))
   }
 
   def accountFilter(bankId : BankId, accountId : AccountId) : List[QueryParam[ViewImpl]] = {

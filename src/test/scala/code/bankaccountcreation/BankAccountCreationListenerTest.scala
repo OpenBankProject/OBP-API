@@ -52,7 +52,7 @@ class BankAccountCreationListenerTest extends ServerSetup with DefaultConnectorT
       createdAccount.accountId.value.nonEmpty should be(true)
 
       createdAccount.bankId.value should equal(expectedBankId)
-      createdAccount.number should equal(accountNumber)
+      createdAccount.accountId should equal(accountNumber)
 
       And("The account holder should be set correctly")
       Connector.connector.vend.getAccountHolders(BankId(expectedBankId), createdAccount.accountId) should equal(Set(user))

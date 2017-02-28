@@ -1965,19 +1965,19 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val bankAccount : AccountJSON = randomPrivateAccount(bankId)
       val viewId = ViewId("owner")
       val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
-      if(view.users.length == 0){
+      if(Views.views.vend.getOwners(view).toList.length == 0){
         val userId = authuser2.idGivenByProvider
         grantUserAccessToView(bankId, bankAccount.id, userId, viewId.value, user1)
       }
-      while(view.users.length > 1){
-        revokeUserAccessToView(bankId, bankAccount.id, view.users(0).idGivenByProvider, viewId.value, user1)
+      while(Views.views.vend.getOwners(view).toList.length > 1){
+        revokeUserAccessToView(bankId, bankAccount.id, Views.views.vend.getOwners(view).toList(0).idGivenByProvider, viewId.value, user1)
       }
-      val viewUsersBefore = view.users
+      val viewUsersBefore = Views.views.vend.getOwners(view).toList
       When("the request is sent")
       val reply = revokeUserAccessToView(bankId, bankAccount.id, viewUsersBefore(0).idGivenByProvider, viewId.value, user1)
       Then("we should get a 400 code")
       reply.code should equal (400)
-      val viewUsersAfter = view.users
+      val viewUsersAfter = Views.views.vend.getOwners(view).toList
       viewUsersAfter.length should equal(viewUsersBefore.length)
     }
 
@@ -2009,7 +2009,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       And("The account holder should still have access to the owner view")
       val view = Views.views.vend.view(ViewUID(ownerViewId, BankId(bankId), AccountId(bankAccount.id))).get
-      view.users should contain (authuser3)
+      Views.views.vend.getOwners(view).toList should contain (authuser3)
     }
 
     scenario("we cannot revoke a user access to a view on an bank account because the view does not exist", API1_2, DeletePermission) {
@@ -2093,8 +2093,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       val view = Views.views.vend.view(ViewUID(viewId, BankId(bankId), AccountId(bankAccount.id))).get
       val userId = authuser1.idGivenByProvider
 
-      view.users.length should equal(1)
-      view.users(0).idGivenByProvider should equal(userId)
+      Views.views.vend.getOwners(view).toList.length should equal(1)
+      Views.views.vend.getOwners(view).toList(0).idGivenByProvider should equal(userId)
 
       When("the request is sent")
       val reply = revokeUserAccessToAllViews(bankId, bankAccount.id, userId, user1)
@@ -2102,8 +2102,8 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
       reply.code should equal (400)
 
       And("The user should not have had his access revoked")
-      view.users.length should equal(1)
-      view.users(0).idGivenByProvider should equal(userId)
+      Views.views.vend.getOwners(view).toList.length should equal(1)
+      Views.views.vend.getOwners(view).toList(0).idGivenByProvider should equal(userId)
     }
 
     scenario("we cannot revoke the access of a user to owner view on a bank account via a revoke all views call" +
@@ -2125,7 +2125,7 @@ class API1_2_1Test extends User1AllPrivileges with DefaultUsers with PrivateUser
 
       And("The user should not have had his access revoked")
       val view = Views.views.vend.view(ViewUID(ViewId("owner"), BankId(bankId), AccountId(bankAccount.id))).get
-      view.users should contain (authuser3)
+      Views.views.vend.getOwners(view).toList should contain (authuser3)
     }
   }
 
