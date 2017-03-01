@@ -17,13 +17,14 @@ import com.typesafe.config.ConfigFactory
 import net.liftweb.common.{Full, _}
 import net.liftweb.util.Props
 import code.metadata.tags.{RemoteTagsCaseClasses, Tags}
+import code.metadata.wheretags.{RemoteWhereTagsCaseClasses, WhereTags}
 
 import scala.collection.immutable.List
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments with Tags{
+object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments with Tags with WhereTags {
 
   val TIMEOUT = 10 seconds
   val rViews = RemoteViewCaseClasses
@@ -32,6 +33,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   val rAccountHolders = RemoteAccountHoldersCaseClasses
   val rComments = RemoteCommentsCaseClasses
   val rTags = RemoteTagsCaseClasses
+  val rWhereTags = RemoteWhereTagsCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -748,6 +750,36 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
       (viewsActor ? rTags.bulkDeleteTags(bankId, accountId)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  // WhereTags
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] = {
+    Await.result(
+      (viewsActor ? rWhereTags.getWhereTagForTransaction(bankId, accountId, transactionId, viewId)).mapTo[Box[GeoTag]],
+      TIMEOUT
+    )
+  }
+
+  def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
+                 (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
+    Await.result(
+      (viewsActor ? rWhereTags.addWhereTag(bankId, accountId, transactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean = {
+    Await.result(
+      (viewsActor ? rWhereTags.deleteWhereTag(bankId, accountId, transactionId, viewId)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
+    Await.result(
+      (viewsActor ? rWhereTags.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

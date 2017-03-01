@@ -430,6 +430,7 @@ object ToSchemify {
     ResourceUser,
     MappedComment,
     MappedTag,
+    MappedWhereTag,
     MapperAccountHolders
   )
 
@@ -440,7 +441,6 @@ object ToSchemify {
     Token,
     Consumer,
     MappedNarrative,
-    MappedWhereTag,
     MappedCounterpartyMetadata,
     MappedCounterpartyWhereTag,
     MappedBank,

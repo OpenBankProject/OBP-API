@@ -48,8 +48,16 @@ object MapperWhereTags extends WhereTags {
     found.map(_.delete_!).getOrElse(false)
   }
 
-  override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Option[GeoTag] = {
+  override def getWhereTagForTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(viewId: ViewId): Box[GeoTag] = {
     findMappedWhereTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId, viewId: ViewId)
+  }
+
+  override def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
+    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
+      By(MappedWhereTag.bank, bankId.value),
+      By(MappedWhereTag.account, accountId.value)
+    )
+    whereTagsDeleted
   }
 }
 
