@@ -37,12 +37,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       mCounterPartyId(counterpartyId).
       mName(UUID.randomUUID().toString).
       mOtherAccountRoutingAddress(accountRoutingAddress).
-//      mOtherAccountRoutingScheme("OBP").
-//      mOtherBankRoutingScheme("OBP").
       mOtherAccountRoutingAddress(accountId).
       mOtherBankRoutingAddress(bankId).
       mIsBeneficiary(isBeneficiary).
-      mOtherAccountRoutingScheme("IBAN"). //it is for test, so set it the default value
+      mOtherAccountRoutingScheme("IBAN"). //it is for test, so set it the default value, The SEPA must contain this value
       saveMe
   }
 
@@ -69,7 +67,7 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .bank(bankId.value)
       .theAccountId(accountId.value)
       .accountCurrency(currency)
-      .accountBalance(10000)
+      .accountBalance(900000000)
       .holder(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4)).saveMe

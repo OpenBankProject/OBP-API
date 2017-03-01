@@ -405,6 +405,7 @@ Store one or more transactions
     val fromTransAmt = -amt//from fromAccount balance should decrease
     val toTransAmt = fx.convert(amt, rate.get)
 
+     //TODO: in FREE_FORM, fromAccount== toAccount, the following two method will have a bug, because of the database transaction. need an explicit commit to save data between two methods.
     // From
     val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
 
