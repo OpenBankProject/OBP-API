@@ -12,8 +12,8 @@ object AccountHolders extends SimpleInjector {
 
   val accountHolders = new Inject(buildOne _) {}
 
-  //def buildOne: AccountHolders = MapperAccountHolders
-  def buildOne: AccountHolders = Remotedata
+  def buildOne: AccountHolders = MapperAccountHolders
+  //def buildOne: AccountHolders = Remotedata
 
 }
 

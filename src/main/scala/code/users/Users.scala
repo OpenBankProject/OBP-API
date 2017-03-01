@@ -10,8 +10,8 @@ object Users  extends SimpleInjector {
 
   val users = new Inject(buildOne _) {}
   
-  //def buildOne: Users = LiftUsers
-  def buildOne: Users = Remotedata
+  def buildOne: Users = LiftUsers
+  //def buildOne: Users = Remotedata
   
 }
 
