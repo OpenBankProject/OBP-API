@@ -637,9 +637,9 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         //New data: real counterparty (toCounterparty: CounterpartyTrait)
                                         "counterpartyId" -> toCounterparty.counterpartyId,
                                         "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                        "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
+                                        "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress.get,
                                         "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
+                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress.get,
                                         "chargePolicy" -> chargePolicy
     )
 
@@ -1230,9 +1230,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     def otherAccountProvider: String = counterparty.other_account_provider
     def counterpartyId: String = counterparty.counterparty_id
     def otherAccountRoutingScheme: String = counterparty.other_account_routing_scheme
-    def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
+    def otherAccountRoutingAddress: Option[String] = Option(counterparty.other_account_routing_address)
     def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
-    def otherBankRoutingAddress: String = counterparty.other_account_routing_address
+    def otherBankRoutingAddress: Option[String] = Option(counterparty.other_bank_routing_address)
     def isBeneficiary : Boolean = counterparty.is_beneficiary
   }
 
