@@ -167,7 +167,7 @@ class TransactionMetadata(
   /**
   * @param: tagId
   */
-  val deleteTag : (String) => Box[Unit],
+  val deleteTag : (String) => Box[Boolean],
   val images : (ViewId) => List[TransactionImage],
   /**
   * @param: userId

@@ -16,13 +16,14 @@ import code.views.{RemoteViewCaseClasses, Views}
 import com.typesafe.config.ConfigFactory
 import net.liftweb.common.{Full, _}
 import net.liftweb.util.Props
+import code.metadata.tags.{RemoteTagsCaseClasses, Tags}
 
 import scala.collection.immutable.List
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments {
+object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments with Tags{
 
   val TIMEOUT = 10 seconds
   val rViews = RemoteViewCaseClasses
@@ -30,6 +31,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   val rCounterparties = RemoteCounterpartiesCaseClasses
   val rAccountHolders = RemoteAccountHoldersCaseClasses
   val rComments = RemoteCommentsCaseClasses
+  val rTags = RemoteTagsCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -669,6 +671,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
     )
   }
 
+  // METADATA
   // Comments
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = {
     Await.result(
@@ -705,6 +708,46 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
       (viewsActor ? rComments.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  // Tags
+  def getTags(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[TransactionTag] = {
+    Await.result(
+      (viewsActor ? rTags.getTags(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionTag]],
+      TIMEOUT
+    )
+  }
+
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
+    Full(
+      Await.result(
+        (viewsActor ? rTags.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted)).mapTo[TransactionTag],
+        TIMEOUT
+      )
+    )
+  }
+
+  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rTags.deleteTag(bankId, accountId, transactionId, tagId)).mapTo[Boolean],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Cannot delete the tag", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
+    Await.result(
+      (viewsActor ? rTags.bulkDeleteTags(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

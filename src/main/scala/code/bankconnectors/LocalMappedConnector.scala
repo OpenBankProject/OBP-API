@@ -13,7 +13,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.{Comments, MappedComment}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.MappedTag
+import code.metadata.tags.{MappedTag, Tags}
 import code.metadata.transactionimages.MappedTransactionImage
 import code.metadata.wheretags.MappedWhereTag
 import code.model.{TransactionRequestType, _}
@@ -621,10 +621,7 @@ Store one or more transactions
     )
 
     //delete narratives on transactions of this account
-    val tagsDeleted = MappedTag.bulkDelete_!!(
-      By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountId.value)
-    )
+    val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)
 
     //delete WhereTags on transactions of this account
     val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(

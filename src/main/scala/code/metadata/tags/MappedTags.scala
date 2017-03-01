@@ -29,9 +29,17 @@ object MappedTags extends Tags {
     }
   }
 
-  override def deleteTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(tagId: String): Box[Unit] = {
+  override def deleteTag(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(tagId: String): Box[Boolean] = {
     //tagId is always unique so we actually don't need to use bankId, accountId, or transactionId
-    MappedTag.find(By(MappedTag.tagId, tagId)).map(_.delete_!).map(x => ()) //TODO: this should return something more useful than Box[Unit]
+    MappedTag.find(By(MappedTag.tagId, tagId)).map(_.delete_!)
+  }
+
+  override def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
+    val tagsDeleted = MappedTag.bulkDelete_!!(
+      By(MappedTag.bank, bankId.value),
+      By(MappedTag.account, accountId.value)
+    )
+    tagsDeleted
   }
 }
 
