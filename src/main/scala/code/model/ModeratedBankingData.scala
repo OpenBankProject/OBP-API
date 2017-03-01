@@ -99,7 +99,7 @@ class ModeratedTransactionMetadata(
   private val deleteComment: Moderated[(String) => Box[Boolean]],
   val tags : Moderated[List[TransactionTag]],
   val addTag : Moderated[(UserId, ViewId, String, Date) => Box[TransactionTag]],
-  private val deleteTag : Moderated[(String) => Box[Unit]],
+  private val deleteTag : Moderated[(String) => Box[Boolean]],
   val images : Moderated[List[TransactionImage]],
   val addImage : Moderated[(UserId, ViewId, String, Date, URL) => Box[TransactionImage]],
   private val deleteImage : Moderated[String => Unit],

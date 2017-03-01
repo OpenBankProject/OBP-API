@@ -25,13 +25,15 @@ private object MongoTransactionTags extends Tags {
       tag(tagText).
       date(datePosted).saveTheRecord()
   }
-  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Unit] = {
+  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] = {
     //use delete with find query to avoid concurrency issues
     OBPTag.delete(OBPTag.getFindQuery(bankId, accountId, transactionId, tagId))
 
     //we don't have any useful information here so just assume it worked
-    Full()
+    Full(true)
   }
+
+  def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = ???
   
 }
 
