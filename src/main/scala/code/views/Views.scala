@@ -12,8 +12,8 @@ object Views  extends SimpleInjector {
   val views = new Inject(buildOne _) {}
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
-  //def buildOne: Views = MapperViews
-  def buildOne: Views = Remotedata
+  def buildOne: Views = MapperViews
+  //def buildOne: Views = Remotedata
   
 }
 
