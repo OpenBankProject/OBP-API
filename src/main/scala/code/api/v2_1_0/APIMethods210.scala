@@ -357,8 +357,13 @@ trait APIMethods210 {
                   //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
                     transDetailsCounterpartyJson <- tryo {json.extract[TransactionRequestDetailsCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
                     toCounterpartyId <- Full(transDetailsCounterpartyJson.to.counterparty_id)
+                    // Get the Counterparty by id
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
+
+                    // Check we can send money to it.
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
+
+                    // Get the Routing information from the Counterparty for the payment backend
                     toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
                     toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
 
