@@ -78,7 +78,7 @@ import code.api.Constant._
 import code.cards.MappedPhysicalCard
 import code.cards.PinReset
 import code.fx.{MappedCurrency, MappedFXRate}
-import code.remotedata.RemotedataActorSystem
+import code.remotedata.RemotedataActors
 import code.transaction.MappedTransaction
 import code.transactionStatusScheduler.TransactionStatusScheduler
 
@@ -355,11 +355,12 @@ class Boot extends Loggable{
       }
     }
 
-    if (!Props.getBool("enable_remotedata", false)) {
+    if (!Props.getBool("remotedata.enable", false)) {
       try {
-        RemotedataActorSystem.startLocalWorkerSystem()
+        logger.info(s"RemoteDataActors.startLocalWorkerSystem() starting")
+        RemotedataActors.startLocalWorkerSystem()
       } catch {
-        case ex: Exception => logger.warn(s"RemoteDataActorSystem.startLocalWorkerSystem() could not start: $ex")
+        case ex: Exception => logger.warn(s"RemoteDataActors.startLocalWorkerSystem() could not start: $ex")
       }
     }
 
@@ -434,6 +435,9 @@ object ToSchemify {
   )
 
   val models = List(
+    MappedCounterparty,
+    MappedCounterpartyMetadata,
+    MappedCounterpartyWhereTag,
     AuthUser,
     Admin,
     Nonce,
@@ -441,8 +445,6 @@ object ToSchemify {
     Consumer,
     MappedNarrative,
     MappedWhereTag,
-    MappedCounterpartyMetadata,
-    MappedCounterpartyWhereTag,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,
@@ -467,7 +469,6 @@ object ToSchemify {
     MappedEntitlement,
     MappedPhysicalCard,
     PinReset,
-    MappedCounterparty,
     MappedBadLoginAttempt,
     MappedFXRate,
     MappedCurrency,

@@ -5,14 +5,14 @@ import java.util.Date
 
 import net.liftweb.common.Box
 import code.model._
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataTags
 
 object Tags  extends SimpleInjector {
 
   val tags = new Inject(buildOne _) {}
   
   //def buildOne: Tags = MappedTags
-  def buildOne: Tags = Remotedata
+  def buildOne: Tags = RemotedataTags
   
 }
 

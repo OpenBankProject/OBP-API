@@ -4,7 +4,7 @@ package code.accountholder
 
 import code.model.{AccountId, BankId, User}
 import net.liftweb.util.SimpleInjector
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataAccountHolders
 import net.liftweb.common.Box
 
 
@@ -12,8 +12,8 @@ object AccountHolders extends SimpleInjector {
 
   val accountHolders = new Inject(buildOne _) {}
 
-  def buildOne: AccountHolders = MapperAccountHolders
-  //def buildOne: AccountHolders = Remotedata
+  //def buildOne: AccountHolders = MapperAccountHolders
+  def buildOne: AccountHolders = RemotedataAccountHolders
 
 }
 

@@ -4,14 +4,14 @@ import net.liftweb.util.SimpleInjector
 import net.liftweb.common.Box
 import code.model.User
 import code.model.dataAccess.ResourceUser
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataUsers
 
 object Users  extends SimpleInjector {
 
   val users = new Inject(buildOne _) {}
   
-  def buildOne: Users = LiftUsers
-  //def buildOne: Users = Remotedata
+  //def buildOne: Users = LiftUsers
+  def buildOne: Users = RemotedataUsers
   
 }
 

@@ -5,14 +5,14 @@ import net.liftweb.common.Box
 import code.model._
 import java.util.Date
 
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataComments
 
 object Comments extends SimpleInjector {
 
   val comments = new Inject(buildOne _) {}
   
   //def buildOne: Comments = MappedComments
-  def buildOne: Comments = Remotedata
+  def buildOne: Comments = RemotedataComments
   
 }
 
