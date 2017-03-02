@@ -1,5 +1,6 @@
 package code.remotedata
 
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 import akka.actor.{Actor, ActorSystem, Props => ActorProps}
@@ -10,6 +11,7 @@ import code.accountholder.{MapperAccountHolders, RemoteAccountHoldersCaseClasses
 import code.metadata.comments.{MappedComment, MappedComments, RemoteCommentsCaseClasses}
 import code.metadata.counterparties.{CounterpartyTrait, MapperCounterparties, RemoteCounterpartiesCaseClasses}
 import code.metadata.tags.{MappedTags, RemoteTagsCaseClasses}
+import code.metadata.wheretags.{MapperWhereTags, RemoteWhereTagsCaseClasses}
 import code.model._
 import code.model.dataAccess.ResourceUser
 import code.users.{LiftUsers, RemoteUserCaseClasses}
@@ -48,6 +50,9 @@ class RemotedataActor extends Actor {
 
   val mTags = MappedTags
   val rTags = RemoteTagsCaseClasses
+
+  val mWhereTags = MapperWhereTags
+  val rWhereTags = RemoteWhereTagsCaseClasses
 
   def receive = {
 
@@ -592,6 +597,48 @@ class RemotedataActor extends Actor {
           sender ! res.asInstanceOf[Boolean]
         }
       }.getOrElse( context.stop(sender) )
+
+    // WhereTags
+    case rWhereTags.getWhereTagForTransaction(bankId, accountId, transactionId, viewId) =>
+      logger.info("getWhereTagForTransaction(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
+      sender ! mWhereTags.getWhereTagForTransaction(bankId, accountId, transactionId)(viewId)
+
+    case rWhereTags.bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) =>
+
+      logger.info("bulkDeleteWhereTags(" + bankId +", "+ accountId + ")")
+
+      {
+        for {
+          res <- tryo{mWhereTags.bulkDeleteWhereTags(bankId, accountId)}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rWhereTags.deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId) =>
+
+      logger.info("deleteWhereTag(" + bankId +", "+ accountId + ", "+ transactionId + ", "+ viewId + ")")
+
+      {
+        for {
+          res <- tryo{mWhereTags.deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId)}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rWhereTags.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) =>
+
+      logger.info("addWhereTag(" + bankId +", "+ accountId + ", "+ transactionId + ", "+ userId + ", " + viewId + ", "+ datePosted +  ", "+ longitude +  ", "+ latitude + ")")
+
+      {
+        for {
+          res <- tryo{mWhereTags.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
 
 
 
