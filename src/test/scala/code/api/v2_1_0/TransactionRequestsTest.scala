@@ -86,7 +86,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       val accountRoutingAddress = AccountRoutingAddress("IBAN");
       val counterParty = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress.value, true,"1");
 
-      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.otherAccountRoutingAddress), "Test Transaction Request description", sharedChargePolicy)
+      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.otherAccountRoutingAddress.get), "Test Transaction Request description", sharedChargePolicy)
 
       var transactionRequestBodyCounterparty = TransactionRequestDetailsCounterpartyJSON(CounterpartyIdJson(counterParty.counterpartyId), bodyValue, "Test Transaction Request description", sharedChargePolicy)
 

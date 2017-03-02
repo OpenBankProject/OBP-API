@@ -359,10 +359,8 @@ trait APIMethods210 {
                     toCounterpartyId <- Full(transDetailsCounterpartyJson.to.counterparty_id)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                    toAccountId <- Full(AccountId(toCounterparty.otherAccountRoutingAddress))
-
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
 
                     // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
                     // i.e. Only validate toBankId and toAccountId if they are both OBP
@@ -394,10 +392,8 @@ trait APIMethods210 {
                     toIban <- Full(transDetailsSEPAJson.to.iban)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-
-                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
-                    toAccountId <- Full(AccountId(toCounterparty.otherAccountRoutingAddress))
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
 
                     //if the connector is mapped, we get the data from local mapper, otherwise we call it from connector
                     toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
@@ -405,6 +401,7 @@ trait APIMethods210 {
                     else
                       BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
 
+                    // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
                     chargePolicy = transDetailsSEPAJson.charge_policy
                     chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
