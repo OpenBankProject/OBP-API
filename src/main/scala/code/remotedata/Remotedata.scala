@@ -1,5 +1,6 @@
 package code.remotedata
 
+import java.net.URL
 import java.util.Date
 
 import akka.actor.{ActorKilledException, ActorSelection, ActorSystem}
@@ -17,6 +18,7 @@ import com.typesafe.config.ConfigFactory
 import net.liftweb.common.{Full, _}
 import net.liftweb.util.Props
 import code.metadata.tags.{RemoteTagsCaseClasses, Tags}
+import code.metadata.transactionimages.{RemoteTransactionImagesCaseClasses, TransactionImages}
 import code.metadata.wheretags.{RemoteWhereTagsCaseClasses, WhereTags}
 
 import scala.collection.immutable.List
@@ -24,7 +26,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments with Tags with WhereTags {
+object Remotedata extends Views with Users with Counterparties with AccountHolders with Comments with Tags with WhereTags with TransactionImages {
 
   val TIMEOUT = 10 seconds
   val rViews = RemoteViewCaseClasses
@@ -34,6 +36,7 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   val rComments = RemoteCommentsCaseClasses
   val rTags = RemoteTagsCaseClasses
   val rWhereTags = RemoteWhereTagsCaseClasses
+  val rTransactionImages = RemoteTransactionImagesCaseClasses
   implicit val timeout = Timeout(10000 milliseconds)
 
   val remote = ActorSystem("LookupSystem", ConfigFactory.load("remotelookup"))
@@ -780,6 +783,47 @@ object Remotedata extends Views with Users with Counterparties with AccountHolde
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
       (viewsActor ? rWhereTags.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean],
+      TIMEOUT
+    )
+  }
+
+  // Transaction images
+  def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] = {
+    Await.result(
+      (viewsActor ? rTransactionImages.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
+      TIMEOUT
+    )
+  }
+
+  def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
+                         (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
+    Full(
+      Await.result(
+        (viewsActor ? rTransactionImages.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
+        TIMEOUT
+      )
+    )
+  }
+
+  def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] = {
+    val res = try {
+      Full(
+        Await.result(
+          (viewsActor ? rTransactionImages.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
+          TIMEOUT
+        )
+      )
+    }
+    catch {
+      case k: ActorKilledException =>  Empty ~> APIFailure(s"Cannot delete the TransactionImage", 404)
+      case e: Throwable => throw e
+    }
+    res
+  }
+
+  def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
+    Await.result(
+      (viewsActor ? rTransactionImages.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

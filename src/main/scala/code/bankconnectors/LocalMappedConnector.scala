@@ -14,7 +14,7 @@ import code.metadata.comments.{Comments, MappedComment}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.{MappedTag, Tags}
-import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.transactionimages.{MappedTransactionImage, TransactionImages}
 import code.metadata.wheretags.{MappedWhereTag, WhereTags}
 import code.model.{TransactionRequestType, _}
 import code.model.dataAccess._
@@ -627,10 +627,7 @@ Store one or more transactions
     val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
-    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
-      By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
-    )
+    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(
