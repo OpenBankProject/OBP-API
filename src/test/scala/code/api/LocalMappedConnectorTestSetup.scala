@@ -32,15 +32,16 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
           .national_identifier(randomString(5)).saveMe
   }
 
-  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait = {
+  override protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait = {
     MappedCounterparty.create.
       mCounterPartyId(counterpartyId).
       mName(UUID.randomUUID().toString).
       mOtherAccountRoutingAddress(accountRoutingAddress).
       mOtherAccountRoutingAddress(accountId).
+      mOtherAccountRoutingScheme(otherAccountRoutingScheme).
+      mOtherBankRoutingScheme("OBP").
       mOtherBankRoutingAddress(bankId).
       mIsBeneficiary(isBeneficiary).
-      mOtherAccountRoutingScheme("IBAN"). //it is for test, so set it the default value, The SEPA must contain this value
       saveMe
   }
 

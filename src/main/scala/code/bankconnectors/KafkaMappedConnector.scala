@@ -705,13 +705,9 @@ object KafkaMappedConnector extends Connector with Loggable {
   protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
     LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
   }
-
+  //Note: now call the local mapper to store data
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
-    val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
-    mappedTransactionRequest match {
-        case Full(tr: MappedTransactionRequest) => Full(tr.mTransactionIDs(transactionId.value).save)
-        case _ => Failure("Couldn't find transaction request ${transactionRequestId}")
-      }
+    LocalMappedConnector.saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId)
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {

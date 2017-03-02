@@ -494,9 +494,17 @@ Store one or more transactions
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                transactionRequestType: TransactionRequestType,
+                                                counterpartyId: CounterpartyId,
+                                                account: BankAccount,
+                                                details: String,
+                                                status: String,
+                                                charge: TransactionRequestCharge,
+                                                chargePolicy: String
+                                               ): Box[TransactionRequest] = {
 
-    // Note: We don't save transaction_ids here.
+    // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
       .mCounterpartyId(counterpartyId.value)
@@ -525,6 +533,7 @@ Store one or more transactions
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
+    //this saves challenge
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full{
@@ -537,6 +546,7 @@ Store one or more transactions
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
+    //this saves status
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)

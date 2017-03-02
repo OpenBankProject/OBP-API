@@ -70,14 +70,17 @@ case class IbanJson (val iban : String)
 
 //high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
 //They share the same AmountOfMoney field,
+//Note : in scala case-to-case inheritance is prohibited, so used trait instead
 trait TransactionRequestDetailsJSON {
   val value : AmountOfMoneyJSON
+  val description: String
 }
 
-// the data from endpoint, extract as valid JSON
-case class TransactionRequestDetailsFreeFormJSON(
-                                                  value: AmountOfMoneyJSON
-                                                ) extends TransactionRequestDetailsJSON
+// the common parts of four types
+case class TransactionRequestDetailsCommonJSON(
+                                                value: AmountOfMoneyJSON,
+                                                description: String
+                                              ) extends TransactionRequestDetailsJSON
 
 // the data from endpoint, extract as valid JSON
 case class TransactionRequestDetailsSandBoxTanJSON(
@@ -101,6 +104,13 @@ case class TransactionRequestDetailsSEPAJSON(
                                               description: String,
                                               charge_policy: String
                                             ) extends TransactionRequestDetailsJSON
+
+// Note: FreeForm is not used yet, the format maybe changed latter. the data from endpoint, extract as valid JSON
+case class TransactionRequestDetailsFreeFormJSON(
+                                                  value: AmountOfMoneyJSON,
+                                                  description: String
+                                                ) extends TransactionRequestDetailsJSON
+
 
 
 //Mapper means this part will be stored into mapper.mdetails

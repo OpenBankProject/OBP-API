@@ -1,5 +1,7 @@
 package code.api.v2_1_0
 
+import java.util.UUID
+
 import code.api.util.ApiRole.CanCreateAnyTransactionRequest
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ErrorMessages
@@ -75,7 +77,8 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       var toAccountJson = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
 
       var bodyValue = AmountOfMoneyJSON(fromCurrency, amt.toString())
-      var transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, "Test Transaction Request description")
+      val discription = "Just test it!"
+      var transactionRequestBody = TransactionRequestBodyJSON(toAccountJson, bodyValue, discription)
 
       // prepare for Answer Transaction Request Challenge endpoint
       var challengeId = ""
@@ -83,12 +86,14 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       var answerJson = ChallengeAnswerJSON(id = challengeId, answer = "123456")
 
       //prepare for counterparty and SEPA stuff
-      val accountRoutingAddress = AccountRoutingAddress("IBAN");
-      val counterParty = createCounterparty(bankId.value, accountId2.value, accountRoutingAddress.value, true,"1");
+      //For SEPA, otherAccountRoutingScheme must be 'IBAN'
+      val counterPartySEPA = createCounterparty(bankId.value, accountId2.value, "IBAN", "IBAN", true, UUID.randomUUID.toString);
+      //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
+      val counterPartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
 
-      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterParty.otherAccountRoutingAddress.get), "Test Transaction Request description", sharedChargePolicy)
+      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterPartySEPA.otherAccountRoutingAddress.get), discription, sharedChargePolicy)
 
-      var transactionRequestBodyCounterparty = TransactionRequestDetailsCounterpartyJSON(CounterpartyIdJson(counterParty.counterpartyId), bodyValue, "Test Transaction Request description", sharedChargePolicy)
+      var transactionRequestBodyCounterparty = TransactionRequestDetailsCounterpartyJSON(CounterpartyIdJson(counterPartyCounterparty.counterpartyId), bodyValue, discription, sharedChargePolicy)
 
       def setAnswerTransactionRequest(challengeId: String = this.challengeId, transRequestId: String = this.transRequestId) = {
         this.challengeId = challengeId
@@ -197,12 +202,12 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         (getTransactionResponse.code) should equal(200)
         And("we should get the body sie is one")
         (getTransactionResponse.body.children.size) should equal(1)
-        if (withChellenge || transactionRequestTypeInput.equals("FREE_FORM")) {
+        if (withChellenge) {
           And("we should get None, there is no transaction yet")
-          ((getTransactionResponse.body \ "transactions"\"details").toString contains (transactionRequestBody.description)) should not equal(true)
+          ((getTransactionResponse.body \ "transactions"\"details").toString contains (discription)) should not equal(true)
         } else {
           And("we should get the body discription value is as we set before")
-          ((getTransactionResponse.body \ "transactions"\"details").toString contains (transactionRequestBody.description)) should equal(true)
+          ((getTransactionResponse.body \ "transactions"\"details").toString contains (discription)) should equal(true)
         }
       }
 

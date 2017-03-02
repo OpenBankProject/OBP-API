@@ -32,7 +32,7 @@ Berlin 13359, Germany
 
 package code.api
 
-import code.api.util.APIUtil
+import code.api.util.{APIUtil, ErrorMessages}
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.http.Req
 import net.liftweb.common._
@@ -124,7 +124,7 @@ trait OBPRestHelper extends RestHelper with Loggable {
       case true =>
         //logger.info("failIfBadJSON says: Cool, content-type is json")
         r.json match {
-          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(s"Error: Invalid JSON: $msg"))
+          case Failure(msg, _, _) => (x: Box[User]) => Full(errorJsonResponse(ErrorMessages.InvalidJsonFormat + s"$msg"))
           case _ => h(r)
         }
       case false => h(r)
