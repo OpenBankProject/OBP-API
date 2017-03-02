@@ -11,8 +11,8 @@ object Tags  extends SimpleInjector {
 
   val tags = new Inject(buildOne _) {}
   
-  //def buildOne: Tags = MappedTags
-  def buildOne: Tags = Remotedata
+  def buildOne: Tags = MappedTags
+  //def buildOne: Tags = Remotedata
   
 }
 
