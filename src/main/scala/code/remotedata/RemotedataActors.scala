@@ -27,6 +27,7 @@ object RemotedataActors extends Loggable {
     logger.info(system.actorOf(ActorProps[RemotedataAccountHoldersActor], name = "accountHolders"))
     logger.info(system.actorOf(ActorProps[RemotedataCounterpartiesActor], name = "counterparties"))
     logger.info(system.actorOf(ActorProps[RemotedataTagsActor], name = "tags"))
+    logger.info(system.actorOf(ActorProps[RemotedataWhereTagsActor], name = "whereTags"))
     logger.info(system.actorOf(ActorProps[RemotedataCommentsActor], name = "comments"))
     logger.info("Cmplete")
   }
@@ -40,6 +41,7 @@ object RemotedataActors extends Loggable {
     logger.info(system.actorOf(ActorProps[RemotedataAccountHoldersActor], name = "accountHolders"))
     logger.info(system.actorOf(ActorProps[RemotedataCounterpartiesActor], name = "counterparties"))
     logger.info(system.actorOf(ActorProps[RemotedataTagsActor], name = "tags"))
+    logger.info(system.actorOf(ActorProps[RemotedataWhereTagsActor], name = "whereTags"))
     logger.info(system.actorOf(ActorProps[RemotedataCommentsActor], name = "comments"))
     logger.info("Complete")
   }

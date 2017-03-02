@@ -58,9 +58,9 @@ trait CounterpartyTrait {
   def thisViewId: String
   def counterpartyId: String
   def otherAccountRoutingScheme: String
-  def otherAccountRoutingAddress: String
+  def otherAccountRoutingAddress: Option[String]
   def otherBankRoutingScheme: String
-  def otherBankRoutingAddress: String
+  def otherBankRoutingAddress: Option[String]
   def isBeneficiary : Boolean
 
 }

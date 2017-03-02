@@ -431,6 +431,7 @@ object ToSchemify {
     ResourceUser,
     MappedComment,
     MappedTag,
+    MappedWhereTag,
     MapperAccountHolders
   )
 
@@ -444,7 +445,6 @@ object ToSchemify {
     Token,
     Consumer,
     MappedNarrative,
-    MappedWhereTag,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,

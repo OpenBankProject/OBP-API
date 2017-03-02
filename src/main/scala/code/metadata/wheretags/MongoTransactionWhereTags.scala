@@ -1,8 +1,9 @@
 package code.metadata.wheretags
 
 import java.util.Date
+
 import code.model._
-import net.liftweb.common.{Full, Loggable}
+import net.liftweb.common.{Box, Full, Loggable}
 
 private object MongoTransactionWhereTags extends WhereTags with Loggable {
 
@@ -42,7 +43,9 @@ private object MongoTransactionWhereTags extends WhereTags with Loggable {
     true
   }
 
-  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Option[GeoTag] = {
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] = {
     OBPWhereTag.find(bankId, accountId, transactionId, viewId)
   }
+
+  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId) : Boolean = ???
 }

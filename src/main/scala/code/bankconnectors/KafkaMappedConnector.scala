@@ -33,12 +33,12 @@ import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.MappedComment
+import code.metadata.comments.{Comments, MappedComment}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.MappedTag
+import code.metadata.tags.{MappedTag, Tags}
 import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.MappedWhereTag
+import code.metadata.wheretags.{MappedWhereTag, WhereTags}
 import code.model._
 import code.model.dataAccess._
 import code.products.Products.ProductCode
@@ -637,9 +637,9 @@ object KafkaMappedConnector extends Connector with Loggable {
                                         //New data: real counterparty (toCounterparty: CounterpartyTrait)
                                         "counterpartyId" -> toCounterparty.counterpartyId,
                                         "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                        "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
+                                        "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress.get,
                                         "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
+                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress.get,
                                         "chargePolicy" -> chargePolicy
     )
 
@@ -807,10 +807,7 @@ object KafkaMappedConnector extends Connector with Loggable {
   //remove an account and associated transactions
   override def removeAccount(bankId: BankId, accountId: AccountId) : Boolean = {
     //delete comments on transactions of this account
-    val commentsDeleted = MappedComment.bulkDelete_!!(
-      By(MappedComment.bank, bankId.value),
-      By(MappedComment.account, accountId.value)
-    )
+    val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
     //delete narratives on transactions of this account
     val narrativesDeleted = MappedNarrative.bulkDelete_!!(
@@ -819,16 +816,10 @@ object KafkaMappedConnector extends Connector with Loggable {
     )
 
     //delete narratives on transactions of this account
-    val tagsDeleted = MappedTag.bulkDelete_!!(
-      By(MappedTag.bank, bankId.value),
-      By(MappedTag.account, accountId.value)
-    )
+    val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)
 
     //delete WhereTags on transactions of this account
-    val whereTagsDeleted = MappedWhereTag.bulkDelete_!!(
-      By(MappedWhereTag.bank, bankId.value),
-      By(MappedWhereTag.account, accountId.value)
-    )
+    val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
     val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
@@ -1230,9 +1221,9 @@ object KafkaMappedConnector extends Connector with Loggable {
     def otherAccountProvider: String = counterparty.other_account_provider
     def counterpartyId: String = counterparty.counterparty_id
     def otherAccountRoutingScheme: String = counterparty.other_account_routing_scheme
-    def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
+    def otherAccountRoutingAddress: Option[String] = Option(counterparty.other_account_routing_address)
     def otherBankRoutingScheme: String = counterparty.other_bank_routing_scheme
-    def otherBankRoutingAddress: String = counterparty.other_account_routing_address
+    def otherBankRoutingAddress: Option[String] = Option(counterparty.other_bank_routing_address)
     def isBeneficiary : Boolean = counterparty.is_beneficiary
   }
 
