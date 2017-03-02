@@ -1,5 +1,6 @@
 package code.remotedata
 
+import java.net.URL
 import java.util.Date
 import java.util.concurrent.TimeUnit
 
@@ -11,6 +12,7 @@ import code.accountholder.{MapperAccountHolders, RemoteAccountHoldersCaseClasses
 import code.metadata.comments.{MappedComment, MappedComments, RemoteCommentsCaseClasses}
 import code.metadata.counterparties.{CounterpartyTrait, MapperCounterparties, RemoteCounterpartiesCaseClasses}
 import code.metadata.tags.{MappedTags, RemoteTagsCaseClasses}
+import code.metadata.transactionimages.{MappedTransactionImage, MapperTransactionImages, RemoteTransactionImagesCaseClasses}
 import code.metadata.wheretags.{MapperWhereTags, RemoteWhereTagsCaseClasses}
 import code.model._
 import code.model.dataAccess.ResourceUser
@@ -53,6 +55,9 @@ class RemotedataActor extends Actor {
 
   val mWhereTags = MapperWhereTags
   val rWhereTags = RemoteWhereTagsCaseClasses
+
+  val mTransactionImages = MapperTransactionImages
+  val rTransactionImages = RemoteTransactionImagesCaseClasses
 
   def receive = {
 
@@ -634,6 +639,45 @@ class RemotedataActor extends Actor {
       {
         for {
           res <- tryo{mWhereTags.addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)}
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    // TransactionImages
+    case rTransactionImages.getImagesForTransaction(bankId, accountId, transactionId, viewId) =>
+      logger.info("getImagesForTransaction(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
+      sender ! mTransactionImages.getImagesForTransaction(bankId, accountId, transactionId)(viewId)
+
+    case rTransactionImages.addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) =>
+      logger.info("addTransactionImage( " + bankId +", "+ accountId +", "+ transactionId +", "+ userId +", "+ viewId + ", "+ description + ", " + datePosted + ", " + imageURL + ")")
+
+      {
+        for {
+          res <- mTransactionImages.addTransactionImage(bankId, accountId, transactionId)(userId, viewId, description, datePosted, imageURL)
+        } yield {
+          sender ! res.asInstanceOf[TransactionImage]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rTransactionImages.deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, imageId : String) =>
+      logger.info("deleteTransactionImage(" + bankId +", "+ accountId +", "+ transactionId + imageId +")")
+
+      {
+        for {
+          res <- mTransactionImages.deleteTransactionImage(bankId, accountId, transactionId)(imageId)
+        } yield {
+          sender ! res.asInstanceOf[Boolean]
+        }
+      }.getOrElse( context.stop(sender) )
+
+    case rTransactionImages.bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId) =>
+
+      logger.info("bulkDeleteTransactionImage(" + bankId +", "+ accountId + ")")
+
+      {
+        for {
+          res <- tryo{mTransactionImages.bulkDeleteTransactionImage(bankId, accountId)}
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }

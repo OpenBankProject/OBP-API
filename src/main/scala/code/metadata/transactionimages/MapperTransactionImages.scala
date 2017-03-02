@@ -20,15 +20,15 @@ object MapperTransactionImages extends TransactionImages {
     )
   }
 
-  override def deleteTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(imageId: String): Box[Unit] = {
+  override def deleteTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(imageId: String): Box[Boolean] = {
     //imageId is unique, so we don't need bankId, accountId, and transactionId
     //TODO: this should return something more useful than Box[Unit]
-    MappedTransactionImage.find(By(MappedTransactionImage.imageId, imageId)).map(_.delete_!).map(x => ())
+    MappedTransactionImage.find(By(MappedTransactionImage.imageId, imageId)).map(_.delete_!)
 
   }
 
   override def addTransactionImage(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
-                                  (userId: UserId, viewId: ViewId, description: String, datePosted: Date, imageURL: URL): Box[TransactionImage] = {
+                                  (userId: UserId, viewId: ViewId, description: String, datePosted: Date, imageURL: String): Box[TransactionImage] = {
     tryo {
       MappedTransactionImage.create
         .bank(bankId.value)
@@ -37,9 +37,17 @@ object MapperTransactionImages extends TransactionImages {
         .view(viewId.value)
         .user(userId.value)
         .imageDescription(description)
-        .url(imageURL.toString)
+        .url(imageURL)
         .date(datePosted).saveMe
     }
+  }
+
+  override def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
+    val commentsDeleted = MappedTransactionImage.bulkDelete_!!(
+      By(MappedTransactionImage.bank, bankId.value),
+      By(MappedTransactionImage.account, accountId.value)
+    )
+    commentsDeleted
   }
 }
 

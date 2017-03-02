@@ -11,8 +11,8 @@ object WhereTags  extends SimpleInjector {
 
   val whereTags = new Inject(buildOne _) {}
 
-  //def buildOne: WhereTags = MapperWhereTags
-  def buildOne: WhereTags = Remotedata
+  def buildOne: WhereTags = MapperWhereTags
+  //def buildOne: WhereTags = Remotedata
 
 }
 

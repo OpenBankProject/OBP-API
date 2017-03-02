@@ -176,11 +176,11 @@ class TransactionMetadata(
   * @param: datePosted
   * @param: imageURL
   */
-  val addImage : (UserId, ViewId, String, Date, URL) => Box[TransactionImage],
+  val addImage : (UserId, ViewId, String, Date, String) => Box[TransactionImage],
   /**
   * @param: imageId
   */
-  val deleteImage : String => Unit,
+  val deleteImage : String => Box[Boolean],
   /**
   * @param: userId
   * @param: viewId
