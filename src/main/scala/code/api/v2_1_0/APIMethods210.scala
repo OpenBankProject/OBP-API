@@ -359,8 +359,8 @@ trait APIMethods210 {
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
                     // Get the Routing information from the Counterparty for the payment backend
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
-                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
                     // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
                     // i.e. Only validate toBankId and toAccountId if they are both OBP
@@ -404,8 +404,8 @@ trait APIMethods210 {
                     toIban <- Full(transDetailsSEPAJson.to.iban)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
-                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
                     //if the connector is mapped, we get the data from local mapper
                     toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))

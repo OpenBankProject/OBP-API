@@ -91,7 +91,7 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
       //For Counterpart local mapper, the  mOtherAccountRoutingScheme='OBP' and  mOtherBankRoutingScheme = 'OBP'
       val counterPartyCounterparty = createCounterparty(bankId.value, accountId2.value, "IBAN", "OBP", true, UUID.randomUUID.toString);
 
-      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterPartySEPA.otherAccountRoutingAddress.get), discription, sharedChargePolicy)
+      var transactionRequestBodySEPA = TransactionRequestDetailsSEPAJSON(bodyValue, IbanJson(counterPartySEPA.otherAccountRoutingAddress), discription, sharedChargePolicy)
 
       var transactionRequestBodyCounterparty = TransactionRequestDetailsCounterpartyJSON(CounterpartyIdJson(counterPartyCounterparty.counterpartyId), bodyValue, discription, sharedChargePolicy)
 

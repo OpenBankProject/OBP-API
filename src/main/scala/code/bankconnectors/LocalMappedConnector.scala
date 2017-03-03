@@ -457,9 +457,9 @@ Store one or more transactions
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
       .CPCounterPartyId(toCounterparty.counterpartyId)
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
-      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress.getOrElse("test-data"))//happened SEPA, empty toCounterparty
+      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress.getOrElse("test-data"))//happened SEPA, empty toCounterparty
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
       .chargePolicy(chargePolicy)
       .saveMe
     

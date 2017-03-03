@@ -38,8 +38,18 @@ object TransactionRequests extends SimpleInjector {
     val end_date: Date,
     val challenge: TransactionRequestChallenge,
     val charge: TransactionRequestCharge,
+    val charge_policy: String,
     val counterparty_id :CounterpartyId,
-    val charge_policy: String
+    val name :String,
+    val this_bank_id : BankId,
+    val this_account_id : AccountId,
+    val this_view_id :ViewId,
+    val other_account_routing_scheme : String,
+    val other_account_routing_address : String,
+    val other_bank_routing_scheme : String,
+    val other_bank_routing_address : String,
+    val is_beneficiary :Boolean
+
   )
 
   case class TransactionRequestChallenge (

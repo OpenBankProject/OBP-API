@@ -260,8 +260,8 @@ object JSONFactory220{
       counterparty_id = counterparty.counterpartyId,
       other_bank_routing_scheme = counterparty.otherBankRoutingScheme,
       other_account_routing_scheme = counterparty.otherAccountRoutingScheme,
-      other_bank_routing_address = counterparty.otherBankRoutingAddress.get,
-      other_account_routing_address = counterparty.otherAccountRoutingAddress.get,
+      other_bank_routing_address = counterparty.otherBankRoutingAddress,
+      other_account_routing_address = counterparty.otherAccountRoutingAddress,
       is_beneficiary = counterparty.isBeneficiary
     )
   }
