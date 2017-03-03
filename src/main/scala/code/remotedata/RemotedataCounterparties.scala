@@ -23,7 +23,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
+          (actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
           TIMEOUT
         )
       )
@@ -39,7 +39,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
+          (actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
           TIMEOUT
         )
       )
@@ -55,7 +55,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
+          (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
           TIMEOUT
         )
       )
@@ -71,7 +71,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
+          (actor ? cc.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
           TIMEOUT
         )
       )
@@ -87,7 +87,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
+          (actor ? cc.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
           TIMEOUT
         )
       )
@@ -103,7 +103,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+          (actor ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
                                                            otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
                                                            isBeneficiary)).mapTo[CounterpartyTrait],
           TIMEOUT
@@ -119,7 +119,7 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
 
   override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = {
     Await.result(
-      (ac ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
+      (actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
       TIMEOUT
     )
   }

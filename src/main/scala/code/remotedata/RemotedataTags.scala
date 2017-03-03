@@ -21,7 +21,7 @@ object RemotedataTags extends ActorInit with Tags {
 
   def getTags(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[TransactionTag] = {
     Await.result(
-      (ac ? cc.getTags(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionTag]],
+      (actor ? cc.getTags(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionTag]],
       TIMEOUT
     )
   }
@@ -29,7 +29,7 @@ object RemotedataTags extends ActorInit with Tags {
   def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
     Full(
       Await.result(
-        (ac ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted)).mapTo[TransactionTag],
+        (actor ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted)).mapTo[TransactionTag],
         TIMEOUT
       )
     )
@@ -39,7 +39,7 @@ object RemotedataTags extends ActorInit with Tags {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.deleteTag(bankId, accountId, transactionId, tagId)).mapTo[Boolean],
+          (actor ? cc.deleteTag(bankId, accountId, transactionId, tagId)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -53,7 +53,7 @@ object RemotedataTags extends ActorInit with Tags {
 
   def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.bulkDeleteTags(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.bulkDeleteTags(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

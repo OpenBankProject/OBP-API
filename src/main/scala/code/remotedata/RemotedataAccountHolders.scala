@@ -15,14 +15,14 @@ object RemotedataAccountHolders extends ActorInit with AccountHolders {
 
   override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
     Await.result(
-      (ac ? cc.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
+      (actor ? cc.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
     Await.result(
-      (ac ? cc.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
+      (actor ? cc.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
       TIMEOUT
     )
   }
@@ -31,7 +31,7 @@ object RemotedataAccountHolders extends ActorInit with AccountHolders {
   def bulkDeleteAllAccountHolders(): Box[Boolean] = {
     Full(
       Await.result(
-        (ac ? cc.bulkDeleteAllAccountHolders()).mapTo[Boolean],
+        (actor ? cc.bulkDeleteAllAccountHolders()).mapTo[Boolean],
         TIMEOUT
       )
     )

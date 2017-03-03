@@ -21,7 +21,7 @@ object RemotedataComments extends ActorInit with Comments {
 
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = {
     Await.result(
-      (ac ? cc.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]],
+      (actor ? cc.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]],
       TIMEOUT
     )
   }
@@ -29,7 +29,7 @@ object RemotedataComments extends ActorInit with Comments {
   def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
     Full(
       Await.result(
-        (ac ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Comment],
+        (actor ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Comment],
         TIMEOUT
       )
     )
@@ -39,7 +39,7 @@ object RemotedataComments extends ActorInit with Comments {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Boolean],
+          (actor ? cc.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -53,7 +53,7 @@ object RemotedataComments extends ActorInit with Comments {
 
   def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

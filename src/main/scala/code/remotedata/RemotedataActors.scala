@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 
 trait ActorInit {
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
-  val ac = RemotedataActorSystem.getActor(actorName)
+  val actor = RemotedataActorSystem.getActor(actorName)
   val TIMEOUT = 10 seconds
   implicit val timeout = Timeout(1000 milliseconds)
 

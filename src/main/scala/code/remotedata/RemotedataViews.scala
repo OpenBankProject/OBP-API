@@ -22,7 +22,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.addPermissions(views, user)).mapTo[List[View]],
+          (actor ? cc.addPermissions(views, user)).mapTo[List[View]],
           TIMEOUT
         )
       )
@@ -37,7 +37,7 @@ object RemotedataViews extends ActorInit with Views {
   def permission(account: BankAccountUID, user: User): Box[Permission] = {
     Full(
       Await.result(
-        (ac ? cc.permission(account, user)).mapTo[Permission],
+        (actor ? cc.permission(account, user)).mapTo[Permission],
         TIMEOUT
       )
     )
@@ -47,7 +47,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.addPermission(viewUID, user)).mapTo[View],
+          (actor ? cc.addPermission(viewUID, user)).mapTo[View],
           TIMEOUT
         )
       )
@@ -65,7 +65,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.revokePermission(viewUID, user)).mapTo[Boolean],
+          (actor ? cc.revokePermission(viewUID, user)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -88,7 +88,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try{
       Full(
         Await.result(
-          (ac ? cc.revokeAllPermissions(bankId, accountId, user)).mapTo[Boolean],
+          (actor ? cc.revokeAllPermissions(bankId, accountId, user)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -106,7 +106,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try {
       Full(
       Await.result(
-        (ac ? cc.view(viewUID)).mapTo[View],
+        (actor ? cc.view(viewUID)).mapTo[View],
         TIMEOUT
       )
     )
@@ -122,7 +122,7 @@ object RemotedataViews extends ActorInit with Views {
     val res = try {
       Full(
       Await.result(
-        (ac ? cc.view(viewId, account)).mapTo[View],
+        (actor ? cc.view(viewId, account)).mapTo[View],
         TIMEOUT
       )
     )
@@ -137,63 +137,63 @@ object RemotedataViews extends ActorInit with Views {
 
   def createView(bankAccountId: BankAccountUID, view: CreateViewJSON): Box[View] = {
     Await.result(
-      (ac ? cc.createView(bankAccountId, view)).mapTo[Box[View]],
+      (actor ? cc.createView(bankAccountId, view)).mapTo[Box[View]],
       TIMEOUT
     )
   }
 
   def updateView(bankAccountId : BankAccountUID, viewId: ViewId, viewUpdateJson : UpdateViewJSON) : Box[View] = {
     Await.result(
-      (ac ? cc.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]],
+      (actor ? cc.updateView(bankAccountId, viewId, viewUpdateJson)).mapTo[Box[View]],
       TIMEOUT
     )
   }
 
   def removeView(viewId: ViewId, bankAccountId: BankAccountUID): Box[Unit] = {
     Await.result(
-      (ac ? cc.removeView(viewId, bankAccountId)).mapTo[Box[Unit]],
+      (actor ? cc.removeView(viewId, bankAccountId)).mapTo[Box[Unit]],
       TIMEOUT
     )
   }
 
   def permissions(account : BankAccountUID) : List[Permission] = {
     Await.result(
-      (ac ? cc.permissions(account)).mapTo[List[Permission]],
+      (actor ? cc.permissions(account)).mapTo[List[Permission]],
       TIMEOUT
     )
   }
 
   def views(bankAccountId : BankAccountUID) : List[View] = {
     Await.result(
-      (ac ? cc.views(bankAccountId)).mapTo[List[View]],
+      (actor ? cc.views(bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
   def permittedViews(user: User, bankAccountId: BankAccountUID): List[View] = {
     Await.result(
-      (ac ? cc.permittedViews(user, bankAccountId)).mapTo[List[View]],
+      (actor ? cc.permittedViews(user, bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
   def publicViews(bankAccountId : BankAccountUID) : List[View] = {
     Await.result(
-      (ac ? cc.publicViews(bankAccountId)).mapTo[List[View]],
+      (actor ? cc.publicViews(bankAccountId)).mapTo[List[View]],
       TIMEOUT
     )
   }
 
   def getAllPublicAccounts() : List[BankAccountUID] = {
     Await.result(
-      (ac ? cc.getAllPublicAccounts()).mapTo[List[BankAccountUID]],
+      (actor ? cc.getAllPublicAccounts()).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
   def getPublicBankAccounts(bank : Bank) : List[BankAccountUID] = {
     Await.result(
-      (ac ? cc.getPublicBankAccounts(bank)).mapTo[List[BankAccountUID]],
+      (actor ? cc.getPublicBankAccounts(bank)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
@@ -202,7 +202,7 @@ object RemotedataViews extends ActorInit with Views {
     user match {
       case Full(theUser) => {
         Await.result (
-          (ac ? cc.getAllAccountsUserCanSee(theUser)).mapTo[List[BankAccountUID]],
+          (actor ? cc.getAllAccountsUserCanSee(theUser)).mapTo[List[BankAccountUID]],
           TIMEOUT)
       }
       case _ => getAllPublicAccounts()
@@ -213,7 +213,7 @@ object RemotedataViews extends ActorInit with Views {
     user match {
       case Full(theUser) => {
         Await.result(
-          (ac ? cc.getAllAccountsUserCanSee(bank, theUser)).mapTo[List[BankAccountUID]],
+          (actor ? cc.getAllAccountsUserCanSee(bank, theUser)).mapTo[List[BankAccountUID]],
           TIMEOUT
         )
       }
@@ -223,42 +223,42 @@ object RemotedataViews extends ActorInit with Views {
 
   def getNonPublicBankAccounts(user : User) :  List[BankAccountUID] = {
     Await.result(
-      (ac ? cc.getNonPublicBankAccounts(user)).mapTo[List[BankAccountUID]],
+      (actor ? cc.getNonPublicBankAccounts(user)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
   def getNonPublicBankAccounts(user : User, bankId : BankId) :  List[BankAccountUID] = {
     Await.result(
-      (ac ? cc.getNonPublicBankAccounts(user, bankId)).mapTo[List[BankAccountUID]],
+      (actor ? cc.getNonPublicBankAccounts(user, bankId)).mapTo[List[BankAccountUID]],
       TIMEOUT
     )
   }
 
   def grantAccessToAllExistingViews(user : User) = {
     Await.result(
-      (ac ? cc.grantAccessToAllExistingViews(user)).mapTo[Boolean],
+      (actor ? cc.grantAccessToAllExistingViews(user)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def grantAccessToView(user : User, view : View) = {
     Await.result(
-      (ac ? cc.grantAccessToView(user, view)).mapTo[Boolean],
+      (actor ? cc.grantAccessToView(user, view)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def getOwners(view: View) : Set[User] = {
     Await.result(
-      (ac ? cc.getOwners(view)).mapTo[Set[User]],
+      (actor ? cc.getOwners(view)).mapTo[Set[User]],
       TIMEOUT
     )
   }
 
   def createOwnerView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (ac ? cc.createOwnerView(bankId, accountId, description)).mapTo[View],
+      (actor ? cc.createOwnerView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -266,7 +266,7 @@ object RemotedataViews extends ActorInit with Views {
 
   def createPublicView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (ac ? cc.createPublicView(bankId, accountId, description)).mapTo[View],
+      (actor ? cc.createPublicView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -274,7 +274,7 @@ object RemotedataViews extends ActorInit with Views {
 
   def createAccountantsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (ac ? cc.createAccountantsView(bankId, accountId, description)).mapTo[View],
+      (actor ? cc.createAccountantsView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -282,7 +282,7 @@ object RemotedataViews extends ActorInit with Views {
 
   def createAuditorsView(bankId: BankId, accountId: AccountId, description: String) : Box[View] = {
     Full(Await.result(
-      (ac ? cc.createAuditorsView(bankId, accountId, description)).mapTo[View],
+      (actor ? cc.createAuditorsView(bankId, accountId, description)).mapTo[View],
       TIMEOUT
       )
     )
@@ -290,7 +290,7 @@ object RemotedataViews extends ActorInit with Views {
 
   def createRandomView(bankId: BankId, accountId: AccountId) : Box[View] = {
     Full(Await.result(
-      (ac ? cc.createRandomView(bankId, accountId)).mapTo[View],
+      (actor ? cc.createRandomView(bankId, accountId)).mapTo[View],
       TIMEOUT
       )
     )
@@ -298,21 +298,21 @@ object RemotedataViews extends ActorInit with Views {
 
   def viewExists(bankId: BankId, accountId: AccountId, name: String): Boolean = {
     Await.result(
-      (ac ? cc.viewExists(bankId, accountId, name)).mapTo[Boolean],
+      (actor ? cc.viewExists(bankId, accountId, name)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def removeAllViews(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def removeAllPermissions(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.removeAllViews(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }
@@ -320,7 +320,7 @@ object RemotedataViews extends ActorInit with Views {
   // bulkDeletes for tests
   def bulkDeleteAllPermissionsAndViews(): Boolean = {
     Await.result(
-      (ac ? cc.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean],
+      (actor ? cc.bulkDeleteAllPermissionsAndViews()).mapTo[Boolean],
       TIMEOUT
     )
   }

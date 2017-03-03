@@ -21,7 +21,7 @@ object RemotedataWhereTags extends ActorInit with WhereTags {
 
   def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] = {
     Await.result(
-      (ac ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId)).mapTo[Box[GeoTag]],
+      (actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId)).mapTo[Box[GeoTag]],
       TIMEOUT
     )
   }
@@ -29,21 +29,21 @@ object RemotedataWhereTags extends ActorInit with WhereTags {
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
                  (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
     Await.result(
-      (ac ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)).mapTo[Boolean],
+      (actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean = {
     Await.result(
-      (ac ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId)).mapTo[Boolean],
+      (actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

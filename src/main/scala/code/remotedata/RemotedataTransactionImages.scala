@@ -21,7 +21,7 @@ object RemotedataTransactionImages extends ActorInit with TransactionImages {
 
   def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] = {
     Await.result(
-      (ac ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
+      (actor ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
       TIMEOUT
     )
   }
@@ -30,7 +30,7 @@ object RemotedataTransactionImages extends ActorInit with TransactionImages {
                          (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
     Full(
       Await.result(
-        (ac ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
+        (actor ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
         TIMEOUT
       )
     )
@@ -40,7 +40,7 @@ object RemotedataTransactionImages extends ActorInit with TransactionImages {
     val res = try {
       Full(
         Await.result(
-          (ac ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
+          (actor ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -54,7 +54,7 @@ object RemotedataTransactionImages extends ActorInit with TransactionImages {
 
   def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (ac ? cc.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

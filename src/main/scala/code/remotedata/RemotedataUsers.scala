@@ -22,7 +22,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getUserByResourceUserId(id)).mapTo[User],
+    (actor ? cc.getUserByResourceUserId(id)).mapTo[User],
     TIMEOUT
     )
     )
@@ -38,7 +38,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
+    (actor ? cc.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -54,7 +54,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
+    (actor ? cc.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
     TIMEOUT
     )
     )
@@ -70,7 +70,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getUserByUserId(userId)).mapTo[User],
+    (actor ? cc.getUserByUserId(userId)).mapTo[User],
     TIMEOUT
     )
     )
@@ -86,7 +86,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getUserByUserName(userName)).mapTo[ResourceUser],
+    (actor ? cc.getUserByUserName(userName)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -102,7 +102,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getUserByEmail(email)).mapTo[List[ResourceUser]],
+    (actor ? cc.getUserByEmail(email)).mapTo[List[ResourceUser]],
     TIMEOUT
     )
     )
@@ -118,7 +118,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.getAllUsers()).mapTo[List[ResourceUser]],
+    (actor ? cc.getAllUsers()).mapTo[List[ResourceUser]],
     TIMEOUT
     )
     )
@@ -134,7 +134,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+    (actor ? cc.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -150,7 +150,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+    (actor ? cc.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -166,7 +166,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try {
     Full(
     Await.result(
-    (ac ? cc.saveResourceUser(resourceUser)).mapTo[ResourceUser],
+    (actor ? cc.saveResourceUser(resourceUser)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -182,7 +182,7 @@ object RemotedataUsers extends ActorInit with Users {
     val res = try{
     Full(
     Await.result(
-    (ac ? cc.deleteResourceUser(userId)).mapTo[Boolean],
+    (actor ? cc.deleteResourceUser(userId)).mapTo[Boolean],
     TIMEOUT
     )
     )
@@ -198,7 +198,7 @@ object RemotedataUsers extends ActorInit with Users {
   def bulkDeleteAllResourceUsers(): Box[Boolean] = {
     Full(
     Await.result(
-    (ac ? cc.bulkDeleteAllResourceUsers()).mapTo[Boolean],
+    (actor ? cc.bulkDeleteAllResourceUsers()).mapTo[Boolean],
     TIMEOUT
     )
     )
