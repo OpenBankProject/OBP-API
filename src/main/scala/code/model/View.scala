@@ -309,7 +309,7 @@ trait View {
               Some(transaction.metadata.deleteComment)
             else
               None
-          val addOwnerCommentFunc:Option[String=> Unit] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
+          val addOwnerCommentFunc:Option[String=> Boolean] = if (canEditOwnerComment) Some(transaction.metadata.addOwnerComment) else None
           val tags =
             if(canSeeTags)
               Some(transaction.metadata.tags(viewId))

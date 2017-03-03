@@ -1,13 +1,15 @@
 package code.metadata.narrative
 
-import code.model.{TransactionId, AccountId, BankId}
+import code.model.{AccountId, BankId, TransactionId}
+import code.remotedata.RemotedataNarratives
 import net.liftweb.util.SimpleInjector
 
 object Narrative extends SimpleInjector {
 
   val narrative = new Inject(buildOne _) {}
 
-  def buildOne: Narrative = MappedNarratives
+  //def buildOne: Narrative = MappedNarratives
+  def buildOne: Narrative = RemotedataNarratives
 
 }
 
@@ -21,6 +23,16 @@ trait Narrative {
   def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String
 
   //TODO: should return something that lets us know if it saved or failed
-  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Unit
+  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Boolean
+
+  def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean
 
 }
+
+class RemoteNarrativesCaseClasses {
+  case class getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
+  case class setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId, narrative: String)
+  case class bulkDeleteNarratives(bankId: BankId, accountId: AccountId)
+}
+
+object RemoteNarrativesCaseClasses extends RemoteNarrativesCaseClasses
