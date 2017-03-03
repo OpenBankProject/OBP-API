@@ -8,9 +8,8 @@ import code.accountholder.AccountHolders
 import code.model._
 import code.model.dataAccess._
 import net.liftweb.common.Box
-import net.liftweb.mapper.MetaMapper
+import net.liftweb.mapper.{By, MappedString, MetaMapper}
 import net.liftweb.util.Props
-import net.liftweb.mapper.{MappedString, MetaMapper}
 import net.liftweb.util.Helpers._
 import code.entitlement.{Entitlement, MappedEntitlement}
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty, MappedCounterpartyMetadata}
@@ -72,6 +71,10 @@ trait LocalMappedConnectorTestSetup extends TestConnectorSetupWithStandardPermis
       .holder(randomString(4))
       .accountNumber(randomString(4))
       .accountLabel(randomString(4)).saveMe
+  }
+
+  override protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount = {
+     MappedBankAccount.find(By(MappedBankAccount.bank, bankId.value), By(MappedBankAccount.theAccountId, accountId.value)).get.accountCurrency(currency).saveMe()
   }
 
   def addEntitlement(bankId: String, userId: String, roleName: String): Box[Entitlement] = {

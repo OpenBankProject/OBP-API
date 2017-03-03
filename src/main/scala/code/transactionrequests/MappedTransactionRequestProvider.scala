@@ -47,15 +47,18 @@ class MappedTransactionRequest extends LongKeyedMapper[MappedTransactionRequest]
   object mBody_Value_Amount extends DefaultStringField(this)
   object mBody_Description extends DefaultStringField(this)
   // This is the details / body of the request (contains all fields in the body)
+  // Note:this need to be a longer string, defaults is 2000, maybe not enough
   object mDetails extends DefaultStringField(this)
 
   //fromAccount fields
   object mFrom_BankId extends DefaultStringField(this)
   object mFrom_AccountId extends DefaultStringField(this)
+
   //toAccount fields
   object mTo_BankId extends DefaultStringField(this)
   object mTo_AccountId extends DefaultStringField(this)
-  //toCounterparty fiels
+
+  //toCounterparty fields
   object mName extends DefaultStringField(this)
   object mThisBankId extends DefaultStringField(this)
   object mThisAccountId extends DefaultStringField(this)

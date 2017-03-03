@@ -153,7 +153,6 @@ object OBPAPI1_1 extends RestHelper with Loggable {
 
   private def transactionJson(t : ModeratedTransaction) : JObject = {
     ("transaction" ->
-      ("uuid" -> t.UUID) ~
       ("id" -> t.id.value) ~
       ("this_account" -> t.bankAccount.map(thisAccountJson)) ~
       ("other_account" -> t.otherBankAccount.map(otherAccountToJson)) ~

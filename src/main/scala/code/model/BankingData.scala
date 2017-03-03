@@ -652,8 +652,6 @@ trait TransactionUUID {
 }
 
 class Transaction(
-  //A universally unique id
-  val uuid : String,
   //id is unique for transactions of @thisAccount
   val id : TransactionId,
   val thisAccount : BankAccount,

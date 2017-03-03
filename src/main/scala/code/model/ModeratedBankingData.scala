@@ -48,7 +48,6 @@ object Moderation {
 }
 
 class ModeratedTransaction(
-  val UUID : String,
   val id: TransactionId,
   val bankAccount: Moderated[ModeratedBankAccount],
   val otherBankAccount: Moderated[ModeratedOtherBankAccount],

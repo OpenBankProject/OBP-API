@@ -291,7 +291,6 @@ trait View {
     lazy val moderatedTransaction = {
       //transaction data
       val transactionId = transaction.id
-      val transactionUUID = transaction.uuid
       val otherBankAccount = moderate(transaction.otherAccount)
 
       //transation metadata
@@ -406,7 +405,6 @@ trait View {
         else ""
 
       new ModeratedTransaction(
-        UUID = transactionUUID,
         id = transactionId,
         bankAccount = moderatedAccount,
         otherBankAccount = otherBankAccount,

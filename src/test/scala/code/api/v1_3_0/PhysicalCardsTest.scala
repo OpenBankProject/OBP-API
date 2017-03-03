@@ -3,7 +3,7 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
@@ -16,7 +16,7 @@ import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
-import code.transactionrequests.{TransactionRequestTypeCharge}
+import code.transactionrequests.TransactionRequestTypeCharge
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -140,7 +140,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
       Failure("not supported")
     }
-    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                           transactionRequestType: TransactionRequestType,
+                                                           account: BankAccount, toAccount: BankAccount,
+                                                           toCounterparty: CounterpartyTrait,
+                                                           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                           details: String, status: String,
+                                                           charge: TransactionRequestCharge,
+                                                           chargePolicy: String): Box[TransactionRequest] = {
       Failure("not supported")
     }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???

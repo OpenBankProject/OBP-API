@@ -16,12 +16,10 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
 
   object bank extends MappedString(this, 255)
   object account extends MappedString(this, 255)
+  //Note: previous we used transactionUUID, the transactionId have the same function
   object transactionId extends MappedString(this, 255) {
     override def defaultValue = UUID.randomUUID().toString
   }
-  //TODO: review the need for this
-  // (why do we need transactionUUID and transactionId - which is a UUID?)
-  object transactionUUID extends MappedUUID(this)
   object transactionType extends MappedString(this, 100)
 
   //amount/new balance use the smallest unit of currency! e.g. cents, yen, pence, øre, etc.
@@ -46,7 +44,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
 
-  //The following are the fields from CounterpartyTrait, previence just save BankAccount to simulate the counterparty.
+  //The following are the fields from CounterpartyTrait, previous just save BankAccount to simulate the counterparty.
   //Now we save the real Counterparty data 
   //CP--> CounterParty
   object CPOtherBankId extends MappedString(this, 36)
@@ -131,7 +129,6 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
 
       Some(new Transaction(
-        transactionUUID.get,
         theTransactionId,
         account,
         otherAccount,

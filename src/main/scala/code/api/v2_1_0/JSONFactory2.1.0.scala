@@ -69,47 +69,48 @@ case class IbanJson (val iban : String)
 
 
 //high level of four different kinds of transaction request types: FREE_FROM, SANDBOXTAN, COUNTERPATY and SEPA.
-//They share the same AmountOfMoney field,
+//They share the same AmountOfMoney and description fields
 //Note : in scala case-to-case inheritance is prohibited, so used trait instead
-trait TransactionRequestDetailsJSON {
+trait TransactionRequestCommonBodyJSON {
   val value : AmountOfMoneyJSON
   val description: String
 }
 
 // the common parts of four types
-case class TransactionRequestDetailsCommonJSON(
-                                                value: AmountOfMoneyJSON,
-                                                description: String
-                                              ) extends TransactionRequestDetailsJSON
+// note: there is TransactionRequestCommonBodyJSON trait, so this case class call TransactionRequestBodyCommonJSON
+case class TransactionRequestBodyCommonJSON(
+                                             value: AmountOfMoneyJSON,
+                                             description: String
+                                           ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
-case class TransactionRequestDetailsSandBoxTanJSON(
-                                                    to: TransactionRequestAccountJSON,
-                                                    value: AmountOfMoneyJSON,
-                                                    description: String
-                                                  ) extends TransactionRequestDetailsJSON
+case class TransactionRequestBodySandBoxTanJSON(
+                                                 to: TransactionRequestAccountJSON,
+                                                 value: AmountOfMoneyJSON,
+                                                 description: String
+                                               ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
-case class TransactionRequestDetailsCounterpartyJSON(
-                                                      to: CounterpartyIdJson,
-                                                      value: AmountOfMoneyJSON,
-                                                      description: String,
-                                                      charge_policy: String
-                                                    ) extends TransactionRequestDetailsJSON
+case class TransactionRequestBodyCounterpartyJSON(
+                                                   to: CounterpartyIdJson,
+                                                   value: AmountOfMoneyJSON,
+                                                   description: String,
+                                                   charge_policy: String
+                                                 ) extends TransactionRequestCommonBodyJSON
 
 // the data from endpoint, extract as valid JSON
-case class TransactionRequestDetailsSEPAJSON(
-                                              value: AmountOfMoneyJSON,
-                                              to: IbanJson,
-                                              description: String,
-                                              charge_policy: String
-                                            ) extends TransactionRequestDetailsJSON
+case class TransactionRequestBodySEPAJSON(
+                                           value: AmountOfMoneyJSON,
+                                           to: IbanJson,
+                                           description: String,
+                                           charge_policy: String
+                                         ) extends TransactionRequestCommonBodyJSON
 
 // Note: FreeForm is not used yet, the format maybe changed latter. the data from endpoint, extract as valid JSON
-case class TransactionRequestDetailsFreeFormJSON(
-                                                  value: AmountOfMoneyJSON,
-                                                  description: String
-                                                ) extends TransactionRequestDetailsJSON
+case class TransactionRequestBodyFreeFormJSON(
+                                               value: AmountOfMoneyJSON,
+                                               description: String
+                                             ) extends TransactionRequestCommonBodyJSON
 
 
 
@@ -117,10 +118,10 @@ case class TransactionRequestDetailsFreeFormJSON(
 //And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
 // code : detailsJsonExtract = details.extract[TransactionRequestDetailsMapperJSON]
 case class TransactionRequestDetailsMapperJSON(
-                                                    to: TransactionRequestAccountJSON,
-                                                    value: AmountOfMoneyJSON,
-                                                    description: String
-                                                  ) extends TransactionRequestDetailsJSON
+                                                to: TransactionRequestAccountJSON,
+                                                value: AmountOfMoneyJSON,
+                                                description: String
+                                              ) extends TransactionRequestCommonBodyJSON
 
 //Mapper means this part will be stored into mapper.mdetails
 //And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
@@ -131,7 +132,7 @@ case class TransactionRequestDetailsMapperCounterpartyJSON(
                                                             value: AmountOfMoneyJSON,
                                                             description: String,
                                                             charge_policy: String
-                                                          ) extends TransactionRequestDetailsJSON
+                                                          ) extends TransactionRequestCommonBodyJSON
 
 //Mapper means this part will be stored into mapper. This is just for prepare the data
 //And when call the "answerTransactionRequestChallenge" endpoint, it will use this mapper.mdetails to process further step
@@ -142,7 +143,7 @@ case class TransactionRequestDetailsMapperSEPAJSON(
                                                     value: AmountOfMoneyJSON,
                                                     description: String,
                                                     charge_policy: String
-                                                  ) extends TransactionRequestDetailsJSON
+                                                  ) extends TransactionRequestCommonBodyJSON
 
 
 //Mapper means this part will be stored into mapper. This is just for prepare the data
@@ -152,7 +153,7 @@ case class TransactionRequestDetailsMapperFreeFormJSON(
                                                         to: TransactionRequestAccountJSON,
                                                         value: AmountOfMoneyJSON,
                                                         description: String
-                                                      ) extends TransactionRequestDetailsJSON
+                                                      ) extends TransactionRequestCommonBodyJSON
 
 case class TransactionRequestWithChargeJSON210(
                                              id: String,
@@ -297,7 +298,7 @@ case class CustomerJSONs(customers: List[CustomerJson])
 
 case class CustomerCreditRatingJSON(rating: String, source: String)
 
-//V210 added details and description feilds
+//V210 added details and description fields
 case class ProductJson(code : String,
                        name : String,
                        category: String,
@@ -309,7 +310,7 @@ case class ProductJson(code : String,
                        meta : MetaJson)
 case class ProductsJson (products : List[ProductJson])
 
-//V210 add bank_id feild and delete id
+//V210 add bank_id field and delete id
 case class BranchJsonPut(
                        bank_id: String,
                        name: String,

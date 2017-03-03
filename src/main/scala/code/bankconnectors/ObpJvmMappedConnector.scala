@@ -8,7 +8,7 @@ import java.util.{Date, Locale, Optional, Properties, UUID}
 
 import code.accountholder.MapperAccountHolders$
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.fx.{FXRate, fx}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -737,8 +737,25 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   //Note: now call the local mapper to store data
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
-    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         fromAccount: BankAccount,
+                                                         toAccount: BankAccount,
+                                                         toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String, status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String): Box[TransactionRequest] = {
+
+    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         fromAccount: BankAccount, toAccount: BankAccount,
+                                                         toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String,
+                                                         status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
@@ -1108,7 +1125,6 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
         // Create new transaction
         new Transaction(
-          r.id,                             // uuid:String
           TransactionId(r.id),              // id:TransactionId
           thisAccount,                      // thisAccount:BankAccount
           counterparty,                     // counterparty:Counterparty

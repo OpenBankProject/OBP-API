@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
 import code.accountholder.MapperAccountHolders$
-import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -256,7 +256,6 @@ private object LocalConnector extends Connector with Loggable {
     val balance = transaction.details.get.new_balance.get.amount.get
 
     new Transaction(
-      uuid,
       id,
       theAccount,
       otherAccount,
@@ -366,7 +365,13 @@ private object LocalConnector extends Connector with Loggable {
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = ???
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String, status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String): Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???

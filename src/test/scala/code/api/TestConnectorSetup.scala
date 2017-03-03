@@ -13,6 +13,7 @@ trait TestConnectorSetup {
   protected def createBank(id : String) : Bank
   protected def createAccount(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
   protected def createTransaction(account : BankAccount, startDate : Date, finishDate : Date)
+  protected def updateAccountCurrency(bankId: BankId, accountId : AccountId, currency : String) : BankAccount
 
   protected def createCounterparty(bankId: String, accountId: String, accountRoutingAddress: String, otherAccountRoutingScheme: String, isBeneficiary: Boolean, counterpartyId: String): CounterpartyTrait
 
