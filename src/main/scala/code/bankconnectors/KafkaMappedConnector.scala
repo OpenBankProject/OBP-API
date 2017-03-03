@@ -646,12 +646,10 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        "username" -> AuthUser.getCurrentUserUsername,
                                        "name" -> "put",
                                        "target" -> "transaction",
-
-                                       "transactionRequestType" -> transactionRequestType.value,
-                                       "transactionType" -> "AC",
-                                       "amount" -> amount.toString,
-                                       "currency" -> currency, //Now, http request currency must equal fromAccount.currency
                                        "description" -> description,
+                                       "transactionRequestType" -> transactionRequestType.value,
+                                       "toCurrency" -> currency, //Now, http request currency must equal fromAccount.currency
+                                       "toAmount" -> amount.toString,
                                        "chargePolicy" -> chargePolicy,
                                        //fromAccount
                                        "fromBankId" -> fromAccount.bankId.value,
@@ -660,11 +658,12 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        "toBankId" -> toAccount.bankId.value,
                                        "toAccountId" -> toAccount.accountId.value,
                                        //toCounterty
-                                       "counterpartyId" -> toCounterparty.counterpartyId,
-                                       "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                       "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
-                                       "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                       "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress)
+                                       "toCounterpartyId" -> toCounterparty.counterpartyId,
+                                       "toCounterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
+                                       "toCounterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
+                                       "toCounterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
+                                       "toCounterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
+                                       "type" -> "AC")
 
 
     // Since result is single account, we need only first list entry
