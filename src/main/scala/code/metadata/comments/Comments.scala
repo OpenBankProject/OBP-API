@@ -26,11 +26,11 @@ trait Comments {
   
 }
 
-class RemoteCommentsCaseClasses {
+class RemotedataCommentsCaseClasses {
   case class getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId, viewId : ViewId)
   case class addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, text : String, datePosted : Date)
   case class deleteComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId, commentId : String)
   case class bulkDeleteComments(bankId: BankId, accountId: AccountId)
 }
 
-object RemoteCommentsCaseClasses extends RemoteCommentsCaseClasses
+object RemotedataCommentsCaseClasses extends RemotedataCommentsCaseClasses

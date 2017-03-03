@@ -6,7 +6,7 @@ import akka.actor.ActorKilledException
 import akka.pattern.ask
 import akka.util.Timeout
 import code.api.APIFailure
-import code.metadata.transactionimages.{RemoteTransactionImagesCaseClasses, TransactionImages}
+import code.metadata.transactionimages.{RemotedataTransactionImagesCaseClasses, TransactionImages}
 import code.model._
 import net.liftweb.common.{Full, _}
 
@@ -15,16 +15,13 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataTransactionImages extends TransactionImages {
+object RemotedataTransactionImages extends ActorInit with TransactionImages {
 
-  implicit val timeout = Timeout(10000 milliseconds)
-  val TIMEOUT = 10 seconds
-  val rTransactionImages = RemoteTransactionImagesCaseClasses
-  var actor = RemotedataActorSystem.getActor("TransactionImages")
+  val cc = RemotedataTransactionImagesCaseClasses
 
   def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] = {
     Await.result(
-      (actor ? rTransactionImages.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
+      (actor ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
       TIMEOUT
     )
   }
@@ -33,7 +30,7 @@ object RemotedataTransactionImages extends TransactionImages {
                          (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
     Full(
       Await.result(
-        (actor ? rTransactionImages.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
+        (actor ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
         TIMEOUT
       )
     )
@@ -43,7 +40,7 @@ object RemotedataTransactionImages extends TransactionImages {
     val res = try {
       Full(
         Await.result(
-          (actor ? rTransactionImages.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
+          (actor ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -57,7 +54,7 @@ object RemotedataTransactionImages extends TransactionImages {
 
   def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (actor ? rTransactionImages.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
+      (actor ? cc.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }

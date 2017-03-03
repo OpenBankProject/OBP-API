@@ -26,11 +26,11 @@ trait Tags {
   
 }
 
-class RemoteTagsCaseClasses{
+class RemotedataTagsCaseClasses{
   case class getTags(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
   case class addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, tagText : String, datePosted : Date)
   case class deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String)
   case class bulkDeleteTags(bankId: BankId, accountId: AccountId)
 }
 
-object RemoteTagsCaseClasses extends RemoteTagsCaseClasses
+object RemotedataTagsCaseClasses extends RemotedataTagsCaseClasses

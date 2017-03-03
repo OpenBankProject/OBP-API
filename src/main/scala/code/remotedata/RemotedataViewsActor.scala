@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.Actor
 import akka.event.Logging
 import akka.util.Timeout
-import code.views.{MapperViews, RemoteViewCaseClasses}
+import code.views.{MapperViews, RemotedataViewsCaseClasses}
 import code.model._
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
@@ -17,44 +17,44 @@ class RemotedataViewsActor extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val mViews = MapperViews
-  val rViews = RemoteViewCaseClasses
+  val mapper = MapperViews
+  val cc = RemotedataViewsCaseClasses
 
   def receive = {
 
-    case rViews.addPermissions(views : List[ViewUID], user : User) =>
+    case cc.addPermissions(views : List[ViewUID], user : User) =>
 
       logger.info("addPermissions(" + views +"," + user +")")
 
       {
         for {
-          res <- mViews.addPermissions(views, user)
+          res <- mapper.addPermissions(views, user)
         } yield {
           sender ! res.asInstanceOf[List[View]]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rViews.addPermission(viewUID : ViewUID, user : User) =>
+    case cc.addPermission(viewUID : ViewUID, user : User) =>
 
       logger.info("addPermission(" + viewUID +"," + user +")")
 
       {
         for {
-          res <- mViews.addPermission(viewUID, user)
+          res <- mapper.addPermission(viewUID, user)
         } yield {
           sender ! res.asInstanceOf[View]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rViews.permission(account : BankAccountUID, user: User) =>
+    case cc.permission(account : BankAccountUID, user: User) =>
 
       logger.info("permission(" + account +"," + user +")")
 
       {
         for {
-          res <- mViews.permission(account, user)
+          res <- mapper.permission(account, user)
         } yield {
           sender ! res.asInstanceOf[Permission]
         }
@@ -62,167 +62,167 @@ class RemotedataViewsActor extends Actor {
 
 
     //TODO Fix return values in order to better describe failures
-    case rViews.revokePermission(viewUID : ViewUID, user : User) =>
+    case cc.revokePermission(viewUID : ViewUID, user : User) =>
 
       logger.info("revokePermission(" + viewUID +"," + user +")")
 
 
-      val res = mViews.revokePermission(viewUID, user)
+      val res = mapper.revokePermission(viewUID, user)
       res match {
         case Full(r) => sender ! r
         case f => sender ! f
       }
 
-    case rViews.revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) =>
+    case cc.revokeAllPermissions(bankId : BankId, accountId : AccountId, user : User) =>
 
       logger.info("revokeAllPermissions(" + bankId +"," + accountId +","+ user +")")
 
       {
         for {
-          res <- mViews.revokeAllPermissions(bankId, accountId, user)
+          res <- mapper.revokeAllPermissions(bankId, accountId, user)
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rViews.view(viewUID : ViewUID) =>
+    case cc.view(viewUID : ViewUID) =>
 
       logger.info("view(" + viewUID +")")
 
       {
         for {
-          res <- mViews.view(viewUID)
+          res <- mapper.view(viewUID)
         } yield {
           sender ! res.asInstanceOf[View]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rViews.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
+    case cc.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
 
       logger.info("view(" + viewId +", "+ bankAccountId + ")")
 
       {
         for {
-          res <- mViews.view(viewId, bankAccountId)
+          res <- mapper.view(viewId, bankAccountId)
         } yield {
           sender ! res.asInstanceOf[View]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rViews.createView(bankAccountId : BankAccountUID, view: CreateViewJSON) =>
+    case cc.createView(bankAccountId : BankAccountUID, view: CreateViewJSON) =>
       logger.info("createView(" + bankAccountId +","+ view +")")
-      sender ! mViews.createView(bankAccountId, view)
+      sender ! mapper.createView(bankAccountId, view)
 
-    case rViews.updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
+    case cc.updateView(bankAccountId : BankAccountUID, viewId : ViewId, viewUpdateJson : UpdateViewJSON) =>
       logger.info("updateView(" + bankAccountId +","+ viewId +","+ viewUpdateJson +")")
-      sender ! mViews.updateView(bankAccountId, viewId, viewUpdateJson)
+      sender ! mapper.updateView(bankAccountId, viewId, viewUpdateJson)
 
     //case r.view(viewId: ViewId, bankAccountId: BankAccountUID) =>
     //  logger.info("view(" + viewId +","+ bankAccountId +")")
     //  sender ! v.view(ViewId(viewId.value), bankAccountId)
 
-    case rViews.removeView(viewId : ViewId, bankAccountId: BankAccountUID) =>
+    case cc.removeView(viewId : ViewId, bankAccountId: BankAccountUID) =>
       logger.info("removeView(" + viewId +","+ bankAccountId +")")
-      sender ! mViews.removeView(viewId, bankAccountId)
+      sender ! mapper.removeView(viewId, bankAccountId)
 
-    case rViews.permissions(bankAccountId : BankAccountUID) =>
+    case cc.permissions(bankAccountId : BankAccountUID) =>
       logger.info("premissions(" + bankAccountId +")")
-      sender ! mViews.permissions(bankAccountId)
+      sender ! mapper.permissions(bankAccountId)
 
-    case rViews.views(bankAccountId : BankAccountUID) =>
+    case cc.views(bankAccountId : BankAccountUID) =>
       logger.info("views(" + bankAccountId +")")
-      sender ! mViews.views(bankAccountId)
+      sender ! mapper.views(bankAccountId)
 
-    case rViews.permittedViews(user: User, bankAccountId: BankAccountUID) =>
+    case cc.permittedViews(user: User, bankAccountId: BankAccountUID) =>
       logger.info("permittedViews(" + user +", " + bankAccountId +")")
-      sender ! mViews.permittedViews(user, bankAccountId)
+      sender ! mapper.permittedViews(user, bankAccountId)
 
-    case rViews.publicViews(bankAccountId : BankAccountUID) =>
+    case cc.publicViews(bankAccountId : BankAccountUID) =>
       logger.info("publicViews(" + bankAccountId +")")
-      sender ! mViews.publicViews(bankAccountId)
+      sender ! mapper.publicViews(bankAccountId)
 
-    case rViews.getAllPublicAccounts() =>
+    case cc.getAllPublicAccounts() =>
       logger.info("getAllPublicAccounts()")
-      sender ! mViews.getAllPublicAccounts
+      sender ! mapper.getAllPublicAccounts
 
-    case rViews.getPublicBankAccounts(bank : Bank) =>
+    case cc.getPublicBankAccounts(bank : Bank) =>
       logger.info("getPublicBankAccounts(" + bank +")")
-      sender ! mViews.getPublicBankAccounts(bank)
+      sender ! mapper.getPublicBankAccounts(bank)
 
-    case rViews.getAllAccountsUserCanSee(user : Box[User]) =>
+    case cc.getAllAccountsUserCanSee(user : Box[User]) =>
       logger.info("getAllAccountsUserCanSee(" + user +")")
-      sender ! mViews.getAllAccountsUserCanSee(user)
+      sender ! mapper.getAllAccountsUserCanSee(user)
 
-    case rViews.getAllAccountsUserCanSee(user : User) =>
+    case cc.getAllAccountsUserCanSee(user : User) =>
       logger.info("getAllAccountsUserCanSee(" + user +")")
-      sender ! mViews.getAllAccountsUserCanSee(Full(user))
+      sender ! mapper.getAllAccountsUserCanSee(Full(user))
 
-    case rViews.getAllAccountsUserCanSee(bank: Bank, user : Box[User]) =>
+    case cc.getAllAccountsUserCanSee(bank: Bank, user : Box[User]) =>
       logger.info("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! mViews.getAllAccountsUserCanSee(bank, user)
+      sender ! mapper.getAllAccountsUserCanSee(bank, user)
 
-    case rViews.getAllAccountsUserCanSee(bank: Bank, user : User) =>
+    case cc.getAllAccountsUserCanSee(bank: Bank, user : User) =>
       logger.info("getAllAccountsUserCanSee(" + bank +", "+ user +")")
-      sender ! mViews.getAllAccountsUserCanSee(bank, Full(user))
+      sender ! mapper.getAllAccountsUserCanSee(bank, Full(user))
 
-    case rViews.getNonPublicBankAccounts(user: User, bankId: BankId) =>
+    case cc.getNonPublicBankAccounts(user: User, bankId: BankId) =>
       logger.info("getNonPublicBankAccounts(" + user +", "+ bankId +")")
-      sender ! mViews.getNonPublicBankAccounts(user, bankId)
+      sender ! mapper.getNonPublicBankAccounts(user, bankId)
 
-    case rViews.getNonPublicBankAccounts(user: User) =>
+    case cc.getNonPublicBankAccounts(user: User) =>
       logger.info("getNonPublicBankAccounts(" + user +")")
-      sender ! mViews.getNonPublicBankAccounts(user)
+      sender ! mapper.getNonPublicBankAccounts(user)
 
-    case rViews.createOwnerView(bankId, accountId, description) =>
+    case cc.createOwnerView(bankId, accountId, description) =>
       logger.info("createOwnerView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! mViews.createOwnerView(bankId, accountId, description).orNull
+      sender ! mapper.createOwnerView(bankId, accountId, description).orNull
 
-    case rViews.createPublicView(bankId, accountId, description) =>
+    case cc.createPublicView(bankId, accountId, description) =>
       logger.info("createPublicView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! mViews.createPublicView(bankId, accountId, description).orNull
+      sender ! mapper.createPublicView(bankId, accountId, description).orNull
 
-    case rViews.createAccountantsView(bankId, accountId, description) =>
+    case cc.createAccountantsView(bankId, accountId, description) =>
       logger.info("createAccountantsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! mViews.createAccountantsView(bankId, accountId, description).orNull
+      sender ! mapper.createAccountantsView(bankId, accountId, description).orNull
 
-    case rViews.createAuditorsView(bankId, accountId, description) =>
+    case cc.createAuditorsView(bankId, accountId, description) =>
       logger.info("createAuditorsView(" + bankId +", "+ accountId +", "+ description +")")
-      sender ! mViews.createAuditorsView(bankId, accountId, description).orNull
+      sender ! mapper.createAuditorsView(bankId, accountId, description).orNull
 
-    case rViews.createRandomView(bankId, accountId) =>
+    case cc.createRandomView(bankId, accountId) =>
       logger.info("createRandomView(" + bankId +", "+ accountId +")")
-      sender ! mViews.createRandomView(bankId, accountId).orNull
+      sender ! mapper.createRandomView(bankId, accountId).orNull
 
-    case rViews.getOwners(view) =>
+    case cc.getOwners(view) =>
       logger.info("getOwners(" + view +")")
-     sender ! mViews.getOwners(view)
+     sender ! mapper.getOwners(view)
 
-    case rViews.grantAccessToView(user, view) =>
+    case cc.grantAccessToView(user, view) =>
       logger.info("grantAccessToView(" + user +", "+ view +")")
-      sender ! mViews.grantAccessToView(user, view)
+      sender ! mapper.grantAccessToView(user, view)
 
-    case rViews.grantAccessToAllExistingViews(user) =>
+    case cc.grantAccessToAllExistingViews(user) =>
       logger.info("grantAccessToAllExistingViews(" + user +")")
-      sender ! mViews.grantAccessToAllExistingViews(user)
+      sender ! mapper.grantAccessToAllExistingViews(user)
 
-    case rViews.removeAllPermissions(bankId, accountId) =>
+    case cc.removeAllPermissions(bankId, accountId) =>
       logger.info("removeAllPermissions(" + bankId +", "+ accountId +")")
-      sender ! mViews.removeAllPermissions(bankId, accountId)
+      sender ! mapper.removeAllPermissions(bankId, accountId)
 
-    case rViews.removeAllViews(bankId, accountId) =>
+    case cc.removeAllViews(bankId, accountId) =>
       logger.info("removeAllViews(" + bankId +", "+ accountId +")")
-      sender ! mViews.removeAllViews(bankId, accountId)
+      sender ! mapper.removeAllViews(bankId, accountId)
 
 
-    case rViews.bulkDeleteAllPermissionsAndViews() =>
+    case cc.bulkDeleteAllPermissionsAndViews() =>
 
       logger.info("bulkDeleteAllPermissionsAndViews()")
 
       {
         for {
-          res <- tryo{mViews.bulkDeleteAllPermissionsAndViews()}
+          res <- tryo{mapper.bulkDeleteAllPermissionsAndViews()}
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }

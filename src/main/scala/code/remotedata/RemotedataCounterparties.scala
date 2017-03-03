@@ -6,7 +6,7 @@ import akka.actor.ActorKilledException
 import akka.pattern.ask
 import akka.util.Timeout
 import code.api.APIFailure
-import code.metadata.counterparties.{RemoteCounterpartiesCaseClasses, CounterpartyTrait, Counterparties}
+import code.metadata.counterparties.{Counterparties, CounterpartyTrait, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import net.liftweb.common.{Full, _}
 
@@ -15,19 +15,15 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataCounterparties extends Counterparties {
+object RemotedataCounterparties extends ActorInit with Counterparties {
 
-  implicit val timeout = Timeout(10000 milliseconds)
-  val TIMEOUT = 10 seconds
-  val rCounterparties = RemoteCounterpartiesCaseClasses
-  var counterpartiesActor = RemotedataActorSystem.getActor("counterparties")
-
+  val cc = RemotedataCounterpartiesCaseClasses
 
   override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
+          (actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
           TIMEOUT
         )
       )
@@ -43,7 +39,7 @@ object RemotedataCounterparties extends Counterparties {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
+          (actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
           TIMEOUT
         )
       )
@@ -59,7 +55,7 @@ object RemotedataCounterparties extends Counterparties {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
+          (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
           TIMEOUT
         )
       )
@@ -75,7 +71,7 @@ object RemotedataCounterparties extends Counterparties {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
+          (actor ? cc.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
           TIMEOUT
         )
       )
@@ -91,7 +87,7 @@ object RemotedataCounterparties extends Counterparties {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
+          (actor ? cc.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
           TIMEOUT
         )
       )
@@ -107,7 +103,7 @@ object RemotedataCounterparties extends Counterparties {
     val res = try {
       Full(
         Await.result(
-          (counterpartiesActor ? rCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+          (actor ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
                                                            otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
                                                            isBeneficiary)).mapTo[CounterpartyTrait],
           TIMEOUT
@@ -123,7 +119,7 @@ object RemotedataCounterparties extends Counterparties {
 
   override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = {
     Await.result(
-      (counterpartiesActor ? rCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
+      (actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
       TIMEOUT
     )
   }

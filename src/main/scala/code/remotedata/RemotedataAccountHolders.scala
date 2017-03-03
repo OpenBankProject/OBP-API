@@ -1,6 +1,6 @@
 package code.remotedata
 
-import code.accountholder.{AccountHolders, RemoteAccountHoldersCaseClasses}
+import code.accountholder.{AccountHolders, RemotedataAccountHoldersCaseClasses}
 import code.model.{AccountId, BankId, User}
 import net.liftweb.common.{Full, _}
 import akka.pattern.ask
@@ -9,23 +9,20 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataAccountHolders extends AccountHolders {
+object RemotedataAccountHolders extends ActorInit with AccountHolders {
 
-  implicit val timeout = Timeout(10000 milliseconds)
-  val TIMEOUT = 10 seconds
-  val rAccountHolders = RemoteAccountHoldersCaseClasses
-  var accountHoldersActor = RemotedataActorSystem.getActor("accountHolders")
+  val cc = RemotedataAccountHoldersCaseClasses
 
   override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
     Await.result(
-      (accountHoldersActor ? rAccountHolders.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
+      (actor ? cc.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
       TIMEOUT
     )
   }
 
   override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
     Await.result(
-      (accountHoldersActor ? rAccountHolders.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
+      (actor ? cc.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
       TIMEOUT
     )
   }
@@ -34,7 +31,7 @@ object RemotedataAccountHolders extends AccountHolders {
   def bulkDeleteAllAccountHolders(): Box[Boolean] = {
     Full(
       Await.result(
-        (accountHoldersActor ? rAccountHolders.bulkDeleteAllAccountHolders()).mapTo[Boolean],
+        (actor ? cc.bulkDeleteAllAccountHolders()).mapTo[Boolean],
         TIMEOUT
       )
     )

@@ -41,7 +41,7 @@ trait Users {
   def bulkDeleteAllResourceUsers() : Box[Boolean]
 }
 
-class RemoteUserCaseClasses {
+class RemotedataUsersCaseClasses {
   case class getUserByResourceUserId(id : Long)
   case class getResourceUserByResourceUserId(id : Long)
   case class getUserByProviderId(provider : String, idGivenByProvider : String)
@@ -56,4 +56,4 @@ class RemoteUserCaseClasses {
   case class bulkDeleteAllResourceUsers()
 }
 
-object RemoteUserCaseClasses extends RemoteUserCaseClasses
+object RemotedataUsersCaseClasses extends RemotedataUsersCaseClasses

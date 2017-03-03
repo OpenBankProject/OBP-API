@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.Actor
 import akka.event.Logging
 import akka.util.Timeout
-import code.metadata.counterparties.{CounterpartyTrait, MapperCounterparties, RemoteCounterpartiesCaseClasses}
+import code.metadata.counterparties.{CounterpartyTrait, MapperCounterparties, RemotedataCounterpartiesCaseClasses}
 import code.model._
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
@@ -17,18 +17,18 @@ class RemotedataCounterpartiesActor extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val mCounterparties = MapperCounterparties
-  val rCounterparties = RemoteCounterpartiesCaseClasses
+  val mapper = MapperCounterparties
+  val cc = RemotedataCounterpartiesCaseClasses
 
   def receive = {
 
-    case rCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
+    case cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)=>
 
       logger.info("checkCounterpartyAvailable(" + name +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +")")
 
-      sender ! mCounterparties.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
+      sender ! mapper.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 
-    case rCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
+    case cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
                                             name, otherBankId, otherAccountId, otherAccountRoutingScheme,
                                             otherAccountRoutingAddress, otherBankRoutingScheme, 
                                             otherBankRoutingAddress, isBeneficiary) =>
@@ -38,7 +38,7 @@ class RemotedataCounterpartiesActor extends Actor {
 
       {
         for {
-          res <- mCounterparties.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
+          res <- mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
                                                     otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
                                                     isBeneficiary)
         } yield {
@@ -48,37 +48,37 @@ class RemotedataCounterpartiesActor extends Actor {
 
 
 
-    case rCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty) =>
+    case cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty) =>
 
       logger.info("getOrCreateMetadata(" + originalPartyBankId +", " +originalPartyAccountId+otherParty+")")
 
       {
         for {
-          res <- mCounterparties.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
+          res <- mapper.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
         } yield {
           sender ! res.asInstanceOf[CounterpartyMetadata]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId) =>
+    case cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId) =>
       logger.info("getOrCreateMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")
 
       Full({
              for {
-               res <- Full(mCounterparties.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))
+               res <- Full(mapper.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))
              } yield {
                sender ! res.asInstanceOf[List[CounterpartyMetadata]]
              }
            }).getOrElse(context.stop(sender))
 
 
-    case rCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String) =>
+    case cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String) =>
 
         logger.info("getMetadata(" + originalPartyBankId +", "+originalPartyAccountId+")")
 
       {
         for {
-          res <- mCounterparties.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
+          res <- mapper.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)
         } yield {
           sender ! res.asInstanceOf[CounterpartyMetadata]
         }
@@ -86,26 +86,26 @@ class RemotedataCounterpartiesActor extends Actor {
 
 
 
-    case rCounterparties.getCounterparty(counterPartyId: String) =>
+    case cc.getCounterparty(counterPartyId: String) =>
 
       logger.info("getCounterparty(" + counterPartyId +")")
 
       {
         for {
-          res <- mCounterparties.getCounterparty(counterPartyId: String)
+          res <- mapper.getCounterparty(counterPartyId: String)
         } yield {
           sender ! res.asInstanceOf[CounterpartyTrait]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rCounterparties.getCounterpartyByIban(iban: String) =>
+    case cc.getCounterpartyByIban(iban: String) =>
 
       logger.info("getOrCreateMetadata(" + iban +")")
 
       {
         for {
-          res <- mCounterparties.getCounterpartyByIban(iban: String)
+          res <- mapper.getCounterpartyByIban(iban: String)
         } yield {
           sender ! res.asInstanceOf[CounterpartyTrait]
         }

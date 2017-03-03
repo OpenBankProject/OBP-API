@@ -29,11 +29,11 @@ trait TransactionImages {
   
 }
 
-class RemoteTransactionImagesCaseClasses {
+class RemotedataTransactionImagesCaseClasses {
   case class getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
   case class addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String)
   case class deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId, imageId : String)
   case class bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId)
 }
 
-object RemoteTransactionImagesCaseClasses extends RemoteTransactionImagesCaseClasses
+object RemotedataTransactionImagesCaseClasses extends RemotedataTransactionImagesCaseClasses

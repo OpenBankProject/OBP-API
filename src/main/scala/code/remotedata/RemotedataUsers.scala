@@ -6,7 +6,7 @@ import akka.util.Timeout
 import code.api.APIFailure
 import code.model.User
 import code.model.dataAccess.ResourceUser
-import code.users.{RemoteUserCaseClasses, Users}
+import code.users.{RemotedataUsersCaseClasses, Users}
 import net.liftweb.common.{Full, _}
 
 import scala.collection.immutable.List
@@ -14,18 +14,15 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataUsers extends Users {
+object RemotedataUsers extends ActorInit with Users {
 
-  implicit val timeout = Timeout(10000 milliseconds)
-  val TIMEOUT = 10 seconds
-  val rUsers = RemoteUserCaseClasses
-  var usersActor = RemotedataActorSystem.getActor("users")
+  val cc = RemotedataUsersCaseClasses
 
   def getUserByResourceUserId(id : Long) : Box[User] = {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getUserByResourceUserId(id)).mapTo[User],
+    (actor ? cc.getUserByResourceUserId(id)).mapTo[User],
     TIMEOUT
     )
     )
@@ -41,7 +38,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
+    (actor ? cc.getResourceUserByResourceUserId(id)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -57,7 +54,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
+    (actor ? cc.getUserByProviderId(provider, idGivenByProvider)).mapTo[User],
     TIMEOUT
     )
     )
@@ -73,7 +70,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getUserByUserId(userId)).mapTo[User],
+    (actor ? cc.getUserByUserId(userId)).mapTo[User],
     TIMEOUT
     )
     )
@@ -89,7 +86,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getUserByUserName(userName)).mapTo[ResourceUser],
+    (actor ? cc.getUserByUserName(userName)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -105,7 +102,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getUserByEmail(email)).mapTo[List[ResourceUser]],
+    (actor ? cc.getUserByEmail(email)).mapTo[List[ResourceUser]],
     TIMEOUT
     )
     )
@@ -121,7 +118,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.getAllUsers()).mapTo[List[ResourceUser]],
+    (actor ? cc.getAllUsers()).mapTo[List[ResourceUser]],
     TIMEOUT
     )
     )
@@ -137,7 +134,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+    (actor ? cc.createResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -153,7 +150,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
+    (actor ? cc.createUnsavedResourceUser(provider, providerId, name, email, userId)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -169,7 +166,7 @@ object RemotedataUsers extends Users {
     val res = try {
     Full(
     Await.result(
-    (usersActor ? rUsers.saveResourceUser(resourceUser)).mapTo[ResourceUser],
+    (actor ? cc.saveResourceUser(resourceUser)).mapTo[ResourceUser],
     TIMEOUT
     )
     )
@@ -185,7 +182,7 @@ object RemotedataUsers extends Users {
     val res = try{
     Full(
     Await.result(
-    (usersActor ? rUsers.deleteResourceUser(userId)).mapTo[Boolean],
+    (actor ? cc.deleteResourceUser(userId)).mapTo[Boolean],
     TIMEOUT
     )
     )
@@ -201,7 +198,7 @@ object RemotedataUsers extends Users {
   def bulkDeleteAllResourceUsers(): Box[Boolean] = {
     Full(
     Await.result(
-    (usersActor ? rUsers.bulkDeleteAllResourceUsers()).mapTo[Boolean],
+    (actor ? cc.bulkDeleteAllResourceUsers()).mapTo[Boolean],
     TIMEOUT
     )
     )
