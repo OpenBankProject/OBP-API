@@ -12,7 +12,7 @@ import code.fx.{FXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
-import code.model.dataAccess.ResourceUser
+import code.model.dataAccess.{MappedBankAccount, ResourceUser}
 import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
@@ -119,6 +119,14 @@ trait Connector {
   def updateUserAccountViews(user: ResourceUser)
 
   def getBankAccount(bankId : BankId, accountId : AccountId) : Box[AccountType]
+
+  /**
+    * This method is just return an empty account to AccountType.
+    * It is used for SEPA, Counterparty empty toAccount
+    *
+    * @return empty bankAccount
+    */
+  def getEmptyBankAccount(): Box[AccountType]
 
   def getCounterpartyFromTransaction(bankId: BankId, accountID : AccountId, counterpartyID : String) : Box[Counterparty]
 
@@ -227,20 +235,12 @@ trait Connector {
       // Note: These following guards are checked in AIP level (maybe some other function call it, so leave the guards here)
       fromAccount <- getBankAccount(fromAccountUID.bankId, fromAccountUID.accountId) ?~
         s"account ${fromAccountUID.accountId} not found at bank ${fromAccountUID.bankId}"
-      isOwner <- booleanToBox(initiator.ownerAccess(fromAccount) == true || hasEntitlement(fromAccountUID.bankId.value, initiator.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-      toAccount <- getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~
-        s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
-      //sameCurrency <- booleanToBox(fromAccount.currency == toAccount.currency, {
-      //  s"Cannot send payment to account with different currency (From ${fromAccount.currency} to ${toAccount.currency}"
-      //})
-
-      // Note: These are guards. Values are calculated in makePaymentImpl
-      rate <- tryo { fx.exchangeRate(fromAccount.currency, toAccount.currency)} ?~!
-        {s"The requested currency conversion (${fromAccount.currency} to ${toAccount.currency}) is not supported."}
-      notUsedHereConvertedAmount <- tryo { fx.convert(amount, rate) } ?~!
-        {"Currency conversion failed."}
-      isPositiveAmtToSend <- booleanToBox(amount > BigDecimal("0"), s"Can't send a payment with a value of 0 or less. ($amount)")
-      //TODO: verify the amount fits with the currency -> e.g. 12.543 EUR not allowed, 10.00 JPY not allowed, 12.53 EUR allowed
+      isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+      toAccount <-if(isMapped || transactionRequestType.value.equals("SANDBOX_TAN")){
+        getBankAccount(toAccountUID.bankId, toAccountUID.accountId) ?~ s"account ${toAccountUID.accountId} not found at bank ${toAccountUID.bankId}"
+      }else{
+        getEmptyBankAccount()
+      }
 
       transactionId <- makePaymentImpl(fromAccount, toAccount, toCounterparty, amount, description, transactionRequestType, chargePolicy)
     } yield transactionId

@@ -197,6 +197,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     // Create argument list
     val req = Map(
       "north" -> "getChallengeThreshold",
+      "action" -> "obp.getChallengeThreshold",
       "version" -> formatVersion,
       "name" -> AuthUser.getCurrentUserUsername,
       "bankId" -> bankId,
@@ -356,7 +357,7 @@ object KafkaMappedConnector extends Connector with Loggable {
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
       "name" -> "get",
-      "target" -> "accounts",
+      "target" -> "account",
       "bankId" -> bankId.toString,
       "accountId" -> accountId.value
       )
@@ -524,6 +525,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         "north" -> "getCounterpartyByCounterpartyId",
         "version" -> formatVersion,
         "name" -> AuthUser.getCurrentUserUsername,
+        "action" -> "obp.getCounterpartyByCounterpartyId",
         "counterpartyId" -> counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
@@ -554,6 +556,7 @@ object KafkaMappedConnector extends Connector with Loggable {
         "username" -> AuthUser.getCurrentUserUsername,
         "name" -> "get",
         "target" -> "counterparty",
+        "action" -> "obp.getCounterpartyByIban",
         "otherAccountRoutingAddress" -> iban,
         "otherAccountRoutingScheme" -> "IBAN"
       )
@@ -636,31 +639,32 @@ object KafkaMappedConnector extends Connector with Loggable {
     //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amount, account.currency)
     //account.balance = newAccountBalance
 
-    val req: Map[String, String] = Map(
-                                        "north" -> "saveTransaction",
-                                        "version" -> formatVersion,
-                                        "userId" -> AuthUser.getCurrentResourceUserUserId,
-                                        "username" -> AuthUser.getCurrentUserUsername,
-                                        "name" -> "put",
-                                        "target" -> "transaction",
-                                        // for both  toAccount and toCounterparty
-                                        "accountId" -> fromAccount.accountId.value,
-                                        "transactionRequestType" -> transactionRequestType.value,
-                                        "transactionType" -> "AC",
-                                        "amount" -> amount.toString,
-                                        "currency" -> currency,
-                                        "description" -> description,
-                                        //Old data: other BankAccount(toAccount: BankAccount)simulate counterparty
-                                        "otherAccountId" -> toAccount.accountId.value,
-                                        "otherAccountCurrency" -> toAccount.currency,
-                                        //New data: real counterparty (toCounterparty: CounterpartyTrait)
-                                        "counterpartyId" -> toCounterparty.counterpartyId,
-                                        "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
-                                        "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
-                                        "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
-                                        "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
-                                        "chargePolicy" -> chargePolicy
-    )
+    val req: Map[String, String] = Map("north" -> "putTransaction",
+                                       "action" -> "obp.putTransaction",
+                                       "version" -> formatVersion,
+                                       "userId" -> AuthUser.getCurrentResourceUserUserId,
+                                       "username" -> AuthUser.getCurrentUserUsername,
+                                       "name" -> "put",
+                                       "target" -> "transaction",
+
+                                       "transactionRequestType" -> transactionRequestType.value,
+                                       "transactionType" -> "AC",
+                                       "amount" -> amount.toString,
+                                       "currency" -> currency, //Now, http request currency must equal fromAccount.currency
+                                       "description" -> description,
+                                       "chargePolicy" -> chargePolicy,
+                                       //fromAccount
+                                       "fromBankId" -> fromAccount.bankId.value,
+                                       "fromAccountId" -> fromAccount.accountId.value,
+                                       //toAccount
+                                       "toBankId" -> toAccount.bankId.value,
+                                       "toAccountId" -> toAccount.accountId.value,
+                                       //toCounterty
+                                       "counterpartyId" -> toCounterparty.counterpartyId,
+                                       "counterpartyOtherAccountRoutingScheme" -> toCounterparty.otherAccountRoutingScheme,
+                                       "counterpartyOtherAccountRoutingAddress" -> toCounterparty.otherAccountRoutingAddress,
+                                       "counterpartyOtherBankRoutingScheme" -> toCounterparty.otherBankRoutingScheme,
+                                       "counterpartyOtherBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress)
 
 
     // Since result is single account, we need only first list entry
@@ -1138,6 +1142,21 @@ object KafkaMappedConnector extends Connector with Loggable {
     Full(transactionRequestTypes.map(getTransactionRequestTypeCharge(bankId, accountId, viewId,_).get))
   }
 
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new KafkaBankAccount(KafkaInboundAccount(accountId = "",
+                                                  bankId = "",
+                                                  label = "",
+                                                  number = "",
+                                                  `type` = "",
+                                                  balanceAmount = "",
+                                                  balanceCurrency = "",
+                                                  iban = "",
+                                                  owners = Nil,
+                                                  generate_public_view = true,
+                                                  generate_accountants_view = true,
+                                                  generate_auditors_view = true)))
+  }
+
   /////////////////////////////////////////////////////////////////////////////
 
 
@@ -1247,9 +1266,6 @@ object KafkaMappedConnector extends Connector with Loggable {
     def thisBankId: String = counterparty.this_bank_id
     def thisAccountId: String = counterparty.this_account_id
     def thisViewId: String = counterparty.this_view_id
-    def otherBankId: String = counterparty.other_bank_id
-    def otherAccountId: String = counterparty.other_account_id
-    def otherAccountProvider: String = counterparty.other_account_provider
     def counterpartyId: String = counterparty.counterparty_id
     def otherAccountRoutingScheme: String = counterparty.other_account_routing_scheme
     def otherAccountRoutingAddress: String = counterparty.other_account_routing_address
@@ -1466,9 +1482,6 @@ object KafkaMappedConnector extends Connector with Loggable {
                                        this_bank_id: String,
                                        this_account_id: String,
                                        this_view_id: String,
-                                       other_bank_id: String,
-                                       other_account_id: String,
-                                       other_account_provider: String,
                                        counterparty_id: String,
                                        other_bank_routing_scheme: String,
                                        other_account_routing_scheme: String,

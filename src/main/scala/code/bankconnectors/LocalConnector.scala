@@ -628,4 +628,6 @@ private object LocalConnector extends Connector with Loggable {
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
 
+  override def getEmptyBankAccount(): Box[AccountType] = Empty
+
 }

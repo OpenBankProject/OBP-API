@@ -205,6 +205,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
 
     override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+    /**
+      * this method is just return an empty account to AccountType.
+      * It is used for SEPA, Counterparty empty toAccount, just used the toCounterparty
+      *
+      * @return empty bankAccount
+      */
+    override def getEmptyBankAccount(): Box[AccountType] = Empty
   }
 
   override def beforeAll() {

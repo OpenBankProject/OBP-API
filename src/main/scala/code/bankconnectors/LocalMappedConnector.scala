@@ -178,6 +178,10 @@ object LocalMappedConnector extends Connector with Loggable {
       By(MappedBankAccount.theAccountId, accountId.value))
   }
 
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new MappedBankAccount())
+  }
+
   /**
     * This is used for create or update the special bankAccount for COUNTERPARTY stuff (toAccountProvider != "OBP") and (Connector = Kafka)
     * details in createTransactionRequest - V210 ,case "COUNTERPARTY"

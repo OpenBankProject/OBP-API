@@ -328,6 +328,8 @@ trait APIMethods210 {
                 s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
               amountOfMoneyJSON <- Full(AmountOfMoneyJSON(transDetailsJson.value.currency, transDetailsJson.value.amount))
 
+              isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+
               createdTransactionRequest <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => {
                   for {
@@ -368,7 +370,7 @@ trait APIMethods210 {
                     // This is so developers can follow the COUNTERPARTY flow in the sandbox
 
                     //if it is OBP, we call the local database, just for sandbox test case
-                    toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
+                    toAccount <- if(isMapped && toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                     //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
                     else
@@ -407,7 +409,7 @@ trait APIMethods210 {
                     toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
                     //if the connector is mapped, we get the data from local mapper
-                    toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+                    toAccount <- if(isMapped)
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                     else
                     //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction

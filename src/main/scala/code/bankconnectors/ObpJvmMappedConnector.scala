@@ -1433,5 +1433,19 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new ObpJvmBankAccount(ObpJvmInboundAccount(id = "",
+                                                    bank = "",
+                                                    label = "",
+                                                    number = "",
+                                                    `type` = "",
+                                                    balance = ObpJvmInboundBalance("", ""),
+                                                    IBAN = "",
+                                                    owners = Nil,
+                                                    generate_public_view = true,
+                                                    generate_accountants_view = true,
+                                                    generate_auditors_view = true)))
+  }
 }
 
