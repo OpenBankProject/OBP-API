@@ -101,8 +101,8 @@ class ModeratedTransactionMetadata(
   val addTag : Moderated[(UserId, ViewId, String, Date) => Box[TransactionTag]],
   private val deleteTag : Moderated[(String) => Box[Boolean]],
   val images : Moderated[List[TransactionImage]],
-  val addImage : Moderated[(UserId, ViewId, String, Date, URL) => Box[TransactionImage]],
-  private val deleteImage : Moderated[String => Unit],
+  val addImage : Moderated[(UserId, ViewId, String, Date, String) => Box[TransactionImage]],
+  private val deleteImage : Moderated[String => Box[Boolean]],
   val whereTag : Moderated[Option[GeoTag]],
   val addWhereTag : Moderated[(UserId, ViewId, Date, Double, Double) => Boolean],
   private val deleteWhereTag : Moderated[(ViewId) => Boolean]

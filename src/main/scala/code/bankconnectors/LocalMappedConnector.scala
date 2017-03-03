@@ -2,25 +2,22 @@ package code.bankconnectors
 
 import java.util.{Date, UUID}
 
-import code.TransactionTypes.TransactionType.TransactionTypeProvider
-import code.accountholder.MapperAccountHolders$
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.api.v2_1_0.BranchJsonPost
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.{Comments, MappedComment}
+import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.{MappedTag, Tags}
-import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.{MappedWhereTag, WhereTags}
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 import code.model.{TransactionRequestType, _}
 import code.model.dataAccess._
 import code.products.MappedProduct
 import code.products.Products.{Product, ProductCode}
-import code.sandbox.SandboxBranchImport
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
@@ -627,10 +624,7 @@ Store one or more transactions
     val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
-    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
-      By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
-    )
+    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(

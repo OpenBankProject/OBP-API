@@ -4,27 +4,26 @@ import java.text.SimpleDateFormat
 import java.time.ZoneOffset.UTC
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.util.{Date, Locale, Optional, Properties, UUID}
+import java.util.{Date, Locale, Optional, UUID}
 
-import code.accountholder.MapperAccountHolders$
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
 import code.fx.{FXRate, fx}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.management.ImporterAPI.ImporterTransaction
-import code.metadata.comments.{Comments, MappedComment}
+import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait}
 import code.metadata.narrative.MappedNarrative
-import code.metadata.tags.{MappedTag, Tags}
-import code.metadata.transactionimages.MappedTransactionImage
-import code.metadata.wheretags.{MappedWhereTag, WhereTags}
+import code.metadata.tags.Tags
+import code.metadata.transactionimages.TransactionImages
+import code.metadata.wheretags.WhereTags
 import code.model._
 import code.model.dataAccess._
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
-import code.util.{Helper, TTLCache}
+import code.util.Helper
 import code.views.Views
 import com.tesobe.obp.kafka.{Configuration, SimpleConfiguration, SimpleNorth}
 import com.tesobe.obp.transport.{Pager, Transport}
@@ -857,10 +856,7 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
-    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
-      By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
-    )
+    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(

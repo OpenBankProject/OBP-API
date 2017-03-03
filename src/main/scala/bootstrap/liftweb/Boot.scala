@@ -432,6 +432,7 @@ object ToSchemify {
     MappedComment,
     MappedTag,
     MappedWhereTag,
+    MappedTransactionImage,
     MapperAccountHolders
   )
 
@@ -449,7 +450,6 @@ object ToSchemify {
     MappedBankAccount,
     MappedTransaction,
     MappedTransactionRequest,
-    MappedTransactionImage,
     MappedMetric,
     MappedCustomer,
     MappedCustomerMessage,
