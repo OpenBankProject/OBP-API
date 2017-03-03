@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 import akka.actor.Actor
 import akka.event.Logging
 import akka.util.Timeout
-import code.metadata.tags.{MappedTags, RemoteTagsCaseClasses}
+import code.metadata.tags.{MappedTags, RemotedataTagsCaseClasses}
 import code.model._
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
@@ -17,44 +17,44 @@ class RemotedataTagsActor extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val mTags = MappedTags
-  val rTags = RemoteTagsCaseClasses
+  val mapper = MappedTags
+  val cc = RemotedataTagsCaseClasses
 
   def receive = {
 
-    case rTags.getTags(bankId, accountId, transactionId, viewId) =>
+    case cc.getTags(bankId, accountId, transactionId, viewId) =>
       logger.info("getTags(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
-      sender ! mTags.getTags(bankId, accountId, transactionId)(viewId)
+      sender ! mapper.getTags(bankId, accountId, transactionId)(viewId)
 
-    case rTags.addTag(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
+    case cc.addTag(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
       logger.info("addTag(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
 
       {
         for {
-          res <- mTags.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted)
+          res <- mapper.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted)
         } yield {
           sender ! res.asInstanceOf[TransactionTag]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rTags.deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String) =>
+    case cc.deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String) =>
       logger.info("deleteTag(" + bankId +", "+ accountId +", "+ transactionId + tagId +")")
 
       {
         for {
-          res <- mTags.deleteTag(bankId, accountId, transactionId)(tagId)
+          res <- mapper.deleteTag(bankId, accountId, transactionId)(tagId)
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rTags.bulkDeleteTags(bankId: BankId, accountId: AccountId) =>
+    case cc.bulkDeleteTags(bankId: BankId, accountId: AccountId) =>
 
       logger.info("bulkDeleteTags(" + bankId +", "+ accountId + ")")
 
       {
         for {
-          res <- tryo{mTags.bulkDeleteTags(bankId, accountId)}
+          res <- tryo{mapper.bulkDeleteTags(bankId, accountId)}
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }

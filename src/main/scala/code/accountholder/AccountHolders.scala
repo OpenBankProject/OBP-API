@@ -23,10 +23,10 @@ trait AccountHolders {
   def bulkDeleteAllAccountHolders(): Box[Boolean]
 }
 
-class AccountHoldersCaseClasses {
+class RemotedataAccountHoldersCaseClasses {
   case class createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder")
   case class getAccountHolders(bankId: BankId, accountId: AccountId)
   case class bulkDeleteAllAccountHolders()
 }
 
-object RemoteAccountHoldersCaseClasses extends AccountHoldersCaseClasses
+object RemotedataAccountHoldersCaseClasses extends RemotedataAccountHoldersCaseClasses

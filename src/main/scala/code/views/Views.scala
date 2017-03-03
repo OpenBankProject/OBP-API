@@ -63,7 +63,7 @@ trait Views {
 }
 
 
-class RemoteViewCaseClasses {
+class RemotedataViewsCaseClasses {
 
   case class permissions(account: BankAccountUID)
   case class permission(account: BankAccountUID, user: User)
@@ -109,5 +109,5 @@ class RemoteViewCaseClasses {
   case class bulkDeleteAllPermissionsAndViews()
 }
 
-object RemoteViewCaseClasses extends RemoteViewCaseClasses
+object RemotedataViewsCaseClasses extends RemotedataViewsCaseClasses
 

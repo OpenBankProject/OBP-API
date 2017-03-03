@@ -7,7 +7,7 @@ import akka.event.Logging
 import akka.util.Timeout
 import code.model._
 import code.model.dataAccess.ResourceUser
-import code.users.{LiftUsers, RemoteUserCaseClasses}
+import code.users.{LiftUsers, RemotedataUsersCaseClasses}
 import net.liftweb.common._
 import net.liftweb.util.ControlHelpers.tryo
 
@@ -18,140 +18,140 @@ class RemotedataUsersActor extends Actor {
 
   val logger = Logging(context.system, this)
 
-  val mUsers = LiftUsers
-  val rUsers = RemoteUserCaseClasses
+  val mapper = LiftUsers
+  val cc = RemotedataUsersCaseClasses
 
   def receive = {
 
-    case rUsers.getUserByResourceUserId(id: Long) =>
+    case cc.getUserByResourceUserId(id: Long) =>
       logger.info("getUserByResourceUserId(" + id +")")
 
       {
         for {
-          res <- mUsers.getUserByResourceUserId(id)
+          res <- mapper.getUserByResourceUserId(id)
         } yield {
           sender ! res.asInstanceOf[User]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getResourceUserByResourceUserId(id: Long) =>
+    case cc.getResourceUserByResourceUserId(id: Long) =>
       logger.info("getResourceUserByResourceUserId(" + id +")")
 
       {
         for {
-          res <- mUsers.getResourceUserByResourceUserId(id)
+          res <- mapper.getResourceUserByResourceUserId(id)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getUserByProviderId(provider : String, idGivenByProvider : String) =>
+    case cc.getUserByProviderId(provider : String, idGivenByProvider : String) =>
       logger.info("getUserByProviderId(" + provider +"," + idGivenByProvider +")")
 
       {
         for {
-          res <- mUsers.getUserByProviderId(provider, idGivenByProvider)
+          res <- mapper.getUserByProviderId(provider, idGivenByProvider)
         } yield {
           sender ! res.asInstanceOf[User]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getUserByUserId(userId: String) =>
+    case cc.getUserByUserId(userId: String) =>
       logger.info("getUserByUserId(" + userId +")")
 
       {
         for {
-          res <- mUsers.getUserByUserId(userId)
+          res <- mapper.getUserByUserId(userId)
         } yield {
           sender ! res.asInstanceOf[User]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getUserByUserName(userName: String) =>
+    case cc.getUserByUserName(userName: String) =>
       logger.info("getUserByUserName(" + userName +")")
 
       {
         for {
-          res <- mUsers.getUserByUserName(userName)
+          res <- mapper.getUserByUserName(userName)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getUserByEmail(email: String) =>
+    case cc.getUserByEmail(email: String) =>
       logger.info("getUserByEmail(" + email +")")
 
       {
         for {
-          res <- mUsers.getUserByEmail(email)
+          res <- mapper.getUserByEmail(email)
         } yield {
           sender ! res
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.getAllUsers() =>
+    case cc.getAllUsers() =>
       logger.info("getAllUsers()")
 
       {
         for {
-          res <- mUsers.getAllUsers()
+          res <- mapper.getAllUsers()
         } yield {
           sender ! res
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+    case cc.createResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.info("createResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
 
       {
         for {
-          res <- mUsers.createResourceUser(provider, providerId, name, email, userId)
+          res <- mapper.createResourceUser(provider, providerId, name, email, userId)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
+    case cc.createUnsavedResourceUser(provider: String, providerId: Option[String], name: Option[String], email: Option[String], userId: Option[String]) =>
       logger.info("createUnsavedResourceUser(" + provider + ", " + providerId.getOrElse("None") + ", " + name.getOrElse("None") + ", " + email.getOrElse("None") + ", " + userId.getOrElse("None") + ")")
 
       {
         for {
-          res <- mUsers.createUnsavedResourceUser(provider, providerId, name, email, userId)
+          res <- mapper.createUnsavedResourceUser(provider, providerId, name, email, userId)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.saveResourceUser(resourceUser: ResourceUser) =>
+    case cc.saveResourceUser(resourceUser: ResourceUser) =>
       logger.info("saveResourceUser")
 
       {
         for {
-          res <- mUsers.saveResourceUser(resourceUser)
+          res <- mapper.saveResourceUser(resourceUser)
         } yield {
           sender ! res.asInstanceOf[ResourceUser]
         }
       }.getOrElse( context.stop(sender) )
 
-    case rUsers.deleteResourceUser(id: Long) =>
+    case cc.deleteResourceUser(id: Long) =>
       logger.info("deleteResourceUser(" + id +")")
 
       {
         for {
-          res <- tryo{mUsers.deleteResourceUser(id)}
+          res <- tryo{mapper.deleteResourceUser(id)}
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }
       }.getOrElse( context.stop(sender) )
 
 
-    case rUsers.bulkDeleteAllResourceUsers() =>
+    case cc.bulkDeleteAllResourceUsers() =>
 
       logger.info("bulkDeleteAllResourceUsers()")
 
       {
         for {
-          res <- mUsers.bulkDeleteAllResourceUsers()
+          res <- mapper.bulkDeleteAllResourceUsers()
         } yield {
           sender ! res.asInstanceOf[Boolean]
         }

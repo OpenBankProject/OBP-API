@@ -49,7 +49,6 @@ object RemotedataConfig {
         "net.liftweb.common.Box" = kryo,
         "net.liftweb.common.ParamFailure" = kryo,
         "code.api.APIFailure" = kryo,
-        "code.views.RemoteViewCaseClasses" = kryo,
         "code.model.BankAccount" = kryo,
         "code.model.View" = kryo,
         "code.model.dataAccess.ViewImpl" = kryo,

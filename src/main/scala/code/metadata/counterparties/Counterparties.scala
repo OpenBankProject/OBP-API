@@ -65,7 +65,7 @@ trait CounterpartyTrait {
 
 }
 
-class RemoteCounterpartiesCaseClasses {
+class RemotedataCounterpartiesCaseClasses {
   case class getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
 
   case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
@@ -85,4 +85,4 @@ class RemoteCounterpartiesCaseClasses {
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 }
 
-object RemoteCounterpartiesCaseClasses extends RemoteCounterpartiesCaseClasses
+object RemotedataCounterpartiesCaseClasses extends RemotedataCounterpartiesCaseClasses

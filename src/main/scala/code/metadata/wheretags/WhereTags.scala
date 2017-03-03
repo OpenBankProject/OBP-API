@@ -32,11 +32,11 @@ trait WhereTags {
 
 }
 
-class RemoteWhereTagsCaseClasses {
+class RemotedataWhereTagsCaseClasses {
   case class addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)
   case class deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
   case class getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId, viewId : ViewId)
   case class bulkDeleteWhereTags(bankId: BankId, accountId: AccountId)
 }
 
-object RemoteWhereTagsCaseClasses extends RemoteWhereTagsCaseClasses
+object RemotedataWhereTagsCaseClasses extends RemotedataWhereTagsCaseClasses

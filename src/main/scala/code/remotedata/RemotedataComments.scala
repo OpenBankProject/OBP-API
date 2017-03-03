@@ -6,7 +6,7 @@ import akka.actor.ActorKilledException
 import akka.pattern.ask
 import akka.util.Timeout
 import code.api.APIFailure
-import code.metadata.comments.{Comments, RemoteCommentsCaseClasses}
+import code.metadata.comments.{Comments, RemotedataCommentsCaseClasses}
 import code.model._
 import net.liftweb.common.{Full, _}
 
@@ -15,16 +15,13 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 
-object RemotedataComments extends Comments {
+object RemotedataComments extends ActorInit with Comments {
 
-  implicit val timeout = Timeout(10000 milliseconds)
-  val TIMEOUT = 10 seconds
-  val rComments = RemoteCommentsCaseClasses
-  var commentsActor = RemotedataActorSystem.getActor("comments")
+   val cc = RemotedataCommentsCaseClasses
 
   def getComments(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[Comment] = {
     Await.result(
-      (commentsActor ? rComments.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]],
+      (ac ? cc.getComments(bankId, accountId, transactionId, viewId)).mapTo[List[Comment]],
       TIMEOUT
     )
   }
@@ -32,7 +29,7 @@ object RemotedataComments extends Comments {
   def addComment(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, text : String, datePosted : Date) : Box[Comment] = {
     Full(
       Await.result(
-        (commentsActor ? rComments.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Comment],
+        (ac ? cc.addComment(bankId, accountId, transactionId, userId, viewId, text, datePosted)).mapTo[Comment],
         TIMEOUT
       )
     )
@@ -42,7 +39,7 @@ object RemotedataComments extends Comments {
     val res = try {
       Full(
         Await.result(
-          (commentsActor ? rComments.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Boolean],
+          (ac ? cc.deleteComment(bankId, accountId, transactionId, commentId)).mapTo[Boolean],
           TIMEOUT
         )
       )
@@ -56,7 +53,7 @@ object RemotedataComments extends Comments {
 
   def bulkDeleteComments(bankId: BankId, accountId: AccountId): Boolean = {
     Await.result(
-      (commentsActor ? rComments.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
+      (ac ? cc.bulkDeleteComments(bankId, accountId)).mapTo[Boolean],
       TIMEOUT
     )
   }
