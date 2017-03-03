@@ -421,14 +421,7 @@ trait Connector {
       chargeValue <- tryo {(BigDecimal(details.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${details.value.amount}"
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(details.value.currency, chargeValue.toString()))
 
-      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString),
-                                                            transactionRequestType,
-                                                            CounterpartyId(toCounterparty.counterpartyId),
-                                                            fromAccount,
-                                                            detailsPlain,
-                                                            status,
-                                                            charge,
-                                                            chargePolicy)
+      transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString), transactionRequestType, fromAccount, toAccount, toCounterparty, detailsPlain, status, charge, chargePolicy)
     } yield transactionRequest
 
     //make sure we get something back
@@ -468,7 +461,7 @@ trait Connector {
                                              fromAccount : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                              status: String, charge: TransactionRequestCharge) : Box[TransactionRequest]
 
-  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, fromAccount: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest]
+  protected def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest]
 
 
   def saveTransactionRequestTransaction(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = {

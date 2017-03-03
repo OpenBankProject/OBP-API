@@ -689,8 +689,8 @@ object KafkaMappedConnector extends Connector with Loggable {
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
+      .mTo_BankId(counterparty.bankId.value)
+      .mTo_AccountId(counterparty.accountId.value)
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
@@ -702,8 +702,8 @@ object KafkaMappedConnector extends Connector with Loggable {
 
 
   //Note: now call the local mapper to store data
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
-    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
   }
   //Note: now call the local mapper to store data
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {

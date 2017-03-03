@@ -140,10 +140,7 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
       Failure("not supported")
     }
-    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
-                                                           account: BankAccount, details: String,
-                                                           status: String, charge: TransactionRequestCharge,
-                                                           chargePolicy: String): Box[TransactionRequest] = {
+    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
       Failure("not supported")
     }
     override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???

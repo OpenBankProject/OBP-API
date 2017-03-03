@@ -24,7 +24,7 @@ import code.sandbox.SandboxBranchImport
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
-import code.util.Helper
+import code.util.{DefaultStringField, Helper}
 import code.util.Helper._
 import code.views.Views
 import com.tesobe.model.UpdateBankAccount
@@ -479,8 +479,8 @@ Store one or more transactions
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
+      .mTo_BankId(counterparty.bankId.value)
+      .mTo_AccountId(counterparty.accountId.value)
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
@@ -494,24 +494,14 @@ Store one or more transactions
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
-                                                transactionRequestType: TransactionRequestType,
-                                                counterpartyId: CounterpartyId,
-                                                account: BankAccount,
-                                                details: String,
-                                                status: String,
-                                                charge: TransactionRequestCharge,
-                                                chargePolicy: String
-                                               ): Box[TransactionRequest] = {
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, fromAccount: BankAccount,
+                                               toAccount: BankAccount, toCounterparty: CounterpartyTrait,
+                                               details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
 
     // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
       .mTransactionRequestId(transactionRequestId.value)
-      .mCounterpartyId(counterpartyId.value)
       .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
       .mStatus(status)
       .mStartDate(now)
       .mEndDate(now)
@@ -519,6 +509,30 @@ Store one or more transactions
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
       .mcharge_Policy(chargePolicy)
+      //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
+      //      .mBody_Value_Currency (toAccount.currency)
+      //      .mBody_Value_Amount   (toAccount.balance)
+      //      .mBody_Description    (toAccount.balance)
+      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+
+      //fromAccount fields
+      .mFrom_BankId(fromAccount.bankId.value)
+      .mFrom_AccountId(fromAccount.accountId.value)
+      //toAccount fields
+      .mTo_BankId(toAccount.bankId.value)
+      .mTo_AccountId(toAccount.accountId.value)
+      //toCounterparty fields
+      .mName(toCounterparty.name)
+      .mThisBankId(toCounterparty.thisBankId)
+      .mThisAccountId(toCounterparty.thisAccountId)
+      .mThisViewId(toCounterparty.thisViewId)
+      .mCounterpartyId(toCounterparty.counterpartyId)
+      .mOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
+      .mOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
+      .mOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
+      .mOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .mIsBeneficiary(toCounterparty.isBeneficiary)
+
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
