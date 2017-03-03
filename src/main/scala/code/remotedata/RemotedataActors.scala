@@ -15,41 +15,52 @@ import net.liftweb.util.Props
 
 import scala.concurrent.duration._
 
+trait ActorInit {
+  val actorName = CreateActorNameFromClassName(this.getClass.getName)
+  val actor = RemotedataActorSystem.getActor(actorName)
+  val TIMEOUT = 10 seconds
+  implicit val timeout = Timeout(1000 milliseconds)
+
+  def CreateActorNameFromClassName(c: String): String = {
+    val n = c.replaceFirst("^.*Remotedata", "")
+    Character.toLowerCase(n.charAt(0)) + n.substring(1)
+  }
+
+}
 
 object RemotedataActors extends Loggable {
 
-  def startLocalWorkerSystem(): Unit = {
-    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
-    logger.info("Starting local RemotedataActorSystem")
-    logger.info(RemotedataConfig.localConf)
-    logger.info(system.actorOf(ActorProps[RemotedataUsersActor], name = "users"))
-    logger.info(system.actorOf(ActorProps[RemotedataViewsActor], name = "views"))
-    logger.info(system.actorOf(ActorProps[RemotedataAccountHoldersActor], name = "accountHolders"))
-    logger.info(system.actorOf(ActorProps[RemotedataCounterpartiesActor], name = "counterparties"))
-    logger.info(system.actorOf(ActorProps[RemotedataTagsActor], name = "tags"))
-    logger.info(system.actorOf(ActorProps[RemotedataWhereTagsActor], name = "whereTags"))
-    logger.info(system.actorOf(ActorProps[RemotedataCommentsActor], name = "comments"))
-    logger.info(system.actorOf(ActorProps[RemotedataTransactionImagesActor], name = "TransactionImages"))
-    logger.info(system.actorOf(ActorProps[RemotedataNarrativesActor], name = "narratives"))
-    logger.info("Cmplete")
+  def startActors(actorSystem: ActorSystem) = {
+
+    val actorsRemotedata = Map(
+      ActorProps[RemotedataAccountHoldersActor]     -> RemotedataAccountHolders.actorName,
+      ActorProps[RemotedataCommentsActor]           -> RemotedataComments.actorName,
+      ActorProps[RemotedataCounterpartiesActor]     -> RemotedataCounterparties.actorName,
+      ActorProps[RemotedataTagsActor]               -> RemotedataTags.actorName,
+      ActorProps[RemotedataUsersActor]              -> RemotedataUsers.actorName,
+      ActorProps[RemotedataViewsActor]              -> RemotedataViews.actorName,
+      ActorProps[RemotedataWhereTagsActor]          -> RemotedataWhereTags.actorName,
+      ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName
+    )
+
+    actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
   }
 
-  def startRemoteWorkerSystem(): Unit = {
-    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
-    logger.info("Starting remote RemotedataActorSystem")
-    logger.info(RemotedataConfig.remoteConf)
-    logger.info(system.actorOf(ActorProps[RemotedataUsersActor], name = "users"))
-    logger.info(system.actorOf(ActorProps[RemotedataViewsActor], name = "views"))
-    logger.info(system.actorOf(ActorProps[RemotedataAccountHoldersActor], name = "accountHolders"))
-    logger.info(system.actorOf(ActorProps[RemotedataCounterpartiesActor], name = "counterparties"))
-    logger.info(system.actorOf(ActorProps[RemotedataTagsActor], name = "tags"))
-    logger.info(system.actorOf(ActorProps[RemotedataWhereTagsActor], name = "whereTags"))
-    logger.info(system.actorOf(ActorProps[RemotedataCommentsActor], name = "comments"))
-    logger.info(system.actorOf(ActorProps[RemotedataTransactionImagesActor], name = "TransactionImages"))
-    logger.info(system.actorOf(ActorProps[RemotedataNarrativesActor], name = "narratives"))
+  def startLocalWorkerSystem(): Unit = {
+    logger.info("Starting local RemotedataActorSystem")
+    logger.info(RemotedataConfig.localConf)
+    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.localConf)))
+    startActors(system)
     logger.info("Complete")
   }
 
+  def startRemoteWorkerSystem(): Unit = {
+    logger.info("Starting remote RemotedataActorSystem")
+    logger.info(RemotedataConfig.remoteConf)
+    val system = ActorSystem("RemotedataActorSystem", ConfigFactory.load(ConfigFactory.parseString(RemotedataConfig.remoteConf)))
+    startActors(system)
+    logger.info("Complete")
+  }
 
   def setupRemotedataDB(): Unit = {
     // set up the way to connect to the relational DB we're using (ok if other connector than relational)
