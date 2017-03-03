@@ -881,7 +881,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
             json.extract[ImageJSON]
           } match {
             case Full(imageJson) => {
-              def addImage(user : User, viewId : ViewId, label: String, url : URL) : Box[String] = {
+              def addImage(user : User, viewId : ViewId, label: String, url : String) : Box[String] = {
                 val addImage = for {
                   metadata <- moderatedTransactionMetadata(bankId,accountId,viewId,transactionId,Full(user))
                   addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding comment"}
@@ -899,7 +899,7 @@ object OBPAPI1_1 extends RestHelper with Loggable {
                   user <- getUser(httpCode,oAuthParameters.get("oauth_token")) ?~ "User not found. Authentication via OAuth is required"
                   view <- View.fromUrl(viewId, accountId, bankId) ?~ {"view " + viewId +" view not found"}
                   url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-                  postedImageId <- addImage(user, viewId, imageJson.label, url)
+                  postedImageId <- addImage(user, viewId, imageJson.label, url.toString)
                 } yield postedImageId
 
               imageId match {

@@ -2229,7 +2229,7 @@ Authentication via OAuth is required if the view is not public.""",
             metadata <- moderatedTransactionMetadata(bankId, accountId, viewId, transactionId, Full(u))
             addImageFunc <- Box(metadata.addImage) ?~ {"view " + viewId + " does not authorize adding images"}
             url <- tryo{new URL(imageJson.URL)} ?~! "Could not parse url string as a valid URL"
-            postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url)
+            postedImage <- addImageFunc(u.resourceUserId, viewId, imageJson.label, now, url.toString)
           } yield {
             successJsonResponse(Extraction.decompose(JSONFactory.createTransactionImageJSON(postedImage)),201)
           }

@@ -16,10 +16,16 @@ import net.liftweb.util.Props
 import scala.concurrent.duration._
 
 trait ActorInit {
-  val actorName = RemotedataActors.createActorName(this.getClass.getName)
+  val actorName = CreateActorNameFromClassName(this.getClass.getName)
   val ac = RemotedataActorSystem.getActor(actorName)
   val TIMEOUT = 10 seconds
   implicit val timeout = Timeout(1000 milliseconds)
+
+  def CreateActorNameFromClassName(c: String): String = {
+    val n = c.replaceFirst("^.*Remotedata", "")
+    Character.toLowerCase(n.charAt(0)) + n.substring(1)
+  }
+
 }
 
 object RemotedataActors extends Loggable {
@@ -27,21 +33,17 @@ object RemotedataActors extends Loggable {
   def startActors(actorSystem: ActorSystem) = {
 
     val actorsRemotedata = Map(
-      ActorProps[RemotedataAccountHoldersActor]   -> RemotedataAccountHolders.actorName,
-      ActorProps[RemotedataCommentsActor]         -> RemotedataComments.actorName,
-      ActorProps[RemotedataCounterpartiesActor]   -> RemotedataCounterparties.actorName,
-      ActorProps[RemotedataTagsActor]             -> RemotedataTags.actorName,
-      ActorProps[RemotedataUsersActor]            -> RemotedataUsers.actorName,
-      ActorProps[RemotedataViewsActor]            -> RemotedataViews.actorName,
-      ActorProps[RemotedataWhereTagsActor]        -> RemotedataWhereTags.actorName
+      ActorProps[RemotedataAccountHoldersActor]     -> RemotedataAccountHolders.actorName,
+      ActorProps[RemotedataCommentsActor]           -> RemotedataComments.actorName,
+      ActorProps[RemotedataCounterpartiesActor]     -> RemotedataCounterparties.actorName,
+      ActorProps[RemotedataTagsActor]               -> RemotedataTags.actorName,
+      ActorProps[RemotedataUsersActor]              -> RemotedataUsers.actorName,
+      ActorProps[RemotedataViewsActor]              -> RemotedataViews.actorName,
+      ActorProps[RemotedataWhereTagsActor]          -> RemotedataWhereTags.actorName,
+      ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
-  }
-
-  def createActorName(c: String): String = {
-    val n = c.replaceFirst("^.*Remotedata", "")
-    Character.toLowerCase(n.charAt(0)) + n.substring(1)
   }
 
   def startLocalWorkerSystem(): Unit = {
