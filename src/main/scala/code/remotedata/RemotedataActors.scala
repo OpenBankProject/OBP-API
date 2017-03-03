@@ -40,7 +40,8 @@ object RemotedataActors extends Loggable {
       ActorProps[RemotedataUsersActor]              -> RemotedataUsers.actorName,
       ActorProps[RemotedataViewsActor]              -> RemotedataViews.actorName,
       ActorProps[RemotedataWhereTagsActor]          -> RemotedataWhereTags.actorName,
-      ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName
+      ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName,
+      ActorProps[RemotedataNarrativesActor]         -> RemotedataNarratives.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
