@@ -5,15 +5,15 @@ import code.model._
 import net.liftweb.util.SimpleInjector
 import code.model.Permission
 import code.model.CreateViewJSON
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataViews
 
 object Views  extends SimpleInjector {
 
   val views = new Inject(buildOne _) {}
  
   //TODO Remove MapperViews when Remotedata is optimized and stable
-  def buildOne: Views = MapperViews
-  //def buildOne: Views = Remotedata
+  //def buildOne: Views = MapperViews
+  def buildOne: Views = RemotedataViews
   
 }
 
@@ -63,7 +63,7 @@ trait Views {
 }
 
 
-class RemoteViewCaseClasses {
+class RemotedataViewsCaseClasses {
 
   case class permissions(account: BankAccountUID)
   case class permission(account: BankAccountUID, user: User)
@@ -109,5 +109,5 @@ class RemoteViewCaseClasses {
   case class bulkDeleteAllPermissionsAndViews()
 }
 
-object RemoteViewCaseClasses extends RemoteViewCaseClasses
+object RemotedataViewsCaseClasses extends RemotedataViewsCaseClasses
 

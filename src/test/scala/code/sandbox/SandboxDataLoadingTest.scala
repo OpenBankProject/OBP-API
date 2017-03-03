@@ -92,7 +92,7 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
     //drop database tables before
     //MongoDB.getDb(DefaultMongoIdentifier).foreach(_.dropDatabase())
     ToSchemify.models.foreach(_.bulkDelete_!!())
-    if (!Props.getBool("enable_remotedata", false)) {
+    if (!Props.getBool("remotedata.enable", false)) {
       ToSchemify.modelsRemotedata.foreach(_.bulkDelete_!!())
     } else {
       Views.views.vend.bulkDeleteAllPermissionsAndViews()

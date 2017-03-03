@@ -26,7 +26,7 @@ Berlin 13359, Germany
 import java.text.SimpleDateFormat
 import java.util.{Date, Locale, UUID}
 
-import code.accountholder.{AccountHolders, MapperAccountHolders$}
+import code.accountholder.AccountHolders
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
@@ -37,7 +37,7 @@ import code.metadata.comments.{Comments, MappedComment}
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
 import code.metadata.narrative.MappedNarrative
 import code.metadata.tags.{MappedTag, Tags}
-import code.metadata.transactionimages.MappedTransactionImage
+import code.metadata.transactionimages.{MappedTransactionImage, TransactionImages}
 import code.metadata.wheretags.{MappedWhereTag, WhereTags}
 import code.model._
 import code.model.dataAccess._
@@ -858,10 +858,7 @@ object KafkaMappedConnector extends Connector with Loggable {
     val whereTagsDeleted = WhereTags.whereTags.vend.bulkDeleteWhereTags(bankId, accountId)
 
     //delete transaction images on transactions of this account
-    val transactionImagesDeleted = MappedTransactionImage.bulkDelete_!!(
-      By(MappedTransactionImage.bank, bankId.value),
-      By(MappedTransactionImage.account, accountId.value)
-    )
+    val transactionImagesDeleted = TransactionImages.transactionImages.vend.bulkDeleteTransactionImage(bankId, accountId)
 
     //delete transactions of account
     val transactionsDeleted = MappedTransaction.bulkDelete_!!(

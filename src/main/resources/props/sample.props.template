@@ -68,12 +68,15 @@ write_metrics=true
 db.url=jdbc:postgresql://localhost:5432/dbname?user=dbusername&password=thepassword
 
 ## Enable remote Akka actor for data split
-## Set to true and also edit and set host/port in obpremotedata.conf
-#enable_remotedata=true
-# Note! Above is currently disabled in source code!!
+## If set to true, must set hostname and port
+## of remote machine
+#remotedata.enable=true
+#remotedata.hostname=127.0.0.1
+#remotedata.port=2662
 
-## If remotedata is enabled, set the remote database parameters
-## db has to be accessible from box set in obpremotedata.conf
+## Set separate database for data split
+## If remotedata is disabled, bd has to be accessible from local machine
+## If remotedata is enabled, db has to be accessible from remote machine
 #remotedata.db.driver=org.h2.Driver
 #remotedata.db.url=jdbc:h2:./lift_proto.db.remotedata;DB_CLOSE_ON_EXIT=FALSE
 #remotedata.db.username=user

@@ -3,14 +3,14 @@ package code.metadata.counterparties
 import net.liftweb.common.Box
 import net.liftweb.util.SimpleInjector
 import code.model.{AccountId, BankId, Counterparty, CounterpartyMetadata}
-import code.remotedata.Remotedata
+import code.remotedata.RemotedataCounterparties
 
 object Counterparties extends SimpleInjector {
 
   val counterparties = new Inject(buildOne _) {}
 
   def buildOne: Counterparties = MapperCounterparties
-//  def buildOne: Counterparties = AkkaMapperViews
+  //def buildOne: Counterparties = RemotedataCounterparties
 
 }
 
@@ -65,7 +65,7 @@ trait CounterpartyTrait {
 
 }
 
-class RemoteCounterpartiesCaseClasses {
+class RemotedataCounterpartiesCaseClasses {
   case class getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)
 
   case class getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)
@@ -85,4 +85,4 @@ class RemoteCounterpartiesCaseClasses {
   case class checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 }
 
-object RemoteCounterpartiesCaseClasses extends RemoteCounterpartiesCaseClasses
+object RemotedataCounterpartiesCaseClasses extends RemotedataCounterpartiesCaseClasses
