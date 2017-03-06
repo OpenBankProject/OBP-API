@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
@@ -22,13 +22,13 @@ import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerF
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
-import code.metrics.APIMetrics
+import code.metrics.{APIMetric, APIMetrics}
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.Failure
-import net.liftweb.http.Req
+import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -1496,7 +1496,24 @@ trait APIMethods210 {
       "Get Metrics",
       """Get the all metrics
         |
-        |require CanReadMetrics role""".stripMargin,
+        |require CanReadMetrics role
+        |
+        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+        |
+        |Should be able to filter on the following metrics fields
+        |
+        |eg: /management/metrics?from_start_date=2017-03-01&to_start_date=2017-03-04&limit=50&offset=2
+        |
+        |1 from_start_date (defaults to one week before current date): eg:from_start_date=2017-03-01
+        |
+        |2 to_start_date (defaults to current date) eg:to_start_date=2017-03-05
+        |
+        |3 limit (for pagination: defaults to 200)  eg:limit=200
+        |
+        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |
+      """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1509,9 +1526,42 @@ trait APIMethods210 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
+  
+            //Note: Filters Part 1:
+            //?from_start_date=100&to_start_date=1&limit=200&offset=0
+  
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+            oneWeekBeforeDate <- Full((new Date(now.getTime - 1000 * 60 * 60 * 24 * 7)).toInstant.toString)
+            nowDate <- Full(now.toInstant.toString)
+  
+            //(defaults to one week before current date
+            fromStartDate <- tryo(inputDateFormat.parse(S.param("from_start_date").getOrElse(oneWeekBeforeDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } from_start_date:${S.param("from_start_date").get }. Support format is yyyy-MM-dd"
+            // defaults to current date
+            toStartDate <- tryo(inputDateFormat.parse(S.param("to_start_date").getOrElse(nowDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } to_start_date:${S.param("to_start_date").get }. Support format is yyyy-MM-dd"
+            // default 200, return 200 items
+            limit <- tryo(S.param("limit").getOrElse("200").toInt) ?~!
+              s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
+  
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics())
+            filterByDate: List[APIMetric] = metrics.toList.filter(rd => (rd.getDate().after(fromStartDate)) && (rd.getDate().before(toStartDate)))
+  
+            /** pages: 
+              * eg: total=79
+              * offset=0, limit =50
+              *  filterByDate.slice(0,50)
+              * offset=1, limit =50
+              *  filterByDate.slice(50*1,50+50*1)--> filterByDate.slice(50,100)
+              * offset=2, limit =50
+              *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
+              */
+            filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
           } yield {
-            val json = JSONFactory210.createMetricsJson(metrics)
+            val json = JSONFactory210.createMetricsJson(filterByPages)
             successJsonResponse(Extraction.decompose(json))
           }
         }
