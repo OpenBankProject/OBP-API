@@ -91,7 +91,16 @@ trait Connector {
   // The Currency is EUR. Connector implementations may convert the value to the transaction request currency.
   // Connector implementation may well provide dynamic response
   def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney
-
+  
+  //Gets current charge level for transaction request
+  def getChargeLevel(bankId: BankId,
+                     accountId: AccountId,
+                     viewId: ViewId,
+                     userId: String,
+                     userName: String,
+                     transactionRequestType: String,
+                     currency: String): Box[AmountOfMoney]
+  
   // Initiate creating a challenge for transaction request and returns an id of the challenge
   def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String]
   // Validates an answer for a challenge and returs if the answer is correct or not
@@ -415,7 +424,13 @@ trait Connector {
                                    chargePolicy: String): Box[TransactionRequest] = {
 
     // Get the threshold for a challenge. i.e. over what value do we require an out of bounds security challenge to be sent?
-    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value, fromAccount.accountId.value, viewId.value, transactionRequestType.value, transactionRequestCommonBody.value.currency, fromAccount.currency, initiator.name)
+    val challengeThreshold = getChallengeThreshold(fromAccount.bankId.value,
+                                                   fromAccount.accountId.value,
+                                                   viewId.value,
+                                                   transactionRequestType.value,
+                                                   transactionRequestCommonBody.value.currency,
+                                                   initiator.userId,
+                                                   initiator.name)
 
     // Set initial status
     val status = if (BigDecimal(transactionRequestCommonBody.value.amount) < BigDecimal(challengeThreshold.amount)) {
@@ -430,12 +445,22 @@ trait Connector {
 
     // Always create a new Transaction Request
     var transactionRequest = for {
-      // For now, arbitrary charge value to demonstrate PSD2 charge transparency principle.
-      // Eventually this would come from Transaction Type? 10 decimal places of scaling so can add small percentage per transaction.
-      // TODO create a function for this getChargeLevel
-      chargeValue <- tryo {(BigDecimal(transactionRequestCommonBody.value.amount) * 0.0001).setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble} ?~! s"could not create charge for ${transactionRequestCommonBody.value.amount}"
+      chargeLevel <- getChargeLevel(BankId(fromAccount.bankId.value), AccountId(fromAccount.accountId.value), viewId, initiator.userId,
+                                    initiator.name, transactionRequestType.value, fromAccount.currency)
+  
+      chargeValue <- tryo {
+                            BigDecimal(transactionRequestCommonBody.value.amount) * BigDecimal(chargeLevel.amount) match {
+                              //Set the mininal cost (2 euros)for transaction request
+                              case value if (value < 2) => BigDecimal("2.0")
+                              //Set the largest cost (50 euros)for transaction request
+                              case value if (value > 50) => BigDecimal("50")
+                              //Set the cost according to the charge level
+                              case value => value.setScale(10, BigDecimal.RoundingMode.HALF_UP).toDouble
+                            }
+                          } ?~! s"The value transactionRequestCommonBody.value.amount: ${transactionRequestCommonBody.value.amount } or chargeLevel.amount: ${chargeLevel.amount } can not be transfered to decimal "
+  
       charge = TransactionRequestCharge("Total charges for completed transaction", AmountOfMoney(transactionRequestCommonBody.value.currency, chargeValue.toString()))
-
+  
       transactionRequest <- createTransactionRequestImpl210(TransactionRequestId(java.util.UUID.randomUUID().toString),
                                                             transactionRequestType,
                                                             fromAccount,

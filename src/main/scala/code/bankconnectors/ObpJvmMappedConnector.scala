@@ -203,7 +203,17 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
 
   }
-
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
+                                        transactionRequestType: String, currency: String)
+  }
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
 

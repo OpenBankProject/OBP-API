@@ -74,6 +74,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = AmountOfMoney("EUR", "0")
     // parameters in non ideal order override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+    override def getChargeLevel(bankId: BankId,
+                                accountId: AccountId,
+                                viewId: ViewId,
+                                userId: String,
+                                userName: String,
+                                transactionRequestType: String,
+                                currency: String): Box[AmountOfMoney] = Empty
     override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil

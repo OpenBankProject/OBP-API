@@ -89,8 +89,28 @@ object LocalMappedConnector extends Connector with Loggable {
       positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
     } yield true
   }
-
-
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
+    val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
+    logger.info(s"transactionRequests_charge_level is $chargeLevel")
+    
+    // TODO constrain this to supported currencies.
+    //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
+    //    val convertedThreshold = fx.convert(chargeLevel, rate)
+    //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    
+    Full(AmountOfMoney(currency, chargeLevel.toString))
+  }
+  
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: ResourceUser): Unit = ???
 

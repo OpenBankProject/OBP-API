@@ -221,7 +221,40 @@ object KafkaMappedConnector extends Connector with Loggable {
       }
     }
   }
-
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    // Create argument list
+    val req = Map(
+                   "north" -> "getChargeLevel",
+                   "action" -> "obp.getChargeLevel",
+                   "version" -> formatVersion,
+                   "name" -> AuthUser.getCurrentUserUsername,
+                   "bankId" -> bankId.value,
+                   "accountId" -> accountId.value,
+                   "viewId" -> viewId.value,
+                   "transactionRequestType" -> transactionRequestType,
+                   "currency" -> currency,
+                   "userId" -> userId,
+                   "username" -> userName
+                 )
+    val r: Option[KafkaInboundChargeLevel] = process(req).extractOpt[KafkaInboundChargeLevel]
+    // Return result
+    val chargeValue = r match {
+      // Check does the response data match the requested data
+      case Some(x) => AmountOfMoney(x.currency, x.amount)
+      case _ => {
+        AmountOfMoney("EUR", "0.0001")
+      }
+    }
+    Full(chargeValue)
+  }
+  
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String] = {
     // Create argument list
     val req = Map(
@@ -1463,7 +1496,12 @@ object KafkaMappedConnector extends Connector with Loggable {
                               )
   case class KafkaInboundCreateChallange(challengeId: String)
   case class KafkaInboundValidateChallangeAnswer(answer: String)
-
+  
+  case class KafkaInboundChargeLevel(
+                                      currency: String,
+                                      amount: String
+                                    )
+  
   case class KafkaInboundFXRate(
                                  from_currency_code: String,
                                  to_currency_code: String,
