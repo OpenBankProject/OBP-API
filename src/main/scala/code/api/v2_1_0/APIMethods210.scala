@@ -23,7 +23,7 @@ import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
 import code.metrics.APIMetrics
-import code.model.dataAccess.AuthUser
+import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
@@ -111,7 +111,7 @@ trait APIMethods210 {
             allowDataImportProp <- Props.get("allow_sandbox_data_import") ~> APIFailure("Data import is disabled for this API instance.", 403)
             allowDataImport <- Helper.booleanToBox(allowDataImportProp == "true") ~> APIFailure("Data import is disabled for this API instance.", 403)
             canCreateSandbox <- booleanToBox(hasEntitlement("", u.userId, CanCreateSandbox), s"$CanCreateSandbox entitlement required")
-            importData <- tryo {json.extract[SandboxDataImport]} ?~ {ErrorMessages.InvalidJsonFormat}
+            importData <- tryo {json.extract[SandboxDataImport]} ?~! {ErrorMessages.InvalidJsonFormat}
             importWorked <- OBPDataImport.importer.vend.importData(importData)
           } yield {
             successJsonResponse(JsRaw("{}"), 201)
@@ -260,7 +260,7 @@ trait APIMethods210 {
          |The routing details of the counterparty will be forwarded for the transfer.
          |
        """.stripMargin,
-      Extraction.decompose(TransactionRequestDetailsCounterpartyJSON (
+      Extraction.decompose(TransactionRequestBodyCounterpartyJSON(
         CounterpartyIdJson("lalalalwieuryi79878987fds"),
         AmountOfMoneyJSON("EUR", "100.53"),
         "A description for the transaction to the counterparty",
@@ -292,7 +292,7 @@ trait APIMethods210 {
          |The routing details (IBAN) of the counterparty will be forwarded to the core banking system for the transfer.
          |
        """.stripMargin,
-      Extraction.decompose(TransactionRequestDetailsSEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
+      Extraction.decompose(TransactionRequestBodySEPAJSON(lowAmount, IbanJson("IBAN-798789873234"), "This is a SEPA Transaction Request", sharedChargePolicy.toString)
       ),
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -312,51 +312,48 @@ trait APIMethods210 {
               fromBank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
               fromAccount <- BankAccount(bankId, accountId) ?~! {ErrorMessages.AccountNotFound}
               view <- View.fromUrl(viewId, fromAccount) ?~! {ErrorMessages.ViewNotFound}
-              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true || hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
-
-              // Check transactionRequestType is not "TRANSACTION_REQUEST_TYPE" which is the place holder (probably redundant because of check below)
-              // Check that transactionRequestType is included in the Props
-              // Get Transaction Request Types from Props "transactionRequests_supported_types". Default is empty string
-              validTransactionRequestTypesArray <- tryo{Props.get("transactionRequests_supported_types", "").split(",")}
-              isValidTransactionRequestType <- tryo(
-                assert(transactionRequestType.value != "TRANSACTION_REQUEST_TYPE" && validTransactionRequestTypesArray.contains(transactionRequestType.value))) ?~! s"${
-                ErrorMessages.InvalidTransactionRequestType} : The invalid value is: '${transactionRequestType.value}' Valid values are: ${validTransactionRequestTypesArray.mkString(",")}"
+              isOwnerOrHasEntitlement <- booleanToBox(u.ownerAccess(fromAccount) == true ||
+                hasEntitlement(fromAccount.bankId.value, u.userId, CanCreateAnyTransactionRequest) == true, ErrorMessages.InsufficientAuthorisationToCreateTransactionRequest)
+              isValidTransactionRequestType <- tryo(assert(Props.get("transactionRequests_supported_types", "").split(",").contains(transactionRequestType.value))) ?~!
+                s"${ErrorMessages.InvalidTransactionRequestType}: '${transactionRequestType.value}'"
 
               // Check the input JSON format, here is just check the common parts of all four tpyes
-              transDetailsJson <- transactionRequestType.value match {
-                case "SANDBOX_TAN" => tryo {json.extract[TransactionRequestDetailsSandBoxTanJSON]} ?~ { ErrorMessages.InvalidJsonFormat}
-                case "COUNTERPARTY" => tryo { json.extract[TransactionRequestDetailsCounterpartyJSON]} ?~ { ErrorMessages.InvalidJsonFormat}
-                case "SEPA" => tryo {json.extract[TransactionRequestDetailsSEPAJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
-                case "FREE_FORM" => tryo {json.extract[TransactionRequestDetailsFreeFormJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
-              }
-
+              transDetailsJson <- tryo {json.extract[TransactionRequestBodyCommonJSON]} ?~! ErrorMessages.InvalidJsonFormat
               isValidAmountNumber <- tryo(BigDecimal(transDetailsJson.value.amount)) ?~! ErrorMessages.InvalidNumber
               isPositiveAmount <- booleanToBox(isValidAmountNumber > BigDecimal("0"), ErrorMessages.NotPositiveAmount)
               isValidCurrencyISOCode <- tryo(assert(isValidCurrencyISOCode(transDetailsJson.value.currency))) ?~! ErrorMessages.InvalidISOCurrencyCode
 
               // Prevent default value for transaction request type (at least).
-              transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} From Account Currency is ${fromAccount.currency} Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
-
+              transferCurrencyEqual <- tryo(assert(transDetailsJson.value.currency == fromAccount.currency)) ?~! {s"${ErrorMessages.InvalidTransactionRequestCurrency} " +
+                s"From Account Currency is ${fromAccount.currency}, but Requested Transaction Currency is: ${transDetailsJson.value.currency}"}
               amountOfMoneyJSON <- Full(AmountOfMoneyJSON(transDetailsJson.value.currency, transDetailsJson.value.amount))
+
+              isMapped: Boolean <- Full((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
 
               createdTransactionRequest <- transactionRequestType.value match {
                 case "SANDBOX_TAN" => {
                   for {
-                    transDetailsSandboxTanJson <- Full(json.extract[TransactionRequestDetailsSandBoxTanJSON])
-                    toBankId <- Full(BankId(transDetailsSandboxTanJson.to.bank_id))
-                    toAccountId <- Full(AccountId(transDetailsSandboxTanJson.to.account_id))
+                    transactionRequestBodySandboxTan <- tryo(json.extract[TransactionRequestBodySandBoxTanJSON]) ?~! ErrorMessages.InvalidJsonFormat
+                    toBankId <- Full(BankId(transactionRequestBodySandboxTan.to.bank_id))
+                    toAccountId <- Full(AccountId(transactionRequestBodySandboxTan.to.account_id))
                     toAccount <- BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
-                    transDetailsSerialized <- tryo {write(transDetailsSandboxTanJson)(Serialization.formats(NoTypeHints))}
-                    //this is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount
-                    toCounterpartyEmpty <- Full(new MappedCounterparty())
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterpartyEmpty, transactionRequestType, transDetailsSandboxTanJson, sharedChargePolicy.toString, transDetailsSerialized)
+                    transDetailsSerialized <- tryo {write(transactionRequestBodySandboxTan)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                                                                                                       viewId,
+                                                                                                       fromAccount,
+                                                                                                       toAccount,
+                                                                                                       new MappedCounterparty(), //in SANDBOX_TAN, toCounterparty is empty
+                                                                                                       transactionRequestType,
+                                                                                                       transactionRequestBodySandboxTan,
+                                                                                                       transDetailsSerialized,
+                                                                                                       sharedChargePolicy.toString) //in SANDBOX_TAN, ChargePolicy set default "SHARED"
                   } yield createdTransactionRequest
                 }
                 case "COUNTERPARTY" => {
                   for {
-                  //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
-                    transDetailsCounterpartyJson <- tryo {json.extract[TransactionRequestDetailsCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
-                    toCounterpartyId <- Full(transDetailsCounterpartyJson.to.counterparty_id)
+                    //For COUNTERPARTY, Use the counterpartyId to find the toCounterparty and set up the toAccount
+                    transactionRequestBodyCounterparty <- tryo {json.extract[TransactionRequestBodyCounterpartyJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
+                    toCounterpartyId <- Full(transactionRequestBodyCounterparty.to.counterparty_id)
                     // Get the Counterparty by id
                     toCounterparty <- Connector.connector.vend.getCounterpartyByCounterpartyId(CounterpartyId(toCounterpartyId)) ?~! {ErrorMessages.CounterpartyNotFoundByCounterpartyId}
 
@@ -364,76 +361,104 @@ trait APIMethods210 {
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
 
                     // Get the Routing information from the Counterparty for the payment backend
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
-                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
                     // Use otherAccountRoutingScheme and otherBankRoutingScheme to determine how we validate the toBank and toAccount.
                     // i.e. Only validate toBankId and toAccountId if they are both OBP
                     // i.e. if it is OBP we can expect the account to exist locally.
                     // This is so developers can follow the COUNTERPARTY flow in the sandbox
 
-                    //if it is OBP, we will check the local database
-                    toAccount <- if(toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
+                    //if it is OBP, we call the local database, just for sandbox test case
+                    toAccount <- if(isMapped && toCounterparty.otherAccountRoutingScheme =="OBP" && toCounterparty.otherBankRoutingScheme=="OBP")
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
-                    //if it is remote, we will check the remote data from Connector
+                    //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
                     else
-                      BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.BankAccountNotFound}
+                      Full(new MappedBankAccount())
 
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
-                    chargePolicy = transDetailsCounterpartyJson.charge_policy
-                    chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
-                    transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsCounterpartyJson.description, transDetailsCounterpartyJson.charge_policy)
-                    //Serialize the transResponseDetails to String.
-                    transDetailsResponseSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterparty, transactionRequestType, transDetailsCounterpartyJson, chargePolicy, transDetailsResponseSerialized)
+                    chargePolicy = transactionRequestBodyCounterparty.charge_policy
+                    chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy)))) ?~! ErrorMessages.InvalidChargePolicy
+                    transactionRequestDetailsMapperCounterparty = TransactionRequestDetailsMapperCounterpartyJSON(toCounterpartyId.toString,
+                                                                                                                  transactionRequestAccountJSON,
+                                                                                                                  amountOfMoneyJSON,
+                                                                                                                  transactionRequestBodyCounterparty.description,
+                                                                                                                  transactionRequestBodyCounterparty.charge_policy)
+                    transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperCounterparty)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                                                                                                       viewId,
+                                                                                                       fromAccount,
+                                                                                                       toAccount,
+                                                                                                       toCounterparty,
+                                                                                                       transactionRequestType,
+                                                                                                       transactionRequestBodyCounterparty,
+                                                                                                       transDetailsSerialized,
+                                                                                                       chargePolicy)
                   } yield createdTransactionRequest
 
                 }
                 case "SEPA" => {
                   for {
-                  //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
-                    transDetailsSEPAJson <- tryo {json.extract[TransactionRequestDetailsSEPAJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+                    //For SEPA, Use the iban to find the toCounterparty and set up the toAccount
+                    transDetailsSEPAJson <- tryo {json.extract[TransactionRequestBodySEPAJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
                     toIban <- Full(transDetailsSEPAJson.to.iban)
                     toCounterparty <- Connector.connector.vend.getCounterpartyByIban(toIban) ?~! {ErrorMessages.CounterpartyNotFoundByIban}
                     isBeneficiary <- booleanToBox(toCounterparty.isBeneficiary == true, ErrorMessages.CounterpartyBeneficiaryPermit)
-                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress.getOrElse("default-bank-id")))
-                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress.getOrElse("default-account-id")))
+                    toBankId <- Full(BankId(toCounterparty.otherBankRoutingAddress))
+                    toAccountId <-Full(AccountId(toCounterparty.otherAccountRoutingAddress))
 
-                    //if the connector is mapped, we get the data from local mapper, otherwise we call it from connector
-                    toAccount <- if((Props.get("connector").get.toString).equalsIgnoreCase("mapped"))
+                    //if the connector is mapped, we get the data from local mapper
+                    toAccount <- if(isMapped)
                       LocalMappedConnector.createOrUpdateMappedBankAccount(toBankId, toAccountId, fromAccount.currency)
                     else
-                      BankAccount(toBankId, toAccountId) ?~! {ErrorMessages.CounterpartyNotFound}
+                    //if it is remote, we do not need the bankaccount, we just send the counterparty to remote, remote make the transaction
+                      Full(new MappedBankAccount())
 
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON = TransactionRequestAccountJSON(toAccount.bankId.value, toAccount.accountId.value)
                     chargePolicy = transDetailsSEPAJson.charge_policy
                     chargePolicyIsValid<-tryo(assert(ChargePolicy.values.contains(ChargePolicy.withName(chargePolicy))))?~! {ErrorMessages.InvalidChargePolicy}
-                    transactionRequestDetailsSEPAResponseJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString, transactionRequestAccountJSON, amountOfMoneyJSON, transDetailsSEPAJson.description, chargePolicy)
-
-                    //Serialize the transResponseDetails data to String.
-                    transDetailsResponseSerialized <- tryo {write(transactionRequestDetailsSEPAResponseJSON)(Serialization.formats(NoTypeHints))}
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, toAccount, toCounterparty, transactionRequestType, transDetailsSEPAJson, chargePolicy, transDetailsResponseSerialized)
+                    transactionRequestDetailsSEPARMapperJSON = TransactionRequestDetailsMapperSEPAJSON(toIban.toString,
+                                                                                                        transactionRequestAccountJSON,
+                                                                                                        amountOfMoneyJSON,
+                                                                                                        transDetailsSEPAJson.description,
+                                                                                                        chargePolicy)
+                    transDetailsSerialized <- tryo {write(transactionRequestDetailsSEPARMapperJSON)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                                                                                                       viewId,
+                                                                                                       fromAccount,
+                                                                                                       toAccount,
+                                                                                                       toCounterparty,
+                                                                                                       transactionRequestType,
+                                                                                                       transDetailsSEPAJson,
+                                                                                                       transDetailsSerialized,
+                                                                                                       chargePolicy)
                   } yield createdTransactionRequest
                 }
                 case "FREE_FORM" => {
                   for {
-                    transDetailsFreeFormJson <- Full(json.extract[TransactionRequestDetailsFreeFormJSON])
+                    transactionRequestBodyFreeForm <- Full(json.extract[TransactionRequestBodyFreeFormJSON])
                     // Following lines: just transfer the details body, add Bank_Id and Account_Id in the Detail part. This is for persistence and 'answerTransactionRequestChallenge'
                     transactionRequestAccountJSON <- Full(TransactionRequestAccountJSON(fromAccount.bankId.value, fromAccount.accountId.value))
-                    // The FREE_FORM discription is empty, so make it "" in the following code
-                    transactionRequestDetailsFreeFormResponseJSON = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON, amountOfMoneyJSON, "")
-                    transDetailsResponseSerialized <- tryo {write(transactionRequestDetailsFreeFormResponseJSON)(Serialization.formats(NoTypeHints))}
-                    // This is just a placeholder for toCounterparty in SANDBOX_TAN type, we only use the toAccount
-                    toCounterpartyEmpty <- Full(new MappedCounterparty())
-                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u, viewId.value, fromAccount, fromAccount, toCounterpartyEmpty, transactionRequestType, transDetailsFreeFormJson, sharedChargePolicy.toString, transDetailsResponseSerialized)
+                    transactionRequestDetailsMapperFreeForm = TransactionRequestDetailsMapperFreeFormJSON(transactionRequestAccountJSON,
+                                                                                                          amountOfMoneyJSON,
+                                                                                                          transactionRequestBodyFreeForm.description)
+                    transDetailsSerialized <- tryo {write(transactionRequestDetailsMapperFreeForm)(Serialization.formats(NoTypeHints))}
+                    createdTransactionRequest <- Connector.connector.vend.createTransactionRequestv210(u,
+                                                                                                       viewId,
+                                                                                                       fromAccount,
+                                                                                                       fromAccount,//in FREE_FORM, we only use toAccount == fromAccount
+                                                                                                       new MappedCounterparty(), //in FREE_FORM, we only use toAccount, toCounterparty is empty
+                                                                                                       transactionRequestType,
+                                                                                                       transactionRequestBodyFreeForm,
+                                                                                                       transDetailsSerialized,
+                                                                                                       sharedChargePolicy.toString)
                   } yield
                     createdTransactionRequest
                 }
               }
             } yield {
-              // Explicitly format as v2.1.0 json
               val json = JSONFactory210.createTransactionRequestWithChargeJSON(createdTransactionRequest)
               createdJsonResponse(Extraction.decompose(json))
             }
@@ -792,7 +817,7 @@ trait APIMethods210 {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             canCreateCardsForBank <- booleanToBox(hasEntitlement("", u.userId, CanCreateCardsForBank), s"CanCreateCardsForBank entitlement required")
-            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+            postJson <- tryo {json.extract[PostPhysicalCardJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
             postedAllows <- postJson.allows match {
               case List() => booleanToBox(true)
               case _ => booleanToBox(postJson.allows.forall(a => CardAction.availableValues.contains(a))) ?~ {"Allowed values are: " + CardAction.availableValues.mkString(", ")}
@@ -1151,7 +1176,7 @@ trait APIMethods210 {
             isValidBankIdFormat <- tryo(assert(isValidID(bankId.value)))?~! ErrorMessages.InvalidBankIdFormat
             bank <- Bank(bankId) ?~! ErrorMessages.BankNotFound
             account <- BankAccount(bankId, AccountId(accountId.value)) ?~! {ErrorMessages.AccountNotFound}
-            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~ {ErrorMessages.InvalidJsonFormat}
+            postJson <- tryo {json.extract[PostCounterpartyJSON]} ?~! {ErrorMessages.InvalidJsonFormat}
             availableViews <- Full(account.permittedViews(user))
             view <- View.fromUrl(viewId, account) ?~! {ErrorMessages.ViewNotFound}
             canUserAccessView <- tryo(availableViews.find(_ == viewId)) ?~ {"Current user does not have access to the view " + viewId}
@@ -1372,7 +1397,7 @@ trait APIMethods210 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            branch <- tryo {json.extract[BranchJsonPut]} ?~ ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJsonPut]} ?~! ErrorMessages.InvalidJsonFormat
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
             //package the BranchJsonPut to toBranchJsonPost, to call the createOrUpdateBranch method
             branchPost <- toBranchJsonPost(branchId,branch)
@@ -1412,7 +1437,7 @@ trait APIMethods210 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             bank <- Bank(bankId)?~! {ErrorMessages.BankNotFound}
-            branch <- tryo {json.extract[BranchJsonPost]} ?~ ErrorMessages.InvalidJsonFormat
+            branch <- tryo {json.extract[BranchJsonPost]} ?~! ErrorMessages.InvalidJsonFormat
             canCreateBranch <- booleanToBox(hasEntitlement(bank.bankId.value, u.userId, CanCreateBranch) == true,ErrorMessages.InsufficientAuthorisationToCreateBranch)
             success <- Connector.connector.vend.createOrUpdateBranch(branch)
           } yield {
@@ -1448,7 +1473,7 @@ trait APIMethods210 {
           for {
             u <- user ?~ ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanUpdateConsumerRedirectUrl), s"$CanUpdateConsumerRedirectUrl entitlement required")
-            postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~ ErrorMessages.InvalidJsonFormat
+            postJson <- tryo {json.extract[ConsumerRedirectUrlJSON]} ?~! ErrorMessages.InvalidJsonFormat
             consumerIdToLong <- tryo{consumerId.toLong} ?~! ErrorMessages.InvalidConsumerId 
             consumer <- Connector.connector.vend.getConsumerByConsumerId(consumerIdToLong) ?~! {ErrorMessages.ConsumerNotFoundByConsumerId}
             //only the developer that created the Consumer should be able to edit it

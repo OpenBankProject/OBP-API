@@ -652,25 +652,25 @@ trait TransactionUUID {
 }
 
 class Transaction(
-  //A universally unique id
-  val uuid : String,
-  //id is unique for transactions of @thisAccount
-  val id : TransactionId,
-  val thisAccount : BankAccount,
-  val otherAccount : Counterparty,
-  //E.g. cash withdrawal, electronic payment, etc.
-  val transactionType : String,
-  val amount : BigDecimal,
-  //ISO 4217, e.g. EUR, GBP, USD, etc.
-  val currency : String,
-  // Bank provided label
-  val description : Option[String],
-  // The date the transaction was initiated
-  val startDate : Date,
-  // The date when the money finished changing hands
-  val finishDate : Date,
-  //the new balance for the bank account
-  val balance :  BigDecimal
+                   //A universally unique id
+                   val uuid: String,
+                   //id is unique for transactions of @thisAccount
+                   val id : TransactionId,
+                   val thisAccount : BankAccount,
+                   val otherAccount : Counterparty,
+                   //E.g. cash withdrawal, electronic payment, etc.
+                   val transactionType : String,
+                   val amount : BigDecimal,
+                   //ISO 4217, e.g. EUR, GBP, USD, etc.
+                   val currency : String,
+                   // Bank provided label
+                   val description : Option[String],
+                   // The date the transaction was initiated
+                   val startDate : Date,
+                   // The date when the money finished changing hands
+                   val finishDate : Date,
+                   //the new balance for the bank account
+                   val balance :  BigDecimal
 ) {
 
   val bankId = thisAccount.bankId

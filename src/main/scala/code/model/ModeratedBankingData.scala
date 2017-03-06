@@ -48,20 +48,20 @@ object Moderation {
 }
 
 class ModeratedTransaction(
-  val UUID : String,
-  val id: TransactionId,
-  val bankAccount: Moderated[ModeratedBankAccount],
-  val otherBankAccount: Moderated[ModeratedOtherBankAccount],
-  val metadata : Moderated[ModeratedTransactionMetadata],
-  val transactionType: Moderated[String],
-  val amount: Moderated[BigDecimal],
-  val currency: Moderated[String],
-  val description: Moderated[String],
-  val startDate: Moderated[Date],
-  val finishDate: Moderated[Date],
-  //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
-  //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
-  val balance : String
+                            val UUID: String,
+                            val id: TransactionId,
+                            val bankAccount: Moderated[ModeratedBankAccount],
+                            val otherBankAccount: Moderated[ModeratedOtherBankAccount],
+                            val metadata : Moderated[ModeratedTransactionMetadata],
+                            val transactionType: Moderated[String],
+                            val amount: Moderated[BigDecimal],
+                            val currency: Moderated[String],
+                            val description: Moderated[String],
+                            val startDate: Moderated[Date],
+                            val finishDate: Moderated[Date],
+                            //the filteredBlance type in this class is a string rather than Big decimal like in Transaction trait for snippet (display) reasons.
+                            //the view should be able to return a sign (- or +) or the real value. casting signs into big decimal is not possible
+                            val balance : String
 ) {
 
   def dateOption2JString(date: Option[Date]) : JString = {

@@ -19,8 +19,11 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object transactionId extends MappedString(this, 255) {
     override def defaultValue = UUID.randomUUID().toString
   }
+  
   //TODO: review the need for this
   // (why do we need transactionUUID and transactionId - which is a UUID?)
+  // This a history problem, previous we do not used transactionId as a UUID. But late we changed it to a UUID.
+  // The UUID is used in V1.1, a long time ago version. So just leave it here now.
   object transactionUUID extends MappedUUID(this)
   object transactionType extends MappedString(this, 100)
 
@@ -46,7 +49,7 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
   object counterpartyIban extends MappedString(this, 100)
   object counterpartyAccountKind extends MappedString(this, 40)
 
-  //The following are the fields from CounterpartyTrait, previence just save BankAccount to simulate the counterparty.
+  //The following are the fields from CounterpartyTrait, previous just save BankAccount to simulate the counterparty.
   //Now we save the real Counterparty data 
   //CP--> CounterParty
   object CPOtherBankId extends MappedString(this, 36)
@@ -131,17 +134,17 @@ class MappedTransaction extends LongKeyedMapper[MappedTransaction] with IdPK wit
       val otherAccount = createCounterparty(Some(dummyOtherBankAccount.metadata))
 
       Some(new Transaction(
-        transactionUUID.get,
-        theTransactionId,
-        account,
-        otherAccount,
-        transactionType.get,
-        amt,
-        transactionCurrency,
-        label,
-        tStartDate.get,
-        tFinishDate.get,
-        newBalance))
+                            transactionUUID.get,
+                            theTransactionId,
+                            account,
+                            otherAccount,
+                            transactionType.get,
+                            amt,
+                            transactionCurrency,
+                            label,
+                            tStartDate.get,
+                            tFinishDate.get,
+                            newBalance))
     }
   }
 

@@ -3,7 +3,7 @@ package code.api.v1_3_0
 import java.util.Date
 
 import code.api.util.APIUtil.OAuth._
-import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.api.{DefaultConnectorTestSetup, DefaultUsers, ServerSetup}
 import code.bankconnectors.{Connector, OBPQueryParam}
 import code.branches.Branches.{Branch, BranchId}
@@ -16,7 +16,7 @@ import code.model.dataAccess.ResourceUser
 import code.transactionrequests.TransactionRequests._
 import net.liftweb.common.{Box, Empty, Failure, Full, Loggable}
 import code.products.Products.{Product, ProductCode}
-import code.transactionrequests.{TransactionRequestTypeCharge}
+import code.transactionrequests.TransactionRequestTypeCharge
 class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConnectorTestSetup {
 
   implicit val dateFormats = net.liftweb.json.DefaultFormats
@@ -74,6 +74,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
 
     override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = AmountOfMoney("EUR", "0")
     // parameters in non ideal order override def createChallenge(transactionRequestType: code.model.TransactionRequestType,userID: String,transactionRequestId: String, bankId: BankId, accountId: AccountId): Box[String] = ???
+    override def getChargeLevel(bankId: BankId,
+                                accountId: AccountId,
+                                viewId: ViewId,
+                                userId: String,
+                                userName: String,
+                                transactionRequestType: String,
+                                currency: String): Box[AmountOfMoney] = Empty
     override def validateChallengeAnswer(challengeId: String,hashOfSuppliedAnswer: String): Box[Boolean] = ???
     override def getBank(bankId : BankId) : Box[Bank] = Full(bank)
     override def getBanks : List[Bank] = Nil
@@ -140,9 +147,13 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
                                               status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = {
       Failure("not supported")
     }
-    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId,
-                                                           account: BankAccount, details: String,
-                                                           status: String, charge: TransactionRequestCharge,
+    protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                           transactionRequestType: TransactionRequestType,
+                                                           account: BankAccount, toAccount: BankAccount,
+                                                           toCounterparty: CounterpartyTrait,
+                                                           transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                           details: String, status: String,
+                                                           charge: TransactionRequestCharge,
                                                            chargePolicy: String): Box[TransactionRequest] = {
       Failure("not supported")
     }
@@ -201,6 +212,14 @@ class PhysicalCardsTest extends ServerSetup with DefaultUsers  with DefaultConne
     override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
 
     override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+    /**
+      * this method is just return an empty account to AccountType.
+      * It is used for SEPA, Counterparty empty toAccount, just used the toCounterparty
+      *
+      * @return empty bankAccount
+      */
+    override def getEmptyBankAccount(): Box[AccountType] = Empty
   }
 
   override def beforeAll() {

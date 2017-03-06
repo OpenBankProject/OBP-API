@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 import java.util.{Date, Locale, Optional, UUID}
 
 import code.api.util.ErrorMessages
-import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, TransactionRequestCommonBodyJSON}
 import code.fx.{FXRate, fx}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
@@ -203,7 +203,17 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     }
 
   }
-
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
+                                        transactionRequestType: String, currency: String)
+  }
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String): Box[Boolean] = ???
 
@@ -724,8 +734,8 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
+      .mTo_BankId(counterparty.bankId.value)
+      .mTo_AccountId(counterparty.accountId.value)
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
@@ -736,8 +746,25 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   //Note: now call the local mapper to store data
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
-    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String)
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         fromAccount: BankAccount,
+                                                         toAccount: BankAccount,
+                                                         toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String, status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String): Box[TransactionRequest] = {
+
+    LocalMappedConnector.createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         fromAccount: BankAccount, toAccount: BankAccount,
+                                                         toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String,
+                                                         status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String)
   }
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId): Box[Boolean] = {
@@ -1104,17 +1131,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
         // Create new transaction
         new Transaction(
-          r.id,                             // uuid:String
-          TransactionId(r.id),              // id:TransactionId
-          thisAccount,                      // thisAccount:BankAccount
-          counterparty,                     // counterparty:Counterparty
-          r.details.`type`,                 // transactionType:String
-          BigDecimal(r.details.value),      // val amount:BigDecimal
-          thisAccount.currency,             // currency:String
-          Some(r.details.description),      // description:Option[String]
-          datePosted,                       // startDate:Date
-          dateCompleted,                    // finishDate:Date
-          BigDecimal(new_balance)           // balance:BigDecimal)
+                         r.id, // uuid:String
+                         TransactionId(r.id), // id:TransactionId
+                         thisAccount, // thisAccount:BankAccount
+                         counterparty, // counterparty:Counterparty
+                         r.details.`type`, // transactionType:String
+                         BigDecimal(r.details.value), // val amount:BigDecimal
+                         thisAccount.currency, // currency:String
+                         Some(r.details.description), // description:Option[String]
+                         datePosted, // startDate:Date
+                         dateCompleted, // finishDate:Date
+                         BigDecimal(new_balance) // balance:BigDecimal)
         )
     }
   }
@@ -1413,5 +1440,19 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   }
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new ObpJvmBankAccount(ObpJvmInboundAccount(id = "",
+                                                    bank = "",
+                                                    label = "",
+                                                    number = "",
+                                                    `type` = "",
+                                                    balance = ObpJvmInboundBalance("", ""),
+                                                    IBAN = "",
+                                                    owners = Nil,
+                                                    generate_public_view = true,
+                                                    generate_accountants_view = true,
+                                                    generate_auditors_view = true)))
+  }
 }
 

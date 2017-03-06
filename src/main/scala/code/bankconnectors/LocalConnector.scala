@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone, UUID}
 
 import code.accountholder.MapperAccountHolders$
-import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut}
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, fx}
@@ -44,6 +44,17 @@ private object LocalConnector extends Connector with Loggable {
     val rate = fx.exchangeRate ("EUR", currency)
     val convertedLimit = fx.convert(limit, rate)
     AmountOfMoney(currency,convertedLimit.toString())
+  }
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    LocalMappedConnector.getChargeLevel(bankId: BankId, accountId: AccountId, viewId: ViewId, userId: String, userName: String,
+                                        transactionRequestType: String, currency: String)
   }
 
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String): Box[String] = ???
@@ -256,17 +267,17 @@ private object LocalConnector extends Connector with Loggable {
     val balance = transaction.details.get.new_balance.get.amount.get
 
     new Transaction(
-      uuid,
-      id,
-      theAccount,
-      otherAccount,
-      transactionType,
-      amount,
-      currency,
-      label,
-      startDate,
-      finishDate,
-      balance)
+                     uuid,
+                     id,
+                     theAccount,
+                     otherAccount,
+                     transactionType,
+                     amount,
+                     currency,
+                     label,
+                     startDate,
+                     finishDate,
+                     balance)
   }
 
   private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {
@@ -366,7 +377,13 @@ private object LocalConnector extends Connector with Loggable {
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
                                             status: String, charge: TransactionRequestCharge) : Box[TransactionRequest] = ???
 
-  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = ???
+  protected override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                                         transactionRequestType: TransactionRequestType,
+                                                         account: BankAccount, toAccount: BankAccount, toCounterparty: CounterpartyTrait,
+                                                         transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                                         details: String, status: String,
+                                                         charge: TransactionRequestCharge,
+                                                         chargePolicy: String): Box[TransactionRequest] = ???
 
   override def saveTransactionRequestTransactionImpl(transactionRequestId: TransactionRequestId, transactionId: TransactionId) = ???
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge) = ???
@@ -622,5 +639,7 @@ private object LocalConnector extends Connector with Loggable {
   override def getTransactionRequestTypeCharges(bankId: BankId, accountId: AccountId, viewId: ViewId, transactionRequestTypes: List[TransactionRequestType]): Box[List[TransactionRequestTypeCharge]] = Empty
 
   override def getCounterparties(thisBankId: BankId, thisAccountId: AccountId,viewId :ViewId): Box[List[CounterpartyTrait]] = Empty
+
+  override def getEmptyBankAccount(): Box[AccountType] = Empty
 
 }

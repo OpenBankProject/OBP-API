@@ -446,8 +446,17 @@ object JSONFactory200{
       end_date = json.end_date,
       challenge = challenge,
       charge = charge,
-      counterparty_id =  CounterpartyId(""), // Note: counterparty_id only used in V210. For V200 just set it empty
-      charge_policy =""// Note: counterparty_id only used in V210. For V200 just set it empty
+      charge_policy ="",// Note: charge_policy only used in V210. For V140 just set it empty
+      counterparty_id =  CounterpartyId(""),// Note: counterparty only used in V210. For V140 just set it empty
+      name = "",
+      this_bank_id = BankId(""),
+      this_account_id = AccountId(""),
+      this_view_id = ViewId(""),
+      other_account_routing_scheme = "",
+      other_account_routing_address = "",
+      other_bank_routing_scheme = "",
+      other_bank_routing_address = "",
+      is_beneficiary = true
     )
   }
 

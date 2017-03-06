@@ -4,6 +4,7 @@ import java.util.{Date, UUID}
 
 import code.api.util.ErrorMessages
 import code.api.v2_1_0.BranchJsonPost
+import code.api.v2_1_0.{BranchJsonPost, BranchJsonPut, TransactionRequestCommonBodyJSON}
 import code.branches.Branches.{Branch, BranchId}
 import code.branches.MappedBranch
 import code.fx.{FXRate, MappedFXRate, fx}
@@ -21,7 +22,7 @@ import code.products.Products.{Product, ProductCode}
 import code.transaction.MappedTransaction
 import code.transactionrequests.{MappedTransactionRequest, MappedTransactionRequestTypeCharge, TransactionRequestTypeCharge, TransactionRequestTypeChargeMock}
 import code.transactionrequests.TransactionRequests._
-import code.util.Helper
+import code.util.{DefaultStringField, Helper}
 import code.util.Helper._
 import code.views.Views
 import com.tesobe.model.UpdateBankAccount
@@ -88,8 +89,28 @@ object LocalMappedConnector extends Connector with Loggable {
       positive <- booleanToBox(answerToNumber > 0) ?~ "Need a positive TAN"
     } yield true
   }
-
-
+  
+  override def getChargeLevel(bankId: BankId,
+                              accountId: AccountId,
+                              viewId: ViewId,
+                              userId: String,
+                              userName: String,
+                              transactionRequestType: String,
+                              currency: String): Box[AmountOfMoney] = {
+    val propertyName = "transactionRequests_charge_level_" + transactionRequestType.toUpperCase
+    val chargeLevel = BigDecimal(Props.get(propertyName, "0.0001"))
+    logger.info(s"transactionRequests_charge_level is $chargeLevel")
+    
+    // TODO constrain this to supported currencies.
+    //    val chargeLevelCurrency = Props.get("transactionRequests_challenge_currency", "EUR")
+    //    logger.info(s"chargeLevelCurrency is $chargeLevelCurrency")
+    //    val rate = fx.exchangeRate (chargeLevelCurrency, currency)
+    //    val convertedThreshold = fx.convert(chargeLevel, rate)
+    //    logger.info(s"getChallengeThreshold for currency $currency is $convertedThreshold")
+    
+    Full(AmountOfMoney(currency, chargeLevel.toString))
+  }
+  
   def getUser(name: String, password: String): Box[InboundUser] = ???
   def updateUserAccountViews(user: ResourceUser): Unit = ???
 
@@ -173,6 +194,10 @@ object LocalMappedConnector extends Connector with Loggable {
     MappedBankAccount.find(
       By(MappedBankAccount.bank, bankId.value),
       By(MappedBankAccount.theAccountId, accountId.value))
+  }
+
+  override def getEmptyBankAccount(): Box[AccountType] = {
+    Full(new MappedBankAccount())
   }
 
   /**
@@ -382,16 +407,18 @@ object LocalMappedConnector extends Connector with Loggable {
     )
   }
 
-/*
-Perform a payment (in the sandbox)
-Store one or more transactions
- */
-   override def makePaymentImpl(fromAccount: MappedBankAccount, toAccount: MappedBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
+  /**
+    * Perform a payment (in the sandbox) Store one or more transactions
+   */
+  override def makePaymentImpl(fromAccount: MappedBankAccount,
+                               toAccount: MappedBankAccount,
+                               toCounterparty: CounterpartyTrait,
+                               amount: BigDecimal,
+                               description: String,
+                               transactionRequestType: TransactionRequestType,
+                               chargePolicy: String): Box[TransactionId] = {
 
-    //we need to save a copy of this payment as a transaction in each of the accounts involved, with opposite amounts
-
-
-
+    // Note: These are guards. Values are calculated in makePaymentv200
     val rate = tryo {
       fx.exchangeRate(fromAccount.currency, toAccount.currency)
     } ?~! {
@@ -399,8 +426,8 @@ Store one or more transactions
     }
 
     // Is it better to pass these into this function ?
-    val fromTransAmt = -amt//from fromAccount balance should decrease
-    val toTransAmt = fx.convert(amt, rate.get)
+    val fromTransAmt = -amount//from fromAccount balance should decrease
+    val toTransAmt = fx.convert(amount, rate.get)
 
      //TODO: in FREE_FORM, fromAccount== toAccount, the following two method will have a bug, because of the database transaction. need an explicit commit to save data between two methods.
     // From
@@ -414,13 +441,13 @@ Store one or more transactions
   }
 
   /**
-    * Saves a transaction with @amt, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
+    * Saves a transaction with @amount, @toAccount and @transactionRequestType for @fromAccount and @toCounterparty. <br>
     * Returns the id of the saved transactionId.<br>
     */
   private def saveTransaction(fromAccount: MappedBankAccount,
-                              toAccount: BankAccount,
+                              toAccount: MappedBankAccount,
                               toCounterparty: CounterpartyTrait,
-                              amt: BigDecimal,
+                              amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
@@ -430,7 +457,7 @@ Store one or more transactions
 
 
     //update the balance of the fromAccount for which a transaction is being created
-    val newAccountBalance : Long = fromAccount.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amt, fromAccount.currency)
+    val newAccountBalance : Long = fromAccount.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccount.currency)
     fromAccount.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
@@ -438,7 +465,7 @@ Store one or more transactions
       .bank(fromAccount.bankId.value)
       .account(fromAccount.accountId.value)
       .transactionType(transactionRequestType.value)
-      .amount(Helper.convertToSmallestCurrencyUnits(amt, currency))
+      .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
       .currency(currency)
       .tStartDate(transactionTime)
@@ -454,9 +481,9 @@ Store one or more transactions
        //New data: real counterparty (toCounterparty: CounterpartyTrait)
       .CPCounterPartyId(toCounterparty.counterpartyId)
       .CPOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
-      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress.getOrElse("test-data"))//happened SEPA, empty toCounterparty
+      .CPOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
       .CPOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
-      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress.getOrElse("test-data"))//happened SEPA, empty toCounterparty
+      .CPOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
       .chargePolicy(chargePolicy)
       .saveMe
     
@@ -476,8 +503,8 @@ Store one or more transactions
       .mType(transactionRequestType.value)
       .mFrom_BankId(account.bankId.value)
       .mFrom_AccountId(account.accountId.value)
-      .mBody_To_BankId(counterparty.bankId.value)
-      .mBody_To_AccountId(counterparty.accountId.value)
+      .mTo_BankId(counterparty.bankId.value)
+      .mTo_AccountId(counterparty.accountId.value)
       .mBody_Value_Currency(body.value.currency)
       .mBody_Value_Amount(body.value.amount)
       .mBody_Description(body.description)
@@ -491,16 +518,24 @@ Store one or more transactions
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
 
-   override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType, counterpartyId: CounterpartyId, account: BankAccount, details: String, status: String, charge: TransactionRequestCharge, chargePolicy: String): Box[TransactionRequest] = {
+  override def createTransactionRequestImpl210(transactionRequestId: TransactionRequestId,
+                                               transactionRequestType: TransactionRequestType,
+                                               fromAccount: BankAccount,
+                                               toAccount: BankAccount,
+                                               toCounterparty: CounterpartyTrait,
+                                               transactionRequestCommonBody: TransactionRequestCommonBodyJSON,
+                                               details: String,
+                                               status: String,
+                                               charge: TransactionRequestCharge,
+                                               chargePolicy: String): Box[TransactionRequest] = {
 
-    // Note: We don't save transaction_ids here.
+    // Note: We don't save transaction_ids, status and challenge here.
     val mappedTransactionRequest = MappedTransactionRequest.create
+
+      //transaction request fields:
       .mTransactionRequestId(transactionRequestId.value)
-      .mCounterpartyId(counterpartyId.value)
       .mType(transactionRequestType.value)
-      .mFrom_BankId(account.bankId.value)
-      .mFrom_AccountId(account.accountId.value)
-      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+      //transaction fields:
       .mStatus(status)
       .mStartDate(now)
       .mEndDate(now)
@@ -508,6 +543,34 @@ Store one or more transactions
       .mCharge_Amount(charge.value.amount)
       .mCharge_Currency(charge.value.currency)
       .mcharge_Policy(chargePolicy)
+
+      //fromAccount fields
+      .mFrom_BankId(fromAccount.bankId.value)
+      .mFrom_AccountId(fromAccount.accountId.value)
+
+      //toAccount fields
+      .mTo_BankId(toAccount.bankId.value)
+      .mTo_AccountId(toAccount.accountId.value)
+
+      //toCounterparty fields
+      .mName(toCounterparty.name)
+      .mThisBankId(toCounterparty.thisBankId)
+      .mThisAccountId(toCounterparty.thisAccountId)
+      .mThisViewId(toCounterparty.thisViewId)
+      .mCounterpartyId(toCounterparty.counterpartyId)
+      .mOtherAccountRoutingScheme(toCounterparty.otherAccountRoutingScheme)
+      .mOtherAccountRoutingAddress(toCounterparty.otherAccountRoutingAddress)
+      .mOtherBankRoutingScheme(toCounterparty.otherBankRoutingScheme)
+      .mOtherBankRoutingAddress(toCounterparty.otherBankRoutingAddress)
+      .mIsBeneficiary(toCounterparty.isBeneficiary)
+
+      //Body from http request: SANDBOX_TAN, FREE_FORM, SEPA and COUNTERPARTY should have the same following fields:
+      .mBody_Value_Currency(transactionRequestCommonBody.value.currency)
+      .mBody_Value_Amount(transactionRequestCommonBody.value.amount)
+      .mBody_Description(transactionRequestCommonBody.description)
+      .mDetails(details) // This is the details / body of the request (contains all fields in the body)
+
+
       .saveMe
     Full(mappedTransactionRequest).flatMap(_.toTransactionRequest)
   }
@@ -522,6 +585,7 @@ Store one or more transactions
   }
 
   override def saveTransactionRequestChallengeImpl(transactionRequestId: TransactionRequestId, challenge: TransactionRequestChallenge): Box[Boolean] = {
+    //this saves challenge
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full{
@@ -534,6 +598,7 @@ Store one or more transactions
   }
 
   override def saveTransactionRequestStatusImpl(transactionRequestId: TransactionRequestId, status: String): Box[Boolean] = {
+    //this saves status
     val mappedTransactionRequest = MappedTransactionRequest.find(By(MappedTransactionRequest.mTransactionRequestId, transactionRequestId.value))
     mappedTransactionRequest match {
       case Full(tr: MappedTransactionRequest) => Full(tr.mStatus(status).save)
