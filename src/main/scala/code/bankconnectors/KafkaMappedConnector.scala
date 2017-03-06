@@ -1212,16 +1212,17 @@ object KafkaMappedConnector extends Connector with Loggable {
       } yield {
         // Create new transaction
         new Transaction(
-          TransactionId(r.transactionId),   // id:TransactionId
-          thisAccount,                      // thisAccount:BankAccount
-          counterparty,                     // otherAccount:OtherBankAccount
-          r.`type`,                         // transactionType:String
-          BigDecimal(r.amount),             // val amount:BigDecimal
-          thisAccount.currency,             // currency:String
-          Some(r.description),              // description:Option[String]
-          datePosted,                       // startDate:Date
-          dateCompleted,                    // finishDate:Date
-          BigDecimal(r.newBalanceAmount)    // balance:BigDecimal)
+                         r.transactionId, // uuid:String
+                         TransactionId(r.transactionId), // id:TransactionId
+                         thisAccount, // thisAccount:BankAccount
+                         counterparty, // otherAccount:OtherBankAccount
+                         r.`type`, // transactionType:String
+                         BigDecimal(r.amount), // val amount:BigDecimal
+                         thisAccount.currency, // currency:String
+                         Some(r.description), // description:Option[String]
+                         datePosted, // startDate:Date
+                         dateCompleted, // finishDate:Date
+                         BigDecimal(r.newBalanceAmount) // balance:BigDecimal)
         )
     }
   }

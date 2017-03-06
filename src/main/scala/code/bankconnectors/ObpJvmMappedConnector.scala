@@ -1131,16 +1131,17 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
 
         // Create new transaction
         new Transaction(
-          TransactionId(r.id),              // id:TransactionId
-          thisAccount,                      // thisAccount:BankAccount
-          counterparty,                     // counterparty:Counterparty
-          r.details.`type`,                 // transactionType:String
-          BigDecimal(r.details.value),      // val amount:BigDecimal
-          thisAccount.currency,             // currency:String
-          Some(r.details.description),      // description:Option[String]
-          datePosted,                       // startDate:Date
-          dateCompleted,                    // finishDate:Date
-          BigDecimal(new_balance)           // balance:BigDecimal)
+                         r.id, // uuid:String
+                         TransactionId(r.id), // id:TransactionId
+                         thisAccount, // thisAccount:BankAccount
+                         counterparty, // counterparty:Counterparty
+                         r.details.`type`, // transactionType:String
+                         BigDecimal(r.details.value), // val amount:BigDecimal
+                         thisAccount.currency, // currency:String
+                         Some(r.details.description), // description:Option[String]
+                         datePosted, // startDate:Date
+                         dateCompleted, // finishDate:Date
+                         BigDecimal(new_balance) // balance:BigDecimal)
         )
     }
   }

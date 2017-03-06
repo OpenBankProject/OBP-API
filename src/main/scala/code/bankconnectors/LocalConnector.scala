@@ -267,16 +267,17 @@ private object LocalConnector extends Connector with Loggable {
     val balance = transaction.details.get.new_balance.get.amount.get
 
     new Transaction(
-      id,
-      theAccount,
-      otherAccount,
-      transactionType,
-      amount,
-      currency,
-      label,
-      startDate,
-      finishDate,
-      balance)
+                     uuid,
+                     id,
+                     theAccount,
+                     otherAccount,
+                     transactionType,
+                     amount,
+                     currency,
+                     label,
+                     startDate,
+                     finishDate,
+                     balance)
   }
 
   private def saveNewTransaction(account : Account, otherAccount : Account, amount : BigDecimal, description : String) : Box[OBPEnvelope] = {

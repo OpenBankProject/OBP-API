@@ -97,10 +97,10 @@ object ImporterAPI extends RestHelper with Loggable {
         JField("amount", JString(t.amount.toString)))))))
 
     val transactionJson = {
-      JObject(List(JField("obp_transaction_uuid", JString(t.id.value)),
-        JField("this_account", thisAccJson),
-        JField("other_account", otherAccJson),
-        JField("details", detailsJson)))
+      JObject(List(JField("obp_transaction_uuid", JString(t.uuid)),
+                   JField("this_account", thisAccJson),
+                   JField("other_account", otherAccJson),
+                   JField("details", detailsJson)))
     }
 
     JObject(
