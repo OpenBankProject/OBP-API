@@ -433,6 +433,7 @@ object ToSchemify {
     MappedTag,
     MappedWhereTag,
     MappedTransactionImage,
+    MappedNarrative,
     MapperAccountHolders
   )
 
@@ -445,7 +446,6 @@ object ToSchemify {
     Nonce,
     Token,
     Consumer,
-    MappedNarrative,
     MappedBank,
     MappedBankAccount,
     MappedTransaction,

@@ -142,7 +142,7 @@ trait CounterpartyMetadata {
 
 class TransactionMetadata(
   val ownerComment : () => String,
-  val addOwnerComment : String => Unit,
+  val addOwnerComment : String => Boolean,
   val comments: (ViewId) => List[Comment],
   /**
   * @param: userId

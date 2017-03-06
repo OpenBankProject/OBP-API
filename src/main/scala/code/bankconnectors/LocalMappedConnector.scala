@@ -11,7 +11,7 @@ import code.fx.{FXRate, MappedFXRate, fx}
 import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.comments.Comments
 import code.metadata.counterparties.{Counterparties, CounterpartyTrait, MappedCounterparty}
-import code.metadata.narrative.MappedNarrative
+import code.metadata.narrative.Narrative
 import code.metadata.tags.Tags
 import code.metadata.transactionimages.TransactionImages
 import code.metadata.wheretags.WhereTags
@@ -677,10 +677,7 @@ object LocalMappedConnector extends Connector with Loggable {
     val commentsDeleted = Comments.comments.vend.bulkDeleteComments(bankId, accountId)
 
     //delete narratives on transactions of this account
-    val narrativesDeleted = MappedNarrative.bulkDelete_!!(
-      By(MappedNarrative.bank, bankId.value),
-      By(MappedNarrative.account, accountId.value)
-    )
+    val narrativesDeleted = Narrative.narrative.vend.bulkDeleteNarratives(bankId, accountId)
 
     //delete narratives on transactions of this account
     val tagsDeleted = Tags.tags.vend.bulkDeleteTags(bankId, accountId)

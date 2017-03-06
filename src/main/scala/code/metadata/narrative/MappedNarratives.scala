@@ -19,13 +19,13 @@ object MappedNarratives extends Narrative {
     found.map(_.narrative.get).getOrElse("")
   }
 
-  override def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Unit = {
+  override def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean = {
 
     val existing = getMappedNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)
 
     if(narrative.isEmpty) {
       //if the new narrative is empty, we can just delete the existing one
-      existing.foreach(_.delete_!)
+      existing.map(_.delete_!).getOrElse(false)
     } else {
       val mappedNarrative = existing match {
         case Full(n) => n
@@ -37,6 +37,13 @@ object MappedNarratives extends Narrative {
       mappedNarrative.narrative(narrative).save
     }
   }
+
+  override def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = {
+      MappedNarrative.bulkDelete_!!(
+        By(MappedNarrative.bank, bankId.value),
+        By(MappedNarrative.account, accountId.value))
+  }
+
 }
 
 class MappedNarrative extends LongKeyedMapper[MappedNarrative] with IdPK with CreatedUpdated {

@@ -17,7 +17,7 @@ private object MongoTransactionNarrative extends Narrative {
     }
   }
 
-  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Unit = {
+  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String) : Boolean = {
 
     val findQuery = OBPNarrative.getFindQuery(bankId, accountId, transactionId)
 
@@ -43,8 +43,10 @@ private object MongoTransactionNarrative extends Narrative {
     }
 
     //we don't have any useful information here so just assume it worked
-    Full()
+    true
   }
+
+  override def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = ???
 
 }
 
