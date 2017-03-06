@@ -11,6 +11,12 @@ To use Akka, you want to have two different machines:
 Both run current versions of the Open Bank Project API, but configured and run differently.
 
 
+## Remote models
+
+Not all models have been ported yet to be retrieved via Akka. See `modelsRemotedata` in `src/main/scala/bootstrap/liftweb/Boot.scala` to get a current list.
+
+
+
 # Remote side
 
 - Configure `src/main/resources/default.props`: 
