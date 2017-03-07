@@ -43,8 +43,14 @@ Could consider a Map of ("resourceType" -> "provider") - this could tell us whic
  initialise MongoDB etc. resourceType might be sub devided to allow for different account types coming from different internal APIs, MQs.
  */
 
-object Connector  extends SimpleInjector {
+object Connector extends SimpleInjector {
 
+  import scala.reflect.runtime.universe._
+  def getObjectInstance(clsName: String):Connector = {
+    val mirror = runtimeMirror(getClass.getClassLoader)
+    val module = mirror.staticModule(clsName)
+    mirror.reflectModule(module).instance.asInstanceOf[Connector]
+  }
 
   val connector = new Inject(buildOne _) {}
 
@@ -54,8 +60,9 @@ object Connector  extends SimpleInjector {
     connectorProps match {
       case "mapped" => LocalMappedConnector
       case "mongodb" => LocalConnector
-      case "kafka" => KafkaMappedConnector
       case "obpjvm" => ObpJvmMappedConnector
+      case "kafka" => KafkaMappedConnector
+      case matchKafkaVersion(version) => getObjectInstance(s"""code.bankconnectors.KafkaMappedConnector_v${version}""")
     }
   }
 

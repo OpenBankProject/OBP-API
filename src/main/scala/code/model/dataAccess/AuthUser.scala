@@ -443,7 +443,7 @@ import net.liftweb.util.Helpers._
 
       case Full(user) if (user.getProvider() != Props.get("hostname","")) =>
           connector match {
-            case "kafka" if ( Props.getBool("kafka.user.authentication", false) &&
+            case Helper.matchAnyKafka() if ( Props.getBool("kafka.user.authentication", false) &&
               ! LoginAttempt.userIsLocked(username) ) =>
                 val userId = for { kafkaUser <- getUserFromConnector(username, password)
                   kafkaUserId <- tryo{kafkaUser.user} } yield {
@@ -625,7 +625,7 @@ import net.liftweb.util.Helpers._
             S.error(S.?("account.validation.error"))
 
           // If not found locally, try to authenticate user via Kafka, if enabled in props
-          case Empty if (connector == "kafka" || connector == "obpjvm") &&
+          case Empty if (connector.startsWith("kafka") || connector == "obpjvm") &&
             (Props.getBool("kafka.user.authentication", false) ||
             Props.getBool("obpjvm.user.authentication", false)) =>
               val preLoginState = capturePreLoginState()
@@ -682,7 +682,7 @@ import net.liftweb.util.Helpers._
 
 
  def testExternalPassword(usernameFromGui: Box[String], passwordFromGui: Box[String]): Box[Boolean] = {
-   if (connector == "kafka" || connector == "obpjvm") {
+   if (connector.startsWith("kafka") || connector == "obpjvm") {
      val res = for {
        username <- usernameFromGui
        password <- passwordFromGui
@@ -697,7 +697,7 @@ import net.liftweb.util.Helpers._
 
 
   def externalUserHelper(name: String, password: String): Box[AuthUser] = {
-    if (connector == "kafka" || connector == "obpjvm") {
+    if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        user <- getUserFromConnector(name, password)
        u <- Users.users.vend.getUserByUserName(username)
@@ -710,7 +710,7 @@ import net.liftweb.util.Helpers._
 
 
   def registeredUserHelper(username: String) = {
-    if (connector == "kafka" || connector == "obpjvm") {
+    if (connector.startsWith("kafka") || connector == "obpjvm") {
       for {
        u <- Users.users.vend.getUserByUserName(username)
        v <- tryo {Connector.connector.vend.updateUserAccountViews(u)}

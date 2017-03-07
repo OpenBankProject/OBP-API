@@ -155,4 +155,11 @@ object Helper{
 
     validUrls.contains(extractCleanURL)
   }
+
+   /**
+    * Used for version extraction from props string
+    */
+  val matchKafkaVersion = "kafka_v([0-9a-zA-Z_]+)".r
+  val matchAnyKafka = "^kafka.*$".r
+
 }
