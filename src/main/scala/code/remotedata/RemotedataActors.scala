@@ -2,8 +2,7 @@ package code.remotedata
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.{Actor, ActorSystem, Props => ActorProps}
-import akka.event.Logging
+import akka.actor.{ActorSystem, Props => ActorProps}
 import akka.util.Timeout
 import bootstrap.liftweb.ToSchemify
 import com.typesafe.config.ConfigFactory
@@ -41,7 +40,8 @@ object RemotedataActors extends Loggable {
       ActorProps[RemotedataViewsActor]              -> RemotedataViews.actorName,
       ActorProps[RemotedataWhereTagsActor]          -> RemotedataWhereTags.actorName,
       ActorProps[RemotedataTransactionImagesActor]  -> RemotedataTransactionImages.actorName,
-      ActorProps[RemotedataNarrativesActor]         -> RemotedataNarratives.actorName
+      ActorProps[RemotedataNarrativesActor]         -> RemotedataNarratives.actorName,
+      ActorProps[RemotedataCustomersActor]          -> RemotedataCustomers.actorName
     )
 
     actorsRemotedata.foreach { a => logger.info(actorSystem.actorOf(a._1, name = a._2)) }
