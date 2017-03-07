@@ -303,6 +303,10 @@ We use jetty8 to run the API in production mode.
 
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
+
+* Using Akka remote storage, please see README.Akka.md
+
+
 ## Scala / Lift
 
 * We use scala and liftweb http://www.liftweb.net/
