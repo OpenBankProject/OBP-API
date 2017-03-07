@@ -368,7 +368,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
-      "action" -> "obp.getBankAccount",
+      "action" -> "obp.getAccount",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -398,7 +398,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
         val req = Map(
-          "action" -> "obp.getBankAccounts",
+          "action" -> "obp.getAccounts",
           "version" -> formatVersion,
           "userId" -> AuthUser.getCurrentResourceUserUserId,
           "username" -> AuthUser.getCurrentUserUsername,
@@ -428,7 +428,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
     val req = Map(
-      "action" -> "obp.getBankAccount",
+      "action" -> "obp.getAccount",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
