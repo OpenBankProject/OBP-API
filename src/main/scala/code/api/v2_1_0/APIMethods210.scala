@@ -1512,6 +1512,29 @@ trait APIMethods210 {
         |
         |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
         |
+        |Filters Part 2.
+        |
+        |add more fileds to filter
+        |
+        |eg: /management/metrics?from_start_date=2016-03-05&to_start_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+        |
+        |Should be able to filter on:
+        |
+        |5 consumer_id  (if null ignore)
+        |
+        |6 user_id (if null ignore)
+        |
+        |7 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |8 url (if null ignore), note: can not contain '&'. 
+        |
+        |9 app_name (if null ignore)
+        |
+        |10 implemented_by_partial_function (if null ignore),
+        |
+        |11 implemented_in_version (if null ignore)
+        |
+        |12 verb (if null ignore)
         |
       """.stripMargin,
       emptyObjectJson,
@@ -1560,8 +1583,44 @@ trait APIMethods210 {
               *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
               */
             filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
+
+            //Filters Part 2.
+            //eg: /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0
+            //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
+            // consumer_id (if null ignore)
+            // user_id (if null ignore)
+            // anon true => return where user_id is null. false => return where where user_id is not null(if null ignore)
+            // url (if null ignore)
+            // app_name (if null ignore)
+            // implemented_by_partial_function (if null ignore)
+            // implemented_in_version (if null ignore)
+            // verb (if null ignore)
+            consumerId <- Full(S.param("consumer_id")) //(if null ignore)
+            userId <- Full(S.param("user_id")) //(if null ignore)
+            anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
+            url <- Full(S.param("url")) // (if null ignore)
+            appName <- Full(S.param("app_name")) // (if null ignore)
+            implementedByPartialFunction <- Full(S.param("implemented_by_partial_function")) //(if null ignore)           
+            implementedInVersion <- Full(S.param("implemented_in_version")) // (if null ignore)
+            verb <- Full(S.param("verb")) // (if null ignore)
+
+            anonIsValid <- tryo(if (!anon.isEmpty) {
+              assert(anon.get.equals("true") || anon.get.equals("false"))
+            }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
+
+            filterByFields: List[APIMetric] = filterByPages
+              .filter(rd => (if (!consumerId.isEmpty) rd.getConsumerId().equals(consumerId.get) else true))
+              .filter(rd => (if (!userId.isEmpty) rd.getUserId().equals(userId.get) else true))
+              .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
+              .filter(rd => (if (!anon.isEmpty && anon.get.equals("false")) (!rd.getUserId().equals("null")) else true))
+              //TODO url can not contain '&', if url is /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0, it can not work.
+              .filter(rd => (if (!url.isEmpty) rd.getUrl().equals(url.get) else true))
+              .filter(rd => (if (!appName.isEmpty) rd.getAppName.equals(appName.get) else true))
+              .filter(rd => (if (!implementedByPartialFunction.isEmpty) rd.getImplementedByPartialFunction().equals(implementedByPartialFunction.get) else true))
+              .filter(rd => (if (!implementedInVersion.isEmpty) rd.getImplementedInVersion().equals(implementedInVersion.get) else true))
+              .filter(rd => (if (!verb.isEmpty) rd.getVerb().equals(verb.get) else true))
           } yield {
-            val json = JSONFactory210.createMetricsJson(filterByPages)
+            val json = JSONFactory210.createMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json))
           }
         }
