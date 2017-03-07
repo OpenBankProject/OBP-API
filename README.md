@@ -304,7 +304,9 @@ We use jetty8 to run the API in production mode.
 * You should now be able to browse to localhost:8080 (or yourIPaddress:8080)
 
 
-* Using Akka remote storage, please see README.Akka.md
+## Using Akka remote storage
+
+Most internal OBP model data access now occurs over Akka. This is so the machine that has JDBC access to the OBP database can be physically separated from the OBP API layer. In this configuration we run two instances of OBP-API on two different machines and they communicate over Akka. Please see README.Akka.md for instructions.
 
 
 ## Scala / Lift
