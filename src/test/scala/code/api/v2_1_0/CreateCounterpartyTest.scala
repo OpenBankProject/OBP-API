@@ -12,9 +12,6 @@ class CreateCounterpartyTest extends V210ServerSetup with DefaultUsers {
 
   val counterpartyPostJSON = PostCounterpartyJSON(
     name = "Company Salary",
-    other_bank_id ="gh.29.de",
-    other_account_id="007a268b-98bf-44ef-8f6a-9944618378cf",
-    other_account_provider="OBP",
     other_account_routing_scheme="IBAN",
     other_account_routing_address="DE12 1234 5123 4510 2207 8077 877",
     other_bank_routing_scheme="BIC",

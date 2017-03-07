@@ -67,6 +67,7 @@ object ErrorMessages {
   val InvalidNumber = "OBP-10002: Invalid Number. Could not convert value to a number."
   val InvalidISOCurrencyCode = "OBP-10003: Invalid Currency Value. It should be three letters ISO Currency Code. "
   val FXCurrencyCodeCombinationsNotSupported = "OBP-10004: ISO Currency code combination not supported for FX. Please modify the FROM_CURRENCY_CODE or TO_CURRENCY_CODE. "
+  val InvalidDateFormat = "OBP-10005: Invalid Date Format. Could not convert value to a Date."
 
   // Authentication / Authorisation / User messages
   val UserNotLoggedIn = "OBP-20001: User not logged in. Authentication is required!"

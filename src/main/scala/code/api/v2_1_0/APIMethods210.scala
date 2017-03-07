@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
@@ -22,13 +22,13 @@ import code.customer.{Customer, MockCreditLimit, MockCreditRating, MockCustomerF
 import code.entitlement.Entitlement
 import code.fx.fx
 import code.metadata.counterparties.Counterparties
-import code.metrics.APIMetrics
+import code.metrics.{APIMetric, APIMetrics}
 import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
 import net.liftweb.common.Failure
-import net.liftweb.http.Req
+import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
 import net.liftweb.mapper.By
@@ -1152,9 +1152,6 @@ trait APIMethods210 {
           |""",
       Extraction.decompose(PostCounterpartyJSON(
         name="",
-        other_bank_id="",
-        other_account_id="12345",
-        other_account_provider="OBP",
         other_account_routing_scheme="IBAN",
         other_account_routing_address="7987987-2348987-234234",
         other_bank_routing_scheme="BIC",
@@ -1189,8 +1186,6 @@ trait APIMethods210 {
               thisAccountId=accountId.value,
               thisViewId = viewId.value,
               name=postJson.name,
-              otherBankId =postJson.other_bank_id,
-              otherAccountId =postJson.other_account_id,
               otherAccountRoutingScheme=postJson.other_account_routing_scheme,
               otherAccountRoutingAddress=postJson.other_account_routing_address,
               otherBankRoutingScheme=postJson.other_bank_routing_scheme,
@@ -1496,7 +1491,47 @@ trait APIMethods210 {
       "Get Metrics",
       """Get the all metrics
         |
-        |require CanReadMetrics role""".stripMargin,
+        |require CanReadMetrics role
+        |
+        |Filters Part 1.*filtering* (no wilde cards etc.) parameters to GET /management/metrics
+        |
+        |Should be able to filter on the following metrics fields
+        |
+        |eg: /management/metrics?from_start_date=2017-03-01&to_start_date=2017-03-04&limit=50&offset=2
+        |
+        |1 from_start_date (defaults to one week before current date): eg:from_start_date=2017-03-01
+        |
+        |2 to_start_date (defaults to current date) eg:to_start_date=2017-03-05
+        |
+        |3 limit (for pagination: defaults to 200)  eg:limit=200
+        |
+        |4 offset (for pagination: zero index, defaults to 0) eg: offset=10
+        |
+        |Filters Part 2.
+        |
+        |add more fileds to filter
+        |
+        |eg: /management/metrics?from_start_date=2016-03-05&to_start_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+        |
+        |Should be able to filter on:
+        |
+        |5 consumer_id  (if null ignore)
+        |
+        |6 user_id (if null ignore)
+        |
+        |7 anon (if null ignore) only support two value : true (return where user_id is null.) or false (return where user_id is not null.)
+        |
+        |8 url (if null ignore), note: can not contain '&'. 
+        |
+        |9 app_name (if null ignore)
+        |
+        |10 implemented_by_partial_function (if null ignore),
+        |
+        |11 implemented_in_version (if null ignore)
+        |
+        |12 verb (if null ignore)
+        |
+      """.stripMargin,
       emptyObjectJson,
       emptyObjectJson,
       emptyObjectJson :: Nil,
@@ -1509,9 +1544,78 @@ trait APIMethods210 {
           for {
             u <- user ?~! ErrorMessages.UserNotLoggedIn
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
+  
+            //Note: Filters Part 1:
+            //?from_start_date=100&to_start_date=1&limit=200&offset=0
+  
+            inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
+            oneWeekBeforeDate <- Full((new Date(now.getTime - 1000 * 60 * 60 * 24 * 7)).toInstant.toString)
+            nowDate <- Full(now.toInstant.toString)
+  
+            //(defaults to one week before current date
+            fromStartDate <- tryo(inputDateFormat.parse(S.param("from_start_date").getOrElse(oneWeekBeforeDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } from_start_date:${S.param("from_start_date").get }. Support format is yyyy-MM-dd"
+            // defaults to current date
+            toStartDate <- tryo(inputDateFormat.parse(S.param("to_start_date").getOrElse(nowDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } to_start_date:${S.param("to_start_date").get }. Support format is yyyy-MM-dd"
+            // default 200, return 200 items
+            limit <- tryo(S.param("limit").getOrElse("200").toInt) ?~!
+              s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
+            // default0, start from page 0
+            offset <- tryo(S.param("offset").getOrElse("0").toInt) ?~!
+              s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
+  
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics())
+            filterByDate: List[APIMetric] = metrics.toList.filter(rd => (rd.getDate().after(fromStartDate)) && (rd.getDate().before(toStartDate)))
+  
+            /** pages: 
+              * eg: total=79
+              * offset=0, limit =50
+              *  filterByDate.slice(0,50)
+              * offset=1, limit =50
+              *  filterByDate.slice(50*1,50+50*1)--> filterByDate.slice(50,100)
+              * offset=2, limit =50
+              *  filterByDate.slice(50*2,50+50*2)-->filterByDate.slice(100,150)
+              */
+            filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
+
+            //Filters Part 2.
+            //eg: /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0
+            //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
+            // consumer_id (if null ignore)
+            // user_id (if null ignore)
+            // anon true => return where user_id is null. false => return where where user_id is not null(if null ignore)
+            // url (if null ignore)
+            // app_name (if null ignore)
+            // implemented_by_partial_function (if null ignore)
+            // implemented_in_version (if null ignore)
+            // verb (if null ignore)
+            consumerId <- Full(S.param("consumer_id")) //(if null ignore)
+            userId <- Full(S.param("user_id")) //(if null ignore)
+            anon <- Full(S.param("anon")) // (if null ignore) true => return where user_id is null.false => return where user_id is not null.
+            url <- Full(S.param("url")) // (if null ignore)
+            appName <- Full(S.param("app_name")) // (if null ignore)
+            implementedByPartialFunction <- Full(S.param("implemented_by_partial_function")) //(if null ignore)           
+            implementedInVersion <- Full(S.param("implemented_in_version")) // (if null ignore)
+            verb <- Full(S.param("verb")) // (if null ignore)
+
+            anonIsValid <- tryo(if (!anon.isEmpty) {
+              assert(anon.get.equals("true") || anon.get.equals("false"))
+            }) ?~! s"value anon:${anon.get } is Wrong . anon only have two value true or false or omit anon field"
+
+            filterByFields: List[APIMetric] = filterByPages
+              .filter(rd => (if (!consumerId.isEmpty) rd.getConsumerId().equals(consumerId.get) else true))
+              .filter(rd => (if (!userId.isEmpty) rd.getUserId().equals(userId.get) else true))
+              .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
+              .filter(rd => (if (!anon.isEmpty && anon.get.equals("false")) (!rd.getUserId().equals("null")) else true))
+              //TODO url can not contain '&', if url is /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0, it can not work.
+              .filter(rd => (if (!url.isEmpty) rd.getUrl().equals(url.get) else true))
+              .filter(rd => (if (!appName.isEmpty) rd.getAppName.equals(appName.get) else true))
+              .filter(rd => (if (!implementedByPartialFunction.isEmpty) rd.getImplementedByPartialFunction().equals(implementedByPartialFunction.get) else true))
+              .filter(rd => (if (!implementedInVersion.isEmpty) rd.getImplementedInVersion().equals(implementedInVersion.get) else true))
+              .filter(rd => (if (!verb.isEmpty) rd.getVerb().equals(verb.get) else true))
           } yield {
-            val json = JSONFactory210.createMetricsJson(metrics)
+            val json = JSONFactory210.createMetricsJson(filterByFields)
             successJsonResponse(Extraction.decompose(json))
           }
         }
