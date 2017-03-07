@@ -187,9 +187,6 @@ case class ConsumerJSON(consumer_id: Long,
 case class ConsumerJSONs(list: List[ConsumerJSON])
 
 case class PostCounterpartyJSON(name: String,
-                                other_bank_id: String,
-                                other_account_id: String,
-                                other_account_provider: String,
                                 other_account_routing_scheme: String,
                                 other_account_routing_address: String,
                                 other_bank_routing_scheme: String,

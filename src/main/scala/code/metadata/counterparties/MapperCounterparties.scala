@@ -121,8 +121,6 @@ object MapperCounterparties extends Counterparties with Loggable {
                                   thisAccountId : String,
                                   thisViewId : String,
                                   name: String,
-                                  otherBankId : String,
-                                  otherAccountId:String,
                                   otherAccountRoutingScheme : String,
                                   otherAccountRoutingAddress : String,
                                   otherBankRoutingScheme : String,
