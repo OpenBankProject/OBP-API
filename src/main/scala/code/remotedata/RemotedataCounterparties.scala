@@ -98,15 +98,24 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
     }
     res
   }
-
-  override def createCounterparty(createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String, name: String, otherBankId: String, otherAccountId: String, otherAccountRoutingScheme: String, otherAccountRoutingAddress: String, otherBankRoutingScheme: String, otherBankRoutingAddress: String, isBeneficiary: Boolean): Box[CounterpartyTrait] = {
+  
+  override def createCounterparty(createdByUserId: String,
+                                  thisBankId: String,
+                                  thisAccountId: String,
+                                  thisViewId: String,
+                                  name: String,
+                                  otherAccountRoutingScheme: String,
+                                  otherAccountRoutingAddress: String,
+                                  otherBankRoutingScheme: String,
+                                  otherBankRoutingAddress: String,
+                                  isBeneficiary: Boolean): Box[CounterpartyTrait] = {
     val res = try {
       Full(
         Await.result(
-          (actor ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
-                                                           otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
-                                                           isBeneficiary)).mapTo[CounterpartyTrait],
-          TIMEOUT
+                      (actor ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name,
+                                                     otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
+                                                     isBeneficiary)).mapTo[CounterpartyTrait],
+                      TIMEOUT
         )
       )
     }

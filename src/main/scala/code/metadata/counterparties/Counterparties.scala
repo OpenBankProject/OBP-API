@@ -33,8 +33,6 @@ trait Counterparties {
                           thisAccountId: String,
                           thisViewId: String,
                           name: String,
-                          otherBankId: String,
-                          otherAccountId: String,
                           otherAccountRoutingScheme: String,
                           otherAccountRoutingAddress: String,
                           otherBankRoutingScheme: String,
@@ -78,7 +76,8 @@ class RemotedataCounterpartiesCaseClasses {
 
   case class createCounterparty(
                                  createdByUserId: String, thisBankId: String, thisAccountId: String, thisViewId: String,
-                                 name: String, otherBankId: String, otherAccountId: String, otherAccountRoutingScheme: String,
+                                 name: String,
+                                 otherAccountRoutingScheme: String,
                                  otherAccountRoutingAddress: String, otherBankRoutingScheme: String,
                                  otherBankRoutingAddress: String, isBeneficiary: Boolean)
 

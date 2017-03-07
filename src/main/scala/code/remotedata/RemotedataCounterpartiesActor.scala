@@ -29,18 +29,18 @@ class RemotedataCounterpartiesActor extends Actor {
       sender ! mapper.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)
 
     case cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId,
-                                            name, otherBankId, otherAccountId, otherAccountRoutingScheme,
-                                            otherAccountRoutingAddress, otherBankRoutingScheme, 
-                                            otherBankRoutingAddress, isBeneficiary) =>
-
-      logger.info("createCounterparty(" + createdByUserId +", "+ thisBankId +", "+ thisAccountId +", "+ thisViewId +", "+ name +", "+ otherBankId + otherAccountId +", "
+                               name, otherAccountRoutingScheme,
+                               otherAccountRoutingAddress, otherBankRoutingScheme,
+                               otherBankRoutingAddress, isBeneficiary) =>
+  
+      logger.info("createCounterparty(" + createdByUserId + ", " + thisBankId + ", " + thisAccountId + ", " + thisViewId + ", " + name + ", "
                     + otherAccountRoutingScheme +", "+ otherAccountRoutingAddress +", "+ otherBankRoutingScheme +", "+ otherBankRoutingAddress +", "+ isBeneficiary+ ")")
 
       {
         for {
-          res <- mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name, otherBankId, otherAccountId,
-                                                    otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
-                                                    isBeneficiary)
+          res <- mapper.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name,
+                                           otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
+                                           isBeneficiary)
         } yield {
           sender ! res.asInstanceOf[CounterpartyTrait]
         }
