@@ -13,7 +13,7 @@ import code.management.ImporterAPI.ImporterTransaction
 import code.metadata.counterparties.{CounterpartyTrait, MappedCounterparty}
 import code.model.{Transaction, TransactionRequestType, User, _}
 import code.model.dataAccess.{MappedBankAccount, ResourceUser}
-import code.transactionrequests.{TransactionRequestTypeCharge, TransactionRequests}
+import code.transactionrequests.{MappedTransactionRequest, TransactionRequestTypeCharge, TransactionRequests}
 import code.transactionrequests.TransactionRequests._
 import code.util.Helper._
 import net.liftweb.common.{Box, Empty, Failure, Full}
@@ -496,9 +496,11 @@ trait Connector {
                                                                             chargePolicy)
         //set challenge to null, otherwise it have the default value "challenge": {"id": "","allowed_attempts": 0,"challenge_type": ""}
         transactionRequest = Full(transactionRequest.get.copy(challenge = null))
-        //save transaction_id
+        //save transaction_id into database
         saveTransactionRequestTransaction(transactionRequest.get.id, createdTransactionId.openOrThrowException("Exception: Couldn't create transaction"))
-
+        //update transaction_id filed for varibale 'transactionRequest' 
+        transactionRequest = Full(transactionRequest.get.copy(transaction_ids = createdTransactionId.get.value))
+        
       case TransactionRequests.STATUS_PENDING =>
         transactionRequest = transactionRequest
 
