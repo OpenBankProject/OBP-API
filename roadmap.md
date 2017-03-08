@@ -10,13 +10,13 @@ Our roadmap is agile and likely to be modified / re-prioritised based on demand 
 
 This document mainly concerns OBP API but may reference other OBP projects.
 
-If you have a particular requirement or would like to comment or help us specify, please [get in touch](http://www.openbankproject.com/contact).
+If you have a particular requirement or would like to comment or help us specify, please [get in touch](http://www.openbankproject.com/contact) or make a pull request to this document.
 
 
 
 ## Upcoming developments
 
-*   Extend Swagger support (add expected responses)
+*   Extend Swagger support (add expected responses starting with the PSD2 set of endpoints)
 *   Web Hooks (on balance change etc.)
 
 ## Completed developments (most recent first)
@@ -26,7 +26,7 @@ If you have a particular requirement or would like to comment or help us specify
 The built in kafka connectors now provide message versioning 
 
 ### Akka Remote data (Three tier architechture)
-Most OBP data access now happens over Akka. 
+Most OBP data access now happens over Akka. This allows the API layer to be physically separated from the storage layer with the API layer only able to call a specified set of data access functions with only the storage layer having JDBC / SQL access.    
 
 ### Security improvements
 
