@@ -429,7 +429,6 @@ object LocalMappedConnector extends Connector with Loggable {
     val fromTransAmt = -amount//from fromAccount balance should decrease
     val toTransAmt = fx.convert(amount, rate.get)
 
-     //TODO: in FREE_FORM, fromAccount== toAccount, the following two method will have a bug, because of the database transaction. need an explicit commit to save data between two methods.
     // From
     val sentTransactionId = saveTransaction(fromAccount, toAccount, toCounterparty, fromTransAmt, description, transactionRequestType, chargePolicy)
 
@@ -451,19 +450,21 @@ object LocalMappedConnector extends Connector with Loggable {
                               description: String,
                               transactionRequestType: TransactionRequestType,
                               chargePolicy: String): Box[TransactionId] = {
-    
+    //Note: read the latest data from database
+    //For FREE_FORM, we need make sure always use the latest data 
+    val fromAccountUpdate: Box[MappedBankAccount] = getBankAccount(fromAccount.bankId, fromAccount.accountId)
     val transactionTime = now
     val currency = fromAccount.currency
 
 
     //update the balance of the fromAccount for which a transaction is being created
-    val newAccountBalance : Long = fromAccount.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccount.currency)
-    fromAccount.accountBalance(newAccountBalance).save()
+    val newAccountBalance: Long = fromAccountUpdate.get.accountBalance.get + Helper.convertToSmallestCurrencyUnits(amount, fromAccountUpdate.get.currency)
+    fromAccountUpdate.get.accountBalance(newAccountBalance).save()
 
     val mappedTransaction = MappedTransaction.create
       //No matter which type (SANDBOX_TAN,SEPA,FREE_FORM,COUNTERPARTYE), always filled the following nine fields.
-      .bank(fromAccount.bankId.value)
-      .account(fromAccount.accountId.value)
+      .bank(fromAccountUpdate.get.bankId.value)
+      .account(fromAccountUpdate.get.accountId.value)
       .transactionType(transactionRequestType.value)
       .amount(Helper.convertToSmallestCurrencyUnits(amount, currency))
       .newAccountBalance(newAccountBalance)
