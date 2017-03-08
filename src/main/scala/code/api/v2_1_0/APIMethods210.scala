@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
-import java.util.{Date, Locale}
+import java.util.{Calendar, Date, GregorianCalendar, Locale, TimeZone}
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
@@ -1497,11 +1497,11 @@ trait APIMethods210 {
         |
         |Should be able to filter on the following metrics fields
         |
-        |eg: /management/metrics?from_start_date=2017-03-01&to_start_date=2017-03-04&limit=50&offset=2
+        |eg: /management/metrics?start_date=2017-03-01&end_date=2017-03-04&limit=50&offset=2
         |
-        |1 from_start_date (defaults to one week before current date): eg:from_start_date=2017-03-01
+        |1 start_date (defaults to one week before current date): eg:start_date=2017-03-01
         |
-        |2 to_start_date (defaults to current date) eg:to_start_date=2017-03-05
+        |2 end_date (defaults to current date) eg:end_date=2017-03-05
         |
         |3 limit (for pagination: defaults to 200)  eg:limit=200
         |
@@ -1511,7 +1511,7 @@ trait APIMethods210 {
         |
         |add more fileds to filter
         |
-        |eg: /management/metrics?from_start_date=2016-03-05&to_start_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
+        |eg: /management/metrics?start_date=2016-03-05&end_date=2017-03-08&limit=10000&offset=0&anon=false&app_name=hognwei&implemented_in_version=v2.1.0&verb=POST&user_id=c7b6cb47-cb96-4441-8801-35b57456753a&user_name=susan.uk.29@example.com&consumer_id=78
         |
         |Should be able to filter on:
         |
@@ -1546,18 +1546,19 @@ trait APIMethods210 {
             hasEntitlement <- booleanToBox(hasEntitlement("", u.userId, ApiRole.CanReadMetrics), s"$CanReadMetrics entitlement required")
   
             //Note: Filters Part 1:
-            //?from_start_date=100&to_start_date=1&limit=200&offset=0
+            //?start_date=100&end_date=1&limit=200&offset=0
   
             inputDateFormat <- Full(new SimpleDateFormat("yyyy-MM-dd", Locale.ENGLISH))
-            oneWeekBeforeDate <- Full((new Date(now.getTime - 1000 * 60 * 60 * 24 * 7)).toInstant.toString)
-            nowDate <- Full(now.toInstant.toString)
+            // set the long,long ago as the default date.
+            defautStartDate <- Full("0000-00-00")
+            tomorrowDate <- Full(new Date(now.getTime + 1000 * 60 * 60 * 24 * 1).toInstant.toString)
   
             //(defaults to one week before current date
-            fromStartDate <- tryo(inputDateFormat.parse(S.param("from_start_date").getOrElse(oneWeekBeforeDate))) ?~!
-              s"${ErrorMessages.InvalidDateFormat } from_start_date:${S.param("from_start_date").get }. Support format is yyyy-MM-dd"
+            startDate <- tryo(inputDateFormat.parse(S.param("start_date").getOrElse(defautStartDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } start_date:${S.param("start_date").get }. Support format is yyyy-MM-dd"
             // defaults to current date
-            toStartDate <- tryo(inputDateFormat.parse(S.param("to_start_date").getOrElse(nowDate))) ?~!
-              s"${ErrorMessages.InvalidDateFormat } to_start_date:${S.param("to_start_date").get }. Support format is yyyy-MM-dd"
+            endDate <- tryo(inputDateFormat.parse(S.param("end_date").getOrElse(tomorrowDate))) ?~!
+              s"${ErrorMessages.InvalidDateFormat } end_date:${S.param("end_date").get }. Support format is yyyy-MM-dd"
             // default 200, return 200 items
             limit <- tryo(S.param("limit").getOrElse("200").toInt) ?~!
               s"${ErrorMessages.InvalidNumber } limit:${S.param("limit").get }"
@@ -1566,7 +1567,12 @@ trait APIMethods210 {
               s"${ErrorMessages.InvalidNumber } offset:${S.param("offset").get }"
   
             metrics <- Full(APIMetrics.apiMetrics.vend.getAllMetrics())
-            filterByDate: List[APIMetric] = metrics.toList.filter(rd => (rd.getDate().after(fromStartDate)) && (rd.getDate().before(toStartDate)))
+  
+            //Because of "rd.getDate().before(startDatePlusOneDay)" exclude the startDatePlusOneDay, so we need to plus one day more then today.
+            // add because of endDate is yyyy-MM-dd format, it started from 0, so it need to add 2 days.
+            startDatePlusOneDay <- Full(inputDateFormat.parse((new Date(endDate.getTime + 1000 * 60 * 60 * 24 * 2)).toInstant.toString))
+            
+            filterByDate <- Full(metrics.toList.filter(rd => (rd.getDate().after(startDate)) && (rd.getDate().before(startDatePlusOneDay))))
   
             /** pages: 
               * eg: total=79
@@ -1580,7 +1586,7 @@ trait APIMethods210 {
             filterByPages <- Full(filterByDate.slice(offset * limit, (offset * limit + limit)))
 
             //Filters Part 2.
-            //eg: /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0
+            //eg: /management/metrics?start_date=100&end_date=1&limit=200&offset=0
             //    &user_id=c7b6cb47-cb96-4441-8801-35b57456753a&consumer_id=78&app_name=hognwei&implemented_in_version=v2.1.0&verb=GET&anon=true
             // consumer_id (if null ignore)
             // user_id (if null ignore)
@@ -1608,7 +1614,7 @@ trait APIMethods210 {
               .filter(rd => (if (!userId.isEmpty) rd.getUserId().equals(userId.get) else true))
               .filter(rd => (if (!anon.isEmpty && anon.get.equals("true")) (rd.getUserId().equals("null")) else true))
               .filter(rd => (if (!anon.isEmpty && anon.get.equals("false")) (!rd.getUserId().equals("null")) else true))
-              //TODO url can not contain '&', if url is /management/metrics?from_start_date=100&to_start_date=1&limit=200&offset=0, it can not work.
+              //TODO url can not contain '&', if url is /management/metrics?start_date=100&end_date=1&limit=200&offset=0, it can not work.
               .filter(rd => (if (!url.isEmpty) rd.getUrl().equals(url.get) else true))
               .filter(rd => (if (!appName.isEmpty) rd.getAppName.equals(appName.get) else true))
               .filter(rd => (if (!implementedByPartialFunction.isEmpty) rd.getImplementedByPartialFunction().equals(implementedByPartialFunction.get) else true))
@@ -1616,7 +1622,7 @@ trait APIMethods210 {
               .filter(rd => (if (!verb.isEmpty) rd.getVerb().equals(verb.get) else true))
           } yield {
             val json = JSONFactory210.createMetricsJson(filterByFields)
-            successJsonResponse(Extraction.decompose(json))
+            successJsonResponse(Extraction.decompose(json)(DateFormatWithCurrentTimeZone))
           }
         }
       }
