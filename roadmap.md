@@ -19,7 +19,7 @@ If you have a particular requirement or would like to comment or help us specify
 *   Extend Swagger support (add expected responses)
 *   Web Hooks (on balance change etc.)
 
-## Completed developments
+## Completed developments (most recent first)
 
 
 ### Kafka versioning
@@ -28,9 +28,15 @@ The built in kafka connectors now provide message versioning
 ### Akka Remote data (Three tier architechture)
 Most OBP data access now happens over Akka. 
 
+### Security improvements
+
+Including
+
+* User lockout
+* Consumer redirect lockdown
 
 ### User model refactoring
-There are now two user models: AuthUser and ResourceUser
+The two user models are now called AuthUser and ResourceUser
 
 
 ### Version 2.2.0
