@@ -580,7 +580,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! "User must be logged in to post Customer"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomerByResourceUserId(bankId, u.resourceUserId.value).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             customer <- Customer.customerProvider.vend.addCustomer(bankId,

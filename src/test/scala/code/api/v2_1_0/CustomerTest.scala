@@ -6,7 +6,7 @@ import code.api.DefaultUsers
 import code.api.util.ApiRole
 import code.api.v1_2_1.AmountOfMoneyJSON
 import code.api.v1_4_0.JSONFactory1_4_0.CustomerFaceImageJson
-import code.customer.MappedCustomer
+import code.customer.Customer
 import code.entitlement.Entitlement
 import code.model.BankId
 import net.liftweb.json.Serialization.write
@@ -28,7 +28,7 @@ class CustomerTest extends V210ServerSetup with DefaultUsers {
 
   override def afterAll() {
     super.afterAll()
-    MappedCustomer.bulkDelete_!!()
+    Customer.customerProvider.vend.bulkDeleteCustomers()
   }
 
   feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {

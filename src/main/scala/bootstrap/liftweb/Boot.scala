@@ -434,6 +434,7 @@ object ToSchemify {
     MappedWhereTag,
     MappedTransactionImage,
     MappedNarrative,
+    MappedCustomer,
     MapperAccountHolders
   )
 
@@ -451,7 +452,6 @@ object ToSchemify {
     MappedTransaction,
     MappedTransactionRequest,
     MappedMetric,
-    MappedCustomer,
     MappedCustomerMessage,
     MappedBranch,
     MappedAtm,
