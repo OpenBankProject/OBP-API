@@ -1261,9 +1261,8 @@ trait APIMethods210 {
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks
             //Find all user to customer links by user_id
-            userCustomerLinks <- tryo(userCustomerLinks.filter(u => u.userId.equalsIgnoreCase(user_id)))
+            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(user_id)
             customerIds: List[String] <-  tryo(userCustomerLinks.map(p => p.customerId))
             //Try to find an existing customer at BANK_ID
             alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomerByCustomerId(x).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
