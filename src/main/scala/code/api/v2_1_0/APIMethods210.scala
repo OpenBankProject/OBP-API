@@ -1262,14 +1262,13 @@ trait APIMethods210 {
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinks
             //Find all user to customer links by user_id
-            userCustomerLinks <- tryo(userCustomerLinks.filter(u => u.userId.equalsIgnoreCase(user_id)))
+            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(user_id)
             customerIds: List[String] <-  tryo(userCustomerLinks.map(p => p.customerId))
             //Try to find an existing customer at BANK_ID
-            alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomer(x, bank.bankId).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomerByCustomerId(x).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             // TODO we still store the user inside the customer, we should only store the user in the usercustomer link
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomerByResourceUserId(bankId, customer_user.resourceUserId.value).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
               postedData.customer_number,

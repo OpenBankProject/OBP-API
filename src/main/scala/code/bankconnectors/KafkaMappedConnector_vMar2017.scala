@@ -2,7 +2,7 @@ package code.bankconnectors
 
 /*
 Open Bank Project - API
-Copyright (C) 2011-2016, TESOBE Ltd
+Copyright (C) 2011-2017, TESOBE Ltd
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -100,7 +100,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   def getUser( username: String, password: String ): Box[InboundUser] = {
     for {
       req <- tryo {Map[String, String](
-        "action" -> "obp.getUser",
+        "action" -> "obp.get.User",
         "version" -> formatVersion, // rename version to messageFormat or maybe connector (see above)
         "username" -> username,
         "password" -> password
@@ -120,7 +120,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       for {
         username <- tryo {user.name}
         req <- tryo { Map[String, String](
-          "action" -> "obp.getAccounts",
+          "action" -> "obp.get.Accounts",
           "version" -> formatVersion,
           "username" -> user.name,
           "userId" -> user.userId,
@@ -160,7 +160,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   //gets banks handled by this connector
   override def getBanks: List[Bank] = {
     val req = Map(
-      "action" -> "obp.getBanks",
+      "action" -> "obp.get.Banks",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername
@@ -190,7 +190,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getChallengeThreshold(bankId: String, accountId: String, viewId: String, transactionRequestType: String, currency: String, userId: String, userName: String): AmountOfMoney = {
     // Create argument list
     val req = Map(
-      "action" -> "obp.getChallengeThreshold",
+      "action" -> "obp.get.ChallengeThreshold",
       "version" -> formatVersion,
       "bankId" -> bankId,
       "accountId" -> accountId,
@@ -223,7 +223,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                               currency: String): Box[AmountOfMoney] = {
     // Create argument list
     val req = Map(
-                   "action" -> "obp.getChargeLevel",
+                   "action" -> "obp.get.ChargeLevel",
                    "version" -> formatVersion,
                    "bankId" -> bankId.value,
                    "accountId" -> accountId.value,
@@ -248,7 +248,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def createChallenge(bankId: BankId, accountId: AccountId, userId: String, transactionRequestType: TransactionRequestType, transactionRequestId: String) : Box[String] = {
     // Create argument list
     val req = Map(
-      "action" -> "obp.createChallenge",
+      "action" -> "obp.create.Challenge",
       "version" -> formatVersion,
       "bankId" -> bankId.value,
       "accountId" -> accountId.value,
@@ -269,7 +269,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def validateChallengeAnswer(challengeId: String, hashOfSuppliedAnswer: String) : Box[Boolean] = {
     // Create argument list
     val req = Map(
-      "action" -> "obp.validateChallengeAnswer",
+      "action" -> "obp.validate.ChallengeAnswer",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -289,7 +289,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getBank(id: BankId): Box[Bank] = {
     // Create argument list
     val req = Map(
-      "action" -> "obp.getBank",
+      "action" -> "obp.get.Bank",
       "version" -> formatVersion,
       "bankId" -> id.toString,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
@@ -305,7 +305,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   // Gets transaction identified by bankid, accountid and transactionId
   def getTransaction(bankId: BankId, accountId: AccountId, transactionId: TransactionId): Box[Transaction] = {
     val req = Map(
-      "action" -> "obp.getTransaction",
+      "action" -> "obp.get.Transaction",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -341,7 +341,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     val mapperParams = Seq(By(MappedTransaction.bank, bankId.value), By(MappedTransaction.account, accountId.value)) ++ optionalParams
 
     val req = Map(
-      "action" -> "obp.getTransactions",
+      "action" -> "obp.get.Transactions",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -368,7 +368,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getBankAccount(bankId: BankId, accountId: AccountId): Box[KafkaBankAccount] = {
     // Generate random uuid to be used as request-response match id
     val req = Map(
-      "action" -> "obp.getAccount",
+      "action" -> "obp.get.Account",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -398,7 +398,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         logger.info (s"KafkaMappedConnnector.getBankAccounts with params ${a._1.value} and  ${a._2.value} and primaryUserIdentifier is $primaryUserIdentifier")
 
         val req = Map(
-          "action" -> "obp.getAccounts",
+          "action" -> "obp.get.Accounts",
           "version" -> formatVersion,
           "userId" -> AuthUser.getCurrentResourceUserUserId,
           "username" -> AuthUser.getCurrentUserUsername,
@@ -428,7 +428,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   private def getAccountByNumber(bankId : BankId, number : String) : Box[AccountType] = {
     // Generate random uuid to be used as request-respose match id
     val req = Map(
-      "action" -> "obp.getAccount",
+      "action" -> "obp.get.Account",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -532,11 +532,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       MappedCounterparty.find(By(MappedCounterparty.mCounterPartyId, counterpartyId.value))
     } else {
       val req = Map(
-        "action" -> "obp.getCounterpartyByCounterpartyId",
+        "action" -> "obp.get.CounterpartyByCounterpartyId",
         "version" -> formatVersion,
         "userId" -> AuthUser.getCurrentResourceUserUserId,
         "username" -> AuthUser.getCurrentUserUsername,
-        "action" -> "obp.getCounterpartyByCounterpartyId",
         "counterpartyId" -> counterpartyId.toString
       )
       // Since result is single account, we need only first list entry
@@ -561,11 +560,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       )
     } else {
       val req = Map(
-        "action" -> "obp.getCounterpartyByIban",
+        "action" -> "obp.get.CounterpartyByIban",
         "version" -> formatVersion,
         "userId" -> AuthUser.getCurrentResourceUserUserId,
         "username" -> AuthUser.getCurrentUserUsername,
-        "action" -> "obp.getCounterpartyByIban",
         "otherAccountRoutingAddress" -> iban,
         "otherAccountRoutingScheme" -> "IBAN"
       )
@@ -649,7 +647,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     //account.balance = newAccountBalance
 
     val req: Map[String, String] = Map(
-                                       "action" -> "obp.putTransaction",
+                                       "action" -> "obp.put.Transaction",
                                        "version" -> formatVersion,
                                        "userId" -> AuthUser.getCurrentResourceUserUserId,
                                        "username" -> AuthUser.getCurrentUserUsername,
@@ -687,6 +685,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     Transaction Requests
   */
   override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
+    // TODO action should be something like obp.get.TransactionRequestStatus ?
       val req : Map[String,String] = Map(
       "action" -> "obp.fetch",
       "version" -> formatVersion
@@ -1096,7 +1095,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   override def getCurrentFxRate(fromCurrencyCode: String, toCurrencyCode: String): Box[FXRate] = {
     // Create request argument list
     val req = Map(
-      "action" -> "obp.getCurrentFxRate",
+      "action" -> "obp.get.CurrentFxRate",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,
@@ -1115,7 +1114,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
 
     // Create request argument list
     val req = Map(
-      "action" -> "obp.getTransactionRequestTypeCharge",
+      "action" -> "obp.get.TransactionRequestTypeCharge",
       "version" -> formatVersion,
       "userId" -> AuthUser.getCurrentResourceUserUserId,
       "username" -> AuthUser.getCurrentUserUsername,

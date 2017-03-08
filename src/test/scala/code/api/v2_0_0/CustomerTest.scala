@@ -4,7 +4,7 @@ import java.text.SimpleDateFormat
 
 import code.api.DefaultUsers
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
-import code.customer.MappedCustomer
+import code.customer.{Customer}
 import code.model.BankId
 import code.api.util.APIUtil.OAuth._
 import code.api.util.ApiRole
@@ -27,7 +27,7 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
   override def afterAll() {
     super.afterAll()
-    MappedCustomer.bulkDelete_!!()
+    Customer.customerProvider.vend.bulkDeleteCustomers()
   }
 
   feature("Assuring that create customer, v2.0.0, feedback and get customer, v1.4.0, feedback are the same") {
