@@ -16,11 +16,11 @@ object RemotedataCustomers extends ActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
 
-  def getCustomerByUser(bankId : BankId, user : User) : Box[Customer] = {
+  def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer] = {
     val res = try {
       Full(
         Await.result(
-          (actor ? cc.getCustomerByUser(bankId, user)).mapTo[Customer],
+          (actor ? cc.getCustomerByResourceUserId(bankId, resourceUserId)).mapTo[Customer],
           TIMEOUT
         )
       )

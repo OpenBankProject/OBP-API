@@ -37,7 +37,7 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
     scenario("No customer info exists for user and we try to get it") {
       Given("No MappedCustomer exists for a user")
       When("We try to get it")
-      val found = Customer.customerProvider.vend.getCustomerByUser(testBankId1, authuser2)
+      val found = Customer.customerProvider.vend.getCustomerByResourceUserId(testBankId1, authuser2.resourceUserId.value)
 
       Then("We don't")
       found.isDefined should equal(false)
@@ -47,7 +47,7 @@ class MappedCustomerProviderTest extends ServerSetup with DefaultUsers {
       val customer1 = createCustomer(testBankId1, authuser1, number)
       Given("MappedCustomer exists for a user")
       When("We try to get it")
-      val foundOpt = Customer.customerProvider.vend.getCustomerByUser(testBankId1, authuser1)
+      val foundOpt = Customer.customerProvider.vend.getCustomerByResourceUserId(testBankId1, authuser1.resourceUserId.value)
 
       Then("We do")
       foundOpt.isDefined should equal(true)

@@ -19,13 +19,13 @@ class RemotedataCustomersActor extends Actor {
   def receive = {
 
 
-    case cc.getCustomerByUser(bankId: BankId, user: User) =>
+    case cc.getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long) =>
 
-      logger.info("getCustomerByUser(" + bankId + ", " + user + ")")
+      logger.info("getCustomerByResourceUserId(" + bankId + ", " + resourceUserId + ")")
 
       {
         for {
-          res <- mapper.getCustomerByUser(bankId, user)
+          res <- mapper.getCustomerByResourceUserId(bankId, resourceUserId)
         } yield {
           sender ! res.asInstanceOf[Customer]
         }

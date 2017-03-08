@@ -1268,7 +1268,7 @@ trait APIMethods210 {
             //Try to find an existing customer at BANK_ID
             alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomerByCustomerId(x).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             // TODO we still store the user inside the customer, we should only store the user in the usercustomer link
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomerByUser(bankId, customer_user).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
+            customer <- booleanToBox(Customer.customerProvider.vend.getCustomerByResourceUserId(bankId, customer_user.resourceUserId.value).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
               postedData.customer_number,
