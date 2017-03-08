@@ -1,8 +1,8 @@
 package code.usercustomerlinks
 
 import java.util.Date
-import code.util.{MappedUUID, DefaultStringField}
-import net.liftweb.common.Box
+import code.util.{DefaultStringField, MappedUUID}
+import net.liftweb.common.{Box, Full}
 import net.liftweb.mapper._
 
 /**
@@ -56,7 +56,11 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
   }
 
   override def getUserCustomerLinks: Box[List[UserCustomerLink]] = {
-    Some(MappedUserCustomerLink.findAll())
+    Full(MappedUserCustomerLink.findAll())
+  }
+
+  override def getUserCustomerLinksByUserId(userId : String): Box[List[UserCustomerLink]] = {
+    Full(MappedUserCustomerLink.findAll(By(MappedUserCustomerLink.mUserId, userId)))
   }
 
 }
