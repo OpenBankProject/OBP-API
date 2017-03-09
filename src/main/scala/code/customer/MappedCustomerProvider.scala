@@ -2,12 +2,12 @@ package code.customer
 
 import java.util.Date
 
-import code.model.{BankId, User}
+import code.model.{AccountId, BankId, User}
 import code.model.dataAccess.ResourceUser
 import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
-import net.liftweb.common.Box
-import net.liftweb.mapper._
+import net.liftweb.common.{Box, Full}
+import net.liftweb.mapper.{By, _}
 
 object MappedCustomerProvider extends CustomerProvider {
 
@@ -26,9 +26,9 @@ object MappedCustomerProvider extends CustomerProvider {
     available
   }
 
-  override def getCustomer(bankId : BankId, user: User): Box[Customer] = {
+  override def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer] = {
     MappedCustomer.find(
-      By(MappedCustomer.mUser, user.resourceUserId.value),
+      By(MappedCustomer.mUser, resourceUserId),
       By(MappedCustomer.mBank, bankId.value))
   }
 
@@ -45,9 +45,9 @@ object MappedCustomerProvider extends CustomerProvider {
     for (c <- customer) yield {c.mBank.get}
   }
 
-  override def getCustomer(customerId: String, bankId : BankId): Box[Customer] = {
+  override def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId): Box[Customer] = {
     MappedCustomer.find(
-      By(MappedCustomer.mCustomerId, customerId),
+      By(MappedCustomer.mNumber, customerNumber),
       By(MappedCustomer.mBank, bankId.value)
     )
   }
@@ -110,7 +110,11 @@ object MappedCustomerProvider extends CustomerProvider {
       .mCreditLimitAmount(cl.amount)
       .saveMe()
 
-    Some(createdCustomer)
+    Full(createdCustomer)
+  }
+
+  override def bulkDeleteCustomers(): Boolean = {
+    MappedCustomer.bulkDelete_!!()
   }
 
 }

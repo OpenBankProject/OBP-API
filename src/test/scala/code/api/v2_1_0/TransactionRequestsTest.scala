@@ -134,18 +134,17 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
         if (withChallenge) {
           Then("We should have the INITIATED status in response body")
           (createTransactionRequestResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_INITIATED)
-        } else {
-          Then("We should have the COMPLETED status in response body")
-          (createTransactionRequestResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
-        }
-
-        if (withChallenge) {
+          Then("The transaction_ids filed should be empty")
+          (createTransactionRequestResponse.body \ "transaction_ids").values.toString should equal("List()")
           Then("Challenge should have body, this is the with challenge scenario")
           (createTransactionRequestResponse.body \ "challenge").children.size should not equal (0)
           challengeId = (createTransactionRequestResponse.body \ "challenge" \ "id").values.toString
           challengeId should not equal ("")
-
         } else {
+          Then("We should have the COMPLETED status in response body")
+          (createTransactionRequestResponse.body \ "status").values.toString should equal(code.transactionrequests.TransactionRequests.STATUS_COMPLETED)
+          Then("The transaction_ids filed should be not empty")
+          (createTransactionRequestResponse.body \ "transaction_ids").values.toString should not equal ("List()")
           Then("Challenge should be null, this is the no challenge scenario")
           (createTransactionRequestResponse.body \ "challenge").children.size should equal(0)
         }
@@ -229,10 +228,9 @@ class TransactionRequestsTest extends ServerSetupWithTestData with DefaultUsers 
 
         if (finishedTranscation ) {
           if(transactionRequestTypeInput.equals("FREE_FORM")){
-            Then("No transaction, it should be the same as before ")
-            //TODO now this is a bug, it need to be fixed, the money should be the same
-            fromAccountBalance should equal((beforeFromBalance+amt))
-            And("No transaction, it should be the same as before ")
+            Then("FREE_FORM just transfer money to itself, the money should be the same as before ")
+            fromAccountBalance should equal((beforeFromBalance))
+            And("there should now be 2 new transactions in the database")
             transactionCount(fromAccount, toAccount) should equal(totalTransactionsBefore+2)
           } else if(transactionRequestTypeInput.equals("SANDBOX_TAN")){
             Then("check that the balances have been properly decreased/increased (since we handle that logic for sandbox accounts at least) ")

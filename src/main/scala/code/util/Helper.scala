@@ -1,11 +1,13 @@
 package code.util
 
+import java.util.{Date, GregorianCalendar}
+
 import net.liftweb.common._
 import net.liftweb.util.{Mailer, Props}
 import net.liftweb.util.Helpers._
-
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Extraction._
+import net.liftweb.json.{DateFormat, Formats}
 import net.liftweb.json.Printer._
 
 
@@ -147,7 +149,7 @@ object Helper{
     */
   def isValidInternalRedirectUrl(url: String) : Boolean = {
     //set the default value is "/" and "/oauth/authorize"
-    val validUrls = List("/","/oauth/authorize")
+    val validUrls = List("/","/oauth/authorize","/consumer-registration","/create-sandbox-account")
 
     //case1: OBP-API login: url = "/"
     //case2: API-Explore oauth login: url = "/oauth/authorize?oauth_token=V0JTCDYXWUNTXDZ3VUDNM1HE3Q1PZR2WJ4PURXQA&logUserOut=false"
@@ -161,5 +163,35 @@ object Helper{
     */
   val matchKafkaVersion = "kafka_v([0-9a-zA-Z_]+)".r
   val matchAnyKafka = "^kafka.*$".r
+  
+  /**
+    * change the TimeZone to the current TimeZOne
+    * reference the following trait
+    * net.liftweb.json
+          trait DefaultFormats
+          extends Formats
+    */
+  val DateFormatWithCurrentTimeZone = new Formats {
+  
+    import java.text.{ParseException, SimpleDateFormat}
+  
+    val dateFormat = new DateFormat {
+      def parse(s: String) = try {
+        Some(formatter.parse(s))
+      } catch {
+        case e: ParseException => None
+      }
+    
+      def format(d: Date) = formatter.format(d)
+    
+      private def formatter = {
+        val f = dateFormatter
+        f.setTimeZone(new GregorianCalendar().getTimeZone)
+        f
+      }
+    }
+  
+    protected def dateFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+  }
 
 }

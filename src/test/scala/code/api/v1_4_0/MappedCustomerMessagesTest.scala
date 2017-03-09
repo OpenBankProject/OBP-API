@@ -1,19 +1,19 @@
 package code.api.v1_4_0
 
 import java.text.SimpleDateFormat
+import java.util.Date
 
 import code.api.DefaultUsers
 import code.api.util.APIUtil
-import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, AddCustomerMessageJson, CustomerMessagesJson, CustomerJson}
-import code.customer.{MappedCustomerMessage, MappedCustomer, Customer}
+import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJson, CustomerMessagesJson}
+import code.customer.{Customer, MappedCustomerMessage, MockCustomerFaceImage}
 import code.model.BankId
-import code.usercustomerlinks.{MappedUserCustomerLink}
-import dispatch._
+import code.usercustomerlinks.MappedUserCustomerLink
 import code.api.util.APIUtil.OAuth._
+import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Box
-import net.liftweb.json.Serialization.{read, write}
-import net.liftweb.mapper.By
-import net.liftweb.common.{Full, Empty}
+import net.liftweb.json.Serialization.{write}
+import net.liftweb.common.{Empty, Full}
 
 //TODO: API test should be independent of CustomerMessages implementation
 class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
@@ -67,10 +67,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       )
       var response = makePostRequest(request, write(customerJson))
 
-      val customer: Box[MappedCustomer] = MappedCustomer.find(
-        By(MappedCustomer.mBank, mockBankId.value),
-        By(MappedCustomer.mNumber, mockCustomerNumber)
-      )
+      val customer: Box[Customer] =Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId)
       val customerId = customer match {
         case Full(c) => c.customerId
         case Empty => "Empty"
@@ -100,15 +97,31 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
     }
   }
 
+  def createCustomer(bankId: BankId, resourceUser: ResourceUser, nmb: String) = {
+    Customer.customerProvider.vend.addCustomer(bankId,
+      resourceUser,
+      nmb,
+      "John Johnson",
+      "12343434",
+      "bob@example.com",
+      MockCustomerFaceImage(new Date(12340000), "http://example.com/image.jpg"),
+      new Date(12340000),
+      "Single", 2, List(),
+      "Bechelor",
+      "None",
+      true,
+      new Date(12340000),
+      None,
+      None
+    )
+  }
+
 
   override def beforeAll(): Unit = {
     super.beforeAll()
     //TODO: this shouldn't be tied to an implementation
     //need to create a customer info obj since the customer messages call needs to find user by customer number
-    MappedCustomer.create
-      .mBank(mockBankId.value)
-      .mUser(authuser1)
-      .mNumber(mockCustomerNumber).save()
+    createCustomer(mockBankId, authuser1, mockCustomerNumber)
   }
 
   override def beforeEach(): Unit = {

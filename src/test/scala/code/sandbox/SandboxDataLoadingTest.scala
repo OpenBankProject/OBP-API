@@ -462,8 +462,8 @@ class SandboxDataLoadingTest extends FlatSpec with SendServerRequests with Shoul
   val standardProducts = product1AtBank1 :: product2AtBank1 :: Nil
 
 
-  val user1 = SandboxUserImport(email = "user1@example.com", password = "qwerty", user_name = "User 1")
-  val user2 = SandboxUserImport(email = "user2@example.com", password = "qwerty", user_name = "User 2")
+  val user1 = SandboxUserImport(email = "user1@example.com", password = "TESOBE520berlin123!", user_name = "User 1")
+  val user2 = SandboxUserImport(email = "user2@example.com", password = "TESOBE520berlin123!", user_name = "User 2")
 
   val standardUsers = user1 :: user2 :: Nil
 

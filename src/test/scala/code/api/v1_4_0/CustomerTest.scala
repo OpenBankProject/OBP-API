@@ -1,16 +1,18 @@
 package code.api.v1_4_0
 
 import java.text.SimpleDateFormat
+
 import code.api.DefaultUsers
 import code.api.util.{ApiRole, ErrorMessages}
 import code.api.v1_4_0.JSONFactory1_4_0.{CustomerFaceImageJson, CustomerJson}
-import code.api.v2_0_0.{CreateUserCustomerLinkJSON, V200ServerSetup, CreateCustomerJson}
-import code.customer.{MappedCustomer}
-import code.entitlement.Entitlement
-import code.model.{BankId}
+import code.api.v2_0_0.{CreateCustomerJson, V200ServerSetup}
+import code.customer.Customer
+import code.model.BankId
 import net.liftweb.json.JsonAST._
 import net.liftweb.json.Serialization._
 import code.api.util.APIUtil.OAuth._
+import code.entitlement.Entitlement
+import code.usercustomerlinks.UserCustomerLink
 
 class CustomerTest extends V200ServerSetup with DefaultUsers {
 
@@ -18,8 +20,29 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
   val simpleDateFormat: SimpleDateFormat = new SimpleDateFormat("dd/mm/yyyy")
   val exampleDate = simpleDateFormat.parse(exampleDateString)
 
-  val mockBankId = BankId("testBank1")
-  val mockCustomerNumber = "9393490320"
+  val mockBankId1 = BankId("testBank1")
+  val mockBankId2 = BankId("testBank2")
+  val mockCustomerNumber1 = "93934903201"
+  val mockCustomerNumber2 = "93934903202"
+
+  def createCustomerJson(customerNumber: String) = {
+    CreateCustomerJson(
+      user_id = authuser1.userId,
+      customer_number = customerNumber,
+      legal_name = "Someone",
+      mobile_phone_number = "125245",
+      email = "hello@hullo.com",
+      face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
+      date_of_birth = exampleDate,
+      relationship_status = "Single",
+      dependants = 1,
+      dob_of_dependants = List(exampleDate),
+      highest_education_attained = "Bachelor’s Degree",
+      employment_status = "Employed",
+      kyc_status = true,
+      last_ok_date = exampleDate
+    )
+  }
 
 
   override def beforeAll() {
@@ -28,7 +51,8 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
   override def afterAll() {
     super.afterAll()
-    MappedCustomer.bulkDelete_!!()
+    Customer.customerProvider.vend.bulkDeleteCustomers()
+    UserCustomerLink.userCustomerLink.vend.bulkDeleteUserCustomerLinks()
   }
 
 
@@ -36,62 +60,31 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
     scenario("There is a user, and the bank in questions has customer info for that user - v1.4.0") {
       Given("The bank in question has customer info")
-      val testBank = mockBankId
 
-      val customerPostJSON = CreateCustomerJson(
-        user_id = authuser1.userId,
-        customer_number = mockCustomerNumber,
-        legal_name = "Someone",
-        mobile_phone_number = "125245",
-        email = "hello@hullo.com",
-        face_image = CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
-        date_of_birth = exampleDate,
-        relationship_status = "Single",
-        dependants = 1,
-        dob_of_dependants = List(exampleDate),
-        highest_education_attained = "Bachelor’s Degree",
-        employment_status = "Employed",
-        kyc_status = true,
-        last_ok_date = exampleDate
-      )
-      val requestPost = (v1_4Request / "banks" / testBank.value / "customer").POST <@ (user1)
-      val responsePost = makePostRequest(requestPost, write(customerPostJSON))
+      val customerPostJSON1 = createCustomerJson(mockCustomerNumber1)
+      Then("User is linked to 0 customers")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON1.user_id).size should equal(0)
+      val requestPost = (v1_4Request / "banks" / mockBankId1.value / "customer").POST <@ (user1)
+      val responsePost = makePostRequest(requestPost, write(customerPostJSON1))
+      Then("We should get a 400")
+      responsePost.code should equal(400)
+
+      When("We add one required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, authuser1.userId, ApiRole.CanCreateCustomer.toString)
+      val responsePost1Entitlement = makePostRequest(requestPost, write(customerPostJSON1))
+      Then("We should get a 400")
+      responsePost1Entitlement.code should equal(400)
+
+      When("We add all required entitlement")
+      Entitlement.entitlement.vend.addEntitlement(mockBankId1.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      val responsePost2Entitlement = makePostRequest(requestPost, write(customerPostJSON1))
       Then("We should get a 200")
-      responsePost.code should equal(200)
+      responsePost2Entitlement.code should equal(200)
       And("We should get the right information back")
-      val infoPost = responsePost.body.extract[CustomerJson]
-
-      When("We make the request without link user to customer")
-      val requestGetWithoutLink = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)
-      val responseGetWithoutLink = makeGetRequest(requestGetWithoutLink)
-      Then("We should get a 400")
-      responseGetWithoutLink.code should equal(400)
-      val error = for { JObject(o) <- responseGetWithoutLink.body; JField("error", JString(error)) <- o } yield error
-      And("We should get a message: " + ErrorMessages.CustomerDoNotExistsForUser)
-      error should contain (ErrorMessages.CustomerDoNotExistsForUser)
-
-
-      val customerId: String = (responsePost.body \ "customer_id") match {
-        case JString(i) => i
-        case _ => ""
-      }
-
-      When("We link user to customer")
-      val uclJSON = CreateUserCustomerLinkJSON(user_id = authuser1.userId, customer_id = customerId)
-      val requestPostUcl = (v2_0Request / "banks" / testBank.value / "user_customer_links").POST <@ (user1)
-      val responsePostUcl = makePostRequest(requestPostUcl, write(uclJSON))
-      Then("We should get a 400")
-      responsePostUcl.code should equal(400)
-
-      When("We add required entitlement")
-      Entitlement.entitlement.vend.addEntitlement(testBank.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
-      val responsePostUclSec = makePostRequest(requestPostUcl, write(uclJSON))
-      Then("We should get a 201")
-      responsePostUclSec.code should equal(201)
-
+      val infoPost = responsePost2Entitlement.body.extract[CustomerJson]
 
       When("We make the request")
-      val requestGet = (v1_4Request / "banks" / testBank.value / "customer").GET <@ (user1)
+      val requestGet = (v1_4Request / "banks" / mockBankId1.value / "customer").GET <@ (user1)
       val responseGet = makeGetRequest(requestGet)
 
       Then("We should get a 200")
@@ -102,6 +95,51 @@ class CustomerTest extends V200ServerSetup with DefaultUsers {
 
       And("POST feedback and GET feedback must be the same")
       infoGet should equal(infoPost)
+
+      And("User is linked to 1 customer")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON1.user_id).size should equal(1)
+
+
+      When("We try to make the second request with same customer number at same bank")
+      val secondResponsePost = makePostRequest(requestPost, write(customerPostJSON1))
+      Then("We should get a 400")
+      secondResponsePost.code should equal(400)
+      val error = for { JObject(o) <- secondResponsePost.body; JField("error", JString(error)) <- o } yield error
+      And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
+      error should contain (ErrorMessages.CustomerNumberAlreadyExists)
+      And("User is linked to 1 customer")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON1.user_id).size should equal(1)
+
+      When("We try to make a request with changed customer number at same bank")
+      val customerPostJSON2 = createCustomerJson(mockCustomerNumber2)
+      val requestPost2 = (v1_4Request / "banks" / mockBankId1.value / "customer").POST <@ (user1)
+      val responsePost2 = makePostRequest(requestPost2, write(customerPostJSON2))
+      Then("We should get a 200")
+      responsePost2.code should equal(200)
+      And("User is linked to 2 customers")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON1.user_id).size should equal(2)
+
+      When("We try to make a request with same customer number at different bank")
+      Then("first we add all required entitlements")
+      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, authuser1.userId, ApiRole.CanCreateCustomer.toString)
+      Entitlement.entitlement.vend.addEntitlement(mockBankId2.value, authuser1.userId, ApiRole.CanCreateUserCustomerLink.toString)
+      val customerPostJSON3 = createCustomerJson(mockCustomerNumber1)
+      val requestPost3 = (v1_4Request / "banks" / mockBankId2.value / "customer").POST <@ (user1)
+      val responsePost3 = makePostRequest(requestPost3, write(customerPostJSON3))
+      Then("We should get a 200")
+      responsePost3.code should equal(200)
+      And("User is linked to 3 customers")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON1.user_id).size should equal(3)
+
+      When("We try to make the second request with same customer number at same bank")
+      val secondResponsePost3 = makePostRequest(requestPost3, write(customerPostJSON3))
+      Then("We should get a 400")
+      secondResponsePost3.code should equal(400)
+      val error3 = for { JObject(o) <- secondResponsePost3.body; JField("error", JString(error)) <- o } yield error
+      And("We should get a message: " + ErrorMessages.CustomerNumberAlreadyExists)
+      error3 should contain (ErrorMessages.CustomerNumberAlreadyExists)
+      And("User is linked to 3 customers")
+      UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(customerPostJSON3.user_id).size should equal(3)
     }
   }
 

@@ -32,11 +32,9 @@ Berlin 13359, Germany
 package code.snippet
 
 import code.model._
-import code.model.dataAccess.{AuthUser}
+import code.model.dataAccess.AuthUser
 import net.liftweb.http.{RequestVar, S}
-import net.liftweb.util.FieldError
-import net.liftweb.util.Helpers
-import net.liftweb.util.Props
+import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
 import net.liftweb.common.{Empty, Loggable}
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml
@@ -51,7 +49,21 @@ class ConsumerRegistration extends Loggable {
   private object devEmailVar extends RequestVar("")
   private object appType extends RequestVar("Web")
   private object submitButtonDefenseFlag extends RequestVar("")
-
+  val registrationMoreInfoText = Props.get("post_consumer_registration_more_info_text", "") match {
+    //if empty, set the default value
+    case text if (text.isEmpty) => "Please see the following page"
+    case others => others
+  }
+  val registrationMoreInfoUrl = Props.get("post_consumer_registration_more_info_url", "")
+  
+  def consumerRegistrationMoreInfoText: CssSel = {
+      ".post_consumer_registration_more_info_text *" #> scala.xml.Unparsed(registrationMoreInfoText)
+  }
+  
+  def consumerRegistrationMoreInfoUrl: CssSel = {
+    ".post_consumer_registration_more_info_url  *" #> scala.xml.Unparsed(registrationMoreInfoUrl)
+  }
+  
   def registerForm = {
 
     val appTypes = Consumer.appType.enum.values.toList.map { appType =>
@@ -193,7 +205,8 @@ class ConsumerRegistration extends Loggable {
         s"OAuth Endpoint: ${urlOAuthEndpoint} \n" +
         s"OAuth Documentation: https://github.com/OpenBankProject/OBP-API/wiki/OAuth-1.0-Server \n" +
         s"Direct Login Endpoint: ${urlDirectLoginEndpoint} \n" +
-        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login"
+        s"Direct Login Documentation: https://github.com/OpenBankProject/OBP-API/wiki/Direct-Login \n" +
+        s"$registrationMoreInfoText: $registrationMoreInfoUrl" 
 
       val params = PlainMailBodyType(registrationMessage) :: List(To(registered.developerEmail.get))
 

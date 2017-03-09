@@ -1,27 +1,23 @@
 package code.api.v1_4_0
 
-import java.text.SimpleDateFormat
-import java.util.Date
-
 import code.api.util.APIUtil.isValidCurrencyISOCode
+import code.api.util.ApiRole.{CanCreateCustomer, CanCreateUserCustomerLink}
 import code.api.v1_4_0.JSONFactory1_4_0._
 import code.bankconnectors.Connector
-import code.metadata.comments.MappedComment
-import code.transactionrequests.TransactionRequests.{TransactionRequestBody, TransactionRequestAccount}
+import code.transactionrequests.TransactionRequests.{TransactionRequestAccount, TransactionRequestBody}
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.common.{Failure, Loggable, Box, Full}
+import net.liftweb.common.{Box, Full, Loggable}
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.{JsonResponse, Req}
 import net.liftweb.http.rest.RestHelper
-import net.liftweb.json.{ShortTypeHints, DefaultFormats, Extraction}
+import net.liftweb.json.{Extraction}
 import net.liftweb.json.JsonAST.{JField, JObject, JValue}
 import net.liftweb.util.Helpers.tryo
 import net.liftweb.json.JsonDSL._
 import net.liftweb.util.Props
 import net.liftweb.json.JsonAST.JValue
-
-
-import code.api.v1_2_1.{AmountOfMoneyJSON}
+import code.api.v1_2_1.AmountOfMoneyJSON
+import code.api.v2_0_0.CreateCustomerJson
 
 import scala.collection.immutable.Nil
 
@@ -565,7 +561,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
         |${authenticationRequiredMessage(true)}
         |Note: This call is depreciated in favour of v.2.0.0 createCustomer
         |""",
-      Extraction.decompose(PostCustomerJson("687687678", "Joe David Bloggs",
+      Extraction.decompose(CreateCustomerJson("user_id to attach this customer to e.g. 123213", "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com", CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
         exampleDate, "Single", 1, List(exampleDate), "Bachelor’s Degree", "Employed", true, exampleDate)),
       emptyObjectJson,
@@ -580,9 +576,12 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
           for {
             u <- user ?~! "User must be logged in to post Customer"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomer(bankId, u).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            postedData <- tryo{json.extract[PostCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            postedData <- tryo{json.extract[CreateCustomerJson]} ?~! ErrorMessages.InvalidJsonFormat
+            requiredEntitlements = CanCreateCustomer :: CanCreateUserCustomerLink :: Nil
+            requiredEntitlementsTxt = requiredEntitlements.mkString(" and ")
+            hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
+            user_id <- tryo{if (postedData.user_id.nonEmpty) postedData.user_id else u.userId} ?~ s"Problem getting user_id"
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
                 u,
                 postedData.customer_number,
@@ -600,6 +599,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
                 postedData.last_ok_date,
                 None,
                 None) ?~! "Could not create customer"
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(user_id, customer.customerId, exampleDate, true) ?~! "Could not create user_customer_links"
           } yield {
             val successJson = JSONFactory1_4_0.createCustomerJson(customer)
             successJsonResponse(Extraction.decompose(successJson))
