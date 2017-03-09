@@ -40,7 +40,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
       MappedUserCustomerLink.findAll().size should equal(0)
 
       When("We try to get it all")
-      val found = MappedUserCustomerLink.getUserCustomerLinks.openOr(List())
+      val found = MappedUserCustomerLinkProvider.getUserCustomerLinks.openOr(List())
 
       Then("We don't")
       found.size should equal(0)
@@ -56,7 +56,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
       ).isDefined should equal(true)
 
       When("We try to get it by user and customer")
-      val foundOpt = MappedUserCustomerLink.getUserCustomerLink(userId1, customerId1)
+      val foundOpt = MappedUserCustomerLinkProvider.getUserCustomerLink(userId1, customerId1)
 
       Then("We do")
       foundOpt.isDefined should equal(true)
@@ -74,7 +74,7 @@ class MappedUserCustomerLinkProviderTest extends ServerSetup {
       val userCustomerLink2 = userCustomerLink(userId2, customerId2)
 
       When("We try to get it all")
-      val found = MappedUserCustomerLink.getUserCustomerLinks.openOr(List())
+      val found = MappedUserCustomerLinkProvider.getUserCustomerLinks.openOr(List())
 
       Then("We don't")
       found.size should equal(2)
