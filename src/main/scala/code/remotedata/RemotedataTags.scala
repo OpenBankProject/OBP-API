@@ -19,44 +19,17 @@ object RemotedataTags extends ActorInit with Tags {
 
   val cc = RemotedataTagsCaseClasses
 
-  def getTags(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[TransactionTag] = {
-    Await.result(
-      (actor ? cc.getTags(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionTag]],
-      TIMEOUT
-    )
-  }
+  def getTags(bankId : BankId, accountId : AccountId, transactionId : TransactionId)(viewId : ViewId) : List[TransactionTag] =
+    extractFuture(actor ? cc.getTags(bankId, accountId, transactionId, viewId))
 
-  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] = {
-    Full(
-      Await.result(
-        (actor ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted)).mapTo[TransactionTag],
-        TIMEOUT
-      )
-    )
-  }
+  def addTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(userId: UserId, viewId : ViewId, tagText : String, datePosted : Date) : Box[TransactionTag] =
+    extractFutureToBox(actor ? cc.addTag(bankId, accountId, transactionId, userId, viewId, tagText, datePosted))
 
-  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.deleteTag(bankId, accountId, transactionId, tagId)).mapTo[Boolean],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Cannot delete the tag", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(tagId : String) : Box[Boolean] =
+    extractFutureToBox(actor ? cc.deleteTag(bankId, accountId, transactionId, tagId))
 
-  def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean = {
-    Await.result(
-      (actor ? cc.bulkDeleteTags(bankId, accountId)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def bulkDeleteTags(bankId: BankId, accountId: AccountId): Boolean =
+    extractFuture(actor ? cc.bulkDeleteTags(bankId, accountId))
 
 
 }

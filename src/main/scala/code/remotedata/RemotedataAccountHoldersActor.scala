@@ -13,7 +13,7 @@ import net.liftweb.util.ControlHelpers.tryo
 import scala.concurrent.duration._
 
 
-class RemotedataAccountHoldersActor extends Actor {
+class RemotedataAccountHoldersActor extends Actor with ActorHelper{
 
   val logger = Logging(context.system, this)
 
@@ -23,42 +23,16 @@ class RemotedataAccountHoldersActor extends Actor {
   def receive = {
 
     case cc.createAccountHolder(userId: Long, bankId: String, accountId: String, source: String) =>
-
       logger.info("createAccountHolder(" + userId +", "+ bankId +", "+ accountId +", "+ source +")")
-
-        {
-        for {
-          res <- tryo{mapper.createAccountHolder(userId, bankId, accountId, source)}
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
-
+      sender ! extractResult(mapper.createAccountHolder(userId, bankId, accountId, source))
 
     case cc.getAccountHolders(bankId: BankId, accountId: AccountId) =>
-
       logger.info("getAccountHolders(" + bankId +", "+ accountId +")")
-
-        {
-        for {
-          res <- tryo{mapper.getAccountHolders(bankId, accountId)}
-        } yield {
-          sender ! res.asInstanceOf[Set[User]]
-        }
-      }.getOrElse( context.stop(sender) )
-
+      sender ! extractResult(mapper.getAccountHolders(bankId, accountId))
 
     case cc.bulkDeleteAllAccountHolders() =>
-
       logger.info("bulkDeleteAllAccountHolders()")
-
-        {
-        for {
-          res <- mapper.bulkDeleteAllAccountHolders()
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
+      sender ! extractResult(mapper.bulkDeleteAllAccountHolders())
 
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
   }

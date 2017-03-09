@@ -9,53 +9,26 @@ import code.model._
 import net.liftweb.util.ControlHelpers.tryo
 
 
-class RemotedataNarrativesActor extends Actor {
+class RemotedataNarrativesActor extends Actor with ActorHelper {
 
   val logger = Logging(context.system, this)
 
-  val mNarratives = MappedNarratives
-  val rNarratives = RemoteNarrativesCaseClasses
+  val mapper = MappedNarratives
+  val cc = RemoteNarrativesCaseClasses
 
   def receive = {
 
-
-    case rNarratives.getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
-
+    case cc.getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId) =>
       logger.info("getNarrative(" + bankId + ", " + accountId + ", " + transactionId + ")")
+      sender ! extractResult(mapper.getNarrative(bankId, accountId, transactionId)())
 
-      {
-        for {
-          res <- tryo{mNarratives.getNarrative(bankId, accountId, transactionId)()}
-        } yield {
-          sender ! res.asInstanceOf[String]
-        }
-      }.getOrElse( context.stop(sender) )
-
-    case rNarratives.setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId, narrative: String) =>
-
+    case cc.setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId, narrative: String) =>
       logger.info("setNarrative(" + bankId + ", " + accountId + ", " + transactionId + ", " + narrative + ")")
+      sender ! extractResult(mapper.setNarrative(bankId, accountId, transactionId)(narrative))
 
-      {
-        for {
-          res <- tryo{mNarratives.setNarrative(bankId, accountId, transactionId)(narrative)}
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
-
-    case rNarratives.bulkDeleteNarratives(bankId: BankId, accountId: AccountId) =>
-
+    case cc.bulkDeleteNarratives(bankId: BankId, accountId: AccountId) =>
       logger.info("bulkDeleteComments(" + bankId +", "+ accountId + ")")
-
-      {
-        for {
-          res <- tryo{mNarratives.bulkDeleteNarratives(bankId, accountId)}
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
-
-
+      sender ! extractResult(mapper.bulkDeleteNarratives(bankId, accountId))
 
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

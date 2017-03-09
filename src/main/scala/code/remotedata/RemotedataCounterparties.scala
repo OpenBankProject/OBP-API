@@ -19,85 +19,20 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
 
   val cc = RemotedataCounterpartiesCaseClasses
 
-  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty)).mapTo[CounterpartyMetadata],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getOrCreateMetadata", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  override def getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty): Box[CounterpartyMetadata] =
+    extractFutureToBox(actor ? cc.getOrCreateMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, otherParty: Counterparty))
 
-  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId)).mapTo[List[CounterpartyMetadata]],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getMetadatas", 404)
-      case e: Throwable => throw e
-    }
-    res.get
-  }
+  override def getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId): List[CounterpartyMetadata] =
+    extractFuture(actor ? cc.getMetadatas(originalPartyBankId: BankId, originalPartyAccountId: AccountId))
 
-  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String)).mapTo[CounterpartyMetadata],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getMetadata", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  override def getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String): Box[CounterpartyMetadata] =
+    extractFutureToBox(actor ? cc.getMetadata(originalPartyBankId: BankId, originalPartyAccountId: AccountId, counterpartyMetadataId: String))
 
-  override def getCounterparty(counterPartyId: String): Box[CounterpartyTrait] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getCounterparty(counterPartyId: String)).mapTo[CounterpartyTrait],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getCounterparty", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  override def getCounterparty(counterPartyId: String): Box[CounterpartyTrait] =
+    extractFutureToBox(actor ? cc.getCounterparty(counterPartyId: String))
 
-  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getCounterpartyByIban(iban: String)).mapTo[CounterpartyTrait],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not getCounterpartyByIban", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  override def getCounterpartyByIban(iban: String): Box[CounterpartyTrait] =
+    extractFutureToBox(actor ? cc.getCounterpartyByIban(iban: String))
   
   override def createCounterparty(createdByUserId: String,
                                   thisBankId: String,
@@ -108,29 +43,16 @@ object RemotedataCounterparties extends ActorInit with Counterparties {
                                   otherAccountRoutingAddress: String,
                                   otherBankRoutingScheme: String,
                                   otherBankRoutingAddress: String,
-                                  isBeneficiary: Boolean): Box[CounterpartyTrait] = {
-    val res = try {
-      Full(
-        Await.result(
-                      (actor ? cc.createCounterparty(createdByUserId, thisBankId, thisAccountId, thisViewId, name,
-                                                     otherAccountRoutingScheme, otherAccountRoutingAddress, otherBankRoutingScheme, otherBankRoutingAddress,
-                                                     isBeneficiary)).mapTo[CounterpartyTrait],
-                      TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Can not  createCounterparty", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+                                  isBeneficiary: Boolean): Box[CounterpartyTrait] =
+    extractFutureToBox(actor ? cc.createCounterparty( createdByUserId, thisBankId,
+                                                      thisAccountId, thisViewId, name,
+                                                      otherAccountRoutingScheme,
+                                                      otherAccountRoutingAddress,
+                                                      otherBankRoutingScheme,
+                                                      otherBankRoutingAddress,
+                                                      isBeneficiary))
 
-  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean = {
-    Await.result(
-      (actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  override def checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String): Boolean =
+    extractFuture(actor ? cc.checkCounterpartyAvailable(name: String, thisBankId: String, thisAccountId: String, thisViewId: String))
 
 }

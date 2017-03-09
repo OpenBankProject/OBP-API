@@ -19,45 +19,17 @@ object RemotedataTransactionImages extends ActorInit with TransactionImages {
 
   val cc = RemotedataTransactionImagesCaseClasses
 
-  def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] = {
-    Await.result(
-      (actor ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId)).mapTo[List[TransactionImage]],
-      TIMEOUT
-    )
-  }
+  def getImagesForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : List[TransactionImage] =
+    extractFuture(actor ? cc.getImagesForTransaction(bankId, accountId, transactionId, viewId))
 
   def addTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                         (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] = {
-    Full(
-      Await.result(
-        (actor ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL)).mapTo[TransactionImage],
-        TIMEOUT
-      )
-    )
-  }
+                         (userId: UserId, viewId : ViewId, description : String, datePosted : Date, imageURL: String) : Box[TransactionImage] =
+    extractFutureToBox(actor ? cc.addTransactionImage(bankId, accountId, transactionId, userId, viewId, description, datePosted, imageURL))
 
-  def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId)).mapTo[Boolean],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Cannot delete the TransactionImage", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def deleteTransactionImage(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(imageId : String) : Box[Boolean] =
+    extractFutureToBox(actor ? cc.deleteTransactionImage(bankId, accountId, transactionId, imageId))
 
-  def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean = {
-    Await.result(
-      (actor ? cc.bulkDeleteTransactionImage(bankId, accountId)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
-
+  def bulkDeleteTransactionImage(bankId: BankId, accountId: AccountId): Boolean =
+    extractFuture(actor ? cc.bulkDeleteTransactionImage(bankId, accountId))
 
 }

@@ -57,13 +57,16 @@ object MapperViews extends Views with Loggable {
     viewImpl match {
       case Full(vImpl) => {
         if (ViewPrivileges.count(By(ViewPrivileges.user, user.resourceUserId.value), By(ViewPrivileges.view, vImpl.id)) == 0) {
+          logger.info(s"saving ViewPrivileges for user ${user.resourceUserId.value} for view ${vImpl.id}")
           val saved = ViewPrivileges.create.
             user(user.resourceUserId.value).
             view(vImpl.id).
             save
 
-          if (saved) Full(vImpl)
-          else {
+          if (saved) {
+            logger.info("saved ViewPrivileges")
+            Full(vImpl)
+          } else {
             logger.info("failed to save ViewPrivileges")
             Empty ~> APIFailure("Server error adding permission", 500) //TODO: move message + code logic to api level
           }
@@ -79,7 +82,7 @@ object MapperViews extends Views with Loggable {
     val viewImpls = views.map(uid => ViewImpl.find(uid)).collect { case Full(v) => v}
 
     if (viewImpls.size != views.size) {
-      val failMsg = s"not all viewimpls could be found for views $viewImpls"
+      val failMsg = s"not all viewimpls could be found for views ${viewImpls} (${viewImpls.size} != ${views.size}"
       logger.info(failMsg)
       Failure(failMsg) ~>
         APIFailure(s"One or more views not found", 404) //TODO: this should probably be a 400, but would break existing behaviour

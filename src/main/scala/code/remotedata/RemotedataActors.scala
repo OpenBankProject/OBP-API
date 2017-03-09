@@ -11,20 +11,70 @@ import net.liftweb.db.StandardDBVendor
 import net.liftweb.http.LiftRules
 import net.liftweb.mapper.{DB, Schemifier}
 import net.liftweb.util.Props
+import code.api.APIFailure
 
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait ActorInit {
+
+  val ACTOR_TIMEOUT: Long = Props.getLong("remotedata.timeout").openOr(1)
+
+
   val actorName = CreateActorNameFromClassName(this.getClass.getName)
   val actor = RemotedataActorSystem.getActor(actorName)
-  val TIMEOUT = 10 seconds
-  implicit val timeout = Timeout(1000 milliseconds)
+  val TIMEOUT = (ACTOR_TIMEOUT seconds)
+  implicit val timeout = Timeout(ACTOR_TIMEOUT * (1000 milliseconds))
 
   def CreateActorNameFromClassName(c: String): String = {
     val n = c.replaceFirst("^.*Remotedata", "")
     Character.toLowerCase(n.charAt(0)) + n.substring(1)
   }
 
+  def extractFuture[T](f: Future[Any]): T = {
+    val r = f.map {
+      case s: Set[T] => s
+      case l: List[T] => l
+      case t: T => t
+      case _ => Empty ~> APIFailure(s"future extraction failed", 501)
+    }
+    Await.result(r, TIMEOUT).asInstanceOf[T]
+  }
+
+    def extractFutureToBox[T](f: Future[Any]): Box[T] = {
+    val r = f.map {
+      case pf: ParamFailure[_] => Empty ~> pf
+      case af: APIFailure => Empty ~> af
+      case f: Failure => f
+      case Empty => Empty
+      case t: T => Full(t)
+      case _ => Empty ~> APIFailure(s"future extraction to box failed", 501)
+    }
+    Await.result(r, TIMEOUT)
+  }
+
+}
+
+trait ActorHelper {
+
+  def extractResult[T](in: T) = {
+    in match {
+        case pf: ParamFailure[_] => 
+          pf.param match {
+            case af: APIFailure => af
+            case f: Failure => f
+            case _ => pf
+          }
+        case af: APIFailure => af
+        case f: Failure => f
+        case l: List[T] => l
+        case s: Set[T] => s
+        case Full(r) => r
+        case t: T => t
+        case _ => APIFailure(s"result extraction failed", 501)
+      }
+  }
 }
 
 object RemotedataActors extends Loggable {
@@ -103,7 +153,6 @@ object RemotedataActors extends Loggable {
 
   def showLogoAfterDelay() = {
     val actorSystem = ActorSystem()
-    implicit val executor = actorSystem.dispatcher
     val scheduler = actorSystem.scheduler
     scheduler.scheduleOnce(
       Duration(4, TimeUnit.SECONDS),

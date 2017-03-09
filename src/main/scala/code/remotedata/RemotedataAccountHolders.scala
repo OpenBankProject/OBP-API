@@ -13,28 +13,13 @@ object RemotedataAccountHolders extends ActorInit with AccountHolders {
 
   val cc = RemotedataAccountHoldersCaseClasses
 
-  override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean = {
-    Await.result(
-      (actor ? cc.createAccountHolder(userId, bankId, accountId, source)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  override def createAccountHolder(userId: Long, bankId: String, accountId: String, source: String = "MappedAccountHolder"): Boolean =
+    extractFuture(actor ? cc.createAccountHolder(userId, bankId, accountId, source))
 
-  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] = {
-    Await.result(
-      (actor ? cc.getAccountHolders(bankId, accountId)).mapTo[Set[User]],
-      TIMEOUT
-    )
-  }
+  override def getAccountHolders(bankId: BankId, accountId: AccountId): Set[User] =
+    extractFuture(actor ? cc.getAccountHolders(bankId, accountId))
 
-
-  def bulkDeleteAllAccountHolders(): Box[Boolean] = {
-    Full(
-      Await.result(
-        (actor ? cc.bulkDeleteAllAccountHolders()).mapTo[Boolean],
-        TIMEOUT
-      )
-    )
-  }
+  def bulkDeleteAllAccountHolders(): Box[Boolean] =
+    extractFutureToBox(actor ? cc.bulkDeleteAllAccountHolders())
 
 }
