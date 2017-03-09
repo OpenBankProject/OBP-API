@@ -59,8 +59,8 @@ class MappedUserCustomerLink extends UserCustomerLink with LongKeyedMapper[Mappe
     Full(MappedUserCustomerLink.findAll())
   }
 
-  override def getUserCustomerLinksByUserId(userId : String): Box[List[UserCustomerLink]] = {
-    Full(MappedUserCustomerLink.findAll(By(MappedUserCustomerLink.mUserId, userId)))
+  override def bulkDeleteUserCustomerLinks(): Boolean = {
+    MappedUserCustomerLink.bulkDelete_!!()
   }
 
 }
