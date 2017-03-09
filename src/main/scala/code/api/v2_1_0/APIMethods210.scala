@@ -1,7 +1,7 @@
 package code.api.v2_1_0
 
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Date, GregorianCalendar, Locale, TimeZone}
+import java.util.{Date, Locale}
 
 import code.TransactionTypes.TransactionType
 import code.api.util.ApiRole._
@@ -27,7 +27,6 @@ import code.model.dataAccess.{AuthUser, MappedBankAccount}
 import code.model.{BankAccount, BankId, ViewId, _}
 import code.products.Products.ProductCode
 import code.usercustomerlinks.UserCustomerLink
-import net.liftweb.common.Failure
 import net.liftweb.http.{Req, S}
 import net.liftweb.json.Extraction
 import net.liftweb.json.JsonAST.JValue
@@ -45,7 +44,7 @@ import code.api.{ChargePolicy, APIFailure}
 import code.api.util.APIUtil._
 import code.sandbox.{OBPDataImport, SandboxDataImport}
 import code.util.Helper
-import net.liftweb.common.{Empty, Full, Box}
+import net.liftweb.common.{Full, Box}
 import net.liftweb.http.JsonResponse
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.rest.RestHelper
@@ -1219,7 +1218,7 @@ trait APIMethods210 {
           |Dates need to be in the format 2013-01-21T23:08:00Z
           |${authenticationRequiredMessage(true)}
           |""",
-      Extraction.decompose(PostCustomerJson("user_id to attach this customer to e.g. 123213",
+      Extraction.decompose(code.api.v2_1_0.PostCustomerJson("user_id to attach this customer to e.g. 123213",
         "new customer number 687687678", "Joe David Bloggs",
         "+44 07972 444 876", "person@example.com",
         CustomerFaceImageJson("www.example.com/person/123/image.png", exampleDate),
@@ -1262,13 +1261,6 @@ trait APIMethods210 {
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
-            //Find all user to customer links by user_id
-            userCustomerLinks <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinksByUserId(user_id)
-            customerIds: List[String] <-  tryo(userCustomerLinks.map(p => p.customerId))
-            //Try to find an existing customer at BANK_ID
-            alreadyHasCustomer <-booleanToBox(customerIds.forall(x => Customer.customerProvider.vend.getCustomerByCustomerId(x).isEmpty == true)) ?~ ErrorMessages.CustomerAlreadyExistsForUser
-            // TODO we still store the user inside the customer, we should only store the user in the usercustomer link
-            customer <- booleanToBox(Customer.customerProvider.vend.getCustomerByResourceUserId(bankId, customer_user.resourceUserId.value).isEmpty) ?~ ErrorMessages.CustomerAlreadyExistsForUser
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
               customer_user,
               postedData.customer_number,
