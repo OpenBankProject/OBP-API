@@ -290,7 +290,8 @@ object KafkaMappedConnector extends Connector with Loggable {
     val r: Option[KafkaInboundValidateChallangeAnswer] = process(req).extractOpt[KafkaInboundValidateChallangeAnswer]
     // Return result
     r match {
-      // Check does the response data match the requested data
+      // Check does the response data match the requested data 
+        //TODO, error handling, if return the error message, it is not a boolean. 
       case Some(x)  => Full(x.answer.toBoolean)
       case _        => Empty
     }

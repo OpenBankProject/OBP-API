@@ -506,7 +506,8 @@ trait Connector {
 
       case TransactionRequests.STATUS_INITIATED =>
         //if challenge necessary, create a new one
-        var challenge = TransactionRequestChallenge(id = java.util.UUID.randomUUID().toString, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
+        val challengeId = createChallenge(fromAccount.bankId, fromAccount.accountId, initiator.userId, transactionRequestType: TransactionRequestType, transactionRequest.get.id.value).openOrThrowException("Exception: Couldn't create create challenge id")
+        var challenge = TransactionRequestChallenge(challengeId, allowed_attempts = 3, challenge_type = TransactionRequests.CHALLENGE_SANDBOX_TAN)
         saveTransactionRequestChallenge(transactionRequest.get.id, challenge)
         transactionRequest = Full(transactionRequest.get.copy(challenge = challenge))
     }
