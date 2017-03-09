@@ -7,29 +7,17 @@ import scala.concurrent.Await
 
 
 
-object RemotedataNarratives extends ActorInit with  Narrative {
+object RemotedataNarratives extends ActorInit with Narrative {
 
   val cc = RemoteNarrativesCaseClasses
 
-  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String = {
-    Await.result(
-      (actor ? cc.getNarrative(bankId, accountId, transactionId)).mapTo[String],
-      TIMEOUT
-    )
-  }
+  def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String =
+      extractFuture(actor ? cc.getNarrative(bankId, accountId, transactionId))
 
-  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean = {
-    Await.result(
-      (actor ? cc.setNarrative(bankId, accountId, transactionId, narrative)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean =
+    extractFuture(actor ? cc.setNarrative(bankId, accountId, transactionId, narrative))
 
-  def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean = {
-    Await.result(
-      (actor ? cc.bulkDeleteNarratives(bankId, accountId)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def bulkDeleteNarratives(bankId: BankId, accountId: AccountId): Boolean =
+    extractFuture(actor ? cc.bulkDeleteNarratives(bankId, accountId))
 
 }

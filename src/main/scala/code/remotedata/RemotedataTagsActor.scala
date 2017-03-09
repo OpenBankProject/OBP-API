@@ -13,7 +13,7 @@ import net.liftweb.util.ControlHelpers.tryo
 import scala.concurrent.duration._
 
 
-class RemotedataTagsActor extends Actor {
+class RemotedataTagsActor extends Actor with ActorHelper {
 
   val logger = Logging(context.system, this)
 
@@ -24,42 +24,19 @@ class RemotedataTagsActor extends Actor {
 
     case cc.getTags(bankId, accountId, transactionId, viewId) =>
       logger.info("getTags(" + bankId +", "+ accountId +", "+ transactionId +", "+ viewId +")")
-      sender ! mapper.getTags(bankId, accountId, transactionId)(viewId)
+      sender ! extractResult(mapper.getTags(bankId, accountId, transactionId)(viewId))
 
     case cc.addTag(bankId, accountId, transactionId, userId, viewId, text, datePosted) =>
       logger.info("addTag(" + bankId +", "+ accountId +", "+ transactionId +", "+ text +", "+ text +", "+ datePosted +")")
-
-      {
-        for {
-          res <- mapper.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted)
-        } yield {
-          sender ! res.asInstanceOf[TransactionTag]
-        }
-      }.getOrElse( context.stop(sender) )
+      sender ! extractResult(mapper.addTag(bankId, accountId, transactionId)(userId, viewId, text, datePosted))
 
     case cc.deleteTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId, tagId : String) =>
       logger.info("deleteTag(" + bankId +", "+ accountId +", "+ transactionId + tagId +")")
-
-      {
-        for {
-          res <- mapper.deleteTag(bankId, accountId, transactionId)(tagId)
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
+      sender ! extractResult(mapper.deleteTag(bankId, accountId, transactionId)(tagId))
 
     case cc.bulkDeleteTags(bankId: BankId, accountId: AccountId) =>
-
       logger.info("bulkDeleteTags(" + bankId +", "+ accountId + ")")
-
-      {
-        for {
-          res <- tryo{mapper.bulkDeleteTags(bankId, accountId)}
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse( context.stop(sender) )
-
+      sender ! extractResult(mapper.bulkDeleteTags(bankId, accountId))
 
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 

@@ -19,33 +19,18 @@ object RemotedataWhereTags extends ActorInit with WhereTags {
 
   val cc = RemotedataWhereTagsCaseClasses
 
-  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] = {
-    Await.result(
-      (actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId)).mapTo[Box[GeoTag]],
-      TIMEOUT
-    )
-  }
+  def getWhereTagForTransaction(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Box[GeoTag] =
+      extractFutureToBox(actor ? cc.getWhereTagForTransaction(bankId, accountId, transactionId, viewId))
 
   def addWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)
-                 (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean = {
-    Await.result(
-      (actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+                 (userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double) : Boolean =
+      extractFuture(actor ? cc.addWhereTag(bankId, accountId, transactionId, userId: UserId, viewId : ViewId, datePosted : Date, longitude : Double, latitude : Double))
 
-  def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean = {
-    Await.result(
-      (actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def deleteWhereTag(bankId : BankId, accountId : AccountId, transactionId: TransactionId)(viewId : ViewId) : Boolean =
+      extractFuture(actor ? cc.deleteWhereTag(bankId, accountId, transactionId, viewId))
 
-  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean = {
-    Await.result(
-      (actor ? cc.bulkDeleteWhereTags(bankId, accountId)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def bulkDeleteWhereTags(bankId: BankId, accountId: AccountId): Boolean =
+      extractFuture(actor ? cc.bulkDeleteWhereTags(bankId, accountId))
+
 
 }
