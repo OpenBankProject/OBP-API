@@ -33,6 +33,7 @@ package code.model.dataAccess
 
 import java.util.UUID
 
+import code.api.util.APIUtil.isValidStrongPassword
 import code.api.util.{APIUtil, ErrorMessages}
 import code.api.{DirectLogin, OAuthHandshake}
 import code.bankconnectors.Connector
@@ -46,6 +47,7 @@ import scala.xml.{NodeSeq, Text}
 import code.loginattempts.LoginAttempt
 import code.users.Users
 import code.util.Helper
+import net.liftweb.util
 
 
 /**
@@ -71,6 +73,55 @@ class AuthUser extends MegaProtoUser[AuthUser] with Logger {
     override val fieldId = Some(Text("txtUsername"))
   }
 
+  override lazy val password = new MyPasswordNew
+  
+  class MyPasswordNew extends MappedPassword(this) {
+    
+    override def displayName = fieldOwner.passwordDisplayName
+    
+    private var passwordValue = ""
+    private var invalidPw = false
+    private var invalidMsg = ""
+    
+    override def setFromAny(f: Any): String = {
+      f match {
+        case a: Array[String] if (a.length == 2 && a(0) == a(1)) => {
+          passwordValue = a(0).toString;
+          if (isValidStrongPassword(passwordValue))
+            invalidPw = false
+          else {
+            invalidPw = true
+            invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
+          }
+          this.set(a(0))
+        }
+        case l: List[String] if (l.length == 2 && l.head == l(1)) => {
+          passwordValue = l(0).toString;
+          if (isValidStrongPassword(passwordValue))
+            invalidPw = false
+          else {
+            invalidPw = true
+            invalidMsg = S.?(ErrorMessages.InvalidStrongPasswordFormat)
+          }
+          
+          this.set(l.head)
+        }
+        case _ => {
+          invalidPw = true;
+          invalidMsg = S.?("passwords.do.not.match")
+        }
+      }
+      get
+    }
+    
+    override def validate: List[FieldError] = {
+      if (super.validate.nonEmpty) super.validate
+      else if (!invalidPw && password.get != "*") Nil
+      else if (invalidPw) List(FieldError(this, Text(invalidMsg)))
+      else List(FieldError(this, Text(S.?("password.must.be.set"))))
+    }
+    
+  }
 
   /**
    * The provider field for the User.
