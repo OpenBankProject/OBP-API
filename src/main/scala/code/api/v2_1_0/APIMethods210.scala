@@ -213,6 +213,7 @@ trait APIMethods210 {
           |
           |See [this python code](https://github.com/OpenBankProject/Hello-OBP-DirectLogin-Python/blob/master/hello_payments.py) for a complete example of this flow.
           |
+          |There is further documentation [here](https://github.com/OpenBankProject/OBP-API/wiki/Transaction-Requests)
           |
           |${authenticationRequiredMessage(true)}
           |
