@@ -2,8 +2,8 @@ package code.customer
 
 import java.util.Date
 
-import code.model.{AccountId, BankId, User}
-import code.model.dataAccess.ResourceUser
+import code.model.{BankId, User}
+import code.usercustomerlinks.{MappedUserCustomerLink, UserCustomerLink}
 import code.users.Users
 import code.util.{DefaultStringField, MappedUUID}
 import net.liftweb.common.{Box, Full}
@@ -26,10 +26,13 @@ object MappedCustomerProvider extends CustomerProvider {
     available
   }
 
-  override def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mUser, resourceUserId),
-      By(MappedCustomer.mBank, bankId.value))
+  override def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer] = {
+    // If there are more than customer linked to a user we take a first one in a list
+    val customerId = UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByUserId(userId) match {
+      case x :: xs => x.customerId
+      case _       => "There is no linked customer to this user"
+    }
+    getCustomerByCustomerId(customerId)
   }
 
   override def getCustomerByCustomerId(customerId: String): Box[Customer] = {
@@ -53,14 +56,14 @@ object MappedCustomerProvider extends CustomerProvider {
   }
 
   override def getUser(bankId: BankId, customerNumber: String): Box[User] = {
-    MappedCustomer.find(
-      By(MappedCustomer.mBank, bankId.value),
-      By(MappedCustomer.mNumber, customerNumber)
-    ).flatMap(x => Users.users.vend.getResourceUserByResourceUserId(x.mUser.get))
+    getCustomerByCustomerNumber(customerNumber, bankId).flatMap{
+      x => UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(x.customerId)
+    }.flatMap{
+      y => Users.users.vend.getUserByUserId(y.userId)
+    }
   }
 
   override def addCustomer(bankId: BankId,
-                           user : User,
                            number : String,
                            legalName : String,
                            mobileNumber : String,
@@ -96,7 +99,7 @@ object MappedCustomerProvider extends CustomerProvider {
       .mLegalName(legalName)
       .mMobileNumber(mobileNumber)
       .mNumber(number)
-      .mUser(user.resourceUserId.value)
+      //.mUser(user.resourceUserId.value)
       .mDateOfBirth(dateOfBirth)
       .mRelationshipStatus(relationshipStatus)
       .mDependents(dependents)
@@ -125,7 +128,7 @@ class MappedCustomer extends Customer with LongKeyedMapper[MappedCustomer] with 
 
   object mCustomerId extends MappedUUID(this)
 
-  object mUser extends MappedLongForeignKey(this, ResourceUser)
+  //object mUser extends MappedLongForeignKey(this, ResourceUser)
   object mBank extends DefaultStringField(this)
 
   object mNumber extends DefaultStringField(this)
