@@ -16,92 +16,23 @@ object RemotedataCustomers extends ActorInit with CustomerProvider {
 
   val cc = RemotedataCustomerProviderCaseClasses
 
-  def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getCustomerByResourceUserId(bankId, resourceUserId)).mapTo[Customer],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Customer not found", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer] =
+    extractFutureToBox(actor ? cc.getCustomerByResourceUserId(bankId, resourceUserId))
 
-  def getCustomerByCustomerId(customerId: String) : Box[Customer] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getCustomerByCustomerId(customerId)).mapTo[Customer],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Customer not found", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def getCustomerByCustomerId(customerId: String) : Box[Customer] =
+    extractFutureToBox(actor ? cc.getCustomerByCustomerId(customerId))
 
-  def getBankIdByCustomerId(customerId: String) : Box[String] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getBankIdByCustomerId(customerId)).mapTo[String],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Bank not found", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def getBankIdByCustomerId(customerId: String) : Box[String] =
+    extractFutureToBox(actor ? cc.getBankIdByCustomerId(customerId))
 
-  def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId) : Box[Customer] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getCustomerByCustomerNumber(customerNumber, bankId)).mapTo[Customer],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"Customer not found", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def getCustomerByCustomerNumber(customerNumber: String, bankId : BankId) : Box[Customer] =
+    extractFutureToBox(actor ? cc.getCustomerByCustomerNumber(customerNumber, bankId))
 
-  def getUser(bankId : BankId, customerNumber : String) : Box[User] = {
-    val res = try {
-      Full(
-        Await.result(
-          (actor ? cc.getUser(bankId, customerNumber)).mapTo[User],
-          TIMEOUT
-        )
-      )
-    }
-    catch {
-      case k: ActorKilledException =>  Empty ~> APIFailure(s"User not found", 404)
-      case e: Throwable => throw e
-    }
-    res
-  }
+  def getUser(bankId : BankId, customerNumber : String) : Box[User] =
+    extractFutureToBox(actor ? cc.getUser(bankId, customerNumber))
 
-  def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String): Boolean = {
-    Await.result(
-      (actor ? cc.checkCustomerNumberAvailable(bankId, customerNumber)).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String): Boolean =
+    extractFuture(actor ? cc.checkCustomerNumberAvailable(bankId, customerNumber))
 
   def addCustomer(bankId: BankId, user: User, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage,
                   dateOfBirth: Date,
@@ -114,11 +45,10 @@ object RemotedataCustomers extends ActorInit with CustomerProvider {
                   lastOkDate: Date,
                   creditRating: Option[CreditRating],
                   creditLimit: Option[AmountOfMoney]
-                 ) : Box[Customer] = {
-      Full(
-        Await.result(
-        (actor ? cc.addCustomer(bankId = bankId,
-                                user = user,
+                 ) : Box[Customer] =
+    extractFutureToBox(actor ? cc.addCustomer(
+          bankId = bankId,
+          user = user,
           number = number,
           legalName = legalName,
           mobileNumber = mobileNumber,
@@ -134,18 +64,10 @@ object RemotedataCustomers extends ActorInit with CustomerProvider {
           lastOkDate = lastOkDate,
           creditRating = creditRating,
           creditLimit = creditLimit
-        )).mapTo[Customer],
-        TIMEOUT
-      )
-    )
-  }
+        ))
 
-  def bulkDeleteCustomers(): Boolean = {
-    Await.result(
-      (actor ? cc.bulkDeleteCustomers()).mapTo[Boolean],
-      TIMEOUT
-    )
-  }
+  def bulkDeleteCustomers(): Boolean =
+    extractFuture(actor ? cc.bulkDeleteCustomers())
 
 
 }

@@ -9,7 +9,7 @@ import code.model._
 import net.liftweb.util.ControlHelpers._
 
 
-class RemotedataCustomersActor extends Actor {
+class RemotedataCustomersActor extends Actor with ActorHelper {
 
   val logger = Logging(context.system, this)
 
@@ -18,86 +18,29 @@ class RemotedataCustomersActor extends Actor {
 
   def receive = {
 
-
     case cc.getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long) =>
-
       logger.info("getCustomerByResourceUserId(" + bankId + ", " + resourceUserId + ")")
-
-      {
-        for {
-          res <- mapper.getCustomerByResourceUserId(bankId, resourceUserId)
-        } yield {
-          sender ! res.asInstanceOf[Customer]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.getCustomerByResourceUserId(bankId, resourceUserId))
 
     case cc.getCustomerByCustomerId(customerId: String) =>
-
       logger.info("getCustomerByCustomerId(" + customerId + ")")
-
-      {
-        for {
-          res <- mapper.getCustomerByCustomerId(customerId)
-        } yield {
-          sender ! res.asInstanceOf[Customer]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.getCustomerByCustomerId(customerId))
 
     case cc.getBankIdByCustomerId(customerId: String) =>
-
       logger.info("getBankIdByCustomerId(" + customerId + ")")
-
-      {
-        for {
-          res <- mapper.getBankIdByCustomerId(customerId)
-        } yield {
-          sender ! res.asInstanceOf[String]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.getBankIdByCustomerId(customerId))
 
     case cc.getCustomerByCustomerNumber(customerNumber: String, bankId: BankId) =>
-
       logger.info("getCustomerByCustomerNumber(" + customerNumber + ", " + bankId + ")")
-
-      {
-        for {
-          res <- mapper.getCustomerByCustomerNumber(customerNumber, bankId)
-        } yield {
-          sender ! res.asInstanceOf[Customer]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.getCustomerByCustomerNumber(customerNumber, bankId))
 
     case cc.getUser(bankId: BankId, customerNumber: String) =>
-
       logger.info("getUser(" + bankId + ", " + customerNumber + ")")
-
-      {
-        for {
-          res <- mapper.getUser(bankId, customerNumber)
-        } yield {
-          sender ! res.asInstanceOf[User]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.getUser(bankId, customerNumber))
 
     case cc.checkCustomerNumberAvailable(bankId: BankId, customerNumber: String) =>
-
       logger.info("checkCustomerNumberAvailable(" + bankId + ", " + customerNumber + ")")
-
-      {
-        for {
-          res <- tryo {
-            mapper.checkCustomerNumberAvailable(bankId, customerNumber)
-          }
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.checkCustomerNumberAvailable(bankId, customerNumber))
 
     case cc.addCustomer(bankId: BankId, user: User, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage,
     dateOfBirth: Date,
@@ -111,12 +54,8 @@ class RemotedataCustomersActor extends Actor {
     creditRating: Option[CreditRating],
     creditLimit: Option[AmountOfMoney]
     ) =>
-
       logger.info("addCustomer(" + bankId + ", " + user + ")")
-
-      {
-        for {
-          res <- mapper.addCustomer(bankId, user, number, legalName, mobileNumber, email, faceImage,
+      sender ! extractResult(mapper.addCustomer(bankId, user, number, legalName, mobileNumber, email, faceImage,
             dateOfBirth,
             relationshipStatus,
             dependents,
@@ -127,27 +66,11 @@ class RemotedataCustomersActor extends Actor {
             lastOkDate,
             creditRating,
             creditLimit
-          )
-        } yield {
-          sender ! res.asInstanceOf[Customer]
-        }
-      }.getOrElse(context.stop(sender))
-
+          ))
 
     case cc.bulkDeleteCustomers() =>
-
       logger.info("bulkDeleteCustomers()")
-
-      {
-        for {
-          res <- tryo {
-            mapper.bulkDeleteCustomers()
-          }
-        } yield {
-          sender ! res.asInstanceOf[Boolean]
-        }
-      }.getOrElse(context.stop(sender))
-
+      sender ! extractResult(mapper.bulkDeleteCustomers())
 
     case message => logger.info("[AKKA ACTOR ERROR - REQUEST NOT RECOGNIZED] " + message)
 
