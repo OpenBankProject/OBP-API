@@ -607,14 +607,14 @@ trait Connector {
     }
   }
 
-  def getTransactionRequestStatuses() : Box[Map[String, String]] = {
+  def getTransactionRequestStatuses() : Box[TransactionRequestStatus] = {
     for {
       transactionRequestStatuses <- getTransactionRequestStatusesImpl()
     } yield transactionRequestStatuses
 
   }
 
-  protected def getTransactionRequestStatusesImpl() : Box[Map[String, String]]
+  protected def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus]
 
   protected def getTransactionRequestsImpl(fromAccount : BankAccount) : Box[List[TransactionRequest]]
 

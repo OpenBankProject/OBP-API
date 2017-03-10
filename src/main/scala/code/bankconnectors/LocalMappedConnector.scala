@@ -494,7 +494,7 @@ object LocalMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = ???
+  override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = Empty
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
                                             account : BankAccount, counterparty : BankAccount, body: TransactionRequestBody,
