@@ -702,26 +702,23 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
     }
   }
 
-  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
+  override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = {
     //val parameters = new JHashMap
     //val fields = new JHashMap
-
+    logger.info(s"OBPJVM getTransactionRequestStatusesImpl sart: ")
     val response : JResponse = jvmNorth.fetch
-
-    response.error.isPresent match {
+  
+    val r = response.error.isPresent match {
       case false =>
-        Full( response.data.flatMap { d => Map[String, String](d.toString -> d.toString) }.toMap )
+        val res =ObpJvmInboundTransactionRequestStatus(
+                                                        response.data.toString,
+                                                        List(ObpJvmInboundTransactionStatus(response.data.toString,response.data.toString,response.data.toString)))
+        Full(new ObpJvmTransactionRequestStatus(res))
       case true => Empty
     }
-
-    //try {
-    //  response.data().map match {
-    //    case Some(status: ObpJvmInboundTransactionRequestStatus) => Full(TransactionRequestStatus(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionStatusTimestamp))))
-    //    case None => Empty
-    //  }
-    //} catch {
-    //  case mpex: net.liftweb.json.MappingException => Empty
-    //}
+  
+    logger.info(s"OBPJVM getTransactionRequestStatusesImpl response: ${r.toString}")
+    r
   }
 
   /*
@@ -1399,9 +1396,13 @@ private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, am
   case class ObpJvmInboundTransactionStatus(
                                 transactionId : String,
                                 transactionStatus: String,
-                                transactionStatusTimestamp: String
-                              )
-
+                                transactionTimestamp: String
+                              ) extends TransactionStatus
+  
+  case class ObpJvmTransactionRequestStatus (obpJvmInboundTransactionRequestStatus: ObpJvmInboundTransactionRequestStatus) extends TransactionRequestStatus {
+    override def transactionRequestid: String = obpJvmInboundTransactionRequestStatus.transactionRequestId
+    override def bulkTransactionsStatus: List[TransactionStatus] = obpJvmInboundTransactionRequestStatus.bulkTransactionsStatus
+  }
   override def getProducts(bankId: BankId): Box[List[Product]] = Empty
 
   override def getProduct(bankId: BankId, productCode: ProductCode): Box[Product] = Empty

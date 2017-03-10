@@ -713,28 +713,9 @@ object KafkaMappedConnector extends Connector with Loggable {
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
-      val req : Map[String,String] = Map(
-      "north" -> "fetch",
-      "version" -> formatVersion,
-      "name" -> "fetch"
-    )
-
-    val r = process(req)
-    try {
-      Full(r.extract[Map[String, String]])
-    } catch {
-      case mpex: net.liftweb.json.MappingException => Empty
-    }
-
-    //try {
-    //  r.extract[KafkaInboundTransactionRequestStatus] match {
-    //    case status: KafkaInboundTransactionRequestStatus => Full(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
-    //    case _ => Empty
-    //  }
-    //} catch {
-    //  case mpex: net.liftweb.json.MappingException => Empty
-    //}
+  override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] ={
+    logger.info("Kafka getTransactionRequestStatusesImpl response -- This is KafkaMappedConnector, just call KafkaMappedConnector_vMar2017 methods:")
+    KafkaMappedConnector_vMar2017.getTransactionRequestStatusesImpl()
   }
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
