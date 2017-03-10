@@ -41,7 +41,7 @@ object TransactionStatusScheduler extends Loggable {
         transactionRequest <- tr.toTransactionRequest
         if (statuses.exists(_ == transactionRequest.id -> "APVD"))
       } yield {
-	tr.updateStatus(TransactionRequests.STATUS_COMPLETED)
+	      tr.updateStatus(TransactionRequests.STATUS_COMPLETED)
         logger.info(s"updated ${transactionRequest.id} status: ${TransactionRequests.STATUS_COMPLETED}")
       }
     }
