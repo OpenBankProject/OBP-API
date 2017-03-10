@@ -137,7 +137,7 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * OBP-Kafka-Python can be downloaded from https://github.com/OpenBankProject/OBP-Kafka-Python
 
-# Running with a Zookeeper/Kafka Cluster
+## Running with a Zookeeper/Kafka Cluster
 
 1) NGINX Configuration for Load Balancing
 
@@ -211,10 +211,14 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 * Configuration
 
-* Edit the OBP-API/src/main/resources/props/default.props so that it contains the following lines. This should be done on each node:
+* Edit the OBP-API/src/main/resources/props/default.props so that it contains the following lines. Please note that 
+kafka.host is used by the producer and kafka.zookeeper_host is used by the consumer. This should be done on each node:
 
         connector=kafka
+        # Address to be used by consumer
         kafka.zookeeper_host=localhost:2181
+        # Address to be used by producer
+        kafka.host=localhost:9092
         kafka.request_topic=Request
         kafka.response_topic=Response
 
@@ -247,7 +251,7 @@ If Kafka connector is selected in props (connector=kafka), Kafka and Zookeeper h
 
 http://localhost:8080/obp/v2.0.0/banks
 
-# Production Options.
+## Production Options.
 
 * set the status of HttpOnly and Secure cookie flags for production, uncomment the following lines of  "webapp/WEB-INF/web.xml" :
 
@@ -258,7 +262,7 @@ http://localhost:8080/obp/v2.0.0/banks
           </cookie-config>
         </session-config>
 
-# Running the API in Production Mode
+## Running the API in Production Mode
 
 We use jetty8 to run the API in production mode.
 
