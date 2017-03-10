@@ -156,7 +156,7 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             postedData <- tryo{json.extract[AddCustomerMessageJson]} ?~! "Incorrect json format"
             bank <- Bank(bankId) ?~! {ErrorMessages.BankNotFound}
             customer <- Customer.customerProvider.vend.getCustomerByCustomerId(customerId) ?~ ErrorMessages.CustomerNotFoundByCustomerId
-            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLink(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
+            userCustomerLink <- UserCustomerLink.userCustomerLink.vend.getUserCustomerLinkByCustomerId(customer.customerId) ?~! ErrorMessages.CustomerDoNotExistsForUser
             user <- User.findByUserId(userCustomerLink.userId) ?~! ErrorMessages.UserNotFoundById
             messageCreated <- booleanToBox(
               CustomerMessages.customerMessageProvider.vend.addMessage(

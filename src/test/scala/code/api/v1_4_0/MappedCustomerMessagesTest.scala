@@ -8,11 +8,11 @@ import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJson, CustomerMessagesJson}
 import code.customer.{Customer, MappedCustomerMessage, MockCustomerFaceImage}
 import code.model.BankId
-import code.usercustomerlinks.MappedUserCustomerLink
+import code.usercustomerlinks.{UserCustomerLink}
 import code.api.util.APIUtil.OAuth._
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Box
-import net.liftweb.json.Serialization.{write}
+import net.liftweb.json.Serialization.write
 import net.liftweb.common.{Empty, Full}
 
 //TODO: API test should be independent of CustomerMessages implementation
@@ -67,13 +67,13 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
       )
       var response = makePostRequest(request, write(customerJson))
 
-      val customer: Box[Customer] =Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId)
+      val customer: Box[Customer] = Customer.customerProvider.vend.getCustomerByCustomerNumber(mockCustomerNumber, mockBankId)
       val customerId = customer match {
         case Full(c) => c.customerId
         case Empty => "Empty"
         case _ => "Failure"
       }
-      MappedUserCustomerLink.createUserCustomerLink(authuser1.userId, customerId, exampleDate, true)
+      UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(authuser1.userId, customerId, exampleDate, true)
 
       When("We add a message")
       request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
