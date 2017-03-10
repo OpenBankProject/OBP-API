@@ -22,7 +22,7 @@ object MappedUserCustomerLinkProvider extends UserCustomerLinkProvider {
     Some(createUserCustomerLink)
   }
 
-  override def getUserCustomerLink(customerId: String): Box[UserCustomerLink] = {
+  override def getUserCustomerLinkByCustomerId(customerId: String): Box[UserCustomerLink] = {
     MappedUserCustomerLink.find(
       By(MappedUserCustomerLink.mCustomerId, customerId))
   }

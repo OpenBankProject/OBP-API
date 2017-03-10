@@ -8,7 +8,7 @@ import code.api.util.APIUtil
 import code.api.v1_4_0.JSONFactory1_4_0.{AddCustomerMessageJson, CustomerFaceImageJson, CustomerJson, CustomerMessagesJson}
 import code.customer.{Customer, MappedCustomerMessage, MockCustomerFaceImage}
 import code.model.BankId
-import code.usercustomerlinks.{MappedUserCustomerLinkProvider}
+import code.usercustomerlinks.{UserCustomerLink}
 import code.api.util.APIUtil.OAuth._
 import code.model.dataAccess.ResourceUser
 import net.liftweb.common.Box
@@ -73,7 +73,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
         case Empty => "Empty"
         case _ => "Failure"
       }
-      MappedUserCustomerLinkProvider.createUserCustomerLink(authuser1.userId, customerId, exampleDate, true)
+      UserCustomerLink.userCustomerLink.vend.createUserCustomerLink(authuser1.userId, customerId, exampleDate, true)
 
       When("We add a message")
       request = (v1_4Request / "banks" / mockBankId.value / "customer" / customerId / "messages").POST <@ user1
