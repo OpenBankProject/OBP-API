@@ -12,7 +12,7 @@ object RemotedataNarratives extends ActorInit with Narrative {
   val cc = RemoteNarrativesCaseClasses
 
   def getNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)() : String =
-      extractFuture(actor ? cc.getNarrative(bankId, accountId, transactionId))
+    extractFuture(actor ? cc.getNarrative(bankId, accountId, transactionId))
 
   def setNarrative(bankId: BankId, accountId: AccountId, transactionId: TransactionId)(narrative: String): Boolean =
     extractFuture(actor ? cc.setNarrative(bankId, accountId, transactionId, narrative))
