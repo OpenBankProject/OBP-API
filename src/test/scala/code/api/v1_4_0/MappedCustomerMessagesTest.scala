@@ -127,6 +127,7 @@ class MappedCustomerMessagesTest extends V140ServerSetup with DefaultUsers {
   override def beforeEach(): Unit = {
     super.beforeEach()
     MappedCustomerMessage.bulkDelete_!!()
+    createCustomer(mockBankId, authuser1, mockCustomerNumber)
   }
 
 }

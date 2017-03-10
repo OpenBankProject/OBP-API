@@ -684,28 +684,22 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
   /*
     Transaction Requests
   */
-  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = {
-    // TODO action should be something like obp.get.TransactionRequestStatus ?
-      val req : Map[String,String] = Map(
-      "action" -> "obp.fetch",
+  override def getTransactionRequestStatusesImpl() : Box[TransactionRequestStatus] = {
+    logger.info(s"tKafka getTransactionRequestStatusesImpl sart: ")
+    val req: Map[String, String] = Map(
+      "action" -> "obp.get.TransactionRequestStatusesImpl",
       "version" -> formatVersion
     )
-
-    val r = process(req)
-    try {
-      Full(r.extract[Map[String, String]])
-    } catch {
-      case mpex: net.liftweb.json.MappingException => Empty
+    //TODO need more clear error handling to user, if it is Empty or Error now,all response Empty. 
+    val r = try{
+      val response = process(req).extract[KafkaInboundTransactionRequestStatus]
+      Full(new KafkaTransactionRequestStatus(response))
+    }catch {
+      case _ => Empty
     }
-
-    //try {
-    //  r.extract[KafkaInboundTransactionRequestStatus] match {
-    //    case status: KafkaInboundTransactionRequestStatus => Full(status.transactionRequestId, status.bulkTransactionsStatus.map( x => TransactionStatus(x.transactionId, x.transactionStatus, x.transactionTimestamp))))
-    //    case _ => Empty
-    //  }
-    //} catch {
-    //  case mpex: net.liftweb.json.MappingException => Empty
-    //}
+    
+    logger.info(s"Kafka getTransactionRequestStatusesImpl response: ${r.toString}") 
+    r
   }
 
   override def createTransactionRequestImpl(transactionRequestId: TransactionRequestId, transactionRequestType: TransactionRequestType,
@@ -1285,7 +1279,10 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     def chargeAmount: String = kafkaInboundTransactionRequestTypeCharge.charge_amount
     def chargeSummary: String = kafkaInboundTransactionRequestTypeCharge.charge_summary
   }
-
+  case class KafkaTransactionRequestStatus (kafkaInboundTransactionRequestStatus: KafkaInboundTransactionRequestStatus) extends  TransactionRequestStatus {
+    override def transactionRequestid: String = kafkaInboundTransactionRequestStatus.transactionRequestId
+    override def bulkTransactionsStatus: List[TransactionStatus] = kafkaInboundTransactionRequestStatus.bulkTransactionsStatus
+  }
   case class KafkaInboundBank(
                               bankId : String,
                               name : String,
@@ -1466,10 +1463,11 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                                              bulkTransactionsStatus: List[KafkaInboundTransactionStatus]
                                            )
   case class KafkaInboundTransactionStatus(
-                                transactionId : String,
-                                transactionStatus: String,
-                                transactionTimestamp: String
-                              )
+                                            transactionId: String,
+                                            transactionStatus: String,
+                                            transactionTimestamp: String
+                                          ) extends TransactionStatus
+  
   case class KafkaInboundCreateChallange(challengeId: String)
   case class KafkaInboundValidateChallangeAnswer(answer: String)
   

@@ -80,21 +80,17 @@ object TransactionRequestType {
   def unapply(id : String) = Some(TransactionRequestType(id))
 }
 
-case class TransactionRequestStatus(
-  transactionRequestid : String,
-  bulkTransactionsStatus: List[TransactionStatus])
-
-object TransactionRequestStatus {
-  def unapply(trId : String, tStatuses: List[TransactionStatus]) = Some(TransactionRequestStatus(trId, tStatuses))
+//Note: change csae class -> trait, for kafka extends it
+trait TransactionRequestStatus{
+  def transactionRequestid : String
+  def bulkTransactionsStatus: List[TransactionStatus]
 }
 
-case class TransactionStatus(
-  transactionId : String,
-  transactionStatus: String,
-  transactionTimestamp: String)
 
-object TransactionStatus {
-  def unapply(trId : String, trStatus: String, trTimestamp: String) = Some(TransactionStatus(trId, trStatus, trTimestamp))
+trait TransactionStatus{
+  def transactionId : String
+  def transactionStatus: String
+  def transactionTimestamp: String
 }
 
 case class TransactionRequestId(val value : String) {

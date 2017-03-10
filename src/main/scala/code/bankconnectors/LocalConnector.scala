@@ -367,8 +367,7 @@ private object LocalConnector extends Connector with Loggable {
     }
   }
 
-  override def getTransactionRequestStatusesImpl() : Box[Map[String, String]] = ???
-
+  override def getTransactionRequestStatusesImpl() :  Box[TransactionRequestStatus] = Empty
   /*
    Transaction Requests
  */
