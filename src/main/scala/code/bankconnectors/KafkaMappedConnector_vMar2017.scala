@@ -644,6 +644,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     val toCounterpartyReq: Map[String,String] = 
       if( toAccount != null && toCounterparty == null ) {
         Map(
+          "toCounterpartyId"                 -> toAccount.accountId.value,
           "toCounterpartyName"               -> toAccount.name,
           "toCounterpartyRoutingAddress"     -> toAccount.accountId.value,
           "toCounterpartyRoutingScheme"      -> "OBP",
@@ -652,6 +653,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         )
       } else if( toAccount == null && toCounterparty != null ) {
         Map(
+          "toCounterpartyId"                 -> toCounterparty.counterpartyId,
           "toCounterpartyName"               -> toCounterparty.name,
           "toCounterpartyRoutingAddress"     -> toCounterparty.otherAccountRoutingAddress,
           "toCounterpartyRoutingScheme"      -> toCounterparty.otherAccountRoutingScheme,

@@ -611,12 +611,14 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     
     // toCounterparty
     if( toAccount != null && toCounterparty  == null) {
+      fields.put("toCounterpartyId",                 toAccount.accountId.value)
       fields.put("toCounterpartyName",               toAccount.name)
       fields.put("toCounterpartyRoutingAddress",     toAccount.accountId.value)
       fields.put("toCounterpartyRoutingScheme",      "OBP")
       fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
       fields.put("toCounterpartyBankRoutingScheme",  "OBP")
     } else if( toAccount == null && toCounterparty != null ) {
+      fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
       fields.put("toCounterpartyName",               toCounterparty.name)
       fields.put("toCounterpartyRoutingAddress",     toCounterparty.otherAccountRoutingAddress)
       fields.put("toCounterpartyRoutingScheme",      toCounterparty.otherAccountRoutingScheme)
