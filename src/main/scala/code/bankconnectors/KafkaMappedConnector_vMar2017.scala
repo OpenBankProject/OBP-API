@@ -646,6 +646,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         Map(
           "toCounterpartyId"                 -> toAccount.accountId.value,
           "toCounterpartyName"               -> toAccount.name,
+          "toCounterpartyCurrency"           -> toAccount.currency,
           "toCounterpartyRoutingAddress"     -> toAccount.accountId.value,
           "toCounterpartyRoutingScheme"      -> "OBP",
           "toCounterpartyBankRoutingAddress" -> toAccount.bankId.value,
@@ -655,6 +656,7 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
         Map(
           "toCounterpartyId"                 -> toCounterparty.counterpartyId,
           "toCounterpartyName"               -> toCounterparty.name,
+          "toCounterpartyCurrency"           -> fromAccount.currency, // TODO toCounterparty.currency
           "toCounterpartyRoutingAddress"     -> toCounterparty.otherAccountRoutingAddress,
           "toCounterpartyRoutingScheme"      -> toCounterparty.otherAccountRoutingScheme,
           "toCounterpartyBankRoutingAddress" -> toCounterparty.otherBankRoutingAddress,
@@ -688,13 +690,15 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
       "fromAccountBankId"   -> fromAccount.bankId.value,
 
       // transaction details
-      "transactionId"           -> transactionId,
-      "transactionRequestType"  -> transactionRequestType.value,
-      "transactionAmount"       -> amount.bigDecimal.toString,
-      "transactionCurrency"     -> fromAccount.currency,
-      "transactionChargePolicy" -> chargePolicy,
-      "transactionDescription"  -> description,
-      "transactionPostedDate"   -> postedDate
+      "transactionId"             -> transactionId,
+      "transactionRequestType"    -> transactionRequestType.value,
+      "transactionAmount"         -> amount.bigDecimal.toString,
+      "transactionCurrency"       -> fromAccount.currency,
+      "transactionChargePolicy"   -> chargePolicy,
+      "transactionChargeAmount"   -> "0.0",                // TODO get correct charge amount
+      "transactionChargeCurrency" -> fromAccount.currency, // TODO get correct charge currency 
+      "transactionDescription"    -> description,
+      "transactionPostedDate"     -> postedDate
     ) ++ toCounterpartyReq
 
     val r = process(req)

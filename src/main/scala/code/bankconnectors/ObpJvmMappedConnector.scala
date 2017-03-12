@@ -613,6 +613,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     if( toAccount != null && toCounterparty  == null) {
       fields.put("toCounterpartyId",                 toAccount.accountId.value)
       fields.put("toCounterpartyName",               toAccount.name)
+      fields.put("toCounterpartyCurrency",           toAccount.currency)
       fields.put("toCounterpartyRoutingAddress",     toAccount.accountId.value)
       fields.put("toCounterpartyRoutingScheme",      "OBP")
       fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
@@ -620,6 +621,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     } else if( toAccount == null && toCounterparty != null ) {
       fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
       fields.put("toCounterpartyName",               toCounterparty.name)
+      fields.put("toCounterpartyCurrency",           fromAccount.currency) // TODO toCounterparty.currency
       fields.put("toCounterpartyRoutingAddress",     toCounterparty.otherAccountRoutingAddress)
       fields.put("toCounterpartyRoutingScheme",      toCounterparty.otherAccountRoutingScheme)
       fields.put("toCounterpartyBankRoutingAddress", toCounterparty.otherBankRoutingAddress)
@@ -639,13 +641,15 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     fields.put("fromAccountBankId",   fromAccount.bankId.value)
 
     // transaction details
-    fields.put("transactionId",           transactionId)
-    fields.put("transactionRequestType",  transactionRequestType.value)
-    fields.put("transactionAmount",       amount.bigDecimal.toString)
-    fields.put("transactionCurrency",     fromAccount.currency)
-    fields.put("transactionChargePolicy", chargePolicy)
-    fields.put("transactionDescription",  description)
-    fields.put("transactionPostedDate",   postedDate)
+    fields.put("transactionId",             transactionId)
+    fields.put("transactionRequestType",    transactionRequestType.value)
+    fields.put("transactionAmount",         amount.bigDecimal.toString)
+    fields.put("transactionCurrency",       fromAccount.currency)
+    fields.put("transactionChargePolicy",   chargePolicy)
+    fields.put("transactionChargeAmount",   "0.0") // TODO get correct charge amount
+    fields.put("transactionChargeCurrency", fromAccount.currency) // TODO get correct charge currency 
+    fields.put("transactionDescription",    description)
+    fields.put("transactionPostedDate",     postedDate)
 
     // might be useful, e.g. for tracking purpose, to
     // send id of the user requesting transaction
