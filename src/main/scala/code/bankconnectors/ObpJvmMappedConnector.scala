@@ -636,7 +636,10 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     val userId = AuthUser.getCurrentResourceUserUserId
     val postedDate = ZonedDateTime.now
-    val transactionId = UUID.randomUUID().toString
+    val transactionUUID = UUID.randomUUID().toString
+    // Remove last "-" from UUIID to make it 35-character
+    // long string (8-4-4-4-12 -> 8-4-4-16)
+    val transactionId   = transactionUUID.patch(transactionUUID.lastIndexOf('-'), "", 1)
 
     // fromAccount
     fields.put("fromAccountName",     fromAccount.name)
