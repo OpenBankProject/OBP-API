@@ -582,8 +582,8 @@ trait APIMethods140 extends Loggable with APIMethods130 with APIMethods121{
             hasEntitlements <- booleanToBox(hasAllEntitlements(bankId.value, u.userId, requiredEntitlements), s"$requiredEntitlementsTxt entitlements required")
             checkAvailable <- tryo(assert(Customer.customerProvider.vend.checkCustomerNumberAvailable(bankId, postedData.customer_number) == true)) ?~! ErrorMessages.CustomerNumberAlreadyExists
             user_id <- tryo{if (postedData.user_id.nonEmpty) postedData.user_id else u.userId} ?~ s"Problem getting user_id"
+            customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
-                u,
                 postedData.customer_number,
                 postedData.legal_name,
                 postedData.mobile_phone_number,
