@@ -612,7 +612,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     parameters.put("type", "obp.mar.2017")
 
     // toCounterparty
-    if( toAccount != null && toCounterparty  == null) {
+    if( transactionRequestType.value == "SANDBOX_TAN" ) {
       fields.put("toCounterpartyId",                 toAccount.accountId.value)
       fields.put("toCounterpartyName",               toAccount.name)
       fields.put("toCounterpartyCurrency",           toAccount.currency)
@@ -620,7 +620,8 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       fields.put("toCounterpartyRoutingScheme",      "OBP")
       fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
       fields.put("toCounterpartyBankRoutingScheme",  "OBP")
-    } else if( toAccount == null && toCounterparty != null ) {
+    } else if(  transactionRequestType.value == "SEPA" ||
+                transactionRequestType.value == "COUNTERPARTY") {
       fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
       fields.put("toCounterpartyName",               toCounterparty.name)
       fields.put("toCounterpartyCurrency",           fromAccount.currency) // TODO toCounterparty.currency
@@ -629,7 +630,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
       fields.put("toCounterpartyBankRoutingAddress", toCounterparty.otherBankRoutingAddress)
       fields.put("toCounterpartyBankRoutingScheme",  toCounterparty.otherBankRoutingAddress)
     } else {
-      logger.error(s"error calling saveTransaction: toAccount=${toAccount} toCounterparty=${toCounterparty}")
+      logger.error(s"error calling saveTransaction: transactionRequestType=${transactionRequestType.value}")
       return Empty
     }
 
