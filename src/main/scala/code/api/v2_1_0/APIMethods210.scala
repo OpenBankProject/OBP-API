@@ -1263,7 +1263,6 @@ trait APIMethods210 {
             user_id <- tryo (if (postedData.user_id.nonEmpty) postedData.user_id else u.userId) ?~ s"Problem getting user_id"
             customer_user <- User.findByUserId(user_id) ?~! ErrorMessages.UserNotFoundById
             customer <- Customer.customerProvider.vend.addCustomer(bankId,
-              customer_user,
               postedData.customer_number,
               postedData.legal_name,
               postedData.mobile_phone_number,

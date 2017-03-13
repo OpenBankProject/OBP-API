@@ -435,6 +435,7 @@ object ToSchemify {
     MappedTransactionImage,
     MappedNarrative,
     MappedCustomer,
+    MappedUserCustomerLink,
     MapperAccountHolders
   )
 
@@ -464,7 +465,6 @@ object ToSchemify {
     MappedSocialMedia,
     MappedTransactionType,
     MappedMeeting,
-    MappedUserCustomerLink,
     MappedBankAccountData,
     MappedEntitlement,
     MappedPhysicalCard,

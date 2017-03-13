@@ -201,21 +201,31 @@ case class SaveTransaction(
   version: String,
   userId: String,
   username: String,
-  description: String,
-  transactionRequestType: String,
-  toCurrency: String,
-  toAmount: String,
-  chargePolicy: String,
-  fromBankId: String,
+  
+  // fromAccount
+  fromAccountName: String,
   fromAccountId: String,
-  toBankId: String,
-  toAccountId: String,
+  fromAccountBankId: String,
+  
+  // transaction details
+  transactionId: String,
+  transactionRequestType: String,
+  transactionAmount: String,
+  transactionCurrency: String,
+  transactionChargePolicy: String,
+  transactionChargeAmount: String,
+  transactionChargeCurrency: String,
+  transactionDescription: String,
+  transactionPostedDate: String,
+  
+  // toAccount or toCounterparty
   toCounterpartyId: String,
-  toCounterpartyOtherBankRoutingAddress: String,
-  toCounterpartyOtherAccountRoutingAddress: String,
-  toCounterpartyOtherAccountRoutingScheme: String,
-  toCounterpartyOtherBankRoutingScheme: String,
-  `type`: String
+  toCounterpartyName: String,
+  toCounterpartyCurrency: String,
+  toCounterpartyRoutingAddress: String,
+  toCounterpartyRoutingScheme: String,
+  toCounterpartyBankRoutingAddress: String,
+  toCounterpartyBankRoutingScheme: String
 )
 
 case class GetTransactionRequestStatusesImpl(

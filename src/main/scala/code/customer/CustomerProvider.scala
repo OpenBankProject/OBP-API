@@ -17,7 +17,7 @@ object Customer extends SimpleInjector {
 }
 
 trait CustomerProvider {
-  def getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long): Box[Customer]
+  def getCustomerByUserId(bankId: BankId, userId: String): Box[Customer]
 
   def getCustomerByCustomerId(customerId: String): Box[Customer]
 
@@ -30,7 +30,13 @@ trait CustomerProvider {
   def checkCustomerNumberAvailable(bankId : BankId, customerNumber : String) : Boolean
 
 
-  def addCustomer(bankId: BankId, user: User, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage,
+  def addCustomer(bankId: BankId,
+                  number: String,
+                  legalName: String,
+                  mobileNumber: String,
+                  email: String,
+                  faceImage:
+                  CustomerFaceImage,
                   dateOfBirth: Date,
                   relationshipStatus: String,
                   dependents: Int,
@@ -48,13 +54,18 @@ trait CustomerProvider {
 }
 
 class RemotedataCustomerProviderCaseClasses {
-  case class getCustomerByResourceUserId(bankId: BankId, resourceUserId: Long)
+  case class getCustomerByUserId(bankId: BankId, userId: String)
   case class getCustomerByCustomerId(customerId: String)
   case class getBankIdByCustomerId(customerId: String)
   case class getCustomerByCustomerNumber(customerNumber: String, bankId : BankId)
   case class getUser(bankId : BankId, customerNumber : String)
   case class checkCustomerNumberAvailable(bankId : BankId, customerNumber : String)
-  case class addCustomer(bankId: BankId, user: User, number: String, legalName: String, mobileNumber: String, email: String, faceImage: CustomerFaceImage,
+  case class addCustomer(bankId: BankId,
+                         number: String,
+                         legalName: String,
+                         mobileNumber: String,
+                         email: String,
+                         faceImage: CustomerFaceImage,
                          dateOfBirth: Date,
                          relationshipStatus: String,
                          dependents: Int,

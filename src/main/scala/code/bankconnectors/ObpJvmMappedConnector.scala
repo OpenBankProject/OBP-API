@@ -574,113 +574,92 @@ object ObpJvmMappedConnector extends Connector with Loggable {
   }
 
 
-  protected override def makePaymentImpl(fromAccount: ObpJvmBankAccount, toAccount: ObpJvmBankAccount, toCounterparty: CounterpartyTrait, amt: BigDecimal, description: String, transactionRequestType: TransactionRequestType, chargePolicy: String): Box[TransactionId] = {
-    for {
-    // TODO Do we charge +amt or -amt?
-      sentTransactionId <- saveTransaction(fromAccount, toAccount, amt, description)
-    } yield {
-      logger.info(s"After calling OBP-JVM saveTransaction we have transactionId: $sentTransactionId")
-      sentTransactionId
-    }
+  protected override def makePaymentImpl(fromAccount: ObpJvmBankAccount,
+                                         toAccount: ObpJvmBankAccount,
+                                         toCounterparty: CounterpartyTrait,
+                                         amt: BigDecimal,
+                                         description: String,
+                                         transactionRequestType: TransactionRequestType,
+                                         chargePolicy: String): Box[TransactionId] = {
 
+    val sentTransactionId = saveTransaction(fromAccount,
+                                            toAccount,
+                                            toCounterparty,
+                                            -amt,
+                                            description,
+                                            transactionRequestType,
+                                            chargePolicy)
+
+    sentTransactionId
   }
-
 
   /**
    * Saves a transaction with amount @amt and counterparty @counterparty for account @account. Returns the id
    * of the saved transaction.
    */
-  // TODO: Extend jvmNorth function with parameters transactionRequestId and description
-private def saveTransaction(fromAccount: AccountType, toAccount: AccountType, amt: BigDecimal, description : String): Box[TransactionId] = {
+  private def saveTransaction( fromAccount: ObpJvmBankAccount,
+                               toAccount: ObpJvmBankAccount,
+                               toCounterparty: CounterpartyTrait,
+                               amount: BigDecimal,
+                               description: String,
+                               transactionRequestType: TransactionRequestType,
+                               chargePolicy: String): Box[TransactionId] = {
 
-    val name = AuthUser.getCurrentUserUsername
-    val user = AuthUser.getResourceUserByUsername(name)
-    val userId = for (u <- user) yield u.userId
-    val accountId = fromAccount.accountId.value
-    val accountName = fromAccount.name
-    val bankId = fromAccount.bankId.value
-    val currency = fromAccount.currency
-    val amount = amt.bigDecimal
-    val counterpartyId = toAccount.accountId.value
-    val counterpartyBankId = toAccount.bankId.value
-    val newBalanceCurrency = toAccount.currency
-    val newBalanceAmount = toAccount.balance.bigDecimal
-    val counterpartyName = toAccount.name
-    val completedDate = null
-    val postedDate = ZonedDateTime.now
-    val transactionId:String = UUID.randomUUID().toString
-
-    val `type` = "pain.001.001.03db" // SocGen transactions
-
-
-    // TODO Remove SocGen specific names.
-    // i.e. use OBP CounterPartyTrait, Account, Transaction names on the right side - ideally snake_case as per the OBP REST API.
-
-    // SocGen Tags
-    object Tags {
-      val MESSAGE_ID =                    "grpHdrMsgId"
-      val CTRL_SUM =                      "grpHdrCtrlSum"
-      val PAYMENT_REFERENCE =             "pmtInfId"
-      val CTRL =                          "pmtInfCtrlSum"
-      val EXECUTION_DATE =                "pmtInfReqdExctnDt"
-      val DEBTOR_NAME =                   "dbtrNm"
-      val DEBTOR_ACCOUNT_NUMBER =         "dbtrAcctId"
-      val DEBTOR_ACCOUNT_CURRENCY =       "dbtrAcctCcy"
-      val DEBTOR_BRANCH =                 "dbtrAgtBrnchId"
-      val TRANSACTION_INSTRUCTION_ID =    "pmtIdInstr"
-      val TRANSACTION_ENDTOEND_ID =       "pmtIdEndToEnd"
-      val TRANSACTION_CURRENCY =          "cdtTrfTxInfAmtCcy"
-      val TRANSACTION_AMOUNT =            "cdtTrfTxInfAmt"
-      val TRANSACTION_FEE_CURRENCY =      "cdtTrfTxInfChrgAmtCcy"
-      val TRANSACTION_FEE_AMOUNT =        "cdtTrfTxInfChrgAmt"
-      val BENEFICIARY_BRANCH =            "cdtrAgtBrnchId"
-      val BENEFICIARY_NAME =              "cdtrAgtBrnchNm"
-      val BENEFICIARY_ACCOUNT_NUMBER =    "cdtrAcctId"
-      val BENEFICIARY_ACCOUNT_CURRENCY =  "cdtrAcctCcy"
-      val LABEL_CREDIT_TRANSFER =         "rmtInfUstrd"
-    }
 
     val parameters = new JHashMap
     val fields = new JHashMap
 
-    parameters.put("type",  `type`)
+    parameters.put("type", "obp.mar.2017")
 
-    /*
-    fields.put("accountId", accountId)
-    fields.put("amount", amount)
-    fields.put("bankId", bankId)
-    fields.put("completedDate", completedDate)
-    fields.put("counterPartyId", counterpartyId)
-    fields.put("counterPartyName", counterpartyName)
-    fields.put("currency", currency)
-    fields.put("description", description)
-    fields.put("newBalanceAmount", newBalanceAmount)
-    fields.put("newBalanceCurrency", newBalanceCurrency)
-    fields.put("postedDate", postedDate)
-    fields.put("transactionId", transactionId)
-    fields.put("userId", userId)
-    */
+    // toCounterparty
+    if( transactionRequestType.value == "SANDBOX_TAN" ) {
+      fields.put("toCounterpartyId",                 toAccount.accountId.value)
+      fields.put("toCounterpartyName",               toAccount.name)
+      fields.put("toCounterpartyCurrency",           toAccount.currency)
+      fields.put("toCounterpartyRoutingAddress",     toAccount.accountId.value)
+      fields.put("toCounterpartyRoutingScheme",      "OBP")
+      fields.put("toCounterpartyBankRoutingAddress", toAccount.bankId.value)
+      fields.put("toCounterpartyBankRoutingScheme",  "OBP")
+    } else if(  transactionRequestType.value == "SEPA" ||
+                transactionRequestType.value == "COUNTERPARTY") {
+      fields.put("toCounterpartyId",                 toCounterparty.counterpartyId)
+      fields.put("toCounterpartyName",               toCounterparty.name)
+      fields.put("toCounterpartyCurrency",           fromAccount.currency) // TODO toCounterparty.currency
+      fields.put("toCounterpartyRoutingAddress",     toCounterparty.otherAccountRoutingAddress)
+      fields.put("toCounterpartyRoutingScheme",      toCounterparty.otherAccountRoutingScheme)
+      fields.put("toCounterpartyBankRoutingAddress", toCounterparty.otherBankRoutingAddress)
+      fields.put("toCounterpartyBankRoutingScheme",  toCounterparty.otherBankRoutingAddress)
+    } else {
+      logger.error(s"error calling saveTransaction: transactionRequestType=${transactionRequestType.value}")
+      return Empty
+    }
 
-    fields.put(Tags.MESSAGE_ID,                   transactionId)
-    fields.put(Tags.CTRL,                         "1")
-    fields.put(Tags.CTRL_SUM,                     amount.toString)
-    fields.put(Tags.DEBTOR_ACCOUNT_CURRENCY,      currency)
-    fields.put(Tags.BENEFICIARY_ACCOUNT_CURRENCY, newBalanceCurrency)
-    fields.put(Tags.BENEFICIARY_ACCOUNT_NUMBER,   counterpartyId)
-    fields.put(Tags.BENEFICIARY_BRANCH,           counterpartyBankId)
-    fields.put(Tags.BENEFICIARY_NAME,             counterpartyName)
-    fields.put(Tags.DEBTOR_ACCOUNT_NUMBER,        accountId)
-    fields.put(Tags.DEBTOR_BRANCH,                bankId)
-    fields.put(Tags.DEBTOR_NAME,                  accountName)
-    fields.put(Tags.EXECUTION_DATE,               postedDate)
-    fields.put(Tags.LABEL_CREDIT_TRANSFER,        description)
-    fields.put(Tags.PAYMENT_REFERENCE,            transactionId)
-    fields.put(Tags.TRANSACTION_AMOUNT,           amount.toString)
-    fields.put(Tags.TRANSACTION_CURRENCY,         currency)
-    fields.put(Tags.TRANSACTION_ENDTOEND_ID,      transactionId)
-    fields.put(Tags.TRANSACTION_FEE_AMOUNT,       "0.00")
-    fields.put(Tags.TRANSACTION_FEE_CURRENCY,     currency)
-    fields.put(Tags.TRANSACTION_INSTRUCTION_ID,   transactionId)
+    val userId = AuthUser.getCurrentResourceUserUserId
+    val postedDate = ZonedDateTime.now
+    val transactionUUID = UUID.randomUUID().toString
+    // Remove last "-" from UUIID to make it 35-character
+    // long string (8-4-4-4-12 -> 8-4-4-16)
+    val transactionId   = transactionUUID.patch(transactionUUID.lastIndexOf('-'), "", 1)
+
+    // fromAccount
+    fields.put("fromAccountName",     fromAccount.name)
+    fields.put("fromAccountId",       fromAccount.accountId.value)
+    fields.put("fromAccountBankId",   fromAccount.bankId.value)
+
+    // transaction details
+    fields.put("transactionId",             transactionId)
+    fields.put("transactionRequestType",    transactionRequestType.value)
+    fields.put("transactionAmount",         amount.bigDecimal.toString)
+    fields.put("transactionCurrency",       fromAccount.currency)
+    fields.put("transactionChargePolicy",   chargePolicy)
+    fields.put("transactionChargeAmount",   "0.0") // TODO get correct charge amount
+    fields.put("transactionChargeCurrency", fromAccount.currency) // TODO get correct charge currency
+    fields.put("transactionDescription",    description)
+    fields.put("transactionPostedDate",     postedDate)
+
+    // might be useful, e.g. for tracking purpose, to
+    // send id of the user requesting transaction
+    fields.put("userId", AuthUser.getCurrentResourceUserUserId)
 
 
     logger.info(s"Before calling jvmNorth.put createTransaction transactionId is: $transactionId")

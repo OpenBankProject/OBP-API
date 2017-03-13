@@ -25,6 +25,8 @@ Berlin 13359, Germany
 
 import java.text.{DateFormat, SimpleDateFormat}
 import java.util.{Date, Locale, UUID}
+import java.time.ZoneOffset.UTC
+import java.time.ZonedDateTime
 
 import code.accountholder.AccountHolders
 import code.api.util.APIUtil.{MessageDocs, ResourceDoc}
@@ -852,25 +854,35 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
     kafkaConnectorVersion = formatVersion,
     description = "saveTransaction from kafka",
     exampleRequestMessage = Extraction.decompose(SaveTransaction(
-      action = "obp.put.Transaction",
-      version = formatVersion,
+      action = "",
+      version = "",
       userId = "",
       username = "",
-      description = "",
-      transactionRequestType = "",
-      toCurrency = "",
-      toAmount = "",
-      chargePolicy = "",
-      fromBankId = "",
+  
+      // fromAccount
+      fromAccountName = "",
       fromAccountId = "",
-      toBankId = "",
-      toAccountId = "",
+      fromAccountBankId = "",
+  
+      // transaction details
+      transactionId = "",
+      transactionRequestType = "",
+      transactionAmount = "",
+      transactionCurrency = "",
+      transactionChargePolicy = "",
+      transactionChargeAmount = "",
+      transactionChargeCurrency = "",
+      transactionDescription = "",
+      transactionPostedDate = "",
+  
+      // toAccount or toCounterparty
       toCounterpartyId = "",
-      toCounterpartyOtherBankRoutingAddress = "",
-      toCounterpartyOtherAccountRoutingAddress = "",
-      toCounterpartyOtherAccountRoutingScheme = "",
-      toCounterpartyOtherBankRoutingScheme = "",
-      `type` = "")),
+      toCounterpartyName = "",
+      toCounterpartyCurrency = "",
+      toCounterpartyRoutingAddress = "",
+      toCounterpartyRoutingScheme = "",
+      toCounterpartyBankRoutingAddress = "",
+      toCounterpartyBankRoutingScheme  = "")),
     exampleResponseMessage = emptyObjectJson,
     errorResponseMessages = emptyObjectJson :: Nil
   )
@@ -885,42 +897,87 @@ object KafkaMappedConnector_vMar2017 extends Connector with Loggable {
                               amount: BigDecimal,
                               description: String,
                               transactionRequestType: TransactionRequestType,
-                              chargePolicy: String) = {
+                              chargePolicy: String): Box[TransactionId] = {
+  
+    val postedDate = ZonedDateTime.now.toString
+    val transactionId = UUID.randomUUID().toString
+  
+    val req =
+      if (toAccount != null && toCounterparty == null) {
+        SaveTransaction(
+          action = "obp.put.Transaction",
+          version = formatVersion,
+          userId = AuthUser.getCurrentResourceUserUserId,
+          username = AuthUser.getCurrentUserUsername,
+        
+          // fromAccount
+          fromAccountName = fromAccount.name,
+          fromAccountId = fromAccount.accountId.value,
+          fromAccountBankId = fromAccount.bankId.value,
+        
+          // transaction details
+          transactionId = transactionId,
+          transactionRequestType = transactionRequestType.value,
+          transactionAmount = amount.bigDecimal.toString,
+          transactionCurrency = fromAccount.currency,
+          transactionChargePolicy = chargePolicy,
+          transactionChargeAmount = "0.0", // TODO get correct charge amount
+          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency 
+          transactionDescription = description,
+          transactionPostedDate = postedDate,
+        
+          // toAccount or toCounterparty
+          toCounterpartyId = toAccount.accountId.value,
+          toCounterpartyName = toAccount.name,
+          toCounterpartyCurrency = toAccount.currency,
+          toCounterpartyRoutingAddress = toAccount.accountId.value,
+          toCounterpartyRoutingScheme = "OBP",
+          toCounterpartyBankRoutingAddress = toAccount.bankId.value,
+          toCounterpartyBankRoutingScheme = "OBP")
+      } else {
+        SaveTransaction(
+          action = "obp.put.Transaction",
+          version = formatVersion,
+          userId = AuthUser.getCurrentResourceUserUserId,
+          username = AuthUser.getCurrentUserUsername,
+        
+          // fromAccount
+          fromAccountName = fromAccount.name,
+          fromAccountId = fromAccount.accountId.value,
+          fromAccountBankId = fromAccount.bankId.value,
+        
+          // transaction details
+          transactionId = transactionId,
+          transactionRequestType = transactionRequestType.value,
+          transactionAmount = amount.bigDecimal.toString,
+          transactionCurrency = fromAccount.currency,
+          transactionChargePolicy = chargePolicy,
+          transactionChargeAmount = "0.0", // TODO get correct charge amount
+          transactionChargeCurrency = fromAccount.currency, // TODO get correct charge currency 
+          transactionDescription = description,
+          transactionPostedDate = postedDate,
+        
+          // toAccount or toCounterparty
+          toCounterpartyId = toCounterparty.counterpartyId,
+          toCounterpartyName = toCounterparty.name,
+          toCounterpartyCurrency = fromAccount.currency, // TODO toCounterparty.currency
+          toCounterpartyRoutingAddress = toCounterparty.otherAccountRoutingAddress,
+          toCounterpartyRoutingScheme = toCounterparty.otherAccountRoutingScheme,
+          toCounterpartyBankRoutingAddress = toCounterparty.otherBankRoutingAddress,
+          toCounterpartyBankRoutingScheme = toCounterparty.otherBankRoutingScheme)
+      } 
 
-    val transactionTime = now
-    val currency = fromAccount.currency
+    if ( toAccount == null && toCounterparty == null ) {
+        logger.error(s"error calling saveTransaction: toAccount=${toAccount} toCounterparty=${toCounterparty}")
+        return Empty
+    }
 
-    //update the balance of the account for which a transaction is being created
-    //val newAccountBalance : Long = account.balance.toLong + Helper.convertToSmallestCurrencyUnits(amount, account.currency)
-    //account.balance = newAccountBalance
-
-    val req = SaveTransaction(
-      action = "obp.put.Transaction",
-      version = formatVersion,
-      userId = AuthUser.getCurrentResourceUserUserId,
-      username = AuthUser.getCurrentUserUsername,
-      description = description,
-      transactionRequestType = transactionRequestType.value,
-      toCurrency = currency, //Now, http request currency must equal fromAccount.currency
-      toAmount = amount.toString,
-      chargePolicy = chargePolicy,
-      fromBankId = fromAccount.bankId.value,
-      fromAccountId = fromAccount.accountId.value,
-      toBankId = toAccount.bankId.value,
-      toAccountId = toAccount.accountId.value,
-      toCounterpartyId = toCounterparty.counterpartyId,
-      toCounterpartyOtherBankRoutingAddress = toCounterparty.otherBankRoutingAddress,
-      toCounterpartyOtherAccountRoutingAddress = toCounterparty.otherAccountRoutingAddress,
-      toCounterpartyOtherAccountRoutingScheme = toCounterparty.otherAccountRoutingScheme,
-      toCounterpartyOtherBankRoutingScheme = toCounterparty.otherBankRoutingScheme,
-      `type` = "AC")
-    
     // Since result is single account, we need only first list entry
     val r = process(req)
 
     r.extract[KafkaInboundTransactionId] match {
       case r: KafkaInboundTransactionId => Full(TransactionId(r.transactionId))
-      case _ => Full(TransactionId("0"))
+      case _ => Empty 
     }
 
   }
