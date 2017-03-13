@@ -126,9 +126,6 @@ trait Connector {
     } yield a
   }
 
-  case class InboundUser( email : String,
-                          password : String,
-                          display_name : String )
 
   def getUser(name: String, password: String): Box[InboundUser]
 
