@@ -608,7 +608,9 @@ object ObpJvmMappedConnector extends Connector with Loggable {
 
     val parameters = new JHashMap
     val fields = new JHashMap
-    
+
+    parameters.put("type", "obp.mar.2017")
+
     // toCounterparty
     if( toAccount != null && toCounterparty  == null) {
       fields.put("toCounterpartyId",                 toAccount.accountId.value)
@@ -647,7 +649,7 @@ object ObpJvmMappedConnector extends Connector with Loggable {
     fields.put("transactionCurrency",       fromAccount.currency)
     fields.put("transactionChargePolicy",   chargePolicy)
     fields.put("transactionChargeAmount",   "0.0") // TODO get correct charge amount
-    fields.put("transactionChargeCurrency", fromAccount.currency) // TODO get correct charge currency 
+    fields.put("transactionChargeCurrency", fromAccount.currency) // TODO get correct charge currency
     fields.put("transactionDescription",    description)
     fields.put("transactionPostedDate",     postedDate)
 
