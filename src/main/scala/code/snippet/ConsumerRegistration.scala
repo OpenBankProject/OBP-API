@@ -33,11 +33,11 @@ package code.snippet
 
 import code.model._
 import code.model.dataAccess.AuthUser
-import net.liftweb.http.{RequestVar, S}
-import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
-import net.liftweb.common.{Empty, Loggable}
+import net.liftweb.common.{Empty, Full, Loggable}
+import net.liftweb.http.{RequestVar, S, SHtml}
 import net.liftweb.util.Helpers._
-import net.liftweb.http.SHtml
+import net.liftweb.util.{CssSel, FieldError, Helpers, Props}
+import code.consumer.Consumers
 
 class ConsumerRegistration extends Loggable {
 
@@ -113,15 +113,15 @@ class ConsumerRegistration extends Loggable {
     }
 
     def saveAndShowResults(consumer : Consumer) = {
-      consumer.isActive(true).
-        key(Helpers.randomString(40).toLowerCase).
-        secret(Helpers.randomString(40).toLowerCase).
-        save
+      val c = Consumers.consumers.vend.updateConsumer(consumer.id, Some(Helpers.randomString(40).toLowerCase), Some(Helpers.randomString(40).toLowerCase), Some(true), None, None, None, None, None, None)
+      val result = c match {
+        case Full(x) => x
+        case _       => consumer
+      }
+      notifyRegistrationOccurred(result)
+      sendEmailToDeveloper(result)
 
-      notifyRegistrationOccurred(consumer)
-      sendEmailToDeveloper(consumer)
-
-      showResults(consumer)
+      showResults(result)
     }
 
     def showErrors(errors : List[FieldError]) = {
@@ -152,16 +152,9 @@ class ConsumerRegistration extends Loggable {
 
       val appTypeSelected = withNameOpt(appType.is)
 
-      val consumer =
-        Consumer.create.
-          name(nameVar.is).
-          appType(appTypeSelected.get).
-          description(descriptionVar.is).
-          developerEmail(devEmailVar.is).
-          redirectURL(redirectionURLVar.is).
-          createdByUserId(AuthUser.getCurrentResourceUserUserId)
-      
-      val errors = consumer.validate
+      val consumer = Consumers.consumers.vend.createConsumer(None, None, None, Some(nameVar.is), Some(appTypeSelected.get), Some(descriptionVar.is), Some(devEmailVar.is), Some(redirectionURLVar.is), Some(AuthUser.getCurrentResourceUserUserId))
+
+      val errors = consumer.get.validate
       nameVar.set(nameVar.is)
       appTypeVar.set(appTypeSelected.get)
       descriptionVar.set(descriptionVar.is)
@@ -173,7 +166,7 @@ class ConsumerRegistration extends Loggable {
       else if(descriptionVar.isEmpty)
         showErrorsForDescription("Description of the application can not be empty !")
       else if(errors.isEmpty)
-        saveAndShowResults(consumer)
+        saveAndShowResults(consumer.get)
       else
         showErrors(errors)
     }

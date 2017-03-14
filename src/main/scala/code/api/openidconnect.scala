@@ -162,7 +162,7 @@ object OpenIdConnect extends OBPRestHelper with Loggable {
     val token = Token.create
     token.tokenType(TokenType.Access)
     // TODO Consumer is not needed with oauth2/openid or is it?
-    //Consumer.find(By(Consumer.key, directLoginParameters.getOrElse("consumer_key", ""))) match {
+    //Consumers.consumers.vend.getConsumerByConsumerKey(directLoginParameters.getOrElse("consumer_key", "")) match {
     //  case Full(consumer) => token.consumerId(consumer.id)
     //  case _ => None
     //}

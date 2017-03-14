@@ -33,6 +33,7 @@ package code.api
 
 
 import code.api.util.APIUtil.OAuth
+import code.consumer.Consumers
 import code.model.{Consumer, Token}
 import dispatch.Defaults._
 import dispatch._
@@ -121,7 +122,7 @@ trait SendServerRequests {
   }
 
   def getConsumerSecret(consumerKey : String ) : String = {
-    Consumer.find(By(Consumer.key,consumerKey)) match {
+    Consumers.consumers.vend.getConsumerByConsumerKey(consumerKey) match {
       case Full(c) => c.secret
       case _ => ""
     }
